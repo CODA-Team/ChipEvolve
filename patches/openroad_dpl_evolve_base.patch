@@ -22,7 +22,7 @@ index 7e115df69e..e3e2acb2e3 100644
    drt::TritonRoute* getTritonRoute();
    fin::Finale* getFinale();
 diff --git a/include/ord/OpenRoad.hh b/include/ord/OpenRoad.hh
-index d41b731907..774e8f443b 100644
+index d41b731907..f025d14a05 100644
 --- a/include/ord/OpenRoad.hh
 +++ b/include/ord/OpenRoad.hh
 @@ -58,6 +58,10 @@ namespace dpl {
@@ -36,24 +36,6 @@ index d41b731907..774e8f443b 100644
  namespace fin {
  class Finale;
  }
-@@ -108,7 +112,7 @@ class ICeWall;
- 
- namespace utl {
- class Logger;
--class ServiceRegistry;
-+class CallBackHandler;
- }  // namespace utl
- 
- namespace dst {
-@@ -151,7 +155,7 @@ class OpenRoad
- 
-   Tcl_Interp* tclInterp() { return tcl_interp_; }
-   utl::Logger* getLogger() { return logger_; }
--  utl::ServiceRegistry* getServiceRegistry() { return service_registry_; }
-+  utl::CallBackHandler* getCallBackHandler() { return callback_handler_; }
-   odb::dbDatabase* getDb() { return db_; }
-   sta::dbSta* getSta() { return sta_; }
-   sta::dbNetwork* getDbNetwork();
 @@ -161,6 +165,7 @@ class OpenRoad
    cts::TritonCTS* getTritonCts() { return tritonCts_; }
    dbVerilogNetwork* getVerilogNetwork() { return verilog_network_; }
@@ -70,15 +52,6 @@ index d41b731907..774e8f443b 100644
    fin::Finale* finale_ = nullptr;
    ram::RamGen* ram_gen_ = nullptr;
    mpl::MacroPlacer* macro_placer_ = nullptr;
-@@ -288,7 +294,7 @@ class OpenRoad
-   dft::Dft* dft_ = nullptr;
-   est::EstimateParasitics* estimate_parasitics_ = nullptr;
-   web::WebServer* web_server_ = nullptr;
--  utl::ServiceRegistry* service_registry_ = nullptr;
-+  utl::CallBackHandler* callback_handler_ = nullptr;
- 
-   int threads_ = 1;
- 
 diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
 index 796848182e..da0370fcdd 100755
 --- a/src/CMakeLists.txt
@@ -147,7 +120,7 @@ index 3d0b5b5315..1020e167bb 100644
    X(web)                                 \
    X(ppl)                                 \
 diff --git a/src/OpenRoad.cc b/src/OpenRoad.cc
-index 5570f6843f..cec68268a5 100644
+index 5570f6843f..e9e8ec8e56 100644
 --- a/src/OpenRoad.cc
 +++ b/src/OpenRoad.cc
 @@ -34,6 +34,8 @@
@@ -159,19 +132,6 @@ index 5570f6843f..cec68268a5 100644
  #include "drt/MakeTritonRoute.h"
  #include "drt/TritonRoute.h"
  #include "dst/Distributed.h"
-@@ -83,11 +85,11 @@
- #include "tap/MakeTapcell.h"
- #include "tap/tapcell.h"
- #include "upf/MakeUpf.h"
-+#include "utl/CallBackHandler.h"
- #include "utl/Logger.h"
- #include "utl/MakeLogger.h"
- #include "utl/Progress.h"
- #include "utl/ScopedTemporaryFile.h"
--#include "utl/ServiceRegistry.h"
- #include "utl/decode.h"
- #include "web/MakeWeb.h"
- #include "web/web.h"
 @@ -125,6 +127,7 @@ OpenRoad::~OpenRoad()
    delete ioPlacer_;
    delete resizer_;
@@ -180,53 +140,14 @@ index 5570f6843f..cec68268a5 100644
    delete global_router_;
    delete restructure_;
    delete clock_gating_;
-@@ -150,7 +153,7 @@ OpenRoad::~OpenRoad()
-   delete web_server_;
-   delete logger_;
-   delete verilog_reader_;
--  delete service_registry_;
-+  delete callback_handler_;
- }
- 
- sta::dbNetwork* OpenRoad::getDbNetwork()
-@@ -195,7 +198,7 @@ void OpenRoad::init(Tcl_Interp* tcl_interp,
-   // Make components.
-   utl::Progress::setBatchMode(batch_mode);
-   logger_ = new utl::Logger(log_filename, metrics_filename);
--  service_registry_ = new utl::ServiceRegistry(logger_);
-+  callback_handler_ = new utl::CallBackHandler(logger_);
-   db_->setLogger(logger_);
-   sta_ = new sta::dbSta(tcl_interp, db_, logger_);
-   verilog_network_ = new dbVerilogNetwork(sta_);
-@@ -203,8 +206,9 @@ void OpenRoad::init(Tcl_Interp* tcl_interp,
+@@ -203,6 +206,7 @@ void OpenRoad::init(Tcl_Interp* tcl_interp,
    stt_builder_ = new stt::SteinerTreeBuilder(db_, logger_);
    antenna_checker_ = new ant::AntennaChecker(db_, logger_);
    opendp_ = new dpl::Opendp(db_, logger_);
 +  opendp_evolve_ = new dpl_evolve::Opendp(db_, logger_);
    global_router_ = new grt::GlobalRouter(logger_,
--                                         service_registry_,
-+                                         callback_handler_,
+                                          service_registry_,
                                           stt_builder_,
-                                          db_,
-                                          sta_,
-@@ -213,7 +217,7 @@ void OpenRoad::init(Tcl_Interp* tcl_interp,
-   grt::initGui(global_router_, db_, logger_);
- 
-   estimate_parasitics_ = new est::EstimateParasitics(
--      logger_, service_registry_, db_, sta_, stt_builder_, global_router_);
-+      logger_, callback_handler_, db_, sta_, stt_builder_, global_router_);
-   est::initGui(estimate_parasitics_);
- 
-   resizer_ = new rsz::Resizer(logger_,
-@@ -240,7 +244,7 @@ void OpenRoad::init(Tcl_Interp* tcl_interp,
-   extractor_ = new rcx::Ext(db_, logger_, getVersion());
-   distributer_ = new dst::Distributed(logger_);
-   detailed_router_ = new drt::TritonRoute(
--      db_, logger_, service_registry_, distributer_, stt_builder_);
-+      db_, logger_, callback_handler_, distributer_, stt_builder_);
-   drt::initGui(detailed_router_);
- 
-   replace_ = new gpl::Replace(db_, sta_, resizer_, global_router_, logger_);
 @@ -277,6 +281,7 @@ void OpenRoad::init(Tcl_Interp* tcl_interp,
    gpl::initReplace(tcl_interp);
    gpl::initReplaceGraphics(replace_, logger_);

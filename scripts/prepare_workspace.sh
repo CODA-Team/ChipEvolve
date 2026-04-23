@@ -152,11 +152,22 @@ apply_patch_if_needed() {
 commit_if_dirty() {
   local repo_root="$1"
   local message="$2"
+  shift 2
   if [[ "${skip_commit}" -eq 1 ]]; then
     return
   fi
   if [[ -n "$(git -C "${repo_root}" status --short)" ]]; then
-    git -C "${repo_root}" add -A
+    if [[ $# -gt 0 ]]; then
+      git -C "${repo_root}" add -A -- "$@"
+    elif [[ "${repo_root}" == "${workspace_root}" ]]; then
+      git -C "${repo_root}" add -A -- . \
+        ":(exclude)evolve_agent" \
+        ":(exclude)evolve_agent/**" \
+        ":(exclude)tools/OpenROAD" \
+        ":(exclude)tools/OpenROAD/**"
+    else
+      git -C "${repo_root}" add -A
+    fi
     git -C "${repo_root}" commit -m "${message}"
   fi
 }
@@ -177,7 +188,7 @@ apply_patch_if_needed "${workspace_root}" "${orfs_make_patch}" "ORFS"
 apply_patch_if_needed "${workspace_root}/tools/OpenROAD" "${openroad_patch}" "OpenROAD"
 
 commit_if_dirty "${workspace_root}/tools/OpenROAD" "Prepare clean dpl_evolve base"
-commit_if_dirty "${workspace_root}" "Prepare ORFS overlay for dpl_evolve_agent"
+commit_if_dirty "${workspace_root}" "Prepare ORFS overlay for dpl_evolve_agent" flow/Makefile
 
 echo "[INFO] prepare complete"
 echo "[INFO] workspace_root=${workspace_root}"
