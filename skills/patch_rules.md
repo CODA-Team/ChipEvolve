@@ -24,6 +24,8 @@ Codex edits **only the bounded legalizer surfaces** unless a task explicitly exp
 For loop-driven bounded patch turns, do not inspect or edit `flow/Makefile`,
 `flow/designs/*/config.mk`, or other artifact-plane files unless the task
 explicitly asks for runner/config changes.
+Do not open archive protocols, delta ledgers, or stage-context notes when the
+current run packet already gives the active patch surface and hard gates.
 
 ## Patch style
 - make small, mechanism-specific edits

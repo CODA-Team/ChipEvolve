@@ -39,6 +39,10 @@ For those loop-driven turns, the minimum read set is:
 4. the target-plane file you plan to patch
 
 Do not expand the read set unless you are blocked.
+Do not open `tasks/archive/*`, `knowledge/stage_context/*`,
+`knowledge/delta_ledger/*`, `knowledge/design_profiles/*`, or repo-wide
+README files during a bounded patch turn if the packet already gives you the
+needed fact.
 
 ## Research budget
 
@@ -53,6 +57,9 @@ Do not spend time re-deriving:
 
 If the packet and prompt already provide a fact, treat it as authoritative for
 that attempt.
+
+Patch after one target-file read whenever possible. Do not perform a broad repo
+survey before the first bounded edit.
 
 ## Boundaries
 

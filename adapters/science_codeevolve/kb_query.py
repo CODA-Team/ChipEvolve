@@ -1,16 +1,4 @@
-"""
-Compile a compact packet for Codex.
-
-Input:
-- problem.yaml
-- selected patch surface
-- selected playbook
-Output:
-- current_run_packet.md
-- current_run_packet.json
-
-This first version is intentionally simple and deterministic.
-"""
+"""Compile a compact, authoritative packet for loop-driven Codex turns."""
 from __future__ import annotations
 
 import argparse
@@ -20,7 +8,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 try:
     import yaml
@@ -42,10 +30,6 @@ except ModuleNotFoundError:
 
 def load_yaml(path: Path) -> Any:
     return yaml.safe_load(path.read_text())
-
-
-def load_json(path: Path) -> Any:
-    return json.loads(path.read_text())
 
 
 def build_packet(problem_dir: Path, out_dir: Path) -> Dict[str, Any]:
@@ -70,26 +54,14 @@ def build_packet(problem_dir: Path, out_dir: Path) -> Dict[str, Any]:
         )
     kb_root = repo_root / "evolve_agent" / "knowledge"
 
-    stage = load_yaml(kb_root / "stage_context" / "detail_place_stack.yaml")
-    nblg = load_yaml(kb_root / "delta_ledger" / "nblg_to_openroad.yaml")
-    legalm = load_yaml(kb_root / "delta_ledger" / "legalm_to_openroad.yaml")
-    design = problem.get("design", "gcd")
-    platform = problem.get("platform", "nangate45")
-    profile = load_json(kb_root / "design_profiles" / f"{design}_{platform}.json")
-
     packet = {
         "run_id": "TODO_FILL_RUN_ID",
         "problem": problem["name"],
-        "design_profile": profile,
         "objective": {
             "primary": problem["objective"]["primary"],
             "guardrails": problem["objective"]["guardrails"],
         },
-        "stage_context": {
-            "selected_track": problem["evaluation_track"],
-            "key_includes": stage["tracks"]["strict_legalizer"]["include"],
-            "key_excludes": stage["tracks"]["strict_legalizer"]["exclude"],
-        },
+        "selected_track": problem["evaluation_track"],
         "selected_patch_surface": {
             "file": problem["patch_surface"][0],
             "allowed_functions_or_regions": [
@@ -113,44 +85,26 @@ def build_packet(problem_dir: Path, out_dir: Path) -> Dict[str, Any]:
             "do_not_recheck": [
                 "whether 3_4_place_resized.odb exists",
                 "whether config changes would retrigger place",
-                "flow defaults already summarized here",
+                "flow defaults or runner behavior outside the target plane",
             ],
         },
-        "code_atlas_excerpt": {
-            "commands": ["detailed_placement", "check_placement"],
-            "cpp_entries": ["Opendp::detailedPlacement"],
-        },
-        "delta_ledger_excerpt": {
-            "implemented_or_partial": nblg["delta_assessment"]["likely_present_or_partially_present"],
-            "missing_or_disabled": nblg["delta_assessment"]["likely_missing_or_incomplete_or_disabled"],
-            "implications": [
-                "Prefer NBLG-informed mutation first.",
-                "Use LEGALM ideas mainly for initialization/escape/refinement."
-            ],
-        },
-        "selected_playbook": {
-            "family": "negotiation_cost_family",
-            "mechanisms": [
-                "max-displacement penalty rebalance",
-                "adaptive penalty schedule tweak",
-            ],
-            "telemetry_needed": [
-                "HPWL before/after",
-                "avg displacement",
-                "max displacement",
-                "runtime",
-            ],
+        "do_not_read": [
+            "tasks/archive/*",
+            "knowledge/stage_context/*",
+            "knowledge/delta_ledger/*",
+            "knowledge/design_profiles/*",
+            "flow/Makefile",
+            "flow/scripts/*",
+            "flow/designs/*/config.mk",
+        ],
+        "preferred_start": {
+            "file": problem["patch_surface"][0],
+            "first_action": "inspect one target-plane file, apply one bounded patch, then stop",
         },
         "hard_gates": [
             "legality",
             "metrics.json present",
             "runtime bounded",
-        ],
-        "run_checklist": [
-            "Read packet and patch_rules.md",
-            "Inspect one target-plane file",
-            "Apply one bounded patch",
-            "Stop and let the outer loop build/evaluate",
         ],
     }
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -161,25 +115,19 @@ def build_packet(problem_dir: Path, out_dir: Path) -> Dict[str, Any]:
         "",
         f"- problem: {packet['problem']}",
         f"- primary objective: {packet['objective']['primary']}",
-        f"- selected track: {packet['stage_context']['selected_track']}",
+        f"- selected track: {packet['selected_track']}",
         f"- patch surface: {packet['selected_patch_surface']['file']}",
         "",
         "## Outer loop contract",
         *[f"- outer loop owns: {x}" for x in packet["outer_loop_contract"]["owns"]],
         *[f"- do not recheck: {x}" for x in packet["outer_loop_contract"]["do_not_recheck"]],
         "",
-        "## Key includes",
-        *[f"- {x}" for x in packet["stage_context"]["key_includes"]],
+        "## Do not read for this turn",
+        *[f"- {x}" for x in packet["do_not_read"]],
         "",
-        "## Key excludes",
-        *[f"- {x}" for x in packet["stage_context"]["key_excludes"]],
-        "",
-        "## NBLG / OpenROAD delta highlights",
-        *[f"- {x}" for x in packet["delta_ledger_excerpt"]["missing_or_disabled"]],
-        "",
-        "## Selected playbook",
-        f"- family: {packet['selected_playbook']['family']}",
-        *[f"- {x}" for x in packet["selected_playbook"]["mechanisms"]],
+        "## Preferred start",
+        f"- file: {packet['preferred_start']['file']}",
+        f"- action: {packet['preferred_start']['first_action']}",
         "",
         "## Hard gates",
         *[f"- {x}" for x in packet["hard_gates"]],

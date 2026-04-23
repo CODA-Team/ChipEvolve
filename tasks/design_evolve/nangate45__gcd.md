@@ -3,7 +3,7 @@
 You are working in `OpenROAD-flow-scripts`.
 
 Goal:
-- perform one bounded code-evolve iteration for `./designs/nangate45/gcd/config.mk`
+- perform one bounded patch iteration for the `nangate45/gcd` legalizer case
 - assume basic place is already done by others
 - reuse an existing `FLOW_VARIANT` that already contains `3_4_place_resized.odb`
 - do **not** rerun place
@@ -23,6 +23,10 @@ Loop contract:
   unless the task explicitly expands beyond the target plane
 - the reusable place snapshot has already been validated by the outer loop
 - the baseline evaluator has already run before Codex is invoked
+- do not open archive protocols, delta ledgers, or stage-context notes unless
+  the packet is missing a required fact
+- start from `tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.cpp`
+  unless the packet explicitly names another file
 
 Preferred evaluator entrypoint:
 
