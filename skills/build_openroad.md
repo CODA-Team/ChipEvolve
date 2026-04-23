@@ -24,6 +24,9 @@ Compile the current `tools/OpenROAD` tree after a candidate patch.
 5. For the clean root binary, use the same OpenROAD-only build path without a
    variant env file:
    - `./evolve_agent/scripts/build_openroad_only.sh 8`
+   - the initial OpenROAD-only configure disables OpenROAD tests by default
+   - to keep tests on for debugging, set:
+     `OPENROAD_DISABLE_TESTS=0`
 6. Treat these files as the primary build evidence:
    - OpenROAD build log: `tools/OpenROAD/build/openroad_build.log`
    - installed binary from the active env:

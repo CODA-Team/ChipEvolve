@@ -129,7 +129,8 @@ The loop we want is intentionally small:
 4. Let Codex patch only the allowed target-plane files.
 5. Build through `scripts/build_openroad_only.sh`, or through a sourced
    variant `variant_env.sh` plus `scripts/build_openroad_only.sh` for
-   family-specific binaries.
+   family-specific binaries. The first OpenROAD-only configure disables
+   OpenROAD tests by default.
 6. Run one canonical baseline/evolve line or the full suite through the existing
    baseline scripts.
 7. Read `flow/reports/.../metrics.json`.

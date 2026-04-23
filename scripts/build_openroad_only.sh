@@ -30,9 +30,16 @@ INSTALL_BIN="${OPENROAD_BINARY:-${INSTALL_ROOT}/bin/openroad}"
 THREADS="${1:-8}"
 INCREMENTAL_TARGETS_RAW="${OPENROAD_INCREMENTAL_TARGETS:-openroad}"
 INITIAL_CMAKE_ARGS_RAW="${OPENROAD_INITIAL_CMAKE_ARGS:-}"
+DISABLE_TESTS_RAW="${OPENROAD_DISABLE_TESTS:-1}"
+DISABLE_GUI_RAW="${OPENROAD_DISABLE_GUI:-0}"
 
 read -r -a INCREMENTAL_TARGETS <<< "${INCREMENTAL_TARGETS_RAW}"
 read -r -a INITIAL_CMAKE_ARGS <<< "${INITIAL_CMAKE_ARGS_RAW}"
+
+is_truthy() {
+  local value="${1,,}"
+  [[ "${value}" == "1" || "${value}" == "true" || "${value}" == "yes" || "${value}" == "on" ]]
+}
 
 if [[ ! -x "${ROOT_DIR}/tools/OpenROAD/etc/Build.sh" ]]; then
   echo "[ERROR] Missing OpenROAD build entrypoint under ${ROOT_DIR}/tools/OpenROAD/etc/Build.sh" >&2
@@ -74,12 +81,19 @@ if [[ ! -f "${BUILD_DIR}/CMakeCache.txt" ]]; then
     "-threads=${THREADS}"
     "-cmake=-D CMAKE_INSTALL_PREFIX=${INSTALL_ROOT}"
   )
+  if is_truthy "${DISABLE_TESTS_RAW}"; then
+    build_cmd+=("-no-tests")
+  fi
+  if is_truthy "${DISABLE_GUI_RAW}"; then
+    build_cmd+=("-no-gui")
+  fi
   if [[ -n "${CMAKE_INSTALL_RPATH:-}" ]]; then
     build_cmd+=("-cmake=-D CMAKE_INSTALL_RPATH=${CMAKE_INSTALL_RPATH} -D CMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE")
   fi
   if [[ ${#INITIAL_CMAKE_ARGS[@]} -gt 0 ]]; then
     build_cmd+=("-cmake=${INITIAL_CMAKE_ARGS[*]}")
   fi
+  echo "[INFO] disable_tests=${DISABLE_TESTS_RAW} disable_gui=${DISABLE_GUI_RAW}"
   "${build_cmd[@]}"
   cmake --install "${BUILD_DIR}" --prefix "${INSTALL_ROOT}"
   if [[ ! -x "${INSTALL_BIN}" ]]; then

@@ -14,7 +14,8 @@ through a script here, prefer it over rebuilding the workflow from scratch.
 - `checkpoint.py`
   Create, restore, inspect, and list local edit-state checkpoints.
 - `build_openroad_only.sh`
-  Fast incremental build of the currently configured OpenROAD tree.
+  Fast incremental build of the currently configured OpenROAD tree. The first
+  OpenROAD-only configure disables OpenROAD tests by default.
 - `configure_openroad_variant.sh`
   Configure an isolated OpenROAD build/install variant, optionally with an
   external `dpl_evolve` source tree. It also writes `<variant-root>/variant_env.sh`.
