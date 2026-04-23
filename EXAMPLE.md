@@ -42,7 +42,7 @@ If the place snapshot does not exist, the loop stops in
 
 The entrypoint is:
 
-- [run_design_evolve_loop.py](/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/evolve_agent/scripts/run_design_evolve_loop.py)
+- [run_design_evolve_loop.py](/home/zhiyuzheng/Project/Agenticflow/dpl_evolve_agent/scripts/run_design_evolve_loop.py)
 
 ### 1. Resolve repo context
 
@@ -55,7 +55,7 @@ The script first resolves:
 
 For `gcd`, if you do not pass `--prompt-file`, it infers:
 
-- [nangate45__gcd.md](/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/evolve_agent/tasks/design_evolve/nangate45__gcd.md)
+- [nangate45__gcd.md](/home/zhiyuzheng/Project/Agenticflow/dpl_evolve_agent/tasks/design_evolve/nangate45__gcd.md)
 
 If you do not pass `--flow-variant`, it scans:
 
@@ -103,7 +103,7 @@ The loop then runs the evaluator once before asking Codex to patch anything.
 
 That call is made by `run_evaluator()` and goes through:
 
-- [evaluator.py](/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/evolve_agent/adapters/science_codeevolve/evaluator.py)
+- [evaluator.py](/home/zhiyuzheng/Project/Agenticflow/dpl_evolve_agent/adapters/science_codeevolve/evaluator.py)
 
 Important current behavior:
 
@@ -113,7 +113,7 @@ Important current behavior:
 - it uses `--evolve-engine default` by default
 - it uses the latest discovered reusable `FLOW_VARIANT`
 - it uses the default config:
-  [codex_design_specific.yaml](/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/evolve_agent/configs/codex_design_specific.yaml)
+  [codex_design_specific.yaml](/home/zhiyuzheng/Project/Agenticflow/dpl_evolve_agent/configs/codex_design_specific.yaml)
 
 That config currently sets:
 
@@ -121,14 +121,14 @@ That config currently sets:
 
 So the build path is:
 
-- [build_openroad_only.sh](/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/evolve_agent/scripts/build_openroad_only.sh)
+- [build_openroad_only.sh](/home/zhiyuzheng/Project/Agenticflow/dpl_evolve_agent/scripts/build_openroad_only.sh)
 
 and not the heavier full local ORFS build.
 
 The evaluator then runs the clean evolve line through:
 
-- [run_baseline.sh](/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/evolve_agent/baseline/run_baseline.sh)
-- [run_evolve_line.sh](/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/evolve_agent/baseline/run_evolve_line.sh)
+- [run_baseline.sh](/home/zhiyuzheng/Project/Agenticflow/dpl_evolve_agent/baseline/run_baseline.sh)
+- [run_evolve_line.sh](/home/zhiyuzheng/Project/Agenticflow/dpl_evolve_agent/baseline/run_evolve_line.sh)
 
 and reads back:
 
@@ -139,7 +139,7 @@ and reads back:
 If that baseline evaluator run is legal and clean, the loop creates a local
 checkpoint with:
 
-- [checkpoint.py](/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/evolve_agent/scripts/checkpoint.py)
+- [checkpoint.py](/home/zhiyuzheng/Project/Agenticflow/dpl_evolve_agent/scripts/checkpoint.py)
 
 The checkpoint id looks like:
 
@@ -170,7 +170,7 @@ So the outer Python loop remains in control of build, run, accept, and restore.
 
 The loop calls:
 
-- [run_codex_exec.py](/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/evolve_agent/scripts/run_codex_exec.py)
+- [run_codex_exec.py](/home/zhiyuzheng/Project/Agenticflow/dpl_evolve_agent/scripts/run_codex_exec.py)
 
 That script runs:
 
@@ -251,7 +251,7 @@ from:
 
 It computes a weighted composite score relative to the original baseline
 metrics. The weights are defined at the top of
-[run_design_evolve_loop.py](/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/evolve_agent/scripts/run_design_evolve_loop.py).
+[run_design_evolve_loop.py](/home/zhiyuzheng/Project/Agenticflow/dpl_evolve_agent/scripts/run_design_evolve_loop.py).
 
 Current default weights are:
 
@@ -315,7 +315,7 @@ These now include:
 If you run the example command above today, the default behavior is:
 
 - case: `gcd / nangate45`
-- prompt: [nangate45__gcd.md](/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/evolve_agent/tasks/design_evolve/nangate45__gcd.md)
+- prompt: [nangate45__gcd.md](/home/zhiyuzheng/Project/Agenticflow/dpl_evolve_agent/tasks/design_evolve/nangate45__gcd.md)
 - evaluator line: `evolve_line`
 - evolve family inside the evaluator: `default`
 - build mode: `openroad_only`
@@ -326,11 +326,16 @@ So this loop is currently testing:
 - one bounded patch on the clean evolve line
 - compared against the current clean evolve baseline for the same case
 
+This example intentionally stays on the clean evolve line. If you switch to a
+family variant later, do not reuse the root binary silently. Variant runs
+should use a dedicated `OPENROAD_BINARY` from a matching `variant_env.sh` file
+or an explicit evaluator `openroad_binary` override.
+
 It is not comparing directly against all four canonical baseline lines inside
 the loop. Those canonical baselines are still available separately through:
 
-- [run_canonical_line.sh](/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/evolve_agent/scripts/run_canonical_line.sh)
-- [run_baseline_suite.sh](/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/evolve_agent/baseline/run_baseline_suite.sh)
+- [run_canonical_line.sh](/home/zhiyuzheng/Project/Agenticflow/dpl_evolve_agent/scripts/run_canonical_line.sh)
+- [run_baseline_suite.sh](/home/zhiyuzheng/Project/Agenticflow/dpl_evolve_agent/baseline/run_baseline_suite.sh)
 
 ## Example artifact layout
 

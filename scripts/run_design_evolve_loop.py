@@ -49,7 +49,26 @@ NORMALIZATION_FLOORS = {
 
 
 def repo_root() -> Path:
-    return Path(__file__).resolve().parents[2]
+    candidate = Path(__file__).resolve().parents[2]
+    if (
+        (candidate / "flow").is_dir()
+        and (candidate / "tools" / "OpenROAD").is_dir()
+        and (candidate / "evolve_agent").is_dir()
+    ):
+        return candidate
+    env_root = os.environ.get("ORFS_ROOT")
+    if env_root:
+        env_candidate = Path(env_root).resolve()
+        if (
+            (env_candidate / "flow").is_dir()
+            and (env_candidate / "tools" / "OpenROAD").is_dir()
+            and (env_candidate / "evolve_agent").is_dir()
+        ):
+            return env_candidate
+    raise SystemExit(
+        "run_design_evolve_loop.py must run inside an ORFS workspace with this repo mounted as evolve_agent/. "
+        "Re-run from the mounted workspace or set ORFS_ROOT to that workspace."
+    )
 
 
 def now_stamp() -> str:
@@ -713,7 +732,7 @@ def main() -> None:
     ap.add_argument(
         "--config",
         type=Path,
-        default=repo_root() / "evolve_agent" / "configs" / "codex_design_specific.yaml",
+        default=None,
     )
     ap.add_argument("--max-attempts", type=int, default=3)
     ap.add_argument("--sandbox", default="workspace-write")
@@ -722,6 +741,8 @@ def main() -> None:
     ap.add_argument("--continue-after-improvement", action="store_true")
     ap.add_argument("--min-score-delta", type=float, default=1e-6)
     args = ap.parse_args()
+    if args.config is None:
+        args.config = repo_root() / "evolve_agent" / "configs" / "codex_design_specific.yaml"
 
     root = repo_root()
     loop_started_at = dt.datetime.now().isoformat()

@@ -12,7 +12,8 @@ This wrapper runs the clean standalone evolve line.
 Options:
   --family-variant NAME     Optional evolve family variant. Current value:
                             legalm_engine
-                            This requires a matching family-specific binary.
+                            This requires a matching family-specific binary and
+                            an explicit OPENROAD_BINARY.
   --engine MODE             Internal compatibility option. Avoid using this
                             directly in new agent prompts.
   --help                    Show this message.
@@ -23,6 +24,7 @@ EOF
 
 engine=""
 family_variant=""
+selected_binary=""
 pass_through=()
 
 while [[ $# -gt 0 ]]; do
@@ -46,6 +48,16 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if [[ -n "${OPENROAD_BINARY:-}" ]]; then
+  selected_binary="$(realpath -m "${OPENROAD_BINARY}")"
+  export OPENROAD_BINARY="${selected_binary}"
+  if [[ ! -x "${selected_binary}" ]]; then
+    echo "[ERROR] OpenROAD binary is not executable: ${selected_binary}" >&2
+    exit 1
+  fi
+  echo "[INFO] OPENROAD_BINARY=${selected_binary}" >&2
+fi
+
 if [[ -n "${family_variant}" ]]; then
   case "${family_variant}" in
     legalm_engine)
@@ -61,6 +73,11 @@ if [[ -n "${family_variant}" ]]; then
       exit 1
       ;;
   esac
+  if [[ -z "${selected_binary}" ]]; then
+    echo "[ERROR] family variant ${family_variant} requires an explicit OPENROAD_BINARY." >&2
+    echo "[ERROR] Source the matching variant_env.sh or pass --openroad-binary through run_canonical_line.sh." >&2
+    exit 1
+  fi
 fi
 
 if [[ -n "${engine}" ]]; then

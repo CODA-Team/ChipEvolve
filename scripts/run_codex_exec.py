@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import os
 import subprocess
 import sys
 import time
@@ -12,7 +13,26 @@ from typing import Any
 
 
 def repo_root() -> Path:
-    return Path(__file__).resolve().parents[2]
+    candidate = Path(__file__).resolve().parents[2]
+    if (
+        (candidate / "flow").is_dir()
+        and (candidate / "tools" / "OpenROAD").is_dir()
+        and (candidate / "evolve_agent").is_dir()
+    ):
+        return candidate
+    env_root = os.environ.get("ORFS_ROOT")
+    if env_root:
+        env_candidate = Path(env_root).resolve()
+        if (
+            (env_candidate / "flow").is_dir()
+            and (env_candidate / "tools" / "OpenROAD").is_dir()
+            and (env_candidate / "evolve_agent").is_dir()
+        ):
+            return env_candidate
+    raise SystemExit(
+        "run_codex_exec.py must run inside an ORFS workspace with this repo mounted as evolve_agent/. "
+        "Re-run from the mounted workspace or set ORFS_ROOT to that workspace."
+    )
 
 
 def default_operation_id() -> str:

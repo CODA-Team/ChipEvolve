@@ -1,7 +1,13 @@
 # Script Map
 
-This file is the canonical map of the scripts that matter in the current
-`OpenROAD-flow-scripts` workspace.
+This file is the canonical map of the scripts that matter when this repo is
+mounted into an ORFS workspace as `evolve_agent/`.
+
+All runtime commands below assume:
+
+- the real workspace root is an ORFS checkout
+- this repo is mounted at `evolve_agent/`
+- sibling `flow/` and `tools/OpenROAD/` directories exist next to it
 
 It exists to keep agents and humans away from generated noise such as
 checkpoint snapshots and emitted driver Tcl files.
@@ -14,6 +20,7 @@ Treat only the following directories as live script sources for the
 - `evolve_agent/scripts/`
 - `evolve_agent/baseline/`
 - `evolve_agent/adapters/science_codeevolve/`
+- `evolve_agent/skills/`
 - `flow/scripts/`
 - `flow/util/`
 - `tools/OpenROAD/src/dpl_evolve/test/`
@@ -35,8 +42,6 @@ These are the main entry points an agent should prefer.
 
 ### Repo / build
 
-- `build_openroad.sh`
-  Full ORFS/OpenROAD local build.
 - `dev_env.sh`
   Shared dependency environment setup for local builds.
 
@@ -91,10 +96,6 @@ These are the main entry points an agent should prefer.
   Run the standalone clean evolve line only.
 - `evolve_agent/baseline/run_or_default.sh`
   Wrapper for the `baseline_default` canonical line.
-- `evolve_agent/baseline/run_or_nblg.sh`
-  Wrapper for the `baseline_nblg` canonical line.
-- `evolve_agent/baseline/run_or_nblg_abacus.sh`
-  Wrapper for the `baseline_nblg_abacus` canonical line.
 - `evolve_agent/baseline/run_dp_abacus.sh`
   Wrapper for the `baseline_dreamplace_abacus` canonical line.
 
@@ -105,8 +106,6 @@ These are not top-level entry points, but they are active authored scripts.
 ### Tcl drivers
 
 - `evolve_agent/baseline/detail_place_only.tcl`
-- `evolve_agent/baseline/detail_place_only_nblg.tcl`
-- `evolve_agent/baseline/detail_place_only_nblg_abacus.tcl`
 - `evolve_agent/baseline/detail_place_only_evolve.tcl`
 - `evolve_agent/baseline/detail_place_only_evolve_nblg.tcl`
 - `evolve_agent/baseline/detail_place_only_evolve_nblg_abacus.tcl`
@@ -124,8 +123,6 @@ These are not top-level entry points, but they are active authored scripts.
 
 - `evolve_agent/baseline/flow/detail_place_flow_core.tcl`
 - `evolve_agent/baseline/flow/detail_place_flow_classic.tcl`
-- `evolve_agent/baseline/flow/detail_place_flow_classic_nblg.tcl`
-- `evolve_agent/baseline/flow/detail_place_flow_classic_nblg_abacus.tcl`
 - `evolve_agent/baseline/flow/detail_place_flow_evolve.tcl`
 - `evolve_agent/baseline/flow/detail_place_flow_evolve_nblg.tcl`
 - `evolve_agent/baseline/flow/detail_place_flow_evolve_nblg_abacus.tcl`
@@ -205,11 +202,13 @@ If the goal is to evolve `dpl_evolve`, the intended order is:
 3. `evolve_agent/scripts/checkpoint.py`
 4. if the chosen initial path is a family variant, materialize it with
    `evolve_agent/scripts/materialize_family_variant.sh`
-5. build via `evolve_agent/scripts/build_openroad_only.sh`
-6. evaluate via `evolve_agent/scripts/run_canonical_line.sh` or
+5. if the chosen path is a family variant, source the matching
+   `<variant-root>/variant_env.sh`
+6. build via `evolve_agent/scripts/build_openroad_only.sh`
+7. evaluate via `evolve_agent/scripts/run_canonical_line.sh` or
    `evolve_agent/adapters/science_codeevolve/evaluator.py`
-7. compare via `evolve_agent/scripts/compare_runs.py`
-8. only then expand to suites or other cases
+8. compare via `evolve_agent/scripts/compare_runs.py`
+9. only then expand to suites or other cases
 
 ## Context Hygiene Rules
 

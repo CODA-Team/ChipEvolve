@@ -20,7 +20,7 @@ Required steps:
    `python3 evolve_agent/adapters/science_codeevolve/kb_query.py --problem_dir evolve_agent/problems/aes_asap7 --out_dir evolve_agent/knowledge/packets`
 3. Discover the latest reusable `FLOW_VARIANT` under `flow/results/asap7/aes/` that contains `3_4_place_resized.odb`.
 4. Make one bounded patch only within the allowed patch surface.
-5. Build with `./build_openroad.sh --local`.
+5. Build with `./evolve_agent/scripts/build_openroad_only.sh 8`.
 6. Run one strict evolve line with a fresh run tag. Start from `--evolve-engine default`; switch to `negotiation` only if the patch explicitly targets the negotiation family.
 7. Write evaluator output under `evolve_agent/checkpoints/operations/<operation_id>/`.
 8. Report touched files, reused flow variant, run tag, metrics path, legality, HPWL delta, displacement, runtime, and keep/revise/restore decision.

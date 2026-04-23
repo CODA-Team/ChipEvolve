@@ -50,7 +50,26 @@ else:
 
 
 def repo_root() -> Path:
-    return Path(__file__).resolve().parents[3]
+    candidate = Path(__file__).resolve().parents[3]
+    if (
+        (candidate / "flow").is_dir()
+        and (candidate / "tools" / "OpenROAD").is_dir()
+        and (candidate / "evolve_agent").is_dir()
+    ):
+        return candidate
+    env_root = os.environ.get("ORFS_ROOT")
+    if env_root:
+        env_candidate = Path(env_root).resolve()
+        if (
+            (env_candidate / "flow").is_dir()
+            and (env_candidate / "tools" / "OpenROAD").is_dir()
+            and (env_candidate / "evolve_agent").is_dir()
+        ):
+            return env_candidate
+    raise SystemExit(
+        "evaluator.py must run inside an ORFS workspace with this repo mounted as evolve_agent/. "
+        "Re-run from the mounted workspace or set ORFS_ROOT to that workspace."
+    )
 
 
 def load_problem(problem_yaml: Path) -> Dict[str, Any]:
@@ -142,10 +161,6 @@ def line_command(
     ]
     if line == "baseline_default":
         return [str(baseline_root(root) / "run_or_default.sh"), *base[1:]]
-    if line == "baseline_nblg":
-        return [str(baseline_root(root) / "run_or_nblg.sh"), *base[1:]]
-    if line == "baseline_nblg_abacus":
-        return [str(baseline_root(root) / "run_or_nblg_abacus.sh"), *base[1:]]
     if line == "baseline_dreamplace_abacus":
         return [str(baseline_root(root) / "run_dp_abacus.sh"), *base[1:]]
     if line == "evolve_line":
@@ -517,15 +532,13 @@ def main() -> None:
     ap.add_argument(
         "--config",
         type=Path,
-        default=repo_root() / "evolve_agent" / "configs" / "codex_smoke.yaml",
+        default=None,
     )
     ap.add_argument("--mode", choices=["single", "suite"], default="single")
     ap.add_argument(
         "--line",
         choices=[
             "baseline_default",
-            "baseline_nblg",
-            "baseline_nblg_abacus",
             "baseline_dreamplace_abacus",
             "evolve_line",
         ],
@@ -556,6 +569,8 @@ def main() -> None:
     ap.add_argument("--openroad-install-root")
     ap.add_argument("--openroad-binary")
     args = ap.parse_args()
+    if args.config is None:
+        args.config = repo_root() / "evolve_agent" / "configs" / "codex_smoke.yaml"
 
     result = evaluate(args)
     args.out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")

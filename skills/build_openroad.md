@@ -9,30 +9,32 @@ Compile the current `tools/OpenROAD` tree after a candidate patch.
 - Current run packet has been read
 
 ## Procedure
-1. Move to ORFS repo root:
-   - `/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts`
+1. Move to the ORFS repo root that mounts this repo as `evolve_agent/`.
 2. Verify the target plane exists:
    - `tools/OpenROAD/src/dpl_evolve/`
-3. For agent loops, prefer the lighter OpenROAD-only path:
-   - `./evolve_agent/scripts/build_openroad_only.sh 8`
+3. Assume external dependencies are already bootstrapped outside the agent loop.
+   The agent should not call `./build_openroad.sh --local`.
 4. For isolated multi-agent / multi-variant runs, configure a dedicated build +
    install root first:
    - `./evolve_agent/scripts/configure_openroad_variant.sh --variant-root ./.codex_state/openroad_variants/agent_a --dpl-src /abs/path/to/dpl_evolve_variant`
+   - source the generated env file:
+     `source ./.codex_state/openroad_variants/agent_a/variant_env.sh`
    - then build with:
-     `OPENROAD_BUILD_DIR=./.codex_state/openroad_variants/agent_a/build OPENROAD_INSTALL_ROOT=./.codex_state/openroad_variants/agent_a/install/OpenROAD OPENROAD_BINARY=./.codex_state/openroad_variants/agent_a/install/OpenROAD/bin/openroad ./evolve_agent/scripts/build_openroad_only.sh 8`
-5. Use the full repo-standard build only when you need to refresh external tools or
-   there is no configured OpenROAD build tree yet:
-   - `./build_openroad.sh --local`
+     `./evolve_agent/scripts/build_openroad_only.sh 8`
+5. For the clean root binary, use the same OpenROAD-only build path without a
+   variant env file:
+   - `./evolve_agent/scripts/build_openroad_only.sh 8`
 6. Treat these files as the primary build evidence:
-   - repo-level log: `build_openroad.log`
    - OpenROAD build log: `tools/OpenROAD/build/openroad_build.log`
-   - installed binary: `tools/install/OpenROAD/bin/openroad`
+   - installed binary from the active env:
+     - root: `tools/install/OpenROAD/bin/openroad`
+     - variant: `${OPENROAD_BINARY}`
 7. If build fails:
    - capture compiler error block
    - record first failing file / symbol / line
    - do **not** immediately broaden patch surface
 8. If build succeeds:
-   - verify `tools/install/OpenROAD/bin/openroad` exists
+   - verify the active `OPENROAD_BINARY` exists, or `tools/install/OpenROAD/bin/openroad` for the clean root build
    - run the lightest available regression or smoke test before full baseline
 
 ## Required outputs
@@ -50,13 +52,13 @@ Compile the current `tools/OpenROAD` tree after a candidate patch.
 - target plane file added but not registered in build system
 
 ## Notes for Codex
-- This repo has already been verified to build with both
-  `./build_openroad.sh --local` and `./evolve_agent/scripts/build_openroad_only.sh 8`.
 - Variant builds are supported by:
   - `tools/OpenROAD/src/CMakeLists.txt` via `-D DPL_EVOLVE_SRC_DIR=...`
   - `evolve_agent/scripts/configure_openroad_variant.sh`
+  - `<variant-root>/variant_env.sh`
   - `OPENROAD_BUILD_DIR` / `OPENROAD_INSTALL_ROOT` / `OPENROAD_BINARY`
-    environment overrides
-- A successful incremental build in this workspace also rebuilt and installed
-  `dpl_evolve_lib`, `dpl_evolve_py`, `dpl_evolve`, `dpl_evolve_test`, and the
-  final `tools/install/OpenROAD/bin/openroad`.
+- Current stable mode:
+  - first build a variant-specific OpenROAD tree
+  - then incrementally rebuild `openroad` in that build dir
+- Medium-term design note:
+  - `evolve_agent/knowledge/plans/common_core_variant_relink.md`

@@ -17,7 +17,7 @@ through a script here, prefer it over rebuilding the workflow from scratch.
   Fast incremental build of the currently configured OpenROAD tree.
 - `configure_openroad_variant.sh`
   Configure an isolated OpenROAD build/install variant, optionally with an
-  external `dpl_evolve` source tree.
+  external `dpl_evolve` source tree. It also writes `<variant-root>/variant_env.sh`.
 - `materialize_family_variant.sh`
   Copy the clean initial evolve base and apply a family patch to create a
   dedicated variant source tree.
@@ -47,10 +47,22 @@ workflow. Prefer the Python entrypoints plus the evaluator.
 3. `checkpoint.py`
 4. `materialize_family_variant.sh` if the recommended initial path is a family variant
 5. `configure_openroad_variant.sh` if you need an isolated build/binary
-6. `build_openroad_only.sh`
-7. `run_canonical_line.sh`
-8. `run_design_evolve_loop.py`
-9. `compare_runs.py`
+6. `source <variant-root>/variant_env.sh`
+7. `build_openroad_only.sh`
+8. `run_canonical_line.sh`
+9. `run_design_evolve_loop.py`
+10. `compare_runs.py`
+
+## Binary-selection rule
+
+- Clean `baseline_default`, `baseline_dreamplace_abacus`, and clean `evolve_line`
+  may use the root binary.
+- Any run with `--family-variant` must pass an explicit variant binary:
+  - either `--openroad-binary /abs/path/to/openroad`
+  - or `source <variant-root>/variant_env.sh` before running the wrapper
+- Prefer both for agent loops:
+  - source `variant_env.sh`
+  - still pass `--openroad-binary "${OPENROAD_BINARY}"`
 
 ## Ignore
 

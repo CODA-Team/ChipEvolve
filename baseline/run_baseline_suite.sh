@@ -2,7 +2,31 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-FLOW_DIR="$(cd "${SCRIPT_DIR}/../../flow" && pwd)"
+
+resolve_workspace_root() {
+  local direct_root env_root
+  direct_root="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+  if [[ -d "${direct_root}/flow" && -d "${direct_root}/tools/OpenROAD" && -d "${direct_root}/evolve_agent" ]]; then
+    printf '%s\n' "${direct_root}"
+    return 0
+  fi
+  if [[ -n "${ORFS_ROOT:-}" ]]; then
+    env_root="$(realpath -m "${ORFS_ROOT}")"
+    if [[ -d "${env_root}/flow" && -d "${env_root}/tools/OpenROAD" && -d "${env_root}/evolve_agent" ]]; then
+      printf '%s\n' "${env_root}"
+      return 0
+    fi
+  fi
+  return 1
+}
+
+if ! WORKSPACE_ROOT="$(resolve_workspace_root)"; then
+  echo "[ERROR] run_baseline_suite.sh must run inside an ORFS workspace with this repo mounted as evolve_agent/." >&2
+  echo "[ERROR] Re-run from the mounted workspace or set ORFS_ROOT to that workspace." >&2
+  exit 1
+fi
+
+FLOW_DIR="${WORKSPACE_ROOT}/flow"
 FLOW_HOME="${FLOW_HOME:-${FLOW_DIR}}"
 FLOW_HOME="$(realpath -m "${FLOW_HOME}")"
 DEFAULT_CONFIG="./designs/nangate45/gcd/config.mk"

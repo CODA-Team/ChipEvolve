@@ -2,9 +2,14 @@
 
 This file is the short operating contract for Codex inside `evolve_agent`.
 For the full repo map, read `README.md` first, then `SCRIPT_MAP.md`.
+For the repo-local execution skills, read `skills/README.md` next.
 
 This directory is the only intended control-plane tree in the repo. Keep the
 agent surface narrow and decoupled from the target plane.
+
+All build/run commands assume this repo is mounted as `evolve_agent/` inside an
+ORFS workspace. Do not treat the standalone authoring checkout as the runtime
+workspace unless it also contains sibling `flow/` and `tools/OpenROAD/`.
 
 ## Role
 
@@ -20,15 +25,18 @@ the baseline harness.
 ## Minimal operating order
 
 1. Read the current packet in `knowledge/packets/`.
-2. Read `skills/patch_rules.md`.
-3. Create or refresh a local checkpoint with `scripts/checkpoint.py`.
-4. Patch only approved target-plane files.
-5. Review the implementation for obvious efficiency issues before adding more patch logic.
-6. Build through the standard build path.
-7. Run one canonical baseline/evolve line or the suite through the existing wrappers.
-8. For a new case, classify the baseline result first with `scripts/recommend_initial_family.py`.
-9. Compare runs with `scripts/compare_runs.py`, then read evaluator output and `metrics.json`.
-10. Keep, revise, or restore through checkpoints.
+2. Read `skills/README.md`.
+3. Read `skills/patch_rules.md`.
+4. Create or refresh a local checkpoint with `scripts/checkpoint.py`.
+5. Patch only approved target-plane files.
+6. Review the implementation for obvious efficiency issues before adding more patch logic.
+7. For family work, configure a dedicated variant root and source its `variant_env.sh`.
+8. Build through the variant-aware OpenROAD-only path.
+9. Run one canonical baseline/evolve line or the suite through the existing wrappers.
+10. For any `--family-variant` run, pass an explicit OpenROAD binary.
+11. For a new case, classify the baseline result first with `scripts/recommend_initial_family.py`.
+12. Compare runs with `scripts/compare_runs.py`, then read evaluator output and `metrics.json`.
+13. Keep, revise, or restore through checkpoints.
 
 ## Boundaries
 
@@ -39,6 +47,18 @@ the baseline harness.
   not required to exist inside this repo tree
 
 Do not mix those planes.
+
+## Binary rules
+
+- Clean baseline and clean evolve runs may use the root OpenROAD binary.
+- Family-variant runs must use a dedicated variant binary.
+- Preferred pattern:
+  - `scripts/configure_openroad_variant.sh`
+  - `source <variant-root>/variant_env.sh`
+  - `scripts/build_openroad_only.sh`
+  - `scripts/run_canonical_line.sh --openroad-binary "${OPENROAD_BINARY}" ...`
+- Do not assume `tools/install/OpenROAD/bin/openroad` is correct once you are
+  inside a family-variant loop.
 
 ## Current patch surface
 

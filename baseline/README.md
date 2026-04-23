@@ -155,13 +155,19 @@ evolve_agent/scripts/run_canonical_line.sh \
 Run a LEGALM family variant:
 
 ```bash
-OPENROAD_BINARY=./.codex_state/openroad_variants/legalm_engine/install/OpenROAD/bin/openroad \
+source ./.codex_state/openroad_variants/legalm_engine/variant_env.sh
+
 evolve_agent/scripts/run_canonical_line.sh \
   --line evolve_line \
   --family-variant legalm_engine \
+  --openroad-binary "${OPENROAD_BINARY}" \
   --design-config ./designs/nangate45/gcd/config.mk \
   --track strict
 ```
+
+Family-variant runs intentionally refuse to fall back to the root
+`tools/install/OpenROAD/bin/openroad`. Use a dedicated variant binary every
+time.
 
 ## Outputs
 

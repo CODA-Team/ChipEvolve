@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -11,11 +12,45 @@ from pathlib import Path
 from typing import Any
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-EVOLVE_AGENT_DIR = REPO_ROOT / "evolve_agent"
-CHECKPOINTS_DIR = EVOLVE_AGENT_DIR / "checkpoints"
-OPERATIONS_DIR = CHECKPOINTS_DIR / "operations"
-TARGET_DIR = REPO_ROOT / "tools" / "OpenROAD" / "src" / "dpl_evolve"
+def repo_root() -> Path:
+    candidate = Path(__file__).resolve().parents[2]
+    if (
+        (candidate / "flow").is_dir()
+        and (candidate / "tools" / "OpenROAD").is_dir()
+        and (candidate / "evolve_agent").is_dir()
+    ):
+        return candidate
+    env_root = os.environ.get("ORFS_ROOT")
+    if env_root:
+        env_candidate = Path(env_root).resolve()
+        if (
+            (env_candidate / "flow").is_dir()
+            and (env_candidate / "tools" / "OpenROAD").is_dir()
+            and (env_candidate / "evolve_agent").is_dir()
+        ):
+            return env_candidate
+    raise SystemExit(
+        "checkpoint.py must run inside an ORFS workspace with this repo mounted as evolve_agent/. "
+        "Re-run from the mounted workspace or set ORFS_ROOT to that workspace."
+    )
+
+
+REPO_ROOT: Path | None = None
+EVOLVE_AGENT_DIR: Path | None = None
+CHECKPOINTS_DIR: Path | None = None
+OPERATIONS_DIR: Path | None = None
+TARGET_DIR: Path | None = None
+
+
+def initialize_paths() -> None:
+    global REPO_ROOT, EVOLVE_AGENT_DIR, CHECKPOINTS_DIR, OPERATIONS_DIR, TARGET_DIR
+    if REPO_ROOT is not None:
+        return
+    REPO_ROOT = repo_root()
+    EVOLVE_AGENT_DIR = REPO_ROOT / "evolve_agent"
+    CHECKPOINTS_DIR = EVOLVE_AGENT_DIR / "checkpoints"
+    OPERATIONS_DIR = CHECKPOINTS_DIR / "operations"
+    TARGET_DIR = REPO_ROOT / "tools" / "OpenROAD" / "src" / "dpl_evolve"
 
 CONTROL_SNAPSHOT_DIRNAME = "evolve_agent"
 TARGET_SNAPSHOT_DIRNAME = "dpl_evolve"
@@ -485,6 +520,8 @@ def checkpoint_summary(checkpoint_id: str) -> dict[str, Any]:
 
 
 def cmd_list(_: argparse.Namespace) -> None:
+    if not OPERATIONS_DIR.exists():
+        return
     for operation_dir in sorted(OPERATIONS_DIR.iterdir()):
         if not operation_dir.is_dir():
             continue
@@ -534,6 +571,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
+    initialize_paths()
     args.func(args)
     return 0
 

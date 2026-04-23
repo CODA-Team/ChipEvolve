@@ -27,12 +27,14 @@ For agent-managed execution, prefer:
 2. Reuse an existing `FLOW_VARIANT` when you want to reuse upstream ORFS
    snapshots such as `3_4_place_resized.odb`.
 3. Launch only the selected line.
-4. Read the resulting:
+4. If the run uses `--family-variant`, source the matching `variant_env.sh`
+   first and still pass `--openroad-binary "${OPENROAD_BINARY}"`.
+5. Read the resulting:
    - `flow/reports/<platform>/<design>/<flow_variant>/dpl_evolve_baseline/<run_tag>/metrics.json`
-5. If this is the first run on a case, classify it before choosing the first
+6. If this is the first run on a case, classify it before choosing the first
    patch family:
    - `python3 evolve_agent/scripts/recommend_initial_family.py --metrics <metrics.json>`
-6. Compare only against the closest baseline necessary for the decision.
+7. Compare only against the closest baseline necessary for the decision.
 
 ## Notes for Codex
 - Prefer strict legalizer track before reduced-flow track.
@@ -57,6 +59,21 @@ Run just the evolve line:
   --design-config ./designs/nangate45/gcd/config.mk \
   --flow-variant dpl_evolve_suite_20260422_125226 \
   --run-tag agent_evolve_line \
+  --threads 8
+```
+
+Run a family variant with an explicit binary:
+
+```bash
+source ./.codex_state/openroad_variants/legalm_engine/variant_env.sh
+
+./evolve_agent/scripts/run_canonical_line.sh \
+  --line evolve_line \
+  --family-variant legalm_engine \
+  --openroad-binary "${OPENROAD_BINARY}" \
+  --design-config ./designs/nangate45/gcd/config.mk \
+  --flow-variant dpl_evolve_suite_20260422_125226 \
+  --run-tag agent_legalm_line \
   --threads 8
 ```
 

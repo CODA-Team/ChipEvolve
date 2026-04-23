@@ -6,6 +6,13 @@ It is intended to be mounted into ORFS as the `evolve_agent/` submodule path,
 while keeping its own repository history separate from the OpenROAD and ORFS
 working trees.
 
+Runtime assumption:
+
+- the commands in this repo are meant to run from an ORFS workspace where this
+  repo is mounted at `evolve_agent/`
+- the standalone authoring checkout is not the runtime workspace unless it also
+  contains sibling `flow/` and `tools/OpenROAD/` directories
+
 For the current script entrypoints and the explicit list of generated script
 paths to ignore, start with:
 
@@ -14,6 +21,7 @@ paths to ignore, start with:
 For directory-specific summaries, also see:
 
 - `evolve_agent/scripts/README.md`
+- `evolve_agent/skills/README.md`
 - `evolve_agent/configs/README.md`
 - `evolve_agent/problems/README.md`
 - `evolve_agent/tasks/README.md`
@@ -48,9 +56,7 @@ The project-level run concepts are intentionally small:
 - the clean evolve line
 - family variants
 - strict legalization-only comparison
-- a two-patch prepare step:
-  - one ORFS overlay patch
-  - one OpenROAD clean-`dpl_evolve` patch
+- a small ORFS overlay patch set plus one OpenROAD clean-`dpl_evolve` patch
 
 Internal dispatcher details are not the main workflow vocabulary.
 
@@ -121,7 +127,9 @@ The loop we want is intentionally small:
 2. Pick a problem in `problems/`.
 3. Run `adapters/science_codeevolve/kb_query.py` to build a compact packet.
 4. Let Codex patch only the allowed target-plane files.
-5. Build with the existing ORFS/OpenROAD build path.
+5. Build through `scripts/build_openroad_only.sh`, or through a sourced
+   variant `variant_env.sh` plus `scripts/build_openroad_only.sh` for
+   family-specific binaries.
 6. Run one canonical baseline/evolve line or the full suite through the existing
    baseline scripts.
 7. Read `flow/reports/.../metrics.json`.
@@ -190,11 +198,18 @@ Use a dedicated variant root per agent instead:
   --variant-root ./.codex_state/openroad_variants/agent_a \
   --dpl-src ./.codex_state/family_variants/legalm_engine/dpl_evolve
 
-OPENROAD_BUILD_DIR=./.codex_state/openroad_variants/agent_a/build \
-OPENROAD_INSTALL_ROOT=./.codex_state/openroad_variants/agent_a/install/OpenROAD \
-OPENROAD_BINARY=./.codex_state/openroad_variants/agent_a/install/OpenROAD/bin/openroad \
+source ./.codex_state/openroad_variants/agent_a/variant_env.sh
+
 ./evolve_agent/scripts/build_openroad_only.sh 8
 ```
+
+Binary-selection rules:
+
+- clean `evolve_line` may use the root OpenROAD binary
+- any `--family-variant` run must use an explicit variant binary
+- the safest pattern is:
+  - source `variant_env.sh`
+  - still pass `--openroad-binary "${OPENROAD_BINARY}"` on family runs
 
 Then point evaluation at that binary with either:
 
@@ -210,6 +225,17 @@ The important idea is:
 - each agent gets its own `install`
 - each agent gets its own `openroad` binary
 - case-level isolation still comes from `flow_variant` and `run_tag`
+
+The current stable build path is still OpenROAD-only:
+
+- first configure/build a variant-specific OpenROAD tree
+- then incrementally rebuild `openroad` in that variant build dir
+
+The medium-term target is a shared common-core build plus per-variant
+`dpl_evolve` compilation and a thin final relink. The design note for that
+next step is:
+
+- `evolve_agent/knowledge/plans/common_core_variant_relink.md`
 
 ## Canonical lines
 

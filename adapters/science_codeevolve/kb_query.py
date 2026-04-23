@@ -51,6 +51,23 @@ def load_json(path: Path) -> Any:
 def build_packet(problem_dir: Path, out_dir: Path) -> Dict[str, Any]:
     problem = load_yaml(problem_dir / "problem.yaml")
     repo_root = Path(__file__).resolve().parents[3]
+    if not (
+        (repo_root / "flow").is_dir()
+        and (repo_root / "tools" / "OpenROAD").is_dir()
+        and (repo_root / "evolve_agent").is_dir()
+    ):
+        env_root = os.environ.get("ORFS_ROOT")
+        if env_root:
+            repo_root = Path(env_root).resolve()
+    if not (
+        (repo_root / "flow").is_dir()
+        and (repo_root / "tools" / "OpenROAD").is_dir()
+        and (repo_root / "evolve_agent").is_dir()
+    ):
+        raise SystemExit(
+            "kb_query.py must run inside an ORFS workspace with this repo mounted as evolve_agent/. "
+            "Re-run from the mounted workspace or set ORFS_ROOT to that workspace."
+        )
     kb_root = repo_root / "evolve_agent" / "knowledge"
 
     stage = load_yaml(kb_root / "stage_context" / "detail_place_stack.yaml")

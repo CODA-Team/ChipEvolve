@@ -16,8 +16,9 @@ Canonical lines:
 Options:
   --line NAME              Canonical line to run.
   --family-variant NAME    Optional evolve family variant. Current value:
-                           legalm_engine
-  --openroad-binary PATH   Optional binary override. Exported as OPENROAD_BINARY.
+                           legalm_engine. Requires an explicit variant binary.
+  --openroad-binary PATH   Optional binary override. Required for family variants.
+                           Exported as OPENROAD_BINARY.
   --help                   Show this message.
 
 All remaining arguments are passed through to the selected baseline wrapper.
@@ -27,6 +28,7 @@ EOF
 line=""
 family_variant=""
 openroad_binary=""
+selected_binary=""
 pass_through=()
 
 while [[ $# -gt 0 ]]; do
@@ -61,7 +63,30 @@ if [[ -z "${line}" ]]; then
 fi
 
 if [[ -n "${openroad_binary}" ]]; then
-  export OPENROAD_BINARY="$(realpath -m "${openroad_binary}")"
+  selected_binary="$(realpath -m "${openroad_binary}")"
+elif [[ -n "${OPENROAD_BINARY:-}" ]]; then
+  selected_binary="$(realpath -m "${OPENROAD_BINARY}")"
+fi
+
+if [[ -n "${selected_binary}" ]]; then
+  export OPENROAD_BINARY="${selected_binary}"
+  if [[ ! -x "${selected_binary}" ]]; then
+    echo "[ERROR] OpenROAD binary is not executable: ${selected_binary}" >&2
+    exit 1
+  fi
+  echo "[INFO] OPENROAD_BINARY=${selected_binary}" >&2
+fi
+
+if [[ -n "${family_variant}" ]]; then
+  if [[ "${line}" != "evolve_line" ]]; then
+    echo "[ERROR] --family-variant is only valid with --line evolve_line." >&2
+    exit 1
+  fi
+  if [[ -z "${selected_binary}" ]]; then
+    echo "[ERROR] --family-variant requires an explicit variant binary." >&2
+    echo "[ERROR] Pass --openroad-binary or source a variant_env.sh file first." >&2
+    exit 1
+  fi
 fi
 
 case "${line}" in

@@ -22,9 +22,8 @@ Configure and build:
   --variant-root ./.codex_state/openroad_variants/legalm_engine \
   --dpl-src ./.codex_state/family_variants/legalm_engine/dpl_evolve
 
-OPENROAD_BUILD_DIR=./.codex_state/openroad_variants/legalm_engine/build \
-OPENROAD_INSTALL_ROOT=./.codex_state/openroad_variants/legalm_engine/install/OpenROAD \
-OPENROAD_BINARY=./.codex_state/openroad_variants/legalm_engine/install/OpenROAD/bin/openroad \
+source ./.codex_state/openroad_variants/legalm_engine/variant_env.sh
+
 ./evolve_agent/scripts/build_openroad_only.sh 8
 ```
 
@@ -34,7 +33,7 @@ Run:
 ./evolve_agent/scripts/run_canonical_line.sh \
   --line evolve_line \
   --family-variant legalm_engine \
-  --openroad-binary ./.codex_state/openroad_variants/legalm_engine/install/OpenROAD/bin/openroad \
+  --openroad-binary "${OPENROAD_BINARY}" \
   --design-config ./designs/nangate45/gcd/config.mk \
   --flow-variant smoke_legalm_variant
 ```

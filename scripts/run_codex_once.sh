@@ -2,7 +2,22 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+resolve_workspace_root() {
+  local direct_root env_root
+  direct_root="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+  if [[ -d "${direct_root}/flow" && -d "${direct_root}/tools/OpenROAD" && -d "${direct_root}/evolve_agent" ]]; then
+    printf '%s\n' "${direct_root}"
+    return 0
+  fi
+  if [[ -n "${ORFS_ROOT:-}" ]]; then
+    env_root="$(realpath -m "${ORFS_ROOT}")"
+    if [[ -d "${env_root}/flow" && -d "${env_root}/tools/OpenROAD" && -d "${env_root}/evolve_agent" ]]; then
+      printf '%s\n' "${env_root}"
+      return 0
+    fi
+  fi
+  return 1
+}
 
 problem_dir="evolve_agent/problems/gcd_nangate45"
 packet_dir="evolve_agent/knowledge/packets"
@@ -41,7 +56,7 @@ Options:
   --run-tag NAME            Run tag for single mode
   --tag-prefix NAME         Prefix for suite mode
   --threads N               Worker threads. Default: 8
-  --evolve-engine MODE      default|negotiation|negotiation_abacus|legalm. Default: default
+  --evolve-engine MODE      default|negotiation|negotiation_abacus. Default: default
   --skip-build              Skip build step in evaluator
   --use-existing            Reuse existing artifacts
   --dry-run                 Resolve commands only
@@ -71,6 +86,12 @@ while [[ $# -gt 0 ]]; do
     *) echo "Unknown argument: $1" >&2; usage >&2; exit 1 ;;
   esac
 done
+
+if ! REPO_ROOT="$(resolve_workspace_root)"; then
+  echo "[ERROR] run_codex_once.sh must run inside an ORFS workspace with this repo mounted as evolve_agent/." >&2
+  echo "[ERROR] Re-run from the mounted workspace or set ORFS_ROOT to that workspace." >&2
+  exit 1
+fi
 
 case "${mode}" in
   single|suite) ;;
