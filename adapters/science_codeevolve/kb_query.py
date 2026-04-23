@@ -93,6 +93,8 @@ def build_packet(problem_dir: Path, out_dir: Path) -> Dict[str, Any]:
             "knowledge/stage_context/*",
             "knowledge/delta_ledger/*",
             "knowledge/design_profiles/*",
+            "git history",
+            "broad repo status",
             "flow/Makefile",
             "flow/scripts/*",
             "flow/designs/*/config.mk",
