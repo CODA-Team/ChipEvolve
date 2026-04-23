@@ -1,0 +1,28 @@
+name: ariane133_nangate45_legalizer_wl
+design: ariane133
+platform: nangate45
+task_type: design_specific_legalizer_evolution
+design_config: ./designs/nangate45/ariane133/config.mk
+input_stage: 3_4_place_resized.odb
+evaluation_track: strict_legalizer
+objective:
+  primary: legalization_hpwl
+  secondary:
+    - avg_displacement
+    - max_displacement
+  guardrails:
+    - legality
+    - runtime
+patch_surface:
+  - tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.cpp
+  - tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp
+  - tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl
+knowledge_profile:
+  - evolve_agent/knowledge/stage_context/detail_place_stack.yaml
+  - evolve_agent/knowledge/delta_ledger/docs_vs_current_code.yaml
+  - evolve_agent/knowledge/delta_ledger/nblg_to_openroad.yaml
+  - evolve_agent/knowledge/delta_ledger/legalm_to_openroad.yaml
+  - evolve_agent/knowledge/design_profiles/ariane133_nangate45.json
+preferred_playbooks:
+  - negotiation_cost_family
+  - postopt_recovery_family

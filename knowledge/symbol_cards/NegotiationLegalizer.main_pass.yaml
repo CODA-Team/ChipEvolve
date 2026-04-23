@@ -1,0 +1,42 @@
+symbol_id: NegotiationLegalizer.main_pass
+source_path: tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.cpp
+exact_symbol: "dpl_evolve::NegotiationLegalizer::legalize()"
+signature: "void NegotiationLegalizer::legalize()"
+anchors:
+  definition_line: 88
+  abacus_phase_lines: "147-223"
+  negotiation_dispatch_lines: "235-250"
+  post_negotiation_sync_lines: "252-265"
+  postopt_gate_lines: "269-277"
+aligned: true
+repo_alignment_required: false
+role: "Primary negotiation-based legalization driver for strict legalizer track."
+related_papers:
+  - nblg
+  - legalm2
+related_mechanisms:
+  - negotiation_cost
+  - search_window
+  - isolation_or_skip_logic
+  - overflow_elimination
+safe_patch_modes:
+  - param_tuning
+  - local_formula_change
+  - ordering_logic_change
+  - search_window_policy_change
+risky_patch_modes:
+  - full algorithm rewrite
+  - cross-file refactor without tests
+metrics_of_interest:
+  primary:
+    - legalization.hpwl_proxy
+  guards:
+    - legality
+    - displacement.avg
+    - displacement.max
+questions_before_patch:
+  - "Would the patch stay within legalize() rather than broadening into a multi-file refactor?"
+  - "Is the intended change in the main negotiation dispatch or only in the postopt gate block?"
+current_status:
+  negotiation_driver: "active"
+  post_optimisation_hook: "present but disabled by commented calls"

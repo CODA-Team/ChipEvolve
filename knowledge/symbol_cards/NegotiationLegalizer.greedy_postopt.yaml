@@ -1,0 +1,35 @@
+symbol_id: NegotiationLegalizer.greedy_postopt
+source_path: tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizerPass.cpp
+exact_symbol: "dpl_evolve::NegotiationLegalizer::greedyImprove(int passes)"
+signature: "void NegotiationLegalizer::greedyImprove(int passes)"
+anchors:
+  definition_line: 746
+  activation_site: "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.cpp:275-277"
+aligned: true
+repo_alignment_required: false
+role: "Bounded post-legalization refinement preserving legality while reducing displacement/HPWL."
+related_papers:
+  - nblg
+  - legalm2
+related_mechanisms:
+  - postoptimization
+  - zero_overflow_refinement
+safe_patch_modes:
+  - gate_enable_disable
+  - iteration_count_tuning
+  - local_cost_change
+risky_patch_modes:
+  - enabling postopt without legality guard
+metrics_of_interest:
+  primary:
+    - hpwl_proxy
+    - displacement.avg
+  guards:
+    - legality
+questions_before_patch:
+  - "Is a simple gate-enable patch enough, or do legality/runtime guards need to be added at the call site?"
+  - "Should the first experiment enable only one greedyImprove pass before touching the implementation body?"
+current_status:
+  implementation_present: true
+  reachable_from_legalize: false
+  reason: "Calls are commented out in NegotiationLegalizer::legalize()."

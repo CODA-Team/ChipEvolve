@@ -1,0 +1,86 @@
+version: 1
+name: dpl_evolve_mutation_contract_v1
+scope:
+  target_plane_root: tools/OpenROAD/src/dpl_evolve
+  control_plane_root: evolve_agent
+  artifact_plane_root: flow
+allowed_patch_surfaces:
+  - file: tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.cpp
+    rationale: "Primary negotiation-based legalization logic; preferred surface for NBLG/LEGALM-inspired policy evolution."
+    allowed_modes:
+      - param_tuning
+      - local_formula_change
+      - ordering_logic_change
+      - search_window_policy_change
+      - helper_extraction
+      - postopt_enable_or_gate
+  - file: tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp
+    rationale: "Entry-point routing between legalizer choices and DPL-facing runtime behavior."
+    allowed_modes:
+      - param_tuning
+      - runtime_flag_wiring
+      - helper_extraction
+  - file: tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl
+    rationale: "Expose bounded experimental flags to Tcl without rewriting ORFS flow."
+    allowed_modes:
+      - expose_tcl_flag
+      - bounded_cli_plumbing
+  - file: tools/OpenROAD/src/dpl_evolve/test
+    rationale: "Regression and smoke tests may be added or adjusted to guard behavior."
+    allowed_modes:
+      - add_test
+      - extend_test
+forbidden_paths:
+  - flow/scripts
+  - tools/OpenROAD/src/dpl
+  - tools/OpenROAD/src/rsz
+  - tools/OpenROAD/src/gpl
+  - third_party
+  - vendor
+forbidden_actions:
+  - "Do not rewrite ORFS baseline flow as part of algorithm mutation."
+  - "Do not change output metrics schema without updating contract docs and evaluator together."
+  - "Do not widen patch scope beyond allowlist unless task explicitly expands scope."
+  - "Do not bypass baseline harness with ad hoc commands for acceptance decisions."
+budgets:
+  max_files_touched_per_patch: 4
+  max_non_test_lines_changed_soft: 120
+  max_new_files_per_patch: 2
+gates:
+  build:
+    required: true
+    command_skill: build_openroad
+  test:
+    required: true
+    minimum: "Run at least the target-plane smoke/regression relevant to touched code."
+  legality:
+    required: true
+    field: legality
+    pass_value: true
+  metrics_contract:
+    required: true
+    required_top_level_keys:
+      - manifest
+      - legalization
+      - hpwl_proxy
+      - displacement
+      - legality
+  runtime_guard:
+    required: true
+    regression_threshold_pct: 25
+  displacement_guard:
+    required: true
+    soft_regression_threshold_pct: 10
+  hpwl_guard:
+    required: false
+    goal: "Primary objective for current track; strict acceptance policy comes from problem.yaml."
+edit_policy:
+  tier_0:
+    description: "Constants, thresholds, gating booleans, existing penalty multipliers, existing iteration counts."
+  tier_1:
+    description: "Local cost formulas, sort/order logic, search-window policy, isolation/skip logic, postopt scheduling."
+  tier_2:
+    description: "Add small helpers or expose Tcl flags only if needed for bounded experiments and tests."
+notes:
+  - "Codex must prefer smaller patches with explicit rationale tied to one mutation family."
+  - "Every accepted patch should map to one packet + one playbook family + one problem objective."

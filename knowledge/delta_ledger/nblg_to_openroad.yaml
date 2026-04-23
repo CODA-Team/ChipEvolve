@@ -1,0 +1,94 @@
+paper: "NBLG: A Robust Legalizer for Mixed-Cell-Height Modern Design"
+goal_for_codex: >
+  Use NBLG as the primary knowledge donor for negotiation-based legalizer evolution,
+  because OpenROAD public DPL docs explicitly describe the NegotiationLegalizer as based on NBLG.
+paper_core:
+  problem_reformulation:
+    summary: "Legalization is reformulated as a grid resource allocation task."
+    key_point: "Cells compete for grid capacity under displacement minimization."
+  five_negotiation_components:
+    object: "each movable cell"
+    cost:
+      target_cost: "b(x_i, y_i) = δ_i + mf * max(δ_i - th, 0)"
+      history_cost_update: "h_i(x,y) = h_{i-1}(x,y) + hf * g(x,y)"
+      congestion_penalty: "p(x,y) = pf * (usg(x,y)+1) / cap(x,y)"
+      combined_cost: "Cost = b + sum(h * p over covered grids)"
+    action: "enumerate nearby grid positions and choose minimum negotiation cost"
+    order: "overflowed cells first; sort also by cell height and width"
+    region: "surrounding window, not a fixed global box"
+  adaptive_penalty_pf:
+    formula: "pf = 1.0 + α * exp(-β * exp(-γ * (iter - i_th)))"
+    defaults_from_paper:
+      alpha: 0.7
+      beta: 10
+      gamma: 0.005
+      i_th: 300
+    intended_effect: "increase congestion pressure later in the run"
+  isolation_point:
+    symbol: "I"
+    idea: "after I, cells with no overflow may be skipped; use a second run to refine"
+    two_run_pattern:
+      - "run 1: I=0, all cells moved once aggressively"
+      - "run 2: I=1, adjust legal result further"
+  search_window:
+    current_row_horizontal_limit_sites: 9
+    adjacent_rows_horizontal_limit_sites: 3
+    note: "paper depicts 33 grid locations in the search window"
+  preprocessing:
+    - "cell sorting"
+    - "row/site alignment"
+    - "move out of blockage"
+    - "possible long-distance displacement for trapped cells"
+  postoptimization:
+    - "greedy search repeated"
+    - "cell swapping via matching inside compatible subsets"
+    - "another greedy search"
+  multithreading:
+    mechanism: "dynamic region adjustment + deterministic multithreading"
+    idea: "bin partitioning, non-adjacent groups, master-thread cleanup"
+openroad_public_alignment:
+  documented_by_openroad:
+    - "NegotiationLegalizer is based on NBLG"
+    - "optional Abacus pre-pass exists"
+    - "current negotiation pass is single-threaded"
+  close_matches_in_repo:
+    - "NegotiationLegalizer.cpp = main negotiation surface"
+    - "Opendp.cpp = engine dispatch and top-level flow"
+    - "Opendp.tcl = runtime flag exposure"
+delta_assessment:
+  likely_present_or_partially_present:
+    - "negotiation pass itself"
+    - "history cost idea"
+    - "Abacus optional pre-pass"
+    - "fence/mixed-height awareness"
+  likely_missing_or_incomplete_or_disabled:
+    - "documented post-optimisation fully active in current code"
+    - "deterministic multithreading"
+    - "explicit dynamic region adjustment"
+    - "full NBLG-style postopt chain"
+mutation_surface_priority:
+  highest:
+    - "NegotiationLegalizer.cpp :: cost shaping"
+    - "NegotiationLegalizer.cpp :: search window / candidate policy"
+    - "NegotiationLegalizer.cpp :: post-negotiation refinement / recovery"
+  medium:
+    - "Opendp.cpp :: default dispatch / enablement / guard logic"
+    - "Opendp.tcl :: expose a new knob if truly needed"
+design_specific_knobs_codex_may_evolve:
+  - "mf-like displacement-vs-max-displacement weighting"
+  - "history update strength"
+  - "pf schedule shape / start threshold"
+  - "search window size and anisotropy"
+  - "illegal-cell ordering heuristic"
+  - "post-negotiation refinement depth"
+hard_gates:
+  - "legality must remain true"
+  - "strict-track HPWL must improve or remain convincingly neutral if displacement improves significantly"
+  - "max displacement must not blow up"
+  - "runtime must remain bounded"
+anti_patterns:
+  - "do not transplant the entire paper structure blindly"
+  - "do not broaden patch surface before exhausting cost/search/refinement surfaces"
+  - "do not claim NBLG parity from one metric only"
+codex_usage_hint:
+  - "When in doubt, prefer NBLG-informed small edits over large analytical rewrites."

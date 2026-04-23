@@ -1,0 +1,33 @@
+patch_id: first_postopt_gate
+target_symbols:
+  - file: tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.cpp
+    symbol: dpl_evolve::NegotiationLegalizer::legalize()
+    anchor_lines: "269-277"
+mode: latent_feature_gate
+mutation_family: postopt_recovery_family
+default_off: true
+validation_track: strict
+goal:
+  primary: post_legalization_hpwl
+  secondary:
+    - avg_displacement
+    - max_displacement
+gates:
+  legality: required
+  max_runtime_increase_ratio: 1.2
+  max_disp_increase_ratio: 1.1
+  metrics_json_required: true
+engine_prerequisite:
+  engine_path_confirmed: negotiation
+  abacus_required: false
+expected_movement:
+  likely_positive_or_neutral:
+    - hpwl_proxy.delta_micron
+    - displacement.average_displacement_micron
+  watch_closely:
+    - legality.placement_violations
+    - displacement.max_displacement_micron
+    - runtime_seconds
+notes:
+  - Keep the first patch on the post-optimisation activation site rather than inside the greedy/cellSwap implementations.
+  - Prefer a no-op gate or default-off gate before changing algorithmic behavior.

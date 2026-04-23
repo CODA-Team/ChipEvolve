@@ -1,0 +1,19 @@
+family: postopt_recovery_family
+when_to_use:
+  - "public code shows disabled postopt"
+  - "strict-track legality is stable and there is evidence refinement is missing"
+mechanisms:
+  - name: "re-enable greedyImprove/cellSwap chain carefully"
+    donor: "NBLG docs vs current code delta"
+    target_surfaces:
+      - "NegotiationLegalizer.cpp"
+    expected_effect:
+      - "recover displacement quality"
+      - "possibly recover HPWL"
+    risks:
+      - "runtime increase"
+      - "quality regression if current data structures differ from documented assumptions"
+activation_policy:
+  - "re-enable in small steps"
+  - "test each substage independently if possible"
+  - "do not enable full chain in the first patch unless replay bank is available"

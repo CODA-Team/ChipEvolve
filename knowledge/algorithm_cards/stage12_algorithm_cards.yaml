@@ -1,0 +1,230 @@
+
+schema_version: 1
+cards:
+  - name: openroad_dpl_current
+    source:
+      type: repo_and_docs
+      repo: The-OpenROAD-Project/OpenROAD
+      module: src/dpl/src
+    problem_scope: legalization and post-legalization improvement inside OpenROAD DPL
+    objective_terms:
+      - legal placement
+      - minimal placement perturbation
+      - optional HPWL improvement via mirroring / improve_placement
+    hard_constraints:
+      - site alignment
+      - row legality
+      - overlap free
+      - fence-region support
+      - fragmented rows
+    initialization_strategy:
+      - default diamond search from global placement position
+      - optional NegotiationLegalizer
+      - optional Abacus pre-pass inside NegotiationLegalizer
+    candidate_generation:
+      - default BFS-style diamond search
+      - negotiation pass for illegal/fence-violating cells
+    post_optimization:
+      - improve_placement
+      - optimize_mirroring
+    openroad_mapping:
+      tcl:
+        - Opendp.tcl
+      cpp:
+        - Opendp.cpp
+        - Optdp.cpp
+        - NegotiationLegalizer.cpp
+        - NegotiationLegalizerPass.cpp
+        - OptMirror.cpp
+        - CheckPlacement.cpp
+        - PlacementDRC.cpp
+    low_risk_mutations:
+      - search ordering
+      - candidate ranking
+      - better telemetry
+      - postopt policy tuning
+    high_risk_mutations:
+      - replace default engine
+      - add new legalization engine
+    telemetry_needed:
+      - hpwl_before_after
+      - avg_disp
+      - max_disp
+      - legality report
+      - runtime
+    hard_gates:
+      - no overlaps
+      - legal rows/sites
+      - no fence/region violation
+
+  - name: nblg
+    source:
+      type: paper
+      file: NBLG_A_Robust_Legalizer_for_Mixed-Cell-Height_Modern_Design.pdf
+    problem_scope: mixed-cell-height legalization with fence and technology constraints
+    objective_terms:
+      - average displacement
+      - maximum displacement
+      - optional HPWL/technology score in contest setting
+    hard_constraints:
+      - row power-rail alignment
+      - site alignment
+      - overlap free
+      - fence-region placement
+    soft_constraints:
+      - pin short/access
+      - edge spacing
+    initialization_strategy:
+      - preprocess cells
+      - row/site alignment
+      - move out of blockages
+    candidate_generation:
+      - enumerate nearby site-grid positions in a surrounding window
+    cost_function:
+      - target displacement term
+      - history cost
+      - adaptive congestion penalty pf
+      - optional technology penalties
+    move_policy:
+      - rip-up and relocate illegal or selected legal cells
+    ordering_policy:
+      - overflow value
+      - then cell height/width
+    region_policy:
+      - dynamic surrounding search window
+      - accumulated movement across iterations
+    history_or_multiplier_schedule:
+      - history cost update h(x,y)
+      - adaptive penalty pf with threshold ith
+      - isolation point I
+    post_optimization:
+      - repeated greedy search
+      - cell swapping via bipartite matching
+    parallelization:
+      - deterministic multithreading
+      - dynamic region adjustment
+    openroad_mapping:
+      existing_engine: NegotiationLegalizer
+      likely_touch_points:
+        - NegotiationLegalizer.cpp
+        - NegotiationLegalizerPass.cpp
+        - PlacementDRC.cpp
+    low_risk_mutations:
+      - adaptive penalty schedule
+      - isolation threshold
+      - search-window shape
+      - sort priority
+      - postopt strength
+    high_risk_mutations:
+      - redesign resource grid
+      - fully parallel negotiation
+    telemetry_needed:
+      - overflow count per iter
+      - moved cell count
+      - window hit rate
+      - history cost map
+      - per-cell displacement
+    hard_gates:
+      - full legality
+      - bounded runtime
+
+  - name: legalm2
+    source:
+      type: paper
+      file: LEGALM_2.0_A_Versatile_Augmented_Lagrangian_Method-Based_Methodology_for_Mixed-Cell-Height_Legalization.pdf
+    problem_scope: mixed-cell-height legalization with routability and hybrid region constraints
+    objective_terms:
+      - weighted average displacement Sam
+      - maximum displacement Mmax
+      - routing-violation penalties
+    hard_constraints:
+      - site alignment
+      - overlap free
+      - P/G tail alignment
+      - fence/default region constraints
+    soft_constraints:
+      - edge spacing
+      - pin short/access
+    initialization_strategy:
+      - scanline-based initial legalization
+      - nearest legal site via plates
+    candidate_generation:
+      - local candidate positions around each cell
+      - block-gradient descent search
+    cost_function:
+      - w_am + alpha_max * w_max
+      - augmented Lagrangian overflow penalties
+      - routability penalty ptech * H * V
+    move_policy:
+      - projected gradient / block gradient descent
+    ordering_policy:
+      - overflow-aware
+      - partition-based update
+    region_policy:
+      - triplefold partitioning
+      - connected-component escape across plates
+    history_or_multiplier_schedule:
+      - sigma
+      - lambda update
+      - hf schedule
+    post_optimization:
+      - zero-overflow refinement stage
+    parallelization:
+      - GPU blocks/threads
+      - partitioned BGD
+    openroad_mapping:
+      short_term:
+        - use as knowledge donor
+      likely_touch_points:
+        - initialization before detailed_placement
+        - candidate scoring in legalizer
+        - refinement pass after legality
+    low_risk_mutations:
+      - initial legalization ideas
+      - overflow-aware scoring
+      - local-optimum escape
+      - no-overflow refinement loop
+    high_risk_mutations:
+      - full ALM transplant
+      - CUDA engine inside OpenROAD
+    telemetry_needed:
+      - overflow heatmap
+      - lambda/sigma trajectories
+      - local-optimum trigger stats
+      - refinement gains
+    hard_gates:
+      - legality preserved
+      - displacement/runtime within budget
+
+  - name: dreamplace_abacus
+    source:
+      type: repo
+      repo: limbo018/DREAMPlace
+      path: dreamplace/ops/abacus_legalize
+    problem_scope: external Abacus legalizer operator for comparison
+    objective_terms:
+      - displacement minimization with row-based compaction
+    hard_constraints:
+      - site/row legality
+      - region metadata input
+    initialization_strategy:
+      - uses init_pos and current pos
+    candidate_generation:
+      - abacus row/cluster placement
+    openroad_mapping:
+      bridge_mode:
+        - export node geometry/regions from OpenROAD
+        - run Python operator
+        - import legalized coords back
+    low_risk_mutations:
+      - pure baseline comparator
+      - selected parameter / bridge tuning
+    high_risk_mutations:
+      - deep invasive integration into OpenROAD runtime
+    telemetry_needed:
+      - imported/exported coordinate consistency
+      - region fidelity checks
+      - hpwl and displacement deltas
+    hard_gates:
+      - legal coords on reimport
+      - exact instance mapping

@@ -1,0 +1,38 @@
+family: negotiation_cost_family
+when_to_use:
+  - "strict-track HPWL is poor but legality is stable"
+  - "displacement is acceptable but congestion / legalizer choices look suboptimal"
+mechanisms:
+  - name: "max-displacement penalty rebalance"
+    donor: "NBLG"
+    target_surfaces:
+      - "NegotiationLegalizer.cpp"
+    expected_effect:
+      - "lower wirelength perturbation"
+      - "possibly lower max displacement"
+    risks:
+      - "runtime increase"
+      - "cells may get trapped if congestion pressure becomes too weak"
+  - name: "adaptive penalty schedule tweak"
+    donor: "NBLG"
+    target_surfaces:
+      - "NegotiationLegalizer.cpp"
+    expected_effect:
+      - "better late-stage overlap clearing or less early over-penalization"
+    risks:
+      - "non-convergence if schedule is too weak"
+  - name: "history update strength tweak"
+    donor: "NBLG"
+    target_surfaces:
+      - "NegotiationLegalizer.cpp"
+    expected_effect:
+      - "changes how repeated congestion is discouraged"
+telemetry_needed:
+  - "HPWL before/after"
+  - "avg displacement"
+  - "max displacement"
+  - "runtime"
+  - "if possible, illegal-cell count across iterations"
+hard_gates:
+  - "legality"
+  - "metrics.json present"

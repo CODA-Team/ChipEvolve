@@ -1,0 +1,25 @@
+id: localized_swap
+status: reusable
+summary: >
+  Replace full-group same-shape pair enumeration with a hotset of seed cells
+  and local spatial neighbor swaps.
+source_surfaces:
+  - "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.h"
+  - "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizerPass.cpp"
+mechanisms:
+  - "localized hotset seed selection"
+  - "same-shape local spatial neighbor swaps"
+  - "cached current objective for swap evaluation"
+helps:
+  - "HPWL"
+  - "runtime relative to full-group swap"
+risks:
+  - "can still miss timing-sensitive opportunities"
+  - "quality can become too wirelength-centric if not paired with better guidance"
+stacks_well_with:
+  - "netaware_objective"
+  - "selective_refinement"
+  - "smooth_anchor_objective"
+best_use:
+  - "larger single-height libraries where same-shape groups get very large"
+

@@ -1,0 +1,58 @@
+recipes:
+  - id: legalm_engine_initial
+    status: reusable_base
+    components:
+      - "legalm_engine"
+    materialize_first:
+      - "evolve_agent/scripts/materialize_family_variant.sh --family legalm_engine --output-dir ./.codex_state/family_variants/legalm_engine/dpl_evolve --force"
+    intent:
+      - "use LEGALM as a separate family variant instead of starting from negotiation"
+      - "establish a distinct Stage1/Stage2/Stage3 base for future evolve"
+    use_when:
+      - "medium cases where a separate legalizer engine is worth trying first"
+      - "future experiments need to change legalizer structure rather than only negotiation heuristics"
+    current_known_behavior:
+      - "gcd_nangate45 strict smoke passed on the evolve line with the legalm_engine variant binary"
+      - "runtime is now close to baseline on ibex_nangate45 and below baseline on aes_nangate45"
+      - "still needs HPWL and setup-TNS improvement before it can replace the negotiation base broadly"
+  - id: runtime_aware_net_family
+    status: promoted_base
+    components:
+      - "netaware_objective"
+      - "selective_refinement"
+      - "localized_swap"
+    intent:
+      - "keep strong HPWL behavior"
+      - "control large-case runtime better than full wide postopt"
+    current_known_behavior:
+      - "works as current main base for larger-case iteration"
+  - id: runtime_aware_net_family_plus_anchor
+    status: experimental_stack
+    components:
+      - "netaware_objective"
+      - "selective_refinement"
+      - "localized_swap"
+      - "smooth_anchor_objective"
+    intent:
+      - "recover some WNS/TNS while keeping HPWL gains"
+      - "use connectivity guidance only on selected cells"
+    use_when:
+      - "HPWL is better than baseline but timing still lags"
+      - "localized_swap alone is not enough"
+  - id: runtime_aware_net_family_plus_priority_escape
+    status: promising_stack
+    components:
+      - "netaware_objective"
+      - "selective_refinement"
+      - "localized_swap"
+      - "priority_escape"
+    intent:
+      - "improve main-pass escape behavior on large cases"
+      - "recover timing without falling back to full wide-postopt everywhere"
+    use_when:
+      - "large cases still show timing loss after localized_swap"
+      - "logs or observations suggest stuck-cell behavior in main-pass"
+    current_known_behavior:
+      - "improved HPWL, setup WNS, and setup TNS together on ariane133_nangate45"
+      - "runtime remains above baseline and slightly above localized_swap"
+      - "jpeg_nangate45 suggests this recipe is a good escape/runtime base, but still needs timing-aware follow-on stacking"

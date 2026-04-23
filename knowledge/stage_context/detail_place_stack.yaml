@@ -1,0 +1,60 @@
+stage: detail_place
+summary: >
+  The current detailed placement stage in ORFS is not a pure legalizer call.
+  In public master ORFS it includes optional row balancing, global padding,
+  detailed_placement itself, optional improve_placement (DPO), optimize_mirroring,
+  legality check, and parasitic estimation.
+source_note:
+  public_master_flow_script: "OpenROAD-flow-scripts/flow/scripts/detail_place.tcl"
+  local_repo_note: "Verify exact local script content before first run."
+input_contract:
+  default_input_db: "3_4_place_resized.odb"
+  default_input_sdc: "2_floorplan.sdc"
+tracks:
+  strict_legalizer:
+    purpose: "Isolate legalization engine effect on HPWL / displacement."
+    include:
+      - "set_placement_padding"
+      - "detailed_placement"
+      - "check_placement"
+      - "estimate_parasitics -placement"
+    exclude:
+      - "balance_row_usage"
+      - "improve_placement"
+      - "optimize_mirroring"
+    claim_scope: "Use this track for legalizer-only claims."
+  reduced_flow_or_flow_faithful:
+    purpose: "Measure effect when the legalizer is placed back into a more realistic stack."
+    include:
+      - "balance_row_usage (optional)"
+      - "set_placement_padding"
+      - "detailed_placement"
+      - "improve_placement (optional / if ENABLE_DPO)"
+      - "optimize_mirroring"
+      - "check_placement"
+      - "estimate_parasitics -placement"
+    claim_scope: "Use this after strict-track improvement exists."
+runtime_switches_seen_in_public_master:
+  - name: "BALANCE_ROWS"
+    effect: "Calls balance_row_usage before legalizer."
+  - name: "CELL_PAD_IN_SITES_DETAIL_PLACEMENT"
+    effect: "Global placement padding before legalization."
+  - name: "DETAIL_PLACEMENT_ARGS"
+    effect: "Appended directly to detailed_placement."
+  - name: "USE_NEGOTIATION"
+    effect: "Appends -use_negotiation to detailed_placement."
+  - name: "ENABLE_DPO"
+    effect: "Enables improve_placement after legalization."
+  - name: "DPO_MAX_DISPLACEMENT"
+    effect: "Constrains improve_placement movement."
+main_metrics_for_legalizer_phase:
+  primary:
+    - "post-legalization HPWL / hpwl_proxy"
+  guardrails:
+    - "legality"
+    - "avg displacement"
+    - "max displacement"
+    - "runtime"
+notes_for_codex:
+  - "Do not attribute optimize_mirroring gains to legalizer changes."
+  - "Do not claim legalizer improvement from a reduced-flow track unless strict track also improved."

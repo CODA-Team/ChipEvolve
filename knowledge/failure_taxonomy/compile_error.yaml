@@ -1,0 +1,30 @@
+id: compile_error
+category: system
+trigger_signals:
+  - nonzero_build_exit
+  - compiler_error
+  - linker_error
+likely_root_causes:
+  - signature_mismatch
+  - missing_header_or_namespace
+  - stale_symbol_name_assumption
+  - invalid_tcl_binding_plumbing
+first_checks:
+  - verify_changed_symbols_against_local_repo_signatures
+  - check_includes_and_namespace_scope
+  - revert_any_unnecessary_refactor_in_same_patch
+allowed_remediation:
+  - narrow patch scope
+  - restore previous call pattern
+  - add bounded helper/extraction only if needed
+forbidden_quick_fixes:
+  - suppress compiler errors by deleting logic wholesale
+  - change unrelated build scripts
+success_criteria:
+  - build completes
+  - touched tests still run
+packet_hints:
+  focus:
+    - code_atlas
+    - symbol_cards
+    - mutation_contract

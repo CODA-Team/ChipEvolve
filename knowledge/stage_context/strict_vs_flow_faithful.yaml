@@ -1,0 +1,20 @@
+comparison_contract:
+  strict_track:
+    what_is_varied:
+      - "legalizer engine / legalizer implementation"
+    what_is_fixed:
+      - "everything except minimal legalization context"
+    use_for:
+      - "algorithm claims"
+      - "code-level evolution claims"
+  flow_faithful_track:
+    what_is_varied:
+      - "legalizer under surrounding stage context"
+    what_is_fixed:
+      - "rest of reduced or current flow"
+    use_for:
+      - "system claims"
+      - "integration claims"
+decision_policy:
+  - "Never skip strict-track validation when a patch changes the legalizer core."
+  - "Use flow-faithful track only to test whether improvements survive the surrounding stack."

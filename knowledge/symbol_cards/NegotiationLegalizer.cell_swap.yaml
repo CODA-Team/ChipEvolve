@@ -1,0 +1,32 @@
+symbol_id: NegotiationLegalizer.cell_swap
+source_path: tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizerPass.cpp
+exact_symbol: "dpl_evolve::NegotiationLegalizer::cellSwap()"
+signature: "void NegotiationLegalizer::cellSwap()"
+anchors:
+  definition_line: 820
+  activation_site: "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.cpp:276"
+aligned: true
+repo_alignment_required: false
+role: "Pairwise/local exchange stage for bounded displacement improvement without overlap."
+related_papers:
+  - nblg
+related_mechanisms:
+  - cell_swapping_postopt
+safe_patch_modes:
+  - gate_enable_disable
+  - local_ordering_change
+risky_patch_modes:
+  - unconstrained swap neighborhood expansion
+metrics_of_interest:
+  primary:
+    - displacement.avg
+    - hpwl_proxy
+  guards:
+    - legality
+questions_before_patch:
+  - "Should cellSwap remain disabled in the first bounded patch while only greedyImprove is tested?"
+  - "If enabled later, what runtime budget is acceptable for this design?"
+current_status:
+  implementation_present: true
+  reachable_from_legalize: false
+  reason: "The activation call is currently commented out in NegotiationLegalizer::legalize()."

@@ -1,0 +1,28 @@
+id: smooth_anchor_objective
+status: experimental_component
+summary: >
+  Use a connectivity-derived smooth anchor to guide candidate search and add a
+  soft pull toward locally promising positions for pin-rich or high-displacement
+  cells.
+source_surfaces:
+  - "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.h"
+  - "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizerPass.cpp"
+mechanisms:
+  - "connectivity-derived anchor point"
+  - "anchor neighborhood exploration"
+  - "soft anchor-distance term in candidate cost"
+helps:
+  - "HPWL"
+  - "sometimes WNS/TNS for pin-rich cells"
+risks:
+  - "extra runtime if enabled for too many cells"
+  - "can overpull cells if anchor cost is too strong"
+current_note:
+  - "first stacked implementation on ariane133 showed no measurable quality gain"
+  - "keep as a reusable idea donor, not as a promoted active component"
+stacks_well_with:
+  - "netaware_objective"
+  - "selective_refinement"
+  - "localized_swap"
+best_use:
+  - "large cases where HPWL improves but timing still lags"

@@ -1,0 +1,62 @@
+initial_paths:
+  - id: legalm_medium_case_base
+    recipe: legalm_engine_initial
+    start_line: evolve_line
+    variant_family: legalm_engine
+    use_when:
+      - "medium-size stdcell case"
+      - "baseline runtime is already moderate"
+      - "you want a structurally different initializer, not another negotiation tweak"
+      - "examples: aes_nangate45, ibex_nangate45"
+    strengths:
+      - "runtime is now close to baseline on medium Nangate45 cases"
+      - "setup WNS can be better than the current evolve-side negotiation family"
+      - "good base for Stage1/Stage2/Stage3 specific evolve"
+    risks:
+      - "requires a dedicated LEGALM-capable variant binary"
+      - "HPWL still trails baseline on some medium cases"
+      - "setup TNS is not yet consistently better than baseline"
+
+  - id: negotiation_runtime_aware_base
+    recipe: runtime_aware_net_family
+    start_line: evolve_line
+    use_when:
+      - "large or runtime-sensitive case"
+      - "need a practical first evolve point with bounded runtime"
+      - "you already know heavy wide-postopt families diverge on this regime"
+    strengths:
+      - "good default base for larger cases"
+      - "retains much of the HPWL-aware behavior without the worst runtime blow-up"
+      - "stacks naturally with escape and timing-aware follow-on patches"
+    risks:
+      - "may still lag on timing-sensitive large cases"
+      - "quality can still be behind the strongest heavy family"
+
+  - id: negotiation_priority_escape_base
+    recipe: runtime_aware_net_family_plus_priority_escape
+    start_line: evolve_line
+    use_when:
+      - "large case"
+      - "baseline or runtime-aware base still shows negative setup WNS/TNS"
+      - "logs or observations suggest stuck-cell / no-valid-candidate behavior"
+      - "examples: ariane133-style large timing-stressed cases"
+    strengths:
+      - "improves main-pass escape instead of only adding heavier postopt"
+      - "can improve HPWL, WNS, and TNS together on large timing-stressed cases"
+    risks:
+      - "runtime is usually above the plain runtime-aware base"
+      - "still needs case-specific follow-on objective work"
+
+  - id: wide_postopt_small_case_only
+    recipe: hpwl_wide_postopt
+    start_line: evolve_line
+    use_when:
+      - "small or medium-small case"
+      - "quality-first exploratory run"
+      - "runtime is explicitly not the primary gate for the first pass"
+    strengths:
+      - "strong HPWL and timing donor family"
+      - "useful as a donor even when not chosen as the long-term base"
+    risks:
+      - "not suitable as a large-case initial path"
+      - "runtime divergence is well established on bigger cases"

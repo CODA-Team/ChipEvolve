@@ -1,0 +1,164 @@
+diff --git a/src/dpl_evolve/src/NegotiationLegalizer.h b/src/dpl_evolve/src/NegotiationLegalizer.h
+index f025128a9d..4a67138c16 100644
+--- a/src/dpl_evolve/src/NegotiationLegalizer.h
++++ b/src/dpl_evolve/src/NegotiationLegalizer.h
+@@ -57,6 +57,14 @@ constexpr double kLocalSwapHotsetFraction = 0.12;
+ constexpr int kLocalSwapMinSeeds = 256;
+ constexpr int kLocalSwapNeighborSpan = 12;
+ constexpr int kLocalSwapMaxRowDelta = 8;
++constexpr int kCriticalOrderPinThreshold = 10;
++constexpr int kCriticalOrderDisplacementThreshold = 6;
++constexpr int kEscapeSearchPinThreshold = 12;
++constexpr int kEscapeSearchDisplacementThreshold = 10;
++constexpr int kEscapeSearchHorizScale = 3;
++constexpr int kEscapeSearchAdjScale = 2;
++constexpr int kEscapeSearchHorizStep = 2;
++constexpr int kEscapeSearchMaxRadius = 32;
+ 
+ // ---------------------------------------------------------------------------
+ // NLPowerRailType
+@@ -210,6 +218,7 @@ class NegotiationLegalizer
+                                     const Node* moved_node,
+                                     int moved_left_dbu,
+                                     int moved_bottom_dbu) const;
++  [[nodiscard]] bool shouldUseEscapeSearch(int cell_idx, int iter) const;
+   [[nodiscard]] double adaptivePf(int iter) const;
+   void updateHistoryCosts();
+   void updateDrcHistoryCosts(const std::vector<int>& activeCells);
+diff --git a/src/dpl_evolve/src/NegotiationLegalizerPass.cpp b/src/dpl_evolve/src/NegotiationLegalizerPass.cpp
+index d4e4b035e6..c359152cfd 100644
+--- a/src/dpl_evolve/src/NegotiationLegalizerPass.cpp
++++ b/src/dpl_evolve/src/NegotiationLegalizerPass.cpp
+@@ -441,6 +441,8 @@ std::pair<int, int> NegotiationLegalizer::findBestLocation(int cell_idx,
+   // later iterations strongly penalise DRC violations to force resolution.
+   const double kDrcPenalty = 1e3 * (1.0 + iter);
+ 
++  std::unordered_set<uint64_t> visited_locations;
++
+   // Helper: evaluate one candidate position.
+   auto tryLocation = [&](int tx, int ty) {
+     {
+@@ -484,12 +486,21 @@ std::pair<int, int> NegotiationLegalizer::findBestLocation(int cell_idx,
+     }
+   };
+ 
++  auto visitLocation = [&](int tx, int ty) {
++    const uint64_t key = (static_cast<uint64_t>(static_cast<uint32_t>(tx)) << 32)
++                         | static_cast<uint32_t>(ty);
++    if (!visited_locations.insert(key).second) {
++      return;
++    }
++    tryLocation(tx, ty);
++  };
++
+   // Search around the initial (GP) position.
+   {
+     utl::DebugScopedTimer t(prof_init_search_s_);
+     for (int dy = -adj_window_; dy <= adj_window_; ++dy) {
+       for (int dx = -horiz_window_; dx <= horiz_window_; ++dx) {
+-        tryLocation(cell.init_x + dx, cell.init_y + dy);
++        visitLocation(cell.init_x + dx, cell.init_y + dy);
+       }
+     }
+   }
+@@ -501,9 +512,60 @@ std::pair<int, int> NegotiationLegalizer::findBestLocation(int cell_idx,
+     utl::DebugScopedTimer t(prof_curr_search_s_);
+     for (int dy = -adj_window_; dy <= adj_window_; ++dy) {
+       for (int dx = -horiz_window_; dx <= horiz_window_; ++dx) {
+-        tryLocation(cell.x + dx, cell.y + dy);
++        visitLocation(cell.x + dx, cell.y + dy);
++      }
++    }
++  }
++
++  const bool use_escape_search = shouldUseEscapeSearch(cell_idx, iter);
++  auto exploreEscapeWindow = [&](int center_x, int center_y) {
++    const int escape_horiz_window = std::min(
++        grid_w_,
++        std::max(horiz_window_ * kEscapeSearchHorizScale,
++                 horiz_window_ + kLocalSwapNeighborSpan));
++    const int escape_row_window
++        = std::min(grid_h_, std::max(adj_window_ * kEscapeSearchAdjScale,
++                                     cell.height + kEscapeSearchAdjScale));
++    for (int dy = -escape_row_window; dy <= escape_row_window; ++dy) {
++      for (int dx = -escape_horiz_window; dx <= escape_horiz_window;
++           dx += kEscapeSearchHorizStep) {
++        visitLocation(center_x + dx, center_y + dy);
++      }
++    }
++  };
++  auto tryDiamondEscape = [&](int seed_x, int seed_y) {
++    if (!opendp_ || !network_) {
++      return;
++    }
++    Node* escape_node = network_->getNode(cell.db_inst);
++    if (escape_node == nullptr) {
++      return;
++    }
++    const int clamped_x = std::clamp(seed_x, 0, std::max(0, grid_w_ - 1));
++    const int clamped_y = std::clamp(seed_y, 0, std::max(0, grid_h_ - 1));
++    const PixelPt pt
++        = opendp_->diamondSearch(escape_node, GridX{clamped_x}, GridY{clamped_y});
++    if (pt.pixel != nullptr) {
++      visitLocation(pt.x.v, pt.y.v);
++    }
++  };
++
++  if (use_escape_search) {
++    const int mid_x = (cell.init_x + cell.x) / 2;
++    const int mid_y = (cell.init_y + cell.y) / 2;
++    {
++      utl::DebugScopedTimer t(prof_curr_search_s_);
++      exploreEscapeWindow(mid_x, mid_y);
++      if (best_cost == static_cast<double>(kInfCost)) {
++        exploreEscapeWindow(cell.x, cell.init_y);
++        exploreEscapeWindow(cell.init_x, cell.y);
+       }
+     }
++    tryDiamondEscape(cell.x, cell.y);
++    tryDiamondEscape(mid_x, mid_y);
++    if (best_cost == static_cast<double>(kInfCost)) {
++      tryDiamondEscape(cell.init_x, cell.init_y);
++    }
+   }
+ 
+   if (debug_observer_) {
+@@ -723,6 +785,16 @@ uint64_t NegotiationLegalizer::edgeHpwlAt(const Edge* edge,
+   return rect.dx() + rect.dy();
+ }
+ 
++bool NegotiationLegalizer::shouldUseEscapeSearch(int cell_idx, int iter) const
++{
++  const NegCell& cell = cells_[cell_idx];
++  if (iter < kIsolationPt) {
++    return false;
++  }
++  return pinCount(cell_idx) >= kEscapeSearchPinThreshold
++         || cell.displacement() >= kEscapeSearchDisplacementThreshold;
++}
++
+ // ===========================================================================
+ // adaptivePf – Eq. 14 from the NBLG paper
+ //   pf = 1.0 + α * exp(−β * exp(−γ * (i − ith)))
+@@ -828,6 +900,21 @@ void NegotiationLegalizer::sortByNegotiationOrder(
+     if (oa != ob) {
+       return oa > ob;
+     }
++    const bool critical_a
++        = pinCount(a) >= kCriticalOrderPinThreshold
++          || cells_[a].displacement() >= kCriticalOrderDisplacementThreshold;
++    const bool critical_b
++        = pinCount(b) >= kCriticalOrderPinThreshold
++          || cells_[b].displacement() >= kCriticalOrderDisplacementThreshold;
++    if (critical_a != critical_b) {
++      return critical_a > critical_b;
++    }
++    if (pinCount(a) != pinCount(b)) {
++      return pinCount(a) > pinCount(b);
++    }
++    if (cells_[a].displacement() != cells_[b].displacement()) {
++      return cells_[a].displacement() > cells_[b].displacement();
++    }
+     if (cells_[a].height != cells_[b].height) {
+       return cells_[a].height < cells_[b].height;
+     }

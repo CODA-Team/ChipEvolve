@@ -1,0 +1,104 @@
+{
+  "run_id": "TODO_FILL_RUN_ID",
+  "problem": "aes_nangate45_legalizer_wl",
+  "design_profile": {
+    "design": "aes",
+    "platform": "nangate45",
+    "task": "design_specific_legalization_wirelength",
+    "preferred_track": "strict_legalizer",
+    "likely_first_surface": "src/dpl_evolve/src/NegotiationLegalizer.cpp",
+    "objective_priority": [
+      "legalization_hpwl",
+      "avg_displacement",
+      "max_displacement",
+      "runtime"
+    ],
+    "notes": [
+      "Reuse existing place artifacts under flow/results/nangate45/aes; do not rerun place.",
+      "Start with one strict evolve line before any suite rerun."
+    ],
+    "recommended_playbooks": [
+      "negotiation_cost_family",
+      "postopt_recovery_family"
+    ]
+  },
+  "objective": {
+    "primary": "legalization_hpwl",
+    "guardrails": [
+      "legality",
+      "runtime"
+    ]
+  },
+  "stage_context": {
+    "selected_track": "strict_legalizer",
+    "key_includes": [
+      "set_placement_padding",
+      "detailed_placement",
+      "check_placement",
+      "estimate_parasitics -placement"
+    ],
+    "key_excludes": [
+      "balance_row_usage",
+      "improve_placement",
+      "optimize_mirroring"
+    ]
+  },
+  "selected_patch_surface": {
+    "file": "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.cpp",
+    "allowed_functions_or_regions": [
+      "negotiation cost / history / search / refinement"
+    ]
+  },
+  "code_atlas_excerpt": {
+    "commands": [
+      "detailed_placement",
+      "check_placement"
+    ],
+    "cpp_entries": [
+      "Opendp::detailedPlacement"
+    ]
+  },
+  "delta_ledger_excerpt": {
+    "implemented_or_partial": [
+      "negotiation pass itself",
+      "history cost idea",
+      "Abacus optional pre-pass",
+      "fence/mixed-height awareness"
+    ],
+    "missing_or_disabled": [
+      "documented post-optimisation fully active in current code",
+      "deterministic multithreading",
+      "explicit dynamic region adjustment",
+      "full NBLG-style postopt chain"
+    ],
+    "implications": [
+      "Prefer NBLG-informed mutation first.",
+      "Use LEGALM ideas mainly for initialization/escape/refinement."
+    ]
+  },
+  "selected_playbook": {
+    "family": "negotiation_cost_family",
+    "mechanisms": [
+      "max-displacement penalty rebalance",
+      "adaptive penalty schedule tweak"
+    ],
+    "telemetry_needed": [
+      "HPWL before/after",
+      "avg displacement",
+      "max displacement",
+      "runtime"
+    ]
+  },
+  "hard_gates": [
+    "legality",
+    "metrics.json present",
+    "runtime bounded"
+  ],
+  "run_checklist": [
+    "Read packet and patch_rules.md",
+    "Apply bounded patch",
+    "Build OpenROAD",
+    "Run single baseline on strict track",
+    "Read evaluator output"
+  ]
+}

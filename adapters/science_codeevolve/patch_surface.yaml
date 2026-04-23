@@ -1,0 +1,108 @@
+surfaces:
+  - file: "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.cpp"
+    symbol: "dpl_evolve::NegotiationLegalizer::legalize()"
+    signature: "void NegotiationLegalizer::legalize()"
+    anchors:
+      definition_line: 88
+      allowed_line_windows:
+        - "235-250: illegal-cell negotiation dispatch"
+        - "269-277: post-optimisation gate block"
+    allowed_patch_modes:
+      - param_tuning
+      - ordering_logic_change
+      - search_window_policy_change
+      - postopt_enable_or_gate
+    risk: "medium-high"
+  - file: "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizerPass.cpp"
+    symbol: "dpl_evolve::NegotiationLegalizer::findBestLocation(int, int) const"
+    signature: "std::pair<int, int> NegotiationLegalizer::findBestLocation(int cell_idx, int iter) const"
+    anchors:
+      definition_line: 424
+      allowed_line_windows:
+        - "424-582: candidate generation, fallback, and local escape logic"
+    allowed_patch_modes:
+      - candidate_generation_change
+      - stuck_cell_escape
+      - search_window_policy_change
+    risk: "high"
+  - file: "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizerPass.cpp"
+    symbol: "dpl_evolve::NegotiationLegalizer::negotiationCost(int, int, int) const"
+    signature: "double NegotiationLegalizer::negotiationCost(int cell_idx, int x, int y) const"
+    anchors:
+      definition_line: 585
+      allowed_line_windows:
+        - "585-742: negotiation objective, congestion, and local wirelength shaping"
+    allowed_patch_modes:
+      - objective_change
+      - overflow_penalty_change
+      - differentiable_anchor_change
+    risk: "high"
+  - file: "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizerPass.cpp"
+    symbol: "dpl_evolve::NegotiationLegalizer::greedyImprove(int)"
+    signature: "void NegotiationLegalizer::greedyImprove(int passes)"
+    anchors:
+      definition_line: 843
+      allowed_line_windows:
+        - "843-1041: selective refinement, local search, and refinement scheduling"
+    allowed_patch_modes:
+      - selective_refinement_change
+      - localized_postopt_change
+      - runtime_efficiency_review
+    risk: "high"
+  - file: "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizerPass.cpp"
+    symbol: "dpl_evolve::NegotiationLegalizer::cellSwap()"
+    signature: "void NegotiationLegalizer::cellSwap()"
+    anchors:
+      definition_line: 1043
+      allowed_line_windows:
+        - "1043-1180: swap candidate generation, localization, and acceptance objective"
+    allowed_patch_modes:
+      - localized_swap_change
+      - objective_change
+      - runtime_efficiency_review
+    risk: "high"
+  - file: "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.h"
+    symbol: "dpl_evolve::NegotiationLegalizer"
+    signature: "class NegotiationLegalizer"
+    anchors:
+      definition_line: 99
+      allowed_line_windows:
+        - "41-57: family constants and weights"
+        - "187-221: helper declarations for objective / refinement / swap support"
+        - "282-301: cached data for performance-sensitive helpers"
+    allowed_patch_modes:
+      - family_constant_change
+      - helper_declaration
+      - cache_addition
+    risk: "medium-high"
+  - file: "tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp"
+    symbol: "dpl_evolve::Opendp::detailedPlacement(...)"
+    signature: "void Opendp::detailedPlacement(const int max_displacement_x, const int max_displacement_y, const std::string& report_file_name, bool incremental, const bool use_negotiation, const bool run_abacus)"
+    anchors:
+      definition_line: 116
+      allowed_line_windows:
+        - "206-239: negotiation engine dispatch and bounded runtime wiring"
+    allowed_patch_modes:
+      - runtime_flag_wiring
+      - helper_extraction
+    risk: "medium"
+  - file: "tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl"
+    symbol: "proc detailed_placement_evolve { args }"
+    signature: "proc detailed_placement_evolve { args }"
+    anchors:
+      proc_definition_line: 12
+      allowed_line_windows:
+        - "13-16: key/flag parsing"
+        - "53-56: dpl_evolve::detailed_placement_cmd dispatch"
+    allowed_patch_modes:
+      - expose_tcl_flag
+      - bounded_cli_plumbing
+    risk: "low-medium"
+policy:
+  deny_by_default: true
+  require_patch_note: true
+  require_task_reference: true
+notes:
+  - "Opendp::improvePlacement exists locally in Optdp.cpp and is intentionally excluded from the first strict-track mutation surface."
+  - "The early gate-only phase is over: current negotiation-family evolution is expected to modify NegotiationLegalizerPass.cpp / NegotiationLegalizer.h directly."
+  - "LEGALM is a materialized family variant. Patch its generated source tree, not tools/OpenROAD/src/dpl_evolve."

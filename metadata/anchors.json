@@ -1,0 +1,10 @@
+{
+  "workspace_model": {
+    "orfs_base_commit": "7caa34a426ee407f27da06c0b8ba96867192ad3e",
+    "openroad_base_commit": "d22045c978d037f7a5788c08f359aec471800c01"
+  },
+  "patches": {
+    "orfs_overlay": "patches/orfs_overlay.patch",
+    "openroad_clean_dpl_evolve": "patches/openroad_dpl_evolve_base.patch"
+  }
+}

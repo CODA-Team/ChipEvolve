@@ -1,0 +1,248 @@
+families:
+  - id: legalm_engine
+    status: active_base
+    summary: >
+      CPU-first LEGALM-style legalizer packaged as a separate family variant
+      over the clean initial evolve base. Preserves Stage1/Stage2/Stage3
+      structure and avoids overloading the negotiation engine path. Includes a
+      local Stage1 initializer, bounded Stage3 net refinement, and a lite
+      post-refine path that makes the engine usable on medium Nangate45 cases.
+    source_surfaces:
+      - "evolve_agent/family_variants/legalm_engine/dpl_evolve.patch"
+      - "evolve_agent/family_variants/legalm_engine/manifest.yaml"
+      - "evolve_agent/baseline/detail_place_only_evolve_legalm.tcl"
+      - "evolve_agent/baseline/flow/detail_place_flow_evolve_legalm.tcl"
+    mechanisms:
+      - "Stage1 scanline-based initial legalization"
+      - "Stage2 ALM-based legalization with BGD, multiplier update, partition refresh, and local optimum escape"
+      - "Stage3 refinement"
+      - "separate runtime-selectable legalizer engine dispatch"
+      - "Stage1 local scanline-ish initializer around original positions"
+      - "Stage3 local net-aware refinement"
+      - "lite post-legalization HPWL refine"
+    strengths:
+      - "provides a new legalizer base independent of negotiation"
+      - "already wired into the baseline/evaluator flow through a dedicated variant binary"
+      - "preserves LEGALM-style structure for future evolve"
+      - "now produces medium-case results that are comparable to baseline rather than just smoke-passable"
+    weaknesses:
+      - "HPWL on ibex_nangate45 still trails baseline"
+      - "runtime-focused medium-case path currently trades away some setup TNS on aes_nangate45"
+      - "larger-case success on jpeg-class designs is not yet promoted"
+      - "candidate stencil remains scaffolded rather than paper-perfect"
+    representative_cases:
+      - case: "gcd_nangate45"
+        result: "strict smoke pass"
+        hpwl_delta_micron: 651.2265
+        setup_ws: 0.0124074
+        setup_tns: 0.0
+        runtime_seconds: 2.886
+      - case: "aes_nangate45"
+        result: "comparable quality; timing slightly better than baseline"
+        hpwl_delta_micron: 1265.8415
+        setup_ws: -0.0151151
+        setup_tns: -0.0668611
+        runtime_seconds: 16.091
+      - case: "ibex_nangate45"
+        result: "runtime near baseline; setup timing better than baseline; HPWL still worse"
+        hpwl_delta_micron: 9776.1105
+        setup_ws: 0.0216451
+        setup_tns: 0.0
+        runtime_seconds: 10.686
+      - case: "aes_nangate45"
+        result: "runtime below baseline; setup WNS better than baseline; HPWL close but setup TNS worse"
+        hpwl_delta_micron: 1033.7915
+        setup_ws: -0.014014
+        setup_tns: -0.0777443
+        runtime_seconds: 8.432
+    notes_file: "legalm_engine_integration_20260422.md"
+
+  - id: hpwl_wide_postopt
+    status: superseded_base
+    summary: >
+      First strong quality family. Added HPWL-aware local objective, objective-based
+      cell swap, and wide post-optimization windows. Generalized to multiple cases,
+      but runtime diverged badly on larger designs.
+    source_surfaces:
+      - "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.cpp"
+      - "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.h"
+      - "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizerPass.cpp"
+    mechanisms:
+      - "HPWL-aware placement objective"
+      - "objective-based cellSwap"
+      - "wide postopt search"
+    strengths:
+      - "strong HPWL improvement"
+      - "often improves setup WNS/TNS"
+    weaknesses:
+      - "runtime scales poorly on larger cases"
+    representative_cases:
+      - case: "gcd_nangate45"
+        result: "promising"
+        hpwl_delta_micron: 292.4015
+        setup_ws: 0.0130022
+        setup_tns: 0.0
+        runtime_seconds: 1.555
+      - case: "ibex_nangate45"
+        result: "quality strong, runtime poor"
+        hpwl_delta_micron: 6556.6705
+        setup_ws: 0.015268
+        setup_tns: 0.0
+        runtime_seconds: 54.64
+      - case: "aes_asap7"
+        result: "quality strong, runtime poor"
+        hpwl_delta_micron: 2236.082
+        setup_ws: -20.4597
+        setup_tns: -151.734
+        runtime_seconds: 71.623
+    notes_file: "multi_case_negotiation_observations_20260422.md"
+
+  - id: selective_refinement_budget
+    status: active_base
+    parent: hpwl_wide_postopt
+    summary: >
+      Keeps the net-aware objective but limits heavy refinement to a selected subset
+      of movable cells. Intended to recover runtime while preserving most quality.
+    source_surfaces:
+      - "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.h"
+      - "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizerPass.cpp"
+    mechanisms:
+      - "selective greedyImprove budget"
+      - "wide escape subset"
+    strengths:
+      - "better runtime than full wide-postopt family"
+      - "still clearly above baseline quality on several cases"
+    weaknesses:
+      - "runtime still too high on some larger ASAP7 cases"
+      - "timing quality can regress relative to the full-quality family"
+    representative_cases:
+      - case: "gcd_nangate45"
+        result: "improved over parent"
+        hpwl_delta_micron: 271.7815
+        setup_ws: 0.0130022
+        setup_tns: 0.0
+        runtime_seconds: 1.211
+      - case: "ibex_nangate45"
+        result: "runtime better than parent, HPWL slightly worse"
+        hpwl_delta_micron: 6923.0905
+        setup_ws: 0.0154523
+        setup_tns: 0.0
+        runtime_seconds: 33.342
+      - case: "aes_asap7"
+        result: "quality still strong, runtime better than parent"
+        hpwl_delta_micron: 2435.174
+        setup_ws: -19.6634
+        setup_tns: -160.921
+        runtime_seconds: 42.462
+    notes_file: "selective_refinement_budget_observations_20260422.md"
+
+  - id: localized_swap
+    status: active_base
+    parent: selective_refinement_budget
+    summary: >
+      Replaces full-group cellSwap with localized hotset swap search for large
+      same-shape groups. Designed to keep HPWL quality while removing the worst
+      quadratic swap behavior.
+    source_surfaces:
+      - "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.h"
+      - "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.cpp"
+      - "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizerPass.cpp"
+    mechanisms:
+      - "localized hotset swap seeds"
+      - "spatial neighbor swap search"
+      - "review-driven cache cleanup"
+    strengths:
+      - "very strong HPWL improvement on ariane133"
+      - "better structural runtime behavior than full-group swap"
+      - "good base for stacking anchor / escape objective changes"
+    weaknesses:
+      - "timing still not improved on ariane133"
+      - "runtime still above baseline, so more stacking is needed"
+    representative_cases:
+      - case: "ariane133_nangate45"
+        result: "HPWL win, timing loss"
+        hpwl_delta_micron: -32219.902
+        setup_ws: -0.579907
+        setup_tns: -1210.03
+        runtime_seconds: 129.928
+    notes_file: "local_swap_family_observations_20260422.md"
+    reusable_components:
+      - "netaware_objective"
+      - "selective_refinement"
+      - "localized_swap"
+
+  - id: anchor_stack_runtime_net
+    status: rejected_no_effect
+    parent: localized_swap
+    summary: >
+      Stacks a smooth connectivity anchor on top of the runtime-aware net-aware
+      family. Intended to recover WNS/TNS on larger cases where localized_swap
+      already improves HPWL but not timing.
+    source_surfaces:
+      - "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.h"
+      - "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizerPass.cpp"
+    mechanisms:
+      - "smooth anchor target"
+      - "anchor neighborhood exploration"
+      - "soft anchor-distance candidate cost"
+    strengths:
+      - "targets timing-sensitive pin-rich cells"
+      - "stacks naturally on localized_swap"
+    weaknesses:
+      - "showed no measurable quality effect on ariane133"
+      - "slightly worsened runtime"
+    reusable_components:
+      - "netaware_objective"
+      - "selective_refinement"
+      - "localized_swap"
+      - "smooth_anchor_objective"
+    representative_cases:
+      - case: "ariane133_nangate45"
+        result: "no effect versus localized_swap; reject current implementation"
+        hpwl_delta_micron: -32219.902
+        setup_ws: -0.579907
+        setup_tns: -1210.03
+        runtime_seconds: 132.843
+    notes_file: "anchor_stack_observations_20260422.md"
+
+  - id: priority_escape
+    status: promising_stack
+    parent: localized_swap
+    summary: >
+      Stacks critical-first ordering and in-pass stuck-cell escape on top of
+      localized_swap. Intended to recover timing on larger cases without
+      falling back to globally wider postopt.
+    source_surfaces:
+      - "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.h"
+      - "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizerPass.cpp"
+    mechanisms:
+      - "critical-first negotiation ordering"
+      - "deduplicated candidate visitation"
+      - "coarse escape-window exploration"
+      - "diamond-seeded escape candidates"
+    strengths:
+      - "improved HPWL, setup WNS, and setup TNS together on ariane133"
+      - "acts in the main-pass rather than only postopt"
+    weaknesses:
+      - "runtime slightly worse than localized_swap on ariane133"
+      - "jpeg_nangate45 keeps HPWL gain but regresses setup timing"
+      - "still needs validation on additional larger cases"
+    reusable_components:
+      - "netaware_objective"
+      - "selective_refinement"
+      - "localized_swap"
+      - "priority_escape"
+    representative_cases:
+      - case: "ariane133_nangate45"
+        result: "HPWL + WNS + TNS improved versus localized_swap"
+        hpwl_delta_micron: -32464.642
+        setup_ws: -0.57217
+        setup_tns: -1182.09
+        runtime_seconds: 131.326
+      - case: "jpeg_nangate45"
+        result: "HPWL better than baseline, runtime controlled versus older heavy family, timing worse"
+        hpwl_delta_micron: 141918.8655
+        setup_ws: -0.199956
+        setup_tns: -58.3203
+        runtime_seconds: 52.414
+    notes_file: "priority_escape_family_observations_20260422.md"

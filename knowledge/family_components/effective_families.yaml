@@ -1,0 +1,89 @@
+effective_families:
+  - regime: medium_case_new_initializer
+    start_with: legalm_engine_initial
+    start_line: evolve_line
+    variant_family: legalm_engine
+    use_for:
+      - aes_nangate45
+      - ibex_nangate45
+    goal:
+      - runtime_comparable
+      - structurally_different_initializer
+      - stage_specific_evolve
+    keep_because:
+      - runtime is already near baseline on medium Nangate45 cases
+      - setup WNS can beat the current evolve-side negotiation family
+      - it gives a structurally different initializer without modifying the clean main-tree base
+    watch_out:
+      - HPWL still trails baseline on some medium cases
+      - setup TNS is not consistently better yet
+    canonical_sources:
+      - initial_patch_paths.yaml
+      - legalm_engine.yaml
+      - ../../family_variants/legalm_engine/manifest.yaml
+      - ../replay_bank/family_registry.yaml
+
+  - regime: large_case_runtime_first
+    start_with: runtime_aware_net_family
+    start_line: evolve_line
+    use_for:
+      - ariane133_nangate45
+      - jpeg_nangate45
+      - large timing-sensitive negotiation cases
+    goal:
+      - bounded_runtime
+      - preserve_quality_signal
+      - safe_base_for_stacking
+    keep_because:
+      - avoids the worst runtime blow-up from wide postopt
+      - remains a good base for escape and timing-aware follow-ons
+    watch_out:
+      - may still lag on timing-heavy large cases
+      - quality can remain behind the strongest heavy family
+    canonical_sources:
+      - initial_patch_paths.yaml
+      - ../replay_bank/family_registry.yaml
+
+  - regime: large_case_timing_stressed
+    start_with: runtime_aware_net_family_plus_priority_escape
+    start_line: evolve_line
+    use_for:
+      - ariane133_nangate45
+      - cases showing stuck-cell behavior or negative setup WNS/TNS after the runtime-aware base
+    goal:
+      - improve_main_pass_escape
+      - recover_WNS_TNS_without_global_postopt_blowup
+    keep_because:
+      - can improve HPWL, WNS, and TNS together on large timing-stressed cases
+      - acts in main-pass instead of only postopt
+    watch_out:
+      - runtime is usually above the plain runtime-aware base
+      - jpeg still needs timing-aware follow-on work
+    canonical_sources:
+      - initial_patch_paths.yaml
+      - ../replay_bank/family_registry.yaml
+      - priority_escape.yaml
+
+donor_only_families:
+  - id: hpwl_wide_postopt
+    use_for:
+      - small_case_quality_first_runs
+      - donor_mechanisms_for_stacking
+    avoid_as_initial_for:
+      - large_cases
+    reason:
+      - quality is strong but runtime divergence is already established on larger cases
+
+  - id: anchor_stack_runtime_net
+    status: rejected_no_effect
+    reason:
+      - current implementation showed no measurable gain versus localized_swap on ariane133
+
+noise_to_avoid:
+  - id: archival_patch_dumps_and_long_notes
+    replacement:
+      - legalm_engine.yaml
+      - initial_patch_paths.yaml
+      - ../replay_bank/family_registry.yaml
+    reason:
+      - choose the active family component and initial-path rules first, not archival patch dumps or long replay narratives

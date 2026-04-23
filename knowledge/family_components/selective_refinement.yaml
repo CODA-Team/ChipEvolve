@@ -1,0 +1,25 @@
+id: selective_refinement
+status: reusable
+summary: >
+  Run expensive post-legalization refinement only on a selected subset of
+  movable cells, with an optional smaller wide-window escape subset.
+source_surfaces:
+  - "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.h"
+  - "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizerPass.cpp"
+mechanisms:
+  - "greedyImprove budget selection"
+  - "wide escape subset"
+helps:
+  - "runtime"
+  - "keeps postopt quality on larger cases better than full-scan refinement"
+risks:
+  - "can leave timing-sensitive cells untouched"
+  - "can lose some HPWL/TNS quality versus always-on heavy refinement"
+stacks_well_with:
+  - "netaware_objective"
+  - "localized_swap"
+  - "smooth_anchor_objective"
+best_use:
+  - "large-case runtime control"
+  - "base layer for additional objective / escape families"
+

@@ -1,0 +1,25 @@
+canonical_lines:
+  - id: baseline_default
+    kind: baseline
+    start_point: 3_4_place_resized.odb
+    entry_script: evolve_agent/baseline/run_or_default.sh
+    notes:
+      - "default OpenROAD detailed placement legalizer"
+      - "canonical baseline line"
+
+  - id: baseline_dreamplace_abacus
+    kind: baseline
+    start_point: 3_4_place_resized.odb
+    entry_script: evolve_agent/baseline/run_dp_abacus.sh
+    notes:
+      - "DreamPlace bridge plus Abacus baseline"
+      - "canonical baseline line"
+
+  - id: evolve_line
+    kind: evolve
+    start_point: 3_4_place_resized.odb
+    entry_script: evolve_agent/baseline/run_evolve_line.sh
+    notes:
+      - "clean initial detailed_placement_evolve line"
+      - "family variants reuse the same line through a dedicated binary"
+      - "legalm_engine is the current external family variant"

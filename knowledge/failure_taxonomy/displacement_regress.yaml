@@ -1,0 +1,27 @@
+id: displacement_regress
+category: objective
+trigger_signals:
+  - avg_displacement_regression
+  - max_displacement_regression
+likely_root_causes:
+  - too-aggressive overflow clearing
+  - search window too large
+  - cost lacks max-displacement guard
+  - restart/isolation policy mis-set
+first_checks:
+  - inspect avg vs max displacement separately
+  - compare to NBLG mf / threshold style logic
+  - inspect isolation and skip heuristics
+allowed_remediation:
+  - tighten max-displacement penalty
+  - shrink local window
+  - restore isolation gate
+forbidden_quick_fixes:
+  - optimize only average displacement while exploding max displacement
+success_criteria:
+  - displacement guard satisfied with legality preserved
+packet_hints:
+  focus:
+    - nblg_to_openroad
+    - symbol_cards
+    - replay_bank

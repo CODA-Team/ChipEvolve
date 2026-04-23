@@ -1,0 +1,27 @@
+packet_schema:
+  run_id: string
+  problem: string
+  design_profile: object
+  objective:
+    primary: string
+    guardrails: [string]
+  stage_context:
+    selected_track: string
+    key_includes: [string]
+    key_excludes: [string]
+  selected_patch_surface:
+    file: string
+    allowed_functions_or_regions: [string]
+  code_atlas_excerpt:
+    commands: [string]
+    cpp_entries: [string]
+  delta_ledger_excerpt:
+    implemented_or_partial: [string]
+    missing_or_disabled: [string]
+    implications: [string]
+  selected_playbook:
+    family: string
+    mechanisms: [string]
+    telemetry_needed: [string]
+  hard_gates: [string]
+  run_checklist: [string]

@@ -1,0 +1,55 @@
+# Skill: run_baseline_suite
+
+## Purpose
+Run the full baseline matrix and one evolve line to compare the candidate legalizer against fixed references.
+
+## Expected local entrypoint
+`evolve_agent/baseline/run_baseline_suite.sh`
+
+If the run is agent-managed rather than manual, prefer calling it through:
+
+- `evolve_agent/adapters/science_codeevolve/evaluator.py --mode suite`
+- or `evolve_agent/scripts/run_codex_once.sh --mode suite`
+
+## What this should cover
+- OpenROAD default legalizer
+- DREAMPlace Abacus bridge
+- current evolve line
+
+## Procedure
+1. Move to ORFS repo root.
+2. Confirm the baseline runner exists.
+3. Read the script header / usage block if arguments are uncertain.
+4. Launch a suite run with a unique run tag or reuse an existing `FLOW_VARIANT`
+   when you only need to reuse upstream ORFS snapshots such as
+   `3_4_place_resized.odb`.
+5. Wait for completion.
+6. Locate artifact outputs under:
+   - `flow/results/.../dpl_evolve_baseline/<run_tag>/`
+   - `flow/reports/.../dpl_evolve_baseline/<run_tag>/`
+   - `flow/logs/.../dpl_evolve_baseline/<run_tag>/`
+7. Read consolidated `metrics.json`.
+
+## Required outputs
+- run tag
+- artifact root
+- metrics file path
+- per-baseline summary table
+- failure line if any sub-baseline fails
+
+## Example
+
+```bash
+./evolve_agent/baseline/run_baseline_suite.sh \
+  --design-config ./designs/nangate45/gcd/config.mk \
+  --flow-variant dpl_evolve_suite_20260422_125226 \
+  --tag-prefix agent_suite \
+  --threads 8
+```
+
+## Notes for Codex
+Use suite runs sparingly during patch debugging.
+For iterative patching, prefer `run_single_baseline.md`.
+The suite summary for this control plane is:
+
+- `flow/reports/<platform>/<design>/<flow_variant>/dpl_evolve_baseline/suite_runs.tsv`

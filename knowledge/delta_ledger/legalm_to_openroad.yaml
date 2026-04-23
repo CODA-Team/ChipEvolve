@@ -1,0 +1,93 @@
+paper: "LEGALM 2.0: A Versatile Augmented Lagrangian Method-Based Methodology for Mixed-Cell-Height Legalization"
+goal_for_codex: >
+  Use LEGALM 2.0 as a secondary knowledge donor for initialization, overflow modeling,
+  local-optimum escape, and zero-overflow refinement ideas. Do not attempt a full transplant first.
+paper_core:
+  objectives:
+    hard_constraints:
+      - "site alignment"
+      - "overlap-free"
+      - "P/G tail alignment"
+      - "fence/default region constraints"
+    soft_constraints:
+      - "edge spacing"
+      - "pin short/access"
+    quality_metrics:
+      - "weighted average displacement Sam"
+      - "maximum displacement Mmax"
+      - "routing-related violations"
+  stage_1_scanline_initial_legalization:
+    summary: >
+      Relax overlap-free first; move each cell to the nearest legal-site candidate using
+      a scanline decomposition into interior plates and exterior plates.
+    practical_value_to_openroad:
+      - "stronger initialization before iterative legalizer"
+      - "plate / region aware nearest-legal projection"
+  stage_2_alm_legalization:
+    summary: >
+      Solve an overflow-aware legalization subproblem with augmented Lagrangian terms,
+      projected / linearized updates, and repeated multiplier updates.
+    important_ideas:
+      - "displacement + overflow modeling together"
+      - "cost derived from wi,t,j + λ_j T_j"
+      - "routability penalties added to candidate cost"
+  stage_2_escape:
+    summary: >
+      Detect local optimum from overflow behavior and relocate the most congested cells
+      to larger connected components / plates with spare area.
+    practical_value_to_openroad:
+      - "explicit stuck-state escape"
+      - "plate connectivity awareness"
+  stage_3_refinement:
+    summary: >
+      After overlap-free placement is achieved, refine displacement with overflow effectively forbidden.
+    practical_value_to_openroad:
+      - "clean separation between legalize and refine"
+      - "very relevant to post-negotiation polish"
+  parallelism:
+    summary: >
+      Triplefold partitioning and BGD enable GPU parallelism, but these are not first-phase transplant targets.
+delta_assessment_against_openroad:
+  high-value_ideas_for_near_term:
+    - "scanline / nearest-legal initialization"
+    - "connectivity-based local-optimum escape"
+    - "explicit zero-overflow refinement stage"
+    - "cost functions that separate displacement and overflow pressure"
+  medium-value_ideas:
+    - "routability-aware candidate penalties"
+    - "region/default-region richer handling"
+  low-priority_for_first_phase:
+    - "full ALM variable formulation"
+    - "GPU/BGD/TP full rewrite"
+    - "full LibTorch/CUDA-style implementation"
+recommended_mapping_to_openroad_surfaces:
+  initialization_family:
+    files:
+      - "Opendp.cpp"
+      - "NegotiationLegalizer.cpp"
+    examples:
+      - "improved initial legal-site seeding"
+      - "pre-negotiation nearest legal projection around fences/blockages"
+  escape_family:
+    files:
+      - "NegotiationLegalizer.cpp"
+    examples:
+      - "triggered recovery when overflow stagnates"
+      - "relocate worst-overflow cells out of stuck local regions"
+  refinement_family:
+    files:
+      - "NegotiationLegalizer.cpp"
+    examples:
+      - "re-enable / redesign post-negotiation refinement"
+      - "strict legal no-overflow local search"
+design_specific_knobs_codex_may_evolve:
+  - "escape trigger threshold"
+  - "which cells to move in an escape"
+  - "destination region selection criteria"
+  - "initialization radius / projection choices"
+  - "refinement iteration budget"
+anti_patterns:
+  - "do not attempt a full LEGALM solver transplant before baseline and replay loops are stable"
+  - "do not add GPU-specific complexity in first control-plane pass"
+codex_usage_hint:
+  - "Use LEGALM as an idea donor for stuck-case handling and refinement; use NBLG as the primary donor for the current OpenROAD negotiation engine."

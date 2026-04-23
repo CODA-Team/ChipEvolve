@@ -1,0 +1,55 @@
+# OpenROAD DPL — Human-Readable Card
+
+## What Codex should remember
+
+OpenROAD DPL currently exposes **two legalizer engines at runtime**:
+
+1. **Diamond search** (default)
+2. **NegotiationLegalizer** (`-use_negotiation`)
+
+Within the negotiation engine, the public docs describe a logical flow:
+
+- Abacus pass (optional / skippable)
+- Negotiation pass
+- Post-optimisation
+
+At the flow level, ORFS `detail_place.tcl` is **not a pure legalizer stage**. It may include:
+
+- `balance_row_usage`
+- `set_placement_padding`
+- `detailed_placement`
+- `improve_placement`
+- `optimize_mirroring`
+- `check_placement`
+- `estimate_parasitics -placement`
+
+Therefore:
+- Strict legalizer claims must exclude DPO and mirroring.
+- System claims can include them later.
+
+## High-value surfaces
+
+### 1. `NegotiationLegalizer.cpp`
+Best place to evolve:
+- cost
+- search window
+- negotiation schedule
+- disabled or incomplete postopt
+- escape / refinement logic
+
+### 2. `Opendp.cpp`
+Best place to evolve:
+- engine dispatch policy
+- top-level setup around detailed placement
+- future initialization hooks
+
+### 3. `Opendp.tcl`
+Best place to evolve:
+- expose a carefully chosen knob
+- keep Tcl <-> C++ synchronization correct
+
+## What not to confuse
+
+- `detailed_placement` = legalizer core entry
+- `improve_placement` = DPO / different optimization subsystem
+- `optimize_mirroring` = HPWL polishing after legalizer

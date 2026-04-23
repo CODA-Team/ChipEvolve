@@ -1,0 +1,29 @@
+id: baseline_invocation_fail
+category: harness
+trigger_signals:
+  - runner_nonzero_exit
+  - missing_usage_flag
+  - no_metrics_json_emitted
+  - artifact_dirs_missing
+likely_root_causes:
+  - stale wrapper arguments
+  - incorrect cwd assumptions
+  - missing environment setup
+  - output path mismatch
+first_checks:
+  - inspect local wrapper usage/help text
+  - verify artifact plane paths in runner and evaluator
+  - confirm manifest output paths are writable
+allowed_remediation:
+  - update evaluator arguments
+  - update skill docs to match real wrapper CLI
+forbidden_quick_fixes:
+  - bypass baseline harness with custom one-off commands for acceptance
+success_criteria:
+  - single baseline run completes
+  - metrics.json exists and passes schema contract
+packet_hints:
+  focus:
+    - stage_context
+    - run_manifest
+    - skills
