@@ -43,6 +43,8 @@ Do not open `tasks/archive/*`, `knowledge/stage_context/*`,
 `knowledge/delta_ledger/*`, `knowledge/design_profiles/*`, or repo-wide
 README files during a bounded patch turn if the packet already gives you the
 needed fact.
+Do not inspect git history or broad repo status during a bounded patch turn
+unless the task explicitly asks for flow debugging.
 
 ## Research budget
 

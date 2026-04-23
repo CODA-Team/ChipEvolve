@@ -25,6 +25,8 @@ Loop contract:
 - the baseline evaluator has already run before Codex is invoked
 - do not open archive protocols, delta ledgers, or stage-context notes unless
   the packet is missing a required fact
+- do not inspect git history or broad repo status unless the task explicitly
+  expands into flow debugging
 - start from `tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.cpp`
   unless the packet explicitly names another file
 

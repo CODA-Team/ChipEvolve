@@ -553,6 +553,7 @@ def generate_attempt_prompt(
         "- Do not inspect flow/Makefile, flow/scripts/*, or design config files unless the task explicitly expands beyond the target plane.",
         "- Do not re-check whether place will rerun; trust the packet and the outer loop for that attempt.",
         "- Do not open archive protocols, delta ledgers, stage-context notes, or design-profile summaries unless the packet is missing a required fact.",
+        "- Do not inspect git history or broad repo status unless the task explicitly expands into flow debugging.",
         "- Start from the packet's named patch-surface file and avoid broad repo exploration before the first edit.",
         "",
         f"Attempt index: {attempt_index}",
