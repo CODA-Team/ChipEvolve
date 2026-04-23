@@ -70,6 +70,7 @@ done
 workspace_root="$(realpath -m "${workspace_root}")"
 anchors_json="${AGENT_ROOT}/metadata/anchors.json"
 orfs_patch="${AGENT_ROOT}/patches/orfs_overlay.patch"
+orfs_make_patch="${AGENT_ROOT}/patches/orfs_make_overlay.patch"
 openroad_patch="${AGENT_ROOT}/patches/openroad_dpl_evolve_base.patch"
 
 if [[ ! -d "${workspace_root}/.git" ]]; then
@@ -164,6 +165,7 @@ ensure_clean_or_reset "${workspace_root}" "${orfs_branch}" "${orfs_base_commit}"
 ensure_clean_or_reset "${workspace_root}/tools/OpenROAD" "${openroad_branch}" "${openroad_base_commit}" "OpenROAD"
 
 apply_patch_if_needed "${workspace_root}" "${orfs_patch}" "ORFS"
+apply_patch_if_needed "${workspace_root}" "${orfs_make_patch}" "ORFS"
 apply_patch_if_needed "${workspace_root}/tools/OpenROAD" "${openroad_patch}" "OpenROAD"
 
 commit_if_dirty "${workspace_root}/tools/OpenROAD" "Prepare clean dpl_evolve base"

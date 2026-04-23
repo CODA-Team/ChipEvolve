@@ -42,8 +42,8 @@ PY
 orfs_base_commit="${anchor_values[0]}"
 openroad_base_commit="${anchor_values[1]}"
 
-git -C "${SOURCE_ROOT}" diff "${orfs_base_commit}"..HEAD -- .gitmodules flow/Makefile > "${AGENT_ROOT}/patches/orfs_overlay.patch"
-git -C "${SOURCE_ROOT}/tools/OpenROAD" diff "${openroad_base_commit}"..HEAD -- \
+: > "${AGENT_ROOT}/patches/orfs_overlay.patch"
+git -C "${SOURCE_ROOT}/tools/OpenROAD" diff "${openroad_base_commit}" -- \
   include/ord/OpenRoad.hh \
   include/ord/Design.h \
   src/OpenRoad.cc \
