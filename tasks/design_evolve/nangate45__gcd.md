@@ -10,7 +10,7 @@ Goal:
 
 Read first:
 - `evolve_agent/AGENTS.md`
-- `evolve_agent/baseline/canonical_lines.yaml`
+- `evolve_agent/knowledge/packets/current_run_packet.md`
 - `evolve_agent/skills/patch_rules.md`
 - `evolve_agent/problems/gcd_nangate45/problem.yaml`
 
@@ -19,6 +19,10 @@ Loop contract:
 - the outer Python loop will refresh the packet
 - the outer Python loop will build and run the evaluator
 - make one bounded patch only within the allowed patch surface, then stop
+- do not inspect `flow/Makefile`, `flow/scripts/*`, or `flow/designs/nangate45/gcd/config.mk`
+  unless the task explicitly expands beyond the target plane
+- the reusable place snapshot has already been validated by the outer loop
+- the baseline evaluator has already run before Codex is invoked
 
 Preferred evaluator entrypoint:
 
@@ -34,5 +38,6 @@ python3 evolve_agent/adapters/science_codeevolve/evaluator.py \
   --out evolve_agent/checkpoints/operations/<OPERATION_ID>/<EVAL_JSON>
 ```
 
-Fallback:
-- if no valid `3_4_place_resized.odb` exists for this design, stop and report that the required place snapshot is missing
+Focus:
+- trust the packet for track, patch surface, and hard gates
+- inspect the target file you plan to patch, make one bounded change, then stop

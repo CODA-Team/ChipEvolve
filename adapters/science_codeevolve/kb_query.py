@@ -96,6 +96,26 @@ def build_packet(problem_dir: Path, out_dir: Path) -> Dict[str, Any]:
                 "negotiation cost / history / search / refinement"
             ],
         },
+        "outer_loop_contract": {
+            "owns": [
+                "flow_variant selection",
+                "snapshot validation",
+                "build",
+                "evaluator",
+                "scoring",
+                "checkpointing",
+            ],
+            "codex_should_only": [
+                "read the packet",
+                "patch one approved target-plane file",
+                "stop after the patch",
+            ],
+            "do_not_recheck": [
+                "whether 3_4_place_resized.odb exists",
+                "whether config changes would retrigger place",
+                "flow defaults already summarized here",
+            ],
+        },
         "code_atlas_excerpt": {
             "commands": ["detailed_placement", "check_placement"],
             "cpp_entries": ["Opendp::detailedPlacement"],
@@ -128,10 +148,9 @@ def build_packet(problem_dir: Path, out_dir: Path) -> Dict[str, Any]:
         ],
         "run_checklist": [
             "Read packet and patch_rules.md",
-            "Apply bounded patch",
-            "Build OpenROAD",
-            "Run single baseline on strict track",
-            "Read evaluator output",
+            "Inspect one target-plane file",
+            "Apply one bounded patch",
+            "Stop and let the outer loop build/evaluate",
         ],
     }
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -144,6 +163,10 @@ def build_packet(problem_dir: Path, out_dir: Path) -> Dict[str, Any]:
         f"- primary objective: {packet['objective']['primary']}",
         f"- selected track: {packet['stage_context']['selected_track']}",
         f"- patch surface: {packet['selected_patch_surface']['file']}",
+        "",
+        "## Outer loop contract",
+        *[f"- outer loop owns: {x}" for x in packet["outer_loop_contract"]["owns"]],
+        *[f"- do not recheck: {x}" for x in packet["outer_loop_contract"]["do_not_recheck"]],
         "",
         "## Key includes",
         *[f"- {x}" for x in packet["stage_context"]["key_includes"]],
@@ -160,6 +183,9 @@ def build_packet(problem_dir: Path, out_dir: Path) -> Dict[str, Any]:
         "",
         "## Hard gates",
         *[f"- {x}" for x in packet["hard_gates"]],
+        "",
+        "## This turn only",
+        *[f"- {x}" for x in packet["outer_loop_contract"]["codex_should_only"]],
     ]
     (out_dir / "current_run_packet.md").write_text("\n".join(md) + "\n")
     return packet

@@ -72,6 +72,8 @@ anchors_json="${AGENT_ROOT}/metadata/anchors.json"
 orfs_patch="${AGENT_ROOT}/patches/orfs_overlay.patch"
 orfs_make_patch="${AGENT_ROOT}/patches/orfs_make_overlay.patch"
 openroad_patch="${AGENT_ROOT}/patches/openroad_dpl_evolve_base.patch"
+agent_remote_url="$(git -C "${AGENT_ROOT}" remote get-url origin 2>/dev/null || true)"
+agent_target_ref="$(git -C "${AGENT_ROOT}" rev-parse HEAD)"
 
 if [[ ! -d "${workspace_root}/.git" ]]; then
   echo "[ERROR] workspace root is not a git repository: ${workspace_root}" >&2
@@ -172,6 +174,28 @@ commit_if_dirty() {
   fi
 }
 
+ensure_agent_submodule() {
+  local repo_root="$1"
+  local agent_path="${repo_root}/evolve_agent"
+
+  if [[ -z "${agent_remote_url}" ]]; then
+    echo "[ERROR] Could not resolve dpl_evolve_agent origin URL from ${AGENT_ROOT}" >&2
+    exit 1
+  fi
+
+  if ! git -C "${repo_root}" config -f .gitmodules --get-regexp '^submodule\\.evolve_agent\\.path$' >/dev/null 2>&1; then
+    rm -rf "${agent_path}"
+    git -C "${repo_root}" submodule add -f "${agent_remote_url}" evolve_agent
+  else
+    git -C "${repo_root}" submodule sync -- evolve_agent
+    git -C "${repo_root}" submodule update --init evolve_agent
+  fi
+
+  git -C "${agent_path}" fetch origin main
+  git -C "${agent_path}" checkout "${agent_target_ref}" >/dev/null 2>&1 \
+    || git -C "${agent_path}" checkout origin/main
+}
+
 ensure_clean_or_reset "${workspace_root}" "${orfs_branch}" "${orfs_base_commit}" "ORFS"
 ensure_clean_or_reset "${workspace_root}/tools/OpenROAD" "${openroad_branch}" "${openroad_base_commit}" "OpenROAD"
 
@@ -186,9 +210,10 @@ git -C "${workspace_root}/tools/OpenROAD" submodule update --init --recursive
 apply_patch_if_needed "${workspace_root}" "${orfs_patch}" "ORFS"
 apply_patch_if_needed "${workspace_root}" "${orfs_make_patch}" "ORFS"
 apply_patch_if_needed "${workspace_root}/tools/OpenROAD" "${openroad_patch}" "OpenROAD"
+ensure_agent_submodule "${workspace_root}"
 
 commit_if_dirty "${workspace_root}/tools/OpenROAD" "Prepare clean dpl_evolve base"
-commit_if_dirty "${workspace_root}" "Prepare ORFS overlay for dpl_evolve_agent" flow/Makefile
+commit_if_dirty "${workspace_root}" "Prepare ORFS overlay for dpl_evolve_agent" flow/Makefile .gitmodules evolve_agent
 
 echo "[INFO] prepare complete"
 echo "[INFO] workspace_root=${workspace_root}"

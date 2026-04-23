@@ -21,6 +21,10 @@ Codex edits **only the bounded legalizer surfaces** unless a task explicitly exp
 - ORFS `flow/scripts/*`
 - unrelated OpenROAD tools
 
+For loop-driven bounded patch turns, do not inspect or edit `flow/Makefile`,
+`flow/designs/*/config.mk`, or other artifact-plane files unless the task
+explicitly asks for runner/config changes.
+
 ## Patch style
 - make small, mechanism-specific edits
 - allow stacked family evolution, but each patch note must still name the newly

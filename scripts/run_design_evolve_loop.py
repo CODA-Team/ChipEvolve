@@ -536,6 +536,7 @@ def generate_attempt_prompt(
     best_metrics: dict[str, float],
     memory_excerpt: str,
     experience_journal_path: Path,
+    packet_excerpt: str,
 ) -> str:
     lines = [
         base_prompt.strip(),
@@ -544,10 +545,13 @@ def generate_attempt_prompt(
         "",
         "Automated loop override:",
         "- The outer Python loop is controlling build, evaluator, and acceptance.",
+        "- The outer Python loop has already verified the reusable place snapshot and run the baseline.",
         "- Do not run evaluator yourself.",
         "- Do not create checkpoints yourself.",
         "- Make exactly one bounded patch and then stop.",
         "- Preserve the existing patch surface restrictions.",
+        "- Do not inspect flow/Makefile, flow/scripts/*, or design config files unless the task explicitly expands beyond the target plane.",
+        "- Do not re-check whether place will rerun; trust the packet and the outer loop for that attempt.",
         "",
         f"Attempt index: {attempt_index}",
         f"Loop id: {loop_id}",
@@ -558,6 +562,9 @@ def generate_attempt_prompt(
         "",
         "The current workspace already reflects the best accepted checkpoint so far.",
         "Use the persistent memory below to avoid repeating rejected ideas blindly.",
+        "",
+        "Authoritative run packet for this attempt:",
+        packet_excerpt,
         "",
         "Persistent loop memory:",
         memory_excerpt,
@@ -769,6 +776,8 @@ def main() -> None:
     experience_entries: list[dict[str, Any]] = []
 
     refresh_packet(root, problem_dir)
+    packet_path = root / "evolve_agent" / "knowledge" / "packets" / "current_run_packet.md"
+    packet_excerpt = packet_path.read_text(encoding="utf-8").strip()
 
     baseline_run_tag = f"{args.loop_id}_baseline"
     baseline_eval_path = loop_dir / "baseline_eval.json"
@@ -832,6 +841,7 @@ def main() -> None:
             best_metrics=best_metrics,
             memory_excerpt=memory_excerpt,
             experience_journal_path=experience_journal_path.relative_to(root),
+            packet_excerpt=packet_excerpt,
         )
         codex_usage = run_codex_attempt(
             root=root,

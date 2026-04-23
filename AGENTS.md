@@ -1,8 +1,6 @@
 # AGENTS.md
 
 This file is the short operating contract for Codex inside `evolve_agent`.
-For the full repo map, read `README.md` first, then `SCRIPT_MAP.md`.
-For the repo-local execution skills, read `skills/README.md` next.
 
 This directory is the only intended control-plane tree in the repo. Keep the
 agent surface narrow and decoupled from the target plane.
@@ -22,21 +20,39 @@ Codex is a bounded patcher.
 Codex is not the scheduler, not the knowledge store, and not a replacement for
 the baseline harness.
 
-## Minimal operating order
+## Default loop behavior
 
-1. Read the current packet in `knowledge/packets/`.
-2. Read `skills/README.md`.
-3. Read `skills/patch_rules.md`.
-4. Create or refresh a local checkpoint with `scripts/checkpoint.py`.
-5. Patch only approved target-plane files.
-6. Review the implementation for obvious efficiency issues before adding more patch logic.
-7. For family work, configure a dedicated variant root and source its `variant_env.sh`.
-8. Build through the variant-aware OpenROAD-only path.
-9. Run one canonical baseline/evolve line or the suite through the existing wrappers.
-10. For any `--family-variant` run, pass an explicit OpenROAD binary.
-11. For a new case, classify the baseline result first with `scripts/recommend_initial_family.py`.
-12. Compare runs with `scripts/compare_runs.py`, then read evaluator output and `metrics.json`.
-13. Keep, revise, or restore through checkpoints.
+When Codex is invoked by the automated evolve loop, assume the outer loop has
+already done these checks:
+
+- selected a valid `FLOW_VARIANT`
+- verified `3_4_place_resized.odb` exists
+- refreshed `knowledge/packets/current_run_packet.*`
+- chosen the evaluator line and run tag
+- taken care of build, evaluator, scoring, and checkpoint ownership
+
+For those loop-driven turns, the minimum read set is:
+
+1. `knowledge/packets/current_run_packet.md`
+2. `skills/patch_rules.md`
+3. the current `problem.yaml`
+4. the target-plane file you plan to patch
+
+Do not expand the read set unless you are blocked.
+
+## Research budget
+
+For a bounded patch turn, patch after a few focused reads.
+
+Do not spend time re-deriving:
+
+- whether the reusable place snapshot exists
+- how the outer loop will build or evaluate
+- whether `config.mk` or `flow/Makefile` might retrigger place
+- broad flow defaults already summarized in the current packet
+
+If the packet and prompt already provide a fact, treat it as authoritative for
+that attempt.
 
 ## Boundaries
 
@@ -47,6 +63,12 @@ the baseline harness.
   not required to exist inside this repo tree
 
 Do not mix those planes.
+
+For loop-driven bounded patch turns:
+
+- target plane is the normal read/write surface
+- control plane is read-only unless the task explicitly asks to fix the flow
+- artifact plane is read-only and usually should not be inspected at all
 
 ## Binary rules
 
@@ -85,6 +107,9 @@ Read-only unless a task expands scope:
 - `flow/scripts/*`
 - unrelated OpenROAD tools
 
+Do not edit `flow/designs/*/config.mk` during a bounded patch turn unless the
+task explicitly asks for artifact-plane tuning.
+
 ## Evaluation policy
 
 Prefer the strict legalizer track first.
@@ -103,21 +128,3 @@ Hard failures:
 - missing or malformed `metrics.json`
 - large uncontrolled displacement growth
 - runaway runtime
-
-Current large-case policy:
-
-- prefer `ariane133`, `jpeg`, `ibex`, `aes`, `ethmac` as interactive stress cases
-- do not use macro-heavy `bp_quad` for interactive family iteration once smaller
-  large cases already show runtime divergence
-- for large cases, reject families that only improve HPWL but blow up runtime
-  without a clear timing benefit
-
-## Required reads before patching
-
-- `README.md`
-- `baseline/canonical_lines.yaml`
-- `knowledge/stage_context/detail_place_stack.yaml`
-- `knowledge/delta_ledger/nblg_to_openroad.yaml`
-- `knowledge/delta_ledger/legalm_to_openroad.yaml`
-- `knowledge/family_components/effective_families.yaml`
-- current packet in `knowledge/packets/`
