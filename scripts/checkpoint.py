@@ -525,7 +525,10 @@ def cmd_list(_: argparse.Namespace) -> None:
     for operation_dir in sorted(OPERATIONS_DIR.iterdir()):
         if not operation_dir.is_dir():
             continue
-        data = checkpoint_summary(operation_dir.name)
+        try:
+            data = checkpoint_summary(operation_dir.name)
+        except SystemExit:
+            continue
         title = data.get("title", operation_dir.name)
         result = data.get("result_summary", "")
         print(f"{operation_dir.name}\t{title}\t{result}")
