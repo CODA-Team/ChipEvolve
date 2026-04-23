@@ -164,6 +164,14 @@ commit_if_dirty() {
 ensure_clean_or_reset "${workspace_root}" "${orfs_branch}" "${orfs_base_commit}" "ORFS"
 ensure_clean_or_reset "${workspace_root}/tools/OpenROAD" "${openroad_branch}" "${openroad_base_commit}" "OpenROAD"
 
+# After pinning the ORFS/OpenROAD anchors, sync nested submodules so OpenROAD
+# sources and bundled dependencies (for example src/sta) match the selected
+# base commit before we apply any prepare patches.
+git -C "${workspace_root}" submodule sync --recursive
+git -C "${workspace_root}" submodule update --init --recursive tools/OpenROAD
+git -C "${workspace_root}/tools/OpenROAD" submodule sync --recursive
+git -C "${workspace_root}/tools/OpenROAD" submodule update --init --recursive
+
 apply_patch_if_needed "${workspace_root}" "${orfs_patch}" "ORFS"
 apply_patch_if_needed "${workspace_root}" "${orfs_make_patch}" "ORFS"
 apply_patch_if_needed "${workspace_root}/tools/OpenROAD" "${openroad_patch}" "OpenROAD"
