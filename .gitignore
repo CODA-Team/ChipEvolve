@@ -3,3 +3,5 @@ __pycache__/
 *.pyc
 # local-only checkpoint store
 checkpoints/
+knowledge/packets/current_run_packet.md
+knowledge/packets/current_run_packet.json
