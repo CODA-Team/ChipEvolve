@@ -1,6 +1,10 @@
-# evolve_agent
+# dpl_evolve_agent
 
-`evolve_agent` is the control plane for `dpl_evolve`.
+`dpl_evolve_agent` is the standalone control plane for `dpl_evolve`.
+
+It is intended to be mounted into ORFS as the `evolve_agent/` submodule path,
+while keeping its own repository history separate from the OpenROAD and ORFS
+working trees.
 
 For the current script entrypoints and the explicit list of generated script
 paths to ignore, start with:
@@ -44,6 +48,9 @@ The project-level run concepts are intentionally small:
 - the clean evolve line
 - family variants
 - strict legalization-only comparison
+- a two-patch prepare step:
+  - one ORFS overlay patch
+  - one OpenROAD clean-`dpl_evolve` patch
 
 Internal dispatcher details are not the main workflow vocabulary.
 
