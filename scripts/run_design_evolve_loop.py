@@ -339,6 +339,27 @@ def discover_flow_variant(problem: dict[str, Any], root: Path) -> str:
     return candidates[0].parent.name
 
 
+def require_reusable_snapshot(
+    problem: dict[str, Any], root: Path, flow_variant: str
+) -> None:
+    snapshot = (
+        root
+        / "flow"
+        / "results"
+        / problem["platform"]
+        / problem["design"]
+        / flow_variant
+        / "3_4_place_resized.odb"
+    )
+    if not snapshot.exists():
+        raise SystemExit(
+            "The requested --flow-variant does not contain a reusable "
+            f"3_4_place_resized.odb: {snapshot}\n"
+            "Use a flow variant that already has the place handoff, or omit "
+            "--flow-variant so the loop can auto-discover one."
+        )
+
+
 def build_metric_vector(eval_data: dict[str, Any]) -> dict[str, float]:
     summary = eval_data.get("summary", {})
     command_run = eval_data.get("command_results", {}).get("run", {})
@@ -763,6 +784,7 @@ def main() -> None:
     prompt_path = args.prompt_file.resolve() if args.prompt_file else infer_prompt_path(problem, root)
     base_prompt = prompt_path.read_text(encoding="utf-8")
     flow_variant = args.flow_variant or discover_flow_variant(problem, root)
+    require_reusable_snapshot(problem, root, flow_variant)
 
     loop_dir = root / "evolve_agent" / "checkpoints" / "operations" / args.loop_id
     if loop_dir.exists():
