@@ -3,6 +3,12 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+if [[ "${DPL_EVOLVE_SKIP_ENV_SH:-0}" != "1" && -f "${AGENT_ROOT}/env.sh" ]]; then
+  # env.sh is local-only and ignored by git. It may provide ORFS_ROOT or
+  # DPL_EVOLVE_OPENROAD_URL for this machine.
+  # shellcheck source=/dev/null
+  source "${AGENT_ROOT}/env.sh"
+fi
 DEFAULT_WORKSPACE_ROOT="${ORFS_ROOT:-${AGENT_ROOT}/.mounted_orfs}"
 
 workspace_root="${DEFAULT_WORKSPACE_ROOT}"

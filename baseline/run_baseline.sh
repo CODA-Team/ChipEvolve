@@ -34,7 +34,7 @@ Options:
   --flow-variant NAME       FLOW_VARIANT for the run. Default: dpl_evolve_<track>_<engine>.
   --run-tag NAME            Stable tag used under results/reports.
   --threads N               NUM_CORES passed to ORFS.
-  --dreamplace-root PATH    DREAMPlace root. Default: /opt/EDAs/DREAMPlace.
+  --dreamplace-root PATH    DREAMPlace root. Default: DREAMPLACE_ROOT.
   --dreamplace-python PATH  Python interpreter for DreamPlace. Default: auto-detect.
   --help                    Show this message.
 EOF
@@ -48,7 +48,7 @@ input_stage=""
 flow_variant=""
 run_tag=""
 threads="${NUM_CORES:-}"
-dreamplace_root="/opt/EDAs/DREAMPlace"
+dreamplace_root="${DREAMPLACE_ROOT:-}"
 dreamplace_python=""
 
 while [[ $# -gt 0 ]]; do
@@ -226,6 +226,11 @@ fi
 
 if [[ "${track}" == "flow" && "${engine_family}" == "dreamplace" ]]; then
   echo "DreamPlace Abacus is currently supported only on the strict baseline track." >&2
+  exit 1
+fi
+
+if [[ "${engine_family}" == "dreamplace" && -z "${dreamplace_root}" ]]; then
+  echo "DreamPlace Abacus requires DREAMPLACE_ROOT or --dreamplace-root." >&2
   exit 1
 fi
 

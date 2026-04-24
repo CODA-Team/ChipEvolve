@@ -2,16 +2,16 @@ id: legalm_engine
 kind: dpl_evolve_variant
 base_source: tools/OpenROAD/src/dpl_evolve
 patch_file: dpl_evolve.patch
-materialize_script: evolve_agent/scripts/materialize_family_variant.sh
+materialize_script: scripts/materialize_family_variant.sh
 engine: legalm
 run_mode:
   command_set: evolve
   track: strict
 required_control_plane_files:
-  - evolve_agent/baseline/detail_place_only_evolve_legalm.tcl
-  - evolve_agent/baseline/flow/detail_place_flow_evolve_legalm.tcl
-  - evolve_agent/baseline/detail_place_strict_core.tcl
-  - evolve_agent/baseline/flow/detail_place_flow_core.tcl
+  - baseline/detail_place_only_evolve_legalm.tcl
+  - baseline/flow/detail_place_flow_evolve_legalm.tcl
+  - baseline/detail_place_strict_core.tcl
+  - baseline/flow/detail_place_flow_core.tcl
 summary: >
   CPU-first LEGALM-style legalizer packaged as a family-specific dpl_evolve
   variant over the clean initial evolve base.

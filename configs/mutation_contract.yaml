@@ -2,7 +2,7 @@ version: 1
 name: dpl_evolve_mutation_contract_v1
 scope:
   target_plane_root: tools/OpenROAD/src/dpl_evolve
-  control_plane_root: evolve_agent
+  control_plane_root: dpl_evolve_agent
   artifact_plane_root: flow
 allowed_patch_surfaces:
   - file: tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.cpp

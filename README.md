@@ -27,13 +27,16 @@ work/
   dpl_evolve_state/
 ```
 
-Required environment:
+Recommended local setup:
 
 ```bash
-export DPL_EVOLVE_AGENT_ROOT=/abs/path/to/dpl_evolve_agent
-export ORFS_ROOT=/abs/path/to/OpenROAD-flow-scripts
-export DPL_EVOLVE_STATE_ROOT=/abs/path/to/dpl_evolve_state
+cp env.sh.example env.sh
+$EDITOR env.sh
+source env.sh
 ```
+
+`env.sh` is ignored by git. Keep machine-specific paths there, not in tracked
+scripts or docs.
 
 If you prefer a local convenience link:
 
@@ -56,7 +59,7 @@ Prepare applies the small ORFS/OpenROAD overlay needed by this project:
 This should not turn ORFS into the control repo. The agent remains standalone.
 
 If you made a local ORFS clone and its relative OpenROAD submodule URL points
-at a missing sibling path, set a local override for prepare:
+at a missing sibling path, set a local override in `env.sh`:
 
 ```bash
 export DPL_EVOLVE_OPENROAD_URL=https://github.com/The-OpenROAD-Project/OpenROAD.git

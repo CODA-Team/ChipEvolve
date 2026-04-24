@@ -3,9 +3,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
-import shutil
-import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Dict
@@ -14,23 +11,12 @@ AGENT_ROOT = Path(__file__).resolve().parents[2]
 if str(AGENT_ROOT) not in sys.path:
     sys.path.insert(0, str(AGENT_ROOT))
 
-from runtime_paths import resolve_input_path, resolve_runtime_paths
+from runtime_paths import reexec_with_module, resolve_input_path, resolve_runtime_paths
 
 try:
     import yaml
 except ModuleNotFoundError:
-    for candidate in (
-        "/opt/conda/miniforge3/envs/dreamplace/bin/python",
-        "/opt/conda/miniforge3/bin/python",
-        "python3",
-        "python",
-    ):
-        resolved = shutil.which(candidate)
-        if not resolved or resolved == sys.executable:
-            continue
-        probe = subprocess.run([resolved, "-c", "import yaml"], capture_output=True)
-        if probe.returncode == 0:
-            os.execv(resolved, [resolved, __file__, *sys.argv[1:]])
+    reexec_with_module("yaml", __file__, sys.argv)
     raise
 
 

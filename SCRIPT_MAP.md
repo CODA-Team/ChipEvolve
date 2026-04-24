@@ -29,13 +29,6 @@ All commands assume:
   Rebuild only variant `dpl_evolve`, relink private `openroad`, and symlink
   common-core `sta` when available.
 
-Fallback only:
-
-- `scripts/configure_openroad_variant.sh`
-- `scripts/build_openroad_only.sh`
-
-Use fallback only when relink cannot express the needed change.
-
 ## Evaluation
 
 - `adapters/science_codeevolve/evaluator.py`

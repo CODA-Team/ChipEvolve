@@ -33,7 +33,7 @@ Options:
                             Current value: legalm_engine.
   --evolve-engine MODE      Internal compatibility option. Avoid using this
                             directly in new agent prompts.
-  --dreamplace-root PATH    DREAMPlace root. Default: /opt/EDAs/DREAMPlace.
+  --dreamplace-root PATH    DREAMPlace root. Default: DREAMPLACE_ROOT.
   --dreamplace-python PATH  Python interpreter for DreamPlace. Default: auto-detect.
   --help                    Show this message.
 EOF
@@ -93,7 +93,7 @@ input_stage="3_4_place_resized"
 tag_prefix=""
 evolve_engine="default"
 evolve_family_variant=""
-dreamplace_root="/opt/EDAs/DREAMPlace"
+dreamplace_root="${DREAMPLACE_ROOT:-}"
 dreamplace_python=""
 
 while [[ $# -gt 0 ]]; do

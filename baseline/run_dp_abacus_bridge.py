@@ -315,8 +315,8 @@ def main() -> None:
     parser.add_argument("--summary", help="Legacy input snapshot summary JSON.")
     parser.add_argument(
         "--dreamplace-root",
-        default=os.environ.get("DREAMPLACE_ROOT", "/opt/EDAs/DREAMPlace"),
-        help="DREAMPlace checkout root. Default: DREAMPLACE_ROOT or /opt/EDAs/DREAMPlace",
+        default=os.environ.get("DREAMPLACE_ROOT", ""),
+        help="DREAMPlace checkout root. Default: DREAMPLACE_ROOT.",
     )
     parser.add_argument(
         "--output-coords",
@@ -334,9 +334,11 @@ def main() -> None:
     output_manifest = resolve_flow_path(args.output_manifest)
     output_coords.parent.mkdir(parents=True, exist_ok=True)
     output_manifest.parent.mkdir(parents=True, exist_ok=True)
-    dreamplace_root = resolve_flow_path(args.dreamplace_root)
+    dreamplace_root = resolve_flow_path(args.dreamplace_root) if args.dreamplace_root else None
 
     if args.dreamplace_input:
+        if dreamplace_root is None:
+            raise SystemExit("DREAMPlace bridge requires DREAMPLACE_ROOT or --dreamplace-root.")
         payload = json.loads(resolve_flow_path(args.dreamplace_input).read_text(encoding="utf-8"))
         run_abacus(payload, dreamplace_root, output_coords, output_manifest)
         return

@@ -9,28 +9,28 @@ legalization-only evolve flow.
 Materialize:
 
 ```bash
-./evolve_agent/scripts/materialize_family_variant.sh \
+"$DPL_EVOLVE_AGENT_ROOT/scripts/materialize_family_variant.sh" \
   --family legalm_engine \
-  --output-dir ./.codex_state/family_variants/legalm_engine/dpl_evolve \
+  --output-dir "$DPL_EVOLVE_STATE_ROOT/family_variants/legalm_engine/dpl_evolve" \
   --force
 ```
 
 Configure and build:
 
 ```bash
-./evolve_agent/scripts/configure_openroad_variant.sh \
-  --variant-root ./.codex_state/openroad_variants/legalm_engine \
-  --dpl-src ./.codex_state/family_variants/legalm_engine/dpl_evolve
+"$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_variant_relink.sh" \
+  --variant-root "$DPL_EVOLVE_STATE_ROOT/variants/legalm_engine" \
+  --dpl-src "$DPL_EVOLVE_STATE_ROOT/family_variants/legalm_engine/dpl_evolve"
 
-source ./.codex_state/openroad_variants/legalm_engine/variant_env.sh
+source "$DPL_EVOLVE_STATE_ROOT/variants/legalm_engine/variant_env.sh"
 
-./evolve_agent/scripts/build_openroad_only.sh 8
+"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_variant_relink.sh" --threads 8
 ```
 
 Run:
 
 ```bash
-./evolve_agent/scripts/run_canonical_line.sh \
+"$DPL_EVOLVE_AGENT_ROOT/scripts/run_canonical_line.sh" \
   --line evolve_line \
   --family-variant legalm_engine \
   --openroad-binary "${OPENROAD_BINARY}" \

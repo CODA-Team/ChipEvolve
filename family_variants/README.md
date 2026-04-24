@@ -11,22 +11,22 @@ The model is:
 Use:
 
 ```bash
-./evolve_agent/scripts/materialize_family_variant.sh \
+"$DPL_EVOLVE_AGENT_ROOT/scripts/materialize_family_variant.sh" \
   --family legalm_engine \
-  --output-dir ./.codex_state/family_variants/legalm_engine/dpl_evolve \
+  --output-dir "$DPL_EVOLVE_STATE_ROOT/family_variants/legalm_engine/dpl_evolve" \
   --force
 ```
 
-Then build that source tree as an OpenROAD variant:
+Then build that source tree with the lightweight relink path:
 
 ```bash
-./evolve_agent/scripts/configure_openroad_variant.sh \
-  --variant-root ./.codex_state/openroad_variants/legalm_engine \
-  --dpl-src ./.codex_state/family_variants/legalm_engine/dpl_evolve
+"$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_variant_relink.sh" \
+  --variant-root "$DPL_EVOLVE_STATE_ROOT/variants/legalm_engine" \
+  --dpl-src "$DPL_EVOLVE_STATE_ROOT/family_variants/legalm_engine/dpl_evolve"
 
-source ./.codex_state/openroad_variants/legalm_engine/variant_env.sh
+source "$DPL_EVOLVE_STATE_ROOT/variants/legalm_engine/variant_env.sh"
 
-./evolve_agent/scripts/build_openroad_only.sh 8
+"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_variant_relink.sh" --threads 8
 ```
 
 Run family variants with an explicit binary. Do not rely on the root

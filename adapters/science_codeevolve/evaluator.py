@@ -17,7 +17,6 @@ import argparse
 import csv
 import json
 import os
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -27,23 +26,12 @@ AGENT_ROOT = Path(__file__).resolve().parents[2]
 if str(AGENT_ROOT) not in sys.path:
     sys.path.insert(0, str(AGENT_ROOT))
 
-from runtime_paths import resolve_runtime_paths
+from runtime_paths import reexec_with_module, resolve_runtime_paths
 
 try:
     import yaml
 except ModuleNotFoundError:
-    for candidate in (
-        "/opt/conda/miniforge3/envs/dreamplace/bin/python",
-        "/opt/conda/miniforge3/bin/python",
-        "python3",
-        "python",
-    ):
-        resolved = shutil.which(candidate)
-        if not resolved or resolved == sys.executable:
-            continue
-        probe = subprocess.run([resolved, "-c", "import yaml"], capture_output=True)
-        if probe.returncode == 0:
-            os.execv(resolved, [resolved, __file__, *sys.argv[1:]])
+    reexec_with_module("yaml", __file__, sys.argv)
     raise
 
 if __package__ in (None, ""):
@@ -102,7 +90,7 @@ def resolve_runtime_path(
     value = explicit_value if explicit_value else budget.get(budget_key)
     if not value:
         return default_path
-    path = Path(str(value))
+    path = Path(os.path.expandvars(os.path.expanduser(str(value))))
     if not path.is_absolute():
         if path.parts and path.parts[0] == root.name:
             return (root.parent / path).resolve()

@@ -25,10 +25,8 @@ first:
 - `checkpoint.py`
   Create, restore, inspect, and list local edit-state checkpoints.
 - `build_openroad_only.sh`
-  Fast incremental build of the currently configured OpenROAD tree. The first
-  OpenROAD-only configure disables OpenROAD tests by default. By default it
-  publishes only the needed binaries (`openroad` and, when built, `sta`) instead
-  of running a full `cmake --install`.
+  Internal OpenROAD-only build helper used by `build_openroad_core.sh`. Do not
+  use it as the normal per-variant path.
 - `configure_openroad_core.sh`
   Choose the common-core seed location and write `<core-root>/core_env.sh`.
 - `build_openroad_core.sh`
@@ -39,10 +37,6 @@ first:
 - `build_openroad_variant_relink.sh`
   Recompile only the variant-owned `dpl_evolve` pieces and relink a private
   `openroad` binary.
-- `configure_openroad_variant.sh`
-  Configure an isolated OpenROAD build/install variant, optionally with an
-  external `dpl_evolve` source tree and a reusable common-core seed. It also
-  writes `<variant-root>/variant_env.sh`.
 - `materialize_family_variant.sh`
   Copy the clean initial evolve base and apply a family patch to create a
   dedicated variant source tree.
@@ -79,17 +73,6 @@ workflow. Prefer the Python entrypoints plus the evaluator.
 10. `run_canonical_line.sh`
 11. `run_design_evolve_loop.py`
 12. `compare_runs.py`
-
-## Fallback build path
-
-When relink is not enough, the older fallback path is still:
-
-1. `configure_openroad_variant.sh`
-2. `source <variant-root>/variant_env.sh`
-3. `build_openroad_only.sh`
-
-That path is heavier because it keeps a full variant-specific OpenROAD build
-tree.
 
 ## Binary-selection rule
 

@@ -139,7 +139,11 @@ mkdir -p "$build_dir" "$install_root"
 seed_from_core_if_needed
 
 cd "$ROOT_DIR"
-. dev_env.sh
+if [[ -f dev_env.sh ]]; then
+  # Optional ORFS-local environment. Preferred project setup is env.sh plus
+  # externally provided tool modules.
+  . dev_env.sh
+fi
 
 cmake_args=(
   -S "$OPENROAD_SRC"

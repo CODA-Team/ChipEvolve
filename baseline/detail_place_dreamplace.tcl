@@ -3,6 +3,11 @@ utl::set_metrics_stage "dpl_evolve__dreamplace__{}"
 source $::env(SCRIPTS_DIR)/load.tcl
 source [file join [file dirname [info script]] dpl_evolve_helpers.tcl]
 
+set default_dreamplace_root ""
+if {[info exists ::env(DREAMPLACE_ROOT)]} {
+  set default_dreamplace_root $::env(DREAMPLACE_ROOT)
+}
+
 set options [dpl_evolve_baseline::parse_options $argv [dict create \
   input-odb "3_4_place_resized.odb" \
   input-sdc "2_floorplan.sdc" \
@@ -20,7 +25,7 @@ set options [dpl_evolve_baseline::parse_options $argv [dict create \
   summary-json [file join $::env(REPORTS_DIR) dpl_evolve_baseline dreamplace legalize_summary.json] \
   track "strict" \
   legalizer "dreamplace_abacus" \
-  dreamplace-root "/opt/EDAs/DREAMPlace" \
+  dreamplace-root $default_dreamplace_root \
   python ""]]
 
 set input_odb [dpl_evolve_baseline::option_value $options input-odb]
@@ -69,10 +74,17 @@ set python_candidates {}
 if { $requested_python ne "" } {
   lappend python_candidates $requested_python
 }
-lappend python_candidates \
-  /opt/conda/miniforge3/envs/dreamplace/bin/python \
-  /home/zhiyuzheng/.conda/envs/xplace/bin/python \
-  python3
+if {[info exists ::env(DREAMPLACE_PYTHON)]} {
+  lappend python_candidates $::env(DREAMPLACE_PYTHON)
+}
+if {[info exists ::env(DPL_EVOLVE_PYTHON_CANDIDATES)]} {
+  foreach candidate [split $::env(DPL_EVOLVE_PYTHON_CANDIDATES) ":"] {
+    if {$candidate ne ""} {
+      lappend python_candidates $candidate
+    }
+  }
+}
+lappend python_candidates python3 python
 
 set python_exe ""
 foreach candidate $python_candidates {

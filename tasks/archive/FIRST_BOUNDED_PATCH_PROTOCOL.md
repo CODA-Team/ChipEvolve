@@ -21,7 +21,7 @@ Before changing behavior, confirm all of the following:
 2. the negotiation path has been verified with:
    `agent_setup_verify_negotiation`
 3. the strict champion table is available:
-   [strict_champion_table.md](/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/evolve_agent/checkpoints/operations/strict_baseline_snapshot/strict_champion_table.md)
+   [strict_champion_table.md](../checkpoints/operations/strict_baseline_snapshot/strict_champion_table.md)
 4. the packet and contract are current:
    - `evolve_agent/knowledge/packets/current_run_packet.md`
    - `evolve_agent/configs/mutation_contract.yaml`
@@ -84,7 +84,7 @@ Keep the patch only if all are true:
 - `hpwl_delta_micron` improves or stays convincingly neutral
 - `avg_displacement_micron` stays controlled
 - runtime does not exceed the gate in
-  [first_patch.yaml](/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/evolve_agent/tasks/archive/first_patch.yaml)
+  [first_patch.yaml](../tasks/archive/first_patch.yaml)
 
 Reject or revert if any are true:
 

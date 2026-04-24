@@ -15,6 +15,9 @@ Every script resolves runtime through these roots:
 - `DPL_EVOLVE_STATE_ROOT`: mutable runtime state, builds, checkpoints, packets,
   operations, and variant binaries.
 
+Machine-local values belong in untracked `env.sh`, using `env.sh.example` as
+the template. Do not hardcode local paths in tracked scripts or docs.
+
 Optional convenience only:
 
 - `$DPL_EVOLVE_AGENT_ROOT/.mounted_orfs`

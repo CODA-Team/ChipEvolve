@@ -44,15 +44,16 @@ _dpl_symlink_target() {
 }
 
 _dpl_stable_alias_root() {
-  local alias_path parent path_id
+  local alias_path parent
 
   if [[ -n "${DPL_EVOLVE_ORFS_ALIAS_ROOT:-}" ]]; then
     alias_path="$(_dpl_lexical_alias_path "${DPL_EVOLVE_ORFS_ALIAS_ROOT}")"
   elif ! _dpl_contains_space "${DPL_EVOLVE_STATE_ROOT}"; then
     alias_path="$(_dpl_lexical_alias_path "${DPL_EVOLVE_STATE_ROOT}/orfs_mount")"
   else
-    path_id="$(_dpl_path_id "${ORFS_ROOT}")"
-    alias_path="$(_dpl_lexical_alias_path "${HOME}/.cache/dpl_evolve_agent/orfs_mounts/${path_id}/orfs_workspace")"
+    echo "[ERROR] ORFS_ROOT contains spaces and DPL_EVOLVE_STATE_ROOT also contains spaces." >&2
+    echo "[ERROR] Set DPL_EVOLVE_ORFS_ALIAS_ROOT to a space-free local path in env.sh." >&2
+    return 1
   fi
 
   parent="$(dirname "${alias_path}")"
@@ -91,6 +92,14 @@ dpl_init_runtime() {
 
   agent_root="$(dpl_resolve_agent_root)"
   export DPL_EVOLVE_AGENT_ROOT="${agent_root}"
+  if [[ "${DPL_EVOLVE_SKIP_ENV_SH:-0}" != "1" && -f "${agent_root}/env.sh" ]]; then
+    # env.sh is local-only and ignored by git. It is the right place for
+    # machine-specific ORFS, state, module, and optional tool paths.
+    # shellcheck source=/dev/null
+    source "${agent_root}/env.sh"
+    agent_root="$(dpl_resolve_agent_root)"
+    export DPL_EVOLVE_AGENT_ROOT="${agent_root}"
+  fi
 
   if [[ -n "${ORFS_ROOT:-}" ]]; then
     candidate="$(realpath -m "${ORFS_ROOT}")"

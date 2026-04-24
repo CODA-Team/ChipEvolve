@@ -5,7 +5,7 @@ timestamps:
   start_time_utc: "<fill>"
   end_time_utc: "<fill>"
 scheduler:
-  kind: "codex+evolve_agent"
+  kind: "codex+dpl_evolve_agent"
   adapter: "science_codeevolve_thin_adapter"
 problem:
   id: "<problem_id>"
@@ -17,7 +17,7 @@ packet:
   path: "<packet path>"
   sha256: "<fill>"
 contract:
-  mutation_contract_path: "evolve_agent/configs/mutation_contract.yaml"
+  mutation_contract_path: "configs/mutation_contract.yaml"
   mutation_contract_sha256: "<fill>"
 patch:
   summary: "<short summary>"

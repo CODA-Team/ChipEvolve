@@ -5,7 +5,6 @@ import argparse
 import datetime as dt
 import json
 import os
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -17,7 +16,7 @@ AGENT_ROOT = Path(__file__).resolve().parents[1]
 if str(AGENT_ROOT) not in sys.path:
     sys.path.insert(0, str(AGENT_ROOT))
 
-from runtime_paths import resolve_input_path, resolve_runtime_paths
+from runtime_paths import reexec_with_module, resolve_input_path, resolve_runtime_paths
 
 
 LOWER_IS_BETTER = {
@@ -87,18 +86,7 @@ def load_yaml(path: Path) -> dict[str, Any]:
     try:
         import yaml
     except ModuleNotFoundError:
-        for candidate in (
-            "/opt/conda/miniforge3/envs/dreamplace/bin/python",
-            "/opt/conda/miniforge3/bin/python",
-            "python3",
-            "python",
-        ):
-            resolved = shutil.which(candidate)
-            if not resolved or resolved == sys.executable:
-                continue
-            probe = subprocess.run([resolved, "-c", "import yaml"], capture_output=True)
-            if probe.returncode == 0:
-                os.execv(resolved, [resolved, __file__, *sys.argv[1:]])
+        reexec_with_module("yaml", __file__, sys.argv)
         raise SystemExit(
             "PyYAML is required to read problem/config files for run_design_evolve_loop.py."
         )

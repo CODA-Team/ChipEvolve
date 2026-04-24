@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import os
+import shutil
+import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Iterable
 
 
 def _is_orfs_root(path: Path) -> bool:
@@ -40,7 +44,6 @@ def resolve_orfs_root(
         )
 
     mounted_local = _default_mount_root(agent_root)
-    mounted_parent = agent_root.parent
     if _is_orfs_root(mounted_local):
         return mounted_local
 
@@ -58,6 +61,41 @@ def resolve_state_root(*, orfs_root: Path, agent_root: Path) -> Path:
     return (orfs_root / ".dpl_evolve_state").resolve()
 
 
+def candidate_python_interpreters(
+    *,
+    extra_env_var: str = "DPL_EVOLVE_PYTHON_CANDIDATES",
+) -> Iterable[str]:
+    """Return user-configured Python candidates followed by portable defaults."""
+
+    seen: set[str] = set()
+    env_value = os.environ.get(extra_env_var, "")
+    for raw in env_value.split(os.pathsep):
+        candidate = raw.strip()
+        if candidate and candidate not in seen:
+            seen.add(candidate)
+            yield candidate
+    for candidate in ("python3", "python"):
+        if candidate not in seen:
+            seen.add(candidate)
+            yield candidate
+
+
+def reexec_with_module(module_name: str, script_file: str | Path, argv: list[str]) -> None:
+    """Re-exec with a configured Python that can import module_name, if any."""
+
+    for candidate in candidate_python_interpreters():
+        resolved = shutil.which(candidate)
+        if not resolved or resolved == sys.executable:
+            continue
+        probe = subprocess.run(
+            [resolved, "-c", f"import {module_name}"],
+            capture_output=True,
+            text=True,
+        )
+        if probe.returncode == 0:
+            os.execv(resolved, [resolved, str(script_file), *argv[1:]])
+
+
 def resolve_input_path(
     value: str | Path,
     *,
@@ -65,7 +103,7 @@ def resolve_input_path(
     agent_root: Path,
     orfs_root: Path,
 ) -> Path:
-    path = Path(value)
+    path = Path(os.path.expandvars(os.path.expanduser(str(value))))
     if path.is_absolute():
         return path.resolve()
 
@@ -74,7 +112,7 @@ def resolve_input_path(
         if cwd_candidate.exists():
             return cwd_candidate
 
-    if path.parts and path.parts[0] == "evolve_agent":
+    if path.parts and path.parts[0] in {"evolve_agent", "dpl_evolve_agent"}:
         return (agent_root / Path(*path.parts[1:])).resolve()
 
     if path.parts and path.parts[0] in {"flow", "tools"}:
