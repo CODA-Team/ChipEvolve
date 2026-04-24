@@ -1,5 +1,8 @@
 # dpl_evolve_agent
 
+This README is for humans: setup, quick start, and the basic project model.
+The Codex/agent execution contract lives in `AGENTS.md`.
+
 `dpl_evolve_agent` is a standalone control repo for evolving
 `tools/OpenROAD/src/dpl_evolve` without forking or modifying a large ORFS tree
 more than necessary.

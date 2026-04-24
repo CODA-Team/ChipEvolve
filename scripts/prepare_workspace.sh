@@ -183,6 +183,18 @@ ensure_clean_or_reset "${workspace_root}" "${orfs_branch}" "${orfs_base_commit}"
 # sources and bundled dependencies (for example src/sta) match the selected
 # base commit before we apply any prepare patches.
 git -C "${workspace_root}" submodule sync --recursive
+if [[ -n "${DPL_EVOLVE_OPENROAD_URL:-}" && "${force}" -eq 1 ]]; then
+  cached_openroad="${workspace_root}/.git/modules/tools/OpenROAD"
+  cached_url=""
+  if [[ -d "${cached_openroad}" ]]; then
+    cached_url="$(git -C "${cached_openroad}" config --get remote.origin.url || true)"
+  fi
+  if [[ -n "${cached_url}" && "${cached_url}" != "${DPL_EVOLVE_OPENROAD_URL}" ]]; then
+    echo "[INFO] OpenROAD submodule cache URL changed; clearing cached clone"
+    rm -rf "${workspace_root}/tools/OpenROAD" "${cached_openroad}"
+    git -C "${workspace_root}" config --remove-section submodule.tools/OpenROAD 2>/dev/null || true
+  fi
+fi
 if [[ -n "${DPL_EVOLVE_OPENROAD_URL:-}" ]]; then
   git -C "${workspace_root}" config submodule.tools/OpenROAD.url "${DPL_EVOLVE_OPENROAD_URL}"
 fi

@@ -1,5 +1,8 @@
 # AGENTS.md
 
+This file is for Codex/agent execution. For human setup and quick start, use
+`README.md`.
+
 This repo is the standalone control plane for `dpl_evolve`. It is not an ORFS
 submodule and should not be treated as one.
 
@@ -44,6 +47,7 @@ For a bounded patch turn, read only:
 - the one target source file named by the packet
 
 Patch after those focused reads. Do not start with a repo survey.
+Do not use `README.md` as bounded-patch context.
 
 ## Do Not Read During A Bounded Patch
 
