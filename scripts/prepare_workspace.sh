@@ -24,15 +24,15 @@ Usage: prepare_workspace.sh [options]
 Bootstrap a clean ORFS/OpenROAD workspace for dpl_evolve experiments.
 
 Actions:
-  1. Create a local ORFS branch from the supported ORFS anchor.
-  2. Create a local OpenROAD branch from the supported OpenROAD anchor.
+  1. Verify or reset the workspace to the supported ORFS anchor.
+  2. Verify or reset OpenROAD to the supported OpenROAD anchor.
   3. Apply the ORFS/OpenROAD prepare patches if needed.
   4. Create local commits for the prepared states unless --skip-commit is used.
 
 Options:
   --workspace-root PATH   ORFS workspace root. Default: parent of this repo.
-  --orfs-branch NAME      Local ORFS branch name.
-  --openroad-branch NAME  Local OpenROAD branch name.
+  --orfs-branch NAME      Optional local ORFS branch to create/reset before patching.
+  --openroad-branch NAME  Optional local OpenROAD branch to create/reset before patching.
   --skip-commit           Do not create local commits after patching.
   --force                 Reset branches even if they already exist.
   --help                  Show this message.
@@ -102,10 +102,6 @@ PY
 orfs_base_commit="${anchor_values[0]}"
 openroad_base_commit="${anchor_values[1]}"
 
-stamp="$(date +%Y%m%d_%H%M%S)"
-orfs_branch="${orfs_branch:-dpl_evolve_agent_prepare_${stamp}}"
-openroad_branch="${openroad_branch:-dpl_evolve_agent_prepare_${stamp}}"
-
 ensure_clean_or_reset() {
   local repo_root="$1"
   local target_branch="$2"
@@ -120,17 +116,26 @@ ensure_clean_or_reset() {
     fi
   fi
 
-  if git -C "${repo_root}" show-ref --verify --quiet "refs/heads/${target_branch}"; then
-    if [[ "${force}" -ne 1 ]]; then
-      echo "[ERROR] Branch already exists in ${label}: ${target_branch}" >&2
-      echo "[ERROR] Re-run with --force to reset it." >&2
-      exit 1
+  if [[ -n "${target_branch}" ]]; then
+    if git -C "${repo_root}" show-ref --verify --quiet "refs/heads/${target_branch}"; then
+      if [[ "${force}" -ne 1 ]]; then
+        echo "[ERROR] Branch already exists in ${label}: ${target_branch}" >&2
+        echo "[ERROR] Re-run with --force to reset it." >&2
+        exit 1
+      fi
     fi
+
+    git -C "${repo_root}" checkout -B "${target_branch}" "${target_commit}"
+  elif [[ "${force}" -eq 1 ]]; then
+    git -C "${repo_root}" reset --hard "${target_commit}"
+  elif [[ "$(git -C "${repo_root}" rev-parse HEAD)" != "${target_commit}" ]]; then
+    echo "[ERROR] ${label} repo is not at the supported anchor: ${target_commit}" >&2
+    echo "[ERROR] Current HEAD: $(git -C "${repo_root}" rev-parse HEAD)" >&2
+    echo "[ERROR] Check out the anchor first, pass --force to reset the current branch, or pass --${label,,}-branch NAME." >&2
+    exit 1
   fi
 
-  git -C "${repo_root}" checkout -B "${target_branch}" "${target_commit}"
   if [[ "${force}" -eq 1 ]]; then
-    git -C "${repo_root}" reset --hard "${target_commit}"
     git -C "${repo_root}" clean -fd
   fi
 }
@@ -222,5 +227,5 @@ commit_if_dirty "${workspace_root}" "Prepare ORFS overlay for dpl_evolve_agent" 
 
 echo "[INFO] prepare complete"
 echo "[INFO] workspace_root=${workspace_root}"
-echo "[INFO] orfs_branch=${orfs_branch}"
-echo "[INFO] openroad_branch=${openroad_branch}"
+echo "[INFO] orfs_branch=${orfs_branch:-current}"
+echo "[INFO] openroad_branch=${openroad_branch:-current}"
