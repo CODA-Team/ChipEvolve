@@ -145,13 +145,13 @@ apply_patch_if_needed() {
     return
   fi
 
-  if git -C "${repo_root}" apply --check "${patch_file}" >/dev/null 2>&1; then
-    git -C "${repo_root}" apply "${patch_file}"
+  if git -C "${repo_root}" apply --whitespace=nowarn --check "${patch_file}" >/dev/null 2>&1; then
+    git -C "${repo_root}" apply --whitespace=nowarn "${patch_file}"
     echo "[INFO] ${label}: applied $(basename "${patch_file}")"
     return
   fi
 
-  if git -C "${repo_root}" apply --reverse --check "${patch_file}" >/dev/null 2>&1; then
+  if git -C "${repo_root}" apply --whitespace=nowarn --reverse --check "${patch_file}" >/dev/null 2>&1; then
     echo "[INFO] ${label}: patch already present, skipping $(basename "${patch_file}")"
     return
   fi
