@@ -47,6 +47,11 @@ first:
 - `run_design_evolve_loop.py`
   The main Python evolve loop: checkpoint -> packet -> Codex -> build ->
   evaluate -> accept/reject/restore.
+- `run_variant_experiment_matrix.py`
+  Offline evidence-generation runner. It copies the clean `dpl_evolve` source
+  into private variant directories, applies deterministic dpl_evolve-only
+  algorithm mutations, relinks private OpenROAD binaries, evaluates many
+  medium/large cases in parallel, and writes RunDB/KnowledgeDB evidence.
 - `run_codex_exec.py`
   Thin wrapper for external `codex exec --json` with token/time logging.
 
@@ -73,6 +78,21 @@ workflow. Prefer the Python entrypoints plus the evaluator.
 10. `run_canonical_line.sh`
 11. `run_design_evolve_loop.py`
 12. `compare_runs.py`
+
+For offline knowledge generation before a new Codex evolve campaign, use:
+
+```bash
+ORFS_ROOT=/abs/path/to/OpenROAD-flow-scripts \
+./scripts/run_variant_experiment_matrix.py
+```
+
+The default matrix intentionally avoids tiny-only evidence. It covers
+`aes_nangate45`, `ibex_nangate45`, `jpeg_nangate45`, `ariane133_nangate45`,
+and `bp_quad_nangate45`, with 8 parallel evaluator jobs and 10 OpenROAD threads
+per job. Each evaluation has an explicit timeout so large-stress cases such as
+`bp_quad_nangate45` become runtime evidence instead of blocking the whole
+matrix. By default it runs all registered deterministic variants in the script.
+Add `gcd_nangate45` manually only as a quick sanity case.
 
 ## Binary-selection rule
 

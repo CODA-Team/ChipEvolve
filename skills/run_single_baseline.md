@@ -16,7 +16,7 @@ Manual one-line runner notes. Prefer `evaluator.py` for agent-managed runs.
   --design-config ./designs/nangate45/gcd/config.mk \
   --flow-variant <FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB> \
   --run-tag <RUN_TAG> \
-  --threads 8
+  --threads 10
 ```
 
 For a variant/family binary:
@@ -29,7 +29,7 @@ source "${DPL_EVOLVE_STATE_ROOT}/variants/<agent_id>/variant_env.sh"
   --design-config ./designs/nangate45/gcd/config.mk \
   --flow-variant <FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB> \
   --run-tag <RUN_TAG> \
-  --threads 8
+  --threads 10
 ```
 
 ## Output

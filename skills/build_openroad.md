@@ -16,7 +16,7 @@ Build common core once:
 
 ```bash
 "$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_core.sh"
-"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_core.sh" 8
+"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_core.sh" 10
 ```
 
 Build a private variant binary:
@@ -26,7 +26,7 @@ Build a private variant binary:
   --variant-root "${DPL_EVOLVE_STATE_ROOT}/variants/<agent_id>" \
   --dpl-src /abs/path/to/<agent_id>/dpl_evolve
 source "${DPL_EVOLVE_STATE_ROOT}/variants/<agent_id>/variant_env.sh"
-"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_variant_relink.sh" --threads 8
+"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_variant_relink.sh" --threads 10
 ```
 
 Expected outputs:

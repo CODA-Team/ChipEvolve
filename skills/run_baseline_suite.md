@@ -44,7 +44,7 @@ If the run is agent-managed rather than manual, prefer calling it through:
   --design-config ./designs/nangate45/gcd/config.mk \
   --flow-variant dpl_evolve_suite_20260422_125226 \
   --tag-prefix agent_suite \
-  --threads 8
+  --threads 10
 ```
 
 ## Notes for Codex

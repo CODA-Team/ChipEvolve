@@ -24,7 +24,7 @@ Configure and build:
 
 source "$DPL_EVOLVE_STATE_ROOT/variants/legalm_engine/variant_env.sh"
 
-"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_variant_relink.sh" --threads 8
+"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_variant_relink.sh" --threads 10
 ```
 
 Run:

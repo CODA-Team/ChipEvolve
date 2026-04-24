@@ -16,7 +16,12 @@ AGENT_ROOT = Path(__file__).resolve().parents[1]
 if str(AGENT_ROOT) not in sys.path:
     sys.path.insert(0, str(AGENT_ROOT))
 
+from memory.run_db import append_jsonl as append_run_record
+from memory.run_db import run_db_path
+from learning.log2knowledge import process_run_record
+from learning.report_token_roi import write_token_roi_reports
 from runtime_paths import reexec_with_module, resolve_input_path, resolve_runtime_paths
+from validation.preflight import run_preflight
 
 
 LOWER_IS_BETTER = {
@@ -179,6 +184,13 @@ def automated_observation(
     improved: bool,
 ) -> tuple[str, str]:
     if eval_data.get("status") != "ok":
+        if eval_data.get("status") == "preflight_failed":
+            preflight = eval_data.get("preflight", {})
+            signature = preflight.get("failure_signature") or "diff scope violation"
+            return (
+                f"Preflight rejected the patch before evaluator execution: {signature}",
+                "Stay inside the packet-selected target file/symbol and avoid flow, evaluator, or classic dpl edits.",
+            )
         return (
             "The evaluator itself failed before producing a clean accepted run.",
             "Keep the next patch smaller and focus on preserving build and evaluator stability.",
@@ -799,10 +811,6 @@ def main() -> None:
     readme_path = loop_dir / "README.md"
     experience_entries: list[dict[str, Any]] = []
 
-    refresh_packet(root, agent_root, runtime.packet_dir, problem_dir)
-    packet_path = runtime.packet_dir / "current_run_packet.md"
-    packet_excerpt = packet_path.read_text(encoding="utf-8").strip()
-
     baseline_run_tag = f"{args.loop_id}_baseline"
     baseline_eval_path = loop_dir / "baseline_eval.json"
     baseline_eval = run_evaluator(
@@ -851,6 +859,11 @@ def main() -> None:
     for attempt_index in range(1, args.max_attempts + 1):
         restore_checkpoint(root, agent_root, best_checkpoint)
         reference_metrics = dict(best_metrics)
+        refresh_packet(root, agent_root, runtime.packet_dir, problem_dir)
+        packet_path = runtime.packet_dir / "current_run_packet.md"
+        packet_json_path = runtime.packet_dir / "current_run_packet.json"
+        packet_excerpt = packet_path.read_text(encoding="utf-8").strip()
+        packet_data = json.loads(packet_json_path.read_text(encoding="utf-8"))
 
         attempt_run_tag = f"{args.loop_id}_attempt_{attempt_index:02d}"
         codex_op_id = f"{args.loop_id}__codex_attempt_{attempt_index:02d}"
@@ -880,18 +893,28 @@ def main() -> None:
             profile=args.profile,
         )
         codex_report = read_codex_report(runtime.operations_dir, codex_op_id)
-
-        eval_data = run_evaluator(
-            root=root,
-            agent_root=agent_root,
-            problem_path=problem_path,
-            config_path=args.config,
-            flow_variant=flow_variant,
-            run_tag=attempt_run_tag,
-            evolve_engine=args.evolve_engine,
-            threads=args.threads,
-            out_path=eval_path,
-        )
+        preflight_path = loop_dir / f"attempt_{attempt_index:02d}_preflight.json"
+        preflight_result = run_preflight(orfs_root=root, packet=packet_data)
+        write_json(preflight_path, preflight_result)
+        if preflight_result["ok"]:
+            eval_data = run_evaluator(
+                root=root,
+                agent_root=agent_root,
+                problem_path=problem_path,
+                config_path=args.config,
+                flow_variant=flow_variant,
+                run_tag=attempt_run_tag,
+                evolve_engine=args.evolve_engine,
+                threads=args.threads,
+                out_path=eval_path,
+            )
+        else:
+            eval_data = {
+                "status": "preflight_failed",
+                "summary": {},
+                "preflight": preflight_result,
+            }
+            write_json(eval_path, eval_data)
 
         attempt_record: dict[str, Any] = {
             "attempt": attempt_index,
@@ -906,6 +929,11 @@ def main() -> None:
             "codex_elapsed_seconds": codex_usage.get("elapsed_seconds"),
             "reported_summary": codex_report["summary"],
             "reported_mechanism": codex_report["mechanism"],
+            "packet_json": str(packet_json_path),
+            "preflight_json": str(preflight_path),
+            "preflight_status": preflight_result.get("status"),
+            "selected_patch_family": packet_data.get("selected_patch_family", {}).get("id"),
+            "selected_patch_surface": packet_data.get("selected_patch_surface", {}),
         }
 
         attempt_metrics: dict[str, float] | None = None
@@ -961,6 +989,40 @@ def main() -> None:
         attempt_record["outcome"] = outcome
         attempt_record["automated_observation"] = observation
         attempt_record["next_attempt_guidance"] = next_guidance
+        run_db_record = {
+            "run_id": attempt_run_tag,
+            "loop_id": args.loop_id,
+            "attempt": attempt_index,
+            "problem": problem["name"],
+            "design": problem["design"],
+            "platform": problem["platform"],
+            "patch_family": attempt_record.get("selected_patch_family"),
+            "touched_symbol": attempt_record.get("selected_patch_surface", {}).get("symbol"),
+            "target_file": attempt_record.get("selected_patch_surface", {}).get("file"),
+            "status": outcome,
+            "improved": improved,
+            "score": attempt_record.get("score"),
+            "metrics": attempt_metrics,
+            "token_usage": attempt_record.get("token_usage", {}),
+            "codex_elapsed_seconds": attempt_record.get("codex_elapsed_seconds"),
+            "evaluator_status": eval_data.get("status"),
+            "preflight_status": preflight_result.get("status"),
+            "failure_signature": observation if not improved else None,
+            "next_guidance": next_guidance,
+            "artifacts": {
+                "eval_json": str(eval_path),
+                "codex_usage_json": attempt_record.get("codex_usage_json"),
+                "packet_json": str(packet_json_path),
+                "preflight_json": str(preflight_path),
+            },
+        }
+        append_run_record(run_db_path(runtime.state_root), run_db_record)
+        try:
+            knowledge_update = process_run_record(runtime.state_root, run_db_record)
+            attempt_record["knowledge_card_id"] = knowledge_update["knowledge_card"]["id"]
+            attempt_record["observation_id"] = knowledge_update["observation"]["id"]
+        except Exception as exc:
+            attempt_record["learning_error"] = str(exc)
         memory_entry = {
             "attempt": attempt_index,
             "outcome": outcome,
@@ -1015,6 +1077,12 @@ def main() -> None:
         "experience_log": str(experience_log_path),
         "experience_journal": str(experience_journal_path),
     }
+    token_roi_reports = write_token_roi_reports(
+        runtime.state_root,
+        loop_dir,
+        loop_id=args.loop_id,
+    )
+    loop_state["token_roi_report"] = token_roi_reports
     write_json(state_path, loop_state)
     write_loop_readme(
         readme_path,

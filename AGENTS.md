@@ -49,6 +49,11 @@ For a bounded patch turn, read only:
 - the active `problem.yaml`
 - the one target source file named by the packet
 
+The packet is authoritative for the selected family, source symbol, allowed
+line window, recent failures to avoid, and whether the target is a materialized
+family variant. Follow that route instead of choosing a different target after
+local exploration.
+
 Patch after those focused reads. Do not start with a repo survey.
 Do not use `README.md` as bounded-patch context.
 
@@ -104,16 +109,20 @@ Preferred path:
 
 ```bash
 "$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_core.sh"
-"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_core.sh" 8
+"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_core.sh" 10
 "$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_variant_relink.sh" \
   --variant-root "${DPL_EVOLVE_STATE_ROOT}/variants/<agent_id>" \
   --dpl-src /abs/path/to/variant/dpl_evolve
 source "${DPL_EVOLVE_STATE_ROOT}/variants/<agent_id>/variant_env.sh"
-"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_variant_relink.sh" --threads 8
+"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_variant_relink.sh" --threads 10
 ```
 
 This rebuilds only variant-owned `dpl_evolve` objects, relinks a private
 `openroad`, and symlinks common-core `sta` when available.
+
+For offline evidence sweeps, prefer the matrix runner defaults: 8 parallel
+evaluator jobs and 10 OpenROAD threads per job. Do not exceed that by default;
+large cases should become timeout evidence rather than blocking the whole queue.
 
 ## Evaluation Rule
 
@@ -134,8 +143,13 @@ flow/reports/<platform>/<design>/<FLOW_VARIANT>/dpl_evolve_baseline/<run_tag>/me
 
 Hard failures:
 
+- preflight diff-scope violation
 - build failure
 - evaluator failure
 - legality failure
 - missing or malformed `metrics.json`
 - uncontrolled displacement/runtime regression
+
+Before evaluator execution, the loop validates the Codex diff against the
+packet-selected target file/symbol. Edits to ORFS flow files, evaluator logic,
+classic `dpl`, or broad unrelated source paths are rejected before build.

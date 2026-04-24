@@ -1,4 +1,48 @@
 effective_families:
+  - regime: normal_nangate45_first_shot_runtime_quality
+    start_with: search_narrow_runtime
+    start_line: evolve_line
+    use_for:
+      - aes_nangate45
+      - ibex_nangate45
+      - jpeg_nangate45
+      - ariane133_nangate45
+      - unseen medium or large Nangate45 strict legalization cases
+    goal:
+      - lower_runtime
+      - preserve_legality
+      - improve_weighted_score_before_heavy_refinement
+    keep_because:
+      - improved every scored non-bp_quad case in the 2026-04-24 deterministic matrix
+      - gives a cheap first move before trying heavier objective or postopt changes
+      - acts on search-window scope rather than enabling risky post-legalization passes
+    watch_out:
+      - bp_quad-class macro-heavy large cases still timed out under the 600 second strict budget
+      - quality gain is modest on jpeg-class cases, so follow-on cost shaping may still be needed
+    canonical_sources:
+      - ../replay_bank/variant_matrix_20260424.md
+      - $DPL_EVOLVE_STATE_ROOT/memory/family_region_stats.json
+
+  - regime: case_specific_history_cost_shaping
+    start_with: history_strong_or_history_soft_after_search_narrow
+    start_line: evolve_line
+    use_for:
+      - ibex_nangate45
+      - jpeg_nangate45
+      - aes_nangate45
+      - cases whose first-shot search-window run is legal but still HPWL limited
+    goal:
+      - local_objective_tuning
+      - HPWL_runtime_tradeoff_probe
+    keep_because:
+      - history_strong improved ibex and jpeg in the 2026-04-24 matrix
+      - history_soft improved aes in the same matrix
+    watch_out:
+      - history scaling was not universal and regressed ariane133 in this matrix
+      - choose this after a cheap first-shot probe rather than as the default first patch
+    canonical_sources:
+      - ../replay_bank/variant_matrix_20260424.md
+
   - regime: medium_case_new_initializer
     start_with: legalm_engine_initial
     start_line: evolve_line
@@ -65,6 +109,12 @@ effective_families:
       - priority_escape.yaml
 
 donor_only_families:
+  - id: raw_greedy_postopt_enablement
+    status: rejected_unsafe
+    reason:
+      - enabling raw greedyImprove after negotiation caused placement check failures across aes, ibex, jpeg, ariane133, and bp_quad in the 2026-04-24 matrix
+      - use postopt only with explicit legality repair and convergence guardrails
+
   - id: hpwl_wide_postopt
     use_for:
       - small_case_quality_first_runs
@@ -80,6 +130,14 @@ donor_only_families:
       - current implementation showed no measurable gain versus localized_swap on ariane133
 
 noise_to_avoid:
+  - id: bp_quad_in_normal_sweep
+    replacement:
+      - separate large-stress runtime queue
+      - explicit timeout evidence
+      - candidate-count and no-valid-candidate telemetry
+    reason:
+      - bp_quad_nangate45 exceeded the 600 second strict legalizer budget for clean baseline and all tested variants in the 2026-04-24 matrix
+
   - id: archival_patch_dumps_and_long_notes
     replacement:
       - legalm_engine.yaml

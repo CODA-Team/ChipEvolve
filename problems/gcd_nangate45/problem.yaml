@@ -14,5 +14,7 @@ objective:
     - runtime
 patch_surface:
   - tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.cpp
+  - tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizerPass.cpp
+  - tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.h
   - tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp
   - tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl

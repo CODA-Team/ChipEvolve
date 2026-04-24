@@ -87,7 +87,7 @@ Build common OpenROAD core once:
 
 ```bash
 "$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_core.sh"
-"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_core.sh" 8
+"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_core.sh" 10
 ```
 
 Create one private variant source and binary:
@@ -103,7 +103,7 @@ rsync -a --delete \
   --dpl-src "${DPL_EVOLVE_STATE_ROOT}/variants/test_agent/dpl_evolve"
 
 source "${DPL_EVOLVE_STATE_ROOT}/variants/test_agent/variant_env.sh"
-"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_variant_relink.sh" --threads 8
+"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_variant_relink.sh" --threads 10
 ```
 
 The variant build produces:
