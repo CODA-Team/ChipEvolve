@@ -12,12 +12,12 @@ Read this file first:
 
 The control-plane wrapper for this skill is:
 
-- `evolve_agent/adapters/science_codeevolve/evaluator.py`
+- `$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py`
 
 The preferred comparison helper is:
 
-- `evolve_agent/scripts/compare_runs.py`
-- `evolve_agent/scripts/recommend_initial_family.py` for first-pass case classification
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/compare_runs.py`
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/recommend_initial_family.py` for first-pass case classification
 
 The evaluator is now the canonical guarded execution path for agent-driven
 runs. It adds:
@@ -88,23 +88,23 @@ Read `status` first from the evaluator JSON:
 Compare a baseline and candidate run:
 
 ```bash
-python3 evolve_agent/scripts/compare_runs.py \
-  --left evolve_agent/checkpoints/operations/manual_gcd_round_20260422/baseline_eval.json \
-  --right evolve_agent/checkpoints/operations/manual_hpwl_timing_search_before_wide_greedy/gcd_candidate8_eval.json
+python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/compare_runs.py" \
+  --left "${DPL_EVOLVE_STATE_ROOT}/checkpoints/operations/manual_gcd_round_20260422/baseline_eval.json" \
+  --right "${DPL_EVOLVE_STATE_ROOT}/checkpoints/operations/manual_hpwl_timing_search_before_wide_greedy/gcd_candidate8_eval.json"
 ```
 
 Classify a new baseline case before choosing the first family:
 
 ```bash
-python3 evolve_agent/scripts/recommend_initial_family.py \
+python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/recommend_initial_family.py" \
   --metrics flow/reports/nangate45/ibex/place_batch_20260421_220319/dpl_evolve_baseline/cross_ibex_baseline/metrics.json
 ```
 
 Dry-run the evaluator for one evolve line:
 
 ```bash
-python3 evolve_agent/adapters/science_codeevolve/evaluator.py \
-  --problem evolve_agent/problems/gcd_nangate45/problem.yaml \
+python3 "$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py" \
+  --problem "$DPL_EVOLVE_AGENT_ROOT/problems/gcd_nangate45/problem.yaml" \
   --mode single \
   --line evolve_line \
   --flow-variant dpl_evolve_suite_20260422_125226 \
@@ -113,27 +113,46 @@ python3 evolve_agent/adapters/science_codeevolve/evaluator.py \
   --out /tmp/evolve_agent_eval.json
 ```
 
+Evaluate one evolve line with an explicit private variant binary:
+
+```bash
+python3 "$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py" \
+  --problem "$DPL_EVOLVE_AGENT_ROOT/problems/gcd_nangate45/problem.yaml" \
+  --mode single \
+  --line evolve_line \
+  --flow-variant place_batch_20260421_220319 \
+  --run-tag agent_variant_eval \
+  --skip-build \
+  --openroad-binary "${OPENROAD_BINARY}" \
+  --out "${DPL_EVOLVE_STATE_ROOT}/checkpoints/operations/agent_variant_eval/eval.json"
+```
+
+For strict legalization-only runs, the reusable
+`flow/results/<platform>/<design>/<flow_variant>/3_4_place_resized.odb`
+snapshot must already exist. The baseline wrapper reuses that snapshot instead
+of rebuilding upstream placement stages.
+
 Evaluate an existing single-line run without rebuilding or rerunning:
 
 ```bash
-python3 evolve_agent/adapters/science_codeevolve/evaluator.py \
-  --problem evolve_agent/problems/gcd_nangate45/problem.yaml \
+python3 "$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py" \
+  --problem "$DPL_EVOLVE_AGENT_ROOT/problems/gcd_nangate45/problem.yaml" \
   --mode single \
   --line evolve_line \
   --flow-variant dpl_evolve_suite_20260422_125226 \
   --run-tag agent_setup_verify \
   --use-existing \
-  --out evolve_agent/checkpoints/operations/setup_verify_default/agent_setup_verify_eval.json
+  --out "${DPL_EVOLVE_STATE_ROOT}/checkpoints/operations/setup_verify_default/agent_setup_verify_eval.json"
 ```
 
 Evaluate a full suite run:
 
 ```bash
-python3 evolve_agent/adapters/science_codeevolve/evaluator.py \
-  --problem evolve_agent/problems/gcd_nangate45/problem.yaml \
+python3 "$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py" \
+  --problem "$DPL_EVOLVE_AGENT_ROOT/problems/gcd_nangate45/problem.yaml" \
   --mode suite \
   --flow-variant dpl_evolve_suite_20260422_125226 \
   --tag-prefix agent_suite \
   --use-existing \
-  --out evolve_agent/checkpoints/operations/strict_baseline_snapshot/agent_suite_eval.json
+  --out "${DPL_EVOLVE_STATE_ROOT}/checkpoints/operations/strict_baseline_snapshot/agent_suite_eval.json"
 ```

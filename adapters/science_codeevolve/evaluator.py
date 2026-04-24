@@ -23,6 +23,12 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Iterable, List
 
+AGENT_ROOT = Path(__file__).resolve().parents[2]
+if str(AGENT_ROOT) not in sys.path:
+    sys.path.insert(0, str(AGENT_ROOT))
+
+from runtime_paths import resolve_runtime_paths
+
 try:
     import yaml
 except ModuleNotFoundError:
@@ -49,26 +55,11 @@ else:
     from .lock import DirectoryLockError
 
 
-def repo_root() -> Path:
-    candidate = Path(__file__).resolve().parents[3]
-    if (
-        (candidate / "flow").is_dir()
-        and (candidate / "tools" / "OpenROAD").is_dir()
-        and (candidate / "evolve_agent").is_dir()
-    ):
-        return candidate
-    env_root = os.environ.get("ORFS_ROOT")
-    if env_root:
-        env_candidate = Path(env_root).resolve()
-        if (
-            (env_candidate / "flow").is_dir()
-            and (env_candidate / "tools" / "OpenROAD").is_dir()
-            and (env_candidate / "evolve_agent").is_dir()
-        ):
-            return env_candidate
-    raise SystemExit(
-        "evaluator.py must run inside an ORFS workspace with this repo mounted as evolve_agent/. "
-        "Re-run from the mounted workspace or set ORFS_ROOT to that workspace."
+def runtime_paths():
+    return resolve_runtime_paths(
+        anchor_file=__file__,
+        agent_root_levels_up=2,
+        script_name="evaluator.py",
     )
 
 
@@ -97,8 +88,8 @@ def shell_join(args: Iterable[str]) -> str:
     return " ".join(subprocess.list2cmdline([arg]) for arg in args)
 
 
-def baseline_root(root: Path) -> Path:
-    return root / "evolve_agent" / "baseline"
+def baseline_root(agent_root: Path) -> Path:
+    return agent_root / "baseline"
 
 
 def resolve_runtime_path(
@@ -122,7 +113,7 @@ def resolve_runtime_path(
 
 
 def build_command(
-    root: Path,
+    agent_root: Path,
     threads: int,
     build_mode: str,
     build_dir: Path,
@@ -131,14 +122,14 @@ def build_command(
 ) -> List[str]:
     if build_mode == "openroad_only":
         return [
-            str(root / "evolve_agent" / "scripts" / "build_openroad_only.sh"),
+            str(agent_root / "scripts" / "build_openroad_only.sh"),
             str(threads),
         ]
     return ["./build_openroad.sh", "--local", "--threads", str(threads)]
 
 
 def line_command(
-    root: Path,
+    agent_root: Path,
     line: str,
     design_config: str,
     flow_variant: str,
@@ -147,7 +138,7 @@ def line_command(
     evolve_engine: str,
 ) -> List[str]:
     base = [
-        str(baseline_root(root) / "run_baseline.sh"),
+        str(baseline_root(agent_root) / "run_baseline.sh"),
         "--design-config",
         design_config,
         "--track",
@@ -160,12 +151,12 @@ def line_command(
         str(threads),
     ]
     if line == "baseline_default":
-        return [str(baseline_root(root) / "run_or_default.sh"), *base[1:]]
+        return [str(baseline_root(agent_root) / "run_or_default.sh"), *base[1:]]
     if line == "baseline_dreamplace_abacus":
-        return [str(baseline_root(root) / "run_dp_abacus.sh"), *base[1:]]
+        return [str(baseline_root(agent_root) / "run_dp_abacus.sh"), *base[1:]]
     if line == "evolve_line":
         return [
-            str(baseline_root(root) / "run_evolve_line.sh"),
+            str(baseline_root(agent_root) / "run_evolve_line.sh"),
             *base[1:],
             "--engine",
             evolve_engine,
@@ -174,7 +165,7 @@ def line_command(
 
 
 def suite_command(
-    root: Path,
+    agent_root: Path,
     design_config: str,
     flow_variant: str,
     threads: int,
@@ -182,7 +173,7 @@ def suite_command(
     evolve_engine: str,
 ) -> List[str]:
     cmd = [
-        str(baseline_root(root) / "run_baseline_suite.sh"),
+        str(baseline_root(agent_root) / "run_baseline_suite.sh"),
         "--design-config",
         design_config,
         "--flow-variant",
@@ -328,7 +319,9 @@ def execute_step(
 
 
 def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
-    root = repo_root()
+    runtime = runtime_paths()
+    root = runtime.orfs_root
+    agent_root = runtime.agent_root
     problem = load_problem(args.problem)
     design_config = infer_design_config(problem)
     flow_variant = args.flow_variant or default_flow_variant(problem, args.mode)
@@ -372,7 +365,7 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
     )
 
     build_cmd = build_command(
-        root,
+        agent_root,
         args.threads,
         build_mode,
         openroad_build_dir,
@@ -384,6 +377,7 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
     build_env["OPENROAD_INSTALL_ROOT"] = str(openroad_install_root)
     build_env["OPENROAD_BINARY"] = str(openroad_bin)
     run_env = os.environ.copy()
+    run_env["OPENROAD_BINARY"] = str(openroad_bin)
     run_env["OPENROAD_EXE"] = str(openroad_bin)
     result: Dict[str, Any] = {
         "problem": problem.get("name"),
@@ -407,7 +401,9 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
         },
         "paths": {
             "repo_root": str(root),
-            "baseline_root": str(baseline_root(root)),
+            "agent_root": str(agent_root),
+            "state_root": str(runtime.state_root),
+            "baseline_root": str(baseline_root(agent_root)),
             "openroad_build_dir": str(openroad_build_dir),
             "openroad_install_root": str(openroad_install_root),
             "openroad_binary": str(openroad_bin),
@@ -418,7 +414,7 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
 
     if args.mode == "suite":
         run_cmd = suite_command(
-            root,
+            agent_root,
             design_config,
             flow_variant,
             args.threads,
@@ -431,7 +427,7 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
     else:
         run_tag = args.run_tag or args.line
         run_cmd = line_command(
-            root,
+            agent_root,
             args.line,
             design_config,
             flow_variant,
@@ -570,7 +566,7 @@ def main() -> None:
     ap.add_argument("--openroad-binary")
     args = ap.parse_args()
     if args.config is None:
-        args.config = repo_root() / "evolve_agent" / "configs" / "codex_smoke.yaml"
+        args.config = runtime_paths().agent_root / "configs" / "codex_smoke.yaml"
 
     result = evaluate(args)
     args.out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")

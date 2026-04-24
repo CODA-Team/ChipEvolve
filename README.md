@@ -2,30 +2,43 @@
 
 `dpl_evolve_agent` is the standalone control plane for `dpl_evolve`.
 
-It is intended to be mounted into ORFS as the `evolve_agent/` submodule path,
-while keeping its own repository history separate from the OpenROAD and ORFS
-working trees.
+The runtime model is one explicit scheme:
 
-Runtime assumption:
+- `ORFS_ROOT`: the OpenROAD-flow-scripts workspace
+- `DPL_EVOLVE_AGENT_ROOT`: this standalone control repo
+- `DPL_EVOLVE_STATE_ROOT`: external packet/checkpoint/operation state
 
-- the commands in this repo are meant to run from an ORFS workspace where this
-  repo is mounted at `evolve_agent/`
-- the standalone authoring checkout is not the runtime workspace unless it also
-  contains sibling `flow/` and `tools/OpenROAD/` directories
+`dpl_evolve_agent` is not defined by being a git submodule inside ORFS.
+Scripts operate through the roots above.
 
-For the current script entrypoints and the explicit list of generated script
+An ignored local mount is supported only as a convenience:
+
+- `DPL_EVOLVE_AGENT_ROOT/.mounted_orfs`
+
+If you want that convenience mount, use:
+
+```bash
+"$DPL_EVOLVE_AGENT_ROOT/scripts/attach_orfs_workspace.sh" \
+  --workspace-root /abs/path/to/OpenROAD-flow-scripts
+```
+
+The design note is:
+
+- `$DPL_EVOLVE_AGENT_ROOT/knowledge/plans/common_core_variant_relink.md`
+
+For the current script entrypoints and the explicit list of generated runtime
 paths to ignore, start with:
 
-- `evolve_agent/SCRIPT_MAP.md`
+- `$DPL_EVOLVE_AGENT_ROOT/SCRIPT_MAP.md`
 
 For directory-specific summaries, also see:
 
-- `evolve_agent/scripts/README.md`
-- `evolve_agent/skills/README.md`
-- `evolve_agent/configs/README.md`
-- `evolve_agent/problems/README.md`
-- `evolve_agent/tasks/README.md`
-- `evolve_agent/EXAMPLE.md`
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/README.md`
+- `$DPL_EVOLVE_AGENT_ROOT/skills/README.md`
+- `$DPL_EVOLVE_AGENT_ROOT/configs/README.md`
+- `$DPL_EVOLVE_AGENT_ROOT/problems/README.md`
+- `$DPL_EVOLVE_AGENT_ROOT/tasks/README.md`
+- `$DPL_EVOLVE_AGENT_ROOT/EXAMPLE.md`
 
 Its job is deliberately narrow:
 
@@ -45,10 +58,40 @@ The clean initial evolve base is:
 
 Family-specific legalizers or initializers belong in:
 
-- `evolve_agent/family_variants/`
+- `$DPL_EVOLVE_AGENT_ROOT/family_variants/`
 
 They are materialized into dedicated source trees and built into dedicated
 OpenROAD binaries. They are not reintroduced into the clean main-tree base.
+
+The medium-term build direction is:
+
+- build the OpenROAD common core once
+- let each agent keep a private `dpl_evolve` tree
+- compile only variant-owned `dpl_evolve`
+- relink a private `openroad` binary per agent
+- symlink common-core `sta` into each variant install tree when needed
+
+The runtime-facing script sequence for that model is:
+
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_core.sh`
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_core.sh`
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_variant_relink.sh`
+- `source <variant-root>/variant_env.sh`
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_variant_relink.sh`
+
+When `ORFS_ROOT` contains spaces, build scripts use a stable symlink under
+`DPL_EVOLVE_STATE_ROOT` for CMake. This keeps `compile_commands.json` and relink
+recipes reusable across runs.
+
+The strict baseline wrapper also uses the stable ORFS alias for `make run` and
+reuses an existing `3_4_place_resized.odb` snapshot instead of rebuilding
+upstream placement stages.
+
+The older full-variant OpenROAD configure path still exists as a fallback:
+
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_variant.sh`
+- `source <variant-root>/variant_env.sh`
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_only.sh`
 
 The project-level run concepts are intentionally small:
 
@@ -69,7 +112,7 @@ already exists for the target design.
 Use:
 
 ```bash
-./evolve_agent/scripts/run_place_batch.sh
+"$DPL_EVOLVE_AGENT_ROOT/scripts/run_place_batch.sh"
 ```
 
 This batch launcher is the control-plane copy of the place preparation flow.
@@ -85,8 +128,8 @@ If you want a single Python entrypoint that repeatedly calls Codex, evaluates
 the current patch on one design, and keeps only accepted improvements, use:
 
 ```bash
-python3 evolve_agent/scripts/run_design_evolve_loop.py \
-  --problem evolve_agent/problems/gcd_nangate45/problem.yaml \
+python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/run_design_evolve_loop.py" \
+  --problem "$DPL_EVOLVE_AGENT_ROOT/problems/gcd_nangate45/problem.yaml" \
   --max-attempts 3
 ```
 
@@ -96,7 +139,7 @@ The loop does three important things automatically:
 - it calls the existing evaluator and judges the patch on HPWL, runtime,
   memory, WNS, and TNS
 - it writes a persistent local memory for the loop under
-  `evolve_agent/checkpoints/operations/<loop_id>/`
+  `${DPL_EVOLVE_STATE_ROOT}/checkpoints/operations/<loop_id>/`
 
 The loop memory is kept in:
 
@@ -112,7 +155,7 @@ agent does not have to start blind on every round.
   C++ / Tcl legalizer implementation and tests.
 - `flow/`: artifact plane
   ORFS outputs under `results/`, `reports/`, `logs/`, and `objects/`.
-- `evolve_agent/`: control plane
+- `dpl_evolve_agent/`: control plane
   problem definitions, skills, knowledge packets, and evaluator wrappers.
 - optional upstream scheduler/runtime references:
   not required in-tree; if checked out later, keep them outside the target plane
@@ -127,10 +170,12 @@ The loop we want is intentionally small:
 2. Pick a problem in `problems/`.
 3. Run `adapters/science_codeevolve/kb_query.py` to build a compact packet.
 4. Let Codex patch only the allowed target-plane files.
-5. Build through `scripts/build_openroad_only.sh`, or through a sourced
-   variant `variant_env.sh` plus `scripts/build_openroad_only.sh` for
-   family-specific binaries. The first OpenROAD-only configure disables
-   OpenROAD tests by default.
+5. Build through `scripts/build_openroad_core.sh` once, then use
+   `scripts/build_openroad_variant_relink.sh` for private variant binaries.
+   Use `scripts/build_openroad_only.sh` only for the clean root binary or as a
+   fallback full-variant build path. The first OpenROAD-only configure disables
+   OpenROAD tests by default and publishes only the needed binaries unless
+   `OPENROAD_INSTALL_MODE=cmake` is set.
 6. Run one canonical baseline/evolve line or the full suite through the existing
    baseline scripts.
 7. Read `flow/reports/.../metrics.json`.
@@ -142,7 +187,7 @@ Do not pick the first patch family from memory alone. Once the base line has
 finished, classify the case from its canonical `metrics.json` first:
 
 ```bash
-python3 evolve_agent/scripts/recommend_initial_family.py \
+python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/recommend_initial_family.py" \
   --metrics flow/reports/<platform>/<design>/<flow_variant>/dpl_evolve_baseline/<run_tag>/metrics.json
 ```
 
@@ -155,8 +200,8 @@ That recommendation is intentionally narrow:
 
 The long-lived rules behind that selector live in:
 
-- `evolve_agent/knowledge/family_components/initial_patch_paths.yaml`
-- `evolve_agent/knowledge/replay_bank/family_registry.yaml`
+- `$DPL_EVOLVE_AGENT_ROOT/knowledge/family_components/initial_patch_paths.yaml`
+- `$DPL_EVOLVE_AGENT_ROOT/knowledge/replay_bank/family_registry.yaml`
 
 ## Stable interfaces
 
@@ -166,8 +211,8 @@ The control plane should rely on only two stable interfaces:
 
 These scripts are the canonical execution surface:
 
-- `evolve_agent/scripts/run_canonical_line.sh`
-- `evolve_agent/baseline/run_baseline_suite.sh`
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/run_canonical_line.sh`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/run_baseline_suite.sh`
 
 The control plane should call them. `baseline/run_baseline.sh` still exists,
 but it is the internal dispatcher behind these entrypoints. The control plane
@@ -190,18 +235,21 @@ them to share one `tools/OpenROAD/build` or one `tools/install/OpenROAD`.
 Use a dedicated variant root per agent instead:
 
 ```bash
-./evolve_agent/scripts/materialize_family_variant.sh \
+"$DPL_EVOLVE_AGENT_ROOT/scripts/materialize_family_variant.sh" \
   --family legalm_engine \
-  --output-dir ./.codex_state/family_variants/legalm_engine/dpl_evolve \
+  --output-dir "${DPL_EVOLVE_STATE_ROOT}/family_variants/legalm_engine/dpl_evolve" \
   --force
 
-./evolve_agent/scripts/configure_openroad_variant.sh \
-  --variant-root ./.codex_state/openroad_variants/agent_a \
-  --dpl-src ./.codex_state/family_variants/legalm_engine/dpl_evolve
+"$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_core.sh"
+"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_core.sh" 8
 
-source ./.codex_state/openroad_variants/agent_a/variant_env.sh
+"$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_variant_relink.sh" \
+  --variant-root "${DPL_EVOLVE_STATE_ROOT}/variants/agent_a" \
+  --dpl-src "${DPL_EVOLVE_STATE_ROOT}/family_variants/legalm_engine/dpl_evolve"
 
-./evolve_agent/scripts/build_openroad_only.sh 8
+source "${DPL_EVOLVE_STATE_ROOT}/variants/agent_a/variant_env.sh"
+
+"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_variant_relink.sh" --threads 8
 ```
 
 Binary-selection rules:
@@ -227,22 +275,20 @@ The important idea is:
 - each agent gets its own `openroad` binary
 - case-level isolation still comes from `flow_variant` and `run_tag`
 
-The current stable build path is still OpenROAD-only:
+The current preferred build path is a shared common-core build plus
+per-variant `dpl_evolve` compilation and a thin final relink. The design note
+is:
 
-- first configure/build a variant-specific OpenROAD tree
-- then incrementally rebuild `openroad` in that variant build dir
+- `$DPL_EVOLVE_AGENT_ROOT/knowledge/plans/common_core_variant_relink.md`
 
-The medium-term target is a shared common-core build plus per-variant
-`dpl_evolve` compilation and a thin final relink. The design note for that
-next step is:
-
-- `evolve_agent/knowledge/plans/common_core_variant_relink.md`
+The older full-variant OpenROAD configure path is still available as a
+fallback when relink is insufficient.
 
 ## Canonical lines
 
 The canonical line list lives in:
 
-- `evolve_agent/baseline/canonical_lines.yaml`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/canonical_lines.yaml`
 
 That file is the shortest statement of:
 
@@ -293,7 +339,7 @@ behave predictably:
 - git provides the provenance anchor:
   root branch / commit and OpenROAD branch / commit
 - `scripts/checkpoint.py` provides the local restore path:
-  it captures `evolve_agent/` and `tools/OpenROAD/src/dpl_evolve/`
+  it captures `DPL_EVOLVE_AGENT_ROOT/` and `tools/OpenROAD/src/dpl_evolve/`
 - a reviewer can inspect one operation directory and see:
   what changed, what was run, what came back, and how to restore that state
 
@@ -308,9 +354,9 @@ The practical rule is:
 If you want to run `codex exec` from inside this control plane and keep a local
 record of the invocation itself, use:
 
-- `evolve_agent/scripts/run_codex_exec.py`
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/run_codex_exec.py`
 
-It writes a local operation directory under `evolve_agent/checkpoints/operations/`
+It writes a local operation directory under `${DPL_EVOLVE_STATE_ROOT}/checkpoints/operations/`
 with:
 
 - copied prompt text
@@ -322,7 +368,7 @@ with:
 
 ## Runtime policy
 
-`evolve_agent` is intentionally conservative about algorithm behavior and more
+`dpl_evolve_agent` is intentionally conservative about algorithm behavior and more
 aggressive about runtime hygiene.
 
 Good places to be aggressive:
@@ -344,7 +390,7 @@ layer from the upstream project, not its population/evolution machinery.
 
 ## Recommended read order
 
-1. `evolve_agent/AGENTS.md`
-2. `knowledge/stage_context/detail_place_stack.yaml`
-3. `knowledge/delta_ledger/nblg_to_openroad.yaml`
-4. `tasks/archive/CODEX_SETUP_REPO_AND_VERIFY.md`
+1. `$DPL_EVOLVE_AGENT_ROOT/AGENTS.md`
+2. `$DPL_EVOLVE_AGENT_ROOT/SCRIPT_MAP.md`
+3. `$DPL_EVOLVE_AGENT_ROOT/skills/README.md`
+4. `$DPL_EVOLVE_AGENT_ROOT/knowledge/plans/common_core_variant_relink.md`

@@ -83,7 +83,8 @@ Everything else belongs to the clean evolve line or to a family variant built
 on top of `dpl_evolve`.
 
 `LEGALM` is variant-only. Use it with a LEGALM-capable binary that was built
-from a materialized family source tree under `evolve_agent/family_variants/`.
+from a materialized family source tree under
+`$DPL_EVOLVE_AGENT_ROOT/family_variants/`.
 
 Those entry points now live under [`flow/`](./flow/README.md).
 
@@ -125,7 +126,7 @@ Run from anywhere:
 ```bash
 export FLOW_HOME=/absolute/path/to/OpenROAD-flow-scripts/flow
 
-evolve_agent/scripts/run_canonical_line.sh \
+"$DPL_EVOLVE_AGENT_ROOT/scripts/run_canonical_line.sh" \
   --line baseline_default \
   --design-config ./designs/nangate45/gcd/config.mk
 ```
@@ -133,7 +134,7 @@ evolve_agent/scripts/run_canonical_line.sh \
 Run the full strict comparison bundle in one shot:
 
 ```bash
-evolve_agent/baseline/run_baseline_suite.sh \
+"$DPL_EVOLVE_AGENT_ROOT/baseline/run_baseline_suite.sh" \
   --design-config ./designs/nangate45/gcd/config.mk \
   --flow-variant smoke_suite \
   --threads 8
@@ -146,7 +147,7 @@ can modify the evolve Tcl or a family variant and then rerun just that line.
 Switch to the reduced flow track:
 
 ```bash
-evolve_agent/scripts/run_canonical_line.sh \
+"$DPL_EVOLVE_AGENT_ROOT/scripts/run_canonical_line.sh" \
   --line evolve_line \
   --design-config ./designs/asap7/aes/config.mk \
   --track flow
@@ -155,9 +156,12 @@ evolve_agent/scripts/run_canonical_line.sh \
 Run a LEGALM family variant:
 
 ```bash
-source ./.codex_state/openroad_variants/legalm_engine/variant_env.sh
+"$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_variant_relink.sh" \
+  --variant-root "${DPL_EVOLVE_STATE_ROOT}/variants/legalm_engine" \
+  --dpl-src /abs/path/to/legalm_engine/dpl_evolve
+source "${DPL_EVOLVE_STATE_ROOT}/variants/legalm_engine/variant_env.sh"
 
-evolve_agent/scripts/run_canonical_line.sh \
+"$DPL_EVOLVE_AGENT_ROOT/scripts/run_canonical_line.sh" \
   --line evolve_line \
   --family-variant legalm_engine \
   --openroad-binary "${OPENROAD_BINARY}" \
@@ -228,7 +232,7 @@ That file is the stable summary view. It already merges:
 After a baseline line finishes, the next control-plane step should be:
 
 ```bash
-python3 evolve_agent/scripts/recommend_initial_family.py \
+python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/recommend_initial_family.py" \
   --metrics flow/reports/<platform>/<design>/<flow_variant>/dpl_evolve_baseline/<run_tag>/metrics.json
 ```
 
@@ -349,7 +353,7 @@ matching reduced-flow evolve Tcl.
 The DreamPlace baseline is now wired as a separate driver:
 
 ```bash
-evolve_agent/baseline/run_dp_abacus.sh \
+$DPL_EVOLVE_AGENT_ROOT/baseline/run_dp_abacus.sh \
   --design-config ./designs/nangate45/gcd/config.mk \
   --flow-variant smoke_dpl
 ```
@@ -359,7 +363,7 @@ DreamPlace legalizer in Python, and then imports the legalized coordinates
 back into OpenDB.
 
 The vendored wrappers now live under
-`evolve_agent/baseline/dreamplace_vendor/`, so the baseline
+`$DPL_EVOLVE_AGENT_ROOT/baseline/dreamplace_vendor/`, so the baseline
 no longer depends on the external DREAMPlace Python package layout. The only
 external pieces it still expects are the built DREAMPlace op shared objects
 under `/opt/EDAs/DREAMPlace/build/dreamplace/ops/`.

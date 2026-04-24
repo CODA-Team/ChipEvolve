@@ -1,13 +1,14 @@
 # Script Map
 
-This file is the canonical map of the scripts that matter when this repo is
-mounted into an ORFS workspace as `evolve_agent/`.
+This file is the canonical map of the scripts that matter for the
+`dpl_evolve_agent` control plane.
 
 All runtime commands below assume:
 
 - the real workspace root is an ORFS checkout
-- this repo is mounted at `evolve_agent/`
-- sibling `flow/` and `tools/OpenROAD/` directories exist next to it
+- this repo is located via `DPL_EVOLVE_AGENT_ROOT`
+- packet/checkpoint/operation state is located via `DPL_EVOLVE_STATE_ROOT`
+- `ORFS_ROOT` is explicit, or attached via `DPL_EVOLVE_AGENT_ROOT/.mounted_orfs`
 
 It exists to keep agents and humans away from generated noise such as
 checkpoint snapshots and emitted driver Tcl files.
@@ -17,17 +18,17 @@ checkpoint snapshots and emitted driver Tcl files.
 Treat only the following directories as live script sources for the
 `dpl_evolve` workflow:
 
-- `evolve_agent/scripts/`
-- `evolve_agent/baseline/`
-- `evolve_agent/adapters/science_codeevolve/`
-- `evolve_agent/skills/`
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/`
+- `$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/`
+- `$DPL_EVOLVE_AGENT_ROOT/skills/`
 - `flow/scripts/`
 - `flow/util/`
 - `tools/OpenROAD/src/dpl_evolve/test/`
 
 Do **not** treat the following as source-of-truth scripts:
 
-- `evolve_agent/checkpoints/operations/**/snapshot/**`
+- `${DPL_EVOLVE_STATE_ROOT}/checkpoints/operations/**/snapshot/**`
 - `flow/objects/**`
 - `flow/results/**`
 - `flow/reports/**`
@@ -45,58 +46,72 @@ These are the main entry points an agent should prefer.
 - `dev_env.sh`
   Shared dependency environment setup for local builds.
 
-### evolve_agent control plane
+### control plane
 
-- `evolve_agent/scripts/run_place_batch.sh`
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/run_place_batch.sh`
   Prepare reusable placement snapshots before code evolve.
-- `evolve_agent/scripts/run_canonical_line.sh`
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/attach_orfs_workspace.sh`
+  Optional convenience helper that attaches an ignored local ORFS mount at
+  `.mounted_orfs`.
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/run_canonical_line.sh`
   Agent-facing runner for one canonical baseline line or the clean evolve line.
-- `evolve_agent/scripts/checkpoint.py`
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/checkpoint.py`
   Create / restore local edit-state checkpoints.
-- `evolve_agent/scripts/build_openroad_only.sh`
-  Fast incremental OpenROAD-only build for agent loops.
-- `evolve_agent/scripts/configure_openroad_variant.sh`
-  Configure an isolated OpenROAD build/install variant, optionally with an
-  external `dpl_evolve` source directory.
-- `evolve_agent/scripts/materialize_family_variant.sh`
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_only.sh`
+  Fast incremental OpenROAD-only build for the root binary or fallback
+  full-variant builds.
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_core.sh`
+  Choose the common-core seed location and emit `core_env.sh`.
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_core.sh`
+  Build the reusable common-core OpenROAD tree once for the current anchor.
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_variant_relink.sh`
+  Configure the preferred lightweight variant relink path against a shared
+  common-core build.
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_variant_relink.sh`
+  Rebuild agent-owned `dpl_evolve` objects and relink a private `openroad`
+  binary. When common-core `sta` exists, the variant install tree receives a
+  symlink to that `sta`; it is not separately installed per variant.
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_variant.sh`
+  Heavier fallback path for a full variant-specific OpenROAD build/install.
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/materialize_family_variant.sh`
   Materialize a family-specific `dpl_evolve` source tree from the clean initial
   evolve base.
-- `evolve_agent/scripts/recommend_initial_family.py`
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/recommend_initial_family.py`
   Read baseline `metrics.json` and recommend the best initial patch family.
-- `evolve_agent/scripts/compare_runs.py`
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/compare_runs.py`
   Compare two run results using the current multi-objective interpretation.
-- `evolve_agent/scripts/run_codex_exec.py`
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/run_codex_exec.py`
   Run external `codex exec --json` and log token usage plus event traces.
-- `evolve_agent/scripts/run_design_evolve_loop.py`
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/run_design_evolve_loop.py`
   Full Python loop: checkpoint -> Codex -> build -> evaluate -> keep/reject.
-- `evolve_agent/scripts/run_codex_once.sh`
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/run_codex_once.sh`
   Thin wrapper around packet generation + evaluator for one iteration.
-- `evolve_agent/scripts/run_codex_loop.sh`
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/run_codex_loop.sh`
   Loop helper that prepares checkpoint context before the Python flow.
-- `evolve_agent/scripts/bootstrap.sh`
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/bootstrap.sh`
   Bootstrap helper for early repo/control-plane setup.
 
 ## Current prompt surfaces
 
-- `evolve_agent/tasks/design_evolve/`
+- `$DPL_EVOLVE_AGENT_ROOT/tasks/design_evolve/`
   Active per-design prompts for the Python/Codex loop.
-- `evolve_agent/tasks/archive/`
+- `$DPL_EVOLVE_AGENT_ROOT/tasks/archive/`
   Historical bootstrap and first-patch task sheets. Keep for provenance, not as
   the first place to start current design work.
 
 ### Baseline harness
 
-- `evolve_agent/baseline/canonical_lines.yaml`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/canonical_lines.yaml`
   Canonical baseline/evolve line list.
-- `evolve_agent/baseline/run_baseline.sh`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/run_baseline.sh`
   Internal baseline dispatcher.
-- `evolve_agent/baseline/run_baseline_suite.sh`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/run_baseline_suite.sh`
   Run the fixed suite of canonical baseline lines plus the clean evolve line.
-- `evolve_agent/baseline/run_evolve_line.sh`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/run_evolve_line.sh`
   Run the standalone clean evolve line only.
-- `evolve_agent/baseline/run_or_default.sh`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/run_or_default.sh`
   Wrapper for the `baseline_default` canonical line.
-- `evolve_agent/baseline/run_dp_abacus.sh`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/run_dp_abacus.sh`
   Wrapper for the `baseline_dreamplace_abacus` canonical line.
 
 ## Baseline Support Scripts
@@ -105,46 +120,46 @@ These are not top-level entry points, but they are active authored scripts.
 
 ### Tcl drivers
 
-- `evolve_agent/baseline/detail_place_only.tcl`
-- `evolve_agent/baseline/detail_place_only_evolve.tcl`
-- `evolve_agent/baseline/detail_place_only_evolve_nblg.tcl`
-- `evolve_agent/baseline/detail_place_only_evolve_nblg_abacus.tcl`
-- `evolve_agent/baseline/detail_place_only_evolve_legalm.tcl`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/detail_place_only.tcl`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/detail_place_only_evolve.tcl`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/detail_place_only_evolve_nblg.tcl`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/detail_place_only_evolve_nblg_abacus.tcl`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/detail_place_only_evolve_legalm.tcl`
   Variant-only strict legalizer driver for a LEGALM-capable binary.
-- `evolve_agent/baseline/detail_place_dreamplace.tcl`
-- `evolve_agent/baseline/detail_place_strict_core.tcl`
-- `evolve_agent/baseline/dpl_evolve_helpers.tcl`
-- `evolve_agent/baseline/report_legalized_metrics.tcl`
-- `evolve_agent/baseline/dump_placement_snapshot.tcl`
-- `evolve_agent/baseline/export_dreamplace_input.tcl`
-- `evolve_agent/baseline/import_legalized_coords.tcl`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/detail_place_dreamplace.tcl`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/detail_place_strict_core.tcl`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/dpl_evolve_helpers.tcl`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/report_legalized_metrics.tcl`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/dump_placement_snapshot.tcl`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/export_dreamplace_input.tcl`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/import_legalized_coords.tcl`
 
 ### Reduced-flow Tcl drivers
 
-- `evolve_agent/baseline/flow/detail_place_flow_core.tcl`
-- `evolve_agent/baseline/flow/detail_place_flow_classic.tcl`
-- `evolve_agent/baseline/flow/detail_place_flow_evolve.tcl`
-- `evolve_agent/baseline/flow/detail_place_flow_evolve_nblg.tcl`
-- `evolve_agent/baseline/flow/detail_place_flow_evolve_nblg_abacus.tcl`
-- `evolve_agent/baseline/flow/detail_place_flow_evolve_legalm.tcl`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/flow/detail_place_flow_core.tcl`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/flow/detail_place_flow_classic.tcl`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/flow/detail_place_flow_evolve.tcl`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/flow/detail_place_flow_evolve_nblg.tcl`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/flow/detail_place_flow_evolve_nblg_abacus.tcl`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/flow/detail_place_flow_evolve_legalm.tcl`
   Variant-only reduced-flow driver for a LEGALM-capable binary.
 
 ### Baseline Python helpers
 
-- `evolve_agent/baseline/collect_metrics.py`
-- `evolve_agent/baseline/gen_orfs_metadata.py`
-- `evolve_agent/baseline/run_dp_abacus_bridge.py`
-- `evolve_agent/baseline/flow_paths.py`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/collect_metrics.py`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/gen_orfs_metadata.py`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/run_dp_abacus_bridge.py`
+- `$DPL_EVOLVE_AGENT_ROOT/baseline/flow_paths.py`
 
 ## Runtime / Adapter Scripts
 
 These are active authored control-plane modules.
 
-- `evolve_agent/adapters/science_codeevolve/evaluator.py`
-- `evolve_agent/adapters/science_codeevolve/kb_query.py`
-- `evolve_agent/adapters/science_codeevolve/guarded_exec.py`
-- `evolve_agent/adapters/science_codeevolve/lock.py`
-- `evolve_agent/adapters/science_codeevolve/archive.py`
+- `$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py`
+- `$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/kb_query.py`
+- `$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/guarded_exec.py`
+- `$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/lock.py`
+- `$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/archive.py`
 
 ## ORFS Flow Scripts
 
@@ -197,18 +212,21 @@ smallest relevant smoke first.
 
 If the goal is to evolve `dpl_evolve`, the intended order is:
 
-1. `evolve_agent/scripts/run_place_batch.sh`
-2. `evolve_agent/scripts/recommend_initial_family.py`
-3. `evolve_agent/scripts/checkpoint.py`
-4. if the chosen initial path is a family variant, materialize it with
-   `evolve_agent/scripts/materialize_family_variant.sh`
-5. if the chosen path is a family variant, source the matching
-   `<variant-root>/variant_env.sh`
-6. build via `evolve_agent/scripts/build_openroad_only.sh`
-7. evaluate via `evolve_agent/scripts/run_canonical_line.sh` or
-   `evolve_agent/adapters/science_codeevolve/evaluator.py`
-8. compare via `evolve_agent/scripts/compare_runs.py`
-9. only then expand to suites or other cases
+1. `$DPL_EVOLVE_AGENT_ROOT/scripts/run_place_batch.sh`
+2. `$DPL_EVOLVE_AGENT_ROOT/scripts/recommend_initial_family.py`
+3. `$DPL_EVOLVE_AGENT_ROOT/scripts/checkpoint.py`
+4. `$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_core.sh`
+5. `$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_core.sh`
+6. if the chosen initial path is a family variant, materialize it with
+   `$DPL_EVOLVE_AGENT_ROOT/scripts/materialize_family_variant.sh`
+7. if you need a private binary, configure relink with
+   `$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_variant_relink.sh`
+8. source the matching `<variant-root>/variant_env.sh`
+9. build via `$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_variant_relink.sh`
+10. evaluate via `$DPL_EVOLVE_AGENT_ROOT/scripts/run_canonical_line.sh` or
+   `$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py`
+11. compare via `$DPL_EVOLVE_AGENT_ROOT/scripts/compare_runs.py`
+12. only then expand to suites or other cases
 
 ## Context Hygiene Rules
 

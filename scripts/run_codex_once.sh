@@ -2,27 +2,15 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-resolve_workspace_root() {
-  local direct_root env_root
-  direct_root="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-  if [[ -d "${direct_root}/flow" && -d "${direct_root}/tools/OpenROAD" && -d "${direct_root}/evolve_agent" ]]; then
-    printf '%s\n' "${direct_root}"
-    return 0
-  fi
-  if [[ -n "${ORFS_ROOT:-}" ]]; then
-    env_root="$(realpath -m "${ORFS_ROOT}")"
-    if [[ -d "${env_root}/flow" && -d "${env_root}/tools/OpenROAD" && -d "${env_root}/evolve_agent" ]]; then
-      printf '%s\n' "${env_root}"
-      return 0
-    fi
-  fi
-  return 1
-}
+source "${SCRIPT_DIR}/runtime_env.sh"
+dpl_init_runtime "run_codex_once.sh"
 
-problem_dir="evolve_agent/problems/gcd_nangate45"
-packet_dir="evolve_agent/knowledge/packets"
-config_path="evolve_agent/configs/codex_smoke.yaml"
-eval_out="evolve_agent/checkpoints/latest_eval.json"
+AGENT_DIR="${DPL_EVOLVE_AGENT_ROOT}"
+REPO_ROOT="${ORFS_ROOT}"
+problem_dir="${AGENT_DIR}/problems/gcd_nangate45"
+packet_dir="${DPL_EVOLVE_PACKET_DIR}"
+config_path="${AGENT_DIR}/configs/codex_smoke.yaml"
+eval_out="${DPL_EVOLVE_STATE_ROOT}/latest_eval.json"
 mode="single"
 line="evolve_line"
 flow_variant=""
@@ -46,10 +34,10 @@ This is a thin packet-and-evaluator wrapper:
 This script does not invoke `codex exec`.
 
 Options:
-  --problem-dir PATH        Problem directory. Default: evolve_agent/problems/gcd_nangate45
-  --packet-dir PATH         Packet output directory. Default: evolve_agent/knowledge/packets
-  --config PATH             Evaluator config YAML. Default: evolve_agent/configs/codex_smoke.yaml
-  --eval-out PATH           Evaluator JSON output. Default: evolve_agent/checkpoints/latest_eval.json
+  --problem-dir PATH        Problem directory. Default: \$DPL_EVOLVE_AGENT_ROOT/problems/gcd_nangate45
+  --packet-dir PATH         Packet output directory. Default: \$DPL_EVOLVE_PACKET_DIR
+  --config PATH             Evaluator config YAML. Default: \$DPL_EVOLVE_AGENT_ROOT/configs/codex_smoke.yaml
+  --eval-out PATH           Evaluator JSON output. Default: \$DPL_EVOLVE_STATE_ROOT/latest_eval.json
   --mode MODE               single|suite. Default: single
   --line NAME               Single-line target. Default: evolve_line
   --flow-variant NAME       FLOW_VARIANT to reuse or create
@@ -63,6 +51,24 @@ Options:
   --packet-only             Only regenerate packet, do not call evaluator
   --help                    Show this message
 EOF
+}
+
+resolve_runtime_path() {
+  local value="$1"
+  case "${value}" in
+    /*)
+      realpath -m "${value}"
+      ;;
+    evolve_agent/*)
+      realpath -m "${AGENT_DIR}/${value#evolve_agent/}"
+      ;;
+    flow/*|tools/*)
+      realpath -m "${REPO_ROOT}/${value}"
+      ;;
+    *)
+      realpath -m "${value}"
+      ;;
+  esac
 }
 
 while [[ $# -gt 0 ]]; do
@@ -87,27 +93,20 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if ! REPO_ROOT="$(resolve_workspace_root)"; then
-  echo "[ERROR] run_codex_once.sh must run inside an ORFS workspace with this repo mounted as evolve_agent/." >&2
-  echo "[ERROR] Re-run from the mounted workspace or set ORFS_ROOT to that workspace." >&2
-  exit 1
-fi
-
 case "${mode}" in
   single|suite) ;;
   *) echo "Unsupported mode: ${mode}" >&2; exit 1 ;;
 esac
 
-problem_dir="${problem_dir#./}"
-packet_dir="${packet_dir#./}"
-config_path="${config_path#./}"
-eval_out="${eval_out#./}"
-
+problem_dir="$(resolve_runtime_path "${problem_dir}")"
+packet_dir="$(resolve_runtime_path "${packet_dir}")"
+config_path="$(resolve_runtime_path "${config_path}")"
+eval_out="$(resolve_runtime_path "${eval_out}")"
 problem_yaml="${problem_dir}/problem.yaml"
 
 cd "${REPO_ROOT}"
 
-python3 evolve_agent/adapters/science_codeevolve/kb_query.py \
+python3 "${AGENT_DIR}/adapters/science_codeevolve/kb_query.py" \
   --problem_dir "${problem_dir}" \
   --out_dir "${packet_dir}"
 
@@ -118,7 +117,7 @@ fi
 
 cmd=(
   python3
-  evolve_agent/adapters/science_codeevolve/evaluator.py
+  "${AGENT_DIR}/adapters/science_codeevolve/evaluator.py"
   --problem "${problem_yaml}"
   --config "${config_path}"
   --out "${eval_out}"

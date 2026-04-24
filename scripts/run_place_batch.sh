@@ -2,22 +2,8 @@
 
 set -euo pipefail
 
-resolve_workspace_root() {
-  local direct_root env_root
-  direct_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-  if [[ -d "${direct_root}/flow" && -d "${direct_root}/tools/OpenROAD" && -d "${direct_root}/evolve_agent" ]]; then
-    printf '%s\n' "${direct_root}"
-    return 0
-  fi
-  if [[ -n "${ORFS_ROOT:-}" ]]; then
-    env_root="$(realpath -m "${ORFS_ROOT}")"
-    if [[ -d "${env_root}/flow" && -d "${env_root}/tools/OpenROAD" && -d "${env_root}/evolve_agent" ]]; then
-      printf '%s\n' "${env_root}"
-      return 0
-    fi
-  fi
-  return 1
-}
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/runtime_env.sh"
 
 MAX_TASKS="${MAX_TASKS:-5}"
 NUM_CORES="${NUM_CORES:-16}"
@@ -60,11 +46,8 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   exit 0
 fi
 
-if ! REPO_ROOT="$(resolve_workspace_root)"; then
-  echo "[ERROR] run_place_batch.sh must run inside an ORFS workspace with this repo mounted as evolve_agent/." >&2
-  echo "[ERROR] Re-run from the mounted workspace or set ORFS_ROOT to that workspace." >&2
-  exit 1
-fi
+dpl_init_runtime "run_place_batch.sh"
+REPO_ROOT="${ORFS_ROOT}"
 
 FLOW_DIR="${REPO_ROOT}/flow"
 RUN_DIR="${FLOW_DIR}/logs/batch_runs/${FLOW_VARIANT}_${RUN_STAMP}"

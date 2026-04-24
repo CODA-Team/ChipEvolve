@@ -20,8 +20,13 @@ Read them in this order:
 
 Keep these rules in mind:
 
-- run commands from an ORFS workspace where this repo is mounted as
-  `evolve_agent/`
+- resolve runtime through:
+  - `DPL_EVOLVE_AGENT_ROOT`
+  - `ORFS_ROOT`
+  - `DPL_EVOLVE_STATE_ROOT`
+- if you want a shortcut to the external ORFS workspace, use the ignored local
+  mount at `$DPL_EVOLVE_AGENT_ROOT/.mounted_orfs`
 - for any `--family-variant` run, use an explicit variant binary
-- prefer `build_openroad_only.sh` over rebuilding the whole ORFS stack
+- prefer the common-core plus variant-relink path over rebuilding the whole
+  ORFS stack
 - treat `metrics.json` as the primary result interface

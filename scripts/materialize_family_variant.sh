@@ -1,31 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-resolve_workspace_root() {
-  local direct_root env_root
-  direct_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-  if [[ -d "${direct_root}/flow" && -d "${direct_root}/tools/OpenROAD" && -d "${direct_root}/evolve_agent" ]]; then
-    printf '%s\n' "${direct_root}"
-    return 0
-  fi
-  if [[ -n "${ORFS_ROOT:-}" ]]; then
-    env_root="$(realpath -m "${ORFS_ROOT}")"
-    if [[ -d "${env_root}/flow" && -d "${env_root}/tools/OpenROAD" && -d "${env_root}/evolve_agent" ]]; then
-      printf '%s\n' "${env_root}"
-      return 0
-    fi
-  fi
-  return 1
-}
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/runtime_env.sh"
+dpl_init_runtime "materialize_family_variant.sh"
 
-if ! ROOT_DIR="$(resolve_workspace_root)"; then
-  echo "[ERROR] materialize_family_variant.sh must run inside an ORFS workspace with this repo mounted as evolve_agent/." >&2
-  echo "[ERROR] Re-run from the mounted workspace or set ORFS_ROOT to that workspace." >&2
-  exit 1
-fi
+ROOT_DIR="${ORFS_ROOT}"
+AGENT_DIR="${DPL_EVOLVE_AGENT_ROOT}"
 
 BASE_DPL_EVOLVE_DIR="${ROOT_DIR}/tools/OpenROAD/src/dpl_evolve"
-DEFAULT_OUTPUT_ROOT="${ROOT_DIR}/.codex_state/family_variants"
+DEFAULT_OUTPUT_ROOT="${DPL_EVOLVE_STATE_ROOT}/family_variants"
 
 family_id=""
 output_dir=""
@@ -83,7 +67,7 @@ fi
 
 case "$family_id" in
   legalm_engine)
-    patch_file="${ROOT_DIR}/evolve_agent/family_variants/legalm_engine/dpl_evolve.patch"
+    patch_file="${AGENT_DIR}/family_variants/legalm_engine/dpl_evolve.patch"
     ;;
   *)
     echo "[ERROR] Unsupported family: ${family_id}" >&2

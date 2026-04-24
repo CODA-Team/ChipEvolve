@@ -1,38 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-resolve_workspace_root() {
-  local direct_root env_root
-  direct_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-  if [[ -d "${direct_root}/flow" && -d "${direct_root}/tools/OpenROAD" && -d "${direct_root}/evolve_agent" ]]; then
-    printf '%s\n' "${direct_root}"
-    return 0
-  fi
-  if [[ -n "${ORFS_ROOT:-}" ]]; then
-    env_root="$(realpath -m "${ORFS_ROOT}")"
-    if [[ -d "${env_root}/flow" && -d "${env_root}/tools/OpenROAD" && -d "${env_root}/evolve_agent" ]]; then
-      printf '%s\n' "${env_root}"
-      return 0
-    fi
-  fi
-  return 1
-}
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/runtime_env.sh"
+dpl_init_runtime "configure_openroad_variant.sh"
 
-if ! ROOT_DIR="$(resolve_workspace_root)"; then
-  echo "[ERROR] configure_openroad_variant.sh must run inside an ORFS workspace with this repo mounted as evolve_agent/." >&2
-  echo "[ERROR] Re-run from the mounted workspace or set ORFS_ROOT to that workspace." >&2
-  exit 1
-fi
+ROOT_DIR="${ORFS_ROOT}"
 
 OPENROAD_SRC="${ROOT_DIR}/tools/OpenROAD"
-DEFAULT_VARIANT_ROOT="${ROOT_DIR}/.codex_state/openroad_variants/default"
+OPENROAD_ANCHOR_ID="$(git -C "${OPENROAD_SRC}" rev-parse --short HEAD)"
+DEFAULT_CORE_ROOT="${DPL_EVOLVE_STATE_ROOT}/openroad_core/${OPENROAD_ANCHOR_ID}"
+DEFAULT_VARIANT_ROOT="${DPL_EVOLVE_STATE_ROOT}/variants/default"
 EXISTING_CACHE="${ROOT_DIR}/tools/OpenROAD/build/CMakeCache.txt"
 
 variant_root="${OPENROAD_VARIANT_ROOT:-$DEFAULT_VARIANT_ROOT}"
 build_dir="${OPENROAD_BUILD_DIR:-}"
 install_root="${OPENROAD_INSTALL_ROOT:-}"
 dpl_evolve_src="${DPL_EVOLVE_SRC_DIR:-}"
+core_root="${OPENROAD_CORE_ROOT:-$DEFAULT_CORE_ROOT}"
 generator="${CMAKE_GENERATOR:-}"
+disable_tests_raw="${OPENROAD_DISABLE_TESTS:-1}"
+disable_gui_raw="${OPENROAD_DISABLE_GUI:-0}"
 
 usage() {
   cat <<'EOF'
@@ -40,10 +28,12 @@ Usage: configure_openroad_variant.sh [options]
 
 Options:
   --variant-root PATH      Root directory for this variant. Default:
-                           .codex_state/openroad_variants/default
+                           ${DPL_EVOLVE_STATE_ROOT}/variants/default
   --build-dir PATH         Explicit build directory override.
   --install-root PATH      Explicit install root override.
   --dpl-src PATH           External dpl_evolve source directory override.
+  --core-root PATH         Common-core seed root. Default:
+                           <state>/openroad_core/<openroad-head>
   --generator NAME         CMake generator. Default: reuse existing cache or
                            fall back to Unix Makefiles.
   --help                   Show this message.
@@ -57,6 +47,7 @@ Environment fallbacks:
   OPENROAD_BUILD_DIR
   OPENROAD_INSTALL_ROOT
   DPL_EVOLVE_SRC_DIR
+  OPENROAD_CORE_ROOT
   CMAKE_GENERATOR
 EOF
 }
@@ -77,6 +68,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --dpl-src)
       dpl_evolve_src="$2"
+      shift 2
+      ;;
+    --core-root)
+      core_root="$2"
       shift 2
       ;;
     --generator)
@@ -100,7 +95,38 @@ build_dir="${build_dir:-${variant_root}/build}"
 install_root="${install_root:-${variant_root}/install/OpenROAD}"
 build_dir="$(realpath -m "$build_dir")"
 install_root="$(realpath -m "$install_root")"
+core_root="$(realpath -m "$core_root")"
 variant_env="${variant_root}/variant_env.sh"
+
+is_truthy() {
+  local value="${1,,}"
+  [[ "${value}" == "1" || "${value}" == "true" || "${value}" == "yes" || "${value}" == "on" ]]
+}
+
+seed_from_core_if_needed() {
+  local core_build_dir core_install_root
+  if [[ -f "${build_dir}/CMakeCache.txt" ]]; then
+    return 0
+  fi
+  core_build_dir="${core_root}/build"
+  core_install_root="${core_root}/install/OpenROAD"
+  if [[ ! -f "${core_build_dir}/CMakeCache.txt" ]]; then
+    return 0
+  fi
+  if [[ ! -x "${core_install_root}/bin/openroad" ]]; then
+    return 0
+  fi
+  echo "[INFO] Seeding variant build/install from common core"
+  echo "[INFO] core_build_dir=${core_build_dir}"
+  echo "[INFO] core_install_root=${core_install_root}"
+  mkdir -p "${build_dir}" "${install_root}"
+  rsync -a --delete "${core_build_dir}/" "${build_dir}/"
+  rsync -a --delete "${core_install_root}/" "${install_root}/"
+  rm -f "${build_dir}/CMakeCache.txt" "${build_dir}/Makefile" "${build_dir}/cmake_install.cmake"
+  if [[ -d "${build_dir}/CMakeFiles" ]]; then
+    find "${build_dir}/CMakeFiles" -maxdepth 1 -type f -delete
+  fi
+}
 
 if [[ -z "$generator" ]]; then
   if [[ -f "$EXISTING_CACHE" ]]; then
@@ -110,6 +136,7 @@ if [[ -z "$generator" ]]; then
 fi
 
 mkdir -p "$build_dir" "$install_root"
+seed_from_core_if_needed
 
 cd "$ROOT_DIR"
 . dev_env.sh
@@ -119,6 +146,7 @@ cmake_args=(
   -B "$build_dir"
   -G "$generator"
   -D "CMAKE_INSTALL_PREFIX=${install_root}"
+  -D "CMAKE_EXPORT_COMPILE_COMMANDS=ON"
 )
 
 if [[ -n "$dpl_evolve_src" ]]; then
@@ -130,10 +158,19 @@ if [[ -n "$dpl_evolve_src" ]]; then
   cmake_args+=(-D "DPL_EVOLVE_SRC_DIR=${dpl_evolve_src}")
 fi
 
+if is_truthy "${disable_tests_raw}"; then
+  cmake_args+=(-D "ENABLE_TESTS=OFF")
+fi
+if is_truthy "${disable_gui_raw}"; then
+  cmake_args+=(-D "BUILD_GUI=OFF")
+fi
+
 echo "[INFO] Configuring OpenROAD variant"
 echo "[INFO] source=${OPENROAD_SRC}"
 echo "[INFO] build_dir=${build_dir}"
 echo "[INFO] install_root=${install_root}"
+echo "[INFO] core_root=${core_root}"
+echo "[INFO] disable_tests=${disable_tests_raw} disable_gui=${disable_gui_raw}"
 if [[ -n "$dpl_evolve_src" ]]; then
   echo "[INFO] dpl_evolve_src=${dpl_evolve_src}"
 fi
@@ -144,6 +181,7 @@ cmake "${cmake_args[@]}"
   echo "#!/usr/bin/env bash"
   echo "# Generated by configure_openroad_variant.sh"
   echo "export OPENROAD_VARIANT_ROOT=$(printf '%q' "${variant_root}")"
+  echo "export OPENROAD_CORE_ROOT=$(printf '%q' "${core_root}")"
   echo "export OPENROAD_BUILD_DIR=$(printf '%q' "${build_dir}")"
   echo "export OPENROAD_INSTALL_ROOT=$(printf '%q' "${install_root}")"
   echo "export OPENROAD_BINARY=$(printf '%q' "${install_root}/bin/openroad")"
@@ -155,6 +193,7 @@ chmod +x "${variant_env}"
 
 echo "[INFO] Variant configure complete"
 echo "[INFO] variant_env=${variant_env}"
+echo "[INFO] export OPENROAD_CORE_ROOT=${core_root}"
 echo "[INFO] export OPENROAD_BUILD_DIR=${build_dir}"
 echo "[INFO] export OPENROAD_INSTALL_ROOT=${install_root}"
 echo "[INFO] export OPENROAD_BINARY=${install_root}/bin/openroad"

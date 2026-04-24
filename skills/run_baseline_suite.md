@@ -4,12 +4,12 @@
 Run the full baseline matrix and one evolve line to compare the candidate legalizer against fixed references.
 
 ## Expected local entrypoint
-`evolve_agent/baseline/run_baseline_suite.sh`
+`$DPL_EVOLVE_AGENT_ROOT/baseline/run_baseline_suite.sh`
 
 If the run is agent-managed rather than manual, prefer calling it through:
 
-- `evolve_agent/adapters/science_codeevolve/evaluator.py --mode suite`
-- or `evolve_agent/scripts/run_codex_once.sh --mode suite`
+- `$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py --mode suite`
+- or `$DPL_EVOLVE_AGENT_ROOT/scripts/run_codex_once.sh --mode suite`
 
 ## What this should cover
 - OpenROAD default legalizer
@@ -40,7 +40,7 @@ If the run is agent-managed rather than manual, prefer calling it through:
 ## Example
 
 ```bash
-./evolve_agent/baseline/run_baseline_suite.sh \
+"$DPL_EVOLVE_AGENT_ROOT/baseline/run_baseline_suite.sh" \
   --design-config ./designs/nangate45/gcd/config.mk \
   --flow-variant dpl_evolve_suite_20260422_125226 \
   --tag-prefix agent_suite \

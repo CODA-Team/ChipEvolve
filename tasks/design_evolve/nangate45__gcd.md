@@ -1,6 +1,7 @@
 # Codex Prompt — nangate45/gcd
 
-You are working in `OpenROAD-flow-scripts`.
+You are working with a standalone `dpl_evolve_agent` control repo plus an
+external ORFS workspace.
 
 Goal:
 - perform one bounded patch iteration for the `nangate45/gcd` legalizer case
@@ -9,15 +10,17 @@ Goal:
 - do **not** rerun place
 
 Read first:
-- `evolve_agent/AGENTS.md`
-- `evolve_agent/knowledge/packets/current_run_packet.md`
-- `evolve_agent/skills/patch_rules.md`
-- `evolve_agent/problems/gcd_nangate45/problem.yaml`
+- `$DPL_EVOLVE_AGENT_ROOT/AGENTS.md`
+- `$DPL_EVOLVE_PACKET_DIR/current_run_packet.md`
+- `$DPL_EVOLVE_AGENT_ROOT/skills/patch_rules.md`
+- `$DPL_EVOLVE_AGENT_ROOT/problems/gcd_nangate45/problem.yaml`
 
 Loop contract:
 - the outer Python loop will create/restore checkpoints
 - the outer Python loop will refresh the packet
 - the outer Python loop will build and run the evaluator
+- the outer loop owns `ORFS_ROOT`, `DPL_EVOLVE_AGENT_ROOT`,
+  `DPL_EVOLVE_STATE_ROOT`, and any explicit `OPENROAD_BINARY`
 - make one bounded patch only within the allowed patch surface, then stop
 - do not inspect `flow/Makefile`, `flow/scripts/*`, or `flow/designs/nangate45/gcd/config.mk`
   unless the task explicitly expands beyond the target plane
@@ -33,15 +36,15 @@ Loop contract:
 Preferred evaluator entrypoint:
 
 ```bash
-python3 evolve_agent/adapters/science_codeevolve/evaluator.py \
-  --problem evolve_agent/problems/gcd_nangate45/problem.yaml \
+python3 "$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py" \
+  --problem "$DPL_EVOLVE_AGENT_ROOT/problems/gcd_nangate45/problem.yaml" \
   --mode single \
   --line evolve_line \
   --flow-variant <REUSE_EXISTING_FLOW_VARIANT> \
   --run-tag <NEW_RUN_TAG> \
   --evolve-engine default \
   --threads 8 \
-  --out evolve_agent/checkpoints/operations/<OPERATION_ID>/<EVAL_JSON>
+  --out "$DPL_EVOLVE_OPERATIONS_DIR/<OPERATION_ID>/<EVAL_JSON>"
 ```
 
 Focus:

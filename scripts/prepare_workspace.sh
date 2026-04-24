@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-DEFAULT_WORKSPACE_ROOT="$(cd "${AGENT_ROOT}/.." && pwd)"
+DEFAULT_WORKSPACE_ROOT="${ORFS_ROOT:-${AGENT_ROOT}/.mounted_orfs}"
 
 workspace_root="${DEFAULT_WORKSPACE_ROOT}"
 orfs_branch=""
@@ -72,16 +72,9 @@ anchors_json="${AGENT_ROOT}/metadata/anchors.json"
 orfs_patch="${AGENT_ROOT}/patches/orfs_overlay.patch"
 orfs_make_patch="${AGENT_ROOT}/patches/orfs_make_overlay.patch"
 openroad_patch="${AGENT_ROOT}/patches/openroad_dpl_evolve_base.patch"
-agent_remote_url="$(git -C "${AGENT_ROOT}" remote get-url origin 2>/dev/null || true)"
-agent_target_ref="$(git -C "${AGENT_ROOT}" rev-parse HEAD)"
 
 if [[ ! -d "${workspace_root}/.git" ]]; then
   echo "[ERROR] workspace root is not a git repository: ${workspace_root}" >&2
-  exit 1
-fi
-
-if [[ ! -d "${workspace_root}/tools/OpenROAD" ]]; then
-  echo "[ERROR] Missing OpenROAD checkout at ${workspace_root}/tools/OpenROAD" >&2
   exit 1
 fi
 
@@ -124,6 +117,10 @@ ensure_clean_or_reset() {
   fi
 
   git -C "${repo_root}" checkout -B "${target_branch}" "${target_commit}"
+  if [[ "${force}" -eq 1 ]]; then
+    git -C "${repo_root}" reset --hard "${target_commit}"
+    git -C "${repo_root}" clean -fd
+  fi
 }
 
 apply_patch_if_needed() {
@@ -174,46 +171,27 @@ commit_if_dirty() {
   fi
 }
 
-ensure_agent_submodule() {
-  local repo_root="$1"
-  local agent_path="${repo_root}/evolve_agent"
-
-  if [[ -z "${agent_remote_url}" ]]; then
-    echo "[ERROR] Could not resolve dpl_evolve_agent origin URL from ${AGENT_ROOT}" >&2
-    exit 1
-  fi
-
-  if ! git -C "${repo_root}" config -f .gitmodules --get-regexp '^submodule\\.evolve_agent\\.path$' >/dev/null 2>&1; then
-    rm -rf "${agent_path}"
-    git -C "${repo_root}" submodule add -f "${agent_remote_url}" evolve_agent
-  else
-    git -C "${repo_root}" submodule sync -- evolve_agent
-    git -C "${repo_root}" submodule update --init evolve_agent
-  fi
-
-  git -C "${agent_path}" fetch origin main
-  git -C "${agent_path}" checkout "${agent_target_ref}" >/dev/null 2>&1 \
-    || git -C "${agent_path}" checkout origin/main
-}
-
 ensure_clean_or_reset "${workspace_root}" "${orfs_branch}" "${orfs_base_commit}" "ORFS"
-ensure_clean_or_reset "${workspace_root}/tools/OpenROAD" "${openroad_branch}" "${openroad_base_commit}" "OpenROAD"
 
 # After pinning the ORFS/OpenROAD anchors, sync nested submodules so OpenROAD
 # sources and bundled dependencies (for example src/sta) match the selected
 # base commit before we apply any prepare patches.
 git -C "${workspace_root}" submodule sync --recursive
 git -C "${workspace_root}" submodule update --init --recursive tools/OpenROAD
+if ! git -C "${workspace_root}/tools/OpenROAD" rev-parse --git-dir >/dev/null 2>&1; then
+  echo "[ERROR] Failed to initialize OpenROAD submodule at ${workspace_root}/tools/OpenROAD" >&2
+  exit 1
+fi
+ensure_clean_or_reset "${workspace_root}/tools/OpenROAD" "${openroad_branch}" "${openroad_base_commit}" "OpenROAD"
 git -C "${workspace_root}/tools/OpenROAD" submodule sync --recursive
 git -C "${workspace_root}/tools/OpenROAD" submodule update --init --recursive
 
 apply_patch_if_needed "${workspace_root}" "${orfs_patch}" "ORFS"
 apply_patch_if_needed "${workspace_root}" "${orfs_make_patch}" "ORFS"
 apply_patch_if_needed "${workspace_root}/tools/OpenROAD" "${openroad_patch}" "OpenROAD"
-ensure_agent_submodule "${workspace_root}"
 
 commit_if_dirty "${workspace_root}/tools/OpenROAD" "Prepare clean dpl_evolve base"
-commit_if_dirty "${workspace_root}" "Prepare ORFS overlay for dpl_evolve_agent" flow/Makefile .gitmodules evolve_agent
+commit_if_dirty "${workspace_root}" "Prepare ORFS overlay for dpl_evolve_agent" flow/Makefile
 
 echo "[INFO] prepare complete"
 echo "[INFO] workspace_root=${workspace_root}"

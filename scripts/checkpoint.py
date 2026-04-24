@@ -11,54 +11,50 @@ import sys
 from pathlib import Path
 from typing import Any
 
+AGENT_ROOT = Path(__file__).resolve().parents[1]
+if str(AGENT_ROOT) not in sys.path:
+    sys.path.insert(0, str(AGENT_ROOT))
 
-def repo_root() -> Path:
-    candidate = Path(__file__).resolve().parents[2]
-    if (
-        (candidate / "flow").is_dir()
-        and (candidate / "tools" / "OpenROAD").is_dir()
-        and (candidate / "evolve_agent").is_dir()
-    ):
-        return candidate
-    env_root = os.environ.get("ORFS_ROOT")
-    if env_root:
-        env_candidate = Path(env_root).resolve()
-        if (
-            (env_candidate / "flow").is_dir()
-            and (env_candidate / "tools" / "OpenROAD").is_dir()
-            and (env_candidate / "evolve_agent").is_dir()
-        ):
-            return env_candidate
-    raise SystemExit(
-        "checkpoint.py must run inside an ORFS workspace with this repo mounted as evolve_agent/. "
-        "Re-run from the mounted workspace or set ORFS_ROOT to that workspace."
+from runtime_paths import resolve_input_path, resolve_runtime_paths
+
+
+def runtime_paths():
+    return resolve_runtime_paths(
+        anchor_file=__file__,
+        agent_root_levels_up=1,
+        script_name="checkpoint.py",
     )
 
 
 REPO_ROOT: Path | None = None
-EVOLVE_AGENT_DIR: Path | None = None
+AGENT_ROOT_DIR: Path | None = None
+STATE_ROOT: Path | None = None
 CHECKPOINTS_DIR: Path | None = None
 OPERATIONS_DIR: Path | None = None
 TARGET_DIR: Path | None = None
 
 
 def initialize_paths() -> None:
-    global REPO_ROOT, EVOLVE_AGENT_DIR, CHECKPOINTS_DIR, OPERATIONS_DIR, TARGET_DIR
+    global REPO_ROOT, AGENT_ROOT_DIR, STATE_ROOT, CHECKPOINTS_DIR, OPERATIONS_DIR, TARGET_DIR
     if REPO_ROOT is not None:
         return
-    REPO_ROOT = repo_root()
-    EVOLVE_AGENT_DIR = REPO_ROOT / "evolve_agent"
-    CHECKPOINTS_DIR = EVOLVE_AGENT_DIR / "checkpoints"
-    OPERATIONS_DIR = CHECKPOINTS_DIR / "operations"
+    runtime = runtime_paths()
+    REPO_ROOT = runtime.orfs_root
+    AGENT_ROOT_DIR = runtime.agent_root
+    STATE_ROOT = runtime.state_root
+    CHECKPOINTS_DIR = runtime.checkpoints_dir
+    OPERATIONS_DIR = runtime.operations_dir
     TARGET_DIR = REPO_ROOT / "tools" / "OpenROAD" / "src" / "dpl_evolve"
 
-CONTROL_SNAPSHOT_DIRNAME = "evolve_agent"
+CONTROL_SNAPSHOT_DIRNAME = "agent_root"
 TARGET_SNAPSHOT_DIRNAME = "dpl_evolve"
 
 CONTROL_EXCLUDES = {
     "checkpoints",
     "checkpoint_packages",
     "__pycache__",
+    ".git",
+    ".mounted_orfs",
 }
 TARGET_EXCLUDES = {
     "__pycache__",
@@ -179,7 +175,12 @@ def copy_evidence_files(evidence_paths: list[Path], destination_dir: Path) -> li
     used_names: set[str] = set()
     destination_dir.mkdir(parents=True, exist_ok=True)
     for evidence in evidence_paths:
-        resolved = evidence if evidence.is_absolute() else (REPO_ROOT / evidence).resolve()
+        resolved = resolve_input_path(
+            evidence,
+            cwd=Path.cwd(),
+            agent_root=AGENT_ROOT_DIR,
+            orfs_root=REPO_ROOT,
+        )
         if not resolved.exists():
             raise SystemExit(f"Evidence path does not exist: {evidence}")
         base_name = resolved.name
@@ -285,7 +286,8 @@ def build_checkpoint_payload(
     control_snapshot_hash: str,
     target_snapshot_hash: str,
     root_git: dict[str, Any],
-    submodule_git: dict[str, Any],
+    agent_git: dict[str, Any],
+    openroad_git: dict[str, Any],
 ) -> dict[str, Any]:
     return {
         "checkpoint_id": checkpoint_id,
@@ -303,11 +305,13 @@ def build_checkpoint_payload(
         "git_anchor": {
             "root_branch": root_git["branch"],
             "root_head": root_git["head"],
-            "openroad_branch": submodule_git["branch"],
-            "openroad_head": submodule_git["head"],
+            "agent_branch": agent_git["branch"],
+            "agent_head": agent_git["head"],
+            "openroad_branch": openroad_git["branch"],
+            "openroad_head": openroad_git["head"],
         },
         "snapshot_hashes": {
-            "evolve_agent": control_snapshot_hash,
+            "agent_root": control_snapshot_hash,
             "dpl_evolve": target_snapshot_hash,
         },
     }
@@ -355,6 +359,7 @@ def write_checkpoint_files(operation_dir: Path, checkpoint_payload: dict[str, An
             "",
             "## Git Anchors",
             f"- Root: `{checkpoint_payload['git_anchor']['root_branch']}` @ `{checkpoint_payload['git_anchor']['root_head']}`",
+            f"- Agent: `{checkpoint_payload['git_anchor']['agent_branch']}` @ `{checkpoint_payload['git_anchor']['agent_head']}`",
             f"- OpenROAD: `{checkpoint_payload['git_anchor']['openroad_branch']}` @ `{checkpoint_payload['git_anchor']['openroad_head']}`",
             "",
             "## What Changed",
@@ -372,7 +377,7 @@ def write_checkpoint_files(operation_dir: Path, checkpoint_payload: dict[str, An
             f"- {checkpoint_payload['result_summary']}",
             "",
             "## Restore",
-            f"```bash\npython3 evolve_agent/scripts/checkpoint.py restore --checkpoint-id {checkpoint_payload['checkpoint_id']} --force\n```",
+            f"```bash\npython3 \"$DPL_EVOLVE_AGENT_ROOT/scripts/checkpoint.py\" restore --checkpoint-id {checkpoint_payload['checkpoint_id']} --force\n```",
             "",
             "## Evidence",
         ]
@@ -386,7 +391,7 @@ def write_checkpoint_files(operation_dir: Path, checkpoint_payload: dict[str, An
         [
             "",
             "## Snapshot Hashes",
-            f"- evolve_agent: `{checkpoint_payload['snapshot_hashes']['evolve_agent']}`",
+            f"- agent_root: `{checkpoint_payload['snapshot_hashes']['agent_root']}`",
             f"- dpl_evolve: `{checkpoint_payload['snapshot_hashes']['dpl_evolve']}`",
             "",
         ]
@@ -431,18 +436,22 @@ def cmd_create(args: argparse.Namespace) -> None:
     git_dir = operation_dir / "git"
     git_dir.mkdir(parents=True, exist_ok=True)
 
-    copy_tree(EVOLVE_AGENT_DIR, control_snapshot_dir, CONTROL_EXCLUDES)
+    copy_tree(AGENT_ROOT_DIR, control_snapshot_dir, CONTROL_EXCLUDES)
     copy_tree(TARGET_DIR, target_snapshot_dir, TARGET_EXCLUDES)
 
-    root_git = gather_git_metadata(REPO_ROOT, "evolve_agent")
-    submodule_git = gather_git_metadata(REPO_ROOT / "tools" / "OpenROAD", "src/dpl_evolve")
+    root_git = gather_git_metadata(REPO_ROOT, ".")
+    agent_git = gather_git_metadata(AGENT_ROOT_DIR, ".")
+    openroad_git = gather_git_metadata(REPO_ROOT / "tools" / "OpenROAD", "src/dpl_evolve")
 
     write_text(git_dir / "root_status.txt", root_git["status"])
     write_text(git_dir / "root_diff.patch", root_git["diff"])
     write_text(git_dir / "root_untracked.txt", root_git["untracked"])
-    write_text(git_dir / "openroad_status.txt", submodule_git["status"])
-    write_text(git_dir / "openroad_diff.patch", submodule_git["diff"])
-    write_text(git_dir / "openroad_untracked.txt", submodule_git["untracked"])
+    write_text(git_dir / "agent_status.txt", agent_git["status"])
+    write_text(git_dir / "agent_diff.patch", agent_git["diff"])
+    write_text(git_dir / "agent_untracked.txt", agent_git["untracked"])
+    write_text(git_dir / "openroad_status.txt", openroad_git["status"])
+    write_text(git_dir / "openroad_diff.patch", openroad_git["diff"])
+    write_text(git_dir / "openroad_untracked.txt", openroad_git["untracked"])
 
     evidence_files = copy_evidence_files([Path(p) for p in args.evidence], evidence_dir)
 
@@ -460,7 +469,8 @@ def cmd_create(args: argparse.Namespace) -> None:
         control_snapshot_hash=sha256_tree(control_snapshot_dir),
         target_snapshot_hash=sha256_tree(target_snapshot_dir),
         root_git=root_git,
-        submodule_git=submodule_git,
+        agent_git=agent_git,
+        openroad_git=openroad_git,
     )
     write_checkpoint_files(operation_dir, checkpoint_payload)
     update_index(checkpoint_payload)
@@ -485,14 +495,18 @@ def cmd_restore(args: argparse.Namespace) -> None:
     if git_anchor:
         root_branch = git_anchor.get("root_branch", "DETACHED")
         root_head = git_anchor.get("root_head")
+        agent_branch = git_anchor.get("agent_branch", "DETACHED")
+        agent_head = git_anchor.get("agent_head")
         openroad_branch = git_anchor.get("openroad_branch", "DETACHED")
         openroad_head = git_anchor.get("openroad_head")
         if root_head:
             switch_repo_to_anchor(REPO_ROOT, root_branch, root_head)
+        if agent_head:
+            switch_repo_to_anchor(AGENT_ROOT_DIR, agent_branch, agent_head)
         if openroad_head:
             switch_repo_to_anchor(REPO_ROOT / "tools" / "OpenROAD", openroad_branch, openroad_head)
 
-    sync_tree(control_snapshot_dir, EVOLVE_AGENT_DIR, CONTROL_EXCLUDES, preserve_names={"checkpoints"})
+    sync_tree(control_snapshot_dir, AGENT_ROOT_DIR, CONTROL_EXCLUDES)
     sync_tree(target_snapshot_dir, TARGET_DIR, TARGET_EXCLUDES)
     print(f"Restored checkpoint: {args.checkpoint_id}")
 
@@ -540,7 +554,7 @@ def cmd_show(args: argparse.Namespace) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Local restorable checkpoints for evolve_agent + dpl_evolve.")
+    parser = argparse.ArgumentParser(description="Local restorable checkpoints for agent_root + dpl_evolve.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     create_parser = subparsers.add_parser("create", help="Capture a local restorable checkpoint.")

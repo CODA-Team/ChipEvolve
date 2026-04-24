@@ -13,7 +13,7 @@ Codex edits **only the bounded legalizer surfaces** unless a task explicitly exp
 ## Family variants
 
 - `LEGALM` is a family-specific variant, not part of the clean initial evolve base.
-- Materialize it with `evolve_agent/scripts/materialize_family_variant.sh`.
+- Materialize it with `"$DPL_EVOLVE_AGENT_ROOT/scripts/materialize_family_variant.sh"`.
 - Patch the materialized variant source tree, not `tools/OpenROAD/src/dpl_evolve/`.
 
 ## Read-only unless task expands scope

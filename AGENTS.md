@@ -5,9 +5,24 @@ This file is the short operating contract for Codex inside `evolve_agent`.
 This directory is the only intended control-plane tree in the repo. Keep the
 agent surface narrow and decoupled from the target plane.
 
-All build/run commands assume this repo is mounted as `evolve_agent/` inside an
-ORFS workspace. Do not treat the standalone authoring checkout as the runtime
-workspace unless it also contains sibling `flow/` and `tools/OpenROAD/`.
+Runtime is now resolved through three explicit roots:
+
+- `ORFS_ROOT`
+- `DPL_EVOLVE_AGENT_ROOT`
+- `DPL_EVOLVE_STATE_ROOT`
+
+The target direction is documented in:
+
+- `$DPL_EVOLVE_AGENT_ROOT/knowledge/plans/common_core_variant_relink.md`
+
+Do not assume the control repo is registered as a git submodule inside ORFS.
+Use the explicit roots above.
+
+An optional ignored mount is supported at:
+
+- `$DPL_EVOLVE_AGENT_ROOT/.mounted_orfs`
+
+That mount is a convenience, not a second runtime model.
 
 ## Role
 
@@ -67,7 +82,7 @@ survey before the first bounded edit.
 
 - Target plane: `tools/OpenROAD/src/dpl_evolve/`
 - Artifact plane: `flow/`
-- Control plane: `evolve_agent/`
+- Control plane: `DPL_EVOLVE_AGENT_ROOT/`
 - Optional external runtime reference: upstream `science-codeevolve`, but it is
   not required to exist inside this repo tree
 
@@ -84,10 +99,16 @@ For loop-driven bounded patch turns:
 - Clean baseline and clean evolve runs may use the root OpenROAD binary.
 - Family-variant runs must use a dedicated variant binary.
 - Preferred pattern:
+  - `scripts/configure_openroad_core.sh`
+  - `scripts/build_openroad_core.sh`
+  - `scripts/configure_openroad_variant_relink.sh`
+  - `source <variant-root>/variant_env.sh`
+  - `scripts/build_openroad_variant_relink.sh`
+  - `scripts/run_canonical_line.sh --openroad-binary "${OPENROAD_BINARY}" ...`
+- Fallback full-variant pattern:
   - `scripts/configure_openroad_variant.sh`
   - `source <variant-root>/variant_env.sh`
   - `scripts/build_openroad_only.sh`
-  - `scripts/run_canonical_line.sh --openroad-binary "${OPENROAD_BINARY}" ...`
 - Do not assume `tools/install/OpenROAD/bin/openroad` is correct once you are
   inside a family-variant loop.
 
@@ -103,7 +124,7 @@ Allowed first:
 
 Variant-only:
 
-- `evolve_agent/family_variants/legalm_engine/`
+- `$DPL_EVOLVE_AGENT_ROOT/family_variants/legalm_engine/`
 - materialized source trees created with `scripts/materialize_family_variant.sh`
 
 For `LEGALM` work, materialize the `legalm_engine` family into its own
@@ -126,7 +147,7 @@ Prefer the strict legalizer track first.
 Use reduced-flow runs only after strict-track behavior looks promising.
 Judge candidates from structured outputs, not from log impressions.
 
-Use `python3 evolve_agent/scripts/checkpoint.py` for any state you may need to
+Use `python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/checkpoint.py"` for any state you may need to
 come back to. The checkpoint store is local-only and ignored by git.
 
 Hard failures:

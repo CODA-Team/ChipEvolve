@@ -1,43 +1,52 @@
 # Codex Prompt — nangate45/ibex
 
-You are working in `OpenROAD-flow-scripts`.
+You are working with a standalone `dpl_evolve_agent` control repo plus an
+external ORFS workspace.
 
 Goal:
-- perform one bounded code-evolve iteration for `./designs/nangate45/ibex/config.mk`
+- perform one bounded patch iteration for the `nangate45/ibex` legalizer case
 - assume basic place is already done by others
 - reuse an existing `FLOW_VARIANT` that already contains `3_4_place_resized.odb`
 - do **not** rerun place
 
 Read first:
-- `evolve_agent/AGENTS.md`
-- `evolve_agent/skills/patch_rules.md`
-- `evolve_agent/tasks/archive/FIRST_BOUNDED_PATCH_PROTOCOL.md`
-- `evolve_agent/problems/ibex_nangate45/problem.yaml`
+- `$DPL_EVOLVE_AGENT_ROOT/AGENTS.md`
+- `$DPL_EVOLVE_PACKET_DIR/current_run_packet.md`
+- `$DPL_EVOLVE_AGENT_ROOT/skills/patch_rules.md`
+- `$DPL_EVOLVE_AGENT_ROOT/problems/ibex_nangate45/problem.yaml`
 
-Required steps:
-1. Create a local checkpoint before editing.
-2. Refresh the packet:
-   `python3 evolve_agent/adapters/science_codeevolve/kb_query.py --problem_dir evolve_agent/problems/ibex_nangate45 --out_dir evolve_agent/knowledge/packets`
-3. Discover the latest reusable `FLOW_VARIANT` under `flow/results/nangate45/ibex/` that contains `3_4_place_resized.odb`.
-4. Make one bounded patch only within the allowed patch surface.
-5. Build with `./evolve_agent/scripts/build_openroad_only.sh 8`.
-6. Run one strict evolve line with a fresh run tag. Start from `--evolve-engine default`; switch to `negotiation` only if the patch explicitly targets the negotiation family.
-7. Write evaluator output under `evolve_agent/checkpoints/operations/<operation_id>/`.
-8. Report touched files, reused flow variant, run tag, metrics path, legality, HPWL delta, displacement, runtime, and keep/revise/restore decision.
+Loop contract:
+- the outer Python loop will create/restore checkpoints
+- the outer Python loop will refresh the packet
+- the outer Python loop will build and run the evaluator
+- the outer loop owns `ORFS_ROOT`, `DPL_EVOLVE_AGENT_ROOT`,
+  `DPL_EVOLVE_STATE_ROOT`, and any explicit `OPENROAD_BINARY`
+- make one bounded patch only within the allowed patch surface, then stop
+- do not inspect `flow/Makefile`, `flow/scripts/*`, or `flow/designs/nangate45/ibex/config.mk`
+  unless the task explicitly expands beyond the target plane
+- the reusable place snapshot has already been validated by the outer loop
+- the baseline evaluator has already run before Codex is invoked
+- do not open archive protocols, delta ledgers, or stage-context notes unless
+  the packet is missing a required fact
+- do not inspect git history or broad repo status unless the task explicitly
+  expands into flow debugging
+- start from `tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.cpp`
+  unless the packet explicitly names another file
 
 Preferred evaluator entrypoint:
 
 ```bash
-python3 evolve_agent/adapters/science_codeevolve/evaluator.py \
-  --problem evolve_agent/problems/ibex_nangate45/problem.yaml \
+python3 "$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py" \
+  --problem "$DPL_EVOLVE_AGENT_ROOT/problems/ibex_nangate45/problem.yaml" \
   --mode single \
   --line evolve_line \
   --flow-variant <REUSE_EXISTING_FLOW_VARIANT> \
   --run-tag <NEW_RUN_TAG> \
   --evolve-engine default \
   --threads 8 \
-  --out evolve_agent/checkpoints/operations/<OPERATION_ID>/<EVAL_JSON>
+  --out "$DPL_EVOLVE_OPERATIONS_DIR/<OPERATION_ID>/<EVAL_JSON>"
 ```
 
-Fallback:
-- if no valid `3_4_place_resized.odb` exists for this design, stop and report that the required place snapshot is missing
+Focus:
+- trust the packet for track, patch surface, and hard gates
+- inspect the target file you plan to patch, make one bounded change, then stop

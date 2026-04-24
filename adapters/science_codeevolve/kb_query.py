@@ -10,6 +10,12 @@ import sys
 from pathlib import Path
 from typing import Any, Dict
 
+AGENT_ROOT = Path(__file__).resolve().parents[2]
+if str(AGENT_ROOT) not in sys.path:
+    sys.path.insert(0, str(AGENT_ROOT))
+
+from runtime_paths import resolve_input_path, resolve_runtime_paths
+
 try:
     import yaml
 except ModuleNotFoundError:
@@ -29,30 +35,28 @@ except ModuleNotFoundError:
 
 
 def load_yaml(path: Path) -> Any:
-    return yaml.safe_load(path.read_text())
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
 def build_packet(problem_dir: Path, out_dir: Path) -> Dict[str, Any]:
+    runtime = resolve_runtime_paths(
+        anchor_file=__file__,
+        agent_root_levels_up=2,
+        script_name="kb_query.py",
+    )
+    problem_dir = resolve_input_path(
+        problem_dir,
+        cwd=Path.cwd(),
+        agent_root=runtime.agent_root,
+        orfs_root=runtime.orfs_root,
+    )
+    out_dir = resolve_input_path(
+        out_dir,
+        cwd=Path.cwd(),
+        agent_root=runtime.agent_root,
+        orfs_root=runtime.orfs_root,
+    )
     problem = load_yaml(problem_dir / "problem.yaml")
-    repo_root = Path(__file__).resolve().parents[3]
-    if not (
-        (repo_root / "flow").is_dir()
-        and (repo_root / "tools" / "OpenROAD").is_dir()
-        and (repo_root / "evolve_agent").is_dir()
-    ):
-        env_root = os.environ.get("ORFS_ROOT")
-        if env_root:
-            repo_root = Path(env_root).resolve()
-    if not (
-        (repo_root / "flow").is_dir()
-        and (repo_root / "tools" / "OpenROAD").is_dir()
-        and (repo_root / "evolve_agent").is_dir()
-    ):
-        raise SystemExit(
-            "kb_query.py must run inside an ORFS workspace with this repo mounted as evolve_agent/. "
-            "Re-run from the mounted workspace or set ORFS_ROOT to that workspace."
-        )
-    kb_root = repo_root / "evolve_agent" / "knowledge"
 
     packet = {
         "run_id": "TODO_FILL_RUN_ID",

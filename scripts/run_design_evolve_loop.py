@@ -13,6 +13,12 @@ import time
 from pathlib import Path
 from typing import Any
 
+AGENT_ROOT = Path(__file__).resolve().parents[1]
+if str(AGENT_ROOT) not in sys.path:
+    sys.path.insert(0, str(AGENT_ROOT))
+
+from runtime_paths import resolve_input_path, resolve_runtime_paths
+
 
 LOWER_IS_BETTER = {
     "hpwl_delta_micron",
@@ -48,26 +54,11 @@ NORMALIZATION_FLOORS = {
 }
 
 
-def repo_root() -> Path:
-    candidate = Path(__file__).resolve().parents[2]
-    if (
-        (candidate / "flow").is_dir()
-        and (candidate / "tools" / "OpenROAD").is_dir()
-        and (candidate / "evolve_agent").is_dir()
-    ):
-        return candidate
-    env_root = os.environ.get("ORFS_ROOT")
-    if env_root:
-        env_candidate = Path(env_root).resolve()
-        if (
-            (env_candidate / "flow").is_dir()
-            and (env_candidate / "tools" / "OpenROAD").is_dir()
-            and (env_candidate / "evolve_agent").is_dir()
-        ):
-            return env_candidate
-    raise SystemExit(
-        "run_design_evolve_loop.py must run inside an ORFS workspace with this repo mounted as evolve_agent/. "
-        "Re-run from the mounted workspace or set ORFS_ROOT to that workspace."
+def runtime_paths():
+    return resolve_runtime_paths(
+        anchor_file=__file__,
+        agent_root_levels_up=1,
+        script_name="run_design_evolve_loop.py",
     )
 
 
@@ -306,12 +297,11 @@ def write_experience_journal(
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def infer_prompt_path(problem: dict[str, Any], root: Path) -> Path:
+def infer_prompt_path(problem: dict[str, Any], agent_root: Path) -> Path:
     design = problem["design"]
     platform = problem["platform"]
     return (
-        root
-        / "evolve_agent"
+        agent_root
         / "tasks"
         / "design_evolve"
         / f"{platform}__{design}.md"
@@ -334,7 +324,7 @@ def discover_flow_variant(problem: dict[str, Any], root: Path) -> str:
     if not candidates:
         raise SystemExit(
             f"No reusable 3_4_place_resized.odb found under {pattern}. "
-            "Run evolve_agent/scripts/run_place_batch.sh first."
+            "Run $DPL_EVOLVE_AGENT_ROOT/scripts/run_place_batch.sh first."
         )
     return candidates[0].parent.name
 
@@ -427,6 +417,7 @@ def legality_ok(eval_data: dict[str, Any]) -> bool:
 def run_evaluator(
     *,
     root: Path,
+    agent_root: Path,
     problem_path: Path,
     config_path: Path,
     flow_variant: str,
@@ -437,7 +428,7 @@ def run_evaluator(
 ) -> dict[str, Any]:
     cmd = [
         "python3",
-        "evolve_agent/adapters/science_codeevolve/evaluator.py",
+        str(agent_root / "adapters" / "science_codeevolve" / "evaluator.py"),
         "--problem",
         str(problem_path),
         "--config",
@@ -470,6 +461,7 @@ def run_evaluator(
 def create_checkpoint(
     *,
     root: Path,
+    agent_root: Path,
     checkpoint_id: str,
     title: str,
     summary: str,
@@ -481,7 +473,7 @@ def create_checkpoint(
 ) -> None:
     cmd = [
         "python3",
-        "evolve_agent/scripts/checkpoint.py",
+        str(agent_root / "scripts" / "checkpoint.py"),
         "create",
         "--checkpoint-id",
         checkpoint_id,
@@ -509,10 +501,10 @@ def create_checkpoint(
         )
 
 
-def restore_checkpoint(root: Path, checkpoint_id: str) -> None:
+def restore_checkpoint(root: Path, agent_root: Path, checkpoint_id: str) -> None:
     cmd = [
         "python3",
-        "evolve_agent/scripts/checkpoint.py",
+        str(agent_root / "scripts" / "checkpoint.py"),
         "restore",
         "--checkpoint-id",
         checkpoint_id,
@@ -527,14 +519,14 @@ def restore_checkpoint(root: Path, checkpoint_id: str) -> None:
         )
 
 
-def refresh_packet(root: Path, problem_dir: Path) -> None:
+def refresh_packet(root: Path, agent_root: Path, packet_dir: Path, problem_dir: Path) -> None:
     cmd = [
         "python3",
-        "evolve_agent/adapters/science_codeevolve/kb_query.py",
+        str(agent_root / "adapters" / "science_codeevolve" / "kb_query.py"),
         "--problem_dir",
         str(problem_dir),
         "--out_dir",
-        "evolve_agent/knowledge/packets",
+        str(packet_dir),
     ]
     completed = run(cmd, cwd=root, check=False)
     if completed.returncode != 0:
@@ -617,12 +609,12 @@ def generate_attempt_prompt(
     return "\n".join(lines) + "\n"
 
 
-def codex_operation_dir(root: Path, operation_id: str) -> Path:
-    return root / "evolve_agent" / "checkpoints" / "operations" / operation_id
+def codex_operation_dir(operations_dir: Path, operation_id: str) -> Path:
+    return operations_dir / operation_id
 
 
-def read_codex_report(root: Path, operation_id: str) -> dict[str, str]:
-    op_dir = codex_operation_dir(root, operation_id)
+def read_codex_report(operations_dir: Path, operation_id: str) -> dict[str, str]:
+    op_dir = codex_operation_dir(operations_dir, operation_id)
     last_message = collapse_text(read_text_if_exists(op_dir / "codex_last_message.txt"))
     first_sentence = last_message.split(". ")[0].strip() if last_message else ""
     mechanism = collapse_text(first_sentence or last_message, max_chars=240)
@@ -635,13 +627,15 @@ def read_codex_report(root: Path, operation_id: str) -> dict[str, str]:
 def run_codex_attempt(
     *,
     root: Path,
+    agent_root: Path,
+    operations_dir: Path,
     operation_id: str,
     prompt_text: str,
     sandbox: str,
     model: str | None,
     profile: str | None,
 ) -> dict[str, Any]:
-    op_dir = codex_operation_dir(root, operation_id)
+    op_dir = codex_operation_dir(operations_dir, operation_id)
     if op_dir.exists():
         raise SystemExit(
             f"Codex operation directory already exists: {op_dir}\n"
@@ -660,7 +654,7 @@ def run_codex_attempt(
     try:
         cmd = [
             "python3",
-            "evolve_agent/scripts/run_codex_exec.py",
+            str(agent_root / "scripts" / "run_codex_exec.py"),
             "--operation-id",
             operation_id,
             "--prompt-file",
@@ -677,14 +671,7 @@ def run_codex_attempt(
     finally:
         prompt_path.unlink(missing_ok=True)
 
-    usage_path = (
-        root
-        / "evolve_agent"
-        / "checkpoints"
-        / "operations"
-        / operation_id
-        / "codex_usage_summary.json"
-    )
+    usage_path = operations_dir / operation_id / "codex_usage_summary.json"
     if not usage_path.exists():
         raise SystemExit(
             "Codex invocation did not produce codex_usage_summary.json.\n"
@@ -772,21 +759,45 @@ def main() -> None:
     ap.add_argument("--continue-after-improvement", action="store_true")
     ap.add_argument("--min-score-delta", type=float, default=1e-6)
     args = ap.parse_args()
+    runtime = runtime_paths()
+    root = runtime.orfs_root
+    agent_root = runtime.agent_root
+    cwd = Path.cwd().resolve()
     if args.config is None:
-        args.config = repo_root() / "evolve_agent" / "configs" / "codex_design_specific.yaml"
+        args.config = agent_root / "configs" / "codex_design_specific.yaml"
+    else:
+        args.config = resolve_input_path(
+            args.config,
+            cwd=cwd,
+            agent_root=agent_root,
+            orfs_root=root,
+        )
 
-    root = repo_root()
     loop_started_at = dt.datetime.now().isoformat()
     loop_start_time = time.perf_counter()
-    problem_path = args.problem.resolve()
+    problem_path = resolve_input_path(
+        args.problem,
+        cwd=cwd,
+        agent_root=agent_root,
+        orfs_root=root,
+    )
     problem_dir = problem_path.parent
     problem = load_yaml(problem_path)
-    prompt_path = args.prompt_file.resolve() if args.prompt_file else infer_prompt_path(problem, root)
+    prompt_path = (
+        resolve_input_path(
+            args.prompt_file,
+            cwd=cwd,
+            agent_root=agent_root,
+            orfs_root=root,
+        )
+        if args.prompt_file
+        else infer_prompt_path(problem, agent_root)
+    )
     base_prompt = prompt_path.read_text(encoding="utf-8")
     flow_variant = args.flow_variant or discover_flow_variant(problem, root)
     require_reusable_snapshot(problem, root, flow_variant)
 
-    loop_dir = root / "evolve_agent" / "checkpoints" / "operations" / args.loop_id
+    loop_dir = runtime.operations_dir / args.loop_id
     if loop_dir.exists():
         raise SystemExit(
             f"Loop directory already exists: {loop_dir}\n"
@@ -800,14 +811,15 @@ def main() -> None:
     readme_path = loop_dir / "README.md"
     experience_entries: list[dict[str, Any]] = []
 
-    refresh_packet(root, problem_dir)
-    packet_path = root / "evolve_agent" / "knowledge" / "packets" / "current_run_packet.md"
+    refresh_packet(root, agent_root, runtime.packet_dir, problem_dir)
+    packet_path = runtime.packet_dir / "current_run_packet.md"
     packet_excerpt = packet_path.read_text(encoding="utf-8").strip()
 
     baseline_run_tag = f"{args.loop_id}_baseline"
     baseline_eval_path = loop_dir / "baseline_eval.json"
     baseline_eval = run_evaluator(
         root=root,
+        agent_root=agent_root,
         problem_path=problem_path,
         config_path=args.config,
         flow_variant=flow_variant,
@@ -832,6 +844,7 @@ def main() -> None:
 
     create_checkpoint(
         root=root,
+        agent_root=agent_root,
         checkpoint_id=best_checkpoint,
         title=f"{args.loop_id} baseline anchor",
         summary="Baseline checkpoint before automated Codex evolve loop.",
@@ -848,7 +861,7 @@ def main() -> None:
     stop_reason = "max_attempts_reached"
 
     for attempt_index in range(1, args.max_attempts + 1):
-        restore_checkpoint(root, best_checkpoint)
+        restore_checkpoint(root, agent_root, best_checkpoint)
         reference_metrics = dict(best_metrics)
 
         attempt_run_tag = f"{args.loop_id}_attempt_{attempt_index:02d}"
@@ -861,25 +874,28 @@ def main() -> None:
             loop_id=args.loop_id,
             flow_variant=flow_variant,
             run_tag=attempt_run_tag,
-            problem_path=problem_path.relative_to(root),
+            problem_path=problem_path,
             best_score=best_score,
             best_metrics=best_metrics,
             memory_excerpt=memory_excerpt,
-            experience_journal_path=experience_journal_path.relative_to(root),
+            experience_journal_path=experience_journal_path,
             packet_excerpt=packet_excerpt,
         )
         codex_usage = run_codex_attempt(
             root=root,
+            agent_root=agent_root,
+            operations_dir=runtime.operations_dir,
             operation_id=codex_op_id,
             prompt_text=prompt_text,
             sandbox=args.sandbox,
             model=args.model,
             profile=args.profile,
         )
-        codex_report = read_codex_report(root, codex_op_id)
+        codex_report = read_codex_report(runtime.operations_dir, codex_op_id)
 
         eval_data = run_evaluator(
             root=root,
+            agent_root=agent_root,
             problem_path=problem_path,
             config_path=args.config,
             flow_variant=flow_variant,
@@ -896,7 +912,7 @@ def main() -> None:
             "eval_json": str(eval_path),
             "eval_status": eval_data.get("status"),
             "codex_usage_json": str(
-                codex_operation_dir(root, codex_op_id) / "codex_usage_summary.json"
+                codex_operation_dir(runtime.operations_dir, codex_op_id) / "codex_usage_summary.json"
             ),
             "token_usage": codex_usage.get("usage", {}),
             "codex_elapsed_seconds": codex_usage.get("elapsed_seconds"),
@@ -921,6 +937,7 @@ def main() -> None:
                 accepted_checkpoint = f"{args.loop_id}__best_attempt_{attempt_index:02d}"
                 create_checkpoint(
                     root=root,
+                    agent_root=agent_root,
                     checkpoint_id=accepted_checkpoint,
                     title=f"{args.loop_id} accepted attempt {attempt_index:02d}",
                     summary="Accepted candidate from automated Codex evolve loop.",
@@ -936,15 +953,15 @@ def main() -> None:
                     result_summary=f"accepted with score {score:.6f}",
                     evidence=[
                         eval_path,
-                        codex_operation_dir(root, codex_op_id) / "codex_usage_summary.json",
+                        codex_operation_dir(runtime.operations_dir, codex_op_id) / "codex_usage_summary.json",
                     ],
                 )
                 best_checkpoint = accepted_checkpoint
             else:
-                restore_checkpoint(root, best_checkpoint)
+                restore_checkpoint(root, agent_root, best_checkpoint)
         else:
             attempt_record["improved"] = False
-            restore_checkpoint(root, best_checkpoint)
+            restore_checkpoint(root, agent_root, best_checkpoint)
 
         observation, next_guidance = automated_observation(
             eval_data=eval_data,

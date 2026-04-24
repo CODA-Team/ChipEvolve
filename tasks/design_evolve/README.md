@@ -10,7 +10,7 @@ cases listed in:
 Run the initial place batch first if the snapshots are not already present:
 
 ```bash
-./evolve_agent/scripts/run_place_batch.sh
+"$DPL_EVOLVE_AGENT_ROOT/scripts/run_place_batch.sh"
 ```
 
 These prompts assume:
@@ -23,27 +23,40 @@ These prompts assume:
 Run one prompt through the local Codex wrapper:
 
 ```bash
-python3 evolve_agent/scripts/run_codex_exec.py \
+python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/run_codex_exec.py" \
   --operation-id codex_ibex_n45 \
-  --prompt-file evolve_agent/tasks/design_evolve/nangate45__ibex.md \
+  --prompt-file "$DPL_EVOLVE_AGENT_ROOT/tasks/design_evolve/nangate45__ibex.md" \
   --sandbox workspace-write
 ```
 
 Each prompt points Codex at a matching local problem definition under
-`evolve_agent/problems/`, so `kb_query.py` can refresh the packet for that
-design before patching.
+`$DPL_EVOLVE_AGENT_ROOT/problems/`, so `kb_query.py` can refresh the packet for
+that design before patching.
 
 If you want the control plane to keep iterating automatically and preserve
 cross-attempt memory, use the Python loop entrypoint instead:
 
 ```bash
-python3 evolve_agent/scripts/run_design_evolve_loop.py \
-  --problem evolve_agent/problems/gcd_nangate45/problem.yaml \
+python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/run_design_evolve_loop.py" \
+  --problem "$DPL_EVOLVE_AGENT_ROOT/problems/gcd_nangate45/problem.yaml" \
   --max-attempts 3
 ```
 
 That loop writes a local experience journal for the design evolve session and
 feeds a compact memory excerpt back into the next Codex attempt.
+
+When a loop or evaluator needs a private variant binary, prefer the lightweight
+path:
+
+```bash
+"$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_core.sh"
+"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_core.sh" 8
+"$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_variant_relink.sh" \
+  --variant-root "${DPL_EVOLVE_STATE_ROOT}/variants/agent_a" \
+  --dpl-src /abs/path/to/agent_a/dpl_evolve
+source "${DPL_EVOLVE_STATE_ROOT}/variants/agent_a/variant_env.sh"
+"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_variant_relink.sh" --threads 8
+```
 
 ## Available prompts
 

@@ -2,33 +2,15 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-resolve_workspace_root() {
-  local direct_root env_root
-  direct_root="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-  if [[ -d "${direct_root}/flow" && -d "${direct_root}/tools/OpenROAD" && -d "${direct_root}/evolve_agent" ]]; then
-    printf '%s\n' "${direct_root}"
-    return 0
-  fi
-  if [[ -n "${ORFS_ROOT:-}" ]]; then
-    env_root="$(realpath -m "${ORFS_ROOT}")"
-    if [[ -d "${env_root}/flow" && -d "${env_root}/tools/OpenROAD" && -d "${env_root}/evolve_agent" ]]; then
-      printf '%s\n' "${env_root}"
-      return 0
-    fi
-  fi
-  return 1
-}
-
-if ! WORKSPACE_ROOT="$(resolve_workspace_root)"; then
-  echo "[ERROR] run_baseline.sh must run inside an ORFS workspace with this repo mounted as evolve_agent/." >&2
-  echo "[ERROR] Re-run from the mounted workspace or set ORFS_ROOT to that workspace." >&2
-  exit 1
-fi
+source "${SCRIPT_DIR}/../scripts/runtime_env.sh"
+dpl_init_runtime "run_baseline.sh"
+# Use the stable build alias when ORFS_ROOT contains spaces.  The alias points
+# at the same workspace but keeps make/Tcl recipes from seeing split paths.
+WORKSPACE_ROOT="${ORFS_BUILD_ROOT:-${ORFS_ROOT}}"
 
 FLOW_DIR="${WORKSPACE_ROOT}/flow"
 FLOW_HOME="${FLOW_HOME:-${FLOW_DIR}}"
-FLOW_HOME="$(realpath -m "${FLOW_HOME}")"
+FLOW_HOME="$(realpath -sm "${FLOW_HOME}")"
 DEFAULT_CONFIG="./designs/nangate45/gcd/config.mk"
 export FLOW_HOME
 
@@ -144,16 +126,16 @@ normalize_flow_relpath() {
 flow_abs() {
   local path="$1"
   if [[ "${path}" == /* ]]; then
-    realpath -m "${path}"
+    realpath -sm "${path}"
   else
-    realpath -m "${FLOW_HOME}/${path}"
+    realpath -sm "${FLOW_HOME}/${path}"
   fi
 }
 
 to_flow_relative_if_possible() {
   local path="$1"
   local abs_path
-  abs_path="$(realpath -m "${path}")"
+  abs_path="$(realpath -sm "${path}")"
   if [[ "${abs_path}" == "${FLOW_HOME}/"* ]]; then
     printf '%s\n' "${abs_path#${FLOW_HOME}/}"
   else
@@ -294,7 +276,23 @@ cat > "$(flow_abs "${manifest_json}")" <<EOF
 }
 EOF
 
-script_dir_rel="$(realpath --relative-to="${FLOW_HOME}" "${SCRIPT_DIR}")"
+legalize_make_base=(
+  "${make_base[@]}"
+  RESULTS_DIR="$(flow_abs "${results_dir}")"
+  REPORTS_DIR="$(flow_abs "${reports_dir}")"
+  LOG_DIR="$(flow_abs "${run_log_dir}")"
+  OBJECTS_DIR="$(flow_abs "${run_objects_dir}")"
+)
+
+metrics_make_base=(
+  "${make_base[@]}"
+  RESULTS_DIR="$(flow_abs "${run_dir}")"
+  REPORTS_DIR="$(flow_abs "${report_dir}")"
+  LOG_DIR="$(flow_abs "${run_log_dir}")"
+  OBJECTS_DIR="$(flow_abs "${run_objects_dir}")"
+)
+
+script_dir_rel="${SCRIPT_DIR}"
 
 shell_join() {
   local parts=()
@@ -321,8 +319,14 @@ write_tcl_driver() {
   } > "${wrapper_path}"
 }
 
-echo "Preparing input snapshot ${input_stage} for ${flow_variant}..."
-"${make_base[@]}" "${input_stage}"
+input_snapshot_rel="${results_dir}/${input_stage}.odb"
+input_snapshot_abs="$(flow_abs "${input_snapshot_rel}")"
+if [[ -f "${input_snapshot_abs}" ]]; then
+  echo "Using existing input snapshot ${input_snapshot_rel} for ${flow_variant}."
+else
+  echo "Preparing input snapshot ${input_stage} for ${flow_variant}..."
+  "${make_base[@]}" "${input_stage}"
+fi
 
 if [[ "${track}" == "strict" ]]; then
   before_snapshot="${run_dir}/before.tsv"
@@ -414,20 +418,12 @@ if [[ "${track}" == "strict" ]]; then
   fi
 
   start_ns="$(date +%s%N)"
-  "${make_base[@]}" \
+  "${legalize_make_base[@]}" \
     run \
     RUN_SCRIPT="$(flow_abs "${strict_driver}")" \
     RUN_LOG_NAME_STEM="${legalize_log_stem}"
   end_ns="$(date +%s%N)"
   runtime_sec="$(awk "BEGIN {printf \"%.3f\", (${end_ns} - ${start_ns}) / 1000000000}")"
-
-  metrics_make_base=(
-    "${make_base[@]}"
-    RESULTS_DIR="$(flow_abs "${run_dir}")"
-    REPORTS_DIR="$(flow_abs "${report_dir}")"
-    LOG_DIR="$(flow_abs "${run_log_dir}")"
-    OBJECTS_DIR="$(flow_abs "${run_objects_dir}")"
-  )
 
   metrics_driver="${run_objects_dir}/${run_tag}_metrics_driver.tcl"
   write_tcl_driver "$(flow_abs "${metrics_driver}")" "$(flow_abs "${script_dir_rel}/report_legalized_metrics.tcl")" \
@@ -512,20 +508,12 @@ write_tcl_driver "$(flow_abs "${flow_driver}")" "$(flow_abs "${flow_run_script}"
   track "${track}"
 
 start_ns="$(date +%s%N)"
-"${make_base[@]}" \
+"${legalize_make_base[@]}" \
   run \
   RUN_SCRIPT="$(flow_abs "${flow_driver}")" \
   RUN_LOG_NAME_STEM="dpl_evolve_${run_tag}_legalize"
 end_ns="$(date +%s%N)"
 runtime_sec="$(awk "BEGIN {printf \"%.3f\", (${end_ns} - ${start_ns}) / 1000000000}")"
-
-metrics_make_base=(
-  "${make_base[@]}"
-  RESULTS_DIR="$(flow_abs "${run_dir}")"
-  REPORTS_DIR="$(flow_abs "${report_dir}")"
-  LOG_DIR="$(flow_abs "${run_log_dir}")"
-  OBJECTS_DIR="$(flow_abs "${run_objects_dir}")"
-)
 
 metrics_driver="${run_objects_dir}/${run_tag}_metrics_driver.tcl"
 write_tcl_driver "$(flow_abs "${metrics_driver}")" "$(flow_abs "${script_dir_rel}/report_legalized_metrics.tcl")" \

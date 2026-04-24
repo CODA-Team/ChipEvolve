@@ -5,7 +5,7 @@ Run `codex exec` through the local control plane and record the invocation as a
 local checkpoint operation.
 
 ## Canonical entrypoint
-- `evolve_agent/scripts/run_codex_exec.py`
+- `$DPL_EVOLVE_AGENT_ROOT/scripts/run_codex_exec.py`
 
 ## What it records
 - copied prompt text
@@ -25,11 +25,11 @@ the result as an estimate, not account truth.
 ## Example
 
 ```bash
-python3 evolve_agent/scripts/run_codex_exec.py \
+python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/run_codex_exec.py" \
   --operation-id codex_exec_smoke \
-  --prompt-file evolve_agent/tasks/design_evolve/nangate45__gcd.md \
+  --prompt-file "$DPL_EVOLVE_AGENT_ROOT/tasks/design_evolve/nangate45__gcd.md" \
   --sandbox workspace-write
 ```
 
 ## Output location
-- `evolve_agent/checkpoints/operations/<operation_id>/codex_usage_summary.json`
+- `${DPL_EVOLVE_STATE_ROOT}/checkpoints/operations/<operation_id>/codex_usage_summary.json`

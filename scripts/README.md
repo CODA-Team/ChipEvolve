@@ -1,9 +1,20 @@
 # Scripts
 
-This directory contains the top-level executable helpers for `evolve_agent`.
+This directory contains the top-level executable helpers for `dpl_evolve_agent`.
 
 These files are the preferred human/agent entrypoints. If a task can be solved
 through a script here, prefer it over rebuilding the workflow from scratch.
+
+Runtime is resolved through:
+
+- `DPL_EVOLVE_AGENT_ROOT`
+- `ORFS_ROOT`
+- `DPL_EVOLVE_STATE_ROOT`
+
+If you do not want to export `ORFS_ROOT` manually, attach a local ignored mount
+first:
+
+- `attach_orfs_workspace.sh`
 
 ## Main entrypoints
 
@@ -15,10 +26,23 @@ through a script here, prefer it over rebuilding the workflow from scratch.
   Create, restore, inspect, and list local edit-state checkpoints.
 - `build_openroad_only.sh`
   Fast incremental build of the currently configured OpenROAD tree. The first
-  OpenROAD-only configure disables OpenROAD tests by default.
+  OpenROAD-only configure disables OpenROAD tests by default. By default it
+  publishes only the needed binaries (`openroad` and, when built, `sta`) instead
+  of running a full `cmake --install`.
+- `configure_openroad_core.sh`
+  Choose the common-core seed location and write `<core-root>/core_env.sh`.
+- `build_openroad_core.sh`
+  Build the reusable common-core OpenROAD tree once for the current anchor.
+- `configure_openroad_variant_relink.sh`
+  Point one agent-owned variant at the shared common core and emit
+  `<variant-root>/variant_env.sh` for the lightweight relink path.
+- `build_openroad_variant_relink.sh`
+  Recompile only the variant-owned `dpl_evolve` pieces and relink a private
+  `openroad` binary.
 - `configure_openroad_variant.sh`
   Configure an isolated OpenROAD build/install variant, optionally with an
-  external `dpl_evolve` source tree. It also writes `<variant-root>/variant_env.sh`.
+  external `dpl_evolve` source tree and a reusable common-core seed. It also
+  writes `<variant-root>/variant_env.sh`.
 - `materialize_family_variant.sh`
   Copy the clean initial evolve base and apply a family patch to create a
   dedicated variant source tree.
@@ -47,12 +71,25 @@ workflow. Prefer the Python entrypoints plus the evaluator.
 2. `recommend_initial_family.py`
 3. `checkpoint.py`
 4. `materialize_family_variant.sh` if the recommended initial path is a family variant
-5. `configure_openroad_variant.sh` if you need an isolated build/binary
-6. `source <variant-root>/variant_env.sh`
-7. `build_openroad_only.sh`
-8. `run_canonical_line.sh`
-9. `run_design_evolve_loop.py`
-10. `compare_runs.py`
+5. `configure_openroad_core.sh`
+6. `build_openroad_core.sh`
+7. `configure_openroad_variant_relink.sh` if you need a private variant binary
+8. `source <variant-root>/variant_env.sh`
+9. `build_openroad_variant_relink.sh`
+10. `run_canonical_line.sh`
+11. `run_design_evolve_loop.py`
+12. `compare_runs.py`
+
+## Fallback build path
+
+When relink is not enough, the older fallback path is still:
+
+1. `configure_openroad_variant.sh`
+2. `source <variant-root>/variant_env.sh`
+3. `build_openroad_only.sh`
+
+That path is heavier because it keeps a full variant-specific OpenROAD build
+tree.
 
 ## Binary-selection rule
 

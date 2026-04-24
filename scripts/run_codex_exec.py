@@ -11,27 +11,18 @@ import time
 from pathlib import Path
 from typing import Any
 
+AGENT_ROOT = Path(__file__).resolve().parents[1]
+if str(AGENT_ROOT) not in sys.path:
+    sys.path.insert(0, str(AGENT_ROOT))
 
-def repo_root() -> Path:
-    candidate = Path(__file__).resolve().parents[2]
-    if (
-        (candidate / "flow").is_dir()
-        and (candidate / "tools" / "OpenROAD").is_dir()
-        and (candidate / "evolve_agent").is_dir()
-    ):
-        return candidate
-    env_root = os.environ.get("ORFS_ROOT")
-    if env_root:
-        env_candidate = Path(env_root).resolve()
-        if (
-            (env_candidate / "flow").is_dir()
-            and (env_candidate / "tools" / "OpenROAD").is_dir()
-            and (env_candidate / "evolve_agent").is_dir()
-        ):
-            return env_candidate
-    raise SystemExit(
-        "run_codex_exec.py must run inside an ORFS workspace with this repo mounted as evolve_agent/. "
-        "Re-run from the mounted workspace or set ORFS_ROOT to that workspace."
+from runtime_paths import resolve_runtime_paths
+
+
+def runtime_paths():
+    return resolve_runtime_paths(
+        anchor_file=__file__,
+        agent_root_levels_up=1,
+        script_name="run_codex_exec.py",
     )
 
 
@@ -49,8 +40,8 @@ def load_prompt(args: argparse.Namespace) -> str:
     raise SystemExit("Provide --prompt, --prompt-file, or pipe prompt text on stdin.")
 
 
-def ensure_operation_dir(root: Path, operation_id: str) -> Path:
-    op_dir = root / "evolve_agent" / "checkpoints" / "operations" / operation_id
+def ensure_operation_dir(operations_dir: Path, operation_id: str) -> Path:
+    op_dir = operations_dir / operation_id
     if op_dir.exists():
         raise SystemExit(
             f"Operation directory already exists for '{operation_id}': {op_dir}\n"
@@ -224,8 +215,9 @@ def main() -> None:
     ap.add_argument("--output-price-per-1m", type=float)
     args = ap.parse_args()
 
-    root = repo_root()
-    op_dir = ensure_operation_dir(root, args.operation_id)
+    runtime = runtime_paths()
+    root = runtime.orfs_root
+    op_dir = ensure_operation_dir(runtime.operations_dir, args.operation_id)
     prompt_text = load_prompt(args)
 
     prompt_path = op_dir / "codex_prompt.md"
@@ -245,6 +237,8 @@ def main() -> None:
     invocation = {
         "operation_id": args.operation_id,
         "repo_root": str(root),
+        "agent_root": str(runtime.agent_root),
+        "state_root": str(runtime.state_root),
         "command": command,
         "model": args.model,
         "profile": args.profile,
