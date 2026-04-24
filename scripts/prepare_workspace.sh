@@ -30,6 +30,12 @@ Options:
   --skip-commit           Do not create local commits after patching.
   --force                 Reset branches even if they already exist.
   --help                  Show this message.
+
+Environment:
+  DPL_EVOLVE_OPENROAD_URL Optional local git-config override for the
+                          tools/OpenROAD submodule URL. This is useful for
+                          local clean clones whose relative .gitmodules URL
+                          would otherwise resolve to a missing sibling repo.
 EOF
 }
 
@@ -177,6 +183,9 @@ ensure_clean_or_reset "${workspace_root}" "${orfs_branch}" "${orfs_base_commit}"
 # sources and bundled dependencies (for example src/sta) match the selected
 # base commit before we apply any prepare patches.
 git -C "${workspace_root}" submodule sync --recursive
+if [[ -n "${DPL_EVOLVE_OPENROAD_URL:-}" ]]; then
+  git -C "${workspace_root}" config submodule.tools/OpenROAD.url "${DPL_EVOLVE_OPENROAD_URL}"
+fi
 git -C "${workspace_root}" submodule update --init --recursive tools/OpenROAD
 if ! git -C "${workspace_root}/tools/OpenROAD" rev-parse --git-dir >/dev/null 2>&1; then
   echo "[ERROR] Failed to initialize OpenROAD submodule at ${workspace_root}/tools/OpenROAD" >&2

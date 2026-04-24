@@ -1,40 +1,20 @@
 # Design Evolve Prompts
 
-These prompt files are the design-specific Codex entrypoints for the placement
-cases listed in:
+These are minimal prompts for loop-driven Codex patch attempts.
 
-- `flow/run_place_batch.sh`
+They assume the outer loop already owns:
 
-## Required prerequisite
+- packet refresh
+- checkpoint restore
+- flow variant selection
+- build
+- evaluation
+- accept/reject
 
-Run the initial place batch first if the snapshots are not already present:
+The patching agent should only read the current packet, patch rules, active
+problem file, and one target source file.
 
-```bash
-"$DPL_EVOLVE_AGENT_ROOT/scripts/run_place_batch.sh"
-```
-
-These prompts assume:
-
-- the design already has a reusable `3_4_place_resized.odb`
-- Codex should start directly from code evolve, not from rerunning place
-
-## How to use
-
-Run one prompt through the local Codex wrapper:
-
-```bash
-python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/run_codex_exec.py" \
-  --operation-id codex_ibex_n45 \
-  --prompt-file "$DPL_EVOLVE_AGENT_ROOT/tasks/design_evolve/nangate45__ibex.md" \
-  --sandbox workspace-write
-```
-
-Each prompt points Codex at a matching local problem definition under
-`$DPL_EVOLVE_AGENT_ROOT/problems/`, so `kb_query.py` can refresh the packet for
-that design before patching.
-
-If you want the control plane to keep iterating automatically and preserve
-cross-attempt memory, use the Python loop entrypoint instead:
+Run the automated loop with:
 
 ```bash
 python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/run_design_evolve_loop.py" \
@@ -42,34 +22,17 @@ python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/run_design_evolve_loop.py" \
   --max-attempts 3
 ```
 
-That loop writes a local experience journal for the design evolve session and
-feeds a compact memory excerpt back into the next Codex attempt.
+Prompt files are named:
 
-When a loop or evaluator needs a private variant binary, prefer the lightweight
-path:
-
-```bash
-"$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_core.sh"
-"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_core.sh" 8
-"$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_variant_relink.sh" \
-  --variant-root "${DPL_EVOLVE_STATE_ROOT}/variants/agent_a" \
-  --dpl-src /abs/path/to/agent_a/dpl_evolve
-source "${DPL_EVOLVE_STATE_ROOT}/variants/agent_a/variant_env.sh"
-"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_variant_relink.sh" --threads 8
+```text
+<platform>__<design>.md
 ```
 
-## Available prompts
+The matching problem file is:
 
-- `nangate45__ibex.md`
-- `nangate45__jpeg.md`
-- `nangate45__aes.md`
-- `nangate45__ariane133.md`
-- `nangate45__bp_quad.md`
-- `asap7__aes.md`
-- `asap7__ethmac.md`
-- `asap7__gcd.md`
-- `asap7__ibex.md`
-- `asap7__jpeg.md`
-- `asap7__megaboom.md`
-- `asap7__riscv32i.md`
-- `asap7__swerv_wrapper.md`
+```text
+$DPL_EVOLVE_AGENT_ROOT/problems/<design>_<platform>/problem.yaml
+```
+
+Do not use these prompts as manual runbooks. Manual build/evaluation commands
+belong in `skills/build_openroad.md` and `skills/evaluate_run.md`.

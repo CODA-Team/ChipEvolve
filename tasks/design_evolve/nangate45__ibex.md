@@ -1,52 +1,33 @@
-# Codex Prompt — nangate45/ibex
+# Codex Prompt - nangate45/ibex
 
-You are working with a standalone `dpl_evolve_agent` control repo plus an
-external ORFS workspace.
+Use this prompt only for a loop-driven bounded patch turn.
 
-Goal:
-- perform one bounded patch iteration for the `nangate45/ibex` legalizer case
-- assume basic place is already done by others
-- reuse an existing `FLOW_VARIANT` that already contains `3_4_place_resized.odb`
-- do **not** rerun place
+The outer Python loop owns prepare, checkpoint restore, packet refresh, build,
+evaluation, scoring, and accept/reject. Your job is only to make one small
+source patch.
 
-Read first:
-- `$DPL_EVOLVE_AGENT_ROOT/AGENTS.md`
+Read only:
 - `$DPL_EVOLVE_PACKET_DIR/current_run_packet.md`
 - `$DPL_EVOLVE_AGENT_ROOT/skills/patch_rules.md`
 - `$DPL_EVOLVE_AGENT_ROOT/problems/ibex_nangate45/problem.yaml`
+- the one target source file named by the packet
 
-Loop contract:
-- the outer Python loop will create/restore checkpoints
-- the outer Python loop will refresh the packet
-- the outer Python loop will build and run the evaluator
-- the outer loop owns `ORFS_ROOT`, `DPL_EVOLVE_AGENT_ROOT`,
-  `DPL_EVOLVE_STATE_ROOT`, and any explicit `OPENROAD_BINARY`
-- make one bounded patch only within the allowed patch surface, then stop
-- do not inspect `flow/Makefile`, `flow/scripts/*`, or `flow/designs/nangate45/ibex/config.mk`
-  unless the task explicitly expands beyond the target plane
-- the reusable place snapshot has already been validated by the outer loop
-- the baseline evaluator has already run before Codex is invoked
-- do not open archive protocols, delta ledgers, or stage-context notes unless
-  the packet is missing a required fact
-- do not inspect git history or broad repo status unless the task explicitly
-  expands into flow debugging
-- start from `tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.cpp`
-  unless the packet explicitly names another file
+Do:
+1. Inspect the packet and the named target file.
+2. Apply one bounded mechanism-specific patch under `tools/OpenROAD/src/dpl_evolve/`.
+3. Stop after the patch and summarize the mechanism, expected metric effect, and rollback condition.
 
-Preferred evaluator entrypoint:
+Do not:
+- do not run build, evaluator, place, or checkpoint commands
+- do not discover `FLOW_VARIANT`; the outer loop already selected it
+- do not inspect `flow/Makefile`, `flow/scripts/*`, or design `config.mk`
+- do not open archive protocols, delta ledgers, stage-context notes, design profiles, or git history
+- do not use legacy in-ORFS control-plane paths; this is a standalone `DPL_EVOLVE_AGENT_ROOT` repo
 
-```bash
-python3 "$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py" \
-  --problem "$DPL_EVOLVE_AGENT_ROOT/problems/ibex_nangate45/problem.yaml" \
-  --mode single \
-  --line evolve_line \
-  --flow-variant <REUSE_EXISTING_FLOW_VARIANT> \
-  --run-tag <NEW_RUN_TAG> \
-  --evolve-engine default \
-  --threads 8 \
-  --out "$DPL_EVOLVE_OPERATIONS_DIR/<OPERATION_ID>/<EVAL_JSON>"
-```
+Default starting file:
+- `tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.cpp`
 
-Focus:
-- trust the packet for track, patch surface, and hard gates
-- inspect the target file you plan to patch, make one bounded change, then stop
+Hard gates:
+- legality must remain clean
+- `metrics.json` must exist after the outer evaluator runs
+- runtime and displacement regressions need a clear compensating reason

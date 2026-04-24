@@ -1,158 +1,73 @@
 # Skill: evaluate_run
 
-This is the evaluation skill for `dpl_evolve` runs. It reads the canonical
-`metrics.json` output and decides whether a candidate or family revision should
-be kept, revised, or reverted.
+Use this when you are responsible for running or reading evaluator output.
+Loop-driven patching agents normally should not run evaluation themselves.
 
-## Canonical input
-
-Read this file first:
-
-- `flow/reports/<platform>/<design>/<flow_variant>/dpl_evolve_baseline/<run_tag>/metrics.json`
-
-The control-plane wrapper for this skill is:
-
-- `$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py`
-
-The preferred comparison helper is:
-
-- `$DPL_EVOLVE_AGENT_ROOT/scripts/compare_runs.py`
-- `$DPL_EVOLVE_AGENT_ROOT/scripts/recommend_initial_family.py` for first-pass case classification
-
-The evaluator is now the canonical guarded execution path for agent-driven
-runs. It adds:
-
-- per-run directory locking
-- timeout enforcement
-- optional memory ceilings
-- process-group cleanup
-- compact stdout/stderr tails on failure
-
-## Primary comparison fields
-
-Read these fields first from `metrics.json`:
-
-- `manifest`
-- `legalization`
-- `hpwl_proxy`
-- `displacement`
-- `timing_metrics`
-- `power_metrics`
-- `design_metrics`
-- `legality`
-- `supporting_files`
-
-## Decision order
-1. legality must pass
-2. compare strict-track runs first
-3. for a new case, classify the baseline metrics before picking the first family
-4. primary objectives: HPWL, setup WNS, setup TNS
-5. displacement must remain controlled
-6. runtime must remain reasonable
-7. only then inspect secondary hold/power side effects
-
-## Mandatory comparison modes
-### Mode A — strict legalizer comparison
-Compare only strict-track outputs when claiming legalizer improvement.
-
-### Mode B — integrated comparison
-Use reduced-flow / flow-faithful results only after Mode A succeeds.
-
-## Keep / revert heuristic
-Keep a patch only if:
-- legality passes
-- the candidate is on or clearly moves toward a better HPWL/WNS/TNS/runtime frontier
-- displacement regression is within explicitly allowed envelope
-- runtime is acceptable
-
-Revert if:
-- legality fails
-- metrics file is malformed
-- HPWL gain is clearly due to non-legalizer post-processing in the wrong track
-- displacement or runtime regress badly without compensating benefit
-- a family only improves HPWL but loses too much WNS/TNS on the same case
-
-## Evaluator status fields
-
-Read `status` first from the evaluator JSON:
-
-- `ok`
-- `dry_run`
-- `locked`
-- `build_failed`
-- `run_failed`
-- `missing_artifact`
-
-## Examples
-
-Compare a baseline and candidate run:
-
-```bash
-python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/compare_runs.py" \
-  --left "${DPL_EVOLVE_STATE_ROOT}/checkpoints/operations/manual_gcd_round_20260422/baseline_eval.json" \
-  --right "${DPL_EVOLVE_STATE_ROOT}/checkpoints/operations/manual_hpwl_timing_search_before_wide_greedy/gcd_candidate8_eval.json"
-```
-
-Classify a new baseline case before choosing the first family:
-
-```bash
-python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/recommend_initial_family.py" \
-  --metrics flow/reports/nangate45/ibex/place_batch_20260421_220319/dpl_evolve_baseline/cross_ibex_baseline/metrics.json
-```
-
-Dry-run the evaluator for one evolve line:
+## Guarded Evaluator
 
 ```bash
 python3 "$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py" \
   --problem "$DPL_EVOLVE_AGENT_ROOT/problems/gcd_nangate45/problem.yaml" \
   --mode single \
   --line evolve_line \
-  --flow-variant dpl_evolve_suite_20260422_125226 \
-  --run-tag agent_eval_dryrun \
-  --dry-run \
-  --out /tmp/evolve_agent_eval.json
-```
-
-Evaluate one evolve line with an explicit private variant binary:
-
-```bash
-python3 "$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py" \
-  --problem "$DPL_EVOLVE_AGENT_ROOT/problems/gcd_nangate45/problem.yaml" \
-  --mode single \
-  --line evolve_line \
-  --flow-variant place_batch_20260421_220319 \
-  --run-tag agent_variant_eval \
+  --flow-variant <FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB> \
+  --run-tag <RUN_TAG> \
   --skip-build \
   --openroad-binary "${OPENROAD_BINARY}" \
-  --out "${DPL_EVOLVE_STATE_ROOT}/checkpoints/operations/agent_variant_eval/eval.json"
+  --out "${DPL_EVOLVE_STATE_ROOT}/checkpoints/operations/<RUN_TAG>/eval.json"
 ```
 
-For strict legalization-only runs, the reusable
-`flow/results/<platform>/<design>/<flow_variant>/3_4_place_resized.odb`
-snapshot must already exist. The baseline wrapper reuses that snapshot instead
-of rebuilding upstream placement stages.
+For variant/family runs, always pass `--openroad-binary`.
 
-Evaluate an existing single-line run without rebuilding or rerunning:
+## Status
 
-```bash
-python3 "$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py" \
-  --problem "$DPL_EVOLVE_AGENT_ROOT/problems/gcd_nangate45/problem.yaml" \
-  --mode single \
-  --line evolve_line \
-  --flow-variant dpl_evolve_suite_20260422_125226 \
-  --run-tag agent_setup_verify \
-  --use-existing \
-  --out "${DPL_EVOLVE_STATE_ROOT}/checkpoints/operations/setup_verify_default/agent_setup_verify_eval.json"
+Read `status` first:
+
+- `ok`: metrics were produced.
+- `dry_run`: command construction only.
+- `locked`: another run owns the same output directory.
+- `build_failed`: build step failed.
+- `run_failed`: evaluator run failed.
+- `missing_artifact`: expected output was absent.
+
+If status is not `ok`, read `command_results.*.stderr_tail` and
+`command_results.*.stdout_tail`.
+
+## Primary Result
+
+```text
+flow/reports/<platform>/<design>/<FLOW_VARIANT>/dpl_evolve_baseline/<run_tag>/metrics.json
 ```
 
-Evaluate a full suite run:
+Compare these first:
 
-```bash
-python3 "$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py" \
-  --problem "$DPL_EVOLVE_AGENT_ROOT/problems/gcd_nangate45/problem.yaml" \
-  --mode suite \
-  --flow-variant dpl_evolve_suite_20260422_125226 \
-  --tag-prefix agent_suite \
-  --use-existing \
-  --out "${DPL_EVOLVE_STATE_ROOT}/checkpoints/operations/strict_baseline_snapshot/agent_suite_eval.json"
+- legality
+- HPWL delta
+- setup WNS/TNS
+- displacement
+- runtime
+- memory, when recorded
+
+## Strict Track Rule
+
+Strict legalization-only runs require an existing:
+
+```text
+flow/results/<platform>/<design>/<FLOW_VARIANT>/3_4_place_resized.odb
 ```
+
+The wrapper reuses this snapshot and should not rebuild upstream placement.
+
+## Keep / Reject
+
+Keep only if:
+
+- legality is clean
+- HPWL/timing/runtime frontier improves or clearly moves in the right direction
+- displacement remains controlled
+
+Reject if:
+
+- legality fails
+- `metrics.json` is missing or malformed
+- runtime/displacement regresses without a clear offsetting gain
