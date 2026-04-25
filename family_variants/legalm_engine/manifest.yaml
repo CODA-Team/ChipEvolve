@@ -1,5 +1,7 @@
 id: legalm_engine
 kind: dpl_evolve_variant
+source_kind: materialized_sidecar
+research_patch_kind: hardening_lineage_not_base_quality_patch
 status: experimental_legality_repair_lineage
 base_source: tools/OpenROAD/src/dpl_evolve
 patch_file: dpl_evolve.patch

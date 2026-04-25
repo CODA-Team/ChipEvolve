@@ -1,6 +1,8 @@
 id: priority_escape
 kind: dpl_evolve_repair_candidate_manifest
 schema_version: 1
+source_kind: repair_candidate
+research_patch_kind: repair_evidence_requires_stuck_no_valid_telemetry
 status: repair_candidate_needs_real_stuck_gate
 base_source: tools/OpenROAD/src/dpl_evolve
 entrypoint_contract: detailed_placement_evolve -use_negotiation

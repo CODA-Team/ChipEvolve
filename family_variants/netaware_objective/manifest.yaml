@@ -1,5 +1,7 @@
 id: netaware_objective
 kind: dpl_evolve_variant_overlay
+source_kind: overlay_chain
+research_patch_kind: overlay_over_netaware11_parent_not_clean_base_patch
 variant: netaware12_prefilter_hotset_guard
 family: netaware_objective
 status: repair_candidate_not_hard_base

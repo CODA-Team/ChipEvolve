@@ -7,6 +7,8 @@ purpose: >
 flow_ready:
   - id: negotiation_row_bucket_quality_frontier_r5
     kind: generated_matrix_variant
+    source_of_truth: generator_plus_manifest_plus_research_delta
+    patch_kind: generator_delta_evidence
     manifest: family_variants/negotiation_row_bucket_quality_frontier_r5/manifest.yaml
     research_patch: family_variants/negotiation_row_bucket_quality_frontier_r5/research_patches/negotiation_row_bucket_quality_frontier_r5.patch
     matrix_variant: negotiation_row_bucket_quality_frontier_r5
@@ -16,12 +18,16 @@ flow_ready:
 repair_candidates:
   - id: netaware12_prefilter_hotset_guard
     kind: source_family_overlay
+    source_of_truth: overlay_over_netaware11_parent
+    patch_kind: overlay_not_clean_base_patch
     manifest: family_variants/netaware_objective/manifest.yaml
     research_patch: family_variants/netaware_objective/research_patches/netaware12_prefilter_hotset_guard.patch
     status: repair_candidate_not_hard_base
     next_direction: netaware14_rowedge_shortlist_hpwl
   - id: legalm_stage1_quality_guard_r5
     kind: materialized_structural_family
+    source_of_truth: materialized_sidecar_base_plus_hardening_lineage
+    patch_kind: repair_lineage_not_base_quality_patch
     manifest: family_variants/legalm_engine/manifest.yaml
     research_patch:
       - family_variants/legalm_engine/research_patches/legalm_counterfix_r4.patch
@@ -30,6 +36,8 @@ repair_candidates:
     next_direction: legalm_r6_row_segment_batch_assignment
   - id: priority_escape_r3_20260425
     kind: repair_status_manifest
+    source_of_truth: repair_candidate_research_patch
+    patch_kind: repair_only_requires_stuck_telemetry
     manifest: family_variants/priority_escape/manifest.yaml
     research_patch:
       - family_variants/priority_escape/research_patches/priority_escape_r3_20260425.patch
@@ -39,6 +47,8 @@ repair_candidates:
 polish_only:
   - id: localized_swap
     kind: opt_in_polish_status_manifest
+    source_of_truth: polish_evidence_research_patch
+    patch_kind: polish_only_not_standalone_legalizer
     manifest: family_variants/localized_swap/manifest.yaml
     research_patch: family_variants/localized_swap/research_patches/localswap01_bounded_local_polish.patch
     status: after_legal_parent_only

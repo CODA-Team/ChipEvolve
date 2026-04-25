@@ -50,5 +50,8 @@ same-run baseline.
 
 Future workers should read this file, `ROBUST_BASE_DECISION_20260425.md`, and
 `knowledge/algorithm_cards/base_family_cards.yaml` before reading raw
-experiment artifacts.  Runtime JSON/logs are evidence for a specific gate,
-not the default context.
+experiment artifacts.  Before applying any family patch, also read
+`family_variants/SOURCE_OF_TRUTH.md`: committed research patches are not all
+clean-base patches.  Some are generator deltas, overlay-chain deltas, repair
+evidence, or polish-only snippets.  Runtime JSON/logs are evidence for a
+specific gate, not the default context.

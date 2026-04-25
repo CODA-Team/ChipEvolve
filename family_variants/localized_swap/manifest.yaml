@@ -1,6 +1,8 @@
 id: localized_swap
 kind: dpl_evolve_polish_candidate_manifest
 schema_version: 1
+source_kind: polish_only
+research_patch_kind: polish_hook_evidence_not_standalone_legalizer
 status: opt_in_polish_after_legal_parent_only
 base_source: tools/OpenROAD/src/dpl_evolve
 entrypoint_contract: detailed_placement_evolve -use_negotiation

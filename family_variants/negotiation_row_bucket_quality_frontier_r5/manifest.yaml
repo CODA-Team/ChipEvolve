@@ -1,5 +1,7 @@
 id: negotiation_row_bucket_quality_frontier_r5
 kind: generated_dpl_evolve_variant
+source_kind: generated_matrix_variant
+research_patch_kind: generator_delta_evidence_not_full_clean_base_patch
 generator: scripts/run_variant_experiment_matrix.py
 variant_name: negotiation_row_bucket_quality_frontier_r5
 source_family: clean_evolve_base
@@ -21,4 +23,5 @@ required_next_gates:
 notes: >
   This directory is a durable family record.  The executable source is generated
   by the matrix script into DPL_EVOLVE_STATE_ROOT; do not hand-edit ORFS or the
-  OpenROAD submodule to use this family.
+  OpenROAD submodule to use this family.  The research patch records the R5
+  frontier delta for inspection; it is not the complete generated source.

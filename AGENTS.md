@@ -164,6 +164,16 @@ Do not promote:
 - small-case aggressive changes that hurt `jpeg`, `ariane133`, or `bp_quad`;
 - build-only or aes-only evidence.
 
+Before using any family patch as a parent, read
+`family_variants/SOURCE_OF_TRUTH.md` and `family_variants/FAMILY_INDEX.yaml`.
+Committed `research_patches/*.patch` files are not all clean-base patches:
+some are generator deltas, overlay-chain deltas, repair evidence, or
+polish-only snippets.  If the source kind is not a clean-base patch, first use
+the recorded generator, overlay parent, or materialized sidecar path.  Planned
+next artifacts live in `family_variants/NEXT_PATCH_ARTIFACTS.yaml`; do not
+pretend a planned path is implemented until the patch exists and the family
+manifest references it.
+
 ## Family Router Guidance
 
 Choose the starting family from the case shape and first strict-run evidence.
