@@ -38,8 +38,20 @@ first:
   Recompile only the variant-owned `dpl_evolve` pieces and relink a private
   `openroad` binary.
 - `materialize_family_variant.sh`
-  Copy the clean initial evolve base and apply a family patch to create a
-  dedicated variant source tree.
+  Wrapper around `materialize_family_variant.py`. Copy the clean initial evolve
+  base and materialize a family source tree from a sidecar patch, generated
+  matrix variant, or explicit bring-up alias.
+- `materialize_family_variant.py`
+  Importable materializer API plus CLI. Use `--list-families` before assigning
+  a family to an agent.
+- `family_mutations.py`
+  Shared family mutation registry. Planned R6/netaware14/priority/localized
+  names are registered as `bringup_alias_not_algorithm_promotion` until their
+  real mutation bodies replace the aliases.
+- `run_family_base_gate.py`
+  Base bring-up harness. It materializes one family, relinks a private binary,
+  runs requested strict gates, and writes `build.json`, per-case JSON, and
+  `PROMOTION_DECISION.md`.
 - `recommend_initial_family.py`
   Read a baseline `metrics.json` and recommend the best initial patch family.
 - `compare_runs.py`
@@ -78,6 +90,22 @@ workflow. Prefer the Python entrypoints plus the evaluator.
 10. `run_canonical_line.sh`
 11. `run_design_evolve_loop.py`
 12. `compare_runs.py`
+
+For base-family bring-up, use the gate harness instead of ad-hoc ORFS edits:
+
+```bash
+ORFS_ROOT=/abs/path/to/OpenROAD-flow-scripts \
+./scripts/run_family_base_gate.py \
+  --family negotiation_row_bucket_quality_frontier_r6_twopass \
+  --cases aes_nangate45 jpeg_nangate45 ariane133_nangate45 bp_quad_nangate45 \
+  --legalizer-only-first \
+  --eval-timeout-sec 900 \
+  --force
+```
+
+The first R6/netaware14/priority/localized registrations are intentionally
+bring-up aliases. They prove source/build/eval plumbing, not algorithm
+promotion.
 
 For offline knowledge generation before a new Codex evolve campaign, use:
 

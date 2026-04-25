@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import sys
+import shlex
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -27,6 +28,44 @@ def resolve_agent_root(anchor_file: str | Path, *, levels_up: int) -> Path:
             f"DPL_EVOLVE_AGENT_ROOT does not exist or is not a directory: {candidate}"
         )
     return Path(anchor_file).resolve().parents[levels_up]
+
+
+def load_local_env_sh(agent_root: Path) -> None:
+    """Import repo-local env.sh for Python entrypoints.
+
+    Shell wrappers already source env.sh through scripts/runtime_env.sh.  Python
+    entrypoints also need the same local ORFS/state settings so agents do not
+    accidentally depend on a mounted ORFS symlink or a globally exported env.
+    """
+
+    if os.environ.get("DPL_EVOLVE_SKIP_ENV_SH") == "1":
+        return
+    env_file = agent_root / "env.sh"
+    if not env_file.is_file():
+        return
+    cmd = (
+        "set -a; "
+        f"source {shlex.quote(str(env_file))}; "
+        "python3 - <<'PY'\n"
+        "import os\n"
+        "for key, value in os.environ.items():\n"
+        "    print(f'{key}={value}')\n"
+        "PY"
+    )
+    proc = subprocess.run(
+        ["bash", "-lc", cmd],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        raise SystemExit(f"Failed to source local env.sh: {env_file}\n{proc.stderr or proc.stdout}")
+    for line in proc.stdout.splitlines():
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        if key:
+            os.environ[key] = value
 
 
 def resolve_orfs_root(
@@ -152,6 +191,7 @@ def resolve_runtime_paths(
     cwd: Path | None = None,
 ) -> RuntimePaths:
     agent_root = resolve_agent_root(anchor_file, levels_up=agent_root_levels_up)
+    load_local_env_sh(agent_root)
     orfs_root = resolve_orfs_root(
         agent_root=agent_root,
         script_name=script_name,

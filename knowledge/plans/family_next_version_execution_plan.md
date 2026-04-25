@@ -64,6 +64,22 @@ Parallel sweeps can run up to eight variants at once if the machine is idle,
 with about ten build threads per variant.  For full metrics on large cases,
 lower concurrency if report generation becomes the bottleneck.
 
+The shared harness entrypoint is:
+
+```bash
+./scripts/run_family_base_gate.py \
+  --family <family> \
+  --cases aes_nangate45 jpeg_nangate45 ariane133_nangate45 bp_quad_nangate45 \
+  --legalizer-only-first \
+  --eval-timeout-sec 900 \
+  --force
+```
+
+The first registered R6/netaware14/priority/localized ids are
+`bringup_alias_not_algorithm_promotion` aliases.  They are useful for checking
+materialize/build/eval plumbing, but they must be replaced by real mutation
+bodies before their results can be cited as algorithm evidence.
+
 ## Required Attempt Record
 
 Every experiment should leave enough evidence to rebuild the judgment:

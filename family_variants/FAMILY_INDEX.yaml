@@ -15,6 +15,38 @@ flow_ready:
     family_group: flow_ready_candidates
     status: aes_jpeg_candidate_needs_large_gate
 
+base_bringup_aliases:
+  - id: negotiation_row_bucket_quality_frontier_r6_twopass
+    kind: generated_matrix_variant_alias
+    source_of_truth: scripts/family_mutations.py
+    alias_parent: negotiation_row_bucket_quality_frontier_r5
+    status: harness_bringup_only_not_algorithm_promotion
+    next_direction: replace_alias_with_true_two_pass_frontier_mutation
+  - id: netaware14_rowedge_shortlist_hpwl
+    kind: generated_matrix_variant_alias
+    source_of_truth: scripts/family_mutations.py
+    alias_parent: netaware03_row_guard_frontier
+    status: harness_bringup_only_not_algorithm_promotion
+    next_direction: replace_alias_with_clean_cached_hpwl_shortlist_mutation
+  - id: legalm_r6_relaxed_scanline_alm
+    kind: generated_matrix_variant_alias
+    source_of_truth: scripts/family_mutations.py
+    alias_parent: legalm_base_bounded_stage1
+    status: harness_bringup_only_not_algorithm_promotion
+    next_direction: replace_alias_with_relaxed_static_constraint_stage1_mutation
+  - id: priority_escape_telemetry_first
+    kind: generated_matrix_variant_alias
+    source_of_truth: scripts/family_mutations.py
+    alias_parent: priority_escape_scale_safe_base
+    status: harness_bringup_only_not_algorithm_promotion
+    next_direction: replace_alias_with_structured_stuck_no_valid_telemetry
+  - id: localized_swap_transactional_polish
+    kind: generated_matrix_variant_alias
+    source_of_truth: scripts/family_mutations.py
+    alias_parent: localswap01_bounded_local_polish
+    status: harness_bringup_only_not_algorithm_promotion
+    next_direction: replace_alias_with_legal_parent_transactional_polish
+
 repair_candidates:
   - id: netaware12_prefilter_hotset_guard
     kind: source_family_overlay

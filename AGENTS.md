@@ -174,6 +174,17 @@ next artifacts live in `family_variants/NEXT_PATCH_ARTIFACTS.yaml`; do not
 pretend a planned path is implemented until the patch exists and the family
 manifest references it.
 
+Base bring-up now has a unified harness:
+
+- use `scripts/materialize_family_variant.py` or `.sh --list-families` to see
+  what can be materialized;
+- use `scripts/run_family_base_gate.py` to materialize, relink, evaluate, and
+  write `PROMOTION_DECISION.md`;
+- family ids marked `bringup_alias_not_algorithm_promotion` are plumbing
+  aliases only.  They prove source/build/eval flow, not the planned new
+  algorithm.  Replace their mutation body before claiming R6/netaware14/LEGALM
+  R6/priority telemetry/localized transaction results.
+
 ## Family Router Guidance
 
 Choose the starting family from the case shape and first strict-run evidence.

@@ -2302,9 +2302,104 @@ VARIANTS["legalm_base_bounded_stage1"] = VariantSpec(
     source_family="legalm_engine",
     startpoint="materialized_legalm_engine_scale_safe_base",
 )
+
+
+def register_bringup_alias(
+    alias: str,
+    parent: str,
+    *,
+    summary: str,
+    family: str | None = None,
+    startpoint: str | None = None,
+) -> None:
+    parent_spec = VARIANTS[parent]
+    VARIANTS[alias] = VariantSpec(
+        name=alias,
+        family=family or parent_spec.family,
+        touched_symbol=parent_spec.touched_symbol,
+        summary=summary,
+        apply=parent_spec.apply,
+        algorithmic_changes=(
+            *tuple(parent_spec.algorithmic_changes),
+            f"bringup_alias_parent:{parent}",
+            "promotion_status:not_algorithm_promotion",
+        ),
+        source_family=parent_spec.source_family,
+        startpoint=startpoint or f"bringup_alias_of_{parent}",
+        entrypoint_contract=parent_spec.entrypoint_contract,
+    )
+
+
+register_bringup_alias(
+    "negotiation_row_bucket_quality_frontier_r6_twopass",
+    "negotiation_row_bucket_quality_frontier_r5",
+    family="negotiation_row_bucket",
+    summary=(
+        "Base bring-up alias for planned R6 two-pass frontier.  It currently "
+        "uses the r5 generated implementation so materializer/build/gate "
+        "plumbing can be validated before the true R6 mutation replaces it."
+    ),
+)
+register_bringup_alias(
+    "negotiation_row_bucket_quality_frontier_r6_twopass_rowindex",
+    "negotiation_row_bucket_quality_frontier_r5",
+    family="negotiation_row_bucket",
+    summary=(
+        "Compatibility alias for the planned R6 two-pass row-index family; "
+        "currently routes to r5 for harness bring-up only."
+    ),
+)
+register_bringup_alias(
+    "netaware14_rowedge_shortlist_hpwl",
+    "netaware03_row_guard_frontier",
+    family="netaware_objective",
+    summary=(
+        "Base bring-up alias for planned netaware14.  It uses the current "
+        "clean-generator row-guard frontier while the standalone cached-HPWL "
+        "implementation is developed."
+    ),
+)
+register_bringup_alias(
+    "priority_escape_telemetry_first",
+    "priority_escape_scale_safe_base",
+    family="priority_escape",
+    summary=(
+        "Base bring-up alias for planned priority telemetry-first repair.  It "
+        "uses the current scale-safe priority base and is not a promotion "
+        "result for the future telemetry mechanism."
+    ),
+)
+register_bringup_alias(
+    "localized_swap_transactional_polish",
+    "localswap01_bounded_local_polish",
+    family="localized_swap",
+    summary=(
+        "Base bring-up alias for planned transactional localized polish.  It "
+        "uses the current bounded local-polish recipe until the transactional "
+        "implementation is committed."
+    ),
+)
+register_bringup_alias(
+    "legalm_r6_relaxed_scanline_alm",
+    "legalm_base_bounded_stage1",
+    family="legalm_engine",
+    summary=(
+        "Base bring-up alias for planned LEGALM relaxed scanline/ALM R6.  It "
+        "uses the current bounded Stage1 LEGALM variant until relaxed Stage1 "
+        "is implemented."
+    ),
+)
+
 DEFAULT_VARIANT_NAMES = list(ALGORITHMIC_VARIANTS.keys())[:50]
 FAMILY_GROUPS: dict[str, list[str]] = {
     "algorithmic50": DEFAULT_VARIANT_NAMES,
+    "base_bringup": [
+        "negotiation_row_bucket_quality_frontier_r6_twopass",
+        "netaware14_rowedge_shortlist_hpwl",
+        "legalm_r6_relaxed_scanline_alm",
+        "priority_escape_telemetry_first",
+        "localized_swap_transactional_polish",
+    ],
     "netaware10": list(NETAWARE_VARIANTS.keys()),
     # Compatibility alias: the localized_swap family is intentionally
     # compressed to one bounded local-polish recipe rather than ten similar
