@@ -1,0 +1,141 @@
+schema_version: 1
+id: netaware14_rowedge_shortlist_hpwl
+artifact_kind: generator_delta
+classification: clean_base_generator_delta
+applies_to:
+  source_family: clean_evolve_base
+  command_path: "detailed_placement_evolve -use_negotiation"
+  files:
+    - src/NegotiationLegalizer.h
+    - src/NegotiationLegalizerPass.cpp
+
+summary: >
+  Implement a standalone net-aware objective variant that builds a cheap NBLG
+  frontier first, then uses cached bounded local HPWL only as a secondary
+  ranking term for eligible shortlist candidates. Row-edge probes are part of
+  the cheap frontier; midpoint/connectivity anchors remain fallback-only.
+
+required_code_changes:
+  header:
+    add_methods:
+      - "double negotiationBaseCost(int cell_idx, int x, int y) const"
+      - "bool netAwareEligible(int cell_idx, int iter) const"
+    add_telemetry_fields:
+      - "long long prof_frontier_candidates_collected_"
+      - "long long prof_shortlist_candidates_considered_"
+      - "long long prof_local_hpwl_cache_hits_"
+      - "long long prof_local_hpwl_evals_"
+      - "long long prof_local_hpwl_fanout_skips_"
+      - "long long prof_displacement_guard_rejects_"
+      - "long long prof_row_edge_probe_candidates_"
+      - "long long prof_fallback_anchor_uses_"
+
+  target_cost:
+    mode: current_blend
+    implementation: |
+      const NegCell& cell = cells_[cell_idx];
+      const int init_disp = std::abs(x - cell.init_x) + std::abs(y - cell.init_y);
+      const int step_disp = std::abs(x - cell.x) + std::abs(y - cell.y);
+      const int excess = std::max(0, init_disp - max_disp_threshold_);
+      return static_cast<double>(init_disp)
+             + 0.20 * static_cast<double>(step_disp)
+             + max_disp_multiplier_ * static_cast<double>(excess);
+
+  congestion_cost:
+    mode: history_runtime_trim
+    replace_inner_grid_term_with: |
+      const double penalty = usageWithCell / cap;
+      cost += (0.7 * g.hist_cost + 0.3) * penalty;
+
+  local_hpwl_caps:
+    large_design_threshold_cells: 100000
+    max_net_evals:
+      normal: 4
+      large: 2
+    fanout_cap:
+      normal: 20
+      large: 10
+    telemetry:
+      increment_fanout_skips_when: "fanout <= 1 or fanout above cap"
+      increment_local_hpwl_evals_when: "localHpwlDeltaCost performs a candidate scoring pass"
+
+  find_best_location:
+    algorithm:
+      - "Create Candidate{x, y, base_cost, source} vector and location-key dedup set."
+      - "collectLocation(tx, ty, source) validates die/row/DPL and computes negotiationBaseCost plus DRC penalty only."
+      - "Collect init-window and current-window candidates first."
+      - "Collect bounded row-edge probes into the same cheap frontier."
+      - "Only if the frontier is empty, collect midpoint and connectivity-anchor fallback candidates."
+      - "Sort candidates by base_cost, then y/x tie-break."
+      - "Pick the best cheap candidate as fallback result."
+      - "If netAwareEligible(cell_idx, iter), apply local HPWL only to the bounded shortlist."
+    row_edge_probe:
+      source_name: row_edge_probe
+      probes:
+        - "max(0, cell.init_x - horiz_window_ - cell.width), cell.init_y"
+        - "min(grid_w_ - cell.width, cell.init_x + horiz_window_ + cell.width), cell.init_y"
+        - "max(0, cell.x - horiz_window_ - cell.width), cell.y"
+        - "min(grid_w_ - cell.width, cell.x + horiz_window_ + cell.width), cell.y"
+      constraints:
+        - "must pass normal collectLocation validation"
+        - "must not bypass deduplication"
+        - "must be counted in prof_row_edge_probe_candidates_ only when accepted"
+    shortlist:
+      max_candidates:
+        normal: 8
+        large: 5
+      prefilter_margin: "max(4, max_disp_threshold_ / 3)"
+      displacement_outlier_margin: "max(3, max_disp_threshold_ / 4)"
+      rollback_credit: "max(3, max_disp_threshold_ / 5)"
+      cache_key: "(cell_idx, x, y) or per-cell locationKey(x, y)"
+      reject_rule: >
+        Skip local HPWL for candidates whose displacement exceeds the cheap
+        best displacement plus the outlier margin unless their base cost earns
+        at least rollback_credit versus the cheap best.
+
+  eligibility:
+    low_mid_fanout_cap:
+      normal: 16
+      large: 8
+    low_mid_fanout_min_nets:
+      normal: 2
+      large: 1
+    hot_displacement_threshold: "max(2, max_disp_threshold_ / 2)"
+    late_unsettled_threshold: "iter >= max(1, max_iter_neg_ / 3) and !cell.legal"
+    allow_if_any:
+      - low_or_medium_fanout_cell
+      - hot_displacement
+      - late_unsettled
+
+  cost_split:
+    negotiationBaseCost: "NBLG target + history/overflow/grid/DPL terms, no local HPWL"
+    negotiationCost: "negotiationBaseCost + localHpwlDeltaCost for compatibility only"
+    findBestLocation_rule: "call negotiationBaseCost during frontier collection; call localHpwlDeltaCost only in shortlist loop"
+
+telemetry_contract:
+  print_scope: "existing debug/summary path only; do not make normal logs noisy"
+  required_counters:
+    frontier_candidates_collected: "increment on each accepted collectLocation candidate"
+    shortlist_candidates_considered: "increment for each candidate that reaches secondary ranking"
+    local_hpwl_cache_hits: "increment when a local HPWL cache entry is reused"
+    local_hpwl_evals: "increment when localHpwlDeltaCost is newly computed"
+    local_hpwl_fanout_skips: "increment for fanout rejected nets"
+    displacement_guard_rejects: "increment for shortlist candidates rejected by displacement guard"
+    row_edge_probe_candidates: "increment for accepted row-edge probe candidates"
+    fallback_anchor_uses: "increment when midpoint/connectivity fallback path is used"
+
+must_not_do:
+  - "Do not evaluate local HPWL for every candidate."
+  - "Do not use netaware11/netaware12 as an overlay parent for this generator artifact."
+  - "Do not treat current harness alias evidence as algorithm promotion."
+  - "Do not add midpoint/connectivity anchor halos to the normal frontier."
+  - "Do not edit shared scripts until this delta is intentionally implemented."
+
+validation_notes:
+  first_check: "materializer metadata should report source_family=clean_evolve_base and status=implemented, not bringup_alias_not_algorithm_promotion"
+  required_small_medium_cases:
+    - aes_nangate45
+    - jpeg_nangate45
+    - ariane133_nangate45
+  stress_case_after_pass:
+    - bp_quad_nangate45

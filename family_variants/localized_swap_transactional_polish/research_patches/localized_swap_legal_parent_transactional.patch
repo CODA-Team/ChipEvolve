@@ -1,0 +1,167 @@
+diff --git a/src/dpl_evolve/src/NegotiationLegalizer.cpp b/src/dpl_evolve/src/NegotiationLegalizer.cpp
+index 924ad5a..9866e7d 100644
+--- a/src/dpl_evolve/src/NegotiationLegalizer.cpp
++++ b/src/dpl_evolve/src/NegotiationLegalizer.cpp
+@@ -273,7 +273,7 @@ void NegotiationLegalizer::legalize()
+              1,
+              "NegotiationLegalizer: post-optimisation.");
+   // greedyImprove(5);
+-  // cellSwap();
++  reportLocalizedSwapStats(cellSwap());
+   // greedyImprove(1);
+
+   double avgDisp{0};
+diff --git a/src/dpl_evolve/src/NegotiationLegalizer.h b/src/dpl_evolve/src/NegotiationLegalizer.h
+index 3c8c81b..533b314 100644
+--- a/src/dpl_evolve/src/NegotiationLegalizer.h
++++ b/src/dpl_evolve/src/NegotiationLegalizer.h
+@@ -120,6 +120,18 @@ struct AbacusCluster
+   int total_width{0};   // Σ cell widths (sites)
+ };
+
++struct LocalizedSwapStats
++{
++  int parent_violations{0};
++  int post_violations{0};
++  int attempted_pairs{0};
++  int accepted_swaps{0};
++  int rollback_count{0};
++  bool pair_cap_hit{false};
++  const char* skip_reason{"not_run"};
++  double elapsed_ms{0.0};
++};
++
+ // ---------------------------------------------------------------------------
+ // NegotiationLegalizer
+ // ---------------------------------------------------------------------------
+@@ -195,7 +207,8 @@ class NegotiationLegalizer
+
+   // Post-optimisation
+   void greedyImprove(int passes);
+-  void cellSwap();
++  LocalizedSwapStats cellSwap();
++  void reportLocalizedSwapStats(const LocalizedSwapStats& stats) const;
+   void diamondRecovery(const std::vector<int>& activeCells);
+
+   // Constraint helpers
+diff --git a/src/dpl_evolve/src/NegotiationLegalizerPass.cpp b/src/dpl_evolve/src/NegotiationLegalizerPass.cpp
+index d68f688..0b341ef 100644
+--- a/src/dpl_evolve/src/NegotiationLegalizerPass.cpp
++++ b/src/dpl_evolve/src/NegotiationLegalizerPass.cpp
+@@ -817,8 +817,19 @@ void NegotiationLegalizer::greedyImprove(int passes)
+ // without exceeding the current maximum displacement.
+ // ===========================================================================
+
+-void NegotiationLegalizer::cellSwap()
++LocalizedSwapStats NegotiationLegalizer::cellSwap()
+ {
++  constexpr int kLocalizedSwapPairCap = 20000;
++  constexpr int kLocalizedSwapWindow = 12;
++  const utl::Timer timer;
++  LocalizedSwapStats stats;
++  stats.parent_violations = numViolations();
++  if (stats.parent_violations > 0) {
++    stats.skip_reason = "illegal_parent";
++    stats.elapsed_ms = timer.elapsed() * 1e3;
++    return stats;
++  }
++  stats.skip_reason = "completed";
+   const int maxDisp = maxDisplacement();
+
+   // Group movable cells by (height, width, rail_type).
+@@ -852,10 +863,20 @@ void NegotiationLegalizer::cellSwap()
+   for (auto& [key, grp] : groups) {
+     for (int ii = 0; ii < static_cast<int>(grp.size()); ++ii) {
+       for (int jj = ii + 1; jj < static_cast<int>(grp.size()); ++jj) {
++        if (stats.attempted_pairs >= kLocalizedSwapPairCap) {
++          stats.pair_cap_hit = true;
++          stats.skip_reason = "pair_cap";
++          break;
++        }
+         const int a = grp[ii];
+         const int b = grp[jj];
+         NegCell& ca = cells_[a];
+         NegCell& cb = cells_[b];
++        if (std::abs(ca.x - cb.x) > kLocalizedSwapWindow
++            || std::abs(ca.y - cb.y) > kLocalizedSwapWindow) {
++          continue;
++        }
++        ++stats.attempted_pairs;
+
+         const int dispBefore = ca.displacement() + cb.displacement();
+         const int newDispA
+@@ -877,15 +898,70 @@ void NegotiationLegalizer::cellSwap()
+           continue;
+         }
+
++        const int ax = ca.x;
++        const int ay = ca.y;
++        const int bx = cb.x;
++        const int by = cb.y;
+         ripUp(a);
+         ripUp(b);
+-        std::swap(ca.x, cb.x);
+-        std::swap(ca.y, cb.y);
+-        place(a, ca.x, ca.y);
+-        place(b, cb.x, cb.y);
++        place(a, bx, by);
++        place(b, ax, ay);
++        syncAllCellsToDplGrid();
++        const bool legal_after = isCellLegal(a) && isCellLegal(b);
++        const bool quality_ok
++            = ca.displacement() + cb.displacement() < dispBefore
++              && ca.displacement() <= maxDisp && cb.displacement() <= maxDisp;
++        if (!legal_after || !quality_ok) {
++          ripUp(a);
++          ripUp(b);
++          place(a, ax, ay);
++          place(b, bx, by);
++          ++stats.rollback_count;
++          continue;
++        }
++        ++stats.accepted_swaps;
+       }
++      if (stats.pair_cap_hit) {
++        break;
++      }
++    }
++    if (stats.pair_cap_hit) {
++      break;
+     }
+   }
++  syncAllCellsToDplGrid();
++  stats.post_violations = numViolations();
++  stats.elapsed_ms = timer.elapsed() * 1e3;
++  return stats;
++}
++
++void NegotiationLegalizer::reportLocalizedSwapStats(
++    const LocalizedSwapStats& stats) const
++{
++  logger_->metric("localized_swap_transactional__parent_violations",
++                  stats.parent_violations);
++  logger_->metric("localized_swap_transactional__post_violations",
++                  stats.post_violations);
++  logger_->metric("localized_swap_transactional__attempted_pairs",
++                  stats.attempted_pairs);
++  logger_->metric("localized_swap_transactional__accepted_swaps",
++                  stats.accepted_swaps);
++  logger_->metric("localized_swap_transactional__rollback_count",
++                  stats.rollback_count);
++  logger_->metric("localized_swap_transactional__pair_cap_hit",
++                  stats.pair_cap_hit ? 1 : 0);
++  logger_->metric("localized_swap_transactional__elapsed_ms", stats.elapsed_ms);
++  logger_->report("localized_swap_transactional: skip_reason={} parent={} "
++                  "post={} attempted={} accepted={} rollback={} cap_hit={} "
++                  "elapsed_ms={:.1f}",
++                  stats.skip_reason,
++                  stats.parent_violations,
++                  stats.post_violations,
++                  stats.attempted_pairs,
++                  stats.accepted_swaps,
++                  stats.rollback_count,
++                  stats.pair_cap_hit ? 1 : 0,
++                  stats.elapsed_ms);
+ }
+
+ // ===========================================================================

@@ -737,6 +737,297 @@ def mutate_negotiation_row_bucket_quality_frontier_r5(src: Path) -> list[str]:
     return sorted(set(touched))
 
 
+def mutate_negotiation_safe_threading(src: Path) -> list[str]:
+    """Wire OpenROAD -threads into negotiation and parallelize safe read/update paths.
+
+    This intentionally avoids parallelizing rip-up/place/findBestLocation because
+    those paths mutate the placement grid or use the DRC engine.  The cheap wins
+    here are deterministic: pass the command-level thread count into the family,
+    parallelize row-disjoint history updates, and precompute negotiation sort
+    keys in parallel instead of recomputing them inside the comparator.
+    """
+
+    touched: list[str] = []
+
+    opendp_h = src / "include" / "dpl_evolve" / "Opendp.h"
+    if not opendp_h.is_file():
+        raise RuntimeError(f"Missing expected dpl_evolve header: {opendp_h}")
+    replace_once(
+        opendp_h,
+        "  void setDeepIterativePlacement(bool deep_iterative);\n",
+        """  void setDeepIterativePlacement(bool deep_iterative);
+  void setThreadCount(int thread_count)
+  {
+    thread_count_ = thread_count > 0 ? thread_count : 1;
+  }
+""",
+    )
+    replace_once(
+        opendp_h,
+        "  bool use_negotiation_ = false;\n",
+        """  bool use_negotiation_ = false;
+  int thread_count_ = 1;
+""",
+    )
+    touched.append(str(opendp_h))
+
+    opendp_i = variant_file(src, "Opendp.i")
+    replace_once(
+        opendp_i,
+        """  dpl_evolve::Opendp *opendp = ord::OpenRoad::openRoad()->getOpendpEvolve();
+  opendp->detailedPlacement(max_displacment_x, max_displacment_y,
+""",
+        """  dpl_evolve::Opendp *opendp = ord::OpenRoad::openRoad()->getOpendpEvolve();
+  opendp->setThreadCount(ord::OpenRoad::openRoad()->getThreadCount());
+  opendp->detailedPlacement(max_displacment_x, max_displacment_y,
+""",
+    )
+    touched.append(str(opendp_i))
+
+    opendp_cpp = variant_file(src, "Opendp.cpp")
+    replace_once(
+        opendp_cpp,
+        """    negotiation.setRunAbacus(run_abacus);
+    negotiation.legalize();
+""",
+        """    negotiation.setRunAbacus(run_abacus);
+    negotiation.setNumThreads(thread_count_);
+    logger_->metric("dpl_evolve__threads", thread_count_);
+    negotiation.legalize();
+""",
+    )
+    touched.append(str(opendp_cpp))
+
+    header = variant_file(src, "NegotiationLegalizer.h")
+    replace_once(
+        header,
+        "#include <algorithm>\n",
+        "#include <algorithm>\n#include <cstddef>\n",
+    )
+    replace_once(
+        header,
+        "  void sortByNegotiationOrder(std::vector<int>& indices) const;\n",
+        """  void sortByNegotiationOrder(std::vector<int>& indices) const;
+  [[nodiscard]] int workerCountFor(std::size_t work_items,
+                                   std::size_t min_items_per_thread = 128) const;
+""",
+    )
+    touched.append(str(header))
+
+    cpp = variant_file(src, "NegotiationLegalizerPass.cpp")
+    replace_once(
+        cpp,
+        "#include <string>\n",
+        "#include <string>\n#include <thread>\n",
+    )
+    replace_once(
+        cpp,
+        """void NegotiationLegalizer::updateHistoryCosts()
+{
+  for (int gy = 0; gy < grid_h_; ++gy) {
+    for (int gx = 0; gx < grid_w_; ++gx) {
+      Pixel& g = gridAt(gx, gy);
+      const int ov = g.overuse();
+      if (ov > 0) {
+        g.hist_cost += kHfDefault * ov;
+      }
+    }
+  }
+}
+""",
+        """void NegotiationLegalizer::updateHistoryCosts()
+{
+  const int workers = workerCountFor(static_cast<std::size_t>(grid_h_), 16);
+  logger_->metric("negotiation__parallel__history_threads", workers);
+
+  auto update_rows = [&](int y_begin, int y_end) {
+    for (int gy = y_begin; gy < y_end; ++gy) {
+      for (int gx = 0; gx < grid_w_; ++gx) {
+        Pixel& g = gridAt(gx, gy);
+        const int ov = g.overuse();
+        if (ov > 0) {
+          g.hist_cost += kHfDefault * ov;
+        }
+      }
+    }
+  };
+
+  if (workers <= 1) {
+    update_rows(0, grid_h_);
+    return;
+  }
+
+  std::vector<std::thread> pool;
+  pool.reserve(workers);
+  const int chunk = (grid_h_ + workers - 1) / workers;
+  for (int worker = 0; worker < workers; ++worker) {
+    const int y_begin = worker * chunk;
+    const int y_end = std::min(grid_h_, y_begin + chunk);
+    if (y_begin >= y_end) {
+      continue;
+    }
+    pool.emplace_back(update_rows, y_begin, y_end);
+  }
+  for (auto& thread : pool) {
+    thread.join();
+  }
+}
+""",
+    )
+    replace_once(
+        cpp,
+        """void NegotiationLegalizer::sortByNegotiationOrder(
+    std::vector<int>& indices) const
+{
+  auto cellOveruse = [this](int idx) {
+    const NegCell& cell = cells_[idx];
+    int ov = 0;
+    const int xBegin = effXBegin(cell);
+    const int xEnd = effXEnd(cell);
+    for (int dy = 0; dy < cell.height; ++dy) {
+      for (int gx = xBegin; gx < xEnd; ++gx) {
+        if (gridExists(gx, cell.y + dy)) {
+          ov += gridAt(gx, cell.y + dy).overuse();
+        }
+      }
+    }
+    return ov;
+  };
+
+  std::ranges::sort(indices, [&](int a, int b) {
+    const int oa = cellOveruse(a);
+    const int ob = cellOveruse(b);
+    if (oa != ob) {
+      return oa > ob;
+    }
+    if (cells_[a].height != cells_[b].height) {
+      return cells_[a].height < cells_[b].height;
+    }
+    return cells_[a].width < cells_[b].width;
+  });
+}
+""",
+        """void NegotiationLegalizer::sortByNegotiationOrder(
+    std::vector<int>& indices) const
+{
+  struct SortEntry
+  {
+    int idx = 0;
+    int overuse = 0;
+  };
+
+  auto cellOveruse = [this](int idx) {
+    const NegCell& cell = cells_[idx];
+    int ov = 0;
+    const int xBegin = effXBegin(cell);
+    const int xEnd = effXEnd(cell);
+    for (int dy = 0; dy < cell.height; ++dy) {
+      for (int gx = xBegin; gx < xEnd; ++gx) {
+        if (gridExists(gx, cell.y + dy)) {
+          ov += gridAt(gx, cell.y + dy).overuse();
+        }
+      }
+    }
+    return ov;
+  };
+
+  std::vector<SortEntry> entries(indices.size());
+  const int workers = workerCountFor(indices.size(), 256);
+  logger_->metric("negotiation__parallel__sort_threads", workers);
+
+  auto fill_entries = [&](std::size_t begin, std::size_t end) {
+    for (std::size_t pos = begin; pos < end; ++pos) {
+      const int idx = indices[pos];
+      entries[pos] = SortEntry{idx, cellOveruse(idx)};
+    }
+  };
+
+  if (workers <= 1) {
+    fill_entries(0, indices.size());
+  } else {
+    std::vector<std::thread> pool;
+    pool.reserve(workers);
+    const std::size_t chunk
+        = (indices.size() + static_cast<std::size_t>(workers) - 1)
+          / static_cast<std::size_t>(workers);
+    for (int worker = 0; worker < workers; ++worker) {
+      const std::size_t begin = static_cast<std::size_t>(worker) * chunk;
+      const std::size_t end = std::min(indices.size(), begin + chunk);
+      if (begin >= end) {
+        continue;
+      }
+      pool.emplace_back(fill_entries, begin, end);
+    }
+    for (auto& thread : pool) {
+      thread.join();
+    }
+  }
+
+  std::ranges::sort(entries, [&](const SortEntry& a, const SortEntry& b) {
+    if (a.overuse != b.overuse) {
+      return a.overuse > b.overuse;
+    }
+    if (cells_[a.idx].height != cells_[b.idx].height) {
+      return cells_[a.idx].height < cells_[b.idx].height;
+    }
+    return cells_[a.idx].width < cells_[b.idx].width;
+  });
+
+  for (std::size_t pos = 0; pos < entries.size(); ++pos) {
+    indices[pos] = entries[pos].idx;
+  }
+}
+
+int NegotiationLegalizer::workerCountFor(
+    const std::size_t work_items,
+    const std::size_t min_items_per_thread) const
+{
+  const int requested = std::max(1, num_threads_);
+  if (requested <= 1 || work_items < min_items_per_thread * 2) {
+    return 1;
+  }
+  const std::size_t work_limited
+      = std::max<std::size_t>(1, work_items / min_items_per_thread);
+  return std::max(1,
+                  std::min(requested, static_cast<int>(work_limited)));
+}
+""",
+    )
+    touched.append(str(cpp))
+
+    legalizer_cpp = variant_file(src, "NegotiationLegalizer.cpp")
+    replace_once(
+        legalizer_cpp,
+        """  debugPrint(logger_,
+             utl::DPL,
+             "negotiation",
+             1,
+             "NegotiationLegalizer: starting legalization.");
+""",
+        """  num_threads_ = std::max(1, num_threads_);
+  logger_->metric("negotiation__parallel__threads_requested", num_threads_);
+  logger_->report("NegotiationLegalizer parallel worker budget: {} thread(s).",
+                  num_threads_);
+  debugPrint(logger_,
+             utl::DPL,
+             "negotiation",
+             1,
+             "NegotiationLegalizer: starting legalization with {} thread(s).",
+             num_threads_);
+""",
+    )
+    touched.append(str(legalizer_cpp))
+
+    return sorted(set(touched))
+
+
+def mutate_negotiation_row_bucket_quality_frontier_r5_threaded(src: Path) -> list[str]:
+    touched: list[str] = []
+    touched.extend(mutate_negotiation_row_bucket_quality_frontier_r5(src))
+    touched.extend(mutate_negotiation_safe_threading(src))
+    return sorted(set(touched))
+
+
 def mutate_priority_escape_scale_safe_base(src: Path) -> list[str]:
     touched = mutate_row_bucket_active_set(src)
     touched.extend(mutate_search_narrow_runtime(src))
@@ -2190,6 +2481,31 @@ VARIANTS: dict[str, VariantSpec] = {
         ),
         source_family="clean_evolve_base",
         startpoint="negotiation_row_bucket_active_set+quality_frontier_r5",
+    ),
+    "negotiation_row_bucket_quality_frontier_r5_threaded": VariantSpec(
+        name="negotiation_row_bucket_quality_frontier_r5_threaded",
+        family="negotiation_row_bucket",
+        touched_symbol=(
+            "Opendp::detailedPlacement+NegotiationLegalizer::updateHistoryCosts+"
+            "sortByNegotiationOrder"
+        ),
+        summary=(
+            "R5 row-bucket quality-frontier family with OpenROAD -threads wired "
+            "into the negotiation legalizer and safe parallelism for row-disjoint "
+            "history updates plus precomputed sort keys.  It deliberately keeps "
+            "rip-up/place/findBest serial because those paths mutate the grid."
+        ),
+        apply=mutate_negotiation_row_bucket_quality_frontier_r5_threaded,
+        algorithmic_changes=(
+            "active_set_initialization:row_bucket_spatial_index",
+            "bystander_repair:dirty_region_row_bucket_scan",
+            "quality_proxy:net_anchor_delta_on_bounded_frontier",
+            "threading:openroad_thread_count_to_negotiation",
+            "threading:parallel_history_cost_by_row",
+            "threading:parallel_sort_key_precompute",
+        ),
+        source_family="clean_evolve_base",
+        startpoint="negotiation_row_bucket_quality_frontier_r5+safe_threading",
     ),
     "priority_escape_scale_safe_base": VariantSpec(
         name="priority_escape_scale_safe_base",

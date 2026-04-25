@@ -35,16 +35,22 @@ BRINGUP_ALIASES: dict[str, FamilyMutation] = {
     "negotiation_row_bucket_quality_frontier_r6_twopass": FamilyMutation(
         family="negotiation_row_bucket_quality_frontier_r6_twopass",
         source_kind="generated_matrix_variant",
-        matrix_variant="negotiation_row_bucket_quality_frontier_r5",
+        matrix_variant="negotiation_row_bucket_quality_frontier_r5_threaded",
         status="bringup_alias_not_algorithm_promotion",
-        summary="Bring-up alias for R6 harness validation; uses current r5 generator.",
+        summary=(
+            "Bring-up alias for R6 harness validation; uses current r5 generator "
+            "with OpenROAD thread-count wiring and safe threaded hot paths."
+        ),
     ),
     "negotiation_row_bucket_quality_frontier_r6_twopass_rowindex": FamilyMutation(
         family="negotiation_row_bucket_quality_frontier_r6_twopass_rowindex",
         source_kind="generated_matrix_variant",
-        matrix_variant="negotiation_row_bucket_quality_frontier_r5",
+        matrix_variant="negotiation_row_bucket_quality_frontier_r5_threaded",
         status="bringup_alias_not_algorithm_promotion",
-        summary="Compatibility alias for the planned R6 two-pass row-index target.",
+        summary=(
+            "Compatibility alias for the planned R6 two-pass row-index target; "
+            "currently materializes r5 plus safe threaded runtime support."
+        ),
     ),
     "netaware14_rowedge_shortlist_hpwl": FamilyMutation(
         family="netaware14_rowedge_shortlist_hpwl",

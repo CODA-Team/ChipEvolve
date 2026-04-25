@@ -1,0 +1,105 @@
+id: netaware14_rowedge_shortlist_hpwl
+kind: dpl_evolve_variant_spec
+artifact_kind: generator_delta
+status: generator_ready_not_implemented
+family: netaware_objective
+source_kind: clean_base_generator_delta
+source_family: clean_evolve_base
+is_clean_base_patch: false
+is_overlay_chain: false
+is_generator_delta: true
+
+base_contract:
+  command_path: "detailed_placement_evolve -use_negotiation"
+  intended_registration: "dpl_evolve_agent/scripts/family_mutations.py"
+  intended_matrix_source: "dpl_evolve_agent/scripts/run_variant_experiment_matrix.py"
+  touched_files:
+    - src/NegotiationLegalizer.h
+    - src/NegotiationLegalizerPass.cpp
+  generator_delta: generator_deltas/netaware14_rowedge_shortlist_hpwl.yaml
+
+classification:
+  clean_base_patch: "no; no patch against clean_evolve_base is committed here"
+  overlay_chain: "no; netaware12 is an overlay chain, but this artifact is a clean-base generator target"
+  generator_delta: "yes; implement as a new clean_evolve_base mutation body"
+  current_harness_alias: >
+    Existing base-bringup runs named netaware14_rowedge_shortlist_hpwl alias
+    netaware03_row_guard_frontier and are donor/plumbing evidence only.
+
+mechanism:
+  cheap_frontier:
+    target_cost: current_blend
+    congestion_cost: history_runtime_trim
+    search_policy:
+      - normal_init_window
+      - normal_current_window
+      - bounded_row_edge_probe
+    rule: "collect and rank cheap candidates before local HPWL traversal"
+  secondary_ranker:
+    hpwl_function: localHpwlDeltaCost
+    mode: cached_bounded_shortlist
+    eligibility:
+      - low_or_medium_fanout
+      - displacement_hot
+      - late_unsettled_illegal
+    caps:
+      normal_design_net_candidates: 8
+      large_design_net_candidates: 5
+      normal_design_net_evals_per_candidate: 4
+      large_design_net_evals_per_candidate: 2
+      normal_design_fanout_cap: 20
+      large_design_fanout_cap: 10
+  guards:
+    - displacement_outlier_guard
+    - fanout_skip_guard
+    - fallback_only_midpoint_anchor
+    - fallback_only_connectivity_anchor
+  telemetry:
+    - frontier_candidates_collected
+    - shortlist_candidates_considered
+    - local_hpwl_cache_hits
+    - local_hpwl_evals
+    - local_hpwl_fanout_skips
+    - displacement_guard_rejects
+    - row_edge_probe_candidates
+    - fallback_anchor_uses
+
+evidence_inputs:
+  netaware12:
+    artifact: ../netaware_objective
+    classification: repair_candidate_not_hard_base
+    usable_signal:
+      - "cheap-prefiltered bounded local HPWL"
+      - "fanout/net-eval caps"
+      - "displacement outlier guard"
+      - "fallback-only anchors"
+  r5:
+    variant: netaware13_quality_recover_r5
+    classification: not_promoted
+    useful_signal: "stronger shortlist-local HPWL can recover quality"
+    reject_reason:
+      - "initial AES runtime +21.09%"
+      - "initial JPEG max displacement +13.50%"
+      - "tightened rebuild has no post-tightening eval JSON"
+  r6:
+    experiment: base_bringup_parallel_20260425_112540
+    classification: bringup_alias_not_algorithm_promotion
+    alias_target: netaware03_row_guard_frontier
+    useful_signal: "family materialization/build/eval plumbing works"
+
+promotion_gates:
+  required:
+    - "Materialize as a private clean_evolve_base generator variant."
+    - "Build/relink private OpenROAD binary."
+    - "Strict same-run aes_nangate45 comparison."
+    - "Strict same-run jpeg_nangate45 comparison."
+    - "Strict same-run ariane133_nangate45 comparison."
+  stress_after_required:
+    - "bp_quad_nangate45 legalizer-return gate."
+    - "bp_quad_nangate45 full metrics gate."
+  reject_if:
+    - "runtime exceeds about +20% on AES/JPEG/ariane"
+    - "JPEG max displacement grows materially"
+    - "local HPWL is evaluated for the full candidate set"
+    - "row-edge probe bypasses the cheap frontier cap"
+    - "result is only the existing harness alias"

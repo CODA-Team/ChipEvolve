@@ -56,6 +56,10 @@ more promising direction is `netaware14_rowedge_shortlist_hpwl`:
 - Optionally fork a JPEG-biased branch using `soft_threshold + overflow_only +
   row_edge_probe`, but do not make it the default until ariane/bp gates pass.
 
+The concrete clean/generator-ready specification now lives at
+`../netaware14_rowedge_shortlist_hpwl/`. It is explicitly a generator delta,
+not a clean-base patch and not an overlay chain.
+
 ## Required Gates
 
 Before promotion, run a fresh materialized private build and strict same-run

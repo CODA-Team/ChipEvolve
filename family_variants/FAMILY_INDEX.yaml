@@ -19,9 +19,9 @@ base_bringup_aliases:
   - id: negotiation_row_bucket_quality_frontier_r6_twopass
     kind: generated_matrix_variant_alias
     source_of_truth: scripts/family_mutations.py
-    alias_parent: negotiation_row_bucket_quality_frontier_r5
+    alias_parent: negotiation_row_bucket_quality_frontier_r5_threaded
     status: harness_bringup_only_not_algorithm_promotion
-    next_direction: replace_alias_with_true_two_pass_frontier_mutation
+    next_direction: replace_alias_with_true_two_pass_frontier_mutation_keep_safe_threading
   - id: netaware14_rowedge_shortlist_hpwl
     kind: generated_matrix_variant_alias
     source_of_truth: scripts/family_mutations.py

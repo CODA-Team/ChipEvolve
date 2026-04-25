@@ -1,0 +1,271 @@
+--- a/src/AlmLegalizer.h
++++ b/src/AlmLegalizer.h
+@@ -50,6 +50,10 @@ class AlmLegalizer
+     bool deterministic = true;
+     int hpwl_net_degree_limit = 16;
+     int anchor_net_degree_limit = 32;
++    bool stage1_allow_movable_overflow = true;
++    int stage1_candidate_cap = 96;
++    double stage1_overflow_weight = 6.0;
++    double stage1_component_overflow_weight = 0.25;
+   };
+@@ -408,6 +412,7 @@ class AlmLegalizer
+     int y = 0;
+     double cost = std::numeric_limits<double>::infinity();
+     bool valid = false;
++    int overflow_sites = 0;
+   };
+@@ -489,6 +494,11 @@ class AlmLegalizer
+   Candidate findNearestInitialCandidate(const CellState& cell) const;
++  Candidate findRelaxedScanlineInitialCandidate(const CellState& cell) const;
++  void addRelaxedScanlineCandidate(const CellState& cell,
++                                   int cand_x,
++                                   int cand_y,
++                                   std::vector<Candidate>& candidates) const;
+   Candidate searchInitialWindowCandidate(const CellState& cell,
+                                          int row_window,
+                                          int x_window) const;
+@@ -511,6 +521,10 @@ class AlmLegalizer
+                                int cand_y,
+                                bool forbid_overflow,
+                                const ObjectiveContext* context = nullptr) const;
++  double evaluateStage1RelaxedCost(const CellState& cell,
++                                   int cand_x,
++                                   int cand_y,
++                                   int overflow_sites) const;
+   double evaluateBaseDisplacementCost(const CellState& cell,
+                                       int cand_x,
+                                       int cand_y,
+@@ -552,6 +566,8 @@ class AlmLegalizer
+   [[nodiscard]] bool overlapsMovableUsage(const GridRect& rect) const;
+   [[nodiscard]] bool satisfiesRailAlignment(const CellState& cell, int row) const;
++  [[nodiscard]] bool siteRectIsStaticPlaceable(const CellState& cell,
++                                               const GridRect& rect) const;
+   [[nodiscard]] bool siteRectIsPlaceable(const CellState& cell,
+                                          const GridRect& rect) const;
+@@ -610,6 +626,13 @@ class AlmLegalizer
+   int total_overflow_ = 0;
++  mutable int stage1_candidate_count_ = 0;
++  mutable int stage1_candidate_cap_hits_ = 0;
++  mutable int stage1_static_rejects_ = 0;
++  int stage1_relaxed_overflow_sites_selected_ = 0;
++  int stage1_max_candidate_overflow_ = 0;
+ };
+--- a/src/AlmLegalizer.cpp
++++ b/src/AlmLegalizer.cpp
+@@ -944,9 +944,14 @@ bool AlmLegalizer::stage1InitialLegalization()
+                 cells_.size(),
+                 totalOverflow());
+   grid_.clear();
+   total_overflow_ = 0;
+   component_overflow_.clear();
++  stage1_candidate_count_ = 0;
++  stage1_candidate_cap_hits_ = 0;
++  stage1_static_rejects_ = 0;
++  stage1_relaxed_overflow_sites_selected_ = 0;
++  stage1_max_candidate_overflow_ = 0;
+   std::vector<int> order(cells_.size());
+   std::iota(order.begin(), order.end(), 0);
+@@ -961,7 +968,9 @@ bool AlmLegalizer::stage1InitialLegalization()
+
+   for (const int cell_id : order) {
+     CellState& cell = cells_[cell_id];
+-    const Candidate best = findNearestInitialCandidate(cell);
++    const Candidate best = params_.stage1_allow_movable_overflow
++                               ? findRelaxedScanlineInitialCandidate(cell)
++                               : findNearestInitialCandidate(cell);
+     if (!best.valid) {
+       logger_->warn(utl::DPL,
+                     1800,
+@@ -972,9 +981,28 @@ bool AlmLegalizer::stage1InitialLegalization()
+     }
+     cell.x = best.x;
+     cell.y = best.y;
++    stage1_relaxed_overflow_sites_selected_ += best.overflow_sites;
++    stage1_max_candidate_overflow_ =
++        std::max(stage1_max_candidate_overflow_, best.overflow_sites);
+     addCellToGrid(cell);
+   }
+
++  logger_->info(utl::DPL,
++                1832,
++                "LEGALM R6 telemetry: Stage1 relaxed scanline cells {}, candidates {}, cap hits {}, static rejects {}, selected overflow sites {}, max candidate overflow {}, final overflow {}.",
++                cells_.size(),
++                stage1_candidate_count_,
++                stage1_candidate_cap_hits_,
++                stage1_static_rejects_,
++                stage1_relaxed_overflow_sites_selected_,
++                stage1_max_candidate_overflow_,
++                totalOverflow());
+   return true;
+ }
+@@ -1160,6 +1188,107 @@ AlmLegalizer::Candidate AlmLegalizer::findNearestInitialCandidate(
+   return best;
+ }
+
++AlmLegalizer::Candidate AlmLegalizer::findRelaxedScanlineInitialCandidate(
++    const CellState& cell) const
++{
++  std::vector<Candidate> candidates;
++  candidates.reserve(params_.stage1_candidate_cap);
++
++  const int max_y = std::max(core_.ly, core_.uy - cell.h);
++  const int max_x = std::max(core_.lx, core_.ux - cell.w);
++  const int target_y = clampValue(cell.orig_y, core_.ly, max_y);
++  const int target_x = clampValue(cell.orig_x, core_.lx, max_x);
++  const int row_window = 8;
++  const int x_window = 160;
++
++  for (int row_delta = 0; row_delta <= row_window; ++row_delta) {
++    for (int row_sign : {0, -1, 1}) {
++      if ((row_sign == 0) != (row_delta == 0)) {
++        continue;
++      }
++      const int cand_y = target_y + row_sign * row_delta * cell.vertical_step;
++      if (cand_y < core_.ly || cand_y > max_y
++          || !satisfiesRailAlignment(cell, cand_y)) {
++        continue;
++      }
++
++      for (int x_delta = 0; x_delta <= x_window; ++x_delta) {
++        for (int x_sign : {0, -1, 1}) {
++          if ((x_sign == 0) != (x_delta == 0)) {
++            continue;
++          }
++          addRelaxedScanlineCandidate(cell,
++                                      clampValue(target_x + x_sign * x_delta,
++                                                 core_.lx,
++                                                 max_x),
++                                      cand_y,
++                                      candidates);
++          if (static_cast<int>(candidates.size()) >= params_.stage1_candidate_cap) {
++            ++stage1_candidate_cap_hits_;
++            break;
++          }
++        }
++        if (static_cast<int>(candidates.size()) >= params_.stage1_candidate_cap) {
++          break;
++        }
++      }
++      if (static_cast<int>(candidates.size()) >= params_.stage1_candidate_cap) {
++        break;
++      }
++    }
++  }
++
++  if (candidates.empty() && cell.region.type == RegionType::kFence
++      && cell.region.region_id >= 0) {
++    auto it = region_to_plate_ids_.find(cell.region.region_id);
++    if (it != region_to_plate_ids_.end()) {
++      for (const int plate_id : it->second) {
++        const Plate& plate = all_plates_[plate_id];
++        if (plate.rect.width() < cell.w || plate.rect.height() < cell.h) {
++          continue;
++        }
++        addRelaxedScanlineCandidate(cell,
++                                    clampValue(cell.orig_x,
++                                               plate.rect.lx,
++                                               plate.rect.ux - cell.w),
++                                    clampValue(cell.orig_y,
++                                               plate.rect.ly,
++                                               plate.rect.uy - cell.h),
++                                    candidates);
++      }
++    }
++  }
++
++  Candidate best;
++  for (const Candidate& candidate : candidates) {
++    if (lexicographicallyBetter(candidate, best)) {
++      best = candidate;
++    }
++  }
++  return best;
++}
++
++void AlmLegalizer::addRelaxedScanlineCandidate(
++    const CellState& cell,
++    int cand_x,
++    int cand_y,
++    std::vector<Candidate>& candidates) const
++{
++  const GridRect rect{cand_x, cand_y, cand_x + cell.w, cand_y + cell.h};
++  if (!siteRectIsStaticPlaceable(cell, rect)) {
++    ++stage1_static_rejects_;
++    return;
++  }
++
++  Candidate candidate;
++  candidate.x = cand_x;
++  candidate.y = cand_y;
++  candidate.overflow_sites = estimateOverflowAtCandidate(cell, cand_x, cand_y);
++  candidate.cost = evaluateStage1RelaxedCost(cell,
++                                             cand_x,
++                                             cand_y,
++                                             candidate.overflow_sites);
++  candidate.valid = std::isfinite(candidate.cost);
++  if (candidate.valid) {
++    ++stage1_candidate_count_;
++    candidates.push_back(candidate);
++  }
++}
++
+ AlmLegalizer::Candidate AlmLegalizer::searchInitialWindowCandidate(
+     const CellState& cell,
+     int row_window,
+@@ -1658,6 +1787,27 @@ double AlmLegalizer::evaluateCandidateCost(const CellState& cell,
+   return base_cost + alm_cost + tech_penalty;
+ }
+
++double AlmLegalizer::evaluateStage1RelaxedCost(const CellState& cell,
++                                               int cand_x,
++                                               int cand_y,
++                                               int overflow_sites) const
++{
++  const double displacement = static_cast<double>(
++      manhattanDisplacement(cell, cand_x, cand_y));
++  const GridRect rect{cand_x, cand_y, cand_x + cell.w, cand_y + cell.h};
++  int component_overflow = 0;
++  const int component_id = componentIdForRect(rect);
++  if (component_id >= 0) {
++    auto it = component_overflow_.find(component_id);
++    if (it != component_overflow_.end()) {
++      component_overflow = std::max(0, it->second);
++    }
++  }
++  return displacement
++         + params_.stage1_overflow_weight * static_cast<double>(overflow_sites)
++         + params_.stage1_component_overflow_weight
++               * static_cast<double>(component_overflow);
++}
++
+ double AlmLegalizer::evaluateBaseDisplacementCost(const CellState& cell,
+                                                   int cand_x,
+                                                   int cand_y,
+@@ -2185,6 +2335,25 @@ bool AlmLegalizer::satisfiesRailAlignment(const CellState& cell, int row) const
+   return (row % cell.vertical_step) == (cell.orig_y % cell.vertical_step);
+ }
+
++bool AlmLegalizer::siteRectIsStaticPlaceable(const CellState& cell,
++                                             const GridRect& rect) const
++{
++  if (!isWithinCore(rect) || !satisfiesRailAlignment(cell, rect.ly)
++      || !satisfiesRegionConstraint(cell, rect)) {
++    return false;
++  }
++  if (cell.region.type == RegionType::kNone) {
++    if (rectHasStaticInvalidSites(rect) || overlapsFixedBlockage(rect)
++        || !firstRowSiteOrientOk(cell, rect)) {
++      return false;
++    }
++    return true;
++  }
++  if (overlapsFixedBlockage(rect)) {
++    return false;
++  }
++  return true;
++}
++
+ bool AlmLegalizer::siteRectIsPlaceable(const CellState& cell,
+                                        const GridRect& rect) const
+ {

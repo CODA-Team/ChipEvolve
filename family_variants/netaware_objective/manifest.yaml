@@ -58,6 +58,9 @@ reject_as_base:
 
 next_direction:
   id: netaware14_rowedge_shortlist_hpwl
+  artifact: ../netaware14_rowedge_shortlist_hpwl
+  artifact_kind: generator_delta
+  patch_classification: "not a clean-base patch; not an overlay chain"
   recommendation: >
     Make the next large change structural: use algobank's row_edge/current_blend
     cheap frontier to choose stable candidates first, then apply the bounded
