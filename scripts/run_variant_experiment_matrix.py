@@ -26,17 +26,12 @@ from learning.log2knowledge import process_run_record
 from learning.report_token_roi import write_token_roi_reports
 from memory.run_db import append_jsonl as append_run_record
 from memory.run_db import run_db_path
-from runtime_paths import resolve_runtime_paths
+from case_registry import resolve_cases
+from runtime_paths import clean_subprocess_env, resolve_runtime_paths
 from run_design_evolve_loop import build_metric_vector, composite_score, legality_ok
 
 
-DEFAULT_CASES = [
-    "aes_nangate45",
-    "ibex_nangate45",
-    "jpeg_nangate45",
-    "ariane133_nangate45",
-    "bp_quad_nangate45",
-]
+DEFAULT_CASE_SET = "default"
 
 
 @dataclass(frozen=True)
@@ -49,7 +44,7 @@ class VariantSpec:
     algorithmic_changes: tuple[str, ...] = ()
     source_family: str = "clean_evolve_base"
     startpoint: str = "clean_evolve_base"
-    entrypoint_contract: str = "detailed_placement_evolve -use_negotiation"
+    entrypoint_contract: str = "detailed_placement_evolve"
 
 
 def now_stamp() -> str:
@@ -3092,15 +3087,13 @@ def run_evaluator(
         "--mode",
         "single",
         "--line",
-        "evolve_line",
+        "evolve_default",
         "--flow-variant",
         flow_variant,
         "--run-tag",
         run_tag,
         "--threads",
         str(threads),
-        "--evolve-engine",
-        "negotiation",
         "--skip-build",
         "--eval-timeout-sec",
         str(eval_timeout_sec),
@@ -3226,7 +3219,8 @@ def parse_args() -> argparse.Namespace:
         description="Run deterministic dpl_evolve variant experiments and update evidence databases."
     )
     parser.add_argument("--experiment-id", default=f"variant_matrix_{now_stamp()}")
-    parser.add_argument("--cases", nargs="+", default=DEFAULT_CASES)
+    parser.add_argument("--case-set", default=DEFAULT_CASE_SET)
+    parser.add_argument("--case", default=None)
     parser.add_argument("--variants", nargs="+", default=None)
     parser.add_argument(
         "--family-groups",
@@ -3289,7 +3283,7 @@ def main() -> None:
     exp_root = state_root / "experiments" / args.experiment_id
     exp_root.mkdir(parents=True, exist_ok=True)
 
-    env = os.environ.copy()
+    env = clean_subprocess_env()
     env["DPL_EVOLVE_AGENT_ROOT"] = str(agent_root)
     env["ORFS_ROOT"] = str(orfs_root)
     env["DPL_EVOLVE_STATE_ROOT"] = str(state_root)
@@ -3299,8 +3293,9 @@ def main() -> None:
     core_root = ensure_registered_common_core(orfs_root, state_root)
     core_binary = core_root / "install" / "OpenROAD" / "bin" / "openroad"
 
+    selected_cases = resolve_cases([args.case] if args.case else None, case_set=args.case_set)
     problems: dict[str, dict[str, Any]] = {}
-    for case in args.cases:
+    for case in selected_cases:
         problem_path = agent_root / "problems" / case / "problem.yaml"
         if not problem_path.is_file():
             raise SystemExit(f"Missing problem file for case {case}: {problem_path}")
@@ -3330,6 +3325,8 @@ def main() -> None:
         },
         "entrypoint_contract": "all variants use detailed_placement_evolve -use_negotiation",
         "family_groups": list(args.family_groups),
+        "case": args.case,
+        "case_set": None if args.case else args.case_set,
         "cases": [
             {"case": case, "flow_variant": item["flow_variant"], **item["problem"]}
             for case, item in problems.items()

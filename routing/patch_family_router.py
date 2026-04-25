@@ -53,7 +53,7 @@ def select_family(
         return {
             "id": recipe,
             "registry_id": recipe,
-            "start_line": "evolve_line",
+            "start_line": "evolve_default",
             "variant_family": None,
             "regime": "default_negotiation",
             "reason": [
@@ -67,7 +67,7 @@ def select_family(
     return {
         "id": matched.get("start_with"),
         "registry_id": matched.get("variant_family") or matched.get("start_with"),
-        "start_line": matched.get("start_line", "evolve_line"),
+        "start_line": matched.get("start_line", "evolve_default"),
         "variant_family": matched.get("variant_family"),
         "regime": matched.get("regime"),
         "reason": matched.get("keep_because", []),
@@ -78,7 +78,7 @@ def select_family(
 
 def startpoint_from_family(selection: dict[str, Any]) -> dict[str, Any]:
     return {
-        "start_line": selection.get("start_line", "evolve_line"),
+        "start_line": selection.get("start_line", "evolve_default"),
         "family_base": selection.get("id"),
         "variant_family": selection.get("variant_family"),
         "selection_source": selection.get("source"),

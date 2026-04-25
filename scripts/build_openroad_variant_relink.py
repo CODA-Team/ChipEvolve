@@ -4,7 +4,6 @@ from __future__ import annotations
 import argparse
 import concurrent.futures
 import json
-import os
 import re
 import shlex
 import subprocess
@@ -449,12 +448,12 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Rebuild variant-owned dpl_evolve artifacts and relink a private openroad binary."
     )
-    parser.add_argument("--variant-root", default=os.environ.get("OPENROAD_VARIANT_ROOT"))
-    parser.add_argument("--build-dir", default=os.environ.get("OPENROAD_BUILD_DIR"))
-    parser.add_argument("--install-root", default=os.environ.get("OPENROAD_INSTALL_ROOT"))
-    parser.add_argument("--dpl-src", default=os.environ.get("DPL_EVOLVE_SRC_DIR"))
-    parser.add_argument("--core-root", default=os.environ.get("OPENROAD_CORE_ROOT"))
-    parser.add_argument("--threads", type=int, default=int(os.environ.get("OPENROAD_RELINK_THREADS", "8")))
+    parser.add_argument("--variant-root")
+    parser.add_argument("--build-dir")
+    parser.add_argument("--install-root")
+    parser.add_argument("--dpl-src")
+    parser.add_argument("--core-root")
+    parser.add_argument("--threads", type=int, default=8)
     return parser.parse_args()
 
 

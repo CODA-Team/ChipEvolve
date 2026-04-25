@@ -5,7 +5,7 @@ This directory contains the top-level executable helpers for `dpl_evolve_agent`.
 These files are the preferred human/agent entrypoints. If a task can be solved
 through a script here, prefer it over rebuilding the workflow from scratch.
 
-Runtime is resolved through:
+Runtime is resolved through the local control-repo setup:
 
 - `DPL_EVOLVE_AGENT_ROOT`
 - `ORFS_ROOT`
@@ -85,11 +85,10 @@ workflow. Prefer the Python entrypoints plus the evaluator.
 5. `configure_openroad_core.sh`
 6. `build_openroad_core.sh`
 7. `configure_openroad_variant_relink.sh` if you need a private variant binary
-8. `source <variant-root>/variant_env.sh`
-9. `build_openroad_variant_relink.sh`
-10. `run_canonical_line.sh`
-11. `run_design_evolve_loop.py`
-12. `compare_runs.py`
+8. `build_openroad_variant_relink.sh --variant-root <variant-root> --dpl-src <variant-src>`
+9. `run_canonical_line.sh`
+10. `run_design_evolve_loop.py`
+11. `compare_runs.py`
 
 For base-family bring-up, use the gate harness instead of ad-hoc ORFS edits:
 
@@ -97,7 +96,7 @@ For base-family bring-up, use the gate harness instead of ad-hoc ORFS edits:
 ORFS_ROOT=/abs/path/to/OpenROAD-flow-scripts \
 ./scripts/run_family_base_gate.py \
   --family negotiation_row_bucket_quality_frontier_r6_twopass \
-  --cases aes_nangate45 jpeg_nangate45 ariane133_nangate45 bp_quad_nangate45 \
+  --case-set default \
   --legalizer-only-first \
   --eval-timeout-sec 900 \
   --force
@@ -107,6 +106,20 @@ The first R6/netaware14/priority/localized registrations are intentionally
 bring-up aliases. They prove source/build/eval plumbing, not algorithm
 promotion.
 
+## Anchor Versus Prepared State
+
+`metadata/anchors.json` records the upstream pre-patch ORFS/OpenROAD commits.
+After `prepare_workspace.sh`, `tools/OpenROAD` is expected to be checked out at
+a local prepared commit that contains `src/dpl_evolve`.  Do not reset
+`tools/OpenROAD` back to the upstream anchor immediately before materializing
+families; the clean anchor does not contain the evolvable source tree.
+
+The common-core registry lives under the agent state root, normally:
+
+```text
+dpl_evolve_agent/.dpl_evolve_state/openroad_core/<prepared-openroad-sha>/
+```
+
 For offline knowledge generation before a new Codex evolve campaign, use:
 
 ```bash
@@ -114,24 +127,22 @@ ORFS_ROOT=/abs/path/to/OpenROAD-flow-scripts \
 ./scripts/run_variant_experiment_matrix.py
 ```
 
-The default matrix intentionally avoids tiny-only evidence. It covers
-`aes_nangate45`, `ibex_nangate45`, `jpeg_nangate45`, `ariane133_nangate45`,
-and `bp_quad_nangate45`, with 8 parallel evaluator jobs and 10 OpenROAD threads
-per job. Each evaluation has an explicit timeout so large-stress cases such as
-`bp_quad_nangate45` become runtime evidence instead of blocking the whole
+The default matrix reads case ids from `problems/case_sets.json` and then
+resolves each case through `problems/<case>/problem.yaml`. Use `--case <id>`
+for a single-case debug run and `--case-set <name>` for normal batches. It intentionally
+avoids tiny-only evidence, uses 8 parallel evaluator jobs, and gives each
+OpenROAD invocation 10 threads. Each evaluation has an explicit timeout so
+large-stress cases become runtime evidence instead of blocking the whole
 matrix. By default it runs all registered deterministic variants in the script.
-Add `gcd_nangate45` manually only as a quick sanity case.
 
 ## Binary-selection rule
 
-- Clean `baseline_default`, `baseline_dreamplace_abacus`, and clean `evolve_line`
+- Clean `openroad_dpl_negotiation`, `dreamplace_default`, and clean `evolve_default`
   may use the root binary.
-- Any run with `--family-variant` must pass an explicit variant binary:
-  - either `--openroad-binary /abs/path/to/openroad`
-  - or `source <variant-root>/variant_env.sh` before running the wrapper
-- Prefer both for agent loops:
-  - source `variant_env.sh`
-  - still pass `--openroad-binary "${OPENROAD_BINARY}"`
+- Any family or variant run must pass an explicit variant binary:
+  - `--openroad-binary /abs/path/to/openroad`
+- `variant_env.sh` is an output manifest for humans to inspect, not the normal
+  way to select binaries in automated runs. Pass the binary path explicitly.
 
 ## Ignore
 

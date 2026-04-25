@@ -11,13 +11,10 @@ run_mode:
   command_set: evolve
   track: strict
   entrypoint_contract: detailed_placement_evolve
-  matrix_entrypoint: detailed_placement_evolve -use_negotiation
-  family_variant_entrypoint: detailed_placement_evolve -use_legalm
+  matrix_entrypoint: detailed_placement_evolve
+  family_variant_entrypoint: detailed_placement_evolve
 required_control_plane_files:
-  - baseline/detail_place_only_evolve_legalm.tcl
-  - baseline/flow/detail_place_flow_evolve_legalm.tcl
   - baseline/detail_place_strict_core.tcl
-  - baseline/flow/detail_place_flow_core.tcl
 summary: >
   CPU-first LEGALM-style legalizer packaged as a family-specific dpl_evolve
   variant over the clean initial evolve base. Current durable evidence is a

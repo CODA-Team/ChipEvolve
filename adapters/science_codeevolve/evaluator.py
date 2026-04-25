@@ -23,11 +23,21 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List
 
 AGENT_ROOT = Path(__file__).resolve().parents[2]
+SCRIPT_DIR = AGENT_ROOT / "scripts"
 if str(AGENT_ROOT) not in sys.path:
     sys.path.insert(0, str(AGENT_ROOT))
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
 
-from runtime_paths import reexec_with_module, resolve_runtime_paths
+from case_registry import get_case
+from runtime_paths import (
+    clean_subprocess_env,
+    load_local_env_sh,
+    reexec_with_module,
+    resolve_runtime_paths,
+)
 
+load_local_env_sh(AGENT_ROOT)
 try:
     import yaml
 except ModuleNotFoundError:
@@ -56,14 +66,10 @@ def load_problem(problem_yaml: Path) -> Dict[str, Any]:
 
 
 def infer_design_config(problem: Dict[str, Any]) -> str:
-    design = problem.get("design")
-    platform = problem.get("platform")
     explicit = problem.get("design_config")
     if explicit:
         return explicit
-    if not design or not platform:
-        raise ValueError("problem.yaml must provide design/platform or design_config")
-    return f"./designs/{platform}/{design}/config.mk"
+    raise ValueError("problem.yaml must provide design_config")
 
 
 def default_flow_variant(problem: Dict[str, Any], mode: str) -> str:
@@ -111,7 +117,14 @@ def build_command(
     if build_mode == "openroad_only":
         return [
             str(agent_root / "scripts" / "build_openroad_only.sh"),
+            "--threads",
             str(threads),
+            "--build-dir",
+            str(build_dir),
+            "--install-root",
+            str(install_root),
+            "--openroad-binary",
+            str(openroad_binary_path),
         ]
     return ["./build_openroad.sh", "--local", "--threads", str(threads)]
 
@@ -123,32 +136,25 @@ def line_command(
     flow_variant: str,
     run_tag: str,
     threads: int,
-    evolve_engine: str,
+    openroad_binary: Path,
 ) -> List[str]:
     base = [
         str(baseline_root(agent_root) / "run_baseline.sh"),
+        "--line",
+        line,
         "--design-config",
         design_config,
-        "--track",
-        "strict",
         "--flow-variant",
         flow_variant,
         "--run-tag",
         run_tag,
         "--threads",
         str(threads),
+        "--openroad-binary",
+        str(openroad_binary),
     ]
-    if line == "baseline_default":
-        return [str(baseline_root(agent_root) / "run_or_default.sh"), *base[1:]]
-    if line == "baseline_dreamplace_abacus":
-        return [str(baseline_root(agent_root) / "run_dp_abacus.sh"), *base[1:]]
-    if line == "evolve_line":
-        return [
-            str(baseline_root(agent_root) / "run_evolve_line.sh"),
-            *base[1:],
-            "--engine",
-            evolve_engine,
-        ]
+    if line in {"dreamplace_default", "openroad_dpl_negotiation", "evolve_default"}:
+        return base
     raise ValueError(f"Unsupported line: {line}")
 
 
@@ -158,7 +164,9 @@ def suite_command(
     flow_variant: str,
     threads: int,
     tag_prefix: str,
-    evolve_engine: str,
+    openroad_binary: Path,
+    dreamplace_root: str = "",
+    dreamplace_python: str = "",
 ) -> List[str]:
     cmd = [
         str(baseline_root(agent_root) / "run_baseline_suite.sh"),
@@ -168,11 +176,15 @@ def suite_command(
         flow_variant,
         "--threads",
         str(threads),
-        "--evolve-engine",
-        evolve_engine,
+        "--openroad-binary",
+        str(openroad_binary),
     ]
     if tag_prefix:
         cmd.extend(["--tag-prefix", tag_prefix])
+    if dreamplace_root:
+        cmd.extend(["--dreamplace-root", dreamplace_root])
+    if dreamplace_python:
+        cmd.extend(["--dreamplace-python", dreamplace_python])
     return cmd
 
 
@@ -200,12 +212,15 @@ def summarize_metrics(metrics: Dict[str, Any]) -> Dict[str, Any]:
     manifest = metrics.get("manifest", {})
     legalization = metrics.get("legalization", {})
     engine = manifest.get("engine")
-    if engine == "dreamplace_abacus":
-        engine_path_confirmed = "dreamplace_bridge"
+    command_set = manifest.get("command_set")
+    if engine in {"dreamplace_default", "dreamplace_abacus"}:
+        engine_path_confirmed = "dreamplace_default"
     elif legalization.get("use_negotiation") and legalization.get("use_abacus"):
         engine_path_confirmed = "negotiation_abacus"
     elif legalization.get("use_negotiation"):
         engine_path_confirmed = "negotiation"
+    elif command_set == "evolve":
+        engine_path_confirmed = "evolve_default"
     else:
         engine_path_confirmed = "diamond_default"
     return {
@@ -352,21 +367,25 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
         openroad_install_root / "bin" / "openroad",
     )
 
-    build_cmd = build_command(
-        agent_root,
-        args.threads,
-        build_mode,
-        openroad_build_dir,
-        openroad_install_root,
-        openroad_bin,
-    )
-    build_env = os.environ.copy()
-    build_env["OPENROAD_BUILD_DIR"] = str(openroad_build_dir)
-    build_env["OPENROAD_INSTALL_ROOT"] = str(openroad_install_root)
-    build_env["OPENROAD_BINARY"] = str(openroad_bin)
-    run_env = os.environ.copy()
-    run_env["OPENROAD_BINARY"] = str(openroad_bin)
-    run_env["OPENROAD_EXE"] = str(openroad_bin)
+    explicit_openroad_binary = bool(args.openroad_binary)
+    if explicit_openroad_binary:
+        build_cmd: List[str] = []
+        build_command_text = "skipped: explicit --openroad-binary"
+    elif args.skip_build:
+        build_cmd = []
+        build_command_text = "skipped: --skip-build"
+    else:
+        build_cmd = build_command(
+            agent_root,
+            args.threads,
+            build_mode,
+            openroad_build_dir,
+            openroad_install_root,
+            openroad_bin,
+        )
+        build_command_text = shell_join(build_cmd)
+    build_env = clean_subprocess_env()
+    run_env = clean_subprocess_env()
     result: Dict[str, Any] = {
         "problem": problem.get("name"),
         "mode": args.mode,
@@ -374,7 +393,7 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
         "flow_variant": flow_variant,
         "build_mode": build_mode,
         "commands": {
-            "build": shell_join(build_cmd),
+            "build": build_command_text,
         },
         "budgets": {
             "build_timeout_sec": build_timeout,
@@ -397,6 +416,7 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
             "openroad_binary": str(openroad_bin),
             "report_root": str(report_root(root, problem, flow_variant)),
         },
+        "explicit_openroad_binary": explicit_openroad_binary,
         "command_results": {},
     }
 
@@ -407,7 +427,9 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
             flow_variant,
             args.threads,
             args.tag_prefix,
-            args.evolve_engine,
+            openroad_bin,
+            args.dreamplace_root,
+            args.dreamplace_python,
         )
         result["commands"]["run"] = shell_join(run_cmd)
         summary_tsv = report_root(root, problem, flow_variant) / "suite_runs.tsv"
@@ -421,7 +443,7 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
             flow_variant,
             run_tag,
             args.threads,
-            args.evolve_engine,
+            openroad_bin,
         )
         result["line"] = args.line
         result["run_tag"] = run_tag
@@ -436,7 +458,7 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
 
     try:
         if not args.use_existing:
-            if not args.skip_build:
+            if not args.skip_build and build_cmd:
                 build_result = execute_step(
                     build_cmd,
                     root,
@@ -482,7 +504,7 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
                     summary = {"status": "missing_metrics"}
                 evaluated_rows.append(
                     {
-                        "label": row["label"],
+                        "line_id": row["line_id"],
                         "run_tag": row["run_tag"],
                         "metrics_json": row["metrics_json"],
                         "summary": summary,
@@ -511,7 +533,16 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--problem", required=True, type=Path)
+    ap.add_argument(
+        "--case",
+        default="gcd_nangate45",
+        help="Case id under problems/. This is the normal public entrypoint.",
+    )
+    ap.add_argument(
+        "--problem",
+        type=Path,
+        help="Internal/debug override for a problem.yaml path. Prefer --case.",
+    )
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument(
         "--config",
@@ -522,21 +553,16 @@ def main() -> None:
     ap.add_argument(
         "--line",
         choices=[
-            "baseline_default",
-            "baseline_dreamplace_abacus",
-            "evolve_line",
+            "dreamplace_default",
+            "openroad_dpl_negotiation",
+            "evolve_default",
         ],
-        default="evolve_line",
+        default="evolve_default",
     )
     ap.add_argument("--flow-variant")
     ap.add_argument("--run-tag")
     ap.add_argument("--tag-prefix", default="")
     ap.add_argument("--threads", type=int, default=8)
-    ap.add_argument(
-        "--evolve-engine",
-        choices=["default", "negotiation", "negotiation_abacus"],
-        default="default",
-    )
     ap.add_argument("--skip-build", action="store_true")
     ap.add_argument("--use-existing", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
@@ -552,7 +578,11 @@ def main() -> None:
     ap.add_argument("--openroad-build-dir")
     ap.add_argument("--openroad-install-root")
     ap.add_argument("--openroad-binary")
+    ap.add_argument("--dreamplace-root", default="")
+    ap.add_argument("--dreamplace-python", default="")
     args = ap.parse_args()
+    if args.problem is None:
+        args.problem = get_case(args.case).problem_path
     if args.config is None:
         args.config = runtime_paths().agent_root / "configs" / "codex_smoke.yaml"
 

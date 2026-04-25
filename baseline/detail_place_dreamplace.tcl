@@ -3,11 +3,6 @@ utl::set_metrics_stage "dpl_evolve__dreamplace__{}"
 source $::env(SCRIPTS_DIR)/load.tcl
 source [file join [file dirname [info script]] dpl_evolve_helpers.tcl]
 
-set default_dreamplace_root ""
-if {[info exists ::env(DREAMPLACE_ROOT)]} {
-  set default_dreamplace_root $::env(DREAMPLACE_ROOT)
-}
-
 set options [dpl_evolve_baseline::parse_options $argv [dict create \
   input-odb "3_4_place_resized.odb" \
   input-sdc "2_floorplan.sdc" \
@@ -24,8 +19,8 @@ set options [dpl_evolve_baseline::parse_options $argv [dict create \
   after-snapshot [file join $::env(RESULTS_DIR) dpl_evolve_baseline dreamplace after.tsv] \
   summary-json [file join $::env(REPORTS_DIR) dpl_evolve_baseline dreamplace legalize_summary.json] \
   track "strict" \
-  legalizer "dreamplace_abacus" \
-  dreamplace-root $default_dreamplace_root \
+  legalizer "dreamplace_default" \
+  dreamplace-root "" \
   python ""]]
 
 set input_odb [dpl_evolve_baseline::option_value $options input-odb]
@@ -74,16 +69,6 @@ set python_candidates {}
 if { $requested_python ne "" } {
   lappend python_candidates $requested_python
 }
-if {[info exists ::env(DREAMPLACE_PYTHON)]} {
-  lappend python_candidates $::env(DREAMPLACE_PYTHON)
-}
-if {[info exists ::env(DPL_EVOLVE_PYTHON_CANDIDATES)]} {
-  foreach candidate [split $::env(DPL_EVOLVE_PYTHON_CANDIDATES) ":"] {
-    if {$candidate ne ""} {
-      lappend python_candidates $candidate
-    }
-  }
-}
 lappend python_candidates python3 python
 
 set python_exe ""
@@ -100,7 +85,7 @@ if { $python_exe eq "" } {
   error "Could not find a Python interpreter with torch."
 }
 
-set bridge_script [file join [file dirname [info script]] run_dp_abacus_bridge.py]
+set bridge_script [file join [file dirname [info script]] run_dreamplace_bridge.py]
 if { [catch {
   exec $python_exe $bridge_script \
     --dreamplace-input $export_json \

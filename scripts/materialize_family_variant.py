@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
+import signal
 import shutil
 import subprocess
 import sys
@@ -17,6 +17,8 @@ if str(AGENT_ROOT) not in sys.path:
     sys.path.insert(0, str(AGENT_ROOT))
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
+
+signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
 from family_mutations import apply_matrix_mutation, list_supported_families, resolve_family_mutation
 from runtime_paths import resolve_runtime_paths

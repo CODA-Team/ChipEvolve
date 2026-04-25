@@ -1,0 +1,33 @@
+{
+  "default": [
+    "aes_nangate45",
+    "ibex_nangate45",
+    "jpeg_nangate45",
+    "ariane133_nangate45",
+    "bp_quad_nangate45"
+  ],
+  "place_batch": [
+    "ibex_nangate45",
+    "jpeg_nangate45",
+    "aes_nangate45",
+    "ariane133_nangate45",
+    "bp_quad_nangate45",
+    "aes_asap7",
+    "ethmac_asap7",
+    "gcd_asap7",
+    "ibex_asap7",
+    "jpeg_asap7",
+    "megaboom_asap7",
+    "riscv32i_asap7",
+    "swerv_wrapper_asap7"
+  ],
+  "smoke": [
+    "aes_nangate45",
+    "jpeg_nangate45"
+  ],
+  "large_gate": [
+    "jpeg_nangate45",
+    "ariane133_nangate45",
+    "bp_quad_nangate45"
+  ]
+}

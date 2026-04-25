@@ -106,7 +106,7 @@ def recommend(metrics: dict):
             why.append("timing is already stressed, so a different initializer is worth trying early")
         add(
             recipe="legalm_engine_initial",
-            start_line="evolve_line",
+            start_line="evolve_default",
             score=score,
             why=why,
             caution=[
@@ -130,7 +130,7 @@ def recommend(metrics: dict):
         why.append("baseline placement is already heavy, so avoid wide-postopt as the initial path")
     add(
         recipe="runtime_aware_net_family",
-        start_line="evolve_line",
+        start_line="evolve_default",
         score=base_score,
         why=why,
         caution=[
@@ -141,7 +141,7 @@ def recommend(metrics: dict):
     if features["size_class"] in {"large", "very_large"} and features["timing_class"] == "timing_stressed":
         add(
             recipe="runtime_aware_net_family_plus_priority_escape",
-            start_line="evolve_line",
+            start_line="evolve_default",
             score=5,
             why=[
                 "large case is timing-stressed",
@@ -156,7 +156,7 @@ def recommend(metrics: dict):
     if features["size_class"] == "small" and features["runtime_class"] == "light":
         add(
             recipe="hpwl_wide_postopt",
-            start_line="evolve_line",
+            start_line="evolve_default",
             score=1,
             why=[
                 "small/light case can afford a quality-first exploratory donor run",

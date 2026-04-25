@@ -1,7 +1,6 @@
 SEED: 42
 TARGET_PLANE_ROOT: tools/OpenROAD/src/dpl_evolve
 ARTIFACT_ROOT: flow
-PROBLEM_ROOT: problems/gcd_nangate45
 EVALUATION_MODE: strict_then_flow
 PATCH_SURFACE_FILE: adapters/science_codeevolve/patch_surface.yaml
 BUDGET_CONFIG:

@@ -164,6 +164,23 @@ def resolve_input_path(
     return (cwd / path).resolve() if cwd is not None else path.resolve()
 
 
+def clean_subprocess_env(env: dict[str, str] | None = None) -> dict[str, str]:
+    """Return an environment safe to pass to shell subprocesses.
+
+    Interactive shells on shared EDA machines often export Bash functions such
+    as module helpers or repo-local Python aliases as BASH_FUNC_* entries.  A
+    non-interactive /bin/bash can print noisy "error importing function"
+    diagnostics when those definitions are not portable.  They are not needed
+    by the dpl_evolve workflow, so strip them from captured build/eval logs.
+    """
+
+    cleaned = dict(os.environ if env is None else env)
+    for key in list(cleaned):
+        if key.startswith("BASH_FUNC_"):
+            del cleaned[key]
+    return cleaned
+
+
 @dataclass(frozen=True)
 class RuntimePaths:
     orfs_root: Path

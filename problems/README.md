@@ -25,3 +25,10 @@ Examples:
 - Design-specific prompt files live under `../tasks/design_evolve/`
 - Design-specific regime hints live under `../knowledge/design_profiles/`
 - Baseline outputs still live under the ORFS `flow/` tree
+
+## Case Sets
+
+`case_sets.json` contains only named lists of case ids, such as `default`,
+`smoke`, `large_gate`, and `place_batch`. It is not a second source of case
+facts. Scripts must resolve every case id back through this directory's
+`problem.yaml` files.

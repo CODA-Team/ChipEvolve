@@ -38,19 +38,17 @@ Run:
 
 ```bash
 "$DPL_EVOLVE_AGENT_ROOT/scripts/run_canonical_line.sh" \
-  --line evolve_line \
-  --family-variant legalm_engine \
+  --line evolve_default \
   --openroad-binary "${OPENROAD_BINARY}" \
-  --design-config ./designs/nangate45/gcd/config.mk \
+  --case gcd_nangate45 \
   --flow-variant smoke_legalm_variant
 ```
 
 For matrix-style family variants, the harness keeps the common
 `detailed_placement_evolve -use_negotiation` command and routes that private
-materialized source to LEGALM internally.  For direct `--family-variant
-legalm_engine` runs, use the dedicated variant binary and the `legalm` engine
-path.  Do not change the central evaluator command to make a LEGALM result look
-successful.
+materialized source to LEGALM internally.  For direct checks, use the dedicated
+variant binary with the same `evolve_default` line.  Do not change the central
+evaluator command to make a LEGALM result look successful.
 
 The canonical family metadata lives in:
 

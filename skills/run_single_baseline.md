@@ -4,15 +4,15 @@ Manual one-line runner notes. Prefer `evaluator.py` for agent-managed runs.
 
 ## Lines
 
-- `baseline_default`
-- `baseline_dreamplace_abacus`
-- `evolve_line`
+- `openroad_dpl_negotiation`
+- `dreamplace_default`
+- `evolve_default`
 
 ## Preferred Manual Wrapper
 
 ```bash
 "$DPL_EVOLVE_AGENT_ROOT/scripts/run_canonical_line.sh" \
-  --line evolve_line \
+  --line evolve_default \
   --design-config ./designs/nangate45/gcd/config.mk \
   --flow-variant <FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB> \
   --run-tag <RUN_TAG> \
@@ -24,7 +24,7 @@ For a variant/family binary:
 ```bash
 source "${DPL_EVOLVE_STATE_ROOT}/variants/<agent_id>/variant_env.sh"
 "$DPL_EVOLVE_AGENT_ROOT/scripts/run_canonical_line.sh" \
-  --line evolve_line \
+  --line evolve_default \
   --openroad-binary "${OPENROAD_BINARY}" \
   --design-config ./designs/nangate45/gcd/config.mk \
   --flow-variant <FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB> \

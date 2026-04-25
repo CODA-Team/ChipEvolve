@@ -7,7 +7,7 @@ The example command is:
 
 ```bash
 python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/run_design_evolve_loop.py" \
-  --problem "$DPL_EVOLVE_AGENT_ROOT/problems/gcd_nangate45/problem.yaml" \
+  --case gcd_nangate45 \
   --loop-id gcd_example_run \
   --max-attempts 1
 ```
@@ -109,8 +109,7 @@ Important current behavior:
 
 - it uses the current problem file
 - it uses `--mode single`
-- it uses `line = evolve_line`
-- it uses `--evolve-engine default` by default
+- it uses `line = evolve_default`
 - it uses the latest discovered reusable `FLOW_VARIANT`
 - it uses the default config:
   [codex_design_specific.yaml](configs/codex_design_specific.yaml)
@@ -128,7 +127,7 @@ and not the heavier full local ORFS build.
 The evaluator then runs the clean evolve line through:
 
 - [run_baseline.sh](baseline/run_baseline.sh)
-- [run_evolve_line.sh](baseline/run_evolve_line.sh)
+- [run_evolve_default.sh](baseline/run_evolve_default.sh)
 
 and reads back:
 
@@ -316,7 +315,7 @@ If you run the example command above today, the default behavior is:
 
 - case: `gcd / nangate45`
 - prompt: [nangate45__gcd.md](tasks/design_evolve/nangate45__gcd.md)
-- evaluator line: `evolve_line`
+- evaluator line: `evolve_default`
 - evolve family inside the evaluator: `default`
 - build mode: `openroad_only`
 - evaluation track: `strict`
@@ -328,8 +327,8 @@ So this loop is currently testing:
 
 This example intentionally stays on the clean evolve line. If you switch to a
 family variant later, do not reuse the root binary silently. Variant runs
-should use a dedicated `OPENROAD_BINARY` from a matching `variant_env.sh` file
-or an explicit evaluator `openroad_binary` override.
+should pass the dedicated private binary path explicitly through the evaluator
+`--openroad-binary` option.
 
 It is not comparing directly against all four canonical baseline lines inside
 the loop. Those canonical baselines are still available separately through:
@@ -387,10 +386,8 @@ This flow now records clearly:
 
 ## Current limitation to know
 
-The loop currently defaults to the clean `evolve_line` with
-`evolve_engine=default`. Project-level docs should still treat that as
-implementation detail, not the main conceptual model. The conceptual model is
-still:
+The loop currently defaults to the clean `evolve_default` command. The
+conceptual model is:
 
 - baseline lines
 - clean evolve line

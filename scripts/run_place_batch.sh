@@ -5,49 +5,73 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/runtime_env.sh"
 
-MAX_TASKS="${MAX_TASKS:-5}"
-NUM_CORES="${NUM_CORES:-16}"
-TARGET="${TARGET:-place}"
-FLOW_VARIANT="${FLOW_VARIANT:-place_batch_$(date +%Y%m%d_%H%M%S)}"
+MAX_TASKS="5"
+NUM_CORES="16"
+TARGET="place"
+CASE_SET="place_batch"
+FLOW_VARIANT="place_batch_$(date +%Y%m%d_%H%M%S)"
 RUN_STAMP="$(date +%Y%m%d_%H%M%S)"
-
-DESIGN_CONFIGS=(
-  "./designs/nangate45/ibex/config.mk"
-  "./designs/nangate45/jpeg/config.mk"
-  "./designs/nangate45/aes/config.mk"
-  "./designs/nangate45/ariane133/config.mk"
-  "./designs/nangate45/bp_quad/config.mk"
-  "./designs/asap7/aes/config.mk"
-  "./designs/asap7/ethmac/config.mk"
-  "./designs/asap7/gcd/config.mk"
-  "./designs/asap7/ibex/config.mk"
-  "./designs/asap7/jpeg/config.mk"
-  "./designs/asap7/megaboom/config.mk"
-  "./designs/asap7/riscv32i/config.mk"
-  "./designs/asap7/swerv_wrapper/config.mk"
-)
+CASE_ID=""
 
 usage() {
   cat <<'EOF'
-Usage: run_place_batch.sh
+Usage: run_place_batch.sh [options]
 
-Environment overrides:
-  MAX_TASKS     Max concurrent jobs. Default: 5
-  NUM_CORES     Threads per ORFS invocation. Default: 16
-  TARGET        ORFS target. Default: place
-  FLOW_VARIANT  Shared FLOW_VARIANT for this batch. Default: place_batch_<timestamp>
+Options:
+  --case-set NAME       Case set from problems/case_sets.json. Default: place_batch.
+  --case ID             Single case override. The case must have problems/<id>/problem.yaml.
+  --max-tasks N         Max concurrent jobs. Default: 5.
+  --num-cores N         Threads per ORFS invocation. Default: 16.
+  --target NAME         ORFS target. Default: place.
+  --flow-variant NAME   Shared FLOW_VARIANT. Default: place_batch_<timestamp>.
+  --help                Show this message.
 
-This script prepares the initial place snapshots used later by code evolve.
+This script prepares initial place snapshots. Case facts come only from
+problems/<case>/problem.yaml; this script does not maintain design-config
+lists.
 EOF
 }
 
-if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
-  usage
-  exit 0
-fi
-
 dpl_init_runtime "run_place_batch.sh"
 REPO_ROOT="${ORFS_ROOT}"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --case-set)
+      CASE_SET="$2"
+      shift 2
+      ;;
+    --case)
+      CASE_ID="$2"
+      shift 2
+      ;;
+    --max-tasks)
+      MAX_TASKS="$2"
+      shift 2
+      ;;
+    --num-cores)
+      NUM_CORES="$2"
+      shift 2
+      ;;
+    --target)
+      TARGET="$2"
+      shift 2
+      ;;
+    --flow-variant)
+      FLOW_VARIANT="$2"
+      shift 2
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "[ERROR] Unknown argument: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
 
 FLOW_DIR="${REPO_ROOT}/flow"
 RUN_DIR="${FLOW_DIR}/logs/batch_runs/${FLOW_VARIANT}_${RUN_STAMP}"
@@ -57,6 +81,16 @@ cd "${FLOW_DIR}"
 
 mkdir -p "${RUN_DIR}"
 printf "config\tstatus\tlog\tstart\tend\n" > "${STATUS_FILE}"
+
+if [[ -n "${CASE_ID}" ]]; then
+  mapfile -t DESIGN_CONFIGS < <(
+    python3 "${SCRIPT_DIR}/case_registry.py" --case "${CASE_ID}" --field design_config
+  )
+else
+  mapfile -t DESIGN_CONFIGS < <(
+    python3 "${SCRIPT_DIR}/case_registry.py" --case-set "${CASE_SET}" --field design_config
+  )
+fi
 
 label_from_config() {
   local config="$1"
@@ -131,6 +165,11 @@ fi
 
 echo "Batch placement run"
 echo "  target      : ${TARGET}"
+if [[ -n "${CASE_ID}" ]]; then
+  echo "  case        : ${CASE_ID}"
+else
+  echo "  case_set    : ${CASE_SET}"
+fi
 echo "  flow_variant: ${FLOW_VARIANT}"
 echo "  max_tasks   : ${MAX_TASKS}"
 echo "  num_cores   : ${NUM_CORES}"

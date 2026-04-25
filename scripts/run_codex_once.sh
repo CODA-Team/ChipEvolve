@@ -7,17 +7,18 @@ dpl_init_runtime "run_codex_once.sh"
 
 AGENT_DIR="${DPL_EVOLVE_AGENT_ROOT}"
 REPO_ROOT="${ORFS_ROOT}"
-problem_dir="${AGENT_DIR}/problems/gcd_nangate45"
+case_id="gcd_nangate45"
+problem_dir=""
+problem_dir_override=0
 packet_dir="${DPL_EVOLVE_PACKET_DIR}"
 config_path="${AGENT_DIR}/configs/codex_smoke.yaml"
 eval_out="${DPL_EVOLVE_STATE_ROOT}/latest_eval.json"
 mode="single"
-line="evolve_line"
+line="evolve_default"
 flow_variant=""
 run_tag=""
 tag_prefix=""
 threads="8"
-evolve_engine="default"
 skip_build=0
 use_existing=0
 dry_run=0
@@ -34,17 +35,17 @@ This is a thin packet-and-evaluator wrapper:
 This script does not invoke `codex exec`.
 
 Options:
-  --problem-dir PATH        Problem directory. Default: \$DPL_EVOLVE_AGENT_ROOT/problems/gcd_nangate45
+  --case ID                 Case id under problems/. Default: gcd_nangate45.
+  --problem-dir PATH        Internal/debug override. Prefer --case.
   --packet-dir PATH         Packet output directory. Default: \$DPL_EVOLVE_PACKET_DIR
   --config PATH             Evaluator config YAML. Default: \$DPL_EVOLVE_AGENT_ROOT/configs/codex_smoke.yaml
   --eval-out PATH           Evaluator JSON output. Default: \$DPL_EVOLVE_STATE_ROOT/latest_eval.json
   --mode MODE               single|suite. Default: single
-  --line NAME               Single-line target. Default: evolve_line
+  --line NAME               Single-line target. Default: evolve_default
   --flow-variant NAME       FLOW_VARIANT to reuse or create
   --run-tag NAME            Run tag for single mode
   --tag-prefix NAME         Prefix for suite mode
   --threads N               Worker threads. Default: 8
-  --evolve-engine MODE      default|negotiation|negotiation_abacus. Default: default
   --skip-build              Skip build step in evaluator
   --use-existing            Reuse existing artifacts
   --dry-run                 Resolve commands only
@@ -73,7 +74,8 @@ resolve_runtime_path() {
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --problem-dir) problem_dir="$2"; shift 2 ;;
+    --case) case_id="$2"; shift 2 ;;
+    --problem-dir) problem_dir="$2"; problem_dir_override=1; shift 2 ;;
     --packet-dir) packet_dir="$2"; shift 2 ;;
     --config) config_path="$2"; shift 2 ;;
     --eval-out) eval_out="$2"; shift 2 ;;
@@ -83,7 +85,6 @@ while [[ $# -gt 0 ]]; do
     --run-tag) run_tag="$2"; shift 2 ;;
     --tag-prefix) tag_prefix="$2"; shift 2 ;;
     --threads) threads="$2"; shift 2 ;;
-    --evolve-engine) evolve_engine="$2"; shift 2 ;;
     --skip-build) skip_build=1; shift ;;
     --use-existing) use_existing=1; shift ;;
     --dry-run) dry_run=1; shift ;;
@@ -98,6 +99,10 @@ case "${mode}" in
   *) echo "Unsupported mode: ${mode}" >&2; exit 1 ;;
 esac
 
+if [[ -z "${problem_dir}" ]]; then
+  problem_dir="$(python3 "${SCRIPT_DIR}/case_registry.py" --case "${case_id}" --field problem)"
+  problem_dir="$(dirname "${problem_dir}")"
+fi
 problem_dir="$(resolve_runtime_path "${problem_dir}")"
 packet_dir="$(resolve_runtime_path "${packet_dir}")"
 config_path="$(resolve_runtime_path "${config_path}")"
@@ -118,13 +123,16 @@ fi
 cmd=(
   python3
   "${AGENT_DIR}/adapters/science_codeevolve/evaluator.py"
-  --problem "${problem_yaml}"
   --config "${config_path}"
   --out "${eval_out}"
   --mode "${mode}"
   --threads "${threads}"
-  --evolve-engine "${evolve_engine}"
 )
+if [[ "${problem_dir_override}" == "1" ]]; then
+  cmd+=(--problem "${problem_yaml}")
+else
+  cmd+=(--case "${case_id}")
+fi
 
 if [[ -n "${flow_variant}" ]]; then
   cmd+=(--flow-variant "${flow_variant}")

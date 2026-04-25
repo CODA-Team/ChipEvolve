@@ -40,6 +40,16 @@ scripts or docs. The default `DPL_EVOLVE_STATE_ROOT` is
 `$DPL_EVOLVE_AGENT_ROOT/.dpl_evolve_state`; use another local path only if you
 need a larger scratch filesystem.
 
+Case facts have one source of truth:
+
+```text
+problems/<case>/problem.yaml
+```
+
+Batch scripts may use named lists from `problems/case_sets.json`, but those
+lists contain only case ids. They do not duplicate design configs or platform
+facts.
+
 If you prefer a local convenience link:
 
 ```bash
@@ -92,6 +102,15 @@ Build common OpenROAD core once:
 "$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_core.sh" 10
 ```
 
+The reusable common core is stored under the agent state root, for example:
+
+```text
+dpl_evolve_agent/.dpl_evolve_state/openroad_core/<prepared-openroad-sha>/
+```
+
+The upstream OpenROAD anchor itself does not contain `src/dpl_evolve`; run the
+prepare step first so the OpenROAD submodule is at the local prepared commit.
+
 Create one private variant source and binary:
 
 ```bash
@@ -104,15 +123,17 @@ rsync -a --delete \
   --variant-root "${DPL_EVOLVE_STATE_ROOT}/variants/test_agent" \
   --dpl-src "${DPL_EVOLVE_STATE_ROOT}/variants/test_agent/dpl_evolve"
 
-source "${DPL_EVOLVE_STATE_ROOT}/variants/test_agent/variant_env.sh"
-"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_variant_relink.sh" --threads 10
+"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_variant_relink.sh" \
+  --variant-root "${DPL_EVOLVE_STATE_ROOT}/variants/test_agent" \
+  --dpl-src "${DPL_EVOLVE_STATE_ROOT}/variants/test_agent/dpl_evolve" \
+  --threads 10
 ```
 
 The variant build produces:
 
 ```text
-${OPENROAD_BINARY}
-${OPENROAD_INSTALL_ROOT}/bin/sta
+${DPL_EVOLVE_STATE_ROOT}/variants/test_agent/install/OpenROAD/bin/openroad
+${DPL_EVOLVE_STATE_ROOT}/variants/test_agent/install/OpenROAD/bin/sta
 ```
 
 `sta` is symlinked from the common-core build when available.
@@ -123,13 +144,13 @@ Use an explicit binary for variant runs:
 
 ```bash
 python3 "$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py" \
-  --problem "$DPL_EVOLVE_AGENT_ROOT/problems/gcd_nangate45/problem.yaml" \
+  --case gcd_nangate45 \
   --mode single \
-  --line evolve_line \
+  --line evolve_default \
   --flow-variant <FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB> \
   --run-tag smoke_gcd \
   --skip-build \
-  --openroad-binary "${OPENROAD_BINARY}" \
+  --openroad-binary "${DPL_EVOLVE_STATE_ROOT}/variants/test_agent/install/OpenROAD/bin/openroad" \
   --out "${DPL_EVOLVE_STATE_ROOT}/checkpoints/operations/smoke_gcd/eval.json"
 ```
 
@@ -143,7 +164,7 @@ flow/reports/<platform>/<design>/<FLOW_VARIANT>/dpl_evolve_baseline/<run_tag>/me
 
 ```bash
 python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/run_design_evolve_loop.py" \
-  --problem "$DPL_EVOLVE_AGENT_ROOT/problems/gcd_nangate45/problem.yaml" \
+  --case gcd_nangate45 \
   --max-attempts 3
 ```
 

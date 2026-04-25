@@ -5,7 +5,6 @@ import argparse
 import csv
 import json
 import math
-import os
 import sys
 import time
 from pathlib import Path
@@ -315,8 +314,8 @@ def main() -> None:
     parser.add_argument("--summary", help="Legacy input snapshot summary JSON.")
     parser.add_argument(
         "--dreamplace-root",
-        default=os.environ.get("DREAMPLACE_ROOT", ""),
-        help="DREAMPlace checkout root. Default: DREAMPLACE_ROOT.",
+        default="",
+        help="DreamPlace checkout root.",
     )
     parser.add_argument(
         "--output-coords",
@@ -338,7 +337,7 @@ def main() -> None:
 
     if args.dreamplace_input:
         if dreamplace_root is None:
-            raise SystemExit("DREAMPlace bridge requires DREAMPLACE_ROOT or --dreamplace-root.")
+            raise SystemExit("DreamPlace bridge requires --dreamplace-root.")
         payload = json.loads(resolve_flow_path(args.dreamplace_input).read_text(encoding="utf-8"))
         run_abacus(payload, dreamplace_root, output_coords, output_manifest)
         return

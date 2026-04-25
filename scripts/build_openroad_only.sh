@@ -6,35 +6,130 @@ source "${SCRIPT_DIR}/runtime_env.sh"
 dpl_init_runtime "build_openroad_only.sh"
 echo "[INFO] runtime_orfs_build_root=${ORFS_BUILD_ROOT:-}"
 ROOT_DIR="${ORFS_ROOT}"
-THREADS="${1:-8}"
-INCREMENTAL_TARGETS_RAW="${OPENROAD_INCREMENTAL_TARGETS:-openroad sta}"
-INITIAL_CMAKE_ARGS_RAW="${OPENROAD_INITIAL_CMAKE_ARGS:-}"
-DISABLE_TESTS_RAW="${OPENROAD_DISABLE_TESTS:-1}"
-DISABLE_GUI_RAW="${OPENROAD_DISABLE_GUI:-0}"
-INSTALL_MODE="${OPENROAD_INSTALL_MODE:-binaries}"
-CORE_ROOT_RAW="${OPENROAD_CORE_ROOT:-}"
+THREADS="8"
+INCREMENTAL_TARGETS_RAW="openroad sta"
+INITIAL_CMAKE_ARGS_RAW=""
+DISABLE_TESTS_RAW="1"
+DISABLE_GUI_RAW="0"
+INSTALL_MODE="binaries"
+CORE_ROOT_RAW=""
+BUILD_DIR_RAW=""
+INSTALL_ROOT_RAW=""
+INSTALL_BIN_RAW=""
+GENERATOR=""
+INSTALL_RPATH=""
 BUILD_ROOT="${ORFS_BUILD_ROOT:-${ORFS_ROOT}}"
 if [[ "${ORFS_ROOT}" == *" "* && "${BUILD_ROOT}" == "${ORFS_ROOT}" ]]; then
   BUILD_ROOT="$(_dpl_stable_alias_root)"
   export ORFS_BUILD_ROOT="${BUILD_ROOT}"
 fi
 
-if [[ -n "${OPENROAD_BUILD_DIR:-}" && "${OPENROAD_BUILD_DIR}" == *" "* ]]; then
-  echo "[ERROR] OPENROAD_BUILD_DIR contains spaces. Use the default build dir or a space-free explicit path." >&2
-  exit 1
-fi
-if [[ -n "${OPENROAD_INSTALL_ROOT:-}" && "${OPENROAD_INSTALL_ROOT}" == *" "* ]]; then
-  echo "[ERROR] OPENROAD_INSTALL_ROOT contains spaces. Use the default install root or a space-free explicit path." >&2
-  exit 1
-fi
-if [[ -n "${OPENROAD_BINARY:-}" && "${OPENROAD_BINARY}" == *" "* ]]; then
-  echo "[ERROR] OPENROAD_BINARY contains spaces. Use the default binary path or a space-free explicit path." >&2
-  exit 1
-fi
+usage() {
+  cat <<'EOF'
+Usage: build_openroad_only.sh [options] [threads]
 
-BUILD_DIR="${OPENROAD_BUILD_DIR:-${BUILD_ROOT}/tools/OpenROAD/build}"
-INSTALL_ROOT="${OPENROAD_INSTALL_ROOT:-${BUILD_ROOT}/tools/install/OpenROAD}"
-INSTALL_BIN="${OPENROAD_BINARY:-${INSTALL_ROOT}/bin/openroad}"
+Internal helper for building the reusable common-core OpenROAD binary. The
+normal per-agent compile path is build_openroad_variant_relink.sh.
+
+Options:
+  --threads N              Build threads. Default: 8.
+  --build-dir PATH         Build directory. Default: <orfs>/tools/OpenROAD/build.
+  --install-root PATH      Install root. Default: <orfs>/tools/install/OpenROAD.
+  --openroad-binary PATH   Output OpenROAD binary. Default: <install-root>/bin/openroad.
+  --core-root PATH         Optional common-core seed to copy from.
+  --targets "A B"          CMake targets. Default: "openroad sta".
+  --cmake-arg ARG          Extra CMake configure argument. May be repeated.
+  --generator NAME         CMake generator.
+  --install-rpath PATHS    CMAKE_INSTALL_RPATH value.
+  --install-mode MODE      binaries or cmake. Default: binaries.
+  --enable-tests           Configure with ENABLE_TESTS=ON.
+  --disable-tests          Configure with ENABLE_TESTS=OFF. Default.
+  --enable-gui             Configure with BUILD_GUI=ON. Default.
+  --disable-gui            Configure with BUILD_GUI=OFF.
+  --help                   Show this message.
+
+OPENROAD_* environment variables are intentionally not used as path defaults.
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --threads)
+      THREADS="$2"
+      shift 2
+      ;;
+    --build-dir)
+      BUILD_DIR_RAW="$2"
+      shift 2
+      ;;
+    --install-root)
+      INSTALL_ROOT_RAW="$2"
+      shift 2
+      ;;
+    --openroad-binary)
+      INSTALL_BIN_RAW="$2"
+      shift 2
+      ;;
+    --core-root)
+      CORE_ROOT_RAW="$2"
+      shift 2
+      ;;
+    --targets)
+      INCREMENTAL_TARGETS_RAW="$2"
+      shift 2
+      ;;
+    --cmake-arg)
+      INITIAL_CMAKE_ARGS_RAW+="${INITIAL_CMAKE_ARGS_RAW:+ }$2"
+      shift 2
+      ;;
+    --generator)
+      GENERATOR="$2"
+      shift 2
+      ;;
+    --install-rpath)
+      INSTALL_RPATH="$2"
+      shift 2
+      ;;
+    --install-mode)
+      INSTALL_MODE="$2"
+      shift 2
+      ;;
+    --enable-tests)
+      DISABLE_TESTS_RAW="0"
+      shift
+      ;;
+    --disable-tests)
+      DISABLE_TESTS_RAW="1"
+      shift
+      ;;
+    --enable-gui)
+      DISABLE_GUI_RAW="0"
+      shift
+      ;;
+    --disable-gui)
+      DISABLE_GUI_RAW="1"
+      shift
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      if [[ "$1" =~ ^[0-9]+$ ]]; then
+        THREADS="$1"
+        shift
+      else
+        echo "[ERROR] Unknown argument: $1" >&2
+        usage >&2
+        exit 1
+      fi
+      ;;
+  esac
+done
+
+BUILD_DIR="${BUILD_DIR_RAW:-${BUILD_ROOT}/tools/OpenROAD/build}"
+INSTALL_ROOT="${INSTALL_ROOT_RAW:-${BUILD_ROOT}/tools/install/OpenROAD}"
+INSTALL_BIN="${INSTALL_BIN_RAW:-${INSTALL_ROOT}/bin/openroad}"
 OPENROAD_SRC="${BUILD_ROOT}/tools/OpenROAD"
 CORE_ROOT=""
 if [[ -n "${CORE_ROOT_RAW}" ]]; then
@@ -79,11 +174,11 @@ seed_from_core_if_needed() {
     return 0
   fi
   if [[ ! -f "${core_build_dir}/CMakeCache.txt" ]]; then
-    echo "[ERROR] OPENROAD_CORE_ROOT is set but missing seeded build cache: ${core_build_dir}" >&2
+    echo "[ERROR] Explicit core root is missing seeded build cache: ${core_build_dir}" >&2
     exit 1
   fi
   if [[ ! -x "${core_install_root}/bin/openroad" ]]; then
-    echo "[ERROR] OPENROAD_CORE_ROOT is set but missing core binary: ${core_install_root}/bin/openroad" >&2
+    echo "[ERROR] Explicit core root is missing core binary: ${core_install_root}/bin/openroad" >&2
     exit 1
   fi
   echo "[INFO] Seeding variant build/install from common core."
@@ -153,8 +248,8 @@ if [[ "${BUILD_NEEDS_CONFIGURE}" == "1" ]]; then
     -D "CMAKE_INSTALL_PREFIX=${INSTALL_ROOT}"
     -D "CMAKE_EXPORT_COMPILE_COMMANDS=ON"
   )
-  if [[ -n "${CMAKE_GENERATOR:-}" ]]; then
-    configure_cmd+=(-G "${CMAKE_GENERATOR}")
+  if [[ -n "${GENERATOR}" ]]; then
+    configure_cmd+=(-G "${GENERATOR}")
   fi
   if is_truthy "${DISABLE_TESTS_RAW}"; then
     configure_cmd+=(-D "ENABLE_TESTS=OFF")
@@ -162,9 +257,9 @@ if [[ "${BUILD_NEEDS_CONFIGURE}" == "1" ]]; then
   if is_truthy "${DISABLE_GUI_RAW}"; then
     configure_cmd+=(-D "BUILD_GUI=OFF")
   fi
-  if [[ -n "${CMAKE_INSTALL_RPATH:-}" ]]; then
+  if [[ -n "${INSTALL_RPATH}" ]]; then
     configure_cmd+=(
-      -D "CMAKE_INSTALL_RPATH=${CMAKE_INSTALL_RPATH}"
+      -D "CMAKE_INSTALL_RPATH=${INSTALL_RPATH}"
       -D "CMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE"
     )
   fi
@@ -205,7 +300,7 @@ case "${INSTALL_MODE}" in
     cmake --install "${BUILD_DIR}" --prefix "${INSTALL_ROOT}"
     ;;
   *)
-    echo "[ERROR] Unknown OPENROAD_INSTALL_MODE=${INSTALL_MODE}; expected binaries or cmake." >&2
+    echo "[ERROR] Unknown install mode: ${INSTALL_MODE}; expected binaries or cmake." >&2
     exit 1
     ;;
 esac

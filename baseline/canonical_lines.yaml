@@ -1,25 +1,24 @@
 canonical_lines:
-  - id: baseline_default
+  - id: dreamplace_default
     kind: baseline
     start_point: 3_4_place_resized.odb
-    entry_script: $DPL_EVOLVE_AGENT_ROOT/baseline/run_or_default.sh
+    entry_script: $DPL_EVOLVE_AGENT_ROOT/baseline/run_dreamplace_default.sh
     notes:
-      - "default OpenROAD detailed placement legalizer"
-      - "canonical baseline line"
+      - "DreamPlace bridge default placement line"
+      - "requires explicit --dreamplace-root"
 
-  - id: baseline_dreamplace_abacus
+  - id: openroad_dpl_negotiation
     kind: baseline
     start_point: 3_4_place_resized.odb
-    entry_script: $DPL_EVOLVE_AGENT_ROOT/baseline/run_dp_abacus.sh
+    entry_script: $DPL_EVOLVE_AGENT_ROOT/baseline/run_openroad_negotiation.sh
     notes:
-      - "DreamPlace bridge plus Abacus baseline"
-      - "canonical baseline line"
+      - "OpenROAD detailed_placement with -use_negotiation"
+      - "canonical OpenROAD DPL baseline for evolve comparisons"
 
-  - id: evolve_line
+  - id: evolve_default
     kind: evolve
     start_point: 3_4_place_resized.odb
-    entry_script: $DPL_EVOLVE_AGENT_ROOT/baseline/run_evolve_line.sh
+    entry_script: $DPL_EVOLVE_AGENT_ROOT/baseline/run_evolve_default.sh
     notes:
-      - "clean initial detailed_placement_evolve line"
-      - "family variants reuse the same line through a dedicated binary"
-      - "legalm_engine is the current external family variant"
+      - "clean detailed_placement_evolve default command"
+      - "agent variants modify dpl_evolve source and keep this command contract"

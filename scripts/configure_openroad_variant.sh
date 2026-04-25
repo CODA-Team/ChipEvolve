@@ -13,14 +13,14 @@ DEFAULT_CORE_ROOT="${DPL_EVOLVE_STATE_ROOT}/openroad_core/${OPENROAD_ANCHOR_ID}"
 DEFAULT_VARIANT_ROOT="${DPL_EVOLVE_STATE_ROOT}/variants/default"
 EXISTING_CACHE="${ROOT_DIR}/tools/OpenROAD/build/CMakeCache.txt"
 
-variant_root="${OPENROAD_VARIANT_ROOT:-$DEFAULT_VARIANT_ROOT}"
-build_dir="${OPENROAD_BUILD_DIR:-}"
-install_root="${OPENROAD_INSTALL_ROOT:-}"
-dpl_evolve_src="${DPL_EVOLVE_SRC_DIR:-}"
-core_root="${OPENROAD_CORE_ROOT:-$DEFAULT_CORE_ROOT}"
-generator="${CMAKE_GENERATOR:-}"
-disable_tests_raw="${OPENROAD_DISABLE_TESTS:-1}"
-disable_gui_raw="${OPENROAD_DISABLE_GUI:-0}"
+variant_root="$DEFAULT_VARIANT_ROOT"
+build_dir=""
+install_root=""
+dpl_evolve_src=""
+core_root="$DEFAULT_CORE_ROOT"
+generator=""
+disable_tests_raw="1"
+disable_gui_raw="0"
 
 usage() {
   cat <<'EOF'
@@ -36,19 +36,20 @@ Options:
                            <state>/openroad_core/<openroad-head>
   --generator NAME         CMake generator. Default: reuse existing cache or
                            fall back to Unix Makefiles.
+  --enable-tests           Configure with ENABLE_TESTS=ON.
+  --disable-tests          Configure with ENABLE_TESTS=OFF. Default.
+  --enable-gui             Configure with BUILD_GUI=ON. Default.
+  --disable-gui            Configure with BUILD_GUI=OFF.
   --help                   Show this message.
 
 Output:
   Writes <variant-root>/variant_env.sh with OPENROAD_BUILD_DIR,
   OPENROAD_INSTALL_ROOT, OPENROAD_BINARY, and optional DPL_EVOLVE_SRC_DIR.
 
-Environment fallbacks:
-  OPENROAD_VARIANT_ROOT
-  OPENROAD_BUILD_DIR
-  OPENROAD_INSTALL_ROOT
-  DPL_EVOLVE_SRC_DIR
-  OPENROAD_CORE_ROOT
-  CMAKE_GENERATOR
+Notes:
+  This full CMake variant path is kept for compatibility. The normal agent
+  path is configure_openroad_variant_relink.sh plus build_openroad_variant_relink.sh.
+  OPENROAD_* environment variables are not used as path defaults.
 EOF
 }
 
@@ -77,6 +78,22 @@ while [[ $# -gt 0 ]]; do
     --generator)
       generator="$2"
       shift 2
+      ;;
+    --enable-tests)
+      disable_tests_raw="0"
+      shift
+      ;;
+    --disable-tests)
+      disable_tests_raw="1"
+      shift
+      ;;
+    --enable-gui)
+      disable_gui_raw="0"
+      shift
+      ;;
+    --disable-gui)
+      disable_gui_raw="1"
+      shift
       ;;
     --help|-h)
       usage
@@ -201,4 +218,4 @@ echo "[INFO] export OPENROAD_CORE_ROOT=${core_root}"
 echo "[INFO] export OPENROAD_BUILD_DIR=${build_dir}"
 echo "[INFO] export OPENROAD_INSTALL_ROOT=${install_root}"
 echo "[INFO] export OPENROAD_BINARY=${install_root}/bin/openroad"
-echo "[INFO] source ${variant_env}"
+echo "[INFO] Prefer explicit --openroad-binary ${install_root}/bin/openroad in evaluator runs."

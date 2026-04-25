@@ -9,7 +9,7 @@ or OpenROAD directly:
 python3 scripts/run_variant_experiment_matrix.py \
   --experiment-id row_bucket_r5_gate \
   --variants negotiation_row_bucket_quality_frontier_r5 \
-  --cases aes_nangate45 jpeg_nangate45 ariane133_nangate45
+  --case-set large_gate
 ```
 
 The variant keeps the normal `detailed_placement_evolve -use_negotiation`

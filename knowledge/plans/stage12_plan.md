@@ -105,10 +105,10 @@ Output:
    - later, once the engine is stable
 
 ### Baseline execution scripts to prepare
-- `dpl_evolve/baseline/run_or_default.sh`
+- `dpl_evolve/baseline/run_openroad_negotiation.sh`
 - `dpl_evolve/baseline/run_or_nblg.sh`
 - `dpl_evolve/baseline/run_or_nblg_abacus.sh`
-- `dpl_evolve/baseline/run_dp_abacus_bridge.py`
+- `dpl_evolve/baseline/run_dreamplace_bridge.py`
 - `dpl_evolve/baseline/collect_metrics.py`
 - `dpl_evolve/baseline/dump_placement_snapshot.tcl`
 - `dpl_evolve/baseline/import_legalized_coords.tcl`
@@ -247,10 +247,10 @@ Mapping:
 dpl_evolve/
   README.md
   baseline/
-    run_or_default.sh
+    run_openroad_negotiation.sh
     run_or_nblg.sh
     run_or_nblg_abacus.sh
-    run_dp_abacus_bridge.py
+    run_dreamplace_bridge.py
     collect_metrics.py
     dump_placement_snapshot.tcl
     import_legalized_coords.tcl

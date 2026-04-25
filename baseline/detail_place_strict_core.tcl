@@ -44,7 +44,7 @@ source_step_tcl PRE DETAIL_PLACE
 file mkdir [dpl_evolve_baseline::resolve_flow_path $run_dir]
 file mkdir [dpl_evolve_baseline::resolve_flow_path $report_dir]
 
-set pad_sites [expr {[info exists ::env(CELL_PAD_IN_SITES_DETAIL_PLACEMENT)] ? $::env(CELL_PAD_IN_SITES_DETAIL_PLACEMENT) : 0}]
+set pad_sites 0
 
 set dbu_per_micron [dpl_evolve_baseline::get_dbu_per_micron]
 set hpwl_before [dpl_evolve_baseline::compute_hpwl_proxy]

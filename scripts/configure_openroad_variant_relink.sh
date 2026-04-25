@@ -12,11 +12,11 @@ OPENROAD_ANCHOR_ID="$(git -C "${OPENROAD_SRC}" rev-parse --short HEAD)"
 DEFAULT_CORE_ROOT="${DPL_EVOLVE_STATE_ROOT}/openroad_core/${OPENROAD_ANCHOR_ID}"
 DEFAULT_VARIANT_ROOT="${DPL_EVOLVE_STATE_ROOT}/variants/default"
 
-variant_root="${OPENROAD_VARIANT_ROOT:-$DEFAULT_VARIANT_ROOT}"
-build_dir="${OPENROAD_BUILD_DIR:-}"
-install_root="${OPENROAD_INSTALL_ROOT:-}"
-dpl_evolve_src="${DPL_EVOLVE_SRC_DIR:-}"
-core_root="${OPENROAD_CORE_ROOT:-$DEFAULT_CORE_ROOT}"
+variant_root="$DEFAULT_VARIANT_ROOT"
+build_dir=""
+install_root=""
+dpl_evolve_src=""
+core_root="$DEFAULT_CORE_ROOT"
 
 usage() {
   cat <<'EOF'
@@ -36,6 +36,11 @@ Output:
   Writes <variant-root>/variant_env.sh with OPENROAD_CORE_ROOT,
   OPENROAD_BUILD_DIR, OPENROAD_INSTALL_ROOT, OPENROAD_BINARY,
   DPL_EVOLVE_SRC_DIR, and OPENROAD_VARIANT_MODE=relink.
+
+Notes:
+  This script does not read OPENROAD_* or DPL_EVOLVE_SRC_DIR environment
+  variables as path defaults. Use the explicit options above so variant builds
+  are reproducible from the command line and gate logs.
 EOF
 }
 
@@ -113,4 +118,4 @@ echo "[INFO] build_dir=${build_dir}"
 echo "[INFO] install_root=${install_root}"
 echo "[INFO] dpl_evolve_src=${dpl_evolve_src}"
 echo "[INFO] variant_env=${variant_env}"
-echo "[INFO] source ${variant_env}"
+echo "[INFO] Use --openroad-binary ${install_root}/bin/openroad for evaluator runs."

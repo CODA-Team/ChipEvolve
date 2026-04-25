@@ -9,11 +9,11 @@ shift || true
 
 exec python3 "${AGENT_ROOT}/scripts/run_variant_experiment_matrix.py" \
   --experiment-id "${experiment_id}" \
-  --family-groups ${DPL_EVOLVE_MATRIX_FAMILY_GROUPS:-robust_base} \
-  --cases aes_nangate45 ibex_nangate45 jpeg_nangate45 ariane133_nangate45 bp_quad_nangate45 \
-  --build-jobs "${DPL_EVOLVE_MATRIX_BUILD_JOBS:-4}" \
-  --build-threads "${DPL_EVOLVE_MATRIX_BUILD_THREADS:-10}" \
-  --eval-jobs "${DPL_EVOLVE_MATRIX_EVAL_JOBS:-8}" \
-  --eval-threads "${DPL_EVOLVE_MATRIX_EVAL_THREADS:-10}" \
-  --eval-timeout-sec "${DPL_EVOLVE_MATRIX_EVAL_TIMEOUT_SEC:-900}" \
+  --family-groups robust_base \
+  --case-set default \
+  --build-jobs 4 \
+  --build-threads 10 \
+  --eval-jobs 8 \
+  --eval-threads 10 \
+  --eval-timeout-sec 900 \
   "$@"

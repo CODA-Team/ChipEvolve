@@ -20,8 +20,8 @@ source_surfaces:
   - "materialized dpl_evolve/src/Opendp.cpp"
   - "materialized dpl_evolve/src/Opendp.i"
   - "materialized dpl_evolve/src/Opendp.tcl"
-  - "evolve_agent/baseline/detail_place_only_evolve_legalm.tcl"
-  - "evolve_agent/baseline/flow/detail_place_flow_evolve_legalm.tcl"
+  - "evolve_agent/baseline/detail_place_strict_core.tcl"
+  - "evolve_agent/baseline/detail_place_strict_core.tcl"
 mechanisms:
   - "Stage1 scanline-based initial legalization"
   - "Stage2 ALM-based legalization with BGD, multiplier update, partition refresh, and local optimum escape"

@@ -10,7 +10,7 @@ Use it through:
 
 Build it into a dedicated OpenROAD binary, then run it as:
 
-- the clean `evolve_line`
+- the clean `evolve_default`
 - with the `legalm_engine` family variant binary
 - on the `strict` legalization-only track
 

@@ -1,7 +1,7 @@
 effective_families:
   - regime: normal_nangate45_first_shot_runtime_quality
     start_with: search_narrow_runtime
-    start_line: evolve_line
+    start_line: evolve_default
     use_for:
       - aes_nangate45
       - ibex_nangate45
@@ -25,7 +25,7 @@ effective_families:
 
   - regime: case_specific_history_cost_shaping
     start_with: history_strong_or_history_soft_after_search_narrow
-    start_line: evolve_line
+    start_line: evolve_default
     use_for:
       - ibex_nangate45
       - jpeg_nangate45
@@ -45,7 +45,7 @@ effective_families:
 
   - regime: medium_case_new_initializer
     start_with: legalm_engine_initial
-    start_line: evolve_line
+    start_line: evolve_default
     variant_family: legalm_engine
     use_for:
       - aes_nangate45
@@ -69,7 +69,7 @@ effective_families:
 
   - regime: large_case_runtime_first
     start_with: runtime_aware_net_family
-    start_line: evolve_line
+    start_line: evolve_default
     use_for:
       - ariane133_nangate45
       - jpeg_nangate45
@@ -90,7 +90,7 @@ effective_families:
 
   - regime: large_case_timing_stressed
     start_with: runtime_aware_net_family_plus_priority_escape
-    start_line: evolve_line
+    start_line: evolve_default
     use_for:
       - ariane133_nangate45
       - cases showing stuck-cell behavior or negative setup WNS/TNS after the runtime-aware base

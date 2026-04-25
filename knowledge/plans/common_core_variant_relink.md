@@ -61,8 +61,10 @@ Each agent or family gets one private `dpl_evolve` tree:
 "$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_variant_relink.sh" \
   --variant-root "${DPL_EVOLVE_STATE_ROOT}/variants/<agent_id>" \
   --dpl-src /abs/path/to/<agent_id>/dpl_evolve
-source "${DPL_EVOLVE_STATE_ROOT}/variants/<agent_id>/variant_env.sh"
-"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_variant_relink.sh" --threads 10
+"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_variant_relink.sh" \
+  --variant-root "${DPL_EVOLVE_STATE_ROOT}/variants/<agent_id>" \
+  --dpl-src /abs/path/to/<agent_id>/dpl_evolve \
+  --threads 10
 ```
 
 The build script:
@@ -80,11 +82,11 @@ Variant runs must bind the private binary explicitly:
 python3 "$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py" \
   --problem "$DPL_EVOLVE_AGENT_ROOT/problems/gcd_nangate45/problem.yaml" \
   --mode single \
-  --line evolve_line \
+  --line evolve_default \
   --flow-variant <FLOW_VARIANT> \
   --run-tag <RUN_TAG> \
   --skip-build \
-  --openroad-binary "${OPENROAD_BINARY}" \
+  --openroad-binary "${DPL_EVOLVE_STATE_ROOT}/variants/<agent_id>/install/OpenROAD/bin/openroad" \
   --out "${DPL_EVOLVE_STATE_ROOT}/checkpoints/operations/<RUN_TAG>/eval.json"
 ```
 

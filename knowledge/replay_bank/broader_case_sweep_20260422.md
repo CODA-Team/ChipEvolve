@@ -8,7 +8,7 @@ HPWL-aware/wide-postopt patch family.
 
 Compared lines:
 - `baseline_nblg`
-- `evolve_line` with the negotiation-family source stack
+- `evolve_default` with the negotiation-family source stack
 
 Shared setup:
 - `track = strict`

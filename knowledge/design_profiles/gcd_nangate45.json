@@ -12,7 +12,7 @@
   ],
   "notes": [
     "Use this as an initial small/cheap design-specific task.",
-    "Prefer baseline_default, baseline_dreamplace_abacus, and the clean evolve_line before any wider sweep."
+    "Prefer openroad_dpl_negotiation, dreamplace_default, and the clean evolve_default before any wider sweep."
   ],
   "recommended_playbooks": [
     "negotiation_cost_family",

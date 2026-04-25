@@ -19,11 +19,11 @@ if str(AGENT_ROOT) not in sys.path:
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
+from case_registry import resolve_cases
 from family_mutations import list_supported_families, resolve_family_mutation
 from materialize_family_variant import materialize_family_variant
-from runtime_paths import resolve_runtime_paths
+from runtime_paths import clean_subprocess_env, resolve_runtime_paths
 from run_variant_experiment_matrix import (
-    DEFAULT_CASES,
     discover_flow_variant,
     ensure_registered_common_core,
     find_python_with_yaml,
@@ -218,7 +218,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run base bring-up gates for a dpl_evolve family.")
     parser.add_argument("--family")
     parser.add_argument("--experiment-id", default=f"family_base_gate_{now_stamp()}")
-    parser.add_argument("--cases", nargs="+", default=DEFAULT_CASES)
+    parser.add_argument("--case-set", default="default")
+    parser.add_argument("--case", default=None)
     parser.add_argument("--threads", type=int, default=10)
     parser.add_argument("--eval-timeout-sec", type=int, default=900)
     parser.add_argument("--legalizer-only-first", action="store_true")
@@ -247,10 +248,11 @@ def main() -> None:
     orfs_root = runtime.orfs_root
     state_root = runtime.state_root
     recipe = resolve_family_mutation(args.family)
+    selected_cases = resolve_cases([args.case] if args.case else None, case_set=args.case_set)
     gate_root = state_root / "family_gates" / args.experiment_id / args.family
     gate_root.mkdir(parents=True, exist_ok=True)
 
-    env = os.environ.copy()
+    env = clean_subprocess_env()
     env["DPL_EVOLVE_AGENT_ROOT"] = str(agent_root)
     env["ORFS_ROOT"] = str(orfs_root)
     env["DPL_EVOLVE_STATE_ROOT"] = str(state_root)
@@ -262,7 +264,9 @@ def main() -> None:
         "family": args.family,
         "source_kind": recipe.source_kind,
         "source_status": recipe.status,
-        "cases": args.cases,
+        "case": args.case,
+        "case_set": None if args.case else args.case_set,
+        "cases": selected_cases,
         "threads": args.threads,
         "eval_timeout_sec": args.eval_timeout_sec,
         "legalizer_only_first": args.legalizer_only_first,
@@ -321,7 +325,7 @@ def main() -> None:
 
     python_bin = find_python_with_yaml()
     openroad_binary = Path(build_result["openroad_binary"])
-    for case in args.cases:
+    for case in selected_cases:
         problem_path = agent_root / "problems" / case / "problem.yaml"
         problem = parse_problem(problem_path)
         flow_variant = discover_flow_variant(orfs_root, problem)

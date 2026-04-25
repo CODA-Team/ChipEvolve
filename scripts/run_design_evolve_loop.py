@@ -13,9 +13,13 @@ from pathlib import Path
 from typing import Any
 
 AGENT_ROOT = Path(__file__).resolve().parents[1]
+SCRIPT_DIR = AGENT_ROOT / "scripts"
 if str(AGENT_ROOT) not in sys.path:
     sys.path.insert(0, str(AGENT_ROOT))
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
 
+from case_registry import get_case
 from memory.run_db import append_jsonl as append_run_record
 from memory.run_db import run_db_path
 from learning.log2knowledge import process_run_record
@@ -422,7 +426,6 @@ def run_evaluator(
     config_path: Path,
     flow_variant: str,
     run_tag: str,
-    evolve_engine: str,
     threads: int,
     out_path: Path,
 ) -> dict[str, Any]:
@@ -436,13 +439,11 @@ def run_evaluator(
         "--mode",
         "single",
         "--line",
-        "evolve_line",
+        "evolve_default",
         "--flow-variant",
         flow_variant,
         "--run-tag",
         run_tag,
-        "--evolve-engine",
-        evolve_engine,
         "--threads",
         str(threads),
         "--out",
@@ -700,7 +701,6 @@ def write_loop_readme(
     problem_path: Path,
     prompt_path: Path,
     flow_variant: str,
-    evolve_engine: str,
     max_attempts: int,
     best_checkpoint: str,
     best_score: float,
@@ -722,7 +722,7 @@ def write_loop_readme(
         f"- prompt_path: `{prompt_path}`",
         f"- design: `{problem['platform']}/{problem['design']}`",
         f"- flow_variant: `{flow_variant}`",
-        f"- evolve_engine: `{evolve_engine}`",
+        "- line: `evolve_default`",
         f"- max_attempts: `{max_attempts}`",
         f"- best_checkpoint: `{best_checkpoint}`",
         f"- best_score: `{best_score:.6f}`",
@@ -741,11 +741,19 @@ def write_loop_readme(
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--problem", required=True, type=Path)
+    ap.add_argument(
+        "--case",
+        default="gcd_nangate45",
+        help="Case id under problems/. This is the normal public entrypoint.",
+    )
+    ap.add_argument(
+        "--problem",
+        type=Path,
+        help="Internal/debug override for a problem.yaml path. Prefer --case.",
+    )
     ap.add_argument("--prompt-file", type=Path)
     ap.add_argument("--loop-id", default=f"design_evolve_{now_stamp()}")
     ap.add_argument("--flow-variant")
-    ap.add_argument("--evolve-engine", default="default")
     ap.add_argument("--threads", type=int, default=8)
     ap.add_argument(
         "--config",
@@ -775,12 +783,15 @@ def main() -> None:
 
     loop_started_at = dt.datetime.now().isoformat()
     loop_start_time = time.perf_counter()
-    problem_path = resolve_input_path(
-        args.problem,
-        cwd=cwd,
-        agent_root=agent_root,
-        orfs_root=root,
-    )
+    if args.problem is not None:
+        problem_path = resolve_input_path(
+            args.problem,
+            cwd=cwd,
+            agent_root=agent_root,
+            orfs_root=root,
+        )
+    else:
+        problem_path = get_case(args.case).problem_path
     problem_dir = problem_path.parent
     problem = load_yaml(problem_path)
     prompt_path = (
@@ -820,7 +831,6 @@ def main() -> None:
         config_path=args.config,
         flow_variant=flow_variant,
         run_tag=baseline_run_tag,
-        evolve_engine=args.evolve_engine,
         threads=args.threads,
         out_path=baseline_eval_path,
     )
@@ -904,7 +914,6 @@ def main() -> None:
                 config_path=args.config,
                 flow_variant=flow_variant,
                 run_tag=attempt_run_tag,
-                evolve_engine=args.evolve_engine,
                 threads=args.threads,
                 out_path=eval_path,
             )
@@ -1063,7 +1072,7 @@ def main() -> None:
         "problem_path": str(problem_path),
         "prompt_path": str(prompt_path),
         "flow_variant": flow_variant,
-        "evolve_engine": args.evolve_engine,
+        "line": "evolve_default",
         "max_attempts": args.max_attempts,
         "best_checkpoint": best_checkpoint,
         "best_score": best_score,
@@ -1091,7 +1100,6 @@ def main() -> None:
         problem_path=problem_path,
         prompt_path=prompt_path,
         flow_variant=flow_variant,
-        evolve_engine=args.evolve_engine,
         max_attempts=args.max_attempts,
         best_checkpoint=best_checkpoint,
         best_score=best_score,

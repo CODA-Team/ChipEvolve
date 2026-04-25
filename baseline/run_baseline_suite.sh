@@ -4,12 +4,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/../scripts/runtime_env.sh"
 dpl_init_runtime "run_baseline_suite.sh"
-WORKSPACE_ROOT="${ORFS_ROOT}"
 
-FLOW_DIR="${WORKSPACE_ROOT}/flow"
-FLOW_HOME="${FLOW_HOME:-${FLOW_DIR}}"
-FLOW_HOME="$(realpath -m "${FLOW_HOME}")"
-DEFAULT_CONFIG="./designs/nangate45/gcd/config.mk"
+WORKSPACE_ROOT="${ORFS_BUILD_ROOT:-${ORFS_ROOT}}"
+FLOW_HOME="${WORKSPACE_ROOT}/flow"
+FLOW_HOME="$(realpath -sm "${FLOW_HOME}")"
+DEFAULT_CASE="gcd_nangate45"
 export FLOW_HOME
 
 usage() {
@@ -17,24 +16,20 @@ usage() {
 Usage: run_baseline_suite.sh [options]
 
 Runs the canonical strict comparison bundle:
-  1. baseline_default
-  2. baseline_dreamplace_abacus
-  3. evolve_line
+  1. dreamplace_default
+  2. openroad_dpl_negotiation
+  3. evolve_default
 
 Options:
-  --design-config PATH      Flow design config. Default: DESIGN_CONFIG or ./designs/nangate45/gcd/config.mk.
+  --case ID                 Case id under problems/. Default: gcd_nangate45.
+  --design-config PATH      Internal/debug override. Prefer --case.
   --flow-variant NAME       FLOW_VARIANT shared by all runs.
-                            Default: dpl_evolve_suite_<timestamp>.
   --threads N               NUM_CORES passed to each run.
   --input-stage NAME        Input placement stage. Default: 3_4_place_resized.
   --tag-prefix NAME         Prefix added to every run tag.
-  --evolve-family-variant NAME
-                            Optional family variant for evolve_line.
-                            Current value: legalm_engine.
-  --evolve-engine MODE      Internal compatibility option. Avoid using this
-                            directly in new agent prompts.
-  --dreamplace-root PATH    DREAMPlace root. Default: DREAMPLACE_ROOT.
-  --dreamplace-python PATH  Python interpreter for DreamPlace. Default: auto-detect.
+  --dreamplace-root PATH    Required for dreamplace_default.
+  --dreamplace-python PATH  Optional Python interpreter for dreamplace_default.
+  --openroad-binary PATH    Optional explicit OpenROAD binary.
   --help                    Show this message.
 EOF
 }
@@ -60,7 +55,7 @@ normalize_flow_relpath() {
 to_flow_relative_if_possible() {
   local path="$1"
   local abs_path
-  abs_path="$(realpath -m "${path}")"
+  abs_path="$(realpath -sm "${path}")"
   if [[ "${abs_path}" == "${FLOW_HOME}/"* ]]; then
     printf '%s\n' "${abs_path#${FLOW_HOME}/}"
   else
@@ -71,9 +66,9 @@ to_flow_relative_if_possible() {
 flow_abs() {
   local path="$1"
   if [[ "${path}" == /* ]]; then
-    realpath -m "${path}"
+    realpath -sm "${path}"
   else
-    realpath -m "${FLOW_HOME}/${path}"
+    realpath -sm "${FLOW_HOME}/${path}"
   fi
 }
 
@@ -86,81 +81,41 @@ shell_join() {
   printf '%s' "${out[*]}"
 }
 
-design_config="${DESIGN_CONFIG:-}"
+design_config=""
+case_id=""
 flow_variant=""
-threads="${NUM_CORES:-}"
+threads=""
 input_stage="3_4_place_resized"
 tag_prefix=""
-evolve_engine="default"
-evolve_family_variant=""
-dreamplace_root="${DREAMPLACE_ROOT:-}"
+dreamplace_root=""
 dreamplace_python=""
+openroad_binary=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --design-config)
-      design_config="$2"
-      shift 2
-      ;;
-    --flow-variant)
-      flow_variant="$2"
-      shift 2
-      ;;
-    --threads)
-      threads="$2"
-      shift 2
-      ;;
-    --input-stage)
-      input_stage="$2"
-      shift 2
-      ;;
-    --tag-prefix)
-      tag_prefix="$2"
-      shift 2
-      ;;
-    --evolve-engine)
-      evolve_engine="$2"
-      shift 2
-      ;;
-    --evolve-family-variant)
-      evolve_family_variant="$2"
-      shift 2
-      ;;
-    --dreamplace-root)
-      dreamplace_root="$2"
-      shift 2
-      ;;
-    --dreamplace-python)
-      dreamplace_python="$2"
-      shift 2
-      ;;
-    --help|-h)
-      usage
-      exit 0
-      ;;
-    *)
-      echo "Unknown argument: $1" >&2
-      usage >&2
-      exit 1
-      ;;
+    --design-config) design_config="$2"; shift 2 ;;
+    --case) case_id="$2"; shift 2 ;;
+    --flow-variant) flow_variant="$2"; shift 2 ;;
+    --threads) threads="$2"; shift 2 ;;
+    --input-stage) input_stage="$2"; shift 2 ;;
+    --tag-prefix) tag_prefix="$2"; shift 2 ;;
+    --dreamplace-root) dreamplace_root="$2"; shift 2 ;;
+    --dreamplace-python) dreamplace_python="$2"; shift 2 ;;
+    --openroad-binary) openroad_binary="$2"; shift 2 ;;
+    --help|-h) usage; exit 0 ;;
+    *) echo "Unknown argument: $1" >&2; usage >&2; exit 1 ;;
   esac
 done
 
-design_config="${design_config:-$DEFAULT_CONFIG}"
+if [[ -z "${design_config}" ]]; then
+  case_id="${case_id:-$DEFAULT_CASE}"
+  design_config="$(python3 "${SCRIPT_DIR}/../scripts/case_registry.py" --case "${case_id}" --field design_config)"
+fi
 if [[ "${design_config}" == /* ]]; then
   design_config="$(to_flow_relative_if_possible "${design_config}")"
 else
   design_config="$(normalize_flow_relpath "${design_config}")"
 fi
-
-case "${evolve_engine}" in
-  default|negotiation|negotiation_abacus|legalm) ;;
-  *)
-    echo "Unsupported evolve engine: ${evolve_engine}" >&2
-    usage >&2
-    exit 1
-    ;;
-esac
 
 flow_variant="${flow_variant:-dpl_evolve_suite_$(date +%Y%m%d_%H%M%S)}"
 flow_variant="$(normalize_flow_relpath "${flow_variant}")"
@@ -191,12 +146,14 @@ EOF
 
 common_args=(
   --design-config "${design_config}"
-  --track strict
   --input-stage "${input_stage}"
   --flow-variant "${flow_variant}"
 )
 if [[ -n "${threads}" ]]; then
   common_args+=(--threads "${threads}")
+fi
+if [[ -n "${openroad_binary}" ]]; then
+  common_args+=(--openroad-binary "${openroad_binary}")
 fi
 
 run_case() {
@@ -205,12 +162,7 @@ run_case() {
   local runner="$3"
   shift 3
 
-  local -a cmd=(
-    "${runner}"
-    "${common_args[@]}"
-    --run-tag "${run_tag}"
-    "$@"
-  )
+  local -a cmd=("${runner}" "${common_args[@]}" --run-tag "${run_tag}" "$@")
 
   echo
   echo "==> Running ${line_id}"
@@ -219,16 +171,8 @@ run_case() {
 
   local metrics_json
   metrics_json="$(flow_abs "${report_root}/${run_tag}/metrics.json")"
-  printf '%s\t%s\t%s\n' \
-    "${line_id}" \
-    "${run_tag}" \
-    "${metrics_json}" >> "${suite_summary_tsv}"
+  printf '%s\t%s\t%s\n' "${line_id}" "${run_tag}" "${metrics_json}" >> "${suite_summary_tsv}"
 }
-
-run_case \
-  "baseline_default" \
-  "${tag_prefix}baseline_default" \
-  "${SCRIPT_DIR}/run_or_default.sh"
 
 dreamplace_args=()
 if [[ -n "${dreamplace_root}" ]]; then
@@ -237,24 +181,15 @@ fi
 if [[ -n "${dreamplace_python}" ]]; then
   dreamplace_args+=(--dreamplace-python "${dreamplace_python}")
 fi
-run_case \
-  "baseline_dreamplace_abacus" \
-  "${tag_prefix}baseline_dreamplace_abacus" \
-  "${SCRIPT_DIR}/run_dp_abacus.sh" \
-  "${dreamplace_args[@]}"
 
-evolve_args=()
-if [[ -n "${evolve_family_variant}" ]]; then
-  evolve_args+=(--family-variant "${evolve_family_variant}")
-else
-  evolve_args+=(--engine "${evolve_engine}")
-fi
+run_case "dreamplace_default" "${tag_prefix}dreamplace_default" \
+  "${SCRIPT_DIR}/run_dreamplace_default.sh" "${dreamplace_args[@]}"
 
-run_case \
-  "evolve_line" \
-  "${tag_prefix}evolve_line" \
-  "${SCRIPT_DIR}/run_evolve_line.sh" \
-  "${evolve_args[@]}"
+run_case "openroad_dpl_negotiation" "${tag_prefix}openroad_dpl_negotiation" \
+  "${SCRIPT_DIR}/run_openroad_negotiation.sh"
+
+run_case "evolve_default" "${tag_prefix}evolve_default" \
+  "${SCRIPT_DIR}/run_evolve_default.sh"
 
 echo
 echo "Suite complete."

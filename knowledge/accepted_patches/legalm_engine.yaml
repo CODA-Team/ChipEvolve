@@ -5,8 +5,8 @@ patch_files:
 source_surfaces:
   - "evolve_agent/family_variants/legalm_engine/manifest.yaml"
   - "evolve_agent/family_variants/legalm_engine/dpl_evolve.patch"
-  - "evolve_agent/baseline/detail_place_only_evolve_legalm.tcl"
-  - "evolve_agent/baseline/flow/detail_place_flow_evolve_legalm.tcl"
+  - "evolve_agent/baseline/detail_place_strict_core.tcl"
+  - "evolve_agent/baseline/detail_place_strict_core.tcl"
 why_kept:
   - "preserves a reusable LEGALM family variant over the clean initial evolve base"
   - "keeps Stage1/Stage2/Stage3 legalizer evolution separate from negotiation-family work"

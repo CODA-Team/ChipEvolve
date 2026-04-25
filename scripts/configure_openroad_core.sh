@@ -9,10 +9,10 @@ ROOT_DIR="${ORFS_ROOT}"
 OPENROAD_SRC="${ROOT_DIR}/tools/OpenROAD"
 OPENROAD_ANCHOR_ID="$(git -C "${OPENROAD_SRC}" rev-parse --short HEAD)"
 
-core_root="${OPENROAD_CORE_ROOT:-${DPL_EVOLVE_STATE_ROOT}/openroad_core/${OPENROAD_ANCHOR_ID}}"
-build_dir="${OPENROAD_BUILD_DIR:-}"
-install_root="${OPENROAD_INSTALL_ROOT:-}"
-generator="${CMAKE_GENERATOR:-}"
+core_root="${DPL_EVOLVE_STATE_ROOT}/openroad_core/${OPENROAD_ANCHOR_ID}"
+build_dir=""
+install_root=""
+generator=""
 
 usage() {
   cat <<EOF
@@ -29,6 +29,10 @@ Options:
 Output:
   Writes <core-root>/core_env.sh with OPENROAD_CORE_ROOT,
   OPENROAD_BUILD_DIR, OPENROAD_INSTALL_ROOT, and OPENROAD_BINARY.
+
+Notes:
+  This script does not read OPENROAD_* environment variables as path defaults.
+  Use explicit options for non-default core locations.
 EOF
 }
 
@@ -92,4 +96,4 @@ echo "[INFO] core_root=${core_root}"
 echo "[INFO] build_dir=${build_dir}"
 echo "[INFO] install_root=${install_root}"
 echo "[INFO] core_env=${core_env}"
-echo "[INFO] source ${core_env}"
+echo "[INFO] Core binary will be ${install_root}/bin/openroad after build."

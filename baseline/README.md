@@ -1,68 +1,62 @@
 # Baseline Harness
 
-This directory runs strict legalization-only comparisons and reduced-flow
-comparisons for `dpl_evolve`.
+This directory runs the strict legalization-only baselines used by
+`dpl_evolve_agent`.
 
-Most agents should call:
+The harness intentionally has exactly three canonical lines:
 
-- `$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py`
-- `$DPL_EVOLVE_AGENT_ROOT/scripts/run_canonical_line.sh`
-- `$DPL_EVOLVE_AGENT_ROOT/baseline/run_baseline_suite.sh`
+- `dreamplace_default`: DreamPlace bridge default placement.
+- `openroad_dpl_negotiation`: OpenROAD `detailed_placement -use_negotiation`.
+- `evolve_default`: clean `detailed_placement_evolve`.
 
-Treat `run_baseline.sh` as the internal dispatcher.
-
-## Project Terms
-
-- `baseline_default`: upstream OpenROAD detailed placement.
-- `baseline_dreamplace_abacus`: DreamPlace bridge plus Abacus.
-- `evolve_line`: clean `dpl_evolve`.
-- family variant: materialized `dpl_evolve` source plus private binary.
+There is no reduced-flow track and no engine environment variable that changes
+what a baseline line means.  The selected canonical line is the command
+contract.
 
 ## Strict Track
 
-Strict runs reuse:
+Each run reuses:
 
 ```text
 flow/results/<platform>/<design>/<FLOW_VARIANT>/3_4_place_resized.odb
 ```
 
-Then they run legalization and post-metrics in isolated
-`dpl_evolve_baseline/<run_tag>/` directories.
-
-This track should not rerun upstream Yosys/place when the snapshot exists.
-
-## Variant Binary Rule
-
-Family/variant runs must use an explicit binary:
-
-```bash
-source "${DPL_EVOLVE_STATE_ROOT}/variants/<agent_id>/variant_env.sh"
-"$DPL_EVOLVE_AGENT_ROOT/scripts/run_canonical_line.sh" \
-  --line evolve_line \
-  --openroad-binary "${OPENROAD_BINARY}" \
-  --design-config ./designs/nangate45/gcd/config.mk \
-  --flow-variant <FLOW_VARIANT> \
-  --run-tag <RUN_TAG>
-```
-
-## Outputs
-
-Primary result:
+Then it writes isolated outputs under:
 
 ```text
-flow/reports/<platform>/<design>/<FLOW_VARIANT>/dpl_evolve_baseline/<run_tag>/metrics.json
+dpl_evolve_baseline/<run_tag>/
 ```
 
-Support files live beside it and under matching `results/`, `logs/`, and
-`objects/` subdirectories.
+## Common Commands
+
+Run the full three-line suite:
+
+```bash
+./dpl_evolve_agent/baseline/run_baseline_suite.sh \
+  --case jpeg_nangate45 \
+  --flow-variant place_batch_20260421_220319 \
+  --threads 10 \
+  --dreamplace-root /opt/EDAs/DREAMPlace \
+  --dreamplace-python /opt/conda/miniforge3/envs/dreamplace/bin/python
+```
+
+Run one canonical line:
+
+```bash
+./dpl_evolve_agent/scripts/run_canonical_line.sh \
+  --line openroad_dpl_negotiation \
+  --case jpeg_nangate45 \
+  --flow-variant place_batch_20260421_220319 \
+  --threads 10
+```
 
 ## Authored Files
 
-- `run_baseline.sh`: dispatcher.
-- `run_evolve_line.sh`: clean evolve line wrapper.
-- `run_or_default.sh`: upstream baseline wrapper.
-- `run_dp_abacus.sh`: DreamPlace/Abacus wrapper.
-- `run_baseline_suite.sh`: fixed comparison suite.
-- `detail_place_*.tcl`: strict Tcl drivers.
-- `flow/detail_place_flow_*.tcl`: reduced-flow Tcl drivers.
+- `run_baseline.sh`: strict-only internal dispatcher.
+- `run_dreamplace_default.sh`: DreamPlace canonical wrapper.
+- `run_openroad_negotiation.sh`: OpenROAD negotiation canonical wrapper.
+- `run_evolve_default.sh`: evolve default canonical wrapper.
+- `run_baseline_suite.sh`: three-line strict comparison suite.
+- `detail_place_strict_core.tcl`: shared strict OpenROAD/evolve Tcl core.
+- `detail_place_dreamplace.tcl`: DreamPlace bridge Tcl driver.
 - `collect_metrics.py`: metrics normalization.

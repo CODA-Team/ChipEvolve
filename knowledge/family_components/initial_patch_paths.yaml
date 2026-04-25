@@ -1,7 +1,7 @@
 initial_paths:
   - id: legalm_medium_case_base
     recipe: legalm_engine_initial
-    start_line: evolve_line
+    start_line: evolve_default
     variant_family: legalm_engine
     use_when:
       - "medium-size stdcell case"
@@ -19,7 +19,7 @@ initial_paths:
 
   - id: negotiation_runtime_aware_base
     recipe: runtime_aware_net_family
-    start_line: evolve_line
+    start_line: evolve_default
     use_when:
       - "large or runtime-sensitive case"
       - "need a practical first evolve point with bounded runtime"
@@ -34,7 +34,7 @@ initial_paths:
 
   - id: negotiation_priority_escape_base
     recipe: runtime_aware_net_family_plus_priority_escape
-    start_line: evolve_line
+    start_line: evolve_default
     use_when:
       - "large case"
       - "baseline or runtime-aware base still shows negative setup WNS/TNS"
@@ -49,7 +49,7 @@ initial_paths:
 
   - id: wide_postopt_small_case_only
     recipe: hpwl_wide_postopt
-    start_line: evolve_line
+    start_line: evolve_default
     use_when:
       - "small or medium-small case"
       - "quality-first exploratory run"
