@@ -84,6 +84,7 @@ anchors_json="${AGENT_ROOT}/metadata/anchors.json"
 orfs_patch="${AGENT_ROOT}/patches/orfs_overlay.patch"
 orfs_make_patch="${AGENT_ROOT}/patches/orfs_make_overlay.patch"
 openroad_patch="${AGENT_ROOT}/patches/openroad_dpl_evolve_base.patch"
+openroad_framework_patch="${AGENT_ROOT}/patches/openroad_dpl_evolve_framework.patch"
 
 if [[ ! -d "${workspace_root}/.git" ]]; then
   echo "[ERROR] workspace root is not a git repository: ${workspace_root}" >&2
@@ -221,8 +222,9 @@ git -C "${workspace_root}/tools/OpenROAD" submodule update --init --recursive
 apply_patch_if_needed "${workspace_root}" "${orfs_patch}" "ORFS"
 apply_patch_if_needed "${workspace_root}" "${orfs_make_patch}" "ORFS"
 apply_patch_if_needed "${workspace_root}/tools/OpenROAD" "${openroad_patch}" "OpenROAD"
+apply_patch_if_needed "${workspace_root}/tools/OpenROAD" "${openroad_framework_patch}" "OpenROAD"
 
-commit_if_dirty "${workspace_root}/tools/OpenROAD" "Prepare clean dpl_evolve base"
+commit_if_dirty "${workspace_root}/tools/OpenROAD" "Prepare constrained dpl_evolve framework"
 commit_if_dirty "${workspace_root}" "Prepare ORFS overlay for dpl_evolve_agent" flow/Makefile
 
 echo "[INFO] prepare complete"

@@ -12,6 +12,9 @@ The short version:
 - ORFS stays external.
 - This repo stores prompts, scripts, patches, skills, and evaluator glue.
 - Runtime state defaults to this repo's ignored `.dpl_evolve_state/`.
+- The evolved command entrypoint is always `detailed_placement_evolve`.
+- The current algorithm direction is a constrained top-level framework whose
+  stages can be replaced by agents, not an unconstrained family-tree router.
 - OpenROAD common code is built once.
 - Each experiment variant rebuilds only its own `dpl_evolve` code and relinks a
   private `openroad` binary.
@@ -61,7 +64,8 @@ That creates `$DPL_EVOLVE_AGENT_ROOT/.mounted_orfs`, which is ignored by git.
 
 ## Prepare ORFS
 
-Prepare applies the small ORFS/OpenROAD overlay needed by this project:
+Prepare applies the small ORFS/OpenROAD overlay needed by this project,
+including the clean `dpl_evolve` source and the constrained framework patch:
 
 ```bash
 "$DPL_EVOLVE_AGENT_ROOT/scripts/prepare_workspace.sh" \
@@ -158,6 +162,33 @@ Read:
 
 ```text
 flow/reports/<platform>/<design>/<FLOW_VARIANT>/dpl_evolve_baseline/<run_tag>/metrics.json
+```
+
+## Source References
+
+Future agents should learn from compact reference implementations instead of
+wandering through historical experiments:
+
+```text
+family_variants/reference_sources/
+```
+
+That directory keeps the high-value donors:
+
+- OpenROAD diamond DPL,
+- OpenROAD negotiation / NBLG,
+- LEGALM staged legalization,
+- DREAMPlace Abacus.
+
+Older family variants remain as archived evidence, but the default development
+path is now:
+
+```text
+detailed_placement_evolve
+  -> EvolveLegalizer top-level framework
+  -> agent-modified stage implementation
+  -> strict evaluator
+  -> database evidence commit
 ```
 
 ## Run The Automated Codex Loop

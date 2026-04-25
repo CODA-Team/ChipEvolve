@@ -32,10 +32,39 @@ Important boundary:
 - Agents must not edit tracked ORFS flow files, design configs, Makefiles,
   evaluator wrappers, or the `tools/OpenROAD` submodule as source-of-truth
   changes while designing a family.
-- Family source experiments should be materialized as private variant source
-  trees under `DPL_EVOLVE_STATE_ROOT`. If an experiment works, encode the
-  durable recipe back in this control repo as a generator, family patch,
-  algorithm card, router rule, or robustness note.
+- Algorithm experiments should be materialized as private variant source trees
+  under `DPL_EVOLVE_STATE_ROOT`. If an experiment works, encode the durable
+  recipe back in this control repo as a patch, stage implementation note,
+  algorithm card, or database evidence record.
+
+## Current Direction: Constrained Top-Level Framework
+
+The project is no longer using the old family tree as the default evolve path.
+The only evolved command remains:
+
+```text
+detailed_placement_evolve
+```
+
+Behind that entrypoint, agents should work inside the constrained
+`EvolveLegalizer` framework:
+
+1. import design / build context,
+2. relaxed or differentiable-style guidance,
+3. row or cluster assignment donor stage,
+4. diamond-compatible legalization,
+5. negotiation or repair only if needed,
+6. bounded polish,
+7. telemetry emission.
+
+The first framework implementation intentionally stays close to diamond search
+unless a later patch proves a better stage.  Future agents should replace one
+stage at a time and leave evaluator, scoring, Tcl entrypoint, and ORFS flow
+behavior locked.
+
+Use `family_variants/reference_sources/` as the source-code reading shelf:
+OpenROAD diamond, OpenROAD negotiation/NBLG, LEGALM, and DREAMPlace Abacus.
+Older family directories are evidence/donors, not the default routing system.
 
 ## Loop-Driven Patch Contract
 
@@ -132,20 +161,19 @@ Prefer bold but bounded changes over tiny safe edits. The evaluator, preflight,
 checkpoint, and rollback system exist so agents can try meaningful algorithmic
 ideas without corrupting ORFS or the final scoring protocol.
 
-## Current Base-Family Tuning Phase
+## Legacy Base-Family Evidence
 
-The current phase is not an idea-bank expansion phase. Do not use broad
+The previous phase was not an idea-bank expansion phase. Do not use broad
 algobank composites, self-evolving prompt variants, or many small constant
 changes as base-family work. Those records are evidence for what to avoid or
 what mechanism might be worth isolating; they are not robust base
 implementations.
 
-Base-family work must first make a small number of serious algorithms hard and
-reliable. A candidate is useful only if it has a coherent algorithmic path on
-medium and large cases, not just a good `aes` smoke result. Legal-but-worse is
-not success: if HPWL, runtime, displacement, or timing proxy is materially
-worse than the same-run baseline, the candidate is a repair target or reject,
-not a base.
+Legacy family records are now donor material. A candidate is useful only if it
+has a coherent algorithmic path on medium and large cases, not just a good
+`aes` smoke result. Legal-but-worse is not success: if HPWL, runtime,
+displacement, or timing proxy is materially worse than the same-run baseline,
+the candidate is a repair target or reject, not a framework stage.
 
 For this phase, prioritize:
 
@@ -164,7 +192,7 @@ Do not promote:
 - small-case aggressive changes that hurt `jpeg`, `ariane133`, or `bp_quad`;
 - build-only or aes-only evidence.
 
-Before using any family patch as a parent, read
+Before using any legacy family patch as a parent, read
 `family_variants/SOURCE_OF_TRUTH.md` and `family_variants/FAMILY_INDEX.yaml`.
 Committed `research_patches/*.patch` files are not all clean-base patches:
 some are generator deltas, overlay-chain deltas, repair evidence, or
@@ -174,7 +202,7 @@ next artifacts live in `family_variants/NEXT_PATCH_ARTIFACTS.yaml`; do not
 pretend a planned path is implemented until the patch exists and the family
 manifest references it.
 
-Base bring-up now has a unified harness:
+Legacy base bring-up has a unified harness:
 
 - use `scripts/materialize_family_variant.py` or `.sh --list-families` to see
   what can be materialized;
@@ -186,6 +214,10 @@ Base bring-up now has a unified harness:
   R6/priority telemetry/localized transaction results.
 
 ## Family Router Guidance
+
+This section is legacy guidance for interpreting prior evidence. Do not use it
+to override the constrained top-level framework unless the current task
+explicitly asks for family-tree experiments.
 
 Choose the starting family from the case shape and first strict-run evidence.
 Do not pick a family by browsing the repo or by changing evaluator commands.
