@@ -34,6 +34,7 @@ FRAMEWORK_SURFACE = {
         "tools/OpenROAD/src/dpl_evolve/src/EvolveLegalizer.h",
         "tools/OpenROAD/src/dpl_evolve/src/EvolveContext.h",
         "tools/OpenROAD/src/dpl_evolve/src/EvolveTelemetry.h",
+        "tools/OpenROAD/src/dpl_evolve/src/EvolvePluginApi.h",
     ],
     "symbol": "dpl_evolve::EvolveLegalizer::run",
     "allowed_patch_modes": [
@@ -45,6 +46,7 @@ FRAMEWORK_SURFACE = {
         "negotiation_repair_stage",
         "bounded_polish_stage",
         "telemetry_only",
+        "plugin_abi_extension",
     ],
     "risk": "medium",
 }
@@ -251,6 +253,7 @@ def build_packet(problem_dir: Path, out_dir: Path) -> dict[str, Any]:
             "Edit only `tools/OpenROAD/src/dpl_evolve` in a prepared private variant source.",
             "Use reference algorithms to implement one bounded framework-stage mechanism.",
             "Add or refine `EvolveTelemetry` counters that explain stage behavior.",
+            "Optionally implement a V1 plugin shared object against `EvolvePluginApi.h`.",
         ],
         "forbidden_actions": [
             "Do not edit classic `tools/OpenROAD/src/dpl` as part of an evolve attempt.",
@@ -259,7 +262,7 @@ def build_packet(problem_dir: Path, out_dir: Path) -> dict[str, Any]:
             "Do not optimize only for AES; JPEG and larger cases are promotion gates.",
         ],
         "hard_gates": [
-            "Private OpenROAD binary builds successfully.",
+            "Private OpenROAD binary or plugin builds successfully.",
             "`detailed_placement_evolve` remains the invoked command.",
             "Strict evaluator reports legal placement.",
             "Telemetry identifies which stages ran and whether repair/polish was needed.",

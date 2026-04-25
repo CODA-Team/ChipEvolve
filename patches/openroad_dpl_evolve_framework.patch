@@ -1,8 +1,8 @@
 diff --git a/src/dpl_evolve/CMakeLists.txt b/src/dpl_evolve/CMakeLists.txt
-index 5828896c4e..bf59e8163b 100644
+index 5828896c4e..61a1040344 100644
 --- a/src/dpl_evolve/CMakeLists.txt
 +++ b/src/dpl_evolve/CMakeLists.txt
-@@ -17,6 +17,22 @@ swig_lib(NAME         dpl_evolve
+@@ -17,6 +17,23 @@ swig_lib(NAME         dpl_evolve
                         ${ODB_HOME}/include
  )
  
@@ -12,6 +12,7 @@ index 5828896c4e..bf59e8163b 100644
 +
 +target_link_libraries(dpl_evolve_framework_lib
 +  PRIVATE
++    ${CMAKE_DL_LIBS}
 +    utl_lib
 +)
 +
@@ -25,7 +26,7 @@ index 5828896c4e..bf59e8163b 100644
  add_library(dpl_evolve_lib
    src/Opendp.cpp
    src/dbToOpendp.cpp
-@@ -56,6 +72,7 @@ target_link_libraries(dpl_evolve_lib
+@@ -56,6 +73,7 @@ target_link_libraries(dpl_evolve_lib
    PUBLIC
      odb
    PRIVATE
@@ -33,7 +34,7 @@ index 5828896c4e..bf59e8163b 100644
      utl_lib
  )
  
-@@ -121,4 +138,3 @@ if (Python3_FOUND AND BUILD_PYTHON)
+@@ -121,4 +139,3 @@ if (Python3_FOUND AND BUILD_PYTHON)
    )
  
  endif()
@@ -66,17 +67,21 @@ index 0000000000..ee4317741a
 +}  // namespace dpl_evolve
 diff --git a/src/dpl_evolve/src/EvolveLegalizer.cpp b/src/dpl_evolve/src/EvolveLegalizer.cpp
 new file mode 100644
-index 0000000000..fcf1977ffc
+index 0000000000..6a0655cbe0
 --- /dev/null
 +++ b/src/dpl_evolve/src/EvolveLegalizer.cpp
-@@ -0,0 +1,117 @@
+@@ -0,0 +1,198 @@
 +// SPDX-License-Identifier: BSD-3-Clause
 +// Copyright (c) 2018-2025, The OpenROAD Authors
 +
 +#include "EvolveLegalizer.h"
 +
 +#include <chrono>
++#include <cstdlib>
++#include <dlfcn.h>
++#include <string>
 +
++#include "EvolvePluginApi.h"
 +#include "utl/Logger.h"
 +
 +namespace dpl_evolve {
@@ -113,6 +118,30 @@ index 0000000000..fcf1977ffc
 +
 +}  // namespace
 +
++struct PluginCallbackState
++{
++  utl::Logger* logger = nullptr;
++  EvolveHooks* hooks = nullptr;
++};
++
++void pluginMetricInt(void* user_data, const char* name, const int value)
++{
++  auto* state = static_cast<PluginCallbackState*>(user_data);
++  state->logger->metric(name, value);
++}
++
++void pluginRunDiamondCompatible(void* user_data)
++{
++  auto* state = static_cast<PluginCallbackState*>(user_data);
++  state->hooks->run_diamond_compatible();
++}
++
++void pluginRunNegotiationRepair(void* user_data, const int run_abacus)
++{
++  auto* state = static_cast<PluginCallbackState*>(user_data);
++  state->hooks->run_negotiation_repair(run_abacus != 0);
++}
++
 +EvolveLegalizer::EvolveLegalizer(utl::Logger* logger, EvolveHooks hooks)
 +    : logger_(logger), hooks_(std::move(hooks))
 +{
@@ -142,6 +171,10 @@ index 0000000000..fcf1977ffc
 +  logger_->metric("dpl_evolve__framework__abacus_requested",
 +                  context.abacus_requested ? 1 : 0);
 +
++  if (tryRunExternalPlugin(context)) {
++    return;
++  }
++
 +  runRelaxedGuidanceStage(context);
 +  runRowAssignmentStage(context);
 +
@@ -152,6 +185,55 @@ index 0000000000..fcf1977ffc
 +  }
 +
 +  runBoundedPolishStage(context);
++}
++
++bool EvolveLegalizer::tryRunExternalPlugin(const EvolveContext& context)
++{
++  const char* plugin_path = std::getenv("DPL_EVOLVE_PLUGIN_SO");
++  if (plugin_path == nullptr || std::string(plugin_path).empty()) {
++    logger_->metric("dpl_evolve__plugin__enabled", 0);
++    return false;
++  }
++
++  logger_->metric("dpl_evolve__plugin__enabled", 1);
++  logger_->info(DPL, 1202, "Loading DPL-Evolve plugin: {}", plugin_path);
++
++  void* handle = dlopen(plugin_path, RTLD_NOW | RTLD_LOCAL);
++  if (handle == nullptr) {
++    logger_->error(DPL, 1203, "Failed to load DPL-Evolve plugin: {}", dlerror());
++  }
++
++  dlerror();
++  auto run = reinterpret_cast<DplEvolveRunV1>(dlsym(handle, "dpl_evolve_run_v1"));
++  const char* symbol_error = dlerror();
++  if (symbol_error != nullptr) {
++    dlclose(handle);
++    logger_->error(DPL,
++                   1204,
++                   "DPL-Evolve plugin is missing dpl_evolve_run_v1: {}",
++                   symbol_error);
++  }
++
++  PluginCallbackState state{logger_, &hooks_};
++  DplEvolveCallbacksV1 callbacks;
++  callbacks.user_data = &state;
++  callbacks.metric_int = pluginMetricInt;
++  callbacks.run_diamond_compatible = pluginRunDiamondCompatible;
++  callbacks.run_negotiation_repair = pluginRunNegotiationRepair;
++
++  DplEvolveContextV1 plugin_context;
++  plugin_context.negotiation_requested = context.negotiation_requested ? 1 : 0;
++  plugin_context.abacus_requested = context.abacus_requested ? 1 : 0;
++  plugin_context.max_displacement_x = context.max_displacement_x;
++  plugin_context.max_displacement_y = context.max_displacement_y;
++
++  const int rc = run(&plugin_context, &callbacks);
++  dlclose(handle);
++  if (rc != 0) {
++    logger_->error(DPL, 1205, "DPL-Evolve plugin returned failure code {}.", rc);
++  }
++  logger_->metric("dpl_evolve__plugin__status", 1);
++  return true;
 +}
 +
 +void EvolveLegalizer::runRelaxedGuidanceStage(const EvolveContext&)
@@ -189,10 +271,10 @@ index 0000000000..fcf1977ffc
 +}  // namespace dpl_evolve
 diff --git a/src/dpl_evolve/src/EvolveLegalizer.h b/src/dpl_evolve/src/EvolveLegalizer.h
 new file mode 100644
-index 0000000000..d0d4c0701f
+index 0000000000..5f3b05f389
 --- /dev/null
 +++ b/src/dpl_evolve/src/EvolveLegalizer.h
-@@ -0,0 +1,46 @@
+@@ -0,0 +1,47 @@
 +// SPDX-License-Identifier: BSD-3-Clause
 +// Copyright (c) 2018-2025, The OpenROAD Authors
 +
@@ -232,6 +314,7 @@ index 0000000000..d0d4c0701f
 +  void runDiamondCompatibleStage(const EvolveContext& context);
 +  void runNegotiationRepairStage(const EvolveContext& context);
 +  void runBoundedPolishStage(const EvolveContext& context);
++  bool tryRunExternalPlugin(const EvolveContext& context);
 +
 +  utl::Logger* logger_ = nullptr;
 +  EvolveHooks hooks_;
@@ -239,6 +322,49 @@ index 0000000000..d0d4c0701f
 +};
 +
 +}  // namespace dpl_evolve
+diff --git a/src/dpl_evolve/src/EvolvePluginApi.h b/src/dpl_evolve/src/EvolvePluginApi.h
+new file mode 100644
+index 0000000000..aac51422b2
+--- /dev/null
++++ b/src/dpl_evolve/src/EvolvePluginApi.h
+@@ -0,0 +1,37 @@
++// SPDX-License-Identifier: BSD-3-Clause
++// Copyright (c) 2018-2025, The OpenROAD Authors
++
++#pragma once
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++// Minimal C ABI for out-of-tree DPL-Evolve top-level plugins.
++//
++// The first version exposes orchestration callbacks only.  This lets an agent
++// compile a tiny shared object and choose stage order without relinking
++// OpenROAD.  Deeper placement-data APIs can be added with a new ABI version.
++
++typedef struct DplEvolveContextV1
++{
++  int negotiation_requested;
++  int abacus_requested;
++  int max_displacement_x;
++  int max_displacement_y;
++} DplEvolveContextV1;
++
++typedef struct DplEvolveCallbacksV1
++{
++  void* user_data;
++  void (*metric_int)(void* user_data, const char* name, int value);
++  void (*run_diamond_compatible)(void* user_data);
++  void (*run_negotiation_repair)(void* user_data, int run_abacus);
++} DplEvolveCallbacksV1;
++
++typedef int (*DplEvolveRunV1)(const DplEvolveContextV1* context,
++                              const DplEvolveCallbacksV1* callbacks);
++
++#ifdef __cplusplus
++}
++#endif
 diff --git a/src/dpl_evolve/src/EvolveTelemetry.h b/src/dpl_evolve/src/EvolveTelemetry.h
 new file mode 100644
 index 0000000000..eaf4716174

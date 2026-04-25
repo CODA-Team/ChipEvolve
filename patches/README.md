@@ -14,8 +14,9 @@ Patch status is tracked in:
 - `openroad_dpl_evolve_framework.patch`
   Applies the constrained top-level `dpl_evolve` framework on top of the clean
   base. The command entrypoint remains `detailed_placement_evolve`; the patch
-  introduces framework stage skeletons and telemetry while default behavior
-  stays diamond-compatible unless negotiation is explicitly requested.
+  introduces framework stage skeletons, telemetry, and the V1 plugin loader
+  (`DPL_EVOLVE_PLUGIN_SO` / `EvolvePluginApi.h`) while default behavior stays
+  diamond-compatible unless negotiation is explicitly requested.
 - `orfs_make_overlay.patch`
   Applies the `flow/Makefile` runner hook needed by the control plane so the
   strict baseline wrappers can pass `RUN_OPENROAD_ARGS` and `RUN_SCRIPT_ARGS`

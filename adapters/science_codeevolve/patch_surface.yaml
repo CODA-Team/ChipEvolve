@@ -39,6 +39,14 @@ surfaces:
       - stage_trace_addition
     risk: "low"
 
+  - file: "tools/OpenROAD/src/dpl_evolve/src/EvolvePluginApi.h"
+    symbol: "DPL-Evolve plugin ABI V1"
+    signature: "dpl_evolve_run_v1(const DplEvolveContextV1*, const DplEvolveCallbacksV1*)"
+    allowed_patch_modes:
+      - plugin_abi_extension
+      - callback_addition
+    risk: "medium-high"
+
   - file: "tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp"
     symbol: "dpl_evolve::Opendp::detailedPlacement(...)"
     signature: "void Opendp::detailedPlacement(...)"
@@ -61,4 +69,4 @@ policy:
 notes:
   - "Reference algorithms live under family_variants/reference_sources/ and compact donor directories."
   - "Old family-tree surfaces were moved to local_backups/legacy_family_flow_cleanup_20260425/."
-  - "Use private relink for dpl_evolve source edits; external implementations are reference code until intentionally ported."
+  - "Use plugin ABI for stage-policy experiments and private relink for deeper dpl_evolve source edits."
