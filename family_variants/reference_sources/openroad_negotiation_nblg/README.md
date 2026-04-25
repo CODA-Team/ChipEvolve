@@ -3,15 +3,14 @@
 Role: overflow repair, stuck-cell recovery, history-cost donor, and
 negotiation-style final legalization stage.
 
-The durable source-of-truth is the prepared OpenROAD `dpl_evolve` base produced
-by `patches/openroad_dpl_evolve_base.patch`.  Key files inside the materialized
-source tree are:
+This directory keeps a compact source snapshot from OpenROAD classic DPL:
 
-- `tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.cpp`
-- `tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.h`
-- `tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizerPass.cpp`
-- `tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp`
-- `tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl`
+- `source/src/NegotiationLegalizer.cpp`
+- `source/src/NegotiationLegalizer.h`
+- `source/src/NegotiationLegalizerPass.cpp`
+- `source/src/Opendp.cpp`
+- `source/src/Opendp.tcl`
+- `source/include/dpl/Opendp.h`
 
 Use this reference for bounded repair ideas, not as the default quality
 baseline.  Prior runs showed that negotiation can be useful as a repair

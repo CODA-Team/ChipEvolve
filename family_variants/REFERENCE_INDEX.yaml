@@ -1,0 +1,51 @@
+schema_version: 1
+purpose: >
+  Compact reference index for the constrained detailed_placement_evolve
+  framework. This replaces the previous family-tree routing index.
+
+canonical_references:
+  - id: openroad_diamond
+    role: primary_baseline
+    path: family_variants/reference_sources/openroad_diamond
+    use_for:
+      - diamond_search
+      - placement_drc
+      - fast_default_legalization
+
+  - id: openroad_negotiation_nblg
+    role: repair_donor
+    path: family_variants/reference_sources/openroad_negotiation_nblg
+    use_for:
+      - overflow_repair
+      - history_cost
+      - stuck_cell_recovery
+
+  - id: negotiation_parallel_frontier
+    role: selected_negotiation_history_donor
+    path: family_variants/negotiation_parallel_frontier
+    supersedes:
+      - negotiation_row_bucket_quality_frontier_r5
+    use_for:
+      - safe_threading_notes
+      - two_pass_frontier_design
+      - candidate_telemetry
+
+  - id: legalm_engine
+    role: complete_structural_sidecar_reference
+    path: family_variants/legalm_engine/dpl_evolve.patch
+    use_for:
+      - relaxed_stage_design
+      - alm_style_repair
+      - staged_refinement
+
+  - id: dreamplace_abacus
+    role: row_assignment_reference
+    path: family_variants/reference_sources/dreamplace_abacus
+    use_for:
+      - abacus_cluster_assignment
+      - row_compaction
+      - displacement_objective
+
+default_agent_rule: >
+  Read this index and at most one referenced donor before patching. Do not read
+  the legacy backup unless the task explicitly asks for old family evidence.

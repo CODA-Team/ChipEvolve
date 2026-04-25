@@ -1,61 +1,15 @@
 id: legalm_engine
-kind: dpl_evolve_variant
-source_kind: materialized_sidecar
-research_patch_kind: hardening_lineage_not_base_quality_patch
-status: experimental_legality_repair_lineage
-base_source: tools/OpenROAD/src/dpl_evolve
+kind: reference_sidecar_patch
+role: complete_structural_legalization_donor
+source_kind: materialized_sidecar_reference
 patch_file: dpl_evolve.patch
-materialize_script: scripts/materialize_family_variant.sh
-engine: legalm
-run_mode:
-  command_set: evolve
-  track: strict
-  entrypoint_contract: detailed_placement_evolve
-  matrix_entrypoint: detailed_placement_evolve
-  family_variant_entrypoint: detailed_placement_evolve
-required_control_plane_files:
-  - baseline/detail_place_strict_core.tcl
-summary: >
-  CPU-first LEGALM-style legalizer packaged as a family-specific dpl_evolve
-  variant over the clean initial evolve base. Current durable evidence is a
-  legality repair lineage only; no fallback-to-diamond/default result is allowed
-  to count as LEGALM family success.
-validation_targets:
-  - gcd_nangate45
-  - aes_nangate45
-  - ibex_nangate45
-promotion_blockers:
-  - jpeg_quality_regression_vs_clean_evolve_baseline
-  - no_bp_quad_strict_legalm_pass
-  - r5_stage1_quality_guard_worsens_jpeg_displacement_vs_r4
-  - fallback_results_are_diagnostic_only
-current_evidence:
-  r4_counterfix:
-    status: legality_repair_candidate
-    patch_artifact: research_patches/legalm_counterfix_r4.patch
-    patch_sha256: 74fdf9d387fe51cd027b4fb2adc058841be9be1a33cf270b0f468e8f833f5a35
-    result_note: ../../family_robustness/legalm_engine/WORKER_RESULT_R4_20260425.md
-    summary: >
-      Fixes the stale maintained-overflow counter after Stage1 grid clear.
-      AES/JPEG legalize, but JPEG HPWL/displacement is not base quality and BP
-      was not run.
-  r5_stage1_quality_guard:
-    status: rejected_as_base
-    patch_artifact: research_patches/legalm_stage1_quality_guard_r5.patch
-    patch_sha256: 9fcee722c2cfac7d158eb066efbd7810cd9094c50eeab79c464b3181cab2bd0a
-    result_note: ../../family_robustness/legalm_engine/WORKER_RESULT_R5_20260425.md
-    summary: >
-      Adds bounded Stage1 objective scoring, but JPEG displacement worsens
-      versus R4 and quality remains far behind clean evolve baseline.
-next_algorithm_direction:
-  id: legalm_r6_row_segment_batch_assignment
-  note: ../../family_robustness/legalm_engine/NEXT_ALGORITHM_DIRECTION_20260425.md
-  priority:
-    - jpeg_quality
-    - bp_quad_runtime_and_quality
-    - bounded_complexity_without_fallback
-required_next_gates:
-  - aes_nangate45_strict_same_entrypoint_no_fallback
-  - jpeg_nangate45_strict_same_entrypoint_no_fallback
-  - bp_quad_nangate45_strict_same_entrypoint_no_fallback
-  - per_stage_complexity_telemetry
+entrypoint_contract: detailed_placement_evolve
+status: reference_only_not_default_flow
+use_for:
+  - relaxed_stage_design
+  - alm_style_overflow_repair
+  - staged_refinement
+notes: >
+  This is kept as complete source-code reference. The active project direction
+  is to port selected mechanisms into the constrained EvolveLegalizer
+  framework, not to route default experiments through the old family variant.

@@ -10,7 +10,6 @@ The durable source record is:
 Useful hardening and rejected-lineage evidence lives under:
 
 - `family_variants/legalm_engine/research_patches/`
-- `family_variants/legalm_r6_relaxed_scanline_alm/`
 
 Use LEGALM as a conceptual donor for staged flows:
 

@@ -10,6 +10,9 @@ if { ![info exists legalizer_name] || ![info exists padding_cmd] || ![info exist
 if { ![info exists use_legalm] } {
   set use_legalm 0
 }
+if { ![info exists two_stage_negotiation] } {
+  set two_stage_negotiation 0
+}
 
 set options [dpl_evolve_baseline::parse_options $argv [dict create \
   input-odb "3_4_place_resized.odb" \
@@ -63,6 +66,11 @@ if { $use_abacus } {
   lappend dpl_args -abacus
 }
 
+set prepass_report ""
+if { $two_stage_negotiation } {
+  set prepass_report [file join $report_dir detailed_placement_prepass_report.json]
+  log_cmd $place_cmd -report_file_name [dpl_evolve_baseline::resolve_flow_path $prepass_report]
+}
 log_cmd $place_cmd {*}$dpl_args
 
 set hpwl_after [dpl_evolve_baseline::compute_hpwl_proxy]
@@ -83,12 +91,14 @@ set summary [dict create \
   before_snapshot $before_snapshot \
   after_snapshot $after_snapshot \
   detailed_placement_report $dp_report \
+  detailed_placement_prepass_report $prepass_report \
   dbu_per_micron $dbu_per_micron \
   hpwl_before_dbu $hpwl_before \
   hpwl_after_dbu $hpwl_after \
   hpwl_delta_dbu [expr {$hpwl_after - $hpwl_before}] \
   place_command $place_cmd \
   padding_command $padding_cmd \
+  two_stage_negotiation [expr {$two_stage_negotiation ? "true" : "false"}] \
   use_negotiation [expr {$use_negotiation ? "true" : "false"}] \
   use_legalm [expr {$use_legalm ? "true" : "false"}] \
   use_abacus [expr {$use_abacus ? "true" : "false"}]]

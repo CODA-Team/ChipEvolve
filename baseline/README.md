@@ -6,7 +6,8 @@ This directory runs the strict legalization-only baselines used by
 The harness intentionally has exactly three canonical lines:
 
 - `dreamplace_default`: DreamPlace bridge default placement.
-- `openroad_dpl_negotiation`: OpenROAD `detailed_placement -use_negotiation`.
+- `openroad_dpl_negotiation`: OpenROAD `detailed_placement`, followed by
+  `detailed_placement -use_negotiation`.
 - `evolve_default`: clean `detailed_placement_evolve`.
 
 There is no reduced-flow track and no engine environment variable that changes

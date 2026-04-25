@@ -9,9 +9,11 @@ Current stores:
 - `run_db.jsonl`: one structured record per Codex/evaluator attempt.
 - `observations.jsonl`: factual observations extracted from RunDB records.
 - `knowledge_cards.jsonl`: compact prompt fragments with evidence and scope.
-- `family_region_stats.json`: posterior counters for patch families and target
-  symbols.
+- `family_region_stats.json`: posterior counters for strategy families/stages
+  and target symbols.  The filename is kept for compatibility with the older
+  family-tree loop.
 
 The packet builder reads recent RunDB failures before each Codex attempt so the
-next prompt can avoid repeating rejected mechanisms. The learning step also
-updates knowledge cards and family/region stats after each attempt.
+next prompt can avoid repeating rejected mechanisms. The learning step updates
+knowledge cards and stage/region stats after each attempt.  This directory is
+part of the durable control-plane infrastructure, not a legacy family archive.

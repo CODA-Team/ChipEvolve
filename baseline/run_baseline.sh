@@ -18,7 +18,7 @@ Usage: run_baseline.sh --line NAME [options]
 
 Canonical strict-only lines:
   dreamplace_default         DREAMPlace bridge default placement.
-  openroad_dpl_negotiation   OpenROAD detailed_placement -use_negotiation.
+  openroad_dpl_negotiation   OpenROAD detailed_placement, then -use_negotiation.
   evolve_default             detailed_placement_evolve default command.
 
 Options:
@@ -218,14 +218,15 @@ case "${line}" in
   openroad_dpl_negotiation)
     manifest_engine="negotiation"
     command_set="classic"
-    legalizer_mode="openroad_dpl_negotiation"
-    legalizer_name="openroad_dpl_negotiation"
+    legalizer_mode="openroad_dpl_diamond_then_negotiation"
+    legalizer_name="openroad_dpl_diamond_then_negotiation"
     padding_cmd="set_placement_padding"
     place_cmd="detailed_placement"
     check_cmd="check_placement"
     use_negotiation=1
     use_legalm=0
     use_abacus=0
+    two_stage_negotiation=1
     ;;
   evolve_default)
     manifest_engine="evolve_default"
@@ -238,6 +239,7 @@ case "${line}" in
     use_negotiation=0
     use_legalm=0
     use_abacus=0
+    two_stage_negotiation=0
     ;;
 esac
 
@@ -362,6 +364,7 @@ else
     printf 'set use_negotiation %s\n' "${use_negotiation}"
     printf 'set use_legalm %s\n' "${use_legalm}"
     printf 'set use_abacus %s\n' "${use_abacus}"
+    printf 'set two_stage_negotiation %s\n' "${two_stage_negotiation}"
   } > "$(flow_abs "${strict_driver}")"
   write_tcl_driver "$(flow_abs "${strict_driver}.opts")" "$(flow_abs "${SCRIPT_DIR}/detail_place_strict_core.tcl")" \
     input-odb "${input_stage}.odb" \

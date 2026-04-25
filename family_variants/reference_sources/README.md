@@ -19,6 +19,8 @@ main evolve entrypoint clean and patch-based.
 - `openroad_diamond/`: OpenROAD's diamond-search detailed placement baseline.
 - `openroad_negotiation_nblg/`: OpenROAD negotiation legalizer / NBLG-style
   repair donor.
+- `../negotiation_parallel_frontier/`: selected negotiation-history donor that
+  supersedes old r5/r6 naming.
 - `legalm/`: LEGALM sidecar lineage and ALM-style staged legalization donor.
 - `dreamplace_abacus/`: compact DREAMPlace Abacus legalization source snapshot.
 

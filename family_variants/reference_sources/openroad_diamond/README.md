@@ -2,15 +2,13 @@
 
 Role: primary baseline and diamond-compatible donor.
 
-The durable source-of-truth is the prepared OpenROAD `dpl_evolve` base produced
-by `patches/openroad_dpl_evolve_base.patch`.  Key files inside the materialized
-source tree are:
+This directory keeps a compact source snapshot from OpenROAD classic DPL:
 
-- `tools/OpenROAD/src/dpl_evolve/src/Place.cpp`
-- `tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp`
-- `tools/OpenROAD/src/dpl_evolve/src/PlacementDRC.cpp`
-- `tools/OpenROAD/src/dpl_evolve/src/PlacementDRC.h`
-- `tools/OpenROAD/src/dpl_evolve/include/dpl_evolve/Opendp.h`
+- `source/src/Place.cpp`
+- `source/src/Opendp.cpp`
+- `source/src/PlacementDRC.cpp`
+- `source/src/PlacementDRC.h`
+- `source/include/dpl/Opendp.h`
 
 Study this path when optimizing local candidate search, row/site legality,
 placement DRC checks, rip-up behavior, and diamond-compatible fallback.  It is

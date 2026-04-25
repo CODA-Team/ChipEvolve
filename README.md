@@ -142,6 +142,37 @@ ${DPL_EVOLVE_STATE_ROOT}/variants/test_agent/install/OpenROAD/bin/sta
 
 `sta` is symlinked from the common-core build when available.
 
+## Lightweight Plugin Experiments
+
+For top-level stage-order experiments, OpenROAD can be linked once and agents
+can compile only a small shared object:
+
+```bash
+"$DPL_EVOLVE_AGENT_ROOT/plugins/dpl_evolve_plugin_v1/build.sh" \
+  --openroad-src "$ORFS_ROOT/tools/OpenROAD" \
+  --out "${DPL_EVOLVE_STATE_ROOT}/plugins/default_diamond/libdpl_evolve_plugin.so"
+```
+
+Run an evolved line with the plugin loaded:
+
+```bash
+DPL_EVOLVE_PLUGIN_SO="${DPL_EVOLVE_STATE_ROOT}/plugins/default_diamond/libdpl_evolve_plugin.so" \
+python3 "$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py" \
+  --case gcd_nangate45 \
+  --mode single \
+  --line evolve_default \
+  --flow-variant <FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB> \
+  --run-tag plugin_smoke_gcd \
+  --skip-build \
+  --openroad-binary "${DPL_EVOLVE_STATE_ROOT}/variants/test_agent/install/OpenROAD/bin/openroad" \
+  --out "${DPL_EVOLVE_STATE_ROOT}/checkpoints/operations/plugin_smoke_gcd/eval.json"
+```
+
+The V1 plugin ABI currently exposes stage callbacks and integer telemetry:
+diamond-compatible legalization, negotiation repair, and metric emission.  Use
+private relink for deeper source changes; use plugin `.so` experiments when the
+idea is mostly orchestration or stage policy.
+
 ## Run One Evaluation
 
 Use an explicit binary for variant runs:

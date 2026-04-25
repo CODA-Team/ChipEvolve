@@ -1,62 +1,56 @@
 # Skill: patch_rules
 
 ## Principle
-Codex edits **only the bounded legalizer surfaces** unless a task explicitly expands the surface.
 
-## Early-phase allowed surfaces
-- `tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.cpp`
-- `tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizerPass.cpp`
-- `tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.h`
-- `tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp`
-- `tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl`
+Codex edits only the bounded `dpl_evolve` framework surface unless a task
+explicitly expands the scope.
 
-## Family variants
+## Preferred Surfaces
 
-- `LEGALM` is a family-specific variant, not part of the clean initial evolve base.
-- Materialize it with `"$DPL_EVOLVE_AGENT_ROOT/scripts/materialize_family_variant.sh"`.
-- Patch the materialized variant source tree, not `tools/OpenROAD/src/dpl_evolve/`.
+- `tools/OpenROAD/src/dpl_evolve/src/EvolveLegalizer.cpp`
+- `tools/OpenROAD/src/dpl_evolve/src/EvolveLegalizer.h`
+- `tools/OpenROAD/src/dpl_evolve/src/EvolveContext.h`
+- `tools/OpenROAD/src/dpl_evolve/src/EvolveTelemetry.h`
+- existing `tools/OpenROAD/src/dpl_evolve/src/Place.cpp` or
+  `NegotiationLegalizer*` files only when borrowing a specific donor mechanism.
 
-## Read-only unless task expands scope
-- `tools/OpenROAD/src/dpl_evolve/src/Optdp.cpp`
-- ORFS `flow/scripts/*`
-- unrelated OpenROAD tools
+Do not edit classic `tools/OpenROAD/src/dpl/`.
 
-For loop-driven bounded patch turns, do not inspect or edit `flow/Makefile`,
-`flow/designs/*/config.mk`, or other artifact-plane files unless the task
-explicitly asks for runner/config changes.
-Do not open archive protocols, delta ledgers, or stage-context notes when the
-current run packet already gives the active patch surface and hard gates.
+## Reference Inputs
 
-## Patch style
-- make small, mechanism-specific edits
-- allow stacked family evolution, but each patch note must still name the newly
-  added mechanism layer
-- preserve existing interfaces unless the task explicitly allows interface change
-- if a Tcl option is added, update both Tcl wrapper and the receiving C++ layer
-- review the implementation for obvious low-value overheads before promoting a
-  family on large cases
+Read compact references before patching:
 
-## Preferred mechanism families
-- main-pass objective shaping
-- stuck-cell escape / local-optimum escape
-- selective refinement and recovery
-- localized swap / localized postopt
-- LEGALM Stage1 / Stage2 / Stage3 improvement
-- runtime-aware implementation review
+- `family_variants/REFERENCE_INDEX.yaml`
+- one donor under `family_variants/reference_sources/`
+- `family_variants/negotiation_parallel_frontier/` only if assigned to
+  negotiation-history mechanisms
+- `family_variants/legalm_engine/dpl_evolve.patch` only if assigned to LEGALM
 
-## Required patch note
+Do not broad-read `local_backups/legacy_family_flow_cleanup_20260425/` unless
+the task explicitly asks for old family-flow evidence.
+
+## Patch Style
+
+- Change one mechanism or one framework stage at a time.
+- Keep `detailed_placement_evolve` as the command entrypoint.
+- Keep evaluator, scoring, and ORFS flow scripts locked.
+- If a Tcl option is added, update both the Tcl wrapper and C++ receiver.
+- Add telemetry when a new stage or repair operator executes.
+
+## Required Patch Note
+
 For each patch, record:
-- touched files
-- mechanism name
-- why this mechanism matches the current packet
-- expected metric effect
-- rollback condition
 
-## Forbidden behaviors
-- large speculative rewrites
-- simultaneous evaluator + algorithm edits
-- moving files between target plane and control plane
-- adding third-party code directly into target plane without explicit task approval
-- re-integrating family-specific legalizers into the clean main-tree base
-- claiming a family is promoted without comparing against a baseline or previous
-  family with `scripts/compare_runs.py`
+- touched files,
+- stage or mechanism name,
+- expected HPWL/runtime/displacement/legality effect,
+- expected failure mode,
+- rollback condition.
+
+## Forbidden Behaviors
+
+- simultaneous evaluator and algorithm edits,
+- moving target-plane code into the control plane,
+- adding third-party source directly into target code without explicit approval,
+- claiming success without comparing against the current baseline,
+- using fallback-to-default behavior as evidence of algorithm quality.

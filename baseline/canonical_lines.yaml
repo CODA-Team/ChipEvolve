@@ -12,8 +12,9 @@ canonical_lines:
     start_point: 3_4_place_resized.odb
     entry_script: $DPL_EVOLVE_AGENT_ROOT/baseline/run_openroad_negotiation.sh
     notes:
-      - "OpenROAD detailed_placement with -use_negotiation"
-      - "canonical OpenROAD DPL baseline for evolve comparisons"
+      - "OpenROAD detailed_placement prepass"
+      - "OpenROAD detailed_placement -use_negotiation repair pass"
+      - "canonical two-stage OpenROAD DPL baseline for evolve comparisons"
 
   - id: evolve_default
     kind: evolve

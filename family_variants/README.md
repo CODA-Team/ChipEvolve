@@ -1,98 +1,33 @@
-# Family Variants and Source References
+# Family Variants
 
-This directory used to be the active family-tree workspace.  The project is now
-moving to a constrained top-level `detailed_placement_evolve` framework, so the
-default use of this directory is source reference and donor inspection rather
-than automatic family routing.
+This directory is now a compact algorithm-reference shelf, not the active
+family-tree router.
 
-Start with `reference_sources/` when an agent needs to learn from existing
-legalizers:
+Default agent context should read only:
 
-- OpenROAD diamond DPL: strongest strict baseline and local legalization donor.
-- OpenROAD negotiation / NBLG: overflow repair and stuck-cell donor.
-- LEGALM: staged relaxed legalization and ALM-style guidance donor.
-- DREAMPlace Abacus: row assignment and cluster compaction donor.
+- `REFERENCE_INDEX.yaml`
+- `reference_sources/`
+- `negotiation_parallel_frontier/` when negotiation-history code is assigned
+- `legalm_engine/` when LEGALM sidecar code is assigned
 
-The older family records below are still useful as archived evidence, but they
-are not the main path for new algorithm work unless a task explicitly asks for
-legacy family comparison.
+Everything from the previous family-tree flow that is not part of those
+references has been moved to:
 
-The common runtime model is:
-
-- `tools/OpenROAD/src/dpl_evolve` is the clean initial evolve base
-- a family source record materializes a private variant source tree
-- the private variant source tree is built into its own OpenROAD binary
-- runtime state and generated source stay under `DPL_EVOLVE_STATE_ROOT`
-
-Read `SOURCE_OF_TRUTH.md` before using a research patch as a parent.  It marks
-whether a record is a clean-base patch, generator variant, overlay chain,
-materialized sidecar, repair candidate, or polish-only snippet.
-
-Use:
-
-```bash
-"$DPL_EVOLVE_AGENT_ROOT/scripts/materialize_family_variant.sh" \
-  --family legalm_engine \
-  --output-dir "$DPL_EVOLVE_STATE_ROOT/family_variants/legalm_engine/dpl_evolve" \
-  --force
+```text
+local_backups/legacy_family_flow_cleanup_20260425/
 ```
 
-Then build that source tree with the lightweight relink path:
+That backup is intentionally ignored by git.  Use it only for explicit
+forensics, not as default context.
 
-```bash
-"$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_variant_relink.sh" \
-  --variant-root "$DPL_EVOLVE_STATE_ROOT/variants/legalm_engine" \
-  --dpl-src "$DPL_EVOLVE_STATE_ROOT/family_variants/legalm_engine/dpl_evolve"
+## Selection
 
-source "$DPL_EVOLVE_STATE_ROOT/variants/legalm_engine/variant_env.sh"
+- Use OpenROAD diamond as the quality/runtime baseline.
+- Use `negotiation_parallel_frontier` as the selected negotiation donor; old
+  r5 records are superseded.
+- Use `legalm_engine/dpl_evolve.patch` as the complete LEGALM source donor.
+- Use `reference_sources/dreamplace_abacus` for row-assignment/compaction
+  reference.
 
-"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_variant_relink.sh" --threads 10
-```
-
-Run family variants with an explicit binary. Do not rely on the root
-`tools/install/OpenROAD/bin/openroad` once a family variant is involved.
-
-## Family Status
-
-Flow-ready generated candidates:
-
-- `negotiation_row_bucket_quality_frontier_r5/`
-
-Materialized structural families:
-
-- `legalm_engine/`
-
-Candidate/status manifests:
-
-- `netaware_objective/`
-- `priority_escape/`
-- `localized_swap/`
-
-Only explicitly requested legacy candidates should be added to matrix groups.
-Candidate/status manifests are evidence and routing guidance, not default
-parents for the new constrained framework.
-
-## Research Patch Artifacts
-
-Some families are not flow-ready yet, but their current local code deltas are
-still useful for research agents.  Those deltas live under each family
-directory as `research_patches/*.patch`.
-
-These patches are committed so future agents can inspect concrete code, reuse
-mechanisms, and materialize the next implementation without relying on private
-local archives.  They are not automatically enabled as base families unless the
-family manifest says so.
-
-Current committed research patches:
-
-- `negotiation_row_bucket_quality_frontier_r5/research_patches/negotiation_row_bucket_quality_frontier_r5.patch`
-- `netaware_objective/research_patches/netaware12_prefilter_hotset_guard.patch`
-- `legalm_engine/research_patches/legalm_counterfix_r4.patch`
-- `legalm_engine/research_patches/legalm_stage1_quality_guard_r5.patch`
-- `priority_escape/research_patches/priority_escape_r3_20260425.patch`
-- `priority_escape/research_patches/priority_escape_frontier_repair_20260425.patch`
-- `localized_swap/research_patches/localswap01_bounded_local_polish.patch`
-
-Planned next artifacts are tracked in `NEXT_PATCH_ARTIFACTS.yaml`.  A planned
-path is not an implemented patch until the file exists and the family manifest
-references it as evidence.
+New algorithm work should become a patch to the constrained framework behind
+`detailed_placement_evolve`, not another default family directory.

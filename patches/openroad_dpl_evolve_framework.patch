@@ -1,40 +1,44 @@
 diff --git a/src/dpl_evolve/CMakeLists.txt b/src/dpl_evolve/CMakeLists.txt
-index 5828896c4e..acd6479715 100644
+index 5828896c4e..61a1040344 100644
 --- a/src/dpl_evolve/CMakeLists.txt
 +++ b/src/dpl_evolve/CMakeLists.txt
-@@ -18,6 +18,7 @@ swig_lib(NAME         dpl_evolve
+@@ -17,6 +17,23 @@ swig_lib(NAME         dpl_evolve
+                        ${ODB_HOME}/include
  )
  
- add_library(dpl_evolve_lib
++add_library(dpl_evolve_framework_lib
 +  src/EvolveLegalizer.cpp
++)
++
++target_link_libraries(dpl_evolve_framework_lib
++  PRIVATE
++    ${CMAKE_DL_LIBS}
++    utl_lib
++)
++
++target_include_directories(dpl_evolve_framework_lib
++  PUBLIC
++    include
++  PRIVATE
++    src
++)
++
+ add_library(dpl_evolve_lib
    src/Opendp.cpp
    src/dbToOpendp.cpp
-   src/infrastructure/Grid.cpp
-@@ -121,4 +122,3 @@ if (Python3_FOUND AND BUILD_PYTHON)
+@@ -56,6 +73,7 @@ target_link_libraries(dpl_evolve_lib
+   PUBLIC
+     odb
+   PRIVATE
++    dpl_evolve_framework_lib
+     utl_lib
+ )
+ 
+@@ -121,4 +139,3 @@ if (Python3_FOUND AND BUILD_PYTHON)
    )
  
  endif()
 -
-diff --git a/src/dpl_evolve/include/dpl_evolve/Opendp.h b/src/dpl_evolve/include/dpl_evolve/Opendp.h
-index 0acaf43d50..601af8cc1b 100644
---- a/src/dpl_evolve/include/dpl_evolve/Opendp.h
-+++ b/src/dpl_evolve/include/dpl_evolve/Opendp.h
-@@ -39,6 +39,7 @@ class Network;
- struct Pixel;
- 
- class DplObserver;
-+class EvolveLegalizer;
- class Grid;
- class GridInfo;
- class Padding;
-@@ -194,6 +195,7 @@ class Opendp
-   friend class OpendpTest_IsPlaced_Test;
-   friend class Graphics;
-   friend class CellPlaceOrderLess;
-+  friend class EvolveLegalizer;
-   friend class NegotiationLegalizer;
-   void findDisplacementStats();
-   DbuPt pointOffMacro(const Node& cell);
 diff --git a/src/dpl_evolve/src/EvolveContext.h b/src/dpl_evolve/src/EvolveContext.h
 new file mode 100644
 index 0000000000..ee4317741a
@@ -63,20 +67,21 @@ index 0000000000..ee4317741a
 +}  // namespace dpl_evolve
 diff --git a/src/dpl_evolve/src/EvolveLegalizer.cpp b/src/dpl_evolve/src/EvolveLegalizer.cpp
 new file mode 100644
-index 0000000000..9dba4f3d02
+index 0000000000..6a0655cbe0
 --- /dev/null
 +++ b/src/dpl_evolve/src/EvolveLegalizer.cpp
-@@ -0,0 +1,150 @@
+@@ -0,0 +1,198 @@
 +// SPDX-License-Identifier: BSD-3-Clause
 +// Copyright (c) 2018-2025, The OpenROAD Authors
 +
 +#include "EvolveLegalizer.h"
 +
 +#include <chrono>
++#include <cstdlib>
++#include <dlfcn.h>
++#include <string>
 +
-+#include "NegotiationLegalizer.h"
-+#include "dpl_evolve/Opendp.h"
-+#include "infrastructure/architecture.h"
++#include "EvolvePluginApi.h"
 +#include "utl/Logger.h"
 +
 +namespace dpl_evolve {
@@ -113,8 +118,32 @@ index 0000000000..9dba4f3d02
 +
 +}  // namespace
 +
-+EvolveLegalizer::EvolveLegalizer(Opendp* opendp, utl::Logger* logger)
-+    : opendp_(opendp), logger_(logger)
++struct PluginCallbackState
++{
++  utl::Logger* logger = nullptr;
++  EvolveHooks* hooks = nullptr;
++};
++
++void pluginMetricInt(void* user_data, const char* name, const int value)
++{
++  auto* state = static_cast<PluginCallbackState*>(user_data);
++  state->logger->metric(name, value);
++}
++
++void pluginRunDiamondCompatible(void* user_data)
++{
++  auto* state = static_cast<PluginCallbackState*>(user_data);
++  state->hooks->run_diamond_compatible();
++}
++
++void pluginRunNegotiationRepair(void* user_data, const int run_abacus)
++{
++  auto* state = static_cast<PluginCallbackState*>(user_data);
++  state->hooks->run_negotiation_repair(run_abacus != 0);
++}
++
++EvolveLegalizer::EvolveLegalizer(utl::Logger* logger, EvolveHooks hooks)
++    : logger_(logger), hooks_(std::move(hooks))
 +{
 +}
 +
@@ -142,6 +171,10 @@ index 0000000000..9dba4f3d02
 +  logger_->metric("dpl_evolve__framework__abacus_requested",
 +                  context.abacus_requested ? 1 : 0);
 +
++  if (tryRunExternalPlugin(context)) {
++    return;
++  }
++
 +  runRelaxedGuidanceStage(context);
 +  runRowAssignmentStage(context);
 +
@@ -152,6 +185,55 @@ index 0000000000..9dba4f3d02
 +  }
 +
 +  runBoundedPolishStage(context);
++}
++
++bool EvolveLegalizer::tryRunExternalPlugin(const EvolveContext& context)
++{
++  const char* plugin_path = std::getenv("DPL_EVOLVE_PLUGIN_SO");
++  if (plugin_path == nullptr || std::string(plugin_path).empty()) {
++    logger_->metric("dpl_evolve__plugin__enabled", 0);
++    return false;
++  }
++
++  logger_->metric("dpl_evolve__plugin__enabled", 1);
++  logger_->info(DPL, 1202, "Loading DPL-Evolve plugin: {}", plugin_path);
++
++  void* handle = dlopen(plugin_path, RTLD_NOW | RTLD_LOCAL);
++  if (handle == nullptr) {
++    logger_->error(DPL, 1203, "Failed to load DPL-Evolve plugin: {}", dlerror());
++  }
++
++  dlerror();
++  auto run = reinterpret_cast<DplEvolveRunV1>(dlsym(handle, "dpl_evolve_run_v1"));
++  const char* symbol_error = dlerror();
++  if (symbol_error != nullptr) {
++    dlclose(handle);
++    logger_->error(DPL,
++                   1204,
++                   "DPL-Evolve plugin is missing dpl_evolve_run_v1: {}",
++                   symbol_error);
++  }
++
++  PluginCallbackState state{logger_, &hooks_};
++  DplEvolveCallbacksV1 callbacks;
++  callbacks.user_data = &state;
++  callbacks.metric_int = pluginMetricInt;
++  callbacks.run_diamond_compatible = pluginRunDiamondCompatible;
++  callbacks.run_negotiation_repair = pluginRunNegotiationRepair;
++
++  DplEvolveContextV1 plugin_context;
++  plugin_context.negotiation_requested = context.negotiation_requested ? 1 : 0;
++  plugin_context.abacus_requested = context.abacus_requested ? 1 : 0;
++  plugin_context.max_displacement_x = context.max_displacement_x;
++  plugin_context.max_displacement_y = context.max_displacement_y;
++
++  const int rc = run(&plugin_context, &callbacks);
++  dlclose(handle);
++  if (rc != 0) {
++    logger_->error(DPL, 1205, "DPL-Evolve plugin returned failure code {}.", rc);
++  }
++  logger_->metric("dpl_evolve__plugin__status", 1);
++  return true;
 +}
 +
 +void EvolveLegalizer::runRelaxedGuidanceStage(const EvolveContext&)
@@ -170,44 +252,14 @@ index 0000000000..9dba4f3d02
 +{
 +  StageTimer timer(this, "diamond_compatible", "active");
 +  logger_->metric("dpl_evolve__stage_diamond_compatible__active", 1);
-+  logger_->info(DPL, 1101, "Legalizing using diamond search.");
-+  opendp_->diamondDPL();
++  hooks_.run_diamond_compatible();
 +}
 +
 +void EvolveLegalizer::runNegotiationRepairStage(const EvolveContext& context)
 +{
 +  StageTimer timer(this, "negotiation_repair", "active");
 +  logger_->metric("dpl_evolve__stage_negotiation_repair__active", 1);
-+  logger_->info(DPL, 1102, "Legalizing using negotiation legalizer.");
-+
-+  opendp_->initGrid();
-+  opendp_->setFixedGridCells();
-+  // Populate pixel->group for each fence region so diamondRecovery's
-+  // underlying diamondSearch correctly enforces region constraints.
-+  if (!opendp_->arch_->getRegions().empty()) {
-+    opendp_->groupInitPixels2();
-+    opendp_->groupInitPixels();
-+  }
-+
-+  NegotiationLegalizer negotiation(opendp_,
-+                                   opendp_->db_,
-+                                   logger_,
-+                                   opendp_->padding_.get(),
-+                                   opendp_->debug_observer_.get(),
-+                                   opendp_->network_.get());
-+  negotiation.setRunAbacus(context.abacus_requested);
-+  negotiation.legalize();
-+  negotiation.setDplPositions();
-+
-+  if (negotiation.numViolations() > 0) {
-+    logger_->warn(DPL,
-+                  701,
-+                  "NegotiationLegalizer did not fully converge. "
-+                  "Violations remain: {}",
-+                  negotiation.numViolations());
-+    logger_->metric("NL__no__converge__final_violations",
-+                    negotiation.numViolations());
-+  }
++  hooks_.run_negotiation_repair(context.abacus_requested);
 +}
 +
 +void EvolveLegalizer::runBoundedPolishStage(const EvolveContext&)
@@ -219,16 +271,18 @@ index 0000000000..9dba4f3d02
 +}  // namespace dpl_evolve
 diff --git a/src/dpl_evolve/src/EvolveLegalizer.h b/src/dpl_evolve/src/EvolveLegalizer.h
 new file mode 100644
-index 0000000000..83f75194c3
+index 0000000000..5f3b05f389
 --- /dev/null
 +++ b/src/dpl_evolve/src/EvolveLegalizer.h
-@@ -0,0 +1,40 @@
+@@ -0,0 +1,47 @@
 +// SPDX-License-Identifier: BSD-3-Clause
 +// Copyright (c) 2018-2025, The OpenROAD Authors
 +
 +#pragma once
 +
++#include <functional>
 +#include <string>
++#include <utility>
 +
 +#include "EvolveContext.h"
 +#include "EvolveTelemetry.h"
@@ -239,12 +293,16 @@ index 0000000000..83f75194c3
 +
 +namespace dpl_evolve {
 +
-+class Opendp;
++struct EvolveHooks
++{
++  std::function<void()> run_diamond_compatible;
++  std::function<void(bool run_abacus)> run_negotiation_repair;
++};
 +
 +class EvolveLegalizer
 +{
 + public:
-+  EvolveLegalizer(Opendp* opendp, utl::Logger* logger);
++  EvolveLegalizer(utl::Logger* logger, EvolveHooks hooks);
 +
 +  void run(const EvolveContext& context);
 +  const EvolveTelemetry& telemetry() const { return telemetry_; }
@@ -256,13 +314,57 @@ index 0000000000..83f75194c3
 +  void runDiamondCompatibleStage(const EvolveContext& context);
 +  void runNegotiationRepairStage(const EvolveContext& context);
 +  void runBoundedPolishStage(const EvolveContext& context);
++  bool tryRunExternalPlugin(const EvolveContext& context);
 +
-+  Opendp* opendp_ = nullptr;
 +  utl::Logger* logger_ = nullptr;
++  EvolveHooks hooks_;
 +  EvolveTelemetry telemetry_;
 +};
 +
 +}  // namespace dpl_evolve
+diff --git a/src/dpl_evolve/src/EvolvePluginApi.h b/src/dpl_evolve/src/EvolvePluginApi.h
+new file mode 100644
+index 0000000000..aac51422b2
+--- /dev/null
++++ b/src/dpl_evolve/src/EvolvePluginApi.h
+@@ -0,0 +1,37 @@
++// SPDX-License-Identifier: BSD-3-Clause
++// Copyright (c) 2018-2025, The OpenROAD Authors
++
++#pragma once
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++// Minimal C ABI for out-of-tree DPL-Evolve top-level plugins.
++//
++// The first version exposes orchestration callbacks only.  This lets an agent
++// compile a tiny shared object and choose stage order without relinking
++// OpenROAD.  Deeper placement-data APIs can be added with a new ABI version.
++
++typedef struct DplEvolveContextV1
++{
++  int negotiation_requested;
++  int abacus_requested;
++  int max_displacement_x;
++  int max_displacement_y;
++} DplEvolveContextV1;
++
++typedef struct DplEvolveCallbacksV1
++{
++  void* user_data;
++  void (*metric_int)(void* user_data, const char* name, int value);
++  void (*run_diamond_compatible)(void* user_data);
++  void (*run_negotiation_repair)(void* user_data, int run_abacus);
++} DplEvolveCallbacksV1;
++
++typedef int (*DplEvolveRunV1)(const DplEvolveContextV1* context,
++                              const DplEvolveCallbacksV1* callbacks);
++
++#ifdef __cplusplus
++}
++#endif
 diff --git a/src/dpl_evolve/src/EvolveTelemetry.h b/src/dpl_evolve/src/EvolveTelemetry.h
 new file mode 100644
 index 0000000000..eaf4716174
@@ -303,7 +405,7 @@ index 0000000000..eaf4716174
 +
 +}  // namespace dpl_evolve
 diff --git a/src/dpl_evolve/src/Opendp.cpp b/src/dpl_evolve/src/Opendp.cpp
-index 5a7b2ced13..f22346f867 100644
+index 5a7b2ced13..4729a92801 100644
 --- a/src/dpl_evolve/src/Opendp.cpp
 +++ b/src/dpl_evolve/src/Opendp.cpp
 @@ -14,6 +14,8 @@
@@ -315,13 +417,23 @@ index 5a7b2ced13..f22346f867 100644
  #include "NegotiationLegalizer.h"
  #include "PlacementDRC.h"
  #include "boost/geometry/index/predicates.hpp"
-@@ -183,59 +185,33 @@ void Opendp::detailedPlacement(const int max_displacement_x,
+@@ -183,27 +185,20 @@ void Opendp::detailedPlacement(const int max_displacement_x,
                  max_displacement_x_,
                  max_displacement_y_);
  
 -  if (!use_negotiation_) {
--    logger_->info(DPL, 1101, "Legalizing using diamond search.");
--    diamondDPL();
++  EvolveContext evolve_context;
++  evolve_context.max_displacement_x = max_displacement_x_;
++  evolve_context.max_displacement_y = max_displacement_y_;
++  evolve_context.incremental = incremental_;
++  evolve_context.negotiation_requested = use_negotiation_;
++  evolve_context.abacus_requested = run_abacus;
++  evolve_context.report_file_name = report_file_name;
++
++  EvolveHooks evolve_hooks;
++  evolve_hooks.run_diamond_compatible = [this]() {
+     logger_->info(DPL, 1101, "Legalizing using diamond search.");
+     diamondDPL();
 -    findDisplacementStats();
 -    updateDbInstLocations();
 -    if (!placement_failures_.empty()) {
@@ -332,14 +444,7 @@ index 5a7b2ced13..f22346f867 100644
 -      for (auto cell : placement_failures_) {
 -        logger_->info(DPL, 35, " {}", cell->name());
 -      }
-+  EvolveContext evolve_context;
-+  evolve_context.max_displacement_x = max_displacement_x_;
-+  evolve_context.max_displacement_y = max_displacement_y_;
-+  evolve_context.incremental = incremental_;
-+  evolve_context.negotiation_requested = use_negotiation_;
-+  evolve_context.abacus_requested = run_abacus;
-+  evolve_context.report_file_name = report_file_name;
- 
+-
 -      saveFailures({}, {}, {}, {}, {}, {}, {}, placement_failures_, {}, {});
 -      if (!report_file_name.empty()) {
 -        writeJsonReport(report_file_name);
@@ -347,35 +452,20 @@ index 5a7b2ced13..f22346f867 100644
 -      logger_->error(DPL, 36, "Detailed placement failed inside DPL.");
 -    }
 -  } else {
--    initGrid();
--    setFixedGridCells();
--    // Populate pixel->group for each fence region so diamondRecovery's
--    // underlying diamondSearch correctly enforces region constraints.
--    if (!arch_->getRegions().empty()) {
--      groupInitPixels2();
--      groupInitPixels();
--    }
--    logger_->info(DPL, 1102, "Legalizing using negotiation legalizer.");
--
--    NegotiationLegalizer negotiation(this,
--                                     db_,
--                                     logger_,
--                                     padding_.get(),
--                                     debug_observer_.get(),
--                                     network_.get());
--    negotiation.setRunAbacus(run_abacus);
--    negotiation.legalize();
--    negotiation.setDplPositions();
--
--    if (negotiation.numViolations() > 0) {
--      logger_->warn(DPL,
--                    701,
--                    "NegotiationLegalizer did not fully converge. "
--                    "Violations remain: {}",
--                    negotiation.numViolations());
--      logger_->metric("NL__no__converge__final_violations",
--                      negotiation.numViolations());
-+  EvolveLegalizer evolve_legalizer(this, logger_);
++  };
++  evolve_hooks.run_negotiation_repair = [this](const bool run_abacus) {
+     initGrid();
+     setFixedGridCells();
+     // Populate pixel->group for each fence region so diamondRecovery's
+@@ -233,9 +228,27 @@ void Opendp::detailedPlacement(const int max_displacement_x,
+       logger_->metric("NL__no__converge__final_violations",
+                       negotiation.numViolations());
+     }
++  };
+ 
+-    findDisplacementStats();
+-    updateDbInstLocations();
++  EvolveLegalizer evolve_legalizer(logger_, std::move(evolve_hooks));
 +  evolve_legalizer.run(evolve_context);
 +
 +  findDisplacementStats();
@@ -387,10 +477,8 @@ index 5a7b2ced13..f22346f867 100644
 +                  placement_failures_.size());
 +    for (auto cell : placement_failures_) {
 +      logger_->info(DPL, 35, " {}", cell->name());
-     }
- 
--    findDisplacementStats();
--    updateDbInstLocations();
++    }
++
 +    saveFailures({}, {}, {}, {}, {}, {}, {}, placement_failures_, {}, {});
 +    if (!report_file_name.empty()) {
 +      writeJsonReport(report_file_name);
