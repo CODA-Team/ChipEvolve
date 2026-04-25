@@ -1,0 +1,71 @@
+schema_version: 1
+purpose: >
+  Curated paper sources for dpl_evolve family research.  This file records
+  where papers should be read from and whether a PDF can be committed,
+  downloaded into a local cache, or only referenced by link.
+
+papers:
+  - id: opendp
+    title: "OpenDP: A Robust and Scalable Open-Source Detailed Placement Engine"
+    role: "OpenROAD detailed-placement baseline and command-context reference."
+    local_reference: "knowledge/reference/OpenDP.pdf"
+    git_policy: "committed_existing_reference"
+    fetch_policy: "already_in_repo"
+    notes:
+      - "Use this as the local committed DPL reference."
+
+  - id: nblg
+    title: "NBLG: A Robust Legalizer for Mixed-Cell-Height Modern Design"
+    role: "Negotiation-based legalization mechanism reference."
+    local_reference: null
+    git_policy: "do_not_commit_pdf_until_license_checked"
+    fetch_policy: "link_or_publisher_lookup"
+    canonical_lookup:
+      - "Search the exact title in IEEE Xplore or the authors' pages."
+    notes:
+      - "Use the algorithm card in knowledge/algorithm_cards/nblg.md until a redistribution-safe PDF is available."
+
+  - id: legalm_ispd2025
+    title: "LEGALM: Efficient Legalization for Mixed-Cell-Height Circuits with Linearized Augmented Lagrangian Method"
+    role: "ALM legalization, partitioning, GPU/parallelization, and displacement-quality reference."
+    source_url: "https://yibolin.com/publications/papers/PLACE_ISPD2025_Mai.pdf"
+    doi: "https://doi.org/10.1145/3698364.3705356"
+    local_cache_name: "LEGALM_ISPD2025_Mai_PERSONAL_USE_ONLY.pdf"
+    git_policy: "do_not_commit_pdf"
+    fetch_policy: "local_cache_only_with_personal_use_opt_in"
+    notes:
+      - "The author PDF states personal use and not for redistribution."
+      - "Useful for LEGALM R6 row-segment and batch-assignment design."
+
+  - id: legalm_2_0
+    title: "LEGALM 2.0: A Versatile Augmented Lagrangian Method-Based Methodology for Mixed-Cell-Height Legalization"
+    role: "Follow-up LEGALM methodology reference when available."
+    local_reference: null
+    git_policy: "do_not_commit_pdf_until_license_checked"
+    fetch_policy: "link_or_publisher_lookup"
+    canonical_lookup:
+      - "Search the exact title in IEEE Xplore, ACM DL, or author pages."
+    notes:
+      - "Do not conflate this with the ISPD 2025 LEGALM author PDF unless the citation is verified."
+
+  - id: dreamplace_2019
+    title: "DREAMPlace: Deep Learning Toolkit-Enabled GPU Acceleration for Modern VLSI Placement"
+    role: "External placement and comparator reference; useful for GPU/global-placement context."
+    source_url: "https://research.nvidia.com/sites/default/files/pubs/2019-06_DREAMPlace%3A-Deep-Learning/54_1_Lin_DREAMPLACE.pdf"
+    ieee_url: "https://ieeexplore.ieee.org/document/9122053"
+    local_cache_name: "DREAMPlace_2019_Lin.pdf"
+    git_policy: "do_not_commit_pdf_by_default"
+    fetch_policy: "local_cache_ok"
+    notes:
+      - "Fetch to local cache for reading; do not commit unless redistribution policy is checked."
+
+  - id: abacus_2008
+    title: "Abacus: Fast Legalization of Standard Cell Circuits with Minimal Movement"
+    role: "Row/cluster legalization donor reference."
+    doi: "https://doi.org/10.1145/1353629.1353640"
+    local_reference: null
+    git_policy: "do_not_commit_pdf_until_license_checked"
+    fetch_policy: "link_only"
+    notes:
+      - "Use the DOI and bibliographic pages for lookup."
+      - "Good donor for row-segment, cluster, and minimal-displacement reasoning."
