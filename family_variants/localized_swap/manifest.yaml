@@ -12,8 +12,8 @@ reason_not_materialized: >
   implementation is normalized into a standalone patch.
 current_candidates:
   - id: localswap01_bounded_local_polish
-    patch_artifact: local_archive_not_committed
-    patch_sha256: cf479c70d3c064c1a2102f35c38799b527907a28fcdaf24a67ead1d60b06e084
+    patch_artifact: research_patches/localswap01_bounded_local_polish.patch
+    patch_sha256: c07ea9ad95ce191b478a409a01a407a6217b0c453871ca6aadc7629ec94614f0
     state: polish_evidence_only
     apply_policy: opt_in_after_legal_parent
     blocker: "bp_quad timed out and saved diff is not a standalone full implementation"

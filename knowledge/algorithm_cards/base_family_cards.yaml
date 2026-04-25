@@ -86,7 +86,7 @@ base_families:
       - "R5 strict aes legal: HPWL -6.09% and runtime -8.99% versus same-run baseline."
       - "R5 strict jpeg legal: HPWL -1.92% and runtime -24.66% versus same-run baseline."
     patch_artifact:
-      - "family_robustness/negotiation_row_bucket/negotiation_row_bucket_quality_frontier_r5.patch"
+      - "family_variants/negotiation_row_bucket_quality_frontier_r5/research_patches/negotiation_row_bucket_quality_frontier_r5.patch"
     flow_artifact:
       - "family_variants/negotiation_row_bucket_quality_frontier_r5/manifest.yaml"
     matrix_variant:
@@ -140,7 +140,7 @@ base_families:
       - "Runtime overhead is still about 18-20%, so this is not a hard base yet."
       - "R5 quality-recover attempt improved jpeg HPWL further but failed evidence gates because AES runtime and JPEG max displacement regressed; keep R4 as the cleaner repair candidate."
     patch_artifact:
-      - "family_robustness/netaware_objective/netaware12_prefilter_hotset_guard.patch"
+      - "family_variants/netaware_objective/research_patches/netaware12_prefilter_hotset_guard.patch"
     evolve_next:
       - recover_more_hpwl_inside_shortlist
       - cache_or_prefilter_local_hpwl_terms
@@ -190,8 +190,8 @@ base_families:
       - "R5 strict aes/jpeg legal through the same evolve command."
       - "JPEG remains much worse than clean evolve baseline on HPWL and displacement, so this is not a base."
     patch_artifact:
-      - "family_robustness/legalm_engine/legalm_counterfix_r4.patch"
-      - "family_robustness/legalm_engine/legalm_stage1_quality_guard_r5.patch"
+      - "family_variants/legalm_engine/research_patches/legalm_counterfix_r4.patch"
+      - "family_variants/legalm_engine/research_patches/legalm_stage1_quality_guard_r5.patch"
     evolve_next:
       - rethink_stage1_quality_without_large_displacement
       - keep_counterfix_as_required_legality_patch

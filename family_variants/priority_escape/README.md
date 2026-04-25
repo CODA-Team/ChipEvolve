@@ -16,6 +16,14 @@ Use the manifest in `manifest.yaml` as the flow-facing state:
 - Only after that should a patch be normalized into a standalone
   `dpl_evolve.patch`.
 
+Committed research patches:
+
+- `research_patches/priority_escape_r3_20260425.patch`
+- `research_patches/priority_escape_frontier_repair_20260425.patch`
+
+These patches expose the current repair code to research agents.  They are not
+base-family patches and should not be enabled without the telemetry gates above.
+
 Evidence:
 
 - `../../family_robustness/priority_escape/HARDENING_DECISION_20260425.md`

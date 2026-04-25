@@ -1,0 +1,62 @@
+diff --git a/src/NegotiationLegalizerPass.cpp b/src/NegotiationLegalizerPass.cpp
+--- a/src/NegotiationLegalizerPass.cpp	2026-04-25 06:52:49.264040697 +0800
++++ b/src/NegotiationLegalizerPass.cpp	2026-04-25 06:59:48.431050691 +0800
+@@ -475,6 +475,7 @@
+   const NegCell& cell = cells_[cell_idx];
+
+   auto best_cost = static_cast<double>(kInfCost);
++  auto best_cheap_cost = static_cast<double>(kInfCost);
+   int best_x = cell.x;
+   int best_y = cell.y;
+
+@@ -549,6 +550,10 @@
+   // lenient (cells can tolerate DRC violations to resolve overlaps first),
+   // later iterations strongly penalise DRC violations to force resolution.
+   const double kDrcPenalty = 1e3 * (1.0 + iter);
++  constexpr int kQualityFrontierCap = 24;
++  constexpr double kQualityFrontierAbsMargin = 2.0;
++  constexpr double kQualityFrontierRelMargin = 0.03;
++  int quality_frontier_evals = 0;
+
+   // Helper: evaluate one candidate position.
+   auto tryLocation = [&](int tx, int ty) {
+@@ -566,12 +571,6 @@
+       utl::DebugScopedTimer t(prof_neg_cost_s_);
+       cost = negotiationCost(cell_idx, tx, ty);
+     }
+-    const double net_anchor_delta = netAnchorDelta(tx, ty);
+-    if (net_anchor_delta > 0.0) {
+-      cost += 0.18 * net_anchor_delta;
+-    } else {
+-      cost += 0.035 * net_anchor_delta;
+-    }
+     const int candidate_disp = std::abs(tx - cell.init_x) + std::abs(ty - cell.init_y);
+     const int outlier_excess
+         = std::max(0,
+@@ -598,6 +597,26 @@
+           node, GridX{tx}, GridY{ty}, targetOrient);
+       cost += kDrcPenalty * drcCount;
+     }
++
++    const double cheap_cost = cost;
++    const double frontier_margin
++        = std::max(kQualityFrontierAbsMargin,
++                   kQualityFrontierRelMargin
++                       * std::max(1.0, best_cheap_cost));
++    if (net_anchor_samples > 0 && quality_frontier_evals < kQualityFrontierCap
++        && cheap_cost <= best_cheap_cost + frontier_margin) {
++      ++quality_frontier_evals;
++      const double net_anchor_delta = netAnchorDelta(tx, ty);
++      if (net_anchor_delta > 0.0) {
++        cost += 0.18 * net_anchor_delta;
++      } else {
++        cost += 0.035 * net_anchor_delta;
++      }
++    }
++    if (cheap_cost < best_cheap_cost) {
++      best_cheap_cost = cheap_cost;
++    }
++
+     ++prof_candidates_evaluated_;
+     if (cost < best_cost) {
+       best_cost = cost;

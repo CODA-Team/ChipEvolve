@@ -61,8 +61,8 @@ Current hardening artifacts:
 
 - `../../family_robustness/legalm_engine/WORKER_RESULT_R4_20260425.md`
 - `../../family_robustness/legalm_engine/WORKER_RESULT_R5_20260425.md`
-- `../../family_robustness/legalm_engine/legalm_counterfix_r4.patch`
-- `../../family_robustness/legalm_engine/legalm_stage1_quality_guard_r5.patch`
+- `research_patches/legalm_counterfix_r4.patch`
+- `research_patches/legalm_stage1_quality_guard_r5.patch`
 - `../../family_robustness/legalm_engine/NEXT_ALGORITHM_DIRECTION_20260425.md`
 
 Next required gate before promotion:

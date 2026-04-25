@@ -20,7 +20,7 @@ evidence:
   r4_counterfix:
     status: legality_repair_candidate
     result_note: "family_robustness/legalm_engine/NEXT_ALGORITHM_DIRECTION_20260425.md"
-    patch_artifact: "local_archive_not_committed"
+    patch_artifact: "family_variants/legalm_engine/research_patches/legalm_counterfix_r4.patch"
     observation:
       - "Fixed stale maintained-overflow state after Stage1 grid clear."
       - "Strict aes_nangate45 and jpeg_nangate45 legalize through LEGALM."
@@ -29,7 +29,7 @@ evidence:
   r5_stage1_quality_guard:
     status: rejected_as_base
     result_note: "family_robustness/legalm_engine/NEXT_ALGORITHM_DIRECTION_20260425.md"
-    patch_artifact: "local_archive_not_committed"
+    patch_artifact: "family_variants/legalm_engine/research_patches/legalm_stage1_quality_guard_r5.patch"
     observation:
       - "R5 keeps R4 legality and adds Stage1 objective-aware candidate ordering."
       - "jpeg_nangate45 HPWL improves only 2.22% versus R4."

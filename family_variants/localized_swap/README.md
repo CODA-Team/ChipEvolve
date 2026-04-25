@@ -7,9 +7,10 @@ not be treated as a base legalizer, a rescue path for illegal parents, or a
 large-case success when the parent path times out.
 
 The old hotbucket/R3 skip-polish path is rejected for promotion.  The bounded
-local polish evidence is useful, but the saved patch is not a standalone full
-implementation in the current clean ORFS checkout, so it is not packaged as
-`dpl_evolve.patch` yet.
+local polish evidence is useful, and the normalized research patch is committed
+at `research_patches/localswap01_bounded_local_polish.patch`.  It is still not
+a standalone full implementation or a base legalizer; treat it as a small
+post-legal polish signal that future agents can inspect.
 
 Before enabling any localized candidate in flow:
 

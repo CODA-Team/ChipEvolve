@@ -12,15 +12,15 @@ reason_not_materialized: >
   enabled variant.
 current_candidates:
   - id: priority_escape_r3_20260425
-    patch_artifact: ../../family_robustness/priority_escape/priority_escape_r3_20260425.patch
-    patch_sha256: c05346b5e23070338510423e2bae231c38cc82e7b29d13838d3fae367b916689
+    patch_artifact: research_patches/priority_escape_r3_20260425.patch
+    patch_sha256: 7bd1d236525181a94ca603e5e94b677c68cdbabfa6de4c7393525437446b358a
     state: repair_only
     apply_policy: do_not_apply_as_base
     evidence: ../../family_robustness/priority_escape/WORKER_RESULT_R3_20260425.md
     blocker: "escape was not exercised on aes/jpeg because diamond had zero failures"
   - id: priority_escape_frontier_repair_20260425
-    patch_artifact: ../../family_robustness/priority_escape/priority_escape_frontier_repair_20260425.patch
-    patch_sha256: 34fbe511becd359bc8efb4b63d0fe0b114ffb3e28a04f060c08f451082420b23
+    patch_artifact: research_patches/priority_escape_frontier_repair_20260425.patch
+    patch_sha256: f3ab392d98437fa324e047208742ec9273d8856894da284a2c35fb75d52bbc83
     state: repair_only
     apply_policy: gate_only_after_stuck_telemetry
     evidence: ../../family_robustness/priority_escape/WORKER_RESULT_R3_20260425.md

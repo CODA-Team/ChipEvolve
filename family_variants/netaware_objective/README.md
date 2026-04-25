@@ -12,11 +12,9 @@ evidence.
 ## Artifact Contents
 
 - `manifest.yaml`: family metadata, evidence summary, and gate requirements.
-- The raw overlay patch from `netaware11_local_hpwl_anchor_cap` to
-  `netaware12_prefilter_hotset_guard` is archived locally and intentionally not
-  committed because it depends on a generated parent source tree. Promote this
-  family only after the mechanism is encoded in the matrix runner or exported
-  as a standalone patch.
+- `research_patches/netaware12_prefilter_hotset_guard.patch`: normalized code
+  delta from `netaware11_local_hpwl_anchor_cap` to
+  `netaware12_prefilter_hotset_guard`.
 
 The patch touches only:
 
@@ -25,11 +23,11 @@ The patch touches only:
 
 ## Materialization
 
-This directory is a compact evidence card, not a ready-to-apply standalone
-source package. The next clone-ready step is to encode the mechanism as a
-variant mutator or export a standalone patch against the recorded OpenROAD
-anchor. Until then, future agents should use this family as design guidance and
-not auto-load it as a runnable base.
+This directory is a compact evidence card plus committed research overlay, not
+a ready-to-apply standalone source package. The next clone-ready step is to
+encode the mechanism as a variant mutator or export a standalone patch against
+the recorded OpenROAD anchor. Until then, future agents should inspect the
+patch as concrete design guidance and not auto-load it as a runnable base.
 
 ## Evidence Summary
 

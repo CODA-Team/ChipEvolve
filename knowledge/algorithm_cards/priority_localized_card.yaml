@@ -21,14 +21,14 @@ families:
   - id: priority_escape
     current_status: repair_candidate_needs_real_stuck_gate
     candidate_artifacts:
-      - path: family_robustness/priority_escape/priority_escape_r3_20260425.patch
-        sha256: c05346b5e23070338510423e2bae231c38cc82e7b29d13838d3fae367b916689
+      - path: family_variants/priority_escape/research_patches/priority_escape_r3_20260425.patch
+        sha256: 7bd1d236525181a94ca603e5e94b677c68cdbabfa6de4c7393525437446b358a
         status: repair_only_not_base
         reason: >
           R3 is normal-case safe because diamond succeeded first on aes/jpeg,
           but that means the priority escape path was not exercised.
-      - path: family_robustness/priority_escape/priority_escape_frontier_repair_20260425.patch
-        sha256: 34fbe511becd359bc8efb4b63d0fe0b114ffb3e28a04f060c08f451082420b23
+      - path: family_variants/priority_escape/research_patches/priority_escape_frontier_repair_20260425.patch
+        sha256: f3ab392d98437fa324e047208742ec9273d8856894da284a2c35fb75d52bbc83
         status: repair_only_needs_gate
         reason: >
           Frontier and budget mechanics are plausible, but there is not yet a
@@ -92,8 +92,8 @@ families:
   - id: localized_swap
     current_status: opt_in_polish_after_legal_parent_only
     candidate_artifacts:
-      - path: local_archive_not_committed
-        sha256: cf479c70d3c064c1a2102f35c38799b527907a28fcdaf24a67ead1d60b06e084
+      - path: family_variants/localized_swap/research_patches/localswap01_bounded_local_polish.patch
+        sha256: c07ea9ad95ce191b478a409a01a407a6217b0c453871ca6aadc7629ec94614f0
         status: polish_evidence_not_standalone_base
         reason: >
           The gate showed small AES/JPEG improvements, but bp_quad timed out;

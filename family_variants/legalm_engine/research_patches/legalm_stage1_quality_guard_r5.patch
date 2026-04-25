@@ -1,0 +1,45 @@
+--- a/src/AlmLegalizer.h	2026-04-25 06:28:15.141005552 +0800
++++ b/src/AlmLegalizer.h	2026-04-25 07:00:29.885051679 +0800
+@@ -34,7 +34,7 @@
+  public:
+   struct Params
+   {
+-    double alpha_max = 1.5;
++    double alpha_max = 4.0;
+     int delta_threshold_rows = 3;
+     int k_part = 50;
+     int k_ely = 2;
+@@ -43,8 +43,8 @@
+     double alpha_sigma = 3.0;
+     double alpha_lambda = 0.5;
+     double alpha_hf = 0.2;
+-    double alpha_anchor = 0.0;
+-    double alpha_hpwl = 0.0;
++    double alpha_anchor = 0.10;
++    double alpha_hpwl = 0.01;
+     double ptech = 1.0;
+     int x_hint_sites = 250;
+     int y_hint_rows = 25;
+--- a/src/AlmLegalizer.cpp	2026-04-25 06:52:36.862040402 +0800
++++ b/src/AlmLegalizer.cpp	2026-04-25 07:00:38.286051880 +0800
+@@ -868,6 +868,7 @@
+     int row_window,
+     int x_window) const
+ {
++  const ObjectiveContext context = buildObjectiveContext(cell);
+   Candidate best;
+   const int max_y = std::max(core_.ly, core_.uy - cell.h);
+   const int max_x = std::max(core_.lx, core_.ux - cell.w);
+@@ -903,9 +904,9 @@
+     Candidate candidate;
+     candidate.x = cand_x;
+     candidate.y = cand_y;
+-    candidate.cost = static_cast<double>(
+-        manhattanDisplacement(cell, candidate.x, candidate.y));
+-    candidate.valid = true;
++    candidate.cost = evaluateCandidateCost(
++        cell, candidate.x, candidate.y, true, &context);
++    candidate.valid = std::isfinite(candidate.cost);
+     if (lexicographicallyBetter(candidate, best)) {
+       best = candidate;
+     }

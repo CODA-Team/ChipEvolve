@@ -8,6 +8,7 @@ flow_ready:
   - id: negotiation_row_bucket_quality_frontier_r5
     kind: generated_matrix_variant
     manifest: family_variants/negotiation_row_bucket_quality_frontier_r5/manifest.yaml
+    research_patch: family_variants/negotiation_row_bucket_quality_frontier_r5/research_patches/negotiation_row_bucket_quality_frontier_r5.patch
     matrix_variant: negotiation_row_bucket_quality_frontier_r5
     family_group: flow_ready_candidates
     status: aes_jpeg_candidate_needs_large_gate
@@ -16,22 +17,30 @@ repair_candidates:
   - id: netaware12_prefilter_hotset_guard
     kind: source_family_overlay
     manifest: family_variants/netaware_objective/manifest.yaml
+    research_patch: family_variants/netaware_objective/research_patches/netaware12_prefilter_hotset_guard.patch
     status: repair_candidate_not_hard_base
     next_direction: netaware14_rowedge_shortlist_hpwl
   - id: legalm_stage1_quality_guard_r5
     kind: materialized_structural_family
     manifest: family_variants/legalm_engine/manifest.yaml
+    research_patch:
+      - family_variants/legalm_engine/research_patches/legalm_counterfix_r4.patch
+      - family_variants/legalm_engine/research_patches/legalm_stage1_quality_guard_r5.patch
     status: legality_repair_not_quality_base
     next_direction: legalm_r6_row_segment_batch_assignment
   - id: priority_escape_r3_20260425
     kind: repair_status_manifest
     manifest: family_variants/priority_escape/manifest.yaml
+    research_patch:
+      - family_variants/priority_escape/research_patches/priority_escape_r3_20260425.patch
+      - family_variants/priority_escape/research_patches/priority_escape_frontier_repair_20260425.patch
     status: needs_real_stuck_gate
 
 polish_only:
   - id: localized_swap
     kind: opt_in_polish_status_manifest
     manifest: family_variants/localized_swap/manifest.yaml
+    research_patch: family_variants/localized_swap/research_patches/localswap01_bounded_local_polish.patch
     status: after_legal_parent_only
 
 not_allowed_as_success:

@@ -1,7 +1,7 @@
 schema_version: 1
 source_experiment:
   id: matrix_algobank50_nangate45_20260424
-  summary_json: local_archive_not_committed
+  summary_json: not_committed_runtime_archive
   cases:
     - aes_nangate45
     - ibex_nangate45

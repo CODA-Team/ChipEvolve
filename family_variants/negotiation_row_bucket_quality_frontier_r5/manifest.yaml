@@ -13,7 +13,8 @@ mechanism:
   - no_diamond_stall_fallback_as_success
 evidence:
   - family_robustness/negotiation_row_bucket/WORKER_RESULT_R5_20260425.md
-  - family_robustness/negotiation_row_bucket/negotiation_row_bucket_quality_frontier_r5.patch
+  - family_variants/negotiation_row_bucket_quality_frontier_r5/research_patches/negotiation_row_bucket_quality_frontier_r5.patch
+research_patch_sha256: f51b62fe5c3b416300bef67ee9d8df1a425685d4d9f30d48011e26ded4490bf2
 required_next_gates:
   - ariane133_nangate45
   - bp_quad_nangate45

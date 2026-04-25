@@ -1,0 +1,15 @@
+diff --git a/src/NegotiationLegalizer.cpp b/src/NegotiationLegalizer.cpp
+--- a/src/NegotiationLegalizer.cpp	2026-04-24 21:28:07.272232888 +0800
++++ b/src/NegotiationLegalizer.cpp	2026-04-25 05:12:29.997897187 +0800
+@@ -272,9 +272,8 @@
+              "negotiation",
+              1,
+              "NegotiationLegalizer: post-optimisation.");
+-  // greedyImprove(5);
+-  // cellSwap();
+-  // greedyImprove(1);
++  cellSwap();
++  syncAllCellsToDplGrid();
+
+   double avgDisp{0};
+   int maxDisp{0}, nViol{0};

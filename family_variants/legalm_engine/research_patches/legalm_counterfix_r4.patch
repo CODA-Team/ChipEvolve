@@ -1,0 +1,799 @@
+--- a/src/AlmLegalizer.cpp	2026-04-25 06:28:15.141005552 +0800
++++ b/src/AlmLegalizer.cpp	2026-04-25 06:52:36.862040402 +0800
+@@ -121,17 +121,33 @@
+ bool AlmLegalizer::run(const Params& params)
+ {
+   params_ = params;
++  logger_->info(utl::DPL, 1810, "LEGALM telemetry: run entry.");
+   if (!loadStateFromOpenDp()) {
++    logger_->warn(utl::DPL,
++                  1811,
++                  "LEGALM telemetry: run false return after loadStateFromOpenDp.");
+     return false;
+   }
+   if (!buildPlates()) {
++    logger_->warn(utl::DPL,
++                  1812,
++                  "LEGALM telemetry: run false return after buildPlates.");
+     return false;
+   }
+   if (!stage1InitialLegalization()) {
++    logger_->warn(utl::DPL,
++                  1813,
++                  "LEGALM telemetry: run false return after Stage1, overflow {}.",
++                  totalOverflow());
+     return false;
+   }
+   const bool stage2_ok = stage2AlmLegalization();
+   if (!stage3Refinement()) {
++    logger_->warn(utl::DPL,
++                  1814,
++                  "LEGALM telemetry: run false return after Stage3, stage2_ok {}, overflow {}.",
++                  stage2_ok,
++                  totalOverflow());
+     return false;
+   }
+   if (!stage2_ok && totalOverflow() > 0) {
+@@ -148,6 +164,11 @@
+                   totalOverflow());
+     return false;
+   }
++  logger_->info(utl::DPL,
++                1815,
++                "LEGALM telemetry: run success before writeBack, cells {}, overflow {}.",
++                cells_.size(),
++                totalOverflow());
+   return writeBackToOpenDp();
+ }
+
+@@ -155,6 +176,9 @@
+ {
+   core_ = coreBoundsSites();
+   if (core_.empty()) {
++    logger_->warn(utl::DPL,
++                  1816,
++                  "LEGALM telemetry: loadStateFromOpenDp false return, empty core rect.");
+     return false;
+   }
+
+@@ -224,6 +248,16 @@
+
+   grid_.resize(core_.ux, core_.uy);
+   initializeOverflowGrid();
++  logger_->info(utl::DPL,
++                1817,
++                "LEGALM telemetry: loadStateFromOpenDp success, core {} {} {} {}, cells {}, same-height buckets {}, initial overflow {}.",
++                core_.lx,
++                core_.ly,
++                core_.ux,
++                core_.uy,
++                cells_.size(),
++                same_height_population_.size(),
++                totalOverflow());
+   return true;
+ }
+
+@@ -238,6 +272,9 @@
+   component_overflow_.clear();
+
+   if (opendp_ == nullptr || opendp_->grid_ == nullptr || opendp_->network_ == nullptr) {
++    logger_->warn(utl::DPL,
++                  1818,
++                  "LEGALM telemetry: buildPlates false return, missing opendp/grid/network.");
+     return false;
+   }
+
+@@ -322,12 +359,28 @@
+     }
+   }
+   rebuildStaticInvalidPrefix();
++  logger_->info(utl::DPL,
++                1819,
++                "LEGALM telemetry: buildPlates success, interior {}, exterior {}, all {}, components {}, fixed bitmap {}, component bitmap {}.",
++                interior_plates_.size(),
++                exterior_plates_.size(),
++                all_plates_.size(),
++                component_to_plates_.size(),
++                fixed_blockage_bitmap_.size(),
++                component_bitmap_.size());
+   return true;
+ }
+
+ bool AlmLegalizer::stage1InitialLegalization()
+ {
++  logger_->info(utl::DPL,
++                1820,
++                "LEGALM telemetry: Stage1 entry, cells {}, overflow before clear {}.",
++                cells_.size(),
++                totalOverflow());
+   grid_.clear();
++  total_overflow_ = 0;
++  component_overflow_.clear();
+   std::vector<int> order(cells_.size());
+   std::iota(order.begin(), order.end(), 0);
+   std::sort(order.begin(), order.end(), [&](int lhs, int rhs) {
+@@ -351,6 +404,18 @@
+                     1800,
+                     "LEGALM Stage1 could not find a legal initial site for {}.",
+                     cell.name);
++      logger_->warn(utl::DPL,
++                    1821,
++                    "LEGALM telemetry: Stage1 false return, cell {}, orig {} {}, size {} {}, vertical step {}, region type {}, region id {}, placed overflow {}.",
++                    cell.name,
++                    cell.orig_x,
++                    cell.orig_y,
++                    cell.w,
++                    cell.h,
++                    cell.vertical_step,
++                    static_cast<int>(cell.region.type),
++                    cell.region.region_id,
++                    totalOverflow());
+       return false;
+     }
+     cell.x = best.x;
+@@ -358,14 +423,40 @@
+     addCellToGrid(cell);
+   }
+
++  logger_->info(utl::DPL,
++                1822,
++                "LEGALM telemetry: Stage1 success, overflow {}.",
++                totalOverflow());
+   return true;
+ }
+
+ bool AlmLegalizer::stage2AlmLegalization()
+ {
+   initializeAlmParameters();
++  logger_->info(utl::DPL,
++                1823,
++                "LEGALM telemetry: Stage2 entry after initializeAlmParameters, overflow {}, sigma {}, hf {}.",
++                totalOverflow(),
++                sigma_,
++                hf_);
++
++  if (totalOverflow() == 0) {
++    logger_->info(utl::DPL,
++                  1824,
++                  "LEGALM telemetry: Stage2 zero-overflow early success.");
++    return true;
++  }
++
++  const long long core_sites
++      = static_cast<long long>(std::max(0, core_.width()))
++        * static_cast<long long>(std::max(0, core_.height()));
++  const bool large_design = cells_.size() >= 100000 || core_sites >= 2000000LL;
++  const int iteration_limit
++      = large_design ? std::min(params_.max_iterations, 360) : params_.max_iterations;
++  int stagnant_rounds = 0;
++  int previous_overflow = std::numeric_limits<int>::max();
+
+-  for (int iter = 0; iter < params_.max_iterations; ++iter) {
++  for (int iter = 0; iter < iteration_limit; ++iter) {
+     if (iter % params_.k_part == 0 || schemes_.empty()) {
+       updatePartitionScheme(iter);
+     }
+@@ -380,9 +471,31 @@
+     }
+
+     if (overflow == 0) {
++      logger_->info(utl::DPL,
++                    1825,
++                    "LEGALM telemetry: Stage2 success at iter {}, overflow 0.",
++                    iter);
+       return true;
+     }
+
++    if (large_design) {
++      if (overflow >= previous_overflow) {
++        ++stagnant_rounds;
++      } else {
++        stagnant_rounds = 0;
++      }
++      previous_overflow = overflow;
++      if (stagnant_rounds >= 80) {
++        logger_->warn(utl::DPL,
++                      1826,
++                      "LEGALM telemetry: Stage2 stopping on stagnant large-design guard at iter {}, overflow {}, previous {}.",
++                      iter,
++                      overflow,
++                      previous_overflow);
++        break;
++      }
++    }
++
+     updateHfIfNeeded(iter);
+
+     if (params_.enable_escape && detectLocalOptimum()) {
+@@ -392,16 +505,37 @@
+     updateMultipliers();
+   }
+
+-  return totalOverflow() == 0;
++  const int final_overflow = totalOverflow();
++  logger_->info(utl::DPL,
++                1827,
++                "LEGALM telemetry: Stage2 return {}, final overflow {}, iteration limit {}.",
++                final_overflow == 0,
++                final_overflow,
++                iteration_limit);
++  return final_overflow == 0;
+ }
+
++
+ bool AlmLegalizer::stage3Refinement()
+ {
++  logger_->info(utl::DPL,
++                1828,
++                "LEGALM telemetry: Stage3 entry, overflow {}, schemes {}.",
++                totalOverflow(),
++                schemes_.size());
+   if (schemes_.empty()) {
+     updatePartitionScheme(0);
++    logger_->info(utl::DPL,
++                  1829,
++                  "LEGALM telemetry: Stage3 rebuilt schemes, count {}.",
++                  schemes_.size());
+   }
+
+   if (totalOverflow() > 0 && !zeroOverflowRepair()) {
++    logger_->warn(utl::DPL,
++                  1830,
++                  "LEGALM telemetry: Stage3 false return, zeroOverflowRepair failed, overflow {}.",
++                  totalOverflow());
+     return false;
+   }
+
+@@ -414,25 +548,60 @@
+     }
+   }
+   if (!stage3NetRefinement()) {
++    logger_->warn(utl::DPL,
++                  1831,
++                  "LEGALM telemetry: Stage3 false return, stage3NetRefinement failed, overflow {}.",
++                  totalOverflow());
+     return false;
+   }
+   if (totalOverflow() > 0) {
+-    return zeroOverflowRepair();
++    const bool repaired = zeroOverflowRepair();
++    logger_->info(utl::DPL,
++                  1832,
++                  "LEGALM telemetry: Stage3 final zeroOverflowRepair return {}, overflow {}.",
++                  repaired,
++                  totalOverflow());
++    return repaired;
+   }
++  logger_->info(utl::DPL,
++                1833,
++                "LEGALM telemetry: Stage3 success, overflow 0.");
+   return true;
+ }
+
+ bool AlmLegalizer::stage3NetRefinement()
+ {
+   const int site_width = std::max(1, opendp_->grid_->getSiteWidth().v);
++  const long long core_sites
++      = static_cast<long long>(std::max(0, core_.width()))
++        * static_cast<long long>(std::max(0, core_.height()));
++  const bool large_design = cells_.size() >= 100000 || core_sites >= 2000000LL;
++  const int rank_visit_cap
++      = large_design ? 24000 : std::numeric_limits<int>::max();
++  const int visit_stride = large_design
++                               ? std::max(1,
++                                          (static_cast<int>(cells_.size())
++                                           + rank_visit_cap - 1)
++                                              / rank_visit_cap)
++                               : 1;
++  const int visit_phase
++      = (large_design && visit_stride > 1)
++            ? (static_cast<int>(overflow_history_.size()) + 17 * current_scheme_idx_)
++                  % visit_stride
++            : 0;
++
+   std::vector<int> ranked;
+-  ranked.reserve(cells_.size());
+-  for (int cell_id = 0; cell_id < static_cast<int>(cells_.size()); ++cell_id) {
++  ranked.reserve(std::min(static_cast<int>(cells_.size()), rank_visit_cap));
++  for (int cell_id = visit_phase; cell_id < static_cast<int>(cells_.size());
++       cell_id += visit_stride) {
+     const CellState& cell = cells_[cell_id];
+     const int current_disp = manhattanDisplacement(cell, cell.x, cell.y);
+     if (cell.pin_count >= 3 || current_disp >= 8) {
+       ranked.push_back(cell_id);
+     }
++    if (large_design && static_cast<int>(ranked.size()) >= rank_visit_cap) {
++      break;
++    }
+   }
+
+   std::sort(ranked.begin(), ranked.end(), [&](int lhs, int rhs) {
+@@ -447,20 +616,22 @@
+     return lhs < rhs;
+   });
+
+-  const int max_cells = std::max(1500, static_cast<int>(cells_.size() / 6));
+-  const int visit_limit = std::min(static_cast<int>(ranked.size()), max_cells);
+-  for (int i = 0; i < visit_limit; ++i) {
++  const int max_cells = large_design
++                            ? std::min(static_cast<int>(ranked.size()), 6000)
++                            : std::min(static_cast<int>(ranked.size()),
++                                       std::max(1500, static_cast<int>(cells_.size() / 6)));
++  for (int i = 0; i < max_cells; ++i) {
+     CellState& cell = cells_[ranked[i]];
+     removeCellFromGrid(cell);
+
+     const double current_hpwl = localNetHpwlProxy(cell, cell.x, cell.y);
+     const int current_disp = manhattanDisplacement(cell, cell.x, cell.y);
+     const double current_score
+-        = (current_hpwl / site_width) + (3.0 * static_cast<double>(current_disp));
++        = (current_hpwl / site_width) + (4.5 * static_cast<double>(current_disp));
+
+-    const int row_window = cell.pin_count >= 8 ? 4 : 2;
+-    const int x_window = cell.pin_count >= 8 ? 40 : 20;
+-    const int max_extra_disp = cell.pin_count >= 8 ? 24 : 12;
++    const int row_window = cell.pin_count >= 8 ? 3 : 1;
++    const int x_window = cell.pin_count >= 8 ? 28 : 14;
++    const int max_extra_disp = cell.pin_count >= 8 ? 18 : 9;
+     const Candidate best
+         = searchNetRefineCandidate(cell, row_window, x_window, max_extra_disp);
+
+@@ -468,7 +639,7 @@
+       const double best_hpwl = localNetHpwlProxy(cell, best.x, best.y);
+       const int best_disp = manhattanDisplacement(cell, best.x, best.y);
+       const double best_score
+-          = (best_hpwl / site_width) + (3.0 * static_cast<double>(best_disp));
++          = (best_hpwl / site_width) + (4.5 * static_cast<double>(best_disp));
+       if (best_score + 1e-3 < current_score) {
+         cell.x = best.x;
+         cell.y = best.y;
+@@ -481,20 +652,53 @@
+   return true;
+ }
+
++
+ bool AlmLegalizer::zeroOverflowRepair()
+ {
++  logger_->info(utl::DPL,
++                1834,
++                "LEGALM telemetry: zeroOverflowRepair entry, overflow {}.",
++                totalOverflow());
+   bool moved_any = false;
+-  const int max_passes = 6;
++  const long long core_sites
++      = static_cast<long long>(std::max(0, core_.width()))
++        * static_cast<long long>(std::max(0, core_.height()));
++  const bool large_design = cells_.size() >= 100000 || core_sites >= 2000000LL;
++  const int max_passes = large_design ? 4 : 6;
++  const int scan_cap = large_design ? 24000 : std::numeric_limits<int>::max();
++  const int repair_cap = large_design ? 6000 : std::numeric_limits<int>::max();
++  const int repair_row_window = large_design ? 16 : 24;
++  const int repair_x_window = large_design ? 96 : 160;
+
+   for (int pass = 0; pass < max_passes && totalOverflow() > 0; ++pass) {
++    const int visit_stride = large_design
++                                 ? std::max(1,
++                                            (static_cast<int>(cells_.size()) + scan_cap - 1)
++                                                / scan_cap)
++                                 : 1;
++    const int visit_phase
++        = (large_design && visit_stride > 1)
++              ? (pass * 101 + static_cast<int>(overflow_history_.size()) * 17)
++                    % visit_stride
++              : 0;
++
+     std::vector<int> ranked;
+-    ranked.reserve(cells_.size());
+-    for (int cell_id = 0; cell_id < static_cast<int>(cells_.size()); ++cell_id) {
++    ranked.reserve(std::min(static_cast<int>(cells_.size()), scan_cap));
++    for (int cell_id = visit_phase; cell_id < static_cast<int>(cells_.size());
++         cell_id += visit_stride) {
+       if (overflowContribution(cells_[cell_id]) > 0) {
+         ranked.push_back(cell_id);
+       }
++      if (large_design && static_cast<int>(ranked.size()) >= scan_cap) {
++        break;
++      }
+     }
+     if (ranked.empty()) {
++      logger_->warn(utl::DPL,
++                    1835,
++                    "LEGALM telemetry: zeroOverflowRepair stopping, no ranked overflow cells at pass {}, overflow {}.",
++                    pass,
++                    totalOverflow());
+       break;
+     }
+
+@@ -513,10 +717,16 @@
+     });
+
+     bool pass_progress = false;
++    int repair_attempts = 0;
+     for (const int cell_id : ranked) {
++      if (repair_attempts >= repair_cap) {
++        break;
++      }
++      ++repair_attempts;
+       CellState& cell = cells_[cell_id];
+       removeCellFromGrid(cell);
+-      const Candidate best = searchRepairCandidate(cell, 24, 160);
++      const Candidate best
++          = searchRepairCandidate(cell, repair_row_window, repair_x_window);
+       if (best.valid) {
+         cell.x = best.x;
+         cell.y = best.y;
+@@ -527,13 +737,27 @@
+     }
+
+     if (!pass_progress) {
++      logger_->warn(utl::DPL,
++                    1836,
++                    "LEGALM telemetry: zeroOverflowRepair stopping, no pass progress at pass {}, attempts {}, overflow {}.",
++                    pass,
++                    repair_attempts,
++                    totalOverflow());
+       break;
+     }
+   }
+
+-  return totalOverflow() == 0 || moved_any;
++  const int final_overflow = totalOverflow();
++  logger_->info(utl::DPL,
++                1837,
++                "LEGALM telemetry: zeroOverflowRepair return {}, moved_any {}, final overflow {}.",
++                final_overflow == 0 || moved_any,
++                moved_any,
++                final_overflow);
++  return final_overflow == 0 || moved_any;
+ }
+
++
+ bool AlmLegalizer::writeBackToOpenDp()
+ {
+   for (const CellState& cell : cells_) {
+@@ -558,7 +782,33 @@
+   if (lexicographicallyBetter(anchor, best)) {
+     best = anchor;
+   }
++  if (!best.valid) {
++    // Stage1 must scale to large designs without full-core scans.  Use bounded
++    // expanding windows around the original and net-aware anchors; later
++    // Stage2/Stage3 repair handles remaining overflow.
++    const std::pair<int, int> kStage1Windows[] = {
++        {12, 256}, {24, 512}, {40, 768}, {64, 1024}};
++    for (const auto& [row_window, x_window] : kStage1Windows) {
++      const Candidate expanded = searchInitialWindowCandidate(
++          cell,
++          std::min(row_window, core_.height()),
++          std::min(x_window, core_.width()));
++      if (lexicographicallyBetter(expanded, best)) {
++        best = expanded;
++      }
++      if (best.valid) {
++        break;
++      }
++    }
++  }
+   if (best.valid) {
++    logger_->info(utl::DPL,
++                  1838,
++                  "LEGALM telemetry: Stage1 candidate return valid for {}, x {}, y {}, cost {}.",
++                  cell.name,
++                  best.x,
++                  best.y,
++                  best.cost);
+     if (cell.region.type == RegionType::kNone) {
+       return best;
+     }
+@@ -578,6 +828,14 @@
+         }
+       }
+     }
++    if (!best.valid) {
++      logger_->warn(utl::DPL,
++                    1839,
++                    "LEGALM telemetry: Stage1 fence candidate invalid for {}, region id {}, plate candidates {}.",
++                    cell.name,
++                    cell.region.region_id,
++                    it == region_to_plate_ids_.end() ? 0 : it->second.size());
++    }
+     return best;
+   }
+
+@@ -590,6 +848,18 @@
+       best = candidate;
+     }
+   }
++  if (!best.valid) {
++    logger_->warn(utl::DPL,
++                  1840,
++                  "LEGALM telemetry: Stage1 candidate return invalid for {}, orig {} {}, size {} {}, region type {}, exterior plates {}.",
++                  cell.name,
++                  cell.orig_x,
++                  cell.orig_y,
++                  cell.w,
++                  cell.h,
++                  static_cast<int>(cell.region.type),
++                  exterior_plates_.size());
++  }
+   return best;
+ }
+
+@@ -604,6 +874,43 @@
+   const int target_y = clampValue(cell.orig_y, core_.ly, max_y);
+   const int target_x = clampValue(cell.orig_x, core_.lx, max_x);
+
++  const bool exact_local_window = row_window <= 8 && x_window <= 160;
++  const int candidate_cap = exact_local_window ? 20000 : 8192;
++  const int row_slots = 2 * row_window + 1;
++  const int x_slots = 2 * x_window + 1;
++  const long long nominal_candidates
++      = static_cast<long long>(std::max(1, row_slots)) * std::max(1, x_slots);
++  const int per_row_budget
++      = std::max(8, candidate_cap / std::max(1, row_slots));
++  const int x_step = nominal_candidates > candidate_cap
++                         ? std::max(1, (x_slots + per_row_budget - 1) / per_row_budget)
++                         : 1;
++  int tested_candidates = 0;
++
++  auto tryCandidate = [&](int cand_x, int cand_y) {
++    if (tested_candidates >= candidate_cap) {
++      return;
++    }
++    if (cand_x < core_.lx || cand_x > max_x || cand_y < core_.ly || cand_y > max_y) {
++      return;
++    }
++    ++tested_candidates;
++    const GridRect rect{cand_x, cand_y, cand_x + cell.w, cand_y + cell.h};
++    if (!siteRectIsPlaceable(cell, rect)) {
++      return;
++    }
++
++    Candidate candidate;
++    candidate.x = cand_x;
++    candidate.y = cand_y;
++    candidate.cost = static_cast<double>(
++        manhattanDisplacement(cell, candidate.x, candidate.y));
++    candidate.valid = true;
++    if (lexicographicallyBetter(candidate, best)) {
++      best = candidate;
++    }
++  };
++
+   for (int row_delta = 0; row_delta <= row_window; ++row_delta) {
+     for (int row_sign : {0, -1, 1}) {
+       if ((row_sign == 0) != (row_delta == 0)) {
+@@ -614,31 +921,17 @@
+         continue;
+       }
+
+-      for (int x_delta = 0; x_delta <= x_window; ++x_delta) {
+-        for (int x_sign : {0, -1, 1}) {
+-          if ((x_sign == 0) != (x_delta == 0)) {
+-            continue;
+-          }
+-          const int cand_x = target_x + x_sign * x_delta;
+-          if (cand_x < core_.lx || cand_x > max_x) {
+-            continue;
+-          }
+-
+-          const GridRect rect{cand_x, cand_y, cand_x + cell.w, cand_y + cell.h};
+-          if (!siteRectIsPlaceable(cell, rect)) {
+-            continue;
+-          }
+-
+-          Candidate candidate;
+-          candidate.x = cand_x;
+-          candidate.y = cand_y;
+-          candidate.cost = static_cast<double>(
+-              manhattanDisplacement(cell, candidate.x, candidate.y));
+-          candidate.valid = true;
+-          if (lexicographicallyBetter(candidate, best)) {
+-            best = candidate;
+-          }
+-        }
++      tryCandidate(target_x, cand_y);
++      for (int x_delta = x_step; x_delta <= x_window; x_delta += x_step) {
++        tryCandidate(target_x - x_delta, cand_y);
++        tryCandidate(target_x + x_delta, cand_y);
++      }
++      if (x_window > 0 && (x_window % x_step) != 0) {
++        tryCandidate(target_x - x_window, cand_y);
++        tryCandidate(target_x + x_window, cand_y);
++      }
++      if (tested_candidates >= candidate_cap) {
++        return best;
+       }
+     }
+   }
+@@ -646,6 +939,7 @@
+   return best;
+ }
+
++
+ AlmLegalizer::Candidate AlmLegalizer::directRoundedCandidate(
+     const CellState& cell) const
+ {
+@@ -764,12 +1058,55 @@
+   }
+
+   int moved_cells = 0;
++  int visited_cells = 0;
+   auto& scheme = schemes_[current_scheme_idx_];
++  const long long core_sites
++      = static_cast<long long>(std::max(0, core_.width()))
++        * static_cast<long long>(std::max(0, core_.height()));
++  const bool large_design = cells_.size() >= 100000 || core_sites >= 2000000LL;
++  const int global_visit_cap
++      = large_design ? (forbid_overflow ? 12000 : 24000)
++                     : std::numeric_limits<int>::max();
++  const int part_visit_cap
++      = large_design ? (forbid_overflow ? 192 : 384)
++                     : std::numeric_limits<int>::max();
++  const int visit_epoch = static_cast<int>(overflow_history_.size())
++                          + 17 * current_scheme_idx_
++                          + (restart_optimizer ? 31 : 0)
++                          + (forbid_overflow ? 47 : 0);
++
+   for (Partition& part : scheme.parts) {
+-    for (const int cell_id : part.cell_ids) {
+-      cells_[cell_id].last_demand = cellDemand(cells_[cell_id]);
++    const int part_size = static_cast<int>(part.cell_ids.size());
++    if (part_size == 0) {
++      continue;
+     }
+-    std::sort(part.cell_ids.begin(), part.cell_ids.end(), [&](int lhs, int rhs) {
++    const int visit_stride = large_design
++                                 ? std::max(1, (part_size + part_visit_cap - 1)
++                                                   / part_visit_cap)
++                                 : 1;
++    const int visit_phase
++        = (large_design && visit_stride > 1) ? visit_epoch % visit_stride : 0;
++
++    std::vector<int> ranked;
++    ranked.reserve(std::min(part_size, part_visit_cap));
++    for (int pos = visit_phase; pos < part_size; pos += visit_stride) {
++      const int cell_id = part.cell_ids[pos];
++      CellState& cell = cells_[cell_id];
++      cell.last_demand = cellDemand(cell);
++      if (large_design && !restart_optimizer && !forbid_overflow
++          && cell.last_demand <= 0.0 && cell.pin_count < 8) {
++        continue;
++      }
++      ranked.push_back(cell_id);
++      if (large_design && static_cast<int>(ranked.size()) >= part_visit_cap) {
++        break;
++      }
++    }
++    if (ranked.empty()) {
++      continue;
++    }
++
++    std::sort(ranked.begin(), ranked.end(), [&](int lhs, int rhs) {
+       const double lhs_demand = cells_[lhs].last_demand;
+       const double rhs_demand = cells_[rhs].last_demand;
+       if (lhs_demand != rhs_demand) {
+@@ -786,7 +1123,11 @@
+       return lhs < rhs;
+     });
+
+-    for (const int cell_id : part.cell_ids) {
++    for (const int cell_id : ranked) {
++      if (visited_cells >= global_visit_cap) {
++        return moved_cells;
++      }
++      ++visited_cells;
+       const Candidate best
+           = gradientDescentSingleCell(cell_id, part, restart_optimizer, forbid_overflow);
+       if (best.valid) {
+@@ -802,6 +1143,7 @@
+   return moved_cells;
+ }
+
++
+ AlmLegalizer::Candidate AlmLegalizer::gradientDescentSingleCell(
+     int cell_id,
+     const Partition& part,
+@@ -862,10 +1204,10 @@
+ const std::vector<GridPoint>& AlmLegalizer::buildCandidateStencil() const
+ {
+   static const std::vector<GridPoint> out = []() {
+-    static const std::vector<int> xs = {-40, -20, -10, -5, -4, -3, -2, -1, 0,
+-                                        1,   2,   3,   4,  5,  10, 20, 40};
+-    static const std::vector<int> ys = {-6, -5, -4, -3, -2, -1, 0,
+-                                        1,  2,  3,  4,  5,  6};
++    static const std::vector<int> xs = {-24, -16, -10, -6, -4, -3, -2, -1, 0,
++                                        1,   2,   3,   4,  6,  10, 16, 24};
++    static const std::vector<int> ys = {-4, -3, -2, -1, 0,
++                                        1,  2,  3,  4};
+
+     std::vector<GridPoint> stencil;
+     stencil.reserve(xs.size() * ys.size());
+@@ -1245,15 +1587,10 @@
+
+ int AlmLegalizer::totalOverflow() const
+ {
+-  int total = 0;
+-  for (int y = core_.ly; y < core_.uy; ++y) {
+-    for (int x = core_.lx; x < core_.ux; ++x) {
+-      total += std::max(overflowAtSite(x, y), 0);
+-    }
+-  }
+-  return total;
++  return total_overflow_;
+ }
+
++
+ int AlmLegalizer::overflowContribution(const CellState& cell) const
+ {
+   int total = 0;
+@@ -1268,17 +1605,42 @@
+
+ void AlmLegalizer::updateMultipliers()
+ {
+-  for (int y = core_.ly; y < core_.uy; ++y) {
+-    for (int x = core_.lx; x < core_.ux; ++x) {
+-      const int idx = grid_.index(x, y);
+-      const double gj = static_cast<double>(overflowAtSite(x, y));
+-      const double g_tilde = std::max(gj, -1.0 / sigma_);
+-      const double delta = hf_ * (g_tilde + (sigma_ / 2.0) * g_tilde * g_tilde);
+-      grid_.lambda[idx] = std::max(grid_.lambda[idx] + delta, 0.0);
+-    }
++  const int width = std::max(0, core_.width());
++  const int height = std::max(0, core_.height());
++  if (width == 0 || height == 0) {
++    return;
++  }
++
++  const long long core_sites
++      = static_cast<long long>(width) * static_cast<long long>(height);
++  const bool large_core = core_sites >= 2000000LL;
++  const int visit_cap
++      = large_core ? 250000
++                   : static_cast<int>(
++                         std::min<long long>(core_sites,
++                                             std::numeric_limits<int>::max()));
++  const long long stride
++      = large_core ? std::max(1LL,
++                              (core_sites + static_cast<long long>(visit_cap) - 1LL)
++                                  / static_cast<long long>(visit_cap))
++                   : 1LL;
++  const long long phase
++      = (large_core && stride > 1)
++            ? (static_cast<long long>(overflow_history_.size()) * 9973LL) % stride
++            : 0LL;
++
++  for (long long linear = phase; linear < core_sites; linear += stride) {
++    const int x = core_.lx + static_cast<int>(linear % width);
++    const int y = core_.ly + static_cast<int>(linear / width);
++    const int idx = grid_.index(x, y);
++    const double gj = static_cast<double>(overflowAtSite(x, y));
++    const double g_tilde = std::max(gj, -1.0 / sigma_);
++    const double delta = hf_ * (g_tilde + (sigma_ / 2.0) * g_tilde * g_tilde);
++    grid_.lambda[idx] = std::max(grid_.lambda[idx] + delta, 0.0);
+   }
+ }
+
++
+ void AlmLegalizer::updateHfIfNeeded(int iter)
+ {
+   if (iter > params_.k_thre && iter % params_.k_h == 0) {
+@@ -1294,7 +1656,7 @@
+   if (static_cast<int>(overflow_history_.size()) < params_.escape_window) {
+     return false;
+   }
+-  return stddev(overflow_history_) <= params_.escape_stddev_epsilon
++  return stddev(overflow_history_) <= 0.5 * params_.escape_stddev_epsilon
+          && totalOverflow() > 0;
+ }
+
+--- a/src/Opendp.cpp	2026-04-25 06:28:15.143005552 +0800
++++ b/src/Opendp.cpp	2026-04-25 06:28:15.296005555 +0800
+@@ -259,7 +259,6 @@
+       logger_->error(DPL, 1803, "LEGALM legalizer failed inside DPL.");
+     }
+
+-    improvePlacementLite(1, 40, 6);
+
+     findDisplacementStats();
+     updateDbInstLocations();

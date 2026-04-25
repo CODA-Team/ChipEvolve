@@ -33,7 +33,8 @@ promotion_blockers:
 current_evidence:
   r4_counterfix:
     status: legality_repair_candidate
-    patch_artifact: ../../family_robustness/legalm_engine/legalm_counterfix_r4.patch
+    patch_artifact: research_patches/legalm_counterfix_r4.patch
+    patch_sha256: 74fdf9d387fe51cd027b4fb2adc058841be9be1a33cf270b0f468e8f833f5a35
     result_note: ../../family_robustness/legalm_engine/WORKER_RESULT_R4_20260425.md
     summary: >
       Fixes the stale maintained-overflow counter after Stage1 grid clear.
@@ -41,7 +42,8 @@ current_evidence:
       was not run.
   r5_stage1_quality_guard:
     status: rejected_as_base
-    patch_artifact: ../../family_robustness/legalm_engine/legalm_stage1_quality_guard_r5.patch
+    patch_artifact: research_patches/legalm_stage1_quality_guard_r5.patch
+    patch_sha256: 9fcee722c2cfac7d158eb066efbd7810cd9094c50eeab79c464b3181cab2bd0a
     result_note: ../../family_robustness/legalm_engine/WORKER_RESULT_R5_20260425.md
     summary: >
       Adds bounded Stage1 objective scoring, but JPEG displacement worsens
