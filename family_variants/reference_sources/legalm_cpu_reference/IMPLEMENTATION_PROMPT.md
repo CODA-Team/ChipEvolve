@@ -3,9 +3,10 @@
 You are implementing a high-performance CPU detailed-placement legalizer using
 LEGALM/ALM-style ideas as a standalone reference implementation.
 
-Do not integrate with OpenROAD directly.  Do not write a plugin.  Your output
-should be clean algorithm code that can be studied, benchmarked, and later
-ported into another framework.
+For this reference deliverable, do not integrate with OpenROAD directly and do
+not make the implementation depend on OpenROAD classes. The output should be
+clean algorithm code that can be studied, benchmarked, and later ported into
+another framework or wrapped by a separate integration layer.
 
 ## Goal
 
@@ -16,9 +17,11 @@ The algorithm should target modern standard-cell legalization with mixed-height
 cells, fixed blockages, row/fence regions, weighted nets, and high utilization
 cases.
 
-## Required Algorithm Shape
+## Suggested Algorithm Shape
 
-Use a staged architecture:
+Use a staged architecture unless you can justify a better one with telemetry.
+The exact objective terms, candidate sets, and stage ordering are open design
+choices.
 
 1. **Relaxed guidance stage**
    - Project cells to legal static sites or good target regions.
@@ -26,7 +29,7 @@ Use a staged architecture:
    - Optimize displacement and optional HPWL proxy.
 
 2. **Capacity / overflow removal stage**
-   - Use row segments as the capacity model.
+   - Prefer row segments as the capacity model.
    - Use ALM/BGD, auction, min-cost assignment on bounded buckets, or another
      scalable overlap-removal method.
    - Scarce cells, wide cells, multi-row cells, and cells with few candidate
@@ -42,21 +45,21 @@ Use a staged architecture:
      telemetry explaining unresolved overlaps, candidate-cap hits, and runtime
      limits.
 
-## Performance Requirements
+## Performance Requirements And Guardrails
 
 - CPU only.
 - Use up to `max_threads`; do not spawn unbounded threads.
 - Deterministic mode must produce repeatable output.
 - Avoid full-cell-pair enumeration.
 - Avoid full-grid scans in inner loops.
-- Candidate generation must be bounded.
-- High-fanout nets must be skipped, approximated, or cached.
+- Keep candidate generation bounded.
+- High-fanout nets should be skipped, approximated, or cached.
 - Use row/segment indexing instead of repeatedly scanning all rows.
 
 AES is only a smoke test.  JPEG is the first serious gate.  The implementation
 should be designed for larger cases from the beginning.
 
-## Data Structures To Implement
+## Data Structures To Use Or Adapt
 
 Use or adapt the structures in `DATA_MODEL.md`:
 
@@ -106,8 +109,8 @@ Please provide:
 
 ## Success Criteria
 
-The first version does not need to beat OpenROAD diamond on every metric.  It
-must be:
+The first version does not need to beat OpenROAD diamond on every metric. It
+should be:
 
 - robust,
 - fast enough to run JPEG without pathological slowdown,

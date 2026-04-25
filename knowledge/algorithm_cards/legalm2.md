@@ -23,8 +23,11 @@ but it is an excellent **idea donor** for:
 - better initialization
 - overflow-stagnation detection
 - connected-component / plate aware escape
-- strict no-overflow refinement stage
+- no-overflow refinement stage
 
 ## Mechanisms to postpone
 - full ALM variable formulation
 - GPU / TP / BGD full rewrite
+
+Treat these as hypotheses to port and test.  The current framework does not
+fix the exact LEGALM objective, partitioning scheme, or stage order.

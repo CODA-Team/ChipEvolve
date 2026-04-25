@@ -30,7 +30,7 @@ Therefore:
 ## High-value surfaces
 
 ### 1. `NegotiationLegalizer.cpp`
-Best place to evolve:
+Useful place to evolve repair mechanisms:
 - cost
 - search window
 - negotiation schedule
@@ -38,13 +38,13 @@ Best place to evolve:
 - escape / refinement logic
 
 ### 2. `Opendp.cpp`
-Best place to evolve:
+Useful place to evolve dispatch and framework wiring:
 - engine dispatch policy
 - top-level setup around detailed placement
 - future initialization hooks
 
 ### 3. `Opendp.tcl`
-Best place to evolve:
+Useful place to evolve only if a C++ knob genuinely needs a Tcl surface:
 - expose a carefully chosen knob
 - keep Tcl <-> C++ synchronization correct
 

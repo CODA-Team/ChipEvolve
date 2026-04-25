@@ -1,8 +1,8 @@
 # Implementation Notes
 
 This is the selected negotiation-history donor.  It supersedes the older r5
-records in default context because the threaded frontier path is the only
-historical negotiation line worth keeping visible.
+records in default context because the threaded frontier path is the most
+compact useful historical negotiation line to keep visible.
 
 Mechanisms to reuse selectively:
 

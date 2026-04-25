@@ -3,10 +3,12 @@
 This directory is a handoff packet for someone implementing a high-performance
 CPU LEGALM-style detailed-placement legalizer.
 
-It is **not** a plugin ABI and not an integration contract.  The goal is to
-give an external implementer enough clean data structures and algorithmic
-constraints to build a strong standalone reference implementation.  We can
-later study or port the best ideas into `detailed_placement_evolve`.
+It is **not** itself the OpenROAD plugin ABI and not a direct flow integration
+contract. The goal is to give an external implementer enough clean data
+structures and algorithmic constraints to build a strong standalone reference
+implementation. We can later study or port the best ideas into
+`detailed_placement_evolve`, including through the repo's internal plugin fast
+path when appropriate.
 
 Files:
 
@@ -23,3 +25,7 @@ Expected implementation style:
 - no GPU dependency,
 - scalable to JPEG and larger cases,
 - rich runtime/quality telemetry.
+
+The stage flow and objective details are intentionally not frozen. Treat this
+packet as a useful minimum interface plus design brief, not as the final
+algorithm specification.

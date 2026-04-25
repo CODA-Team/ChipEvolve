@@ -24,11 +24,12 @@ forensics, not as default context.
 
 ## Selection
 
-- Use OpenROAD diamond as the quality/runtime baseline.
-- Use `negotiation_parallel_frontier` as the selected negotiation donor; old
-  r5 records are superseded.
-- Use `legalm_engine/dpl_evolve.patch` as the complete LEGALM source donor.
-- Use `reference_sources/dreamplace_abacus` for row-assignment/compaction
+- Use OpenROAD diamond as the current strict-track comparison anchor.
+- Use `negotiation_parallel_frontier` only as a selected negotiation-history
+  donor; old r5 records are superseded for default context.
+- Use `legalm_engine/dpl_evolve.patch` as a complete LEGALM source donor, not
+  as a direct base for the current framework.
+- Use `reference_sources/dreamplace_abacus` as a row-assignment/compaction
   reference.
 - Do not treat files under `reference_deltas/` as direct patches for the
   current framework.  They are compact mechanism examples to be ported.

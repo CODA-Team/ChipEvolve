@@ -15,6 +15,8 @@ The short version:
 - The evolved command entrypoint is always `detailed_placement_evolve`.
 - The current algorithm direction is a constrained top-level framework whose
   stages can be replaced by agents, not an unconstrained family-tree router.
+- The listed stages are scaffolding. Specific objectives, algorithms, and
+  stage order remain evidence-driven and may change per case.
 - OpenROAD common code is built once.
 - Each experiment variant rebuilds only its own `dpl_evolve` code and relinks a
   private `openroad` binary.
@@ -210,6 +212,12 @@ That directory keeps the high-value donors:
 - OpenROAD negotiation / NBLG,
 - LEGALM staged legalization,
 - DREAMPlace Abacus.
+
+Use `knowledge/EVIDENCE_POLICY.md` to separate project contracts, measured
+observations, working hypotheses, and reference donors. In particular, diamond
+is the current strict-track comparison anchor, while LEGALM, Negotiation/NBLG,
+and DREAMPlace/Abacus are donors whose mechanisms must be validated after
+porting.
 
 Older family variants remain as archived evidence, but the default development
 path is now:

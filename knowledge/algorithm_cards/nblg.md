@@ -15,9 +15,11 @@ NBLG reformulates mixed-height legalization as a **resource allocation task over
 
 ## Why it matters for OpenROAD
 OpenROAD public docs explicitly say the current NegotiationLegalizer is based on NBLG.
-So this paper is not an external idea dump; it is the closest source-of-truth donor.
+So this paper is not an external idea dump; it is a close mechanism donor for
+the negotiation engine.  It does not prove that negotiation is the best primary
+strategy for every strict-track case.
 
-## Mechanisms worth evolving first
+## Mechanisms worth testing first
 - adaptive penalty schedule `pf`
 - history update strength
 - max-displacement penalty weighting
@@ -28,3 +30,5 @@ So this paper is not an external idea dump; it is the closest source-of-truth do
 ## What to avoid
 - full paper reimplementation before verifying current repo deltas
 - broad multithreading rewrite before strict-track metrics are stable
+- promoting a negotiation-only result without comparing against the diamond
+  anchor and the current two-stage OpenROAD baseline

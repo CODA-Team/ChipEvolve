@@ -47,8 +47,10 @@ It introduces the `EvolveLegalizer` stage skeleton behind
 5. bounded polish,
 6. telemetry.
 
-Default behavior should stay close to diamond search until a later patch proves
-that a stage replacement is better.
+This order is a scaffold, not a final algorithm. Agents may replace, skip, or
+reorder stages when a patch states the hypothesis and the evaluator checks the
+result. Default behavior should stay close to diamond search until a later
+patch proves that a stage replacement is better.
 
 The framework also exposes a first lightweight plugin ABI:
 
@@ -75,8 +77,10 @@ family_variants/REFERENCE_INDEX.yaml
 
 Canonical donors:
 
-- OpenROAD diamond DPL: strongest baseline and local search donor.
-- OpenROAD negotiation/NBLG: repair and overflow donor.
+- OpenROAD diamond DPL: current strict-track comparison anchor and local search
+  donor, not a universal optimum claim.
+- OpenROAD negotiation/NBLG: repair and overflow donor; do not assume it is the
+  right primary engine for every case.
 - `family_variants/negotiation_parallel_frontier/`: selected negotiation
   history donor; it supersedes old r5 records.
 - LEGALM: staged relaxed legalization / ALM donor.
@@ -135,6 +139,10 @@ Every algorithmic patch should state:
 - expected HPWL/runtime/displacement/legality effect,
 - expected failure mode,
 - rollback condition.
+
+Use `knowledge/EVIDENCE_POLICY.md` when converting run results or paper notes
+into prompt text. Do not encode a single-case observation as a permanent
+algorithm rule without marking its scope.
 
 ## Baselines
 

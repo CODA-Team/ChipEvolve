@@ -53,6 +53,8 @@ FRAMEWORK_SURFACE = {
 
 
 REFERENCE_FILES = [
+    "knowledge/CONTEXT_AUDIT_20260426.md",
+    "knowledge/EVIDENCE_POLICY.md",
     "family_variants/REFERENCE_INDEX.yaml",
     "family_variants/reference_sources/README.md",
     "family_variants/reference_sources/openroad_diamond/README.md",
@@ -174,6 +176,7 @@ def packet_markdown(packet: dict[str, Any]) -> str:
         "- Keep `detailed_placement_evolve` as the only evolved entrypoint.",
         "- Patch the constrained framework or a plugin-compatible stage, not classic `dpl` or evaluator scripts.",
         "- Use reference algorithms as donors, then implement a clean staged mechanism in `dpl_evolve`.",
+        "- Treat the stage flow as a scaffold; implementation details must be justified by evidence.",
         "",
         "## Selected Patch Surface",
         f"- file: {surface['file']}",
@@ -246,6 +249,8 @@ def build_packet(problem_dir: Path, out_dir: Path) -> dict[str, Any]:
             "adapters/science_codeevolve/current_run_packet.md",
             "skills/patch_rules.md",
             str(problem_path.relative_to(AGENT_ROOT)),
+            "knowledge/EVIDENCE_POLICY.md",
+            "knowledge/CONTEXT_AUDIT_20260426.md",
             FRAMEWORK_SURFACE["file"],
             "family_variants/REFERENCE_INDEX.yaml",
         ],

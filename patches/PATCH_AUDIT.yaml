@@ -17,7 +17,8 @@ prepare_patches:
     status: active_prepare_patch
     meaning: >
       Adds the constrained EvolveLegalizer top-level framework and V1 plugin
-      loader on top of the clean dpl_evolve base.
+      loader on top of the clean dpl_evolve base.  The stage order is a
+      scaffold for experiments, not a frozen algorithmic claim.
     apply_target: prepared OpenROAD after openroad_dpl_evolve_base.patch
     verified_on: 2026-04-25
 

@@ -1,7 +1,7 @@
 # CPU LEGALM Reference Data Model
 
-This is the data model we want an external high-performance CPU LEGALM
-implementation to use.  It is deliberately framework-neutral: no OpenROAD
+This is a proposed minimum data model for an external high-performance CPU
+LEGALM-style implementation. It is deliberately framework-neutral: no OpenROAD
 classes, no database objects, no evaluator hooks.
 
 The implementation may define these as C++ structs/classes rather than exactly
@@ -15,7 +15,8 @@ these facts and can return a complete placement plus diagnostics.
 - Row/segment `x1` is exclusive.
 - Rectangles use `[x0, x1) x [y0, y1)`.
 - `site_width` and `row_height` are DBU.
-- All output cell locations must be site-aligned and row-aligned.
+- Legal output cell locations must be site-aligned and row-aligned. Relaxed or
+  near-legal outputs should say clearly which constraints remain unresolved.
 
 ## Core Objects
 
@@ -61,8 +62,8 @@ struct Cell {
 };
 ```
 
-`Segment` should already exclude fixed blockages and obvious row/fence
-violations.  The algorithm should still be able to validate against fixed
+`Segment` may already exclude fixed blockages and obvious row/fence
+violations. The algorithm should still be able to validate against fixed
 rectangles for safety, especially for multi-row cells.
 
 ## Net Model
@@ -83,8 +84,8 @@ struct Net {
 };
 ```
 
-High-fanout nets should be skipped, approximated, or cached.  The algorithm
-must report how many nets/pins were skipped or approximated.
+High-fanout nets should be skipped, approximated, or cached. The algorithm
+should report how many nets/pins were skipped or approximated.
 
 ## Problem Input
 
@@ -101,7 +102,7 @@ struct LegalizationProblem {
 };
 ```
 
-Required assumptions:
+Working assumptions:
 
 - `cells` contains both movable and fixed cells if useful, but the output only
   needs locations for movable cells.
@@ -169,7 +170,7 @@ struct LegalizationResult {
 };
 ```
 
-The implementation should return one placement record per movable cell.  If a
+The implementation should return one placement record per movable cell. If a
 cell cannot be placed, preserve its current location and set negative status.
 
 ## Telemetry
@@ -195,7 +196,7 @@ struct LegalizationTelemetry {
 };
 ```
 
-Telemetry must explain both success and failure.  At minimum, include:
+Telemetry should explain both success and failure. At minimum, include:
 
 - effective objective weights,
 - candidate caps,
@@ -208,8 +209,8 @@ Telemetry must explain both success and failure.  At minimum, include:
 
 ## Algorithmic Expectations
 
-A strong implementation should not be only a scalar-weight tweak.  It should
-have real scalable structure:
+A strong implementation should not be only a scalar-weight tweak. The current
+working hypothesis is that it needs real scalable structure:
 
 - Stage 1: relaxed/static-constraint projection or differentiable-style target
   guidance.  Movable overlaps may be allowed here.
@@ -224,14 +225,14 @@ Important constraints:
 - bounded candidates per cell,
 - row/segment data structures suitable for large designs,
 - deterministic parallelism when requested,
-- JPEG-class case must be treated as the first real performance gate.
+- JPEG-class cases should be treated as the first real performance gate.
 
 ## Quality Targets
 
 The first target is robustness and useful telemetry:
 
 - AES is only smoke.
-- JPEG must complete with runtime comparable to OpenROAD diamond order of
+- JPEG should complete with runtime comparable to OpenROAD diamond order of
   magnitude.
 - Displacement tail should not explode.
 - HPWL should be competitive enough to justify further porting.

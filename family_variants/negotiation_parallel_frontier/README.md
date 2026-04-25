@@ -4,8 +4,8 @@ Role: selected negotiation-history donor.
 
 This record replaces the older r5/r6 naming in default agent context.  The old
 r5 record was moved to `local_backups/legacy_family_flow_cleanup_20260425/`
-because the faster threaded frontier path is the only negotiation variant worth
-keeping visible by default.
+because the threaded frontier path is the clearest compact negotiation donor to
+keep visible by default.
 
 Keep this directory as reference material, not as the active framework
 entrypoint.  New work should port useful mechanisms into the constrained
@@ -32,4 +32,5 @@ reference_deltas/negotiation_parallel_frontier.diff
 This is not a prepare-time patch for the current framework.  Treat it as a
 readable compact delta and port only the useful mechanism into
 `EvolveLegalizer` or a plugin stage.  Do not read old r5 docs unless explicitly
-debugging historical experiments.
+debugging historical experiments; do not infer that negotiation should be the
+primary engine for every case.

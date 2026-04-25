@@ -1,6 +1,6 @@
 # OpenROAD Diamond DPL Reference
 
-Role: primary baseline and diamond-compatible donor.
+Role: current strict-track comparison anchor and diamond-compatible donor.
 
 This directory keeps a compact source snapshot from OpenROAD classic DPL:
 
@@ -11,7 +11,8 @@ This directory keeps a compact source snapshot from OpenROAD classic DPL:
 - `source/include/dpl/Opendp.h`
 
 Study this path when optimizing local candidate search, row/site legality,
-placement DRC checks, rip-up behavior, and diamond-compatible fallback.  It is
-currently the strongest baseline on the strict detailed-placement smoke cases,
-so new framework stages should default to behavior close to this path until a
-case-specific improvement is proven.
+placement DRC checks, rip-up behavior, and diamond-compatible fallback.  Local
+strict-track runs currently make this the comparison anchor; that is an
+experiment baseline, not a claim that diamond is universally optimal.  New
+framework stages should stay comparable to this path until a case-specific
+improvement is measured.
