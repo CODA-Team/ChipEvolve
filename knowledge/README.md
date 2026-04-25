@@ -10,6 +10,30 @@ It is meant to support three things:
 
 ## Current high-value entry points
 
+- [`algorithm_cards/base_family_cards.yaml`](./algorithm_cards/base_family_cards.yaml)
+  Compact first-read cards for robust base-family selection, scale rules, and
+  next evolve directions. Prefer this before long replay logs.
+- [`algorithm_cards/algobank50_findings_20260425.yaml`](./algorithm_cards/algobank50_findings_20260425.yaml)
+  Structured evidence from the 50-way Nangate45 algorithm matrix. Read this
+  before proposing a new negotiation, net-aware, priority, or localized-polish
+  variant; it records which mechanisms helped and which repeatedly failed.
+- [`algorithm_cards/netaware_objective_card.yaml`](./algorithm_cards/netaware_objective_card.yaml)
+  Current net-aware repair status, why `netaware12` is usable evidence but not
+  a hard base, and the next `netaware14` mechanism direction.
+- [`algorithm_cards/legalm_engine_card.yaml`](./algorithm_cards/legalm_engine_card.yaml)
+  LEGALM legality-repair evidence and the next structural row-segment
+  assignment direction. Read before touching LEGALM.
+- [`algorithm_cards/priority_localized_card.yaml`](./algorithm_cards/priority_localized_card.yaml)
+  Priority/localized status: priority requires real stuck telemetry;
+  localized swap is opt-in polish after a legal parent only.
+- [`../family_robustness/ROBUST_BASE_DECISION_20260425.md`](../family_robustness/ROBUST_BASE_DECISION_20260425.md)
+  Compact first-read decision note for robust base-family selection and scale
+  rules. Prefer this before long replay logs.
+- [`family_components/effective_families.yaml`](./family_components/effective_families.yaml)
+  Effective-only summary of the current reusable starts, donor-only families,
+  and noise to ignore.
+- [`family_components/initial_patch_paths.yaml`](./family_components/initial_patch_paths.yaml)
+  The current initial evolve paths to consider after a baseline run.
 - [`stage_context/detail_place_stack.yaml`](./stage_context/detail_place_stack.yaml)
   Current ORFS/OpenROAD placement-stage context.
 - [`delta_ledger/nblg_to_openroad.yaml`](./delta_ledger/nblg_to_openroad.yaml)
@@ -18,10 +42,6 @@ It is meant to support three things:
   Secondary mapping for overflow modeling, escape, and refinement ideas.
 - [`replay_bank/family_registry.yaml`](./replay_bank/family_registry.yaml)
   Structured registry of active, superseded, and stackable patch families.
-- [`family_components/effective_families.yaml`](./family_components/effective_families.yaml)
-  Effective-only summary of the current reusable starts, donor-only families, and noise to ignore.
-- [`family_components/initial_patch_paths.yaml`](./family_components/initial_patch_paths.yaml)
-  The current initial evolve paths to consider after a baseline run.
 - [`../baseline/canonical_lines.yaml`](../baseline/canonical_lines.yaml)
   The canonical baseline/evolve lines. Read this before reasoning about wrappers.
 - [`family_components/legalm_engine.yaml`](./family_components/legalm_engine.yaml)
@@ -68,12 +88,16 @@ It is meant to support three things:
 4. `delta_ledger/nblg_to_openroad.yaml`
 5. `delta_ledger/legalm_to_openroad.yaml`
 6. `../baseline/canonical_lines.yaml`
-7. `family_components/effective_families.yaml`
-8. `family_components/initial_patch_paths.yaml`
-9. `family_components/legalm_engine.yaml`
-10. `replay_bank/family_registry.yaml`
-11. `packets/current_run_packet.md`
-12. `packets/README.md`
+7. `algorithm_cards/base_family_cards.yaml`
+8. `algorithm_cards/algobank50_findings_20260425.yaml`
+9. family-specific cards under `algorithm_cards/*_card.yaml` when assigned to
+   that family
+10. `family_components/effective_families.yaml`
+11. `family_components/initial_patch_paths.yaml`
+12. `family_components/legalm_engine.yaml`
+13. `replay_bank/family_registry.yaml`
+14. `packets/current_run_packet.md`
+15. `packets/README.md`
 
 ## Background reference only
 

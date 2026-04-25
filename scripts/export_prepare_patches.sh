@@ -30,6 +30,13 @@ fi
 
 mkdir -p "${AGENT_ROOT}/patches"
 
+for required_tool in filterdiff recountdiff; do
+  if ! command -v "${required_tool}" >/dev/null 2>&1; then
+    echo "[ERROR] Missing required patchutils tool: ${required_tool}" >&2
+    exit 1
+  fi
+done
+
 mapfile -t anchor_values < <(
   python3 - <<'PY' "${ANCHORS_JSON}"
 import json, sys
@@ -43,6 +50,10 @@ orfs_base_commit="${anchor_values[0]}"
 openroad_base_commit="${anchor_values[1]}"
 
 : > "${AGENT_ROOT}/patches/orfs_overlay.patch"
+raw_openroad_patch="$(mktemp)"
+filtered_openroad_patch="$(mktemp)"
+trap 'rm -f "${raw_openroad_patch}" "${filtered_openroad_patch}"' EXIT
+
 git -C "${SOURCE_ROOT}/tools/OpenROAD" diff "${openroad_base_commit}" -- \
   include/ord/OpenRoad.hh \
   include/ord/Design.h \
@@ -51,6 +62,28 @@ git -C "${SOURCE_ROOT}/tools/OpenROAD" diff "${openroad_base_commit}" -- \
   src/Main.cc \
   src/CMakeLists.txt \
   src/dpl_evolve \
+  ':(exclude)src/dpl_evolve/test' \
+  ':(exclude)src/dpl_evolve/test/**' \
+  > "${raw_openroad_patch}"
+
+filterdiff -p1 -x 'src/dpl_evolve/test/*' "${raw_openroad_patch}" \
+  | awk '
+      /^diff --git / {
+        skip = ($0 ~ / a\/src\/dpl_evolve\/test(\/| |$)/ || $0 ~ / b\/src\/dpl_evolve\/test(\/| |$)/)
+      }
+      !skip { print }
+    ' \
+  | sed \
+      -e '/^\+test\/results$/d' \
+      -e 's/^\+command set, its own regression suite, and a baseline sandbox/+command set, and a baseline sandbox/' \
+      -e '/^\+- \[`test\/`\](\.\/test): independent CTest \/ Python \/ Tcl regression suite\.$/d' \
+      -e '/^\+# Keep dpl_evolve tests in a separate target\/test namespace so they can$/,/^\+endif()$/d' \
+      -e 's/^\+## How to build and test$/+## How to build/' \
+      -e '/^\+List the independent `dpl_evolve` regressions from$/,/^\+```$/d' \
+      -e '/^\+Run one focused smoke regression:$/,/^\+```$/d' \
+  > "${filtered_openroad_patch}"
+
+recountdiff "${filtered_openroad_patch}" \
   > "${AGENT_ROOT}/patches/openroad_dpl_evolve_base.patch"
 
 echo "[INFO] Refreshed:"

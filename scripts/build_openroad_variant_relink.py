@@ -121,10 +121,16 @@ def rewrite_command(
     variant_build: Path,
     variant_dpl_src: Path,
 ) -> str:
-    replacements = [
-        (str(core_build / "src" / "dpl_evolve"), str(variant_build / "src" / "dpl_evolve")),
-        (str(core_dpl_src), str(variant_dpl_src)),
-    ]
+    replacements = []
+    for old, new in [
+        (core_build / "src" / "dpl_evolve", variant_build / "src" / "dpl_evolve"),
+        (core_dpl_src, variant_dpl_src),
+    ]:
+        replacements.append((str(old), str(new)))
+        try:
+            replacements.append((str(old.resolve()), str(new)))
+        except FileNotFoundError:
+            pass
     return replace_paths(command, replacements)
 
 
@@ -203,6 +209,67 @@ def collect_dpl_compile_commands(
     return selected
 
 
+def add_variant_only_source_compile_entries(
+    *,
+    compile_entries: list[dict[str, str]],
+    core_dpl_src: Path,
+    variant_dpl_src: Path,
+) -> list[dict[str, str]]:
+    represented: set[str] = set()
+    templates: dict[str, dict[str, str]] = {}
+    core_dpl_src_resolved = core_dpl_src.resolve()
+    for entry in compile_entries:
+        file_path = Path(entry["file"])
+        try:
+            rel = file_path.resolve().relative_to(core_dpl_src_resolved).as_posix()
+        except ValueError:
+            continue
+        represented.add(rel)
+        templates.setdefault(file_path.suffix, entry)
+
+    extra_entries: list[dict[str, str]] = []
+    for source in sorted((variant_dpl_src / "src").rglob("*")):
+        if source.suffix not in {".cpp", ".cxx", ".cc", ".c"}:
+            continue
+        try:
+            rel = source.relative_to(variant_dpl_src).as_posix()
+        except ValueError:
+            continue
+        if rel.startswith("test/") or "/test/" in rel:
+            continue
+        if rel in represented:
+            continue
+
+        template = templates.get(source.suffix) or templates.get(".cpp")
+        if template is None:
+            raise SystemExit(f"Could not synthesize compile command for new source: {source}")
+
+        template_file = Path(template["file"])
+        fake_core_source = core_dpl_src / rel
+        parts = shlex.split(template["command"])
+        replaced_file = False
+        for idx, token in enumerate(parts):
+            if token == str(template_file):
+                parts[idx] = str(fake_core_source)
+                replaced_file = True
+        if not replaced_file:
+            parts.append(str(fake_core_source))
+
+        for idx, token in enumerate(parts[:-1]):
+            if token == "-o":
+                parts[idx + 1] = f"CMakeFiles/dpl_evolve_lib.dir/{rel}.o"
+                break
+        else:
+            raise SystemExit(f"Could not find -o output in template compile command: {template['command']}")
+
+        extra = dict(template)
+        extra["file"] = str(fake_core_source)
+        extra["command"] = " ".join(shlex.quote(part) for part in parts)
+        extra_entries.append(extra)
+
+    return compile_entries + extra_entries
+
+
 def rewrite_compile_entry(
     entry: dict[str, str],
     *,
@@ -273,6 +340,36 @@ def run_link_recipe(link_txt: Path, *, cwd: Path) -> None:
         if not command:
             continue
         run_shell(command, cwd=cwd)
+
+
+def append_extra_dpl_lib_objects(*, core_link_txt: Path, variant_dpl_build: Path) -> None:
+    """Archive source files that exist only in a materialized family variant.
+
+    The common-core CMake link recipe only knows the clean-base object list.
+    Materialized families such as LEGALM can add new `.cpp` files.  They are
+    compiled by the rewritten compile commands, but the old archive recipe will
+    not include them unless we append the extra objects explicitly.
+    """
+    commands = [line.strip() for line in read_text(core_link_txt).splitlines() if line.strip()]
+    known_objects: set[str] = set()
+    for command in commands:
+        for token in shlex.split(command):
+            if token.endswith(".o"):
+                known_objects.add(token)
+
+    object_root = variant_dpl_build / "CMakeFiles" / "dpl_evolve_lib.dir"
+    extra_objects: list[str] = []
+    for obj in sorted(object_root.rglob("*.o")):
+        rel = obj.relative_to(variant_dpl_build).as_posix()
+        if rel not in known_objects:
+            extra_objects.append(rel)
+
+    if not extra_objects:
+        return
+
+    quoted = " ".join(shlex.quote(item) for item in extra_objects)
+    run_shell(f"/opt/rh/gcc-toolset-13/root/usr/bin/ar q libdpl_evolve_lib.a {quoted}", cwd=variant_dpl_build)
+    run_shell("/opt/rh/gcc-toolset-13/root/usr/bin/ranlib libdpl_evolve_lib.a", cwd=variant_dpl_build)
 
 
 def relink_openroad(
@@ -431,6 +528,11 @@ def main() -> None:
         core_build=core_build,
         core_dpl_src=core_dpl_src,
     )
+    compile_entries = add_variant_only_source_compile_entries(
+        compile_entries=compile_entries,
+        core_dpl_src=core_dpl_src,
+        variant_dpl_src=dpl_evolve_src,
+    )
     compile_variant_objects(
         compile_entries=compile_entries,
         core_build=core_build,
@@ -441,7 +543,9 @@ def main() -> None:
     )
 
     dpl_build_dir = build_dir / "src" / "dpl_evolve"
-    run_link_recipe(core_build / "src" / "dpl_evolve" / "CMakeFiles" / "dpl_evolve_lib.dir" / "link.txt", cwd=dpl_build_dir)
+    dpl_lib_link = core_build / "src" / "dpl_evolve" / "CMakeFiles" / "dpl_evolve_lib.dir" / "link.txt"
+    run_link_recipe(dpl_lib_link, cwd=dpl_build_dir)
+    append_extra_dpl_lib_objects(core_link_txt=dpl_lib_link, variant_dpl_build=dpl_build_dir)
     run_link_recipe(core_build / "src" / "dpl_evolve" / "CMakeFiles" / "dpl_evolve.dir" / "link.txt", cwd=dpl_build_dir)
     py_link = core_build / "src" / "dpl_evolve" / "CMakeFiles" / "dpl_evolve_py.dir" / "link.txt"
     if py_link.is_file():

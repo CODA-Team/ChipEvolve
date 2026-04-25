@@ -1,0 +1,23 @@
+id: negotiation_row_bucket_quality_frontier_r5
+kind: generated_dpl_evolve_variant
+generator: scripts/run_variant_experiment_matrix.py
+variant_name: negotiation_row_bucket_quality_frontier_r5
+source_family: clean_evolve_base
+entrypoint_contract: detailed_placement_evolve -use_negotiation
+status: flow_ready_candidate_needs_large_gate
+mechanism:
+  - row_bucket_active_set
+  - dirty_region_bystander_repair
+  - capped_large_design_candidate_generation
+  - bounded_net_anchor_quality_frontier
+  - no_diamond_stall_fallback_as_success
+evidence:
+  - family_robustness/negotiation_row_bucket/WORKER_RESULT_R5_20260425.md
+  - family_robustness/negotiation_row_bucket/negotiation_row_bucket_quality_frontier_r5.patch
+required_next_gates:
+  - ariane133_nangate45
+  - bp_quad_nangate45
+notes: >
+  This directory is a durable family record.  The executable source is generated
+  by the matrix script into DPL_EVOLVE_STATE_ROOT; do not hand-edit ORFS or the
+  OpenROAD submodule to use this family.

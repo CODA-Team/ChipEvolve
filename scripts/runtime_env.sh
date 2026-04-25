@@ -120,7 +120,7 @@ dpl_init_runtime() {
   if [[ -n "${DPL_EVOLVE_STATE_ROOT:-}" ]]; then
     export DPL_EVOLVE_STATE_ROOT="$(realpath -m "${DPL_EVOLVE_STATE_ROOT}")"
   else
-    export DPL_EVOLVE_STATE_ROOT="${ORFS_ROOT}/.dpl_evolve_state"
+    export DPL_EVOLVE_STATE_ROOT="${agent_root}/.dpl_evolve_state"
   fi
 
   export DPL_EVOLVE_PACKET_DIR="${DPL_EVOLVE_STATE_ROOT}/packets"

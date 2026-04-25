@@ -58,7 +58,7 @@ def resolve_state_root(*, orfs_root: Path, agent_root: Path) -> Path:
     env_root = os.environ.get("DPL_EVOLVE_STATE_ROOT")
     if env_root:
         return Path(env_root).resolve()
-    return (orfs_root / ".dpl_evolve_state").resolve()
+    return (agent_root / ".dpl_evolve_state").resolve()
 
 
 def candidate_python_interpreters(

@@ -1,0 +1,42 @@
+id: priority_escape
+kind: dpl_evolve_repair_candidate_manifest
+schema_version: 1
+status: repair_candidate_needs_real_stuck_gate
+base_source: tools/OpenROAD/src/dpl_evolve
+entrypoint_contract: detailed_placement_evolve -use_negotiation
+materialize_status: not_registered_not_base
+reason_not_materialized: >
+  Current evidence does not justify a standalone family variant.  The best
+  priority_escape artifacts are repair candidates, and promotion requires a
+  true stuck/no-valid telemetry gate before a flow should consume them as an
+  enabled variant.
+current_candidates:
+  - id: priority_escape_r3_20260425
+    patch_artifact: ../../family_robustness/priority_escape/priority_escape_r3_20260425.patch
+    patch_sha256: c05346b5e23070338510423e2bae231c38cc82e7b29d13838d3fae367b916689
+    state: repair_only
+    apply_policy: do_not_apply_as_base
+    evidence: ../../family_robustness/priority_escape/WORKER_RESULT_R3_20260425.md
+    blocker: "escape was not exercised on aes/jpeg because diamond had zero failures"
+  - id: priority_escape_frontier_repair_20260425
+    patch_artifact: ../../family_robustness/priority_escape/priority_escape_frontier_repair_20260425.patch
+    patch_sha256: 34fbe511becd359bc8efb4b63d0fe0b114ffb3e28a04f060c08f451082420b23
+    state: repair_only
+    apply_policy: gate_only_after_stuck_telemetry
+    evidence: ../../family_robustness/priority_escape/WORKER_RESULT_R3_20260425.md
+    blocker: "needs real stuck/no-valid gate and normal-case zero-trigger telemetry"
+rejected_candidates:
+  - id: priority01_home_stall_fast
+    reason: "jpeg timeout and comparator-side legality checks"
+  - id: priority06_rowedge_fast_as_base
+    reason: "legal but HPWL-regressive on aes/jpeg"
+  - id: search_wide_escape_as_base
+    reason: "normal-case regressions and no large-case proof"
+flow_consumption:
+  consume_as: status_manifest
+  do_not_autoload: true
+  required_before_enablement:
+    - telemetry_only_normal_smoke
+    - real_stuck_no_valid_gate
+    - large_stress_gate_after_parent_runtime_is_safe
+related_card: ../../knowledge/algorithm_cards/priority_localized_card.yaml

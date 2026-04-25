@@ -1,0 +1,41 @@
+id: localized_swap
+kind: dpl_evolve_polish_candidate_manifest
+schema_version: 1
+status: opt_in_polish_after_legal_parent_only
+base_source: tools/OpenROAD/src/dpl_evolve
+entrypoint_contract: detailed_placement_evolve -use_negotiation
+materialize_status: not_standalone_patch
+reason_not_materialized: >
+  The saved bounded-polish diff is evidence, but not a standalone full
+  implementation artifact in the current clean ORFS checkout.  The family must
+  remain opt-in polish after a legal parent until a complete bounded cellSwap
+  implementation is normalized into a standalone patch.
+current_candidates:
+  - id: localswap01_bounded_local_polish
+    patch_artifact: local_archive_not_committed
+    patch_sha256: cf479c70d3c064c1a2102f35c38799b527907a28fcdaf24a67ead1d60b06e084
+    state: polish_evidence_only
+    apply_policy: opt_in_after_legal_parent
+    blocker: "bp_quad timed out and saved diff is not a standalone full implementation"
+  - id: localswap_hotbucket_rollback_cap_20260425
+    evidence: ../../family_robustness/localized_swap/HARDENING_DECISION_20260425.md
+    state: reject_for_promotion
+    blocker: "legal but severe HPWL/runtime/displacement regression"
+rejected_candidates:
+  - id: localswap_skip_polish_budget_r3_20260425
+    reason: "safety narrowing only; not quality repair"
+  - id: greedy_postopt
+    reason: "repeated placement-check failures"
+  - id: swap_greedy_postopt
+    reason: "repeated placement-check failures"
+  - id: full_pair_same_shape_swap_on_large_groups
+    reason: "scaling risk; not localized"
+flow_consumption:
+  consume_as: status_manifest
+  do_not_autoload: true
+  required_before_enablement:
+    - legal_parent_opt_in_gate
+    - parent_and_post_polish_metric_logging
+    - rollback_on_quality_or_legality_regression
+    - large_stress_queue_after_parent_runtime_is_safe
+related_card: ../../knowledge/algorithm_cards/priority_localized_card.yaml

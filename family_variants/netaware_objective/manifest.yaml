@@ -1,0 +1,76 @@
+id: netaware_objective
+kind: dpl_evolve_variant_overlay
+variant: netaware12_prefilter_hotset_guard
+family: netaware_objective
+status: repair_candidate_not_hard_base
+
+base_contract:
+  command_path: "detailed_placement_evolve -use_negotiation"
+  source_family: netaware11_local_hpwl_anchor_cap
+  patch_file: local_archive_not_committed
+  patch_applies_to: "materialized netaware11_local_hpwl_anchor_cap dpl_evolve source"
+  patch_sha256: "local_archive_not_committed"
+  touched_files:
+    - src/NegotiationLegalizer.h
+    - src/NegotiationLegalizerPass.cpp
+
+materialization:
+  current_state: staged_overlay_only
+  note: >
+    The current clean ORFS checkout does not expose tools/OpenROAD/src/dpl_evolve,
+    while the runner/materialize contract expects a prepared dpl_evolve source.
+    This artifact is therefore packaged as a source-family overlay over the
+    recorded netaware11 source, with a dry-run patch check. Registering this
+    family in scripts/materialize_family_variant.sh is intentionally deferred
+    because this turn is write-scoped to netaware artifact directories only.
+  local_parent_source_backup: local_archive_not_committed
+  local_verified_variant_source_backup: local_archive_not_committed
+  light_checks:
+    - "patch --dry-run -p1 against the backed-up netaware11 parent source: pass"
+
+mechanism:
+  - "Collect cheap baseline candidates first, without local net traversal."
+  - "Sort a bounded shortlist and apply localHpwlDeltaCost only to eligible cells."
+  - "Eligibility is low/medium-fanout, displacement-hot, or late-unsettled cells."
+  - "Keep midpoint and connectivity-anchor probes as fallback-only rescue paths."
+  - "Use displacement outlier guards so local HPWL cannot freely pull cells far away."
+
+evidence:
+  experiment: netaware_objective_r4_20260425
+  result_doc: ../../family_robustness/netaware_objective/HARDENING_SUMMARY_20260425.md
+  summary:
+    - "aes_nangate45: legal, HPWL delta -2.07%, runtime +17.65%, max displacement +0.00% versus same-run baseline."
+    - "jpeg_nangate45: legal, HPWL delta -6.47%, runtime +17.87%, max displacement +0.92% versus same-run baseline."
+    - "ariane133_nangate45: legal, HPWL delta -4.58%, runtime +20.20%, max displacement +0.00% versus same-run baseline."
+  promotion_decision: >
+    Keep as the current best usable netaware repair candidate, but do not
+    promote to hard base. It repairs the R3/R1 runtime and JPEG max-displacement
+    failure mode, but quality is weaker than the original netaware11 signal and
+    runtime overhead remains nonzero.
+
+reject_as_base:
+  - "R3/R1 netaware11 had much stronger HPWL but failed runtime and JPEG max-displacement gates."
+  - "R5 initial netaware13 recovered some HPWL, but AES runtime crossed the approximate cap and JPEG max displacement regressed."
+  - "R5 tightened rebuild has no post-tightening evaluator JSON, so it cannot be claimed as repaired."
+
+next_direction:
+  id: netaware14_rowedge_shortlist_hpwl
+  recommendation: >
+    Make the next large change structural: use algobank's row_edge/current_blend
+    cheap frontier to choose stable candidates first, then apply the bounded
+    net-aware local HPWL term only inside that frontier. Do not continue
+    constant-only cap/reward tuning or restore full per-candidate net traversal.
+  borrow_from_algobank:
+    - current_blend_history_runtime_trim_rowedge
+    - soft_threshold_overflow_only_rowedge_as_jpeg_quality_branch
+  keep_from_netaware12:
+    - bounded shortlist
+    - fanout and net-eval caps
+    - displacement outlier guard
+    - fallback-only anchors
+
+required_gates:
+  - "Materialize overlay and build/relink private OpenROAD binary."
+  - "Strict same-run aes_nangate45, jpeg_nangate45, and ariane133_nangate45 against baseline."
+  - "Reject if runtime exceeds about +20% on aes/jpeg/ariane or if JPEG max displacement grows materially."
+  - "Only after small/medium gates pass, run bp_quad_nangate45 as a two-stage stress gate: legalizer return first, full metrics second."

@@ -1,0 +1,157 @@
+schema_version: 1
+generated_at: "2026-04-25"
+purpose: >
+  Joint hardening card for priority_escape and localized_swap.  This file is a
+  compact handoff artifact: it records why old paths are not robust enough,
+  what the next algorithmic direction should be, and which gates must run
+  before either family can be promoted.
+
+global_contract:
+  implementation_scope: "private dpl_evolve variant source only"
+  command_path: "detailed_placement_evolve -use_negotiation"
+  current_orfs_policy: "Do not edit tracked ORFS/OpenROAD files during candidate hardening."
+  base_promotion_requires:
+    - same_run_baseline_comparison
+    - strict_legality
+    - bounded_runtime
+    - no_fallback_as_success
+    - large_case_or_stress_evidence
+
+families:
+  - id: priority_escape
+    current_status: repair_candidate_needs_real_stuck_gate
+    candidate_artifacts:
+      - path: family_robustness/priority_escape/priority_escape_r3_20260425.patch
+        sha256: c05346b5e23070338510423e2bae231c38cc82e7b29d13838d3fae367b916689
+        status: repair_only_not_base
+        reason: >
+          R3 is normal-case safe because diamond succeeded first on aes/jpeg,
+          but that means the priority escape path was not exercised.
+      - path: family_robustness/priority_escape/priority_escape_frontier_repair_20260425.patch
+        sha256: 34fbe511becd359bc8efb4b63d0fe0b114ffb3e28a04f060c08f451082420b23
+        status: repair_only_needs_gate
+        reason: >
+          Frontier and budget mechanics are plausible, but there is not yet a
+          true stuck/no-valid telemetry gate proving that escape repairs a real
+          failure without hurting normal cases.
+    why_old_path_is_not_robust:
+      - >
+        Broad escape/search-window ideas were mostly normal-case tuning, not a
+        proven stuck-cell repair.  Existing observations include
+        search_wide_escape rejected on aes, ibex, jpeg, and ariane, and
+        bp_quad timeouts before useful metrics.
+      - >
+        priority01_home_stall_fast passed aes legality but timed out on jpeg at
+        180 seconds after only two negotiation iterations; its sort comparator
+        used repeated legality checks, a runtime-scaling trap.
+      - >
+        priority06_rowedge_fast was legal on aes/jpeg but materially worsened
+        HPWL, so row-edge/escape probes cannot be always-on policy.
+      - >
+        R3 removed normal-case regressions by trying diamond first and returning
+        when diamond had zero failures.  That is useful safety evidence, but it
+        is fallback plumbing, not proof of priority_escape robustness.
+    required_redesign_direction:
+      - >
+        Add true stuck/no-valid telemetry before enabling escape: count cells
+        with no legal candidate, repeated current-position best candidate,
+        unchanged illegal state, and stuck streak by iteration.
+      - >
+        Trigger escape only for telemetry-confirmed stuck cells.  Do not widen
+        every cell's search just because iteration count is high.
+      - >
+        Keep row-bucket active-set growth and dirty-region bystander repair as
+        the scale-safe base for large designs; escape should be a bounded
+        operator layered on top of that, not a replacement.
+      - >
+        Escape candidates must be capped, deduplicated, displacement guarded,
+        and separately logged as attempted, accepted, rejected_by_guard,
+        rollback, and fixed_stuck.
+    reject_or_repair_state:
+      reject:
+        - priority01_home_stall_fast
+        - priority06_rowedge_fast_as_always_on_policy
+        - search_wide_escape_as_base
+        - diamond_first_fallback_as_base_proof
+      repair:
+        - priority_escape_r3_20260425
+        - priority_escape_frontier_repair_20260425
+    next_required_gates:
+      - >
+        Telemetry-only gate on aes_nangate45 and jpeg_nangate45: verify
+        escape_attempted == 0 on clean normal cases while stuck/no-valid
+        counters are emitted.
+      - >
+        Real or synthetic stuck/no-valid gate: require escape_attempted > 0,
+        escape_accepted > 0, stuck_count decreases, final placement legal, and
+        same-run HPWL/runtime/displacement within guard.
+      - >
+        Large stress gate on ariane133_nangate45 or bp_quad_nangate45 after the
+        active-set runtime path is already budget-safe.
+
+  - id: localized_swap
+    current_status: opt_in_polish_after_legal_parent_only
+    candidate_artifacts:
+      - path: local_archive_not_committed
+        sha256: cf479c70d3c064c1a2102f35c38799b527907a28fcdaf24a67ead1d60b06e084
+        status: polish_evidence_not_standalone_base
+        reason: >
+          The gate showed small AES/JPEG improvements, but bp_quad timed out;
+          the saved diff is not a standalone full implementation because the
+          bounded cellSwap body lived in generated source context.
+      - path: family_robustness/localized_swap/HARDENING_DECISION_20260425.md
+        status: reject_hotbucket_and_skip_polish_for_promotion
+        reason: >
+          R1 hotbucket and R3 skip-polish were legal but far worse than
+          same-run default baselines on HPWL/runtime/displacement.
+    why_old_path_is_not_robust:
+      - >
+        The earlier localswap family mixed postopt enablement, objective edits,
+        and sort tweaks while relying on the same swap primitive, so it did not
+        prove a distinct localized algorithm.
+      - >
+        Full same-shape pair enumeration and greedy/swap-greedy postopt have
+        repeated scaling and placement-check failure signatures.
+      - >
+        R1 hotbucket rollback cap was legal but worsened aes HPWL by 147% and
+        jpeg HPWL by 118%; legality alone is not useful polish.
+      - >
+        Bounded local polish has promising aes/jpeg smoke numbers but still
+        lacks large-case proof, so it cannot be a base family.
+    required_redesign_direction:
+      - >
+        Localized swap must run only after a legal parent has already passed
+        the normal detailed-placement gate.  It must never be an initial
+        legalizer or a way to rescue illegal parents.
+      - >
+        The polish must be opt-in and guarded by parent quality/runtime: if the
+        parent is illegal, timed out, or already outside quality guard, skip
+        polish and report skip as skip, not success.
+      - >
+        Keep hotset seeds, spatial buckets/local windows, candidate and
+        accepted-move caps, time budget, transactional commit, and full rollback
+        on any legality or quality regression.
+      - >
+        Next meaningful algorithm work should score swaps by local net-aware
+        or timing-aware deltas inside the bounded candidate set, not widen the
+        candidate set.
+    reject_or_repair_state:
+      reject:
+        - localswap_hotbucket_rollback_cap_20260425_for_promotion
+        - localswap_skip_polish_budget_r3_20260425_for_promotion
+        - greedy_postopt
+        - swap_greedy_postopt
+        - full_pair_same_shape_swap_on_large_groups
+      repair:
+        - localswap01_bounded_local_polish_as_opt_in_polish
+    next_required_gates:
+      - >
+        Legal-parent opt-in gate: run after a known legal runtime-safe parent,
+        and prove the parent metrics plus post-polish delta are both recorded.
+      - >
+        AES/JPEG/ibex/ariane same-run gate: require final legality, no
+        placement-check failures, runtime within 1.15x parent or explicit
+        score win, and no displacement/timing outlier.
+      - >
+        Large stress queue: bp_quad only after the parent negotiation path is
+        budget-safe; postopt timeout should keep localized_swap as polish only.

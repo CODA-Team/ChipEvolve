@@ -1,0 +1,41 @@
+schema_version: 1
+purpose: >
+  Central index of reusable family artifacts.  This is a routing and flow
+  consumption guide; generated runtime source still belongs under
+  DPL_EVOLVE_STATE_ROOT.
+
+flow_ready:
+  - id: negotiation_row_bucket_quality_frontier_r5
+    kind: generated_matrix_variant
+    manifest: family_variants/negotiation_row_bucket_quality_frontier_r5/manifest.yaml
+    matrix_variant: negotiation_row_bucket_quality_frontier_r5
+    family_group: flow_ready_candidates
+    status: aes_jpeg_candidate_needs_large_gate
+
+repair_candidates:
+  - id: netaware12_prefilter_hotset_guard
+    kind: source_family_overlay
+    manifest: family_variants/netaware_objective/manifest.yaml
+    status: repair_candidate_not_hard_base
+    next_direction: netaware14_rowedge_shortlist_hpwl
+  - id: legalm_stage1_quality_guard_r5
+    kind: materialized_structural_family
+    manifest: family_variants/legalm_engine/manifest.yaml
+    status: legality_repair_not_quality_base
+    next_direction: legalm_r6_row_segment_batch_assignment
+  - id: priority_escape_r3_20260425
+    kind: repair_status_manifest
+    manifest: family_variants/priority_escape/manifest.yaml
+    status: needs_real_stuck_gate
+
+polish_only:
+  - id: localized_swap
+    kind: opt_in_polish_status_manifest
+    manifest: family_variants/localized_swap/manifest.yaml
+    status: after_legal_parent_only
+
+not_allowed_as_success:
+  - fallback_to_diamond
+  - fallback_to_default_dpl
+  - small_case_only_aggressive_tuning
+  - full_pair_swap_enumeration_on_large_groups

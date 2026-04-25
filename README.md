@@ -11,7 +11,7 @@ The short version:
 
 - ORFS stays external.
 - This repo stores prompts, scripts, patches, skills, and evaluator glue.
-- Runtime state goes outside both repos.
+- Runtime state defaults to this repo's ignored `.dpl_evolve_state/`.
 - OpenROAD common code is built once.
 - Each experiment variant rebuilds only its own `dpl_evolve` code and relinks a
   private `openroad` binary.
@@ -24,7 +24,7 @@ Recommended sibling layout:
 work/
   OpenROAD-flow-scripts/
   dpl_evolve_agent/
-  dpl_evolve_state/
+    .dpl_evolve_state/   # ignored runtime state
 ```
 
 Recommended local setup:
@@ -36,7 +36,9 @@ source env.sh
 ```
 
 `env.sh` is ignored by git. Keep machine-specific paths there, not in tracked
-scripts or docs.
+scripts or docs. The default `DPL_EVOLVE_STATE_ROOT` is
+`$DPL_EVOLVE_AGENT_ROOT/.dpl_evolve_state`; use another local path only if you
+need a larger scratch filesystem.
 
 If you prefer a local convenience link:
 

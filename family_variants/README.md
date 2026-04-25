@@ -32,6 +32,22 @@ source "$DPL_EVOLVE_STATE_ROOT/variants/legalm_engine/variant_env.sh"
 Run family variants with an explicit binary. Do not rely on the root
 `tools/install/OpenROAD/bin/openroad` once a family variant is involved.
 
-Active families:
+## Family Status
+
+Flow-ready generated candidates:
+
+- `negotiation_row_bucket_quality_frontier_r5/`
+
+Materialized structural families:
 
 - `legalm_engine/`
+
+Candidate/status manifests:
+
+- `netaware_objective/`
+- `priority_escape/`
+- `localized_swap/`
+
+Only flow-ready generated candidates should be added to default matrix groups.
+Candidate/status manifests are evidence and routing guidance until their
+required gates pass.
