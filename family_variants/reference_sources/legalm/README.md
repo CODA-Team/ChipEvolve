@@ -7,9 +7,10 @@ The durable source record is:
 
 - `family_variants/legalm_engine/dpl_evolve.patch`
 
-Useful hardening and rejected-lineage evidence lives under:
+Historical hardening and rejected-lineage evidence was moved out of the
+default context:
 
-- `family_variants/legalm_engine/research_patches/`
+- `local_backups/reference_patch_audit_20260425/family_variants/legalm_engine/research_patches/`
 
 Use LEGALM as a conceptual donor for staged flows:
 

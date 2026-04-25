@@ -13,6 +13,8 @@ Mechanisms to reuse selectively:
 - candidate telemetry for cap hits, rejected DRC, no-valid, collected, and
   scored frontier candidates.
 
-Do not revive the old matrix generator by default.  If a child agent needs one
-of these mechanisms, port it into an `EvolveLegalizer` stage patch and evaluate
-through the normal `detailed_placement_evolve` command.
+The delta in `reference_deltas/` is a historical mechanism reference, not a
+current apply target.  Do not revive the old matrix generator by default.  If a
+child agent needs one of these mechanisms, port it into an `EvolveLegalizer`
+stage patch or plugin policy and evaluate through the normal
+`detailed_placement_evolve` command.

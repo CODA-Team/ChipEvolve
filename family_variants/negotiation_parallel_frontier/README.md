@@ -23,10 +23,13 @@ Useful mechanisms preserved here:
 - `FindBestStats` style candidate telemetry for candidate caps, no-valid
   searches, and frontier pruning.
 
-Patch artifact:
+Reference delta artifact:
 
 ```text
-research_patches/negotiation_parallel_frontier.patch
+reference_deltas/negotiation_parallel_frontier.diff
 ```
 
-Do not read old r5 docs unless explicitly debugging historical experiments.
+This is not a prepare-time patch for the current framework.  Treat it as a
+readable compact delta and port only the useful mechanism into
+`EvolveLegalizer` or a plugin stage.  Do not read old r5 docs unless explicitly
+debugging historical experiments.

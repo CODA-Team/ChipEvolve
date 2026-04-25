@@ -1,0 +1,60 @@
+schema_version: 1
+purpose: >
+  Human and agent-facing inventory of tracked patch artifacts.  Files listed
+  here are the only tracked patch/delta artifacts that should be considered in
+  normal work.  Anything in local_backups is forensic evidence, not default
+  context.
+
+prepare_patches:
+  - path: patches/openroad_dpl_evolve_base.patch
+    status: active_prepare_patch
+    meaning: >
+      Bootstraps the clean dpl_evolve source and command registration onto the
+      recorded OpenROAD anchor.
+    apply_target: clean OpenROAD anchor from metadata/anchors.json
+
+  - path: patches/openroad_dpl_evolve_framework.patch
+    status: active_prepare_patch
+    meaning: >
+      Adds the constrained EvolveLegalizer top-level framework and V1 plugin
+      loader on top of the clean dpl_evolve base.
+    apply_target: prepared OpenROAD after openroad_dpl_evolve_base.patch
+    verified_on: 2026-04-25
+
+  - path: patches/orfs_make_overlay.patch
+    status: active_prepare_patch
+    meaning: >
+      Small ORFS Makefile runner hook used by strict baseline wrappers.
+    apply_target: recorded ORFS anchor from metadata/anchors.json
+
+  - path: patches/orfs_overlay.patch
+    status: intentionally_empty_placeholder
+    meaning: >
+      Kept so prepare_workspace.sh can use the same patch sequence even when a
+      specific ORFS anchor does not need extra overlay content.
+    apply_target: none
+
+reference_deltas:
+  - path: family_variants/legalm_engine/dpl_evolve.patch
+    status: complete_source_reference_patch
+    meaning: >
+      Complete LEGALM-style sidecar source donor.  It is useful for studying
+      staged relaxed legalization, ALM repair, and no-overflow refinement.
+    apply_policy: >
+      Do not apply directly to the current constrained framework.  Port useful
+      mechanisms into EvolveLegalizer or a plugin-stage implementation.
+
+  - path: family_variants/negotiation_parallel_frontier/reference_deltas/negotiation_parallel_frontier.diff
+    status: historical_delta_reference
+    meaning: >
+      Compact negotiation donor delta for safe threading, two-pass frontier,
+      and candidate telemetry ideas.
+    apply_policy: >
+      Do not apply directly to the current constrained framework.  Port
+      selected mechanisms into EvolveLegalizer or a plugin-stage implementation.
+
+removed_from_default_context:
+  - path: local_backups/reference_patch_audit_20260425/family_variants/legalm_engine/research_patches/
+    reason: >
+      R4/R5 LEGALM deltas are lineage evidence and one rejected quality guard,
+      not default-context patch candidates.

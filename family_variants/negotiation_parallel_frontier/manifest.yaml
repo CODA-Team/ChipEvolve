@@ -1,5 +1,5 @@
 id: negotiation_parallel_frontier
-kind: reference_patch
+kind: historical_delta_reference
 role: selected_negotiation_history_donor
 source_kind: clean_base_patch_artifact
 supersedes:
@@ -7,7 +7,12 @@ supersedes:
   - negotiation_row_bucket_quality_frontier_r5_threaded
 entrypoint_contract: detailed_placement_evolve
 status: reference_only_not_default_flow
-research_patch: research_patches/negotiation_parallel_frontier.patch
+reference_delta: reference_deltas/negotiation_parallel_frontier.diff
+apply_contract: >
+  Historical delta against the old negotiation-family source, retained only as
+  a compact donor for threading, frontier, and telemetry ideas. Do not apply it
+  directly to the current constrained framework; port selected mechanisms into
+  EvolveLegalizer or a plugin-stage implementation.
 mechanism:
   - safe_threaded_history_updates
   - parallel_sort_key_precompute

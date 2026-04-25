@@ -18,10 +18,12 @@ This directory is not the active default evolve path.  New algorithm work
 should port useful mechanisms into the constrained `EvolveLegalizer` framework
 behind `detailed_placement_evolve`.
 
-Old LEGALM worker notes and repair-lineage reports were moved to:
+Old LEGALM worker notes, repair-lineage reports, and rejected/incremental
+R4/R5 deltas were moved to:
 
 ```text
 local_backups/legacy_family_flow_cleanup_20260425/
+local_backups/reference_patch_audit_20260425/
 ```
 
 Read those only for explicit forensics.

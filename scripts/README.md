@@ -21,6 +21,9 @@ Runtime roots:
   `build_openroad_variant_relink.sh`: relink a private candidate binary.
 - `checkpoint.py`: checkpoint/restore local candidate source state.
 - `compare_runs.py`: compare evaluator outputs.
+- `audit_repo_hygiene.py`: verify tracked patch/diff artifacts are explicitly
+  classified and no old `family_variants/**/research_patches` reappears in
+  default context.
 - `run_codex_exec.py`, `run_codex_once.sh`, `run_codex_loop.sh`: Codex command
   wrappers.
 - `plugins/dpl_evolve_plugin_v1/build.sh`: compile a small runtime-loaded

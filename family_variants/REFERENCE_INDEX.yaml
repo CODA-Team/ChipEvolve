@@ -23,6 +23,8 @@ canonical_references:
   - id: negotiation_parallel_frontier
     role: selected_negotiation_history_donor
     path: family_variants/negotiation_parallel_frontier
+    artifact_kind: historical_delta_reference
+    apply_policy: port_mechanism_not_direct_patch
     supersedes:
       - negotiation_row_bucket_quality_frontier_r5
     use_for:
@@ -33,6 +35,8 @@ canonical_references:
   - id: legalm_engine
     role: complete_structural_sidecar_reference
     path: family_variants/legalm_engine/dpl_evolve.patch
+    artifact_kind: complete_source_reference_patch
+    apply_policy: reference_only_port_stage_into_framework
     use_for:
       - relaxed_stage_design
       - alm_style_repair

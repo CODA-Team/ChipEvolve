@@ -3,6 +3,10 @@
 This directory contains the prepare-time patches used to bootstrap a clean
 workspace.
 
+Patch status is tracked in:
+
+- `PATCH_AUDIT.yaml`
+
 - `openroad_dpl_evolve_base.patch`
   Applies the clean `dpl_evolve` base, the minimal `ord` hooks needed to
   register `detailed_placement_evolve`, and the `DPL_EVOLVE_SRC_DIR` build

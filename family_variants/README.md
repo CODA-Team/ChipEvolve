@@ -9,6 +9,8 @@ Default agent context should read only:
 - `reference_sources/`
 - `negotiation_parallel_frontier/` when negotiation-history code is assigned
 - `legalm_engine/` when LEGALM sidecar code is assigned
+- `../patches/PATCH_AUDIT.yaml` when deciding whether a patch-like file is a
+  direct apply target or only a reference delta
 
 Everything from the previous family-tree flow that is not part of those
 references has been moved to:
@@ -28,6 +30,8 @@ forensics, not as default context.
 - Use `legalm_engine/dpl_evolve.patch` as the complete LEGALM source donor.
 - Use `reference_sources/dreamplace_abacus` for row-assignment/compaction
   reference.
+- Do not treat files under `reference_deltas/` as direct patches for the
+  current framework.  They are compact mechanism examples to be ported.
 
 New algorithm work should become a patch to the constrained framework behind
 `detailed_placement_evolve`, not another default family directory.
