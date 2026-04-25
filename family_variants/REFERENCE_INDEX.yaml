@@ -42,6 +42,17 @@ canonical_references:
       - alm_style_repair
       - staged_refinement
 
+  - id: legalm_cpu_reference_request
+    role: external_algorithm_handoff
+    path: family_variants/reference_sources/legalm_cpu_reference
+    artifact_kind: standalone_reference_request
+    apply_policy: do_not_apply_not_plugin_not_flow_parent
+    use_for:
+      - external_cpu_legalm_implementation
+      - clean_data_model
+      - implementation_prompt
+      - staged_algorithm_requirements
+
   - id: dreamplace_abacus
     role: row_assignment_reference
     path: family_variants/reference_sources/dreamplace_abacus

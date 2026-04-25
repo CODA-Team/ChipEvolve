@@ -26,8 +26,6 @@ Runtime roots:
   default context.
 - `run_codex_exec.py`, `run_codex_once.sh`, `run_codex_loop.sh`: Codex command
   wrappers.
-- `plugins/dpl_evolve_plugin_v1/build.sh`: compile a small runtime-loaded
-  stage-policy plugin when an idea does not require relinking OpenROAD.
 
 Old family-matrix/materializer scripts were moved to:
 
@@ -57,6 +55,3 @@ They are not part of the default workflow anymore.
    and run a canonical line with an explicit binary.
 
 The default evolved command remains `detailed_placement_evolve`.
-
-For lightweight stage-policy experiments, compile a plugin `.so`, set
-`DPL_EVOLVE_PLUGIN_SO`, and reuse the already prepared OpenROAD binary.

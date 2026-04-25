@@ -48,21 +48,9 @@ It introduces the `EvolveLegalizer` stage skeleton behind
 6. telemetry.
 
 Default behavior should stay close to diamond search until a later patch proves
-that a stage replacement is better.
-
-The framework also exposes a first lightweight plugin ABI:
-
-```text
-tools/OpenROAD/src/dpl_evolve/src/EvolvePluginApi.h
-plugins/dpl_evolve_plugin_v1/
-```
-
-If `DPL_EVOLVE_PLUGIN_SO` points at a shared object exporting
-`dpl_evolve_run_v1`, the prepared OpenROAD binary loads it at runtime.  This
-lets agents test top-level stage policies by compiling only a small `.so`
-instead of relinking OpenROAD for every idea.  The V1 plugin API exposes stage
-callbacks and telemetry metrics only; deeper placement data APIs should be
-added as an explicit new ABI version.
+that a stage replacement is better.  Do not add plugin or shared-object
+interfaces by default; external implementations should be treated as reference
+code until their mechanisms are intentionally ported into the patch surface.
 
 ## Reference Sources
 
@@ -104,8 +92,6 @@ Preferred target surface for framework work:
 - `tools/OpenROAD/src/dpl_evolve/src/EvolveLegalizer.h`
 - `tools/OpenROAD/src/dpl_evolve/src/EvolveContext.h`
 - `tools/OpenROAD/src/dpl_evolve/src/EvolveTelemetry.h`
-- `tools/OpenROAD/src/dpl_evolve/src/EvolvePluginApi.h` only when extending
-  the plugin ABI deliberately.
 - existing donor files under `tools/OpenROAD/src/dpl_evolve/src/` when a stage
   intentionally borrows diamond, negotiation, or DRC logic.
 
@@ -169,19 +155,9 @@ Build common OpenROAD once, then relink private variants:
 Variant/evolved runs must pass an explicit private binary.  Do not assume the
 root `tools/install/OpenROAD/bin/openroad` is the candidate binary.
 
-For top-level orchestration experiments, agents may instead build a V1 plugin:
-
-```bash
-"$DPL_EVOLVE_AGENT_ROOT/plugins/dpl_evolve_plugin_v1/build.sh" \
-  --openroad-src "$ORFS_ROOT/tools/OpenROAD" \
-  --out "${DPL_EVOLVE_STATE_ROOT}/plugins/<agent_id>/libdpl_evolve_plugin.so"
-
-DPL_EVOLVE_PLUGIN_SO="${DPL_EVOLVE_STATE_ROOT}/plugins/<agent_id>/libdpl_evolve_plugin.so" \
-  "$DPL_EVOLVE_AGENT_ROOT/scripts/run_canonical_line.sh" ...
-```
-
-Use the plugin path for stage-order experiments; use private relink when the
-actual C++ legalizer implementation changes.
+External algorithms are reference implementations only until their mechanisms
+are intentionally ported into `tools/OpenROAD/src/dpl_evolve` and built through
+the private relink path.
 
 Strict evaluator output lives under:
 
