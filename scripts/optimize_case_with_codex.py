@@ -453,8 +453,9 @@ Essential current facts:
   before Teacher planning: `openroad_dpl_flow` and `evolve_default`.
 - evolved entrypoint: `detailed_placement_evolve -> improve_placement_evolve
   -> optimize_mirroring_evolve`.
-- implementation surface: private `dpl_evolve` variant only; do not edit root
-  ORFS source, evaluator, baseline Tcl, or classic `dpl`.
+- implementation surface: the whole private `dpl_evolve` implementation for
+  that three-command evolved flow; do not edit root ORFS source, evaluator,
+  baseline Tcl, or classic `dpl`.
 
 The first long prompt established the full loop.  In this compact follow-up,
 continue your own student session and focus on the next algorithmic move.
@@ -549,6 +550,13 @@ page: LEGALM-style guidance, row-assignment guidance, full LEGALM-style
 legalization, then Abacus-enabled negotiation repair when needed.  The student
 may replace any stage or the entire `Opendp::runStudentAlgorithm` path when
 case evidence suggests a stronger route.
+
+The framework is a hypothesis, not a proven optimum.  The strict evolved flow
+also includes `improve_placement_evolve` and `optimize_mirroring_evolve`, so
+students may change detailed placement, post-legal improvement, mirroring,
+stage handoff, rollback/admission tests, or command-level interactions inside
+their private `dpl_evolve` source.  Teacher should not assume the first
+LEGALM-guided stage is the only meaningful optimization surface.
 
 Teacher must translate these donor references into aggressive top-level stage
 guidance for the active case. Child workers may inspect multiple donors when a
@@ -702,6 +710,12 @@ it.  Avoid giving concrete implementation recipes in the planning step; the
 students should inspect source, design their own approach, compile, run, and
 leave reviewable evidence.
 
+The top-level framework gives useful structure, but Teacher must explicitly
+allow students to challenge it.  A student may redesign the legalization stage,
+move quality work into `improve_placement_evolve`, change mirroring behavior,
+or build a hybrid flow across the three evolved commands when that is more
+likely to improve strict HPWL on the active case.
+
 ## Teacher Review Policy
 
 - Start aggressively.  The first student implementations should be real
@@ -830,6 +844,11 @@ For each student:
    be continuing, pivoting, borrowing another student's mechanism, expanding
    the implementation surface, or deleting a harmful mechanism.
 
+During review, do not judge only the first legalization command.  Check whether
+the student changed the full evolved flow, including post-legal improvement or
+mirroring behavior, and whether those changes interact constructively with the
+legalization stage.
+
 Cross-student synthesis:
 
 - Compare the implementation diffs side by side before final judgment.
@@ -948,7 +967,9 @@ Your implementation should be a case-focused continuation of that framework,
 not a disconnected new legalizer.  The framework already contains a concrete
 LEGALM -> row assignment -> Abacus/Negotiation repair starting point, but it is
 only a starting point.  In the normal relink path, aggressively modify or
-replace `Opendp::runStudentAlgorithm` and any helper stages it needs.
+replace `Opendp::runStudentAlgorithm`, `Opendp::improvePlacement`,
+`Opendp::optimizeMirroring`, and any helper stages they need when that is the
+best path to strict case improvement.
 
 ## Student Lineage
 
@@ -988,10 +1009,18 @@ Owned implementation surface is the private source tree only:
 
 You are not restricted to the differential/guidance stage.  You may change the
 top-level stage selector, Stage A guidance, row/cluster assignment, explicit
-donor usage, negotiation/repair, polish, telemetry, data structures, and stage
-budgets as long as the command contract remains
+donor usage, negotiation/repair, post-legal improvement, mirroring behavior,
+polish, telemetry, data structures, and stage budgets as long as the public
+command contract remains
 `detailed_placement_evolve -> improve_placement_evolve ->
 optimize_mirroring_evolve`.
+
+The whole evolved flow is fair game inside the private source.  In particular,
+you may modify `Opendp.cpp`, `DifferentialGuidance.cpp`, `Optdp.cpp`,
+`Place.cpp`, `EvolveLegalizer.*`, `Opendp.tcl`, or supporting headers if your
+algorithm needs it.  Preserve the public command names and strict evaluator
+boundary; do not preserve a weak internal flow just because it was the initial
+framework.
 
 Locked surfaces:
 
@@ -1020,6 +1049,10 @@ Workspace policy:
 - The top-level stage order is editable.  LEGALM, row assignment/Abacus-style
   compaction, negotiation repair, donor usage, admission tests, and rollback
   are all fair game if the target case metrics justify it.
+- The post-legal stages are editable too.  You may move quality optimization
+  into `improve_placement_evolve`, replace or extend the current local-search
+  strategy, change mirroring objective/selection, or add a stage-level rollback
+  that accepts only strict-quality improvements.
 - Prefer high-performance data structures: contiguous vectors, row/segment
   indexes, per-row work queues, bounded candidate sets, and deterministic
   thread partitioning.  Avoid Python callbacks, full-grid scans in inner loops,
