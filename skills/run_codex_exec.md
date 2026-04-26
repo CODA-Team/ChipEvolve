@@ -27,7 +27,7 @@ the result as an estimate, not account truth.
 ```bash
 python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/run_codex_exec.py" \
   --operation-id codex_exec_smoke \
-  --prompt-file "$DPL_EVOLVE_AGENT_ROOT/tasks/design_evolve/nangate45__gcd.md" \
+  --prompt "Inspect AGENTS.md and report the active detailed_placement_evolve patch contract." \
   --sandbox workspace-write
 ```
 

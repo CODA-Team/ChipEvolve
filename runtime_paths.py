@@ -14,8 +14,8 @@ def _is_orfs_root(path: Path) -> bool:
     return (path / "flow").is_dir() and (path / "tools" / "OpenROAD").is_dir()
 
 
-def _default_mount_root(agent_root: Path) -> Path:
-    return agent_root / ".mounted_orfs"
+def _default_orfs_root(agent_root: Path) -> Path:
+    return (agent_root.parent / "OpenROAD-flow-scripts").resolve()
 
 
 def resolve_agent_root(anchor_file: str | Path, *, levels_up: int) -> Path:
@@ -82,14 +82,14 @@ def resolve_orfs_root(
             f"{script_name} expected ORFS_ROOT to point at an ORFS workspace, got: {candidate}"
         )
 
-    mounted_local = _default_mount_root(agent_root)
-    if _is_orfs_root(mounted_local):
-        return mounted_local
+    sibling = _default_orfs_root(agent_root)
+    if _is_orfs_root(sibling):
+        return sibling
 
     raise SystemExit(
         f"{script_name} could not locate an ORFS workspace.\n"
         "Set ORFS_ROOT to a workspace containing flow/ and tools/OpenROAD/.\n"
-        "Or attach one under $DPL_EVOLVE_AGENT_ROOT/.mounted_orfs."
+        f"Default sibling lookup also failed: {sibling}"
     )
 
 

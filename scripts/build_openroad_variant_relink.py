@@ -4,10 +4,13 @@ from __future__ import annotations
 import argparse
 import concurrent.futures
 import json
+import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -341,6 +344,59 @@ def run_link_recipe(link_txt: Path, *, cwd: Path) -> None:
         run_shell(command, cwd=cwd)
 
 
+def infer_archive_tool_from_recipe(link_txt: Path, tool_kind: str) -> str | None:
+    """Return the archive tool used by the common-core CMake recipe.
+
+    CMake may select a toolchain-specific `ar`/`ranlib` wrapper.  Reusing that
+    command keeps variant relinks ABI-compatible without hardcoding host paths.
+    """
+    if not link_txt.is_file():
+        return None
+
+    for command in read_text(link_txt).splitlines():
+        command = command.strip()
+        if not command:
+            continue
+        try:
+            parts = shlex.split(command)
+        except ValueError:
+            continue
+        if not parts:
+            continue
+        tool_name = Path(parts[0]).name
+        if (
+            tool_name == tool_kind
+            or tool_name.endswith(f"-{tool_kind}")
+            or f"-{tool_kind}-" in tool_name
+        ):
+            return parts[0]
+    return None
+
+
+def resolve_archive_tool(*, link_txt: Path, tool_kind: str) -> str:
+    env_names = {
+        "ar": ("DPL_EVOLVE_AR", "CMAKE_AR", "AR"),
+        "ranlib": ("DPL_EVOLVE_RANLIB", "CMAKE_RANLIB", "RANLIB"),
+    }[tool_kind]
+    for name in env_names:
+        value = os.environ.get(name)
+        if value:
+            return value
+
+    inferred = infer_archive_tool_from_recipe(link_txt, tool_kind)
+    if inferred:
+        return inferred
+
+    resolved = shutil.which(tool_kind)
+    if resolved:
+        return resolved
+
+    raise SystemExit(
+        f"Could not resolve archive tool '{tool_kind}'. "
+        f"Set one of {', '.join(env_names)}."
+    )
+
+
 def append_extra_dpl_lib_objects(*, core_link_txt: Path, variant_dpl_build: Path) -> None:
     """Archive source files that exist only in a materialized family variant.
 
@@ -367,8 +423,10 @@ def append_extra_dpl_lib_objects(*, core_link_txt: Path, variant_dpl_build: Path
         return
 
     quoted = " ".join(shlex.quote(item) for item in extra_objects)
-    run_shell(f"/opt/rh/gcc-toolset-13/root/usr/bin/ar q libdpl_evolve_lib.a {quoted}", cwd=variant_dpl_build)
-    run_shell("/opt/rh/gcc-toolset-13/root/usr/bin/ranlib libdpl_evolve_lib.a", cwd=variant_dpl_build)
+    ar_tool = resolve_archive_tool(link_txt=core_link_txt, tool_kind="ar")
+    ranlib_tool = resolve_archive_tool(link_txt=core_link_txt, tool_kind="ranlib")
+    run_shell(f"{shlex.quote(ar_tool)} q libdpl_evolve_lib.a {quoted}", cwd=variant_dpl_build)
+    run_shell(f"{shlex.quote(ranlib_tool)} libdpl_evolve_lib.a", cwd=variant_dpl_build)
 
 
 def relink_openroad(
@@ -458,6 +516,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    start_time = time.perf_counter()
     args = parse_args()
     runtime = resolve_runtime_paths(
         anchor_file=__file__,
@@ -564,6 +623,7 @@ def main() -> None:
     if sta_binary is not None:
         print(f"[INFO] Variant sta symlink: {sta_binary}")
     print(f"[INFO] variant_env={env_path}")
+    print(f"[INFO] relink_elapsed_sec={time.perf_counter() - start_time:.2f}")
 
 
 if __name__ == "__main__":

@@ -22,9 +22,15 @@ Examples:
 
 ## Notes
 
-- Design-specific prompt files live under `../tasks/design_evolve/`
-- Design-specific regime hints live under `../knowledge/design_profiles/`
+- Teacher/child case prompts are generated under
+  `$DPL_EVOLVE_STATE_ROOT/teacher_rounds/` by
+  `../scripts/optimize_case_with_codex.py`.
+- Algorithm/reference context lives under `../knowledge/` and
+  `../family_variants/`.
 - Baseline outputs still live under the ORFS `flow/` tree
+- `patch_surface` lists the current constrained framework files that agents may
+  modify for this case; detailed symbol-level policy lives in
+  `../adapters/science_codeevolve/patch_surface.yaml`.
 
 ## Case Sets
 

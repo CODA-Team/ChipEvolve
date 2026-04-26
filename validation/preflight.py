@@ -76,16 +76,24 @@ def allowed_files_from_packet(packet: dict[str, Any]) -> set[str]:
     if target:
         allowed.add(target)
 
-    # Bounded mechanism patches may need a nearby declaration in the owning
-    # legalizer header. Keep this narrow rather than allowing the whole problem
-    # patch surface.
-    if target in {
-        "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.cpp",
-        "tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizerPass.cpp",
-    }:
-        allowed.add("tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.h")
-    if target == "tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp":
-        allowed.add("tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl")
+    # Bounded framework patches often need the matching declaration or
+    # telemetry/context helper. Keep this narrow rather than allowing the whole
+    # dpl_evolve tree.
+    if target == "tools/OpenROAD/src/dpl_evolve/src/DifferentialGuidance.cpp":
+        allowed.update(
+            {
+                "tools/OpenROAD/src/dpl_evolve/src/EvolveTelemetry.h",
+                "tools/OpenROAD/src/dpl_evolve/src/EvolveContext.h",
+            }
+        )
+    if target == "tools/OpenROAD/src/dpl_evolve/src/EvolveLegalizer.cpp":
+        allowed.update(
+            {
+                "tools/OpenROAD/src/dpl_evolve/src/EvolveLegalizer.h",
+                "tools/OpenROAD/src/dpl_evolve/src/EvolveContext.h",
+                "tools/OpenROAD/src/dpl_evolve/src/EvolveTelemetry.h",
+            }
+        )
     return allowed
 
 
@@ -176,4 +184,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

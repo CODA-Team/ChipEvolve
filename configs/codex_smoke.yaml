@@ -6,7 +6,7 @@ PATCH_SURFACE_FILE: adapters/science_codeevolve/patch_surface.yaml
 BUDGET_CONFIG:
   max_patch_attempts: 3
   build_mode: openroad_only
-  eval_timeout_sec: 1800
+  eval_timeout_sec: 2400
   build_timeout_sec: 1800
   eval_mem_limit_mb:
   build_mem_limit_mb:

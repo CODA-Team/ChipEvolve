@@ -9,7 +9,7 @@ if [[ "${DPL_EVOLVE_SKIP_ENV_SH:-0}" != "1" && -f "${AGENT_ROOT}/env.sh" ]]; the
   # shellcheck source=/dev/null
   source "${AGENT_ROOT}/env.sh"
 fi
-DEFAULT_WORKSPACE_ROOT="${ORFS_ROOT:-${AGENT_ROOT}/.mounted_orfs}"
+DEFAULT_WORKSPACE_ROOT="${ORFS_ROOT:-$(realpath -m "${AGENT_ROOT}/../OpenROAD-flow-scripts")}"
 
 workspace_root="${DEFAULT_WORKSPACE_ROOT}"
 orfs_branch=""

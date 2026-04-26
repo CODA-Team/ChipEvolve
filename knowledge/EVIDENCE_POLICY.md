@@ -20,8 +20,10 @@ not treat every note as a rule.
 
 ## Current Calibration
 
-- OpenROAD diamond is the current strict-track comparison anchor in this repo,
-  not a universal claim that diamond is best for every design or objective.
+- OpenROAD DPL flow is the current strict-track comparison anchor in this repo:
+  `detailed_placement`, `improve_placement`, `optimize_mirroring`.
+- OpenROAD diamond remains a local-search donor and prepass reference, not a
+  standalone canonical baseline runner in the current harness.
 - OpenROAD negotiation/NBLG is a repair and mechanism donor. Prior local runs
   showed useful speed work but also exposed that negotiation alone is not the
   root answer for every case.

@@ -15,22 +15,23 @@ Default reading order:
 
 Current compact algorithm cards:
 
-- `CONTEXT_AUDIT_20260426.md`
+- `CONTEXT_AUDIT.md`
 - `EVIDENCE_POLICY.md`
+- `insights/paper_faithful_legalization_integration.md`
+- `insights/legalm_self_legal_closure.md`
+- `insights/legalm_paper_cost_tuning.md`
+- `insights/legalm_bpquad_runtime.md`
+- `insights/full_opt_timeout_and_jpeg_plan.md`
+- `insights/teacher_child_case_evolution.md`
 - `algorithm_cards/openroad_dpl.md`
 - `algorithm_cards/nblg.md`
 - `algorithm_cards/legalm2.md`
 - `algorithm_cards/dreamplace_abacus.md`
-- `algorithm_cards/stage12_algorithm_cards.yaml`
 
-The previous family-tree knowledge base was moved to:
-
-```text
-local_backups/legacy_family_flow_cleanup_20260425/knowledge/
-```
-
-Do not broad-read that backup during normal framework patching.  It is useful
-only when a task explicitly asks for old algobank or family-evidence forensics.
+The previous family-tree knowledge base is not part of default tracked context.
+Do not broad-read external archives during normal framework patching.  They are
+useful only when a task explicitly asks for old algobank or family-evidence
+forensics.
 
 Knowledge cards are not all equal. Use `EVIDENCE_POLICY.md` to distinguish
 hard contracts from measured observations, working hypotheses, and reference

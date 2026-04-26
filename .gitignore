@@ -4,7 +4,6 @@ __pycache__/
 env.sh
 .dpl_evolve_state/
 .runtime_aliases/
-.mounted_orfs
 local_backups/
 family_ideas/
 variant_ideas/

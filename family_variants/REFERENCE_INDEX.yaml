@@ -5,63 +5,46 @@ purpose: >
 
 canonical_references:
   - id: openroad_diamond
-    role: current_strict_track_comparison_anchor
-    path: family_variants/reference_sources/openroad_diamond
+    role: openroad_dpl_flow_baseline_component_and_local_search_donor
+    path: family_variants/openroad_diamond
     evidence_level: measured_observation
     use_for:
       - diamond_search
       - placement_drc
-      - fast_default_legalization
-      - current_comparison_anchor
+      - baseline_component
+      - local_search_donor
 
   - id: openroad_negotiation_nblg
     role: repair_donor
-    path: family_variants/reference_sources/openroad_negotiation_nblg
+    path: family_variants/openroad_negotiation_nblg
     evidence_level: reference_donor
     use_for:
       - overflow_repair
       - history_cost
       - stuck_cell_recovery
-
-  - id: negotiation_parallel_frontier
-    role: selected_negotiation_history_donor
-    path: family_variants/negotiation_parallel_frontier
-    artifact_kind: historical_delta_reference
-    evidence_level: reference_donor
-    apply_policy: port_mechanism_not_direct_patch
-    supersedes:
-      - negotiation_row_bucket_quality_frontier_r5
-    use_for:
       - safe_threading_notes
       - two_pass_frontier_design
       - candidate_telemetry
+    mechanism_deltas:
+      - path: family_variants/openroad_negotiation_nblg/mechanism_deltas/parallel_frontier.diff
+        status: historical_delta_reference
+        apply_policy: port_mechanism_not_direct_patch
 
-  - id: legalm_engine
-    role: complete_structural_sidecar_reference
-    path: family_variants/legalm_engine/dpl_evolve.patch
-    artifact_kind: complete_source_reference_patch
-    evidence_level: reference_donor
-    apply_policy: reference_only_port_stage_into_framework
+  - id: legalm_guidance
+    role: legalm_style_framework_reference
+    path: family_variants/legalm_guidance
+    artifact_kind: source_snapshot_reference
+    evidence_level: measured_observation
+    apply_policy: reference_only_port_or_replace_bounded_mechanisms
     use_for:
-      - relaxed_stage_design
-      - alm_style_repair
-      - staged_refinement
-
-  - id: legalm_cpu_reference_request
-    role: external_algorithm_handoff
-    path: family_variants/reference_sources/legalm_cpu_reference
-    artifact_kind: standalone_reference_request
-    evidence_level: reference_request
-    apply_policy: do_not_apply_not_plugin_not_flow_parent
-    use_for:
-      - external_cpu_legalm_implementation
-      - clean_data_model
-      - implementation_prompt
-      - staged_algorithm_requirements
+      - staged_cpu_guidance_implementation
+      - alm_bgd_inspired_repair
+      - stage3_no_overflow_refinement
+      - telemetry_reference
 
   - id: dreamplace_abacus
     role: row_assignment_reference
-    path: family_variants/reference_sources/dreamplace_abacus
+    path: family_variants/dreamplace_abacus
     evidence_level: reference_donor
     use_for:
       - abacus_cluster_assignment
@@ -69,7 +52,6 @@ canonical_references:
       - displacement_objective
 
 default_agent_rule: >
-  Read this index and at most one referenced donor before patching. Do not read
-  the legacy backup unless the task explicitly asks for old family evidence.
+  Read this index and at most one canonical donor before patching.
   Treat donor entries as mechanisms to inspect and port, not as proof that the
   corresponding full algorithm is already optimal for the active case.

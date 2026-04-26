@@ -114,19 +114,19 @@ def build_command(
     install_root: Path,
     openroad_binary_path: Path,
 ) -> List[str]:
-    if build_mode == "openroad_only":
-        return [
-            str(agent_root / "scripts" / "build_openroad_only.sh"),
-            "--threads",
-            str(threads),
-            "--build-dir",
-            str(build_dir),
-            "--install-root",
-            str(install_root),
-            "--openroad-binary",
-            str(openroad_binary_path),
-        ]
-    return ["./build_openroad.sh", "--local", "--threads", str(threads)]
+    if build_mode != "openroad_only":
+        raise ValueError(f"Unsupported build_mode: {build_mode}")
+    return [
+        str(agent_root / "scripts" / "build_openroad_only.sh"),
+        "--threads",
+        str(threads),
+        "--build-dir",
+        str(build_dir),
+        "--install-root",
+        str(install_root),
+        "--openroad-binary",
+        str(openroad_binary_path),
+    ]
 
 
 def line_command(
@@ -153,7 +153,7 @@ def line_command(
         "--openroad-binary",
         str(openroad_binary),
     ]
-    if line in {"dreamplace_default", "openroad_dpl_negotiation", "evolve_default"}:
+    if line in {"openroad_dpl_flow", "evolve_default"}:
         return base
     raise ValueError(f"Unsupported line: {line}")
 
@@ -165,8 +165,6 @@ def suite_command(
     threads: int,
     tag_prefix: str,
     openroad_binary: Path,
-    dreamplace_root: str = "",
-    dreamplace_python: str = "",
 ) -> List[str]:
     cmd = [
         str(baseline_root(agent_root) / "run_baseline_suite.sh"),
@@ -181,10 +179,6 @@ def suite_command(
     ]
     if tag_prefix:
         cmd.extend(["--tag-prefix", tag_prefix])
-    if dreamplace_root:
-        cmd.extend(["--dreamplace-root", dreamplace_root])
-    if dreamplace_python:
-        cmd.extend(["--dreamplace-python", dreamplace_python])
     return cmd
 
 
@@ -212,17 +206,14 @@ def summarize_metrics(metrics: Dict[str, Any]) -> Dict[str, Any]:
     manifest = metrics.get("manifest", {})
     legalization = metrics.get("legalization", {})
     engine = manifest.get("engine")
-    command_set = manifest.get("command_set")
-    if engine in {"dreamplace_default", "dreamplace_abacus"}:
-        engine_path_confirmed = "dreamplace_default"
-    elif legalization.get("use_negotiation") and legalization.get("use_abacus"):
-        engine_path_confirmed = "negotiation_abacus"
-    elif legalization.get("use_negotiation"):
-        engine_path_confirmed = "negotiation"
-    elif command_set == "evolve":
-        engine_path_confirmed = "evolve_default"
-    else:
-        engine_path_confirmed = "diamond_default"
+    legalizer_mode = legalization.get("legalizer_mode")
+    confirmed_paths = {
+        "openroad_dpl_flow": "openroad_dpl_flow",
+        "evolve_default": "evolve_default",
+    }
+    engine_path_confirmed = confirmed_paths.get(str(legalizer_mode))
+    if engine_path_confirmed is None:
+        engine_path_confirmed = "unknown"
     return {
         "engine": engine,
         "engine_path_confirmed": engine_path_confirmed,
@@ -344,7 +335,7 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
         if args.monitor_interval_sec is not None
         else budget.get("monitor_interval_sec", 0.5)
     )
-    build_mode = str(budget.get("build_mode", args.build_mode or "full_local"))
+    build_mode = str(budget.get("build_mode", args.build_mode or "openroad_only"))
     openroad_build_dir = resolve_runtime_path(
         root,
         args.openroad_build_dir,
@@ -366,7 +357,6 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
         "openroad_binary",
         openroad_install_root / "bin" / "openroad",
     )
-
     explicit_openroad_binary = bool(args.openroad_binary)
     if explicit_openroad_binary:
         build_cmd: List[str] = []
@@ -428,8 +418,6 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
             args.threads,
             args.tag_prefix,
             openroad_bin,
-            args.dreamplace_root,
-            args.dreamplace_python,
         )
         result["commands"]["run"] = shell_join(run_cmd)
         summary_tsv = report_root(root, problem, flow_variant) / "suite_runs.tsv"
@@ -553,8 +541,7 @@ def main() -> None:
     ap.add_argument(
         "--line",
         choices=[
-            "dreamplace_default",
-            "openroad_dpl_negotiation",
+            "openroad_dpl_flow",
             "evolve_default",
         ],
         default="evolve_default",
@@ -573,13 +560,11 @@ def main() -> None:
     ap.add_argument("--monitor-interval-sec", type=float)
     ap.add_argument(
         "--build-mode",
-        choices=["full_local", "openroad_only"],
+        choices=["openroad_only"],
     )
     ap.add_argument("--openroad-build-dir")
     ap.add_argument("--openroad-install-root")
     ap.add_argument("--openroad-binary")
-    ap.add_argument("--dreamplace-root", default="")
-    ap.add_argument("--dreamplace-python", default="")
     args = ap.parse_args()
     if args.problem is None:
         args.problem = get_case(args.case).problem_path

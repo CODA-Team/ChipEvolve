@@ -1,0 +1,2620 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2018-2025, The OpenROAD Authors
+
+#include <algorithm>
+#include <array>
+#include <atomic>
+#include <cmath>
+#include <cstdint>
+#include <limits>
+#include <numeric>
+#include <thread>
+#include <utility>
+#include <vector>
+
+#include "EvolveContext.h"
+#include "NegotiationLegalizer.h"
+#include "dpl_evolve/Opendp.h"
+#include "infrastructure/Coordinates.h"
+#include "infrastructure/Grid.h"
+#include "infrastructure/Objects.h"
+#include "infrastructure/network.h"
+#include "utl/Logger.h"
+
+namespace dpl_evolve {
+
+using utl::DPL;
+
+namespace {
+
+constexpr int kTargetThreads = 10;
+constexpr int kMinBinSites = 32;
+constexpr int kMaxBinsPerRow = 384;
+constexpr int kMaxRowBinProducts = 300000;
+constexpr int kHighFanoutThreshold = 32;
+constexpr int kMaxNetsPerCell = 6;
+constexpr int kMaxPinsPerCell = 128;
+constexpr int kAlmOuterIterations = 5;
+constexpr int kMaxGuidedTargets = 65536;
+constexpr int kStage3MaxRefineCells = 32768;
+constexpr int kStage3RefinementRounds = 10;
+constexpr int kStage3LargeCaseCellLimit = 250000;
+constexpr int kLegalmRowIntervalProbeLimit = 8;
+
+template <typename Func>
+void parallelFor(const int count, const int threads, Func&& func)
+{
+  if (count <= 0) {
+    return;
+  }
+
+  const int worker_count = std::max(1, std::min(threads, count));
+  if (worker_count == 1) {
+    func(0, count, 0);
+    return;
+  }
+
+  std::vector<std::thread> workers;
+  workers.reserve(worker_count);
+  for (int worker = 0; worker < worker_count; ++worker) {
+    const int begin = (count * worker) / worker_count;
+    const int end = (count * (worker + 1)) / worker_count;
+    workers.emplace_back(
+        [&, begin, end, worker]() { func(begin, end, worker); });
+  }
+  for (auto& worker : workers) {
+    worker.join();
+  }
+}
+
+int chooseThreadCount(const int requested_threads)
+{
+  const int thread_budget = requested_threads > 0 ? requested_threads
+                                                  : kTargetThreads;
+  const unsigned hw_threads = std::thread::hardware_concurrency();
+  if (hw_threads == 0) {
+    return 1;
+  }
+  return std::max(1, std::min(thread_budget, static_cast<int>(hw_threads)));
+}
+
+int chooseBinCount(const int row_count, const int site_count)
+{
+  if (row_count <= 0 || site_count <= 0) {
+    return 0;
+  }
+
+  int bins = std::max(1, std::min(kMaxBinsPerRow, site_count / kMinBinSites));
+  bins = std::max(1, bins);
+  if (row_count * bins > kMaxRowBinProducts) {
+    bins = std::max(1, kMaxRowBinProducts / row_count);
+  }
+  return std::min(bins, site_count);
+}
+
+int binCapacitySites(const int bin, const int bin_sites, const int site_count)
+{
+  const int x0 = bin * bin_sites;
+  const int x1 = std::min(site_count, x0 + bin_sites);
+  return std::max(1, x1 - x0);
+}
+
+int binOverlapSites(const int x,
+                    const int width,
+                    const int bin,
+                    const int bin_sites,
+                    const int site_count)
+{
+  const int bin_x0 = bin * bin_sites;
+  const int bin_x1 = std::min(site_count, bin_x0 + bin_sites);
+  return std::max(0, std::min(x + width, bin_x1) - std::max(x, bin_x0));
+}
+
+double computeNetAnchorOffsetSites(const Node* cell,
+                                   const DbuPt& init,
+                                   const DbuX site_width,
+                                   int& high_fanout_skipped,
+                                   bool& valid)
+{
+  valid = false;
+  if (cell == nullptr || site_width.v <= 0) {
+    return 0.0;
+  }
+
+  const double cell_center_x
+      = static_cast<double>(init.x.v) + 0.5 * cell->getWidth().v;
+  double anchor_sum = 0.0;
+  int net_count = 0;
+  int pin_count = 0;
+
+  for (const Pin* pin : cell->getPins()) {
+    if (pin == nullptr || pin->getEdge() == nullptr) {
+      continue;
+    }
+    const Edge* edge = pin->getEdge();
+    const int degree = edge->getNumPins();
+    if (degree <= 1) {
+      continue;
+    }
+    if (degree > kHighFanoutThreshold) {
+      ++high_fanout_skipped;
+      continue;
+    }
+
+    double net_x_sum = 0.0;
+    int net_pin_count = 0;
+    for (const Pin* other_pin : edge->getPins()) {
+      const Node* other = other_pin == nullptr ? nullptr : other_pin->getNode();
+      if (other == nullptr || other == cell) {
+        continue;
+      }
+      net_x_sum += static_cast<double>(other->getCenterX().v)
+                   + static_cast<double>(other_pin->getOffsetX().v);
+      ++net_pin_count;
+      ++pin_count;
+      if (pin_count >= kMaxPinsPerCell) {
+        break;
+      }
+    }
+    if (net_pin_count > 0) {
+      anchor_sum += net_x_sum / static_cast<double>(net_pin_count);
+      ++net_count;
+    }
+    if (net_count >= kMaxNetsPerCell || pin_count >= kMaxPinsPerCell) {
+      break;
+    }
+  }
+
+  if (net_count == 0) {
+    return 0.0;
+  }
+
+  const double anchor_x = anchor_sum / static_cast<double>(net_count);
+  valid = true;
+  return std::clamp(
+      (anchor_x - cell_center_x) / static_cast<double>(site_width.v),
+      -8.0,
+      8.0);
+}
+
+double almFootprintCost(const std::vector<int64_t>& occupancy,
+                        const std::vector<int64_t>* occupancy_delta,
+                        const std::vector<double>& lambda,
+                        const std::vector<double>& bin_inv_capacities,
+                        const int current_row,
+                        const int current_x,
+                        const int candidate_row,
+                        const int candidate_x,
+                        const int width_sites,
+                        const int height_rows,
+                        const int bin_count,
+                        const int bin_sites,
+                        const int site_count,
+                        const double target_density,
+                        const double sigma)
+{
+  double cost = 0.0;
+  int covered_sites = 0;
+
+  const int first_candidate_bin
+      = std::clamp(candidate_x / bin_sites, 0, bin_count - 1);
+  const int last_candidate_bin = std::clamp(
+      (std::max(candidate_x, candidate_x + width_sites - 1)) / bin_sites,
+      0,
+      bin_count - 1);
+
+  for (int dy = 0; dy < height_rows; ++dy) {
+    const int row = candidate_row + dy;
+    for (int bin = first_candidate_bin; bin <= last_candidate_bin; ++bin) {
+      const int candidate_overlap = binOverlapSites(
+          candidate_x, width_sites, bin, bin_sites, site_count);
+      if (candidate_overlap == 0) {
+        continue;
+      }
+
+      const int idx = (row * bin_count) + bin;
+      int64_t adjusted_occ = occupancy[idx];
+      if (occupancy_delta != nullptr) {
+        adjusted_occ += (*occupancy_delta)[idx];
+      }
+      if (current_row + dy == row) {
+        adjusted_occ -= binOverlapSites(
+            current_x, width_sites, bin, bin_sites, site_count);
+      }
+      adjusted_occ = std::max<int64_t>(0, adjusted_occ);
+
+      const double density
+          = static_cast<double>(adjusted_occ) * bin_inv_capacities[bin];
+      const double signed_violation = density - target_density;
+      const double gradient_scale
+          = std::max(1.0 + sigma * signed_violation, 0.0);
+      cost += static_cast<double>(candidate_overlap) * lambda[idx]
+              * gradient_scale;
+      covered_sites += candidate_overlap;
+    }
+  }
+
+  return covered_sites == 0 ? 0.0 : cost / static_cast<double>(covered_sites);
+}
+
+struct GuidanceCell
+{
+  Node* cell = nullptr;
+  DbuPt init;
+  int row = 0;
+  int x_site = 0;
+  int width_sites = 1;
+  int height_rows = 1;
+};
+
+struct GuidanceTarget
+{
+  int x = 0;
+  int y = 0;
+  int shift_sites = 0;
+  int shift_rows = 0;
+  double score = 0.0;
+  bool active = false;
+};
+
+struct OverflowStats
+{
+  int overflow_bins = 0;
+  double max_density = 0.0;
+  double total_overflow_sites = 0.0;
+};
+
+struct RelaxedProjection
+{
+  int row = 0;
+  int site = 0;
+  bool direct = false;
+  bool projected = false;
+};
+
+using SiteInterval = std::pair<int, int>;
+
+struct PlateSegment
+{
+  int row = 0;
+  int x0 = 0;
+  int x1 = 0;
+  int component = -1;
+};
+
+struct RowAssignCell
+{
+  Node* cell = nullptr;
+  int row = 0;
+  int original_site = 0;
+  int desired_site = 0;
+  int assigned_site = 0;
+  int width_sites = 1;
+  bool seeded = false;
+};
+
+struct LegalmPlaceCell
+{
+  Node* cell = nullptr;
+  int desired_row = 0;
+  int desired_site = 0;
+  int original_row = 0;
+  int original_site = 0;
+  int width_sites = 1;
+  int height_rows = 1;
+  double height_class_weight = 1.0;
+  bool guided = false;
+};
+
+}  // namespace
+
+void Opendp::clearGuidedInitialLocations()
+{
+  guided_initial_locations_.clear();
+  guided_initial_valid_.clear();
+}
+
+bool Opendp::hasGuidedInitialLocation(const Node* cell) const
+{
+  if (cell == nullptr) {
+    return false;
+  }
+  const int id = cell->getId();
+  return id >= 0 && id < static_cast<int>(guided_initial_valid_.size())
+         && guided_initial_valid_[id] != 0;
+}
+
+void Opendp::runDifferentialGuidance(const EvolveContext& context)
+{
+  clearGuidedInitialLocations();
+
+  if (network_ == nullptr || grid_ == nullptr) {
+    logger_->metric("dpl_evolve__diff_guidance__status", 0);
+    return;
+  }
+
+  // Build a lightweight legal-site view for snapping only.  The diamond stage
+  // will rebuild the true grid before legalization.
+  initGrid();
+  setFixedGridCells();
+
+  const int row_count = grid_->getRowCount().v;
+  const int site_count = grid_->getRowSiteCount().v;
+  const DbuX site_width = grid_->getSiteWidth();
+  if (row_count <= 0 || site_count <= 0 || site_width.v <= 0) {
+    logger_->metric("dpl_evolve__diff_guidance__status", 0);
+    return;
+  }
+
+  const int thread_count = chooseThreadCount(context.max_threads);
+  const int row_height_dbu
+      = arch_ != nullptr && arch_->getNumRows() > 0
+            ? std::max(1, arch_->getRow(0)->getHeight().v)
+            : std::max(1,
+                       (row_count > 1 ? (grid_->gridYToDbu(GridY{1})
+                                         - grid_->gridYToDbu(GridY{0}))
+                                            .v
+                                      : site_width.v));
+  const int row_equiv_sites = std::max(
+      1,
+      static_cast<int>(std::llround(static_cast<double>(row_height_dbu)
+                                    / static_cast<double>(site_width.v))));
+  const int bin_count = chooseBinCount(row_count, site_count);
+  const int bin_sites
+      = std::max(1,
+                 static_cast<int>(std::ceil(static_cast<double>(site_count)
+                                            / std::max(1, bin_count))));
+  const int row_bin_count = row_count * bin_count;
+  std::vector<int> bin_capacities(bin_count, 1);
+  std::vector<double> bin_inv_capacities(bin_count, 1.0);
+  for (int bin = 0; bin < bin_count; ++bin) {
+    bin_capacities[bin] = binCapacitySites(bin, bin_sites, site_count);
+    bin_inv_capacities[bin]
+        = 1.0 / static_cast<double>(std::max(1, bin_capacities[bin]));
+  }
+
+  // LEGALM Stage One is a relaxed/static legalization: snap each movable cell
+  // to the nearest site satisfying fixed blockage, row, region, and site
+  // constraints, but do not consider movable-cell overlap yet.
+  std::vector<std::vector<SiteInterval>> static_free_intervals(row_count);
+  std::vector<std::vector<int>> static_interval_nodes(row_count);
+  std::vector<PlateSegment> plate_segments;
+  int static_interval_count = 0;
+  int64_t static_free_sites = 0;
+  for (int row = 0; row < row_count; ++row) {
+    int begin = -1;
+    for (int site = 0; site < site_count; ++site) {
+      const Pixel* pixel = grid_->gridPixel(GridX{site}, GridY{row});
+      const bool free
+          = pixel != nullptr && pixel->is_valid && pixel->cell == nullptr
+            && pixel->padding_reserved_by == nullptr && pixel->group == nullptr;
+      if (free && begin < 0) {
+        begin = site;
+      } else if (!free && begin >= 0) {
+        static_free_intervals[row].push_back({begin, site});
+        static_interval_nodes[row].push_back(
+            static_cast<int>(plate_segments.size()));
+        plate_segments.push_back({row, begin, site, -1});
+        static_free_sites += site - begin;
+        ++static_interval_count;
+        begin = -1;
+      }
+    }
+    if (begin >= 0) {
+      static_free_intervals[row].push_back({begin, site_count});
+      static_interval_nodes[row].push_back(
+          static_cast<int>(plate_segments.size()));
+      plate_segments.push_back({row, begin, site_count, -1});
+      static_free_sites += site_count - begin;
+      ++static_interval_count;
+    }
+  }
+
+  std::vector<int> plate_parent(plate_segments.size());
+  std::iota(plate_parent.begin(), plate_parent.end(), 0);
+  auto find_plate_root = [&](int node) {
+    int root = node;
+    while (plate_parent[root] != root) {
+      root = plate_parent[root];
+    }
+    while (plate_parent[node] != node) {
+      const int next = plate_parent[node];
+      plate_parent[node] = root;
+      node = next;
+    }
+    return root;
+  };
+  auto union_plate_roots = [&](const int lhs, const int rhs) {
+    const int lhs_root = find_plate_root(lhs);
+    const int rhs_root = find_plate_root(rhs);
+    if (lhs_root != rhs_root) {
+      plate_parent[rhs_root] = lhs_root;
+    }
+  };
+  for (int row = 1; row < row_count; ++row) {
+    const auto& prev = static_free_intervals[row - 1];
+    const auto& curr = static_free_intervals[row];
+    int prev_idx = 0;
+    int curr_idx = 0;
+    while (prev_idx < static_cast<int>(prev.size())
+           && curr_idx < static_cast<int>(curr.size())) {
+      const SiteInterval& a = prev[prev_idx];
+      const SiteInterval& b = curr[curr_idx];
+      if (std::max(a.first, b.first) < std::min(a.second, b.second)) {
+        union_plate_roots(static_interval_nodes[row - 1][prev_idx],
+                          static_interval_nodes[row][curr_idx]);
+      }
+      if (a.second < b.second) {
+        ++prev_idx;
+      } else {
+        ++curr_idx;
+      }
+    }
+  }
+  std::vector<int64_t> component_area(plate_segments.size(), 0);
+  int plate_component_count = 0;
+  for (int node = 0; node < static_cast<int>(plate_segments.size()); ++node) {
+    const int root = find_plate_root(node);
+    if (plate_segments[root].component < 0) {
+      plate_segments[root].component = plate_component_count++;
+    }
+    const int component = plate_segments[root].component;
+    plate_segments[node].component = component;
+    component_area[component]
+        += plate_segments[node].x1 - plate_segments[node].x0;
+  }
+  component_area.resize(plate_component_count);
+  const int64_t max_plate_component_area
+      = component_area.empty()
+            ? 0
+            : *std::max_element(component_area.begin(), component_area.end());
+
+  auto interval_index_containing =
+      [&](const int row, const int x, const int width) {
+        if (row < 0 || row >= row_count || x < 0 || x + width > site_count) {
+          return -1;
+        }
+        const auto& intervals = static_free_intervals[row];
+        int lo = 0;
+        int hi = static_cast<int>(intervals.size());
+        while (lo < hi) {
+          const int mid = (lo + hi) / 2;
+          if (intervals[mid].second <= x) {
+            lo = mid + 1;
+          } else {
+            hi = mid;
+          }
+        }
+        if (lo < static_cast<int>(intervals.size()) && intervals[lo].first <= x
+            && x + width <= intervals[lo].second) {
+          return lo;
+        }
+        return -1;
+      };
+
+  auto footprint_component =
+      [&](const int row, const int x, const int width, const int height_rows) {
+        int component = -1;
+        for (int dy = 0; dy < height_rows; ++dy) {
+          const int interval_idx
+              = interval_index_containing(row + dy, x, width);
+          if (interval_idx < 0) {
+            return -1;
+          }
+          const int node = static_interval_nodes[row + dy][interval_idx];
+          const int row_component = plate_segments[node].component;
+          if (component < 0) {
+            component = row_component;
+          } else if (component != row_component) {
+            return -1;
+          }
+        }
+        return component;
+      };
+
+  auto row_site_compatible = [&](const Node* cell, const int row, const int x) {
+    if (cell == nullptr || cell->getSite() == nullptr || row < 0
+        || row >= row_count || x < 0 || x >= site_count) {
+      return false;
+    }
+    return grid_->getSiteOrientation(GridX{x}, GridY{row}, cell->getSite())
+        .has_value();
+  };
+
+  auto interval_contains_static = [](const std::vector<SiteInterval>& intervals,
+                                     const int x,
+                                     const int width) {
+    for (const SiteInterval& interval : intervals) {
+      if (interval.first <= x && x + width <= interval.second) {
+        return true;
+      }
+      if (interval.first > x) {
+        break;
+      }
+    }
+    return false;
+  };
+
+  auto static_fits_all_rows =
+      [&](const int row, const int x, const int width, const int height_rows) {
+        if (row < 0 || row + height_rows > row_count || x < 0
+            || x + width > site_count) {
+          return false;
+        }
+        for (int dy = 0; dy < height_rows; ++dy) {
+          if (!interval_contains_static(
+                  static_free_intervals[row + dy], x, width)) {
+            return false;
+          }
+        }
+        return true;
+      };
+
+  auto relaxed_static_project = [&](const Node* cell,
+                                    const int desired_row,
+                                    const int desired_site,
+                                    const int width_sites,
+                                    const int height_rows,
+                                    const int row_equiv_sites) {
+    RelaxedProjection result;
+    result.row
+        = std::clamp(desired_row, 0, std::max(0, row_count - height_rows));
+    result.site
+        = std::clamp(desired_site, 0, std::max(0, site_count - width_sites));
+    int best_cost = std::numeric_limits<int>::max();
+
+    auto consider
+        = [&](const int row, const int site, const bool direct_candidate) {
+            const int clamped_row
+                = std::clamp(row, 0, std::max(0, row_count - height_rows));
+            const int clamped_site
+                = std::clamp(site, 0, std::max(0, site_count - width_sites));
+            if (!static_fits_all_rows(
+                    clamped_row, clamped_site, width_sites, height_rows)) {
+              return false;
+            }
+            if (!canBePlaced(cell, GridX{clamped_site}, GridY{clamped_row})) {
+              return false;
+            }
+            const int cost
+                = std::abs(clamped_site - desired_site)
+                  + row_equiv_sites * std::abs(clamped_row - desired_row);
+            if (cost < best_cost) {
+              best_cost = cost;
+              result.row = clamped_row;
+              result.site = clamped_site;
+              result.direct = direct_candidate && cost == 0;
+              result.projected = !result.direct;
+            }
+            return true;
+          };
+
+    if (consider(result.row, result.site, true)) {
+      return result;
+    }
+
+    for (int row_delta = 0; row_delta < row_count; ++row_delta) {
+      const std::array<int, 2> candidate_rows{desired_row - row_delta,
+                                              desired_row + row_delta};
+      for (const int row : candidate_rows) {
+        if (row < 0 || row + height_rows > row_count) {
+          continue;
+        }
+        if (row_delta != 0 && row == desired_row - row_delta
+            && row == desired_row + row_delta) {
+          continue;
+        }
+        for (const SiteInterval& interval : static_free_intervals[row]) {
+          if (interval.second - interval.first < width_sites) {
+            continue;
+          }
+          const int projected_site = std::clamp(
+              desired_site, interval.first, interval.second - width_sites);
+          consider(row, projected_site, false);
+          if (projected_site > interval.first) {
+            consider(row, interval.first, false);
+          }
+          if (projected_site + width_sites < interval.second) {
+            consider(row, interval.second - width_sites, false);
+          }
+        }
+      }
+      if (best_cost != std::numeric_limits<int>::max()
+          && (row_delta + 1) * row_equiv_sites > best_cost) {
+        break;
+      }
+    }
+
+    return result;
+  };
+
+  std::vector<GuidanceCell> cells;
+  cells.reserve(network_->getNumCells());
+  int skipped_cells = 0;
+  int64_t movable_width_sites = 0;
+  int stage1_direct_cells = 0;
+  int stage1_projected_cells = 0;
+  int stage1_failed_projection_cells = 0;
+  int stage1_row_projected_cells = 0;
+  int stage1_max_site_shift = 0;
+  int stage1_max_row_shift = 0;
+  int64_t stage1_total_abs_shift = 0;
+
+  for (const auto& node_ptr : network_->getNodes()) {
+    Node* cell = node_ptr.get();
+    if (cell == nullptr || cell->getType() != Node::CELL || cell->isFixed()
+        || !cell->isStdCell() || cell->inGroup() || isMultiRow(cell)) {
+      ++skipped_cells;
+      continue;
+    }
+
+    const DbuPt init = initialLocation(cell, false);
+    const GridPt legal = legalGridPt(cell, init);
+    const int row = std::clamp(legal.y.v, 0, row_count - 1);
+    const int x_site = std::clamp(legal.x.v, 0, site_count - 1);
+    const int width_sites = std::max(
+        1,
+        static_cast<int>(std::ceil(static_cast<double>(cell->getWidth().v)
+                                   / static_cast<double>(site_width.v))));
+    const int height_rows = std::max(1, grid_->gridHeight(cell).v);
+    const RelaxedProjection projection = relaxed_static_project(
+        cell, row, x_site, width_sites, height_rows, row_equiv_sites);
+    if (projection.direct) {
+      ++stage1_direct_cells;
+    } else if (projection.projected) {
+      ++stage1_projected_cells;
+    } else {
+      ++stage1_failed_projection_cells;
+    }
+    if (projection.projected && projection.row != row) {
+      ++stage1_row_projected_cells;
+    }
+    const int stage1_site_shift = std::abs(projection.site - x_site);
+    const int stage1_row_shift = std::abs(projection.row - row);
+    stage1_max_site_shift = std::max(stage1_max_site_shift, stage1_site_shift);
+    stage1_max_row_shift = std::max(stage1_max_row_shift, stage1_row_shift);
+    stage1_total_abs_shift
+        += stage1_site_shift + row_equiv_sites * stage1_row_shift;
+    cells.push_back({cell,
+                     init,
+                     projection.row,
+                     projection.site,
+                     width_sites,
+                     height_rows});
+    movable_width_sites += width_sites;
+  }
+
+  if (cells.empty() || bin_count <= 0 || row_bin_count <= 0) {
+    logger_->metric("dpl_evolve__diff_guidance__eligible_cells", 0);
+    return;
+  }
+
+  std::vector<int> target_sites(cells.size());
+  std::vector<int> target_rows(cells.size());
+  for (int i = 0; i < static_cast<int>(cells.size()); ++i) {
+    target_sites[i] = cells[i].x_site;
+    target_rows[i] = cells[i].row;
+  }
+
+  auto build_occupancy = [&]() {
+    std::vector<std::vector<int64_t>> local_occupancy(
+        thread_count, std::vector<int64_t>(row_bin_count, 0));
+
+    parallelFor(
+        static_cast<int>(cells.size()),
+        thread_count,
+        [&](int begin, int end, int worker) {
+          auto& occ = local_occupancy[worker];
+          for (int i = begin; i < end; ++i) {
+            const GuidanceCell& gc = cells[i];
+            const int x0 = target_sites[i];
+            const int x1 = std::min(site_count, x0 + gc.width_sites);
+            const int y0 = std::clamp(
+                target_rows[i], 0, std::max(0, row_count - gc.height_rows));
+            const int first_bin = std::clamp(x0 / bin_sites, 0, bin_count - 1);
+            const int last_bin = std::clamp(
+                (std::max(x0, x1 - 1)) / bin_sites, 0, bin_count - 1);
+            for (int dy = 0; dy < gc.height_rows && y0 + dy < row_count; ++dy) {
+              for (int bin = first_bin; bin <= last_bin; ++bin) {
+                const int overlap = binOverlapSites(
+                    x0, gc.width_sites, bin, bin_sites, site_count);
+                occ[((y0 + dy) * bin_count) + bin] += overlap;
+              }
+            }
+          }
+        });
+
+    std::vector<int64_t> occupancy(row_bin_count, 0);
+    for (const auto& local : local_occupancy) {
+      for (int i = 0; i < row_bin_count; ++i) {
+        occupancy[i] += local[i];
+      }
+    }
+    return occupancy;
+  };
+
+  const double global_util
+      = static_cast<double>(movable_width_sites)
+        / static_cast<double>(std::max<int64_t>(1, row_count * site_count));
+  constexpr double kAlphaSigma = 3.0;
+  constexpr double kAlphaHf = 0.2;
+  const double alm_sigma = std::max(1.0, kAlphaSigma * global_util);
+  double hf = kAlphaHf;
+  constexpr double kDisplacementWeight = 0.035;
+  constexpr double kAlphaMax = 1.5;
+  constexpr double kMaxDisplacementTailWeight = kAlphaMax * kDisplacementWeight;
+  constexpr double kInertiaWeight = 0.015;
+  constexpr double kNetAnchorWeight = 0.025;
+  const double target_density = 1.0;
+  const int max_displacement_threshold_sites = 3 * row_equiv_sites;
+  const int max_shift_sites
+      = std::max(17,
+                 std::min({64,
+                           std::max(17, context.max_displacement_x / 8),
+                           std::max(17, site_count / 16)}));
+
+  std::vector<double> lambda(row_bin_count, 0.0);
+  std::vector<double> anchor_offsets(cells.size(), 0.0);
+  std::vector<unsigned char> has_anchor(cells.size(), 0);
+  std::vector<int> local_high_fanout_skips(thread_count, 0);
+
+  parallelFor(static_cast<int>(cells.size()),
+              thread_count,
+              [&](int begin, int end, int worker) {
+                int high_fanout_skips = 0;
+                for (int i = begin; i < end; ++i) {
+                  bool valid_anchor = false;
+                  anchor_offsets[i]
+                      = computeNetAnchorOffsetSites(cells[i].cell,
+                                                    cells[i].init,
+                                                    site_width,
+                                                    high_fanout_skips,
+                                                    valid_anchor);
+                  has_anchor[i] = valid_anchor ? 1 : 0;
+                }
+                local_high_fanout_skips[worker] = high_fanout_skips;
+              });
+
+  auto collect_stats = [&](const std::vector<int64_t>& occupancy) {
+    OverflowStats stats;
+    for (int row = 0; row < row_count; ++row) {
+      for (int bin = 0; bin < bin_count; ++bin) {
+        const double density
+            = static_cast<double>(occupancy[(row * bin_count) + bin])
+              * bin_inv_capacities[bin];
+        stats.max_density = std::max(stats.max_density, density);
+        const double overflow = std::max(0.0, density - target_density);
+        if (overflow > 0.0) {
+          ++stats.overflow_bins;
+          stats.total_overflow_sites += overflow * bin_capacities[bin];
+        }
+      }
+    }
+    return stats;
+  };
+
+  std::vector<int64_t> occupancy = build_occupancy();
+  const OverflowStats initial_stats = collect_stats(occupancy);
+  OverflowStats final_stats = initial_stats;
+  int64_t total_candidate_evals = 0;
+  int64_t total_static_candidate_rejects = 0;
+  int64_t total_tech_candidate_rejects = 0;
+  int64_t total_accepted_moves = 0;
+  int last_iter_moves = 0;
+  int vertical_guided_moves = 0;
+  std::vector<double> overflow_history;
+  std::vector<std::pair<int, int>> candidate_stencil;
+  candidate_stencil.reserve(245);
+  for (int dy = -3; dy <= 3; ++dy) {
+    for (int step = -17; step <= 17; ++step) {
+      const int dx = static_cast<int>(
+          std::llround(static_cast<double>(step * max_shift_sites) / 17.0));
+      candidate_stencil.push_back({dx, dy});
+    }
+  }
+
+  const int dbu_per_micron
+      = db_ != nullptr && db_->getTech() != nullptr
+            ? std::max(1, db_->getTech()->getDbUnitsPerMicron())
+            : 1000;
+  const int xhint_sites = std::max(
+      1,
+      static_cast<int>(std::llround(250.0 * dbu_per_micron
+                                    / static_cast<double>(site_width.v))));
+  const int yhint_rows = std::max(1, std::min(25, row_count));
+  const int partition_cols
+      = std::max(1, (site_count + xhint_sites - 1) / xhint_sites + 1);
+  const int partition_rows
+      = std::max(1, (row_count + yhint_rows - 1) / yhint_rows + 1);
+  const int partition_count = partition_cols * partition_rows;
+  int last_tp_scheme = 0;
+  int last_partitioned_cells = 0;
+  int last_boundary_excluded_cells = 0;
+
+  auto shifted_partition
+      = [](const int coord, const int shift, const int stride) {
+          return (coord + shift) / std::max(1, stride);
+        };
+
+  auto inside_partition = [&](const int row,
+                              const int site,
+                              const int width,
+                              const int height,
+                              const int partition_col,
+                              const int partition_row,
+                              const int site_shift,
+                              const int row_shift) {
+    if (row < 0 || row + height > row_count || site < 0
+        || site + width > site_count) {
+      return false;
+    }
+    return shifted_partition(site, site_shift, xhint_sites) == partition_col
+           && shifted_partition(site + width - 1, site_shift, xhint_sites)
+                  == partition_col
+           && shifted_partition(row, row_shift, yhint_rows) == partition_row
+           && shifted_partition(row + height - 1, row_shift, yhint_rows)
+                  == partition_row;
+  };
+
+  auto cell_demand = [&](const std::vector<int64_t>& current_occupancy,
+                         const int cell_idx) {
+    const GuidanceCell& gc = cells[cell_idx];
+    const int site = target_sites[cell_idx];
+    const int row = target_rows[cell_idx];
+    const int first_bin = std::clamp(site / bin_sites, 0, bin_count - 1);
+    const int last_bin
+        = std::clamp((std::max(site, site + gc.width_sites - 1)) / bin_sites,
+                     0,
+                     bin_count - 1);
+    double demand = 0.0;
+    int covered_sites = 0;
+    for (int dy = 0; dy < gc.height_rows && row + dy < row_count; ++dy) {
+      for (int bin = first_bin; bin <= last_bin; ++bin) {
+        const int overlap
+            = binOverlapSites(site, gc.width_sites, bin, bin_sites, site_count);
+        if (overlap == 0) {
+          continue;
+        }
+        const double density
+            = static_cast<double>(
+                  current_occupancy[((row + dy) * bin_count) + bin])
+              * bin_inv_capacities[bin];
+        demand += static_cast<double>(overlap)
+                  * std::max(0.0, density - target_density);
+        covered_sites += overlap;
+      }
+    }
+    return covered_sites == 0 ? 0.0
+                              : demand / static_cast<double>(covered_sites);
+  };
+
+  auto add_footprint_delta = [&](std::vector<int64_t>& delta,
+                                 std::vector<int>& touched,
+                                 const int row,
+                                 const int site,
+                                 const int width,
+                                 const int height,
+                                 const int sign) {
+    const int first_bin = std::clamp(site / bin_sites, 0, bin_count - 1);
+    const int last_bin = std::clamp(
+        (std::max(site, site + width - 1)) / bin_sites, 0, bin_count - 1);
+    for (int dy = 0; dy < height && row + dy < row_count; ++dy) {
+      for (int bin = first_bin; bin <= last_bin; ++bin) {
+        const int overlap
+            = binOverlapSites(site, width, bin, bin_sites, site_count);
+        if (overlap == 0) {
+          continue;
+        }
+        const int idx = ((row + dy) * bin_count) + bin;
+        if (delta[idx] == 0) {
+          touched.push_back(idx);
+        }
+        delta[idx] += sign * overlap;
+      }
+    }
+  };
+
+  auto footprint_overflow_score
+      = [&](const std::vector<int64_t>& current_occupancy,
+            const std::vector<int64_t>* delta,
+            const int row,
+            const int site,
+            const int width,
+            const int height) {
+          const int first_bin = std::clamp(site / bin_sites, 0, bin_count - 1);
+          const int last_bin = std::clamp(
+              (std::max(site, site + width - 1)) / bin_sites, 0, bin_count - 1);
+          double overflow = 0.0;
+          int covered_sites = 0;
+          for (int dy = 0; dy < height && row + dy < row_count; ++dy) {
+            for (int bin = first_bin; bin <= last_bin; ++bin) {
+              const int overlap
+                  = binOverlapSites(site, width, bin, bin_sites, site_count);
+              if (overlap == 0) {
+                continue;
+              }
+              const int idx = ((row + dy) * bin_count) + bin;
+              int64_t occ = current_occupancy[idx];
+              if (delta != nullptr) {
+                occ += (*delta)[idx];
+              }
+              occ = std::max<int64_t>(0, occ);
+              const double density
+                  = static_cast<double>(occ) * bin_inv_capacities[bin];
+              overflow += static_cast<double>(overlap)
+                          * std::max(0.0, density - target_density);
+              covered_sites += overlap;
+            }
+          }
+          return covered_sites == 0
+                     ? 0.0
+                     : overflow / static_cast<double>(covered_sites);
+        };
+
+  for (int iter = 0; iter < kAlmOuterIterations; ++iter) {
+    occupancy = build_occupancy();
+    final_stats = collect_stats(occupancy);
+    overflow_history.push_back(final_stats.total_overflow_sites);
+
+    for (int row = 0; row < row_count; ++row) {
+      for (int bin = 0; bin < bin_count; ++bin) {
+        const int idx = (row * bin_count) + bin;
+        const double density
+            = static_cast<double>(occupancy[idx]) * bin_inv_capacities[bin];
+        const double signed_overflow = density - target_density;
+        const double clipped_violation
+            = std::max(signed_overflow, -1.0 / alm_sigma);
+        lambda[idx] = std::max(
+            lambda[idx] + hf * clipped_violation
+                + 0.5 * alm_sigma * clipped_violation * clipped_violation,
+            0.0);
+      }
+    }
+
+    std::vector<int> next_target_sites(target_sites);
+    std::vector<int> next_target_rows(target_rows);
+    std::vector<int> local_accepted_moves(thread_count, 0);
+    std::vector<int> local_vertical_moves(thread_count, 0);
+    std::vector<int64_t> local_candidate_evals(thread_count, 0);
+    std::vector<int64_t> local_static_rejects(thread_count, 0);
+    std::vector<int64_t> local_tech_rejects(thread_count, 0);
+    const int tp_scheme = iter % 3;
+    const int site_shift = (tp_scheme * xhint_sites) / 3;
+    const int row_shift = (tp_scheme * yhint_rows) / 3;
+    std::vector<std::vector<int>> partitions(partition_count);
+    int partitioned_cells = 0;
+    int boundary_excluded_cells = 0;
+    for (int i = 0; i < static_cast<int>(cells.size()); ++i) {
+      const GuidanceCell& gc = cells[i];
+      const int current_site = target_sites[i];
+      const int current_row = target_rows[i];
+      const int col0 = shifted_partition(current_site, site_shift, xhint_sites);
+      const int col1 = shifted_partition(
+          current_site + gc.width_sites - 1, site_shift, xhint_sites);
+      const int row0 = shifted_partition(current_row, row_shift, yhint_rows);
+      const int row1 = shifted_partition(
+          current_row + gc.height_rows - 1, row_shift, yhint_rows);
+      if (col0 != col1 || row0 != row1 || col0 < 0 || row0 < 0
+          || col0 >= partition_cols || row0 >= partition_rows) {
+        ++boundary_excluded_cells;
+        continue;
+      }
+      partitions[(row0 * partition_cols) + col0].push_back(i);
+      ++partitioned_cells;
+    }
+
+    for (auto& partition : partitions) {
+      std::stable_sort(partition.begin(),
+                       partition.end(),
+                       [&](const int lhs, const int rhs) {
+                         const double lhs_demand = cell_demand(occupancy, lhs);
+                         const double rhs_demand = cell_demand(occupancy, rhs);
+                         if (lhs_demand != rhs_demand) {
+                           return lhs_demand > rhs_demand;
+                         }
+                         return cells[lhs].cell->getId()
+                                < cells[rhs].cell->getId();
+                       });
+    }
+
+    parallelFor(
+        partition_count, thread_count, [&](int begin, int end, int worker) {
+          int accepted_moves = 0;
+          int vertical_moves = 0;
+          int64_t candidate_evals = 0;
+          int64_t static_rejects = 0;
+          int64_t tech_rejects = 0;
+          std::vector<int64_t> local_delta(row_bin_count, 0);
+          std::vector<int> touched_bins;
+          touched_bins.reserve(1024);
+          for (int part = begin; part < end; ++part) {
+            touched_bins.clear();
+            const int partition_row = part / partition_cols;
+            const int partition_col = part % partition_cols;
+            for (const int i : partitions[part]) {
+              const GuidanceCell& gc = cells[i];
+              const int current_site = target_sites[i];
+              const int current_row = target_rows[i];
+              const double current_overflow
+                  = footprint_overflow_score(occupancy,
+                                             &local_delta,
+                                             current_row,
+                                             current_site,
+                                             gc.width_sites,
+                                             gc.height_rows);
+              const bool restart = iter < 2;
+              if (!restart && current_overflow <= 0.0) {
+                continue;
+              }
+              const double current_penalty
+                  = almFootprintCost(occupancy,
+                                     &local_delta,
+                                     lambda,
+                                     bin_inv_capacities,
+                                     current_row,
+                                     current_site,
+                                     current_row,
+                                     current_site,
+                                     gc.width_sites,
+                                     gc.height_rows,
+                                     bin_count,
+                                     bin_sites,
+                                     site_count,
+                                     target_density,
+                                     alm_sigma);
+              const int current_total_delta
+                  = std::abs(current_site - gc.x_site)
+                    + row_equiv_sites * std::abs(current_row - gc.row);
+              const int current_tail = std::max(
+                  0, current_total_delta - max_displacement_threshold_sites);
+              double best_cost
+                  = current_penalty
+                    + kDisplacementWeight
+                          * static_cast<double>(current_total_delta)
+                    + kMaxDisplacementTailWeight
+                          * static_cast<double>(current_tail);
+              int best_site = current_site;
+              int best_row = current_row;
+
+              for (const auto& [dx, dy] : candidate_stencil) {
+                const int candidate_site
+                    = std::clamp(current_site + dx,
+                                 0,
+                                 std::max(0, site_count - gc.width_sites));
+                const int candidate_row
+                    = std::clamp(current_row + dy,
+                                 0,
+                                 std::max(0, row_count - gc.height_rows));
+                if (!inside_partition(candidate_row,
+                                      candidate_site,
+                                      gc.width_sites,
+                                      gc.height_rows,
+                                      partition_col,
+                                      partition_row,
+                                      site_shift,
+                                      row_shift)) {
+                  continue;
+                }
+                if (footprint_component(candidate_row,
+                                        candidate_site,
+                                        gc.width_sites,
+                                        gc.height_rows)
+                    < 0) {
+                  ++static_rejects;
+                  continue;
+                }
+                if (!row_site_compatible(
+                        gc.cell, candidate_row, candidate_site)) {
+                  ++tech_rejects;
+                  continue;
+                }
+                const int effective_delta
+                    = std::abs(candidate_site - current_site)
+                      + row_equiv_sites * std::abs(candidate_row - current_row);
+                const int total_delta
+                    = std::abs(candidate_site - gc.x_site)
+                      + row_equiv_sites * std::abs(candidate_row - gc.row);
+                const int candidate_tail = std::max(
+                    0, total_delta - max_displacement_threshold_sites);
+                if (candidate_site == current_site
+                    && candidate_row == current_row && (dx != 0 || dy != 0)) {
+                  continue;
+                }
+                ++candidate_evals;
+                const double candidate_penalty
+                    = almFootprintCost(occupancy,
+                                       &local_delta,
+                                       lambda,
+                                       bin_inv_capacities,
+                                       current_row,
+                                       current_site,
+                                       candidate_row,
+                                       candidate_site,
+                                       gc.width_sites,
+                                       gc.height_rows,
+                                       bin_count,
+                                       bin_sites,
+                                       site_count,
+                                       target_density,
+                                       alm_sigma);
+                const double net_cost
+                    = has_anchor[i]
+                          ? kNetAnchorWeight
+                                * std::abs(anchor_offsets[i]
+                                           - static_cast<double>(candidate_site
+                                                                 - gc.x_site))
+                          : 0.0;
+                const double candidate_cost
+                    = candidate_penalty
+                      + kDisplacementWeight * static_cast<double>(total_delta)
+                      + kMaxDisplacementTailWeight
+                            * static_cast<double>(candidate_tail)
+                      + kInertiaWeight * static_cast<double>(effective_delta)
+                      + net_cost;
+                if (candidate_cost + 0.002 < best_cost) {
+                  best_cost = candidate_cost;
+                  best_site = candidate_site;
+                  best_row = candidate_row;
+                }
+              }
+
+              if (best_site != current_site || best_row != current_row) {
+                next_target_sites[i] = best_site;
+                next_target_rows[i] = best_row;
+                add_footprint_delta(local_delta,
+                                    touched_bins,
+                                    current_row,
+                                    current_site,
+                                    gc.width_sites,
+                                    gc.height_rows,
+                                    -1);
+                add_footprint_delta(local_delta,
+                                    touched_bins,
+                                    best_row,
+                                    best_site,
+                                    gc.width_sites,
+                                    gc.height_rows,
+                                    1);
+                ++accepted_moves;
+                vertical_moves += best_row != current_row ? 1 : 0;
+              }
+            }
+            for (const int idx : touched_bins) {
+              local_delta[idx] = 0;
+            }
+          }
+          local_accepted_moves[worker] = accepted_moves;
+          local_vertical_moves[worker] = vertical_moves;
+          local_candidate_evals[worker] = candidate_evals;
+          local_static_rejects[worker] = static_rejects;
+          local_tech_rejects[worker] = tech_rejects;
+        });
+
+    last_tp_scheme = tp_scheme;
+    last_partitioned_cells = partitioned_cells;
+    last_boundary_excluded_cells = boundary_excluded_cells;
+
+    last_iter_moves = std::accumulate(
+        local_accepted_moves.begin(), local_accepted_moves.end(), 0);
+    total_accepted_moves += last_iter_moves;
+    vertical_guided_moves += std::accumulate(
+        local_vertical_moves.begin(), local_vertical_moves.end(), 0);
+    total_candidate_evals += std::accumulate(
+        local_candidate_evals.begin(), local_candidate_evals.end(), int64_t{0});
+    total_static_candidate_rejects += std::accumulate(
+        local_static_rejects.begin(), local_static_rejects.end(), int64_t{0});
+    total_tech_candidate_rejects += std::accumulate(
+        local_tech_rejects.begin(), local_tech_rejects.end(), int64_t{0});
+    target_sites.swap(next_target_sites);
+    target_rows.swap(next_target_rows);
+    const double lambda_sum
+        = std::accumulate(lambda.begin(), lambda.end(), 0.0);
+    hf += kAlphaHf * lambda_sum
+          / static_cast<double>(std::max<int64_t>(1, lambda.size()));
+
+    logger_->info(
+        DPL,
+        1212,
+        "Differential guidance ALM iter {}: overflow bins {}, total "
+        "overflow {:.1f} sites, max density {:.2f}, accepted moves {}, hf "
+        "{:.3f}.",
+        iter,
+        final_stats.overflow_bins,
+        final_stats.total_overflow_sites,
+        final_stats.max_density,
+        last_iter_moves,
+        hf);
+    if (last_iter_moves == 0) {
+      break;
+    }
+  }
+
+  occupancy = build_occupancy();
+  final_stats = collect_stats(occupancy);
+  int escape_attempted_cells = 0;
+  int escape_moved_cells = 0;
+  int escape_candidate_evals = 0;
+  int escape_component_rejects = 0;
+  int escape_triggered = 0;
+
+  auto apply_footprint_to_occupancy =
+      [&](std::vector<int64_t>& current_occupancy,
+          const int row,
+          const int site,
+          const int width,
+          const int height,
+          const int sign) {
+        const int first_bin = std::clamp(site / bin_sites, 0, bin_count - 1);
+        const int last_bin = std::clamp(
+            (std::max(site, site + width - 1)) / bin_sites, 0, bin_count - 1);
+        for (int dy = 0; dy < height && row + dy < row_count; ++dy) {
+          for (int bin = first_bin; bin <= last_bin; ++bin) {
+            const int overlap
+                = binOverlapSites(site, width, bin, bin_sites, site_count);
+            if (overlap == 0) {
+              continue;
+            }
+            const int idx = ((row + dy) * bin_count) + bin;
+            current_occupancy[idx] = std::max<int64_t>(
+                0,
+                current_occupancy[idx] + static_cast<int64_t>(sign) * overlap);
+          }
+        }
+      };
+
+  const bool escape_stalled
+      = overflow_history.size() >= 3 && overflow_history.back() > 0.0
+        && (overflow_history[overflow_history.size() - 2]
+                - overflow_history.back()
+            < std::max(50.0,
+                       0.03 * overflow_history[overflow_history.size() - 2]))
+        && (overflow_history[overflow_history.size() - 3]
+                - overflow_history[overflow_history.size() - 2]
+            < std::max(50.0,
+                       0.03 * overflow_history[overflow_history.size() - 3]));
+
+  if (escape_stalled) {
+    escape_triggered = 1;
+    std::vector<int> escape_order(cells.size());
+    std::iota(escape_order.begin(), escape_order.end(), 0);
+    std::stable_sort(escape_order.begin(),
+                     escape_order.end(),
+                     [&](const int lhs, const int rhs) {
+                       const double lhs_overflow
+                           = footprint_overflow_score(occupancy,
+                                                      nullptr,
+                                                      target_rows[lhs],
+                                                      target_sites[lhs],
+                                                      cells[lhs].width_sites,
+                                                      cells[lhs].height_rows);
+                       const double rhs_overflow
+                           = footprint_overflow_score(occupancy,
+                                                      nullptr,
+                                                      target_rows[rhs],
+                                                      target_sites[rhs],
+                                                      cells[rhs].width_sites,
+                                                      cells[rhs].height_rows);
+                       if (lhs_overflow != rhs_overflow) {
+                         return lhs_overflow > rhs_overflow;
+                       }
+                       return cells[lhs].cell->getId()
+                              < cells[rhs].cell->getId();
+                     });
+
+    constexpr int kMaxEscapeAttempts = 4096;
+    constexpr int kEscapeRowRadius = 25;
+    std::vector<int64_t> candidate_delta(row_bin_count, 0);
+    std::vector<int> touched_bins;
+    touched_bins.reserve(128);
+    for (const int i : escape_order) {
+      if (escape_attempted_cells >= kMaxEscapeAttempts) {
+        break;
+      }
+      const GuidanceCell& gc = cells[i];
+      const double current_overflow = footprint_overflow_score(occupancy,
+                                                               nullptr,
+                                                               target_rows[i],
+                                                               target_sites[i],
+                                                               gc.width_sites,
+                                                               gc.height_rows);
+      if (current_overflow <= 0.02) {
+        break;
+      }
+      ++escape_attempted_cells;
+      const int source_component = footprint_component(
+          target_rows[i], target_sites[i], gc.width_sites, gc.height_rows);
+      const int64_t source_area
+          = source_component >= 0
+                ? component_area[source_component]
+                : static_cast<int64_t>(gc.width_sites * gc.height_rows);
+      touched_bins.clear();
+      add_footprint_delta(candidate_delta,
+                          touched_bins,
+                          target_rows[i],
+                          target_sites[i],
+                          gc.width_sites,
+                          gc.height_rows,
+                          -1);
+      int best_row = -1;
+      int best_site = -1;
+      double best_score = std::numeric_limits<double>::infinity();
+      for (int row_delta = 0; row_delta <= kEscapeRowRadius; ++row_delta) {
+        const std::array<int, 2> rows{target_rows[i] - row_delta,
+                                      target_rows[i] + row_delta};
+        for (const int row : rows) {
+          if (row < 0 || row + gc.height_rows > row_count) {
+            continue;
+          }
+          for (const SiteInterval& interval : static_free_intervals[row]) {
+            if (interval.second - interval.first < gc.width_sites) {
+              continue;
+            }
+            const std::array<int, 3> sites{
+                std::clamp(gc.x_site,
+                           interval.first,
+                           interval.second - gc.width_sites),
+                interval.first,
+                interval.second - gc.width_sites};
+            for (const int site : sites) {
+              if (site == target_sites[i] && row == target_rows[i]) {
+                continue;
+              }
+              const int dest_component = footprint_component(
+                  row, site, gc.width_sites, gc.height_rows);
+              if (dest_component < 0
+                  || (source_component >= 0
+                      && dest_component == source_component)
+                  || component_area[dest_component] < 2 * source_area) {
+                ++escape_component_rejects;
+                continue;
+              }
+              if (!canBePlaced(gc.cell, GridX{site}, GridY{row})) {
+                continue;
+              }
+              ++escape_candidate_evals;
+              const double candidate_overflow
+                  = footprint_overflow_score(occupancy,
+                                             &candidate_delta,
+                                             row,
+                                             site,
+                                             gc.width_sites,
+                                             gc.height_rows);
+              if (candidate_overflow + 0.005 >= current_overflow) {
+                continue;
+              }
+              const int displacement
+                  = std::abs(site - gc.x_site)
+                    + row_equiv_sites * std::abs(row - gc.row);
+              const double score = 1000.0 * candidate_overflow
+                                   + static_cast<double>(displacement);
+              if (score < best_score) {
+                best_score = score;
+                best_row = row;
+                best_site = site;
+              }
+            }
+          }
+        }
+      }
+      for (const int idx : touched_bins) {
+        candidate_delta[idx] = 0;
+      }
+      if (best_row >= 0 && best_site >= 0) {
+        apply_footprint_to_occupancy(occupancy,
+                                     target_rows[i],
+                                     target_sites[i],
+                                     gc.width_sites,
+                                     gc.height_rows,
+                                     -1);
+        target_rows[i] = best_row;
+        target_sites[i] = best_site;
+        apply_footprint_to_occupancy(occupancy,
+                                     target_rows[i],
+                                     target_sites[i],
+                                     gc.width_sites,
+                                     gc.height_rows,
+                                     1);
+        ++escape_moved_cells;
+      }
+    }
+    final_stats = collect_stats(occupancy);
+  }
+
+  std::vector<GuidanceTarget> targets(cells.size());
+  parallelFor(
+      static_cast<int>(cells.size()),
+      thread_count,
+      [&](int begin, int end, int) {
+        for (int i = begin; i < end; ++i) {
+          const GuidanceCell& gc = cells[i];
+          GuidanceTarget target;
+          target.x = gc.init.x.v;
+          target.y = gc.init.y.v;
+          if (target_sites[i] == gc.x_site && target_rows[i] == gc.row) {
+            targets[i] = target;
+            continue;
+          }
+
+          target.x = gridToDbu(GridX{target_sites[i]}, site_width).v;
+          target.y = grid_->gridYToDbu(GridY{target_rows[i]}).v;
+          target.shift_sites = target_sites[i] - gc.x_site;
+          target.shift_rows = target_rows[i] - gc.row;
+          target.active = true;
+          target.score = std::abs(target.shift_sites)
+                         + row_equiv_sites * std::abs(target.shift_rows);
+          targets[i] = target;
+        }
+      });
+
+  guided_initial_locations_.assign(network_->getNumNodes(), {0, 0});
+  guided_initial_valid_.assign(network_->getNumNodes(), 0);
+
+  std::vector<int> target_order;
+  target_order.reserve(targets.size());
+  for (int i = 0; i < static_cast<int>(targets.size()); ++i) {
+    if (targets[i].active) {
+      target_order.push_back(i);
+    }
+  }
+  std::sort(target_order.begin(),
+            target_order.end(),
+            [&](const int lhs, const int rhs) {
+              if (targets[lhs].score == targets[rhs].score) {
+                return cells[lhs].cell->getId() < cells[rhs].cell->getId();
+              }
+              return targets[lhs].score > targets[rhs].score;
+            });
+
+  const int max_guided_cells
+      = std::max(0,
+                 std::min({kMaxGuidedTargets,
+                           static_cast<int>(cells.size()),
+                           static_cast<int>(target_order.size())}));
+  int moved_cells = 0;
+  int max_abs_shift = 0;
+  int max_abs_row_shift = 0;
+  int guided_row_moves = 0;
+  int64_t total_abs_shift = 0;
+  for (int order_idx = 0; order_idx < max_guided_cells; ++order_idx) {
+    const int i = target_order[order_idx];
+    const GuidanceTarget& target = targets[i];
+    const DbuPt snapped
+        = legalPt(cells[i].cell, {DbuX{target.x}, DbuY{target.y}});
+    const int id = cells[i].cell->getId();
+    if (id < 0 || id >= static_cast<int>(guided_initial_valid_.size())) {
+      continue;
+    }
+    guided_initial_locations_[id] = {snapped.x.v, snapped.y.v};
+    guided_initial_valid_[id] = 1;
+    const int abs_shift = std::abs(target.shift_sites);
+    const int abs_row_shift = std::abs(target.shift_rows);
+    max_abs_shift = std::max(max_abs_shift, abs_shift);
+    max_abs_row_shift = std::max(max_abs_row_shift, abs_row_shift);
+    guided_row_moves += abs_row_shift > 0 ? 1 : 0;
+    total_abs_shift += abs_shift + row_equiv_sites * abs_row_shift;
+    ++moved_cells;
+  }
+
+  const int high_fanout_skipped = std::accumulate(
+      local_high_fanout_skips.begin(), local_high_fanout_skips.end(), 0);
+  const double avg_shift = moved_cells == 0
+                               ? 0.0
+                               : static_cast<double>(total_abs_shift)
+                                     / static_cast<double>(moved_cells);
+
+  logger_->metric("dpl_evolve__diff_guidance__status", 1);
+  logger_->metric("dpl_evolve__diff_guidance__threads", thread_count);
+  logger_->metric("dpl_evolve__diff_guidance__eligible_cells",
+                  static_cast<int>(cells.size()));
+  logger_->metric("dpl_evolve__diff_guidance__skipped_cells", skipped_cells);
+  logger_->metric("dpl_evolve__diff_guidance__stage1_static_intervals",
+                  static_interval_count);
+  logger_->metric("dpl_evolve__diff_guidance__stage1_static_free_sites",
+                  static_cast<double>(static_free_sites));
+  logger_->metric("dpl_evolve__diff_guidance__plate_component_count",
+                  plate_component_count);
+  logger_->metric("dpl_evolve__diff_guidance__plate_max_component_sites",
+                  static_cast<double>(max_plate_component_area));
+  logger_->metric("dpl_evolve__diff_guidance__stage1_direct_cells",
+                  stage1_direct_cells);
+  logger_->metric("dpl_evolve__diff_guidance__stage1_projected_cells",
+                  stage1_projected_cells);
+  logger_->metric("dpl_evolve__diff_guidance__stage1_failed_projection_cells",
+                  stage1_failed_projection_cells);
+  logger_->metric("dpl_evolve__diff_guidance__stage1_row_projected_cells",
+                  stage1_row_projected_cells);
+  logger_->metric("dpl_evolve__diff_guidance__stage1_avg_shift_sites",
+                  cells.empty() ? 0.0
+                                : static_cast<double>(stage1_total_abs_shift)
+                                      / static_cast<double>(cells.size()));
+  logger_->metric("dpl_evolve__diff_guidance__stage1_max_site_shift",
+                  stage1_max_site_shift);
+  logger_->metric("dpl_evolve__diff_guidance__stage1_max_row_shift",
+                  stage1_max_row_shift);
+  logger_->metric("dpl_evolve__diff_guidance__moved_cells", moved_cells);
+  logger_->metric("dpl_evolve__diff_guidance__candidate_moves",
+                  static_cast<int>(target_order.size()));
+  logger_->metric("dpl_evolve__diff_guidance__max_guided_cells",
+                  max_guided_cells);
+  logger_->metric("dpl_evolve__diff_guidance__alm_iterations",
+                  kAlmOuterIterations);
+  logger_->metric("dpl_evolve__diff_guidance__alm_initial_overflow_bins",
+                  initial_stats.overflow_bins);
+  logger_->metric("dpl_evolve__diff_guidance__alm_final_overflow_bins",
+                  final_stats.overflow_bins);
+  logger_->metric("dpl_evolve__diff_guidance__alm_initial_overflow_sites",
+                  initial_stats.total_overflow_sites);
+  logger_->metric("dpl_evolve__diff_guidance__alm_final_overflow_sites",
+                  final_stats.total_overflow_sites);
+  logger_->metric("dpl_evolve__diff_guidance__alm_bgd_candidate_evals",
+                  static_cast<double>(total_candidate_evals));
+  logger_->metric("dpl_evolve__diff_guidance__alm_bgd_static_rejects",
+                  static_cast<double>(total_static_candidate_rejects));
+  logger_->metric("dpl_evolve__diff_guidance__alm_bgd_tech_rejects",
+                  static_cast<double>(total_tech_candidate_rejects));
+  logger_->metric("dpl_evolve__diff_guidance__alm_bgd_accepted_moves",
+                  static_cast<double>(total_accepted_moves));
+  logger_->metric("dpl_evolve__diff_guidance__alm_last_iter_moves",
+                  last_iter_moves);
+  logger_->metric("dpl_evolve__diff_guidance__candidate_stencil_size",
+                  static_cast<int>(candidate_stencil.size()));
+  logger_->metric("dpl_evolve__diff_guidance__tp_scheme", last_tp_scheme);
+  logger_->metric("dpl_evolve__diff_guidance__tp_partition_count",
+                  partition_count);
+  logger_->metric("dpl_evolve__diff_guidance__tp_xhint_sites", xhint_sites);
+  logger_->metric("dpl_evolve__diff_guidance__tp_yhint_rows", yhint_rows);
+  logger_->metric("dpl_evolve__diff_guidance__tp_partitioned_cells",
+                  last_partitioned_cells);
+  logger_->metric("dpl_evolve__diff_guidance__tp_boundary_excluded_cells",
+                  last_boundary_excluded_cells);
+  logger_->metric("dpl_evolve__diff_guidance__escape_triggered",
+                  escape_triggered);
+  logger_->metric("dpl_evolve__diff_guidance__escape_attempted_cells",
+                  escape_attempted_cells);
+  logger_->metric("dpl_evolve__diff_guidance__escape_moved_cells",
+                  escape_moved_cells);
+  logger_->metric("dpl_evolve__diff_guidance__escape_candidate_evals",
+                  escape_candidate_evals);
+  logger_->metric("dpl_evolve__diff_guidance__escape_component_rejects",
+                  escape_component_rejects);
+  logger_->metric("dpl_evolve__diff_guidance__row_equiv_sites",
+                  row_equiv_sites);
+  logger_->metric("dpl_evolve__diff_guidance__max_disp_threshold_sites",
+                  max_displacement_threshold_sites);
+  logger_->metric("dpl_evolve__diff_guidance__alm_sigma", alm_sigma);
+  logger_->metric("dpl_evolve__diff_guidance__final_hf", hf);
+  logger_->metric("dpl_evolve__diff_guidance__vertical_accepted_moves",
+                  vertical_guided_moves);
+  logger_->metric("dpl_evolve__diff_guidance__guided_row_moves",
+                  guided_row_moves);
+  logger_->metric("dpl_evolve__diff_guidance__overflow_bins",
+                  final_stats.overflow_bins);
+  logger_->metric("dpl_evolve__diff_guidance__bin_count", bin_count);
+  logger_->metric("dpl_evolve__diff_guidance__max_density",
+                  final_stats.max_density);
+  logger_->metric("dpl_evolve__diff_guidance__target_density", target_density);
+  logger_->metric("dpl_evolve__diff_guidance__avg_shift_sites", avg_shift);
+  logger_->metric("dpl_evolve__diff_guidance__max_shift_sites", max_abs_shift);
+  logger_->metric("dpl_evolve__diff_guidance__max_shift_rows",
+                  max_abs_row_shift);
+  logger_->metric("dpl_evolve__diff_guidance__high_fanout_skipped",
+                  high_fanout_skipped);
+  logger_->info(DPL,
+                1210,
+                "Differential guidance prepared {} guided starts from {} "
+                "eligible cells using {} threads (overflow bins {} -> {}, "
+                "max density {:.2f} -> {:.2f}, avg shift {:.2f} "
+                "site-equivalent sites, row moves {}).",
+                moved_cells,
+                cells.size(),
+                thread_count,
+                initial_stats.overflow_bins,
+                final_stats.overflow_bins,
+                initial_stats.max_density,
+                final_stats.max_density,
+                avg_shift,
+                guided_row_moves);
+}
+
+void Opendp::runRowAssignmentGuidance(const EvolveContext&)
+{
+  if (network_ == nullptr || grid_ == nullptr
+      || guided_initial_valid_.empty()) {
+    logger_->metric("dpl_evolve__row_assignment__status", 0);
+    return;
+  }
+
+  const int row_count = grid_->getRowCount().v;
+  const int site_count = grid_->getRowSiteCount().v;
+  const DbuX site_width = grid_->getSiteWidth();
+  if (row_count <= 0 || site_count <= 0 || site_width.v <= 0) {
+    logger_->metric("dpl_evolve__row_assignment__status", 0);
+    return;
+  }
+
+  std::vector<RowAssignCell> cells;
+  cells.reserve(network_->getNumCells());
+  std::vector<unsigned char> touched_rows(row_count, 0);
+  int skipped_cells = 0;
+  int seed_guided_cells = 0;
+
+  for (const auto& node_ptr : network_->getNodes()) {
+    Node* cell = node_ptr.get();
+    if (cell == nullptr || cell->getType() != Node::CELL || cell->isFixed()
+        || !cell->isStdCell() || cell->inGroup() || isMultiRow(cell)) {
+      ++skipped_cells;
+      continue;
+    }
+
+    const DbuPt init = initialLocation(cell, false);
+    DbuPt desired = init;
+    const int id = cell->getId();
+    const bool seeded = id >= 0
+                        && id < static_cast<int>(guided_initial_valid_.size())
+                        && guided_initial_valid_[id] != 0;
+    if (seeded) {
+      const auto& guided = guided_initial_locations_[id];
+      desired = {DbuX{guided.first}, DbuY{guided.second}};
+      ++seed_guided_cells;
+    }
+
+    const GridPt desired_grid = legalGridPt(cell, desired);
+    const GridPt init_grid = legalGridPt(cell, init);
+    const int row = std::clamp(desired_grid.y.v, 0, row_count - 1);
+    const int desired_site = std::clamp(desired_grid.x.v, 0, site_count - 1);
+    const int original_site = std::clamp(init_grid.x.v, 0, site_count - 1);
+    const int width_sites = std::max(
+        1,
+        static_cast<int>(std::ceil(static_cast<double>(cell->getWidth().v)
+                                   / static_cast<double>(site_width.v))));
+    if (seeded) {
+      touched_rows[row] = 1;
+    }
+    cells.push_back({cell,
+                     row,
+                     original_site,
+                     desired_site,
+                     desired_site,
+                     width_sites,
+                     seeded});
+  }
+
+  if (seed_guided_cells == 0) {
+    logger_->metric("dpl_evolve__row_assignment__status", 1);
+    logger_->metric("dpl_evolve__row_assignment__seed_guided_cells", 0);
+    return;
+  }
+
+  std::vector<std::vector<int>> row_seed_cells(row_count);
+  std::vector<std::vector<int>> row_blocking_cells(row_count);
+  for (int i = 0; i < static_cast<int>(cells.size()); ++i) {
+    const RowAssignCell& cell = cells[i];
+    if (touched_rows[cell.row] == 0) {
+      continue;
+    }
+    if (cell.seeded) {
+      row_seed_cells[cell.row].push_back(i);
+    } else {
+      row_blocking_cells[cell.row].push_back(i);
+    }
+  }
+
+  int touched_row_count = 0;
+  int assigned_seed_cells = 0;
+  int changed_cells = 0;
+  int max_abs_shift = 0;
+  int64_t total_abs_shift = 0;
+  int failed_assignments = 0;
+  int occupied_sites = 0;
+  constexpr int kLocalAssignRadius = 8;
+
+  for (int row_id = 0; row_id < row_count; ++row_id) {
+    auto& seed_row = row_seed_cells[row_id];
+    if (seed_row.empty()) {
+      continue;
+    }
+    ++touched_row_count;
+    std::sort(
+        seed_row.begin(), seed_row.end(), [&](const int lhs, const int rhs) {
+          const RowAssignCell& a = cells[lhs];
+          const RowAssignCell& b = cells[rhs];
+          if (a.desired_site != b.desired_site) {
+            return a.desired_site < b.desired_site;
+          }
+          return a.cell->getId() < b.cell->getId();
+        });
+
+    std::vector<unsigned char> occupied(site_count, 0);
+    auto reserve_sites = [&](const int x, const int width) {
+      const int x0 = std::clamp(x, 0, std::max(0, site_count - 1));
+      const int x1 = std::clamp(x + width, 0, site_count);
+      for (int site = x0; site < x1; ++site) {
+        if (occupied[site] == 0) {
+          ++occupied_sites;
+        }
+        occupied[site] = 1;
+      }
+    };
+    auto can_place = [&](const int x, const int width) {
+      if (x < 0 || x + width > site_count) {
+        return false;
+      }
+      for (int site = x; site < x + width; ++site) {
+        if (occupied[site] != 0) {
+          return false;
+        }
+      }
+      return true;
+    };
+
+    for (const int idx : row_blocking_cells[row_id]) {
+      const RowAssignCell& cell = cells[idx];
+      reserve_sites(cell.original_site, cell.width_sites);
+    }
+
+    for (const int idx : seed_row) {
+      RowAssignCell& cell = cells[idx];
+      const int desired = std::clamp(
+          cell.desired_site, 0, std::max(0, site_count - cell.width_sites));
+      int best_site = -1;
+      for (int radius = 0; radius <= kLocalAssignRadius && best_site < 0;
+           ++radius) {
+        const int left = desired - radius;
+        const int right = desired + radius;
+        if (can_place(left, cell.width_sites)) {
+          best_site = left;
+          break;
+        }
+        if (radius != 0 && can_place(right, cell.width_sites)) {
+          best_site = right;
+          break;
+        }
+      }
+
+      if (best_site < 0) {
+        // Keep the ALM/BGD target when there is no near free slot.  The
+        // downstream repair/legalization stage, if a student explicitly
+        // installs one, should resolve local conflicts better than a distant
+        // row-assignment jump.
+        cell.assigned_site = desired;
+        ++failed_assignments;
+        continue;
+      }
+
+      cell.assigned_site = best_site;
+      reserve_sites(cell.assigned_site, cell.width_sites);
+      ++assigned_seed_cells;
+    }
+  }
+
+  guided_initial_locations_.assign(network_->getNumNodes(), {0, 0});
+  guided_initial_valid_.assign(network_->getNumNodes(), 0);
+  for (const RowAssignCell& cell : cells) {
+    if (!cell.seeded) {
+      continue;
+    }
+    const int id = cell.cell->getId();
+    if (id < 0 || id >= static_cast<int>(guided_initial_valid_.size())) {
+      continue;
+    }
+    const DbuPt assigned_pt{gridToDbu(GridX{cell.assigned_site}, site_width),
+                            grid_->gridYToDbu(GridY{cell.row})};
+    const DbuPt snapped = legalPt(cell.cell, assigned_pt);
+    guided_initial_locations_[id] = {snapped.x.v, snapped.y.v};
+    guided_initial_valid_[id] = 1;
+    const int abs_shift = std::abs(cell.assigned_site - cell.original_site);
+    if (abs_shift > 0) {
+      ++changed_cells;
+    }
+    max_abs_shift = std::max(max_abs_shift, abs_shift);
+    total_abs_shift += abs_shift;
+  }
+
+  const double avg_shift = assigned_seed_cells == 0
+                               ? 0.0
+                               : static_cast<double>(total_abs_shift)
+                                     / static_cast<double>(assigned_seed_cells);
+  logger_->metric("dpl_evolve__row_assignment__status", 1);
+  logger_->metric("dpl_evolve__row_assignment__eligible_cells",
+                  static_cast<int>(cells.size()));
+  logger_->metric("dpl_evolve__row_assignment__skipped_cells", skipped_cells);
+  logger_->metric("dpl_evolve__row_assignment__seed_guided_cells",
+                  seed_guided_cells);
+  logger_->metric("dpl_evolve__row_assignment__touched_rows",
+                  touched_row_count);
+  logger_->metric("dpl_evolve__row_assignment__assigned_seed_cells",
+                  assigned_seed_cells);
+  logger_->metric("dpl_evolve__row_assignment__changed_cells", changed_cells);
+  logger_->metric("dpl_evolve__row_assignment__failed_assignments",
+                  failed_assignments);
+  logger_->metric("dpl_evolve__row_assignment__occupied_sites", occupied_sites);
+  logger_->metric("dpl_evolve__row_assignment__avg_shift_sites", avg_shift);
+  logger_->metric("dpl_evolve__row_assignment__max_shift_sites", max_abs_shift);
+  logger_->info(DPL,
+                1213,
+                "Row assignment guidance assigned {} ALM seed cells across {} "
+                "touched rows from {} seeds (changed {}, failed {}, avg shift "
+                "{:.2f} sites).",
+                assigned_seed_cells,
+                touched_row_count,
+                seed_guided_cells,
+                changed_cells,
+                failed_assignments,
+                avg_shift);
+}
+
+bool Opendp::runLegalmFullLegalization(const EvolveContext& context)
+{
+  if (network_ == nullptr || grid_ == nullptr) {
+    logger_->metric("dpl_evolve__legalm_full__status", 0);
+    return false;
+  }
+
+  initGrid();
+  setFixedGridCells();
+  if (!arch_->getRegions().empty()) {
+    groupInitPixels2();
+    groupInitPixels();
+  }
+
+  const int row_count = grid_->getRowCount().v;
+  const int site_count = grid_->getRowSiteCount().v;
+  const DbuX site_width = grid_->getSiteWidth();
+  if (row_count <= 0 || site_count <= 0 || site_width.v <= 0) {
+    logger_->metric("dpl_evolve__legalm_full__status", 0);
+    return false;
+  }
+
+  std::vector<LegalmPlaceCell> cells;
+  cells.reserve(network_->getNumCells());
+  int skipped_cells = 0;
+  int guided_cells = 0;
+  for (const auto& node_ptr : network_->getNodes()) {
+    Node* cell = node_ptr.get();
+    if (cell == nullptr || cell->getType() != Node::CELL || cell->isFixed()
+        || !cell->isStdCell()) {
+      ++skipped_cells;
+      continue;
+    }
+
+    const DbuPt init = initialLocation(cell, false);
+    DbuPt desired = init;
+    const int id = cell->getId();
+    const bool guided = id >= 0
+                        && id < static_cast<int>(guided_initial_valid_.size())
+                        && guided_initial_valid_[id] != 0;
+    if (guided) {
+      const auto& guided_loc = guided_initial_locations_[id];
+      desired = {DbuX{guided_loc.first}, DbuY{guided_loc.second}};
+      ++guided_cells;
+    }
+
+    const GridPt desired_grid = legalGridPt(cell, desired);
+    const GridPt original_grid = legalGridPt(cell, init);
+    const int width_sites = std::max(
+        1,
+        static_cast<int>(std::ceil(static_cast<double>(cell->getWidth().v)
+                                   / static_cast<double>(site_width.v))));
+    const int height_rows = std::max(1, grid_->gridHeight(cell).v);
+    cells.push_back(
+        {cell,
+         std::clamp(desired_grid.y.v, 0, row_count - 1),
+         std::clamp(desired_grid.x.v, 0, std::max(0, site_count - width_sites)),
+         std::clamp(original_grid.y.v, 0, row_count - 1),
+         std::clamp(
+             original_grid.x.v, 0, std::max(0, site_count - width_sites)),
+         width_sites,
+         height_rows,
+         1.0,
+         guided});
+  }
+
+  if (cells.empty()) {
+    logger_->metric("dpl_evolve__legalm_full__status", 0);
+    return false;
+  }
+
+  int max_height_rows = 1;
+  for (const LegalmPlaceCell& item : cells) {
+    max_height_rows = std::max(max_height_rows, item.height_rows);
+  }
+  std::vector<int> height_class_counts(max_height_rows + 1, 0);
+  for (const LegalmPlaceCell& item : cells) {
+    ++height_class_counts[std::clamp(item.height_rows, 1, max_height_rows)];
+  }
+  int active_height_classes = 0;
+  for (const int count : height_class_counts) {
+    active_height_classes += count > 0 ? 1 : 0;
+  }
+  for (LegalmPlaceCell& item : cells) {
+    const int class_count = std::max(
+        1,
+        height_class_counts[std::clamp(item.height_rows, 1, max_height_rows)]);
+    item.height_class_weight = static_cast<double>(cells.size()) / class_count;
+  }
+
+  std::stable_sort(
+      cells.begin(), cells.end(), [](const auto& lhs, const auto& rhs) {
+        if (lhs.desired_row != rhs.desired_row) {
+          return lhs.desired_row < rhs.desired_row;
+        }
+        if (lhs.desired_site != rhs.desired_site) {
+          return lhs.desired_site < rhs.desired_site;
+        }
+        if (lhs.height_rows != rhs.height_rows) {
+          return lhs.height_rows > rhs.height_rows;
+        }
+        if (lhs.width_sites != rhs.width_sites) {
+          return lhs.width_sites > rhs.width_sites;
+        }
+        return lhs.cell->getId() < rhs.cell->getId();
+      });
+
+  const int row_height_dbu
+      = arch_ != nullptr && arch_->getNumRows() > 0
+            ? std::max(1, arch_->getRow(0)->getHeight().v)
+            : std::max(1,
+                       (row_count > 1 ? (grid_->gridYToDbu(GridY{1})
+                                         - grid_->gridYToDbu(GridY{0}))
+                                            .v
+                                      : site_width.v));
+  const int row_equiv_sites = std::max(
+      1,
+      static_cast<int>(std::llround(static_cast<double>(row_height_dbu)
+                                    / static_cast<double>(site_width.v))));
+  // LEGALM 2.0 combines weighted average displacement with a maximum
+  // displacement tail term.  Keep the first CPU version simple: score each
+  // bounded row/segment projection by desired target distance plus a smaller
+  // original-placement displacement term and a strong tail penalty.
+  constexpr double kOriginalDispWeight = 0.25;
+  constexpr double kMaxDispTailWeight = 3.0;
+  const int max_disp_threshold_sites = 3 * row_equiv_sites;
+
+  auto placement_cost =
+      [&](const LegalmPlaceCell& item, const int row, const int site) {
+        const int desired_delta
+            = std::abs(site - item.desired_site)
+              + row_equiv_sites * std::abs(row - item.desired_row);
+        const int original_delta
+            = std::abs(site - item.original_site)
+              + row_equiv_sites * std::abs(row - item.original_row);
+        const int tail = std::max(0, original_delta - max_disp_threshold_sites);
+        return static_cast<double>(desired_delta)
+               + kOriginalDispWeight * item.height_class_weight
+                     * static_cast<double>(original_delta)
+               + kMaxDispTailWeight * static_cast<double>(tail);
+      };
+
+  auto row_lower_bound = [&](const LegalmPlaceCell& item, const int row) {
+    const int desired_vertical
+        = row_equiv_sites * std::abs(row - item.desired_row);
+    const int original_vertical
+        = row_equiv_sites * std::abs(row - item.original_row);
+    const int tail = std::max(0, original_vertical - max_disp_threshold_sites);
+    return static_cast<double>(desired_vertical)
+           + kOriginalDispWeight * item.height_class_weight
+                 * static_cast<double>(original_vertical)
+           + kMaxDispTailWeight * static_cast<double>(tail);
+  };
+
+  using Interval = std::pair<int, int>;
+  std::vector<std::vector<Interval>> free_intervals(row_count);
+  for (int row = 0; row < row_count; ++row) {
+    int begin = -1;
+    for (int site = 0; site < site_count; ++site) {
+      const Pixel* pixel = grid_->gridPixel(GridX{site}, GridY{row});
+      const bool free = pixel != nullptr && pixel->is_valid
+                        && pixel->cell == nullptr
+                        && pixel->padding_reserved_by == nullptr;
+      if (free && begin < 0) {
+        begin = site;
+      } else if (!free && begin >= 0) {
+        free_intervals[row].push_back({begin, site});
+        begin = -1;
+      }
+    }
+    if (begin >= 0) {
+      free_intervals[row].push_back({begin, site_count});
+    }
+  };
+
+  auto interval_contains =
+      [](const std::vector<Interval>& intervals, const int x, const int width) {
+        for (const auto& interval : intervals) {
+          if (interval.first <= x && x + width <= interval.second) {
+            return true;
+          }
+          if (interval.first > x) {
+            break;
+          }
+        }
+        return false;
+      };
+
+  auto fits_all_rows =
+      [&](const int row, const int x, const int width, const int height_rows) {
+        if (row < 0 || row + height_rows > row_count || x < 0
+            || x + width > site_count) {
+          return false;
+        }
+        for (int y = row; y < row + height_rows; ++y) {
+          if (!interval_contains(free_intervals[y], x, width)) {
+            return false;
+          }
+        }
+        return true;
+      };
+
+  auto subtract_interval
+      = [](std::vector<Interval>& intervals, const int x, const int width) {
+          const int x1 = x + width;
+          std::vector<Interval> next;
+          next.reserve(intervals.size() + 1);
+          for (const auto& interval : intervals) {
+            if (x1 <= interval.first || x >= interval.second) {
+              next.push_back(interval);
+              continue;
+            }
+            if (interval.first < x) {
+              next.push_back({interval.first, x});
+            }
+            if (x1 < interval.second) {
+              next.push_back({x1, interval.second});
+            }
+          }
+          intervals.swap(next);
+        };
+
+  auto add_interval = [](std::vector<Interval>& intervals,
+                         const int x,
+                         const int width,
+                         const int site_limit) {
+    Interval merged{std::clamp(x, 0, site_limit),
+                    std::clamp(x + width, 0, site_limit)};
+    if (merged.first >= merged.second) {
+      return;
+    }
+    std::vector<Interval> next;
+    next.reserve(intervals.size() + 1);
+    bool inserted = false;
+    for (const auto& interval : intervals) {
+      if (interval.second < merged.first) {
+        next.push_back(interval);
+      } else if (merged.second < interval.first) {
+        if (!inserted) {
+          next.push_back(merged);
+          inserted = true;
+        }
+        next.push_back(interval);
+      } else {
+        merged.first = std::min(merged.first, interval.first);
+        merged.second = std::max(merged.second, interval.second);
+      }
+    }
+    if (!inserted) {
+      next.push_back(merged);
+    }
+    intervals.swap(next);
+  };
+
+  auto reserve_slot =
+      [&](const int row, const int x, const int width, const int height_rows) {
+        for (int y = row; y < row + height_rows && y < row_count; ++y) {
+          subtract_interval(free_intervals[y], x, width);
+        }
+      };
+
+  int64_t bounded_interval_fallbacks = 0;
+  auto find_site_in_row = [&](const LegalmPlaceCell& item,
+                              const int row,
+                              const bool fast_static_path) {
+    std::pair<int, double> best{-1, std::numeric_limits<double>::infinity()};
+    if (row < 0 || row + item.height_rows > row_count) {
+      return best;
+    }
+    const auto& intervals = free_intervals[row];
+    auto candidate_ok = [&](const int candidate) {
+      if (item.height_rows > 1
+          && !fits_all_rows(
+              row, candidate, item.width_sites, item.height_rows)) {
+        return false;
+      }
+      // Keep the exact OpenDP static checks when the simple maintained free
+      // interval path is not sufficient.
+      return fast_static_path
+             || canBePlaced(item.cell, GridX{candidate}, GridY{row});
+    };
+    std::array<int, 16> tried_sites{};
+    int tried_count = 0;
+    auto update_best_from_interval = [&](const Interval& interval,
+                                         const int target_site) {
+      if (interval.second - interval.first < item.width_sites) {
+        return;
+      }
+      const int candidate = std::clamp(
+          target_site, interval.first, interval.second - item.width_sites);
+      for (int i = 0; i < tried_count; ++i) {
+        if (tried_sites[i] == candidate) {
+          return;
+        }
+      }
+      if (tried_count < static_cast<int>(tried_sites.size())) {
+        tried_sites[tried_count++] = candidate;
+      }
+      if (!candidate_ok(candidate)) {
+        return;
+      }
+      const double cost = placement_cost(item, row, candidate);
+      if (cost < best.second) {
+        best = {candidate, cost};
+      }
+    };
+
+    const std::array<int, 4> target_sites{
+        item.desired_site,
+        item.original_site,
+        (item.desired_site + item.original_site) / 2,
+        std::clamp(
+            item.desired_site, 0, std::max(0, site_count - item.width_sites))};
+
+    for (const int target_site : target_sites) {
+      auto it = std::lower_bound(
+          intervals.begin(),
+          intervals.end(),
+          target_site,
+          [](const Interval& interval, const int target) {
+            return interval.second <= target;
+          });
+
+      int probes = 0;
+      for (auto fwd = it;
+           fwd != intervals.end() && probes < kLegalmRowIntervalProbeLimit;
+           ++fwd, ++probes) {
+        update_best_from_interval(*fwd, target_site);
+      }
+      probes = 0;
+      auto back = it;
+      while (back != intervals.begin() && probes < kLegalmRowIntervalProbeLimit) {
+        --back;
+        update_best_from_interval(*back, target_site);
+        ++probes;
+      }
+    }
+
+    if (best.first >= 0) {
+      return best;
+    }
+
+    ++bounded_interval_fallbacks;
+    for (const auto& interval : intervals) {
+      update_best_from_interval(interval, item.desired_site);
+      update_best_from_interval(interval, item.original_site);
+      update_best_from_interval(
+          interval, (item.desired_site + item.original_site) / 2);
+    }
+    return best;
+  };
+
+  int placed_cells = 0;
+  int failed_cells = 0;
+  int row_escape_count = 0;
+  int guided_placed = 0;
+  int64_t site_shift_sum = 0;
+  int max_site_shift = 0;
+  int interval_count = 0;
+  for (const auto& row : free_intervals) {
+    interval_count += static_cast<int>(row.size());
+  }
+
+  placement_failures_.clear();
+  for (const LegalmPlaceCell& item : cells) {
+    int best_row = -1;
+    int best_site = -1;
+    double best_cost = std::numeric_limits<double>::infinity();
+    const bool fast_static_path = arch_->getRegions().empty()
+                                  && item.height_rows == 1
+                                  && !item.cell->inGroup();
+    auto try_row = [&](const int row) {
+      if (row < 0 || row >= row_count) {
+        return false;
+      }
+      const double lower_bound = row_lower_bound(item, row);
+      if (best_site >= 0 && lower_bound > best_cost) {
+        return true;
+      }
+      const auto [site, cost] = find_site_in_row(item, row, fast_static_path);
+      if (site < 0) {
+        return false;
+      }
+      if (cost < best_cost) {
+        best_cost = cost;
+        best_row = row;
+        best_site = site;
+      }
+      // The nearest-row order is monotonic in row distance, so an exact site in
+      // the current row is already optimal for this greedy assignment.
+      if (row == item.desired_row && site == item.desired_site) {
+        return true;
+      }
+      return false;
+    };
+
+    if (!try_row(item.desired_row)) {
+      for (int delta = 1; delta < row_count; ++delta) {
+        const int up = item.desired_row + delta;
+        const int down = item.desired_row - delta;
+        if (up >= row_count && down < 0) {
+          break;
+        }
+        if (up < row_count && try_row(up)) {
+          break;
+        }
+        if (down >= 0 && try_row(down)) {
+          break;
+        }
+      }
+    }
+
+    if (best_row < 0 || best_site < 0) {
+      ++failed_cells;
+      placement_failures_.push_back(item.cell);
+      continue;
+    }
+
+    placeCell(item.cell, GridX{best_site}, GridY{best_row});
+    reserve_slot(best_row, best_site, item.width_sites, item.height_rows);
+    ++placed_cells;
+    if (item.guided) {
+      ++guided_placed;
+    }
+    if (best_row != item.desired_row) {
+      ++row_escape_count;
+    }
+    const int abs_shift = std::abs(best_site - item.original_site);
+    site_shift_sum += abs_shift;
+    max_site_shift = std::max(max_site_shift, abs_shift);
+  }
+
+  int stage3_attempted = 0;
+  int stage3_moved = 0;
+  int stage3_row_moves = 0;
+  int64_t stage3_candidate_evals = 0;
+  int stage3_rounds = 0;
+  int stage3_last_round_moves = 0;
+  int64_t stage3_site_improvement = 0;
+  int stage3_max_improvement = 0;
+  const bool stage3_large_case_skip
+      = static_cast<int>(cells.size()) > kStage3LargeCaseCellLimit;
+  if (failed_cells == 0 && !stage3_large_case_skip) {
+    struct Stage3Candidate
+    {
+      int row = -1;
+      int site = -1;
+      int displacement = std::numeric_limits<int>::max();
+    };
+
+    auto best_no_overflow_refine_candidate = [&](const LegalmPlaceCell& item,
+                                                 const int current_row,
+                                                 const int current_site) {
+      Stage3Candidate best;
+      const int old_disp
+          = std::abs(current_site - item.original_site)
+            + row_equiv_sites * std::abs(current_row - item.original_row);
+      const int max_row_radius = std::max(1, std::min(4, row_count / 32 + 1));
+      auto evaluate_candidate = [&](const int row, const int candidate) {
+        ++stage3_candidate_evals;
+        const int disp = std::abs(candidate - item.original_site)
+                         + row_equiv_sites * std::abs(row - item.original_row);
+        if (disp >= old_disp || disp >= best.displacement) {
+          return;
+        }
+        if (!canBePlaced(item.cell, GridX{candidate}, GridY{row})) {
+          return;
+        }
+        best = {row, candidate, disp};
+      };
+      auto project_target_in_row = [&](const int row, const int target_site) {
+        const auto& intervals = free_intervals[row];
+        if (intervals.empty()) {
+          return;
+        }
+        auto try_interval = [&](const Interval& interval) {
+          if (interval.second - interval.first < item.width_sites) {
+            return;
+          }
+          const int candidate = std::clamp(
+              target_site, interval.first, interval.second - item.width_sites);
+          evaluate_candidate(row, candidate);
+        };
+
+        // LEGALM's BGD evaluates a bounded neighborhood around the current
+        // reference point.  On CPU, project each stencil target only to the
+        // nearest few free intervals instead of scanning the whole row.
+        auto it
+            = std::lower_bound(intervals.begin(),
+                               intervals.end(),
+                               target_site,
+                               [](const Interval& interval, const int target) {
+                                 return interval.second <= target;
+                               });
+        if (it != intervals.end()) {
+          try_interval(*it);
+          auto next = it;
+          ++next;
+          if (next != intervals.end()) {
+            try_interval(*next);
+          }
+        }
+        if (it != intervals.begin()) {
+          try_interval(*std::prev(it));
+        }
+      };
+      auto try_row = [&](const int row) {
+        if (row < 0 || row >= row_count) {
+          return;
+        }
+        const int row_only_disp
+            = row_equiv_sites * std::abs(row - item.original_row);
+        if (row_only_disp >= old_disp || row_only_disp >= best.displacement) {
+          return;
+        }
+        if (std::abs(row - item.original_row) > max_row_radius
+            && row != current_row) {
+          return;
+        }
+        std::array<int, 13> offsets{
+            -32, -16, -8, -4, -2, -1, 0, 1, 2, 4, 8, 16, 32};
+        std::array<int, 32> tried_targets{};
+        int tried_count = 0;
+        auto try_target = [&](const int target_site) {
+          const int target = std::clamp(
+              target_site, 0, std::max(0, site_count - item.width_sites));
+          for (int i = 0; i < tried_count; ++i) {
+            if (tried_targets[i] == target) {
+              return;
+            }
+          }
+          tried_targets[tried_count++] = target;
+          project_target_in_row(row, target);
+        };
+
+        try_target(item.original_site);
+        try_target((item.original_site + current_site) / 2);
+        try_target(current_site);
+        for (const int offset : offsets) {
+          try_target(item.original_site + offset);
+        }
+      };
+
+      std::array<int, 16> tried_rows{};
+      int tried_row_count = 0;
+      auto try_unique_row = [&](const int row) {
+        for (int i = 0; i < tried_row_count; ++i) {
+          if (tried_rows[i] == row) {
+            return;
+          }
+        }
+        if (tried_row_count < static_cast<int>(tried_rows.size())) {
+          tried_rows[tried_row_count++] = row;
+        }
+        try_row(row);
+      };
+
+      try_unique_row(item.original_row);
+      try_unique_row(current_row);
+      for (int delta = 1; delta <= max_row_radius; ++delta) {
+        try_unique_row(item.original_row + delta);
+        try_unique_row(item.original_row - delta);
+      }
+      return best;
+    };
+
+    for (int round = 0; round < kStage3RefinementRounds; ++round) {
+      ++stage3_rounds;
+      std::vector<int> refine_order(cells.size());
+      std::iota(refine_order.begin(), refine_order.end(), 0);
+      std::stable_sort(
+          refine_order.begin(),
+          refine_order.end(),
+          [&](const int lhs, const int rhs) {
+            const auto& a = cells[lhs];
+            const auto& b = cells[rhs];
+            const int a_row = grid_->gridSnapDownY(a.cell->getBottom()).v;
+            const int b_row = grid_->gridSnapDownY(b.cell->getBottom()).v;
+            const int a_site = grid_->gridX(a.cell->getLeft()).v;
+            const int b_site = grid_->gridX(b.cell->getLeft()).v;
+            const int a_disp
+                = std::abs(a_site - a.original_site)
+                  + row_equiv_sites * std::abs(a_row - a.original_row);
+            const int b_disp
+                = std::abs(b_site - b.original_site)
+                  + row_equiv_sites * std::abs(b_row - b.original_row);
+            if (a_disp != b_disp) {
+              return a_disp > b_disp;
+            }
+            return a.cell->getId() < b.cell->getId();
+          });
+      int round_attempted = 0;
+      int round_moved = 0;
+      for (const int idx : refine_order) {
+        if (round_attempted >= kStage3MaxRefineCells) {
+          break;
+        }
+        const LegalmPlaceCell& item = cells[idx];
+        if (item.height_rows != 1 || item.cell->inGroup()
+            || !item.cell->isPlaced()) {
+          continue;
+        }
+        const int row = grid_->gridSnapDownY(item.cell->getBottom()).v;
+        const int current_site = grid_->gridX(item.cell->getLeft()).v;
+        if (row < 0 || row >= row_count) {
+          continue;
+        }
+        const int old_disp
+            = std::abs(current_site - item.original_site)
+              + row_equiv_sites * std::abs(row - item.original_row);
+        if (old_disp == 0) {
+          continue;
+        }
+        ++stage3_attempted;
+        ++round_attempted;
+        add_interval(
+            free_intervals[row], current_site, item.width_sites, site_count);
+        unplaceCell(item.cell);
+        const Stage3Candidate candidate
+            = best_no_overflow_refine_candidate(item, row, current_site);
+        if (candidate.site >= 0) {
+          placeCell(item.cell, GridX{candidate.site}, GridY{candidate.row});
+          reserve_slot(candidate.row,
+                       candidate.site,
+                       item.width_sites,
+                       item.height_rows);
+          const int improvement = old_disp - candidate.displacement;
+          stage3_site_improvement += improvement;
+          stage3_max_improvement
+              = std::max(stage3_max_improvement, improvement);
+          ++stage3_moved;
+          ++round_moved;
+          if (candidate.row != row) {
+            ++stage3_row_moves;
+          }
+        } else {
+          placeCell(item.cell, GridX{current_site}, GridY{row});
+          reserve_slot(row, current_site, item.width_sites, item.height_rows);
+        }
+      }
+      stage3_last_round_moves = round_moved;
+      if (round_moved == 0) {
+        break;
+      }
+    }
+  }
+
+  const bool ok = failed_cells == 0;
+  logger_->metric("dpl_evolve__legalm_full__status", ok ? 1 : 0);
+  logger_->metric("dpl_evolve__legalm_full__eligible_cells",
+                  static_cast<int>(cells.size()));
+  logger_->metric("dpl_evolve__legalm_full__skipped_cells", skipped_cells);
+  logger_->metric("dpl_evolve__legalm_full__guided_cells", guided_cells);
+  logger_->metric("dpl_evolve__legalm_full__guided_placed", guided_placed);
+  logger_->metric("dpl_evolve__legalm_full__placed_cells", placed_cells);
+  logger_->metric("dpl_evolve__legalm_full__failed_cells", failed_cells);
+  logger_->metric("dpl_evolve__legalm_full__initial_free_intervals",
+                  interval_count);
+  logger_->metric("dpl_evolve__legalm_full__row_escape_count",
+                  row_escape_count);
+  logger_->metric("dpl_evolve__legalm_full__avg_site_shift",
+                  placed_cells == 0 ? 0.0
+                                    : static_cast<double>(site_shift_sum)
+                                          / static_cast<double>(placed_cells));
+  logger_->metric("dpl_evolve__legalm_full__max_site_shift", max_site_shift);
+  logger_->metric("dpl_evolve__legalm_full__row_equiv_sites", row_equiv_sites);
+  logger_->metric("dpl_evolve__legalm_full__max_disp_threshold_sites",
+                  max_disp_threshold_sites);
+  logger_->metric("dpl_evolve__legalm_full__height_classes",
+                  active_height_classes);
+  logger_->metric("dpl_evolve__legalm_full__bounded_interval_fallbacks",
+                  static_cast<double>(bounded_interval_fallbacks));
+  logger_->metric("dpl_evolve__legalm_stage3__attempted_cells",
+                  stage3_attempted);
+  logger_->metric("dpl_evolve__legalm_stage3__moved_cells", stage3_moved);
+  logger_->metric("dpl_evolve__legalm_stage3__row_moves", stage3_row_moves);
+  logger_->metric("dpl_evolve__legalm_stage3__candidate_evals",
+                  static_cast<double>(stage3_candidate_evals));
+  logger_->metric("dpl_evolve__legalm_stage3__rounds", stage3_rounds);
+  logger_->metric("dpl_evolve__legalm_stage3__last_round_moves",
+                  stage3_last_round_moves);
+  logger_->metric("dpl_evolve__legalm_stage3__site_improvement",
+                  static_cast<double>(stage3_site_improvement));
+  logger_->metric("dpl_evolve__legalm_stage3__max_site_improvement",
+                  stage3_max_improvement);
+  logger_->metric("dpl_evolve__legalm_stage3__large_case_skip",
+                  stage3_large_case_skip ? 1 : 0);
+  logger_->info(DPL,
+                1214,
+                "LEGALM full legalization placed {} / {} cells without diamond "
+                "(guided {}, row escapes {}, failures {}, stage3 moved {}, "
+                "stage3 row moves {}, stage3 evals {}).",
+                placed_cells,
+                cells.size(),
+                guided_placed,
+                row_escape_count,
+                failed_cells,
+                stage3_moved,
+                stage3_row_moves,
+                stage3_candidate_evals);
+
+  if (ok) {
+    reportEvolvePlacementMetrics("legalm_full");
+  }
+  clearGuidedInitialLocations();
+  return ok;
+}
+
+bool Opendp::runEvolveNegotiationRepair(const bool run_abacus)
+{
+  initGrid();
+  setFixedGridCells();
+  if (!arch_->getRegions().empty()) {
+    groupInitPixels2();
+    groupInitPixels();
+  }
+
+  logger_->info(DPL,
+                1215,
+                "DPL-Evolve repair stage: NegotiationLegalizer with Abacus {}.",
+                run_abacus ? "enabled" : "disabled");
+
+  NegotiationLegalizer negotiation(this,
+                                   db_,
+                                   logger_,
+                                   padding_.get(),
+                                   debug_observer_.get(),
+                                   network_.get());
+  negotiation.setRunAbacus(run_abacus);
+  negotiation.legalize();
+  negotiation.setDplPositions();
+  reportEvolvePlacementMetrics(run_abacus ? "abacus_negotiation_repair"
+                                          : "negotiation_repair");
+
+  const int violations = negotiation.numViolations();
+  logger_->metric("dpl_evolve__repair__negotiation_violations", violations);
+  if (violations > 0) {
+    logger_->warn(DPL,
+                  1216,
+                  "DPL-Evolve negotiation repair left {} placement violations.",
+                  violations);
+    return false;
+  }
+  return true;
+}
+
+bool Opendp::runStudentAlgorithm(const EvolveContext& context)
+{
+  clearGuidedInitialLocations();
+  logger_->metric("dpl_evolve__student_algorithm__pipeline_version", 1);
+  logger_->info(DPL,
+                1220,
+                "Running DPL-Evolve pipeline: LEGALM guidance, row assignment, "
+                "LEGALM legalization, then Abacus+Negotiation repair if needed.");
+
+  runDifferentialGuidance(context);
+  reportEvolvePlacementMetrics("legalm_guidance");
+
+  runRowAssignmentGuidance(context);
+  reportEvolvePlacementMetrics("row_assignment_guidance");
+
+  const bool legalm_ok = runLegalmFullLegalization(context);
+  logger_->metric("dpl_evolve__pipeline__legalm_status", legalm_ok ? 1 : 0);
+  if (legalm_ok) {
+    logger_->metric("dpl_evolve__pipeline__repair_skipped_legalm_success", 1);
+    return true;
+  }
+
+  logger_->metric("dpl_evolve__pipeline__repair_skipped_legalm_success", 0);
+  const bool repair_ok = runEvolveNegotiationRepair(/*run_abacus=*/true);
+  logger_->metric("dpl_evolve__pipeline__repair_status", repair_ok ? 1 : 0);
+  return repair_ok;
+}
+
+}  // namespace dpl_evolve

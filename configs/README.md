@@ -5,7 +5,10 @@ This directory stores reusable control-plane configuration presets.
 ## Current files
 
 - `codex_smoke.yaml`
-  Small-budget preset for smoke loops and quick validation.
+  Small-budget preset for smoke loops and quick validation.  The evaluation
+  budget is long enough for large-case strict DP flows to finish the
+  legalization/check/parasitics path without accidentally clipping at the final
+  metrics step.
 - `codex_design_specific.yaml`
   Larger-budget preset for design-level iteration.
 - `mutation_contract.yaml`

@@ -5,34 +5,47 @@ scope:
   control_plane_root: dpl_evolve_agent
   artifact_plane_root: flow
 allowed_patch_surfaces:
-  - file: tools/OpenROAD/src/dpl_evolve/src/NegotiationLegalizer.cpp
-    rationale: "Primary negotiation-based legalization logic; preferred surface for NBLG/LEGALM-inspired policy evolution."
+  - file: tools/OpenROAD/src/dpl_evolve/src/DifferentialGuidance.cpp
+    rationale: "Current high-performance LEGALM-style guidance, assignment, repair, and polish implementation."
     allowed_modes:
-      - param_tuning
-      - local_formula_change
-      - ordering_logic_change
-      - search_window_policy_change
+      - relaxed_guidance_stage
+      - alm_bgd_stage
+      - row_assignment_stage
+      - no_overflow_refinement
+      - runtime_pruning
+      - telemetry_only
       - helper_extraction
-      - postopt_enable_or_gate
-  - file: tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp
-    rationale: "Entry-point routing between legalizer choices and DPL-facing runtime behavior."
+  - file: tools/OpenROAD/src/dpl_evolve/src/EvolveLegalizer.cpp
+    rationale: "Top-level detailed_placement_evolve framework orchestration and stage handoff."
     allowed_modes:
-      - param_tuning
-      - runtime_flag_wiring
+      - stage_ordering
+      - stage_guarding
+      - diamond_compatible_stage
+      - negotiation_repair_stage
       - helper_extraction
-  - file: tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl
-    rationale: "Expose bounded experimental flags to Tcl without rewriting ORFS flow."
+  - file: tools/OpenROAD/src/dpl_evolve/src/EvolveLegalizer.h
+    rationale: "Top-level framework declarations."
     allowed_modes:
-      - expose_tcl_flag
-      - bounded_cli_plumbing
-  - file: tools/OpenROAD/src/dpl_evolve/test
-    rationale: "Regression and smoke tests may be added or adjusted to guard behavior."
+      - stage_declaration
+      - framework_state_addition
+  - file: tools/OpenROAD/src/dpl_evolve/src/EvolveContext.h
+    rationale: "Shared context facts passed into the evolved framework."
     allowed_modes:
-      - add_test
-      - extend_test
+      - case_feature_addition
+      - runtime_budget_addition
+      - stage_policy_input
+  - file: tools/OpenROAD/src/dpl_evolve/src/EvolveTelemetry.h
+    rationale: "Stage telemetry schema for explaining success and failure."
+    allowed_modes:
+      - metric_addition
+      - stage_trace_addition
 forbidden_paths:
+  - baseline
+  - scripts
+  - adapters/science_codeevolve/evaluator.py
   - flow/scripts
   - tools/OpenROAD/src/dpl
+  - tools/OpenROAD/src/dpl_evolve/test
   - tools/OpenROAD/src/rsz
   - tools/OpenROAD/src/gpl
   - third_party
@@ -76,11 +89,11 @@ gates:
     goal: "Primary objective for current track; strict acceptance policy comes from problem.yaml."
 edit_policy:
   tier_0:
-    description: "Constants, thresholds, gating booleans, existing penalty multipliers, existing iteration counts."
+    description: "Small guards, stage budgets, telemetry-only changes, and narrow rollback conditions."
   tier_1:
-    description: "Local cost formulas, sort/order logic, search-window policy, isolation/skip logic, postopt scheduling."
+    description: "Candidate generation, assignment cost, stage scheduling, no-overflow refinement, and repair trigger logic."
   tier_2:
-    description: "Add small helpers or expose Tcl flags only if needed for bounded experiments and tests."
+    description: "Add helpers or broader stage infrastructure only when the task explicitly needs a new interface."
 notes:
-  - "Codex must prefer smaller patches with explicit rationale tied to one mutation family."
-  - "Every accepted patch should map to one packet + one playbook family + one problem objective."
+  - "Codex must prefer bounded algorithmic mechanisms with explicit rationale tied to one stage."
+  - "Every accepted patch should map to one packet, one case objective, and one teacher/student review record."

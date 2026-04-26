@@ -83,6 +83,30 @@ def maybe_cost_estimate(
 
 
 def build_command(args: argparse.Namespace, root: Path, last_message_path: Path) -> list[str]:
+    if args.resume_session_id or args.resume_last:
+        # `codex exec resume` intentionally reuses the original session's cwd
+        # and writable roots, so it does not accept the full `exec` option set.
+        cmd = [
+            "codex",
+            "exec",
+            "resume",
+            "--json",
+            "-o",
+            str(last_message_path),
+        ]
+        if args.model:
+            cmd.extend(["--model", args.model])
+        if args.skip_git_repo_check:
+            cmd.append("--skip-git-repo-check")
+        for cfg in args.config:
+            cmd.extend(["-c", cfg])
+        if args.resume_last:
+            cmd.append("--last")
+        else:
+            cmd.append(args.resume_session_id)
+        cmd.append("-")
+        return cmd
+
     cmd = [
         "codex",
         "exec",
@@ -110,6 +134,42 @@ def build_command(args: argparse.Namespace, root: Path, last_message_path: Path)
 
     cmd.append("-")
     return cmd
+
+
+def prepare_codex_home(codex_home: Path) -> Path:
+    """Prepare a local CODEX_HOME without copying credentials into state.
+
+    Codex stores resumable sessions under CODEX_HOME.  For experiment rounds we
+    want those sessions near the round artifacts, while still reusing the
+    user's existing auth/config safely.  Symlinks keep secrets out of copied
+    experiment artifacts and make the relationship explicit.
+    """
+    source_home = Path.home() / ".codex"
+    codex_home.mkdir(parents=True, exist_ok=True)
+    try:
+        codex_home.chmod(0o700)
+    except OSError:
+        pass
+
+    for name in [
+        "auth.json",
+        "config.toml",
+        "AGENTS.md",
+        "installation_id",
+        "skills",
+        "memories",
+        "vendor_imports",
+    ]:
+        src = source_home / name
+        dst = codex_home / name
+        if not src.exists() or dst.exists() or dst.is_symlink():
+            continue
+        dst.symlink_to(src, target_is_directory=src.is_dir())
+
+    for name in ["sessions", "cache", "tmp", "shell_snapshots"]:
+        (codex_home / name).mkdir(parents=True, exist_ok=True)
+
+    return codex_home
 
 
 def summarize_events(events_path: Path) -> dict[str, Any]:
@@ -208,8 +268,25 @@ def main() -> None:
     ap.add_argument("--sandbox", default="workspace-write")
     ap.add_argument("--skip-git-repo-check", action="store_true")
     ap.add_argument("--color", default="never")
+    ap.add_argument(
+        "--codex-home",
+        type=Path,
+        help=(
+            "Use this CODEX_HOME for the codex subprocess. The directory is "
+            "prepared with symlinks to user auth/config and local sessions."
+        ),
+    )
     ap.add_argument("--config", action="append", default=[])
     ap.add_argument("--add-dir", action="append", default=[])
+    ap.add_argument(
+        "--resume-session-id",
+        help="Resume an existing Codex exec session/thread instead of starting a new one.",
+    )
+    ap.add_argument(
+        "--resume-last",
+        action="store_true",
+        help="Resume the most recent Codex exec session. Mostly for manual debugging.",
+    )
     ap.add_argument("--input-price-per-1m", type=float)
     ap.add_argument("--cached-input-price-per-1m", type=float)
     ap.add_argument("--output-price-per-1m", type=float)
@@ -230,6 +307,7 @@ def main() -> None:
 
     prompt_path.write_text(prompt_text, encoding="utf-8")
     command = build_command(args, root, last_message_path)
+    codex_home = prepare_codex_home(args.codex_home) if args.codex_home else None
 
     started_at = dt.datetime.now().isoformat()
     start_time = time.perf_counter()
@@ -243,6 +321,9 @@ def main() -> None:
         "model": args.model,
         "profile": args.profile,
         "sandbox": args.sandbox,
+        "codex_home": str(codex_home) if codex_home else None,
+        "resume_session_id": args.resume_session_id,
+        "resume_last": args.resume_last,
         "skip_git_repo_check": args.skip_git_repo_check,
         "config": args.config,
         "add_dir": args.add_dir,
@@ -256,6 +337,7 @@ def main() -> None:
         proc = subprocess.Popen(
             command,
             cwd=str(root),
+            env={**os.environ, **({"CODEX_HOME": str(codex_home)} if codex_home else {})},
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=stderr_fh,

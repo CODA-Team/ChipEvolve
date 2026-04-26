@@ -9,10 +9,9 @@ Run the full baseline matrix and one evolve line to compare the candidate legali
 If the run is agent-managed rather than manual, prefer calling it through:
 
 - `$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py --mode suite`
-- or `$DPL_EVOLVE_AGENT_ROOT/scripts/run_codex_once.sh --mode suite`
 
 ## What this should cover
-- OpenROAD default legalizer
+- OpenROAD DPL flow: `detailed_placement`, `improve_placement`, `optimize_mirroring`
 - DREAMPlace Abacus bridge
 - current evolve line
 
@@ -41,8 +40,8 @@ If the run is agent-managed rather than manual, prefer calling it through:
 
 ```bash
 "$DPL_EVOLVE_AGENT_ROOT/baseline/run_baseline_suite.sh" \
-  --design-config ./designs/nangate45/gcd/config.mk \
-  --flow-variant dpl_evolve_suite_20260422_125226 \
+  --case gcd_nangate45 \
+  --flow-variant <FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB> \
   --tag-prefix agent_suite \
   --threads 10
 ```

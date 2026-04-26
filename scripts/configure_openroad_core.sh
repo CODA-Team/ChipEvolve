@@ -33,6 +33,8 @@ Output:
 Notes:
   This script does not read OPENROAD_* environment variables as path defaults.
   Use explicit options for non-default core locations.
+  The install root is still intentional: it gives variant relink jobs a stable
+  seed OpenROAD binary at <install-root>/bin/openroad.
 EOF
 }
 

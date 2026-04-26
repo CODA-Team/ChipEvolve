@@ -12,7 +12,7 @@ The short version:
 - ORFS stays external.
 - This repo stores prompts, scripts, patches, skills, and evaluator glue.
 - Runtime state defaults to this repo's ignored `.dpl_evolve_state/`.
-- The evolved command entrypoint is always `detailed_placement_evolve`.
+- The primary evolved placement command is always `detailed_placement_evolve`.
 - The current algorithm direction is a constrained top-level framework whose
   stages can be replaced by agents, not an unconstrained family-tree router.
 - The listed stages are scaffolding. Specific objectives, algorithms, and
@@ -20,6 +20,22 @@ The short version:
 - OpenROAD common code is built once.
 - Each experiment variant rebuilds only its own `dpl_evolve` code and relinks a
   private `openroad` binary.
+
+## Project Goal
+
+The goal is case-level algorithm evolution for detailed placement.  Teacher
+and child agents may change algorithms, stage policies, objectives, and CPU
+implementation details as long as the result is judged by independent metrics
+and strict legality checks.  The command under evolution stays:
+
+```text
+detailed_placement_evolve
+```
+
+Diamond/OpenROAD, NBLG/negotiation, LEGALM, and DREAMPlace/Abacus code are
+references or baselines.  They are not global truth; every borrowed mechanism
+must earn its place on the active case through measured HPWL/runtime/
+displacement/legality evidence.
 
 ## Basic Layout
 
@@ -54,15 +70,6 @@ problems/<case>/problem.yaml
 Batch scripts may use named lists from `problems/case_sets.json`, but those
 lists contain only case ids. They do not duplicate design configs or platform
 facts.
-
-If you prefer a local convenience link:
-
-```bash
-"$DPL_EVOLVE_AGENT_ROOT/scripts/attach_orfs_workspace.sh" \
-  --workspace-root "$ORFS_ROOT"
-```
-
-That creates `$DPL_EVOLVE_AGENT_ROOT/.mounted_orfs`, which is ignored by git.
 
 ## Prepare ORFS
 
@@ -121,9 +128,10 @@ Create one private variant source and binary:
 
 ```bash
 mkdir -p "${DPL_EVOLVE_STATE_ROOT}/variants/test_agent"
-rsync -a --delete \
-  "$ORFS_ROOT/tools/OpenROAD/src/dpl_evolve/" \
-  "${DPL_EVOLVE_STATE_ROOT}/variants/test_agent/dpl_evolve/"
+
+"$DPL_EVOLVE_AGENT_ROOT/scripts/create_variant_start.sh" \
+  --variant-root "${DPL_EVOLVE_STATE_ROOT}/variants/test_agent" \
+  --dpl-src "${DPL_EVOLVE_STATE_ROOT}/variants/test_agent/dpl_evolve"
 
 "$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_variant_relink.sh" \
   --variant-root "${DPL_EVOLVE_STATE_ROOT}/variants/test_agent" \
@@ -143,37 +151,6 @@ ${DPL_EVOLVE_STATE_ROOT}/variants/test_agent/install/OpenROAD/bin/sta
 ```
 
 `sta` is symlinked from the common-core build when available.
-
-## Lightweight Plugin Experiments
-
-For top-level stage-order experiments, OpenROAD can be linked once and agents
-can compile only a small shared object:
-
-```bash
-"$DPL_EVOLVE_AGENT_ROOT/plugins/dpl_evolve_plugin_v1/build.sh" \
-  --openroad-src "$ORFS_ROOT/tools/OpenROAD" \
-  --out "${DPL_EVOLVE_STATE_ROOT}/plugins/default_diamond/libdpl_evolve_plugin.so"
-```
-
-Run an evolved line with the plugin loaded:
-
-```bash
-DPL_EVOLVE_PLUGIN_SO="${DPL_EVOLVE_STATE_ROOT}/plugins/default_diamond/libdpl_evolve_plugin.so" \
-python3 "$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py" \
-  --case gcd_nangate45 \
-  --mode single \
-  --line evolve_default \
-  --flow-variant <FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB> \
-  --run-tag plugin_smoke_gcd \
-  --skip-build \
-  --openroad-binary "${DPL_EVOLVE_STATE_ROOT}/variants/test_agent/install/OpenROAD/bin/openroad" \
-  --out "${DPL_EVOLVE_STATE_ROOT}/checkpoints/operations/plugin_smoke_gcd/eval.json"
-```
-
-The V1 plugin ABI currently exposes stage callbacks and integer telemetry:
-diamond-compatible legalization, negotiation repair, and metric emission.  Use
-private relink for deeper source changes; use plugin `.so` experiments when the
-idea is mostly orchestration or stage policy.
 
 ## Run One Evaluation
 
@@ -203,7 +180,7 @@ Future agents should learn from compact reference implementations instead of
 wandering through historical experiments:
 
 ```text
-family_variants/reference_sources/
+family_variants/
 ```
 
 That directory keeps the high-value donors:
@@ -214,10 +191,32 @@ That directory keeps the high-value donors:
 - DREAMPlace Abacus.
 
 Use `knowledge/EVIDENCE_POLICY.md` to separate project contracts, measured
-observations, working hypotheses, and reference donors. In particular, diamond
-is the current strict-track comparison anchor, while LEGALM, Negotiation/NBLG,
-and DREAMPlace/Abacus are donors whose mechanisms must be validated after
-porting.
+observations, working hypotheses, and reference donors. The current
+strict-track comparison anchor is the OpenROAD DPL flow line
+(`detailed_placement`, `improve_placement`, `optimize_mirroring`). Diamond,
+LEGALM, Negotiation/NBLG, and DREAMPlace/Abacus are donors whose mechanisms
+must be validated after porting.
+
+## Repository Hygiene
+
+Before publishing or asking another agent to read the repo, run:
+
+```bash
+python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/audit_repo_hygiene.py"
+git diff --check
+```
+
+Tracked files must be deployable from a fresh clone:
+
+- no machine-local absolute paths,
+- no runtime state or build products,
+- no hidden dependency on ignored archives,
+- no stale family-tree patch surfaces,
+- no evaluator/scoring changes disguised as algorithm changes.
+
+Runtime evidence belongs under ignored `DPL_EVOLVE_STATE_ROOT`; durable lessons
+belong in `knowledge/`, `family_variants/`, or the database
+helpers with explicit evidence scope.
 
 Older family variants remain as archived evidence, but the default development
 path is now:
@@ -230,16 +229,36 @@ detailed_placement_evolve
   -> database evidence commit
 ```
 
-## Run The Automated Codex Loop
+## Run The Teacher/Child Optimization Loop
 
 ```bash
-python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/run_design_evolve_loop.py" \
-  --case gcd_nangate45 \
-  --max-attempts 3
+python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py" \
+  --case jpeg_nangate45 \
+  --children 4 \
+  --iterations 2 \
+  --dry-run
 ```
 
-The loop handles checkpoint restore, packet refresh, Codex invocation, build,
-evaluation, scoring, and accept/reject.
+This creates a reviewable Teacher/child optimization round under ignored
+`DPL_EVOLVE_STATE_ROOT/teacher_rounds/`.  Add `--launch` when you want it to
+invoke `codex exec` through `scripts/run_codex_exec.py`.
+
+At the beginning of a launched round, the orchestrator refreshes the canonical
+baseline suite for the case:
+
+```text
+openroad_dpl_flow
+evolve_default
+```
+
+The generated Teacher prompt includes the metrics, report, result, and log
+paths for each row so Teacher can inspect evidence before assigning aggressive
+student routes.
+
+Teacher review is intentionally cross-student: it reads each student's code
+diff and metrics, compares mechanisms side by side, and gives every student a
+next revision or pivot.  A weak result is not a frozen worker; it becomes a
+directed follow-up inside that student's private variant workspace.
 
 The Codex-facing contract is in:
 

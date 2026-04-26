@@ -5,7 +5,7 @@ source [file join [file dirname [info script]] dpl_evolve_helpers.tcl]
 
 set options [dpl_evolve_baseline::parse_options $argv [dict create \
   input-odb "legalized.odb" \
-  input-sdc "legalized.sdc" \
+  input-sdc "../../2_floorplan.sdc" \
   check-cmd "check_placement" \
   check-report [file join $::env(REPORTS_DIR) check_placement_report.json] \
   summary-json [file join $::env(REPORTS_DIR) post_metrics_summary.json] \

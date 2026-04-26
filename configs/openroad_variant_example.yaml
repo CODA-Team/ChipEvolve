@@ -7,6 +7,6 @@ BUDGET_CONFIG:
   openroad_build_dir: ${DPL_EVOLVE_STATE_ROOT}/variants/agent_a/build
   openroad_install_root: ${DPL_EVOLVE_STATE_ROOT}/variants/agent_a/install/OpenROAD
   openroad_binary: ${DPL_EVOLVE_STATE_ROOT}/variants/agent_a/install/OpenROAD/bin/openroad
-  eval_timeout_sec: 1800
+  eval_timeout_sec: 2400
   build_timeout_sec: 1800
   monitor_interval_sec: 0.5

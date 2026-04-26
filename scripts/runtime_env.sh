@@ -6,9 +6,9 @@ _dpl_is_orfs_root() {
   [[ -d "${candidate}/flow" && -d "${candidate}/tools/OpenROAD" ]]
 }
 
-_dpl_default_mount_root() {
+_dpl_default_orfs_root() {
   local agent_root="$1"
-  printf '%s\n' "${agent_root}/.mounted_orfs"
+  realpath -m "${agent_root}/../OpenROAD-flow-scripts"
 }
 
 _dpl_contains_space() {
@@ -108,12 +108,12 @@ dpl_init_runtime() {
       return 1
     fi
     export ORFS_ROOT="${candidate}"
-  elif _dpl_is_orfs_root "$(_dpl_default_mount_root "${agent_root}")"; then
-    export ORFS_ROOT="$(_dpl_default_mount_root "${agent_root}")"
+  elif _dpl_is_orfs_root "$(_dpl_default_orfs_root "${agent_root}")"; then
+    export ORFS_ROOT="$(_dpl_default_orfs_root "${agent_root}")"
   else
     echo "[ERROR] ${script_name} could not locate an ORFS workspace." >&2
     echo "[ERROR] Set ORFS_ROOT to a workspace containing flow/ and tools/OpenROAD/." >&2
-    echo "[ERROR] Or attach one under \$DPL_EVOLVE_AGENT_ROOT/.mounted_orfs via scripts/attach_orfs_workspace.sh." >&2
+    echo "[ERROR] Default sibling lookup also failed: $(_dpl_default_orfs_root "${agent_root}")" >&2
     return 1
   fi
 

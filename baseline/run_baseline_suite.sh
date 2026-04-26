@@ -16,9 +16,8 @@ usage() {
 Usage: run_baseline_suite.sh [options]
 
 Runs the canonical strict comparison bundle:
-  1. dreamplace_default
-  2. openroad_dpl_negotiation
-  3. evolve_default
+  1. openroad_dpl_flow
+  2. evolve_default
 
 Options:
   --case ID                 Case id under problems/. Default: gcd_nangate45.
@@ -27,8 +26,6 @@ Options:
   --threads N               NUM_CORES passed to each run.
   --input-stage NAME        Input placement stage. Default: 3_4_place_resized.
   --tag-prefix NAME         Prefix added to every run tag.
-  --dreamplace-root PATH    Required for dreamplace_default.
-  --dreamplace-python PATH  Optional Python interpreter for dreamplace_default.
   --openroad-binary PATH    Optional explicit OpenROAD binary.
   --help                    Show this message.
 EOF
@@ -87,8 +84,6 @@ flow_variant=""
 threads=""
 input_stage="3_4_place_resized"
 tag_prefix=""
-dreamplace_root=""
-dreamplace_python=""
 openroad_binary=""
 
 while [[ $# -gt 0 ]]; do
@@ -99,8 +94,6 @@ while [[ $# -gt 0 ]]; do
     --threads) threads="$2"; shift 2 ;;
     --input-stage) input_stage="$2"; shift 2 ;;
     --tag-prefix) tag_prefix="$2"; shift 2 ;;
-    --dreamplace-root) dreamplace_root="$2"; shift 2 ;;
-    --dreamplace-python) dreamplace_python="$2"; shift 2 ;;
     --openroad-binary) openroad_binary="$2"; shift 2 ;;
     --help|-h) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage >&2; exit 1 ;;
@@ -174,19 +167,8 @@ run_case() {
   printf '%s\t%s\t%s\n' "${line_id}" "${run_tag}" "${metrics_json}" >> "${suite_summary_tsv}"
 }
 
-dreamplace_args=()
-if [[ -n "${dreamplace_root}" ]]; then
-  dreamplace_args+=(--dreamplace-root "${dreamplace_root}")
-fi
-if [[ -n "${dreamplace_python}" ]]; then
-  dreamplace_args+=(--dreamplace-python "${dreamplace_python}")
-fi
-
-run_case "dreamplace_default" "${tag_prefix}dreamplace_default" \
-  "${SCRIPT_DIR}/run_dreamplace_default.sh" "${dreamplace_args[@]}"
-
-run_case "openroad_dpl_negotiation" "${tag_prefix}openroad_dpl_negotiation" \
-  "${SCRIPT_DIR}/run_openroad_negotiation.sh"
+run_case "openroad_dpl_flow" "${tag_prefix}openroad_dpl_flow" \
+  "${SCRIPT_DIR}/run_openroad_dpl_flow.sh"
 
 run_case "evolve_default" "${tag_prefix}evolve_default" \
   "${SCRIPT_DIR}/run_evolve_default.sh"

@@ -7,7 +7,7 @@ Loop-driven patching agents normally should not run evaluation themselves.
 
 ```bash
 python3 "$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py" \
-  --problem "$DPL_EVOLVE_AGENT_ROOT/problems/gcd_nangate45/problem.yaml" \
+  --case gcd_nangate45 \
   --mode single \
   --line evolve_default \
   --flow-variant <FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB> \

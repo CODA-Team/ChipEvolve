@@ -4,8 +4,7 @@ Manual one-line runner notes. Prefer `evaluator.py` for agent-managed runs.
 
 ## Lines
 
-- `openroad_dpl_negotiation`
-- `dreamplace_default`
+- `openroad_dpl_flow`
 - `evolve_default`
 
 ## Preferred Manual Wrapper
@@ -13,7 +12,7 @@ Manual one-line runner notes. Prefer `evaluator.py` for agent-managed runs.
 ```bash
 "$DPL_EVOLVE_AGENT_ROOT/scripts/run_canonical_line.sh" \
   --line evolve_default \
-  --design-config ./designs/nangate45/gcd/config.mk \
+  --case gcd_nangate45 \
   --flow-variant <FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB> \
   --run-tag <RUN_TAG> \
   --threads 10
@@ -26,7 +25,7 @@ source "${DPL_EVOLVE_STATE_ROOT}/variants/<agent_id>/variant_env.sh"
 "$DPL_EVOLVE_AGENT_ROOT/scripts/run_canonical_line.sh" \
   --line evolve_default \
   --openroad-binary "${OPENROAD_BINARY}" \
-  --design-config ./designs/nangate45/gcd/config.mk \
+  --case gcd_nangate45 \
   --flow-variant <FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB> \
   --run-tag <RUN_TAG> \
   --threads 10

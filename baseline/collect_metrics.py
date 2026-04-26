@@ -129,10 +129,7 @@ def main() -> None:
     parser.add_argument("--after", required=True, help="After-placement TSV snapshot.")
     parser.add_argument("--run-summary", help="Strict-track summary JSON.")
     parser.add_argument("--post-metrics-summary", help="Post-legalization ODB metrics summary JSON.")
-    parser.add_argument("--before-summary", help="Before snapshot summary JSON.")
-    parser.add_argument("--after-summary", help="After snapshot summary JSON.")
     parser.add_argument("--manifest", help="Run manifest JSON.")
-    parser.add_argument("--bridge-manifest", help="External legalizer bridge manifest JSON.")
     parser.add_argument("--detailed-placement-report", help="Detailed placement JSON report.")
     parser.add_argument("--orfs-metrics", help="ORFS stage metrics JSON.")
     parser.add_argument(
@@ -147,10 +144,7 @@ def main() -> None:
     after = load_snapshot(args.after)
     run_summary = load_json(args.run_summary)
     post_metrics_summary = load_json(args.post_metrics_summary)
-    before_summary = load_json(args.before_summary)
-    after_summary = load_json(args.after_summary)
     manifest = load_json(args.manifest)
-    bridge_manifest = load_json(args.bridge_manifest)
     dp_report = load_json(args.detailed_placement_report)
     orfs_metrics = load_json(args.orfs_metrics)
     orfs_metadata = load_json(args.orfs_metadata)
@@ -160,7 +154,7 @@ def main() -> None:
     report_dir = output.parent
 
     dbu_per_micron = None
-    for source in (run_summary, post_metrics_summary, before_summary, after_summary):
+    for source in (run_summary, post_metrics_summary):
         if "dbu_per_micron" in source:
             dbu_per_micron = float(source["dbu_per_micron"])
             break
@@ -197,10 +191,11 @@ def main() -> None:
             "status",
             "track",
             "legalizer_mode",
+            "stage_sequence",
             "place_command",
+            "improve_command",
+            "optimize_command",
             "padding_command",
-            "use_negotiation",
-            "use_abacus",
             "balance_rows",
             "enable_dpo",
         ),
@@ -271,30 +266,12 @@ def main() -> None:
         "check_report": post_metrics_summary.get("check_report"),
     }
 
-    if bridge_manifest:
-        dreamplace_bridge = select_present(
-            bridge_manifest,
-            (
-                "status",
-                "dreamplace_root",
-                "python_executable",
-                "greedy_legality_check_passed",
-                "legality_check_passed",
-            ),
-        )
-        if not dreamplace_bridge:
-            dreamplace_bridge = bridge_manifest
-        payload["dreamplace_bridge"] = dreamplace_bridge
-
     supporting_files = {
         "before_snapshot_tsv": relative_artifact(args.before, report_dir),
         "after_snapshot_tsv": relative_artifact(args.after, report_dir),
         "legalize_summary_json": relative_artifact(args.run_summary, report_dir),
         "post_metrics_summary_json": relative_artifact(args.post_metrics_summary, report_dir),
-        "before_summary_json": relative_artifact(args.before_summary, report_dir),
-        "after_summary_json": relative_artifact(args.after_summary, report_dir),
         "detailed_placement_report_json": relative_artifact(args.detailed_placement_report, report_dir),
-        "dreamplace_manifest_json": relative_artifact(args.bridge_manifest, report_dir),
         "raw_metrics_json": relative_artifact(args.orfs_metrics, report_dir),
         "normalized_metadata_json": relative_artifact(args.orfs_metadata, report_dir),
     }

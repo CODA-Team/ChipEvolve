@@ -9,14 +9,21 @@ Patch status is tracked in:
 
 - `openroad_dpl_evolve_base.patch`
   Applies the clean `dpl_evolve` base, the minimal `ord` hooks needed to
-  register `detailed_placement_evolve`, and the `DPL_EVOLVE_SRC_DIR` build
-  hook to a clean OpenROAD checkout.
+  register the evolve command surface (`detailed_placement_evolve`,
+  `improve_placement_evolve`, and `optimize_mirroring_evolve`; the legacy
+  `optimize_evolve` alias may also exist in older prepared source), and the
+  `DPL_EVOLVE_SRC_DIR` build hook to a clean OpenROAD checkout. It
+  intentionally does not install a target-side `src/dpl_evolve/README.md`;
+  use this control repo's README,
+  `AGENTS.md`, and `knowledge/` as the documentation source of truth.
 - `openroad_dpl_evolve_framework.patch`
   Applies the constrained top-level `dpl_evolve` framework on top of the clean
-  base. The command entrypoint remains `detailed_placement_evolve`; the patch
-  introduces framework stage skeletons, telemetry, and the V1 plugin loader
-  (`DPL_EVOLVE_PLUGIN_SO` / `EvolvePluginApi.h`) while default behavior stays
-  diamond-compatible unless negotiation is explicitly requested.
+  base. The primary evolved placement command remains `detailed_placement_evolve`; the patch
+  introduces framework telemetry, the student-owned algorithm hook, a
+  LEGALM-style guidance/legalization starting path, and Abacus-enabled
+  negotiation repair as a downstream repair stage. Child agents implement
+  case-specific behavior by modifying this private `dpl_evolve` source after
+  the orchestrator has collected baseline evidence.
 - `orfs_make_overlay.patch`
   Applies the `flow/Makefile` runner hook needed by the control plane so the
   strict baseline wrappers can pass `RUN_OPENROAD_ARGS` and `RUN_SCRIPT_ARGS`

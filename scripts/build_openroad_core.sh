@@ -27,6 +27,8 @@ Options:
 Notes:
   OPENROAD_* environment variables are not used as input defaults.  This
   wrapper exports explicit paths only for the internal build helper it calls.
+  The install root is the stable seed binary location for private variant
+  relinks.
 EOF
 }
 

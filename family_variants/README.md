@@ -6,32 +6,28 @@ family-tree router.
 Default agent context should read only:
 
 - `REFERENCE_INDEX.yaml`
-- `reference_sources/`
-- `negotiation_parallel_frontier/` when negotiation-history code is assigned
-- `legalm_engine/` when LEGALM sidecar code is assigned
+- one assigned donor directory in this folder
 - `../patches/PATCH_AUDIT.yaml` when deciding whether a patch-like file is a
   direct apply target or only a reference delta
 
 Everything from the previous family-tree flow that is not part of those
-references has been moved to:
-
-```text
-local_backups/legacy_family_flow_cleanup_20260425/
-```
-
-That backup is intentionally ignored by git.  Use it only for explicit
-forensics, not as default context.
+references is intentionally excluded from default tracked context.  If a task
+needs legacy evidence, it should name the archive explicitly; agents should not
+search external or ignored backup material by default.
 
 ## Selection
 
-- Use OpenROAD diamond as the current strict-track comparison anchor.
-- Use `negotiation_parallel_frontier` only as a selected negotiation-history
-  donor; old r5 records are superseded for default context.
-- Use `legalm_engine/dpl_evolve.patch` as a complete LEGALM source donor, not
-  as a direct base for the current framework.
-- Use `reference_sources/dreamplace_abacus` as a row-assignment/compaction
+- Use OpenROAD diamond as a local-search donor and as one component of the
+  measured OpenROAD DPL-flow baseline. It is not the default evolved
+  implementation.
+- Use `openroad_negotiation_nblg/` for negotiation/NBLG
+  repair ideas. Its `mechanism_deltas/parallel_frontier.diff` keeps selected
+  threaded-frontier mechanisms without creating another family entry.
+- Use `legalm_guidance/` as the LEGALM-style implementation
+  reference for student agents.
+- Use `dreamplace_abacus` as a row-assignment/compaction
   reference.
-- Do not treat files under `reference_deltas/` as direct patches for the
+- Do not treat files under `mechanism_deltas/` as direct patches for the
   current framework.  They are compact mechanism examples to be ported.
 
 New algorithm work should become a patch to the constrained framework behind

@@ -9,8 +9,7 @@ usage() {
 Usage: run_canonical_line.sh --line NAME [options]
 
 Canonical lines:
-  dreamplace_default
-  openroad_dpl_negotiation
+  openroad_dpl_flow
   evolve_default
 
 Options:
@@ -59,11 +58,8 @@ if [[ -n "${openroad_binary}" ]]; then
 fi
 
 case "${line}" in
-  dreamplace_default)
-    exec "${BASELINE_DIR}/run_dreamplace_default.sh" "${pass_through[@]}"
-    ;;
-  openroad_dpl_negotiation)
-    exec "${BASELINE_DIR}/run_openroad_negotiation.sh" "${pass_through[@]}"
+  openroad_dpl_flow)
+    exec "${BASELINE_DIR}/run_openroad_dpl_flow.sh" "${pass_through[@]}"
     ;;
   evolve_default)
     exec "${BASELINE_DIR}/run_evolve_default.sh" "${pass_through[@]}"

@@ -17,9 +17,8 @@ usage() {
 Usage: run_baseline.sh --line NAME [options]
 
 Canonical strict-only lines:
-  dreamplace_default         DREAMPlace bridge default placement.
-  openroad_dpl_negotiation   OpenROAD detailed_placement, then -use_negotiation.
-  evolve_default             detailed_placement_evolve default command.
+  openroad_dpl_flow          OpenROAD detailed_placement, improve_placement, optimize_mirroring.
+  evolve_default             detailed_placement_evolve, improve_placement_evolve, optimize_mirroring_evolve.
 
 Options:
   --line NAME                Canonical line to run.
@@ -30,8 +29,6 @@ Options:
   --run-tag NAME             Stable tag under dpl_evolve_baseline/.
   --threads N                NUM_CORES passed to ORFS/OpenROAD.
   --openroad-binary PATH     Explicit OpenROAD binary override.
-  --dreamplace-root PATH     Required for dreamplace_default.
-  --dreamplace-python PATH   Optional Python interpreter for dreamplace_default.
   --help                     Show this message.
 
 This dispatcher intentionally has no flow track and no engine switch.  The
@@ -47,8 +44,6 @@ flow_variant=""
 run_tag=""
 threads=""
 openroad_binary=""
-dreamplace_root=""
-dreamplace_python=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -84,14 +79,6 @@ while [[ $# -gt 0 ]]; do
       openroad_binary="$2"
       shift 2
       ;;
-    --dreamplace-root)
-      dreamplace_root="$2"
-      shift 2
-      ;;
-    --dreamplace-python)
-      dreamplace_python="$2"
-      shift 2
-      ;;
     --help|-h)
       usage
       exit 0
@@ -111,7 +98,7 @@ if [[ -z "${line}" ]]; then
 fi
 
 case "${line}" in
-  dreamplace_default|openroad_dpl_negotiation|evolve_default) ;;
+  openroad_dpl_flow|evolve_default) ;;
   *)
     echo "Unsupported canonical line: ${line}" >&2
     usage >&2
@@ -205,41 +192,19 @@ flow_variant="$(normalize_flow_relpath "${flow_variant}")"
 run_tag="${run_tag:-$(date +%Y%m%d_%H%M%S)_${line}}"
 
 case "${line}" in
-  dreamplace_default)
-    if [[ -z "${dreamplace_root}" ]]; then
-      echo "dreamplace_default requires --dreamplace-root." >&2
-      exit 1
-    fi
-    manifest_engine="dreamplace_default"
-    command_set="dreamplace"
-    legalizer_mode="dreamplace_default"
-    check_cmd="check_placement_evolve"
-    ;;
-  openroad_dpl_negotiation)
-    manifest_engine="negotiation"
+  openroad_dpl_flow)
+    manifest_engine="openroad_dpl_flow"
     command_set="classic"
-    legalizer_mode="openroad_dpl_diamond_then_negotiation"
-    legalizer_name="openroad_dpl_diamond_then_negotiation"
-    padding_cmd="set_placement_padding"
-    place_cmd="detailed_placement"
+    legalizer_mode="openroad_dpl_flow"
+    detail_tcl="${SCRIPT_DIR}/detail_place_openroad.tcl"
     check_cmd="check_placement"
-    use_negotiation=1
-    use_legalm=0
-    use_abacus=0
-    two_stage_negotiation=1
     ;;
   evolve_default)
     manifest_engine="evolve_default"
     command_set="evolve"
     legalizer_mode="evolve_default"
-    legalizer_name="evolve_default"
-    padding_cmd="set_placement_padding_evolve"
-    place_cmd="detailed_placement_evolve"
+    detail_tcl="${SCRIPT_DIR}/detail_place_evolve.tcl"
     check_cmd="check_placement_evolve"
-    use_negotiation=0
-    use_legalm=0
-    use_abacus=0
-    two_stage_negotiation=0
     ;;
 esac
 
@@ -314,73 +279,29 @@ fi
 
 before_snapshot="${run_dir}/before.tsv"
 after_snapshot="${run_dir}/after.tsv"
-before_summary="${report_dir}/before_summary.json"
 legalize_summary_json="${report_dir}/legalize_summary.json"
 post_metrics_summary_json="${report_dir}/post_metrics_summary.json"
 metadata_json="${report_dir}/metadata.json"
 metrics_json="${report_dir}/metrics.json"
 dp_report="${report_dir}/detailed_placement_report.json"
 check_report="${report_dir}/check_placement_report.json"
-bridge_manifest="${report_dir}/dreamplace_manifest.json"
-dreamplace_input="${report_dir}/dreamplace_input.json"
-bridge_coords="${run_dir}/dreamplace_coords.tsv"
 output_odb="${run_dir}/legalized.odb"
-output_def="${run_dir}/legalized.def"
-output_sdc="${run_dir}/legalized.sdc"
+metrics_input_sdc="../../2_floorplan.sdc"
 stage_metrics_json="${run_log_dir}/3_5_place_dp.json"
 legalize_log_stem="dpl_evolve_${run_tag}_legalize"
 strict_driver="${run_objects_dir}/${run_tag}_legalize_driver.tcl"
 
-if [[ "${line}" == "dreamplace_default" ]]; then
-  dreamplace_driver_args=(
-    input-odb "${input_stage}.odb"
-    input-sdc "2_floorplan.sdc"
-    run-dir "${run_dir}"
-    report-dir "${report_dir}"
-    before-snapshot "${before_snapshot}"
-    before-summary "${before_summary}"
-    export-json "${dreamplace_input}"
-    coords-tsv "${bridge_coords}"
-    bridge-manifest "${bridge_manifest}"
-    output-odb "${output_odb}"
-    output-def "${output_def}"
-    output-sdc "${output_sdc}"
-    after-snapshot "${after_snapshot}"
-    summary-json "${legalize_summary_json}"
-    track "strict"
-    legalizer "${legalizer_mode}"
-    dreamplace-root "${dreamplace_root}"
-  )
-  if [[ -n "${dreamplace_python}" ]]; then
-    dreamplace_driver_args+=(python "${dreamplace_python}")
-  fi
-  write_tcl_driver "$(flow_abs "${strict_driver}")" "$(flow_abs "${SCRIPT_DIR}/detail_place_dreamplace.tcl")" \
-    "${dreamplace_driver_args[@]}"
-else
-  {
-    printf 'set legalizer_name {%s}\n' "${legalizer_name}"
-    printf 'set padding_cmd {%s}\n' "${padding_cmd}"
-    printf 'set place_cmd {%s}\n' "${place_cmd}"
-    printf 'set use_negotiation %s\n' "${use_negotiation}"
-    printf 'set use_legalm %s\n' "${use_legalm}"
-    printf 'set use_abacus %s\n' "${use_abacus}"
-    printf 'set two_stage_negotiation %s\n' "${two_stage_negotiation}"
-  } > "$(flow_abs "${strict_driver}")"
-  write_tcl_driver "$(flow_abs "${strict_driver}.opts")" "$(flow_abs "${SCRIPT_DIR}/detail_place_strict_core.tcl")" \
-    input-odb "${input_stage}.odb" \
-    input-sdc "2_floorplan.sdc" \
-    run-dir "${run_dir}" \
-    report-dir "${report_dir}" \
-    before-snapshot "${before_snapshot}" \
-    after-snapshot "${after_snapshot}" \
-    output-odb "${output_odb}" \
-    output-def "${output_def}" \
-    output-sdc "${output_sdc}" \
-    summary-json "${legalize_summary_json}" \
-    dp-report "${dp_report}" \
-    track "strict"
-  cat "$(flow_abs "${strict_driver}.opts")" >> "$(flow_abs "${strict_driver}")"
-fi
+write_tcl_driver "$(flow_abs "${strict_driver}")" "$(flow_abs "${detail_tcl}")" \
+  input-odb "${input_stage}.odb" \
+  input-sdc "2_floorplan.sdc" \
+  run-dir "${run_dir}" \
+  report-dir "${report_dir}" \
+  before-snapshot "${before_snapshot}" \
+  after-snapshot "${after_snapshot}" \
+  output-odb "${output_odb}" \
+  summary-json "${legalize_summary_json}" \
+  dp-report "${dp_report}" \
+  track "strict"
 
 start_ns="$(date +%s%N)"
 "${legalize_make_base[@]}" \
@@ -393,7 +314,7 @@ runtime_sec="$(awk "BEGIN {printf \"%.3f\", (${end_ns} - ${start_ns}) / 10000000
 metrics_driver="${run_objects_dir}/${run_tag}_metrics_driver.tcl"
 write_tcl_driver "$(flow_abs "${metrics_driver}")" "$(flow_abs "${SCRIPT_DIR}/report_legalized_metrics.tcl")" \
   input-odb "legalized.odb" \
-  input-sdc "legalized.sdc" \
+  input-sdc "${metrics_input_sdc}" \
   check-cmd "${check_cmd}" \
   check-report "${check_report}" \
   summary-json "${post_metrics_summary_json}" \
@@ -423,10 +344,6 @@ collect_args=(
   --runtime-seconds "${runtime_sec}"
   --output "${metrics_json}"
 )
-if [[ "${line}" == "dreamplace_default" ]]; then
-  collect_args+=(--before-summary "${before_summary}" --bridge-manifest "${bridge_manifest}")
-fi
-
 FLOW_HOME="${FLOW_HOME}" python3 "${SCRIPT_DIR}/collect_metrics.py" "${collect_args[@]}"
 
 echo "Strict baseline complete."

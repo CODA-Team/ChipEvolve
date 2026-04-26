@@ -54,7 +54,6 @@ CONTROL_EXCLUDES = {
     "checkpoint_packages",
     "__pycache__",
     ".git",
-    ".mounted_orfs",
 }
 TARGET_EXCLUDES = {
     "__pycache__",

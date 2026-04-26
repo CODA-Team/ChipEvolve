@@ -31,4 +31,4 @@ strategy for every strict-track case.
 - full paper reimplementation before verifying current repo deltas
 - broad multithreading rewrite before strict-track metrics are stable
 - promoting a negotiation-only result without comparing against the diamond
-  anchor and the current two-stage OpenROAD baseline
+  donor and the current OpenROAD DPL flow baseline

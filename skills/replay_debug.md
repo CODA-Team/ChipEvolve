@@ -16,9 +16,9 @@ Codex should prefer:
 3. full baseline suite
 
 ## Expected replay sources
-- `local_backups/legacy_family_flow_cleanup_20260425/knowledge/replay_bank/`
 - extracted local windows / plates
 - design-specific small manifests
+- explicit historical replay archives named by the task
 
 ## Required replay outputs
 - failing surface

@@ -11,7 +11,7 @@ problem:
   id: "<problem_id>"
   design: "<design>"
   platform: "<platform>"
-  mode: "<strict|reduced-flow|flow-faithful>"
+  mode: "strict_legalizer"
   objective: "<primary objective>"
 packet:
   path: "<packet path>"

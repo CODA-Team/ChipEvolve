@@ -2,8 +2,8 @@ schema_version: 1
 purpose: >
   Human and agent-facing inventory of tracked patch artifacts.  Files listed
   here are the only tracked patch/delta artifacts that should be considered in
-  normal work.  Anything in local_backups is forensic evidence, not default
-  context.
+  normal work.  Retired local archives are not repo dependencies and are not
+  default context.
 
 prepare_patches:
   - path: patches/openroad_dpl_evolve_base.patch
@@ -11,16 +11,22 @@ prepare_patches:
     meaning: >
       Bootstraps the clean dpl_evolve source and command registration onto the
       recorded OpenROAD anchor.
+      Target-side README documentation is intentionally excluded from this
+      patch; the control repo README/AGENTS/knowledge files are the canonical
+      human and agent-facing instructions.
     apply_target: clean OpenROAD anchor from metadata/anchors.json
 
   - path: patches/openroad_dpl_evolve_framework.patch
     status: active_prepare_patch
     meaning: >
-      Adds the constrained EvolveLegalizer top-level framework and V1 plugin
-      loader on top of the clean dpl_evolve base.  The stage order is a
-      scaffold for experiments, not a frozen algorithmic claim.
+      Adds the constrained EvolveLegalizer top-level framework, student-owned
+      algorithm hook, telemetry, LEGALM-style guidance/legalization, and
+      Abacus-enabled negotiation repair on top of the clean dpl_evolve base.
+      Baseline collection is handled by the control repo, and child agents
+      modify a private variant implementation after reading source references
+      and measured case evidence.
     apply_target: prepared OpenROAD after openroad_dpl_evolve_base.patch
-    verified_on: 2026-04-25
+    verification: framework_smoke_passed
 
   - path: patches/orfs_make_overlay.patch
     status: active_prepare_patch
@@ -36,26 +42,12 @@ prepare_patches:
     apply_target: none
 
 reference_deltas:
-  - path: family_variants/legalm_engine/dpl_evolve.patch
-    status: complete_source_reference_patch
-    meaning: >
-      Complete LEGALM-style sidecar source donor.  It is useful for studying
-      staged relaxed legalization, ALM repair, and no-overflow refinement.
-    apply_policy: >
-      Do not apply directly to the current constrained framework.  Port useful
-      mechanisms into EvolveLegalizer or a plugin-stage implementation.
-
-  - path: family_variants/negotiation_parallel_frontier/reference_deltas/negotiation_parallel_frontier.diff
+  - path: family_variants/openroad_negotiation_nblg/mechanism_deltas/parallel_frontier.diff
     status: historical_delta_reference
     meaning: >
       Compact negotiation donor delta for safe threading, two-pass frontier,
       and candidate telemetry ideas.
     apply_policy: >
       Do not apply directly to the current constrained framework.  Port
-      selected mechanisms into EvolveLegalizer or a plugin-stage implementation.
-
-removed_from_default_context:
-  - path: local_backups/reference_patch_audit_20260425/family_variants/legalm_engine/research_patches/
-    reason: >
-      R4/R5 LEGALM deltas are lineage evidence and one rejected quality guard,
-      not default-context patch candidates.
+      selected mechanisms into the private variant's EvolveLegalizer/student
+      algorithm implementation.
