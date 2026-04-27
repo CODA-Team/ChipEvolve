@@ -22,6 +22,7 @@ from scripts.teacher_loop.common import (
 from scripts.teacher_loop.evidence import (
     baseline_artifact_block,
     child_artifact_status_block,
+    design_characteristics_block,
     discover_round_candidate_metrics,
     expected_metrics_path,
     metric_table,
@@ -259,6 +260,7 @@ def common_context(
     metrics: dict[str, MetricSummary | None],
     packet_path: Path,
     baseline_artifacts_path: Path,
+    design_characteristics_path: Path,
     peer_learning_path: Path,
     round_id: str,
     iteration: int,
@@ -286,6 +288,12 @@ def common_context(
         agent_root=runtime.agent_root,
         state_root=runtime.state_root,
         packet_path=packet_path,
+        design_characteristics=design_characteristics_block(
+            case_id=case_id,
+            flow_variant=flow_variant,
+            metrics=metrics,
+        ),
+        design_characteristics_path=design_characteristics_path,
         dpl_evolve_src=runtime.orfs_root
         / "tools"
         / "OpenROAD"

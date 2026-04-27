@@ -26,6 +26,12 @@
 - runtime may rise if HPWL gain is meaningful and displacement is explainable
 - editable flow: `detailed_placement_evolve -> improve_placement_evolve -> optimize_mirroring_evolve`
 
+## Design Characteristics
+
+$design_characteristics
+
+Detailed packet: `$design_characteristics_path`
+
 ## Build Contract
 
 - students edit only private variant `dpl_evolve` source

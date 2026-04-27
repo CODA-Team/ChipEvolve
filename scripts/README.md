@@ -160,8 +160,8 @@ Launch the teacher/child/review loop explicitly:
   --launch
 ```
 
-Launch with per-student session continuity, stable active workspaces, per-round
-source snapshots, and shorter follow-up prompts after the first iteration:
+Launch with per-student session continuity, explicit model settings, and more
+parallel Student workers:
 
 ```bash
 "$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py" \
@@ -173,12 +173,11 @@ source snapshots, and shorter follow-up prompts after the first iteration:
   --model gpt-5.4 \
   --reasoning-effort xhigh \
   --resume-sessions \
-  --compact-after-first \
-  --stable-student-workspaces \
   --launch
 ```
 
-With `--stable-student-workspaces`, each student keeps editing:
+Follow-up prompts are compact by default after iteration 1. Each student also
+keeps editing one stable active source workspace by default:
 
 ```text
 .dpl_evolve_state/teacher_rounds/<round>/students/student_XX/workspace/variant/dpl_evolve

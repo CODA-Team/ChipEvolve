@@ -20,7 +20,6 @@ python3 scripts/optimize_case_with_codex.py \
   --case jpeg_nangate45 \
   --children 2 \
   --iterations 2 \
-  --compact-after-first \
   --skip-baseline-preflight \
   --dry-run \
   --audit-prompts \

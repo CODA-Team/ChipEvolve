@@ -5,6 +5,8 @@ Context file: `$context_path`
 Read context. Set target. Write compact per-student insight.
 No implementation. No shell commands. No exact private paths.
 Borrow freely from Diamond, NBLG/negotiation, LEGALM, DREAMPlace/Abacus, and peer results.
+First, read `Design Characteristics`; use it to tell students what this design
+looks like before assigning directions.
 
 ## Student Exploration Seeds
 
@@ -28,6 +30,7 @@ $strategy_lines
 
 Write only:
 
+- one concise `Design read:` line covering density, population, baseline HPWL/runtime/displacement behavior, and likely bottleneck
 - one concise global diagnosis
 - `## Insight Packets`
 - one `### student_XX` packet per student

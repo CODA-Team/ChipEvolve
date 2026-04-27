@@ -3,6 +3,7 @@
 Context file: `$context_path`
 
 Read context. Write short per-student insights only.
+Use `Design Characteristics` and peer results; do not give generic advice.
 
 ## Student Exploration Seeds
 
@@ -15,6 +16,7 @@ parallelism, no hot-loop O(n^2).
 
 ## Output Required
 
+- one concise `Design read:` line
 - one concise global diagnosis
 - `## Insight Packets`
 - one `### student_XX` packet per student

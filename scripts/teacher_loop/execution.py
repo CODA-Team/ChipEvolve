@@ -13,7 +13,7 @@ from typing import Any
 from runtime_paths import clean_subprocess_env
 from scripts.teacher_loop.common import ChildRound, iter_name
 from scripts.teacher_loop.evidence import load_json, seed_private_source_from_elite
-from scripts.teacher_loop.prompts import read_text_excerpt
+from scripts.teacher_loop.prompts import focused_message_excerpt, read_text_excerpt
 
 
 def operation_thread_id(runtime: Any, operation_id: str) -> str | None:
@@ -81,7 +81,7 @@ def build_codex_exec_command(
     operation_id: str,
     prompt_path: Path,
     sandbox: str,
-    add_dir: Path,
+    add_dirs: list[Path],
     model: str | None,
     reasoning_effort: str | None,
     profile: str | None,
@@ -98,9 +98,9 @@ def build_codex_exec_command(
         str(prompt_path),
         "--sandbox",
         sandbox,
-        "--add-dir",
-        str(add_dir),
     ]
+    for add_dir in add_dirs:
+        cmd.extend(["--add-dir", str(add_dir)])
     if cwd is not None:
         cmd.extend(["--cwd", str(cwd)])
     if skip_git_repo_check:

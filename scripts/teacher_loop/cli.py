@@ -89,22 +89,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "Codex exec session."
         ),
     )
-    parser.add_argument(
-        "--compact-after-first",
-        action="store_true",
-        help="After iteration 1, send compact follow-up prompts.",
-    )
-    parser.add_argument(
-        "--stable-student-workspaces",
-        action="store_true",
-        help="Keep each student's active source workspace stable across iterations.",
-    )
     parser.add_argument("--profile")
     parser.add_argument("--sandbox", default="workspace-write")
     parser.add_argument(
         "--child-cwd",
         type=Path,
-        help="Cwd for Teacher/Student Codex sessions. Defaults to Agenticflow root.",
+        help="Cwd for Teacher/Student Codex sessions. Defaults to the parent workspace.",
     )
     parser.add_argument("--teacher-only", action="store_true")
     parser.add_argument(

@@ -44,6 +44,7 @@ from scripts.teacher_loop.evidence import (
     best_round_candidate,
     write_baseline_artifacts_packet,
     write_child_artifact_status_json,
+    write_design_characteristics_packet,
     write_peer_learning_packet,
 )
 
@@ -109,6 +110,7 @@ def main(argv: list[str] | None = None) -> int:
     logger = RoundLogger(round_dir)
     run_codex = runtime.agent_root / "scripts" / "run_codex_exec.py"
     child_cwd = (args.child_cwd or runtime.agent_root.parent).resolve()
+    codex_add_dirs = [runtime.agent_root, runtime.orfs_root, runtime.state_root]
     dry_run = args.dry_run or not args.launch
     logger.event(
         "round",
@@ -130,6 +132,8 @@ def main(argv: list[str] | None = None) -> int:
     baseline_preflight_commands: list[list[str]] = []
 
     prepare_command: list[str] | None = None
+    core_configure_command: list[str] | None = None
+    core_build_command: list[str] | None = None
     if args.prepare_workspace:
         prepare_command = [
             str(runtime.agent_root / "scripts" / "prepare_workspace.sh"),
@@ -152,6 +156,45 @@ def main(argv: list[str] | None = None) -> int:
                 logger.event("prepare", "failed", return_code=rc)
                 return rc
             logger.event("prepare", "done")
+
+    # Variant relink jobs depend on the common OpenROAD core matching the
+    # prepared OpenROAD commit.  Build it once at the top level immediately
+    # after prepare/patch so child agents only edit and relink their private
+    # dpl_evolve sources.
+    if args.launch or args.prepare_workspace:
+        core_configure_command = [
+            str(runtime.agent_root / "scripts" / "configure_openroad_core.sh"),
+        ]
+        core_build_command = [
+            str(runtime.agent_root / "scripts" / "build_openroad_core.sh"),
+            "--threads",
+            str(args.threads),
+        ]
+        all_commands.extend([core_configure_command, core_build_command])
+        if dry_run:
+            logger.event(
+                "core",
+                "planned",
+                configure=" ".join(
+                    shlex.quote(part) for part in core_configure_command
+                ),
+                build=" ".join(shlex.quote(part) for part in core_build_command),
+            )
+        else:
+            logger.event("core", "configure_start", command=core_configure_command)
+            rc = subprocess.run(
+                core_configure_command, env=clean_subprocess_env()
+            ).returncode
+            if rc:
+                logger.event("core", "configure_failed", return_code=rc)
+                return rc
+            logger.event("core", "configure_done")
+            logger.event("core", "build_start", command=core_build_command)
+            rc = subprocess.run(core_build_command, env=clean_subprocess_env()).returncode
+            if rc:
+                logger.event("core", "build_failed", return_code=rc)
+                return rc
+            logger.event("core", "build_done")
 
     seed_ready, seed_path = validate_start_kind_seed(runtime, args.start_kind)
     if not seed_ready:
@@ -230,6 +273,12 @@ def main(argv: list[str] | None = None) -> int:
             flow_variant=args.flow_variant,
             metrics=metrics,
         )
+        design_characteristics_path = write_design_characteristics_packet(
+            path=packet_dir / "design_characteristics.md",
+            case_id=args.case,
+            flow_variant=args.flow_variant,
+            metrics=metrics,
+        )
         if (
             not dry_run
             and not args.skip_baseline_preflight
@@ -295,6 +344,7 @@ def main(argv: list[str] | None = None) -> int:
             metrics=metrics,
             packet_path=packet_path,
             baseline_artifacts_path=baseline_artifacts_path,
+            design_characteristics_path=design_characteristics_path,
             peer_learning_path=peer_learning_path,
             round_id=round_id,
             iteration=iteration,
@@ -306,11 +356,10 @@ def main(argv: list[str] | None = None) -> int:
             iteration_dir=iteration_dir,
             context=context,
         )
-        compact_child_prompts = bool(args.compact_after_first and iteration > 1)
+        compact_followup_prompts = iteration > 1
 
         teacher_op = f"{round_id}_{iter_name(iteration)}_teacher_plan"
         teacher_path = prompt_dir / "teacher_plan.md"
-        compact_followup_prompts = bool(args.compact_after_first and iteration > 1)
         teacher_path.write_text(
             (
                 compact_teacher_prompt(
@@ -342,7 +391,7 @@ def main(argv: list[str] | None = None) -> int:
             operation_id=teacher_op,
             prompt_path=teacher_path,
             sandbox=args.sandbox,
-            add_dir=runtime.agent_root,
+            add_dirs=codex_add_dirs,
             model=teacher_model,
             reasoning_effort=teacher_reasoning_effort,
             profile=args.profile,
@@ -375,7 +424,7 @@ def main(argv: list[str] | None = None) -> int:
                     iteration=iteration,
                     student_id=student_id,
                     run_tag=run_tag,
-                    stable_workspace=args.stable_student_workspaces,
+                    stable_workspace=True,
                     elite_seed_source=elite_seed_source,
                     peer_learning_path=peer_learning_path,
                 )
@@ -397,10 +446,10 @@ def main(argv: list[str] | None = None) -> int:
                             run_tag=run_tag,
                             workspace_packet_path=workspace_packet,
                             peer_learning_path=peer_learning_path,
-                            stable_workspace=args.stable_student_workspaces,
+                            stable_workspace=True,
                             elite_seed_source=elite_seed_source,
                         )
-                        if compact_child_prompts
+                        if compact_followup_prompts
                         else child_prompt(
                             context_path=full_context_path,
                             runtime=runtime,
@@ -417,8 +466,8 @@ def main(argv: list[str] | None = None) -> int:
                             run_tag=run_tag,
                             workspace_packet_path=workspace_packet,
                             peer_learning_path=peer_learning_path,
-                            compact=compact_child_prompts,
-                            stable_workspace=args.stable_student_workspaces,
+                            compact=compact_followup_prompts,
+                            stable_workspace=True,
                             elite_seed_source=elite_seed_source,
                         )
                     ),
@@ -437,7 +486,7 @@ def main(argv: list[str] | None = None) -> int:
                     round_dir=round_dir,
                     iteration=iteration,
                     student_id=student_id,
-                    stable_workspace=args.stable_student_workspaces,
+                    stable_workspace=True,
                 )
                 child_round = ChildRound(
                     student_id=student_id,
@@ -483,7 +532,7 @@ def main(argv: list[str] | None = None) -> int:
                         operation_id=operation_id,
                         prompt_path=prompt_path,
                         sandbox=args.sandbox,
-                        add_dir=runtime.agent_root,
+                        add_dirs=codex_add_dirs,
                         model=student_model,
                         reasoning_effort=student_reasoning_effort,
                         profile=args.profile,
@@ -532,7 +581,7 @@ def main(argv: list[str] | None = None) -> int:
                     operation_id=review_op,
                     prompt_path=review_path,
                     sandbox=args.sandbox,
-                    add_dir=runtime.agent_root,
+                    add_dirs=codex_add_dirs,
                     model=teacher_model,
                     reasoning_effort=teacher_reasoning_effort,
                     profile=args.profile,
@@ -552,7 +601,7 @@ def main(argv: list[str] | None = None) -> int:
                 "packet": str(packet_path),
                 "peer_learning_packet": str(peer_learning_path),
                 "full_context": str(full_context_path),
-                "compact_child_prompts": compact_child_prompts,
+                "compact_child_prompts": compact_followup_prompts,
                 "teacher_plan_operation": teacher_op,
                 "children": [
                     {
@@ -732,12 +781,14 @@ def main(argv: list[str] | None = None) -> int:
                 "student_model": student_model,
                 "student_reasoning_effort": student_reasoning_effort,
                 "resume_sessions": args.resume_sessions,
-                "compact_after_first": args.compact_after_first,
-                "stable_student_workspaces": args.stable_student_workspaces,
+                "compact_after_first": True,
+                "stable_student_workspaces": True,
                 "child_cwd": str(child_cwd),
                 "prepare_workspace": args.prepare_workspace,
                 "prepare_force": args.prepare_force,
                 "prepare_command": prepare_command,
+                "core_configure_command": core_configure_command,
+                "core_build_command": core_build_command,
                 "baseline_preflight_commands": baseline_preflight_commands,
                 "commands": all_commands,
                 "dry_run": dry_run,

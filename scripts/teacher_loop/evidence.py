@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import shlex
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -644,6 +645,112 @@ def metric_table(metrics: dict[str, MetricSummary | None]) -> str:
             )
         )
     return "\n".join(lines)
+
+
+def _fmt_float(value: Any, digits: int = 3, suffix: str = "") -> str:
+    if value is None:
+        return ""
+    try:
+        return f"{float(value):.{digits}f}{suffix}"
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def design_characteristics_block(
+    *,
+    case_id: str,
+    flow_variant: str,
+    metrics: dict[str, MetricSummary | None],
+) -> str:
+    """Summarize case facts Teacher should pass to students.
+
+    Keep this evidence-derived and compact.  The Teacher can add judgment, but
+    this block gives it the concrete design/baseline facts that matter before
+    asking students to modify algorithms.
+    """
+    anchor = metrics.get("openroad_dpl_flow") or metrics.get("evolve_default")
+    anchor_data = load_json(anchor.metrics_path) if anchor is not None else None
+    design = (anchor_data or {}).get("design_metrics", {})
+    disp = (anchor_data or {}).get("displacement", {})
+    legalize = (anchor_data or {}).get("legalization", {})
+    summary_data = load_json(anchor.metrics_path.parent / "legalize_summary.json") if anchor is not None else None
+    fixed_count = (summary_data or {}).get("fixed_instance_count")
+    placed_count = (summary_data or {}).get("placed_instance_count")
+
+    utilization = design.get("utilization")
+    util_text = ""
+    if utilization is not None:
+        util_text = _fmt_float(float(utilization) * 100.0, 1, "%")
+
+    lines = [
+        f"- case: `{case_id}`",
+        f"- flow_variant/input: `{flow_variant}` / `3_4_place_resized.odb`",
+        "- density: core_area={core}um^2, instance_area={inst}um^2, "
+        "utilization={util}".format(
+            core=_fmt_float(design.get("core_area"), 1),
+            inst=_fmt_float(design.get("instance_area"), 1),
+            util=util_text,
+        ),
+        "- population: instances={inst_count}, movable={movable}, fixed={fixed}, placed={placed}".format(
+            inst_count=design.get("instance_count", ""),
+            movable=disp.get("movable_instance_count", ""),
+            fixed=fixed_count if fixed_count is not None else "",
+            placed=placed_count if placed_count is not None else "",
+        ),
+        "- baseline flow: `{seq}`".format(seq=legalize.get("stage_sequence", "")),
+        "- baseline displacement: avg={avg}um, max={maxd}um, moved={moved}".format(
+            avg=_fmt_float(disp.get("average_displacement_micron"), 4),
+            maxd=_fmt_float(disp.get("max_displacement_micron"), 4),
+            moved=disp.get("moved_instance_count", ""),
+        ),
+    ]
+
+    lines.extend(
+        [
+            "",
+            "| line | hpwl_before | hpwl_after | hpwl_delta | runtime_s | violations |",
+            "|---|---:|---:|---:|---:|---|",
+        ]
+    )
+    for line in CANONICAL_LINES:
+        summary = metrics.get(line)
+        if summary is None:
+            lines.append(f"| {line} | missing |  |  |  |  |")
+            continue
+        data = load_json(summary.metrics_path) or {}
+        hpwl = data.get("hpwl_proxy", {})
+        lines.append(
+            "| {line} | {before} | {after} | {delta} | {runtime} | {violations} |".format(
+                line=line,
+                before=_fmt_float(hpwl.get("before_micron"), 3),
+                after=_fmt_float(summary.hpwl_after, 3),
+                delta=_fmt_float(summary.hpwl_delta, 3),
+                runtime=_fmt_float(summary.runtime_seconds, 3),
+                violations=summary.violations or "clean",
+            )
+        )
+    return "\n".join(lines)
+
+
+def write_design_characteristics_packet(
+    *,
+    path: Path,
+    case_id: str,
+    flow_variant: str,
+    metrics: dict[str, MetricSummary | None],
+) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "# Generated Design Characteristics\n\n"
+        + design_characteristics_block(
+            case_id=case_id,
+            flow_variant=flow_variant,
+            metrics=metrics,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return path
 
 
 def baseline_artifact_block(
