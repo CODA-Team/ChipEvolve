@@ -41,7 +41,19 @@ Runtime state is ignored by git and normally lives here:
 dpl_evolve_agent/.dpl_evolve_state/
 ```
 
-Create a machine-local environment file:
+You need:
+
+- `bash`, `git`, `python3`, `make`, `cmake`, and a working C++ toolchain.
+- OpenROAD/ORFS build dependencies already available on the machine.
+- Python with `yaml`/PyYAML for evaluator and case-registry paths.
+- `codex` CLI for launched Teacher/Student runs.
+
+## Quick Run
+
+This is the copy/paste flow for "repatch ORFS/OpenROAD into the framework
+state, compile the common core, then run `ibex_nangate45`".
+
+Create and source the machine-local environment:
 
 ```bash
 cd /path/to/dpl_evolve_agent
@@ -50,7 +62,7 @@ $EDITOR env.sh
 source env.sh
 ```
 
-Required variables:
+At minimum, `env.sh` should define:
 
 ```bash
 export DPL_EVOLVE_AGENT_ROOT="/abs/path/to/dpl_evolve_agent"
@@ -60,30 +72,18 @@ export DPL_EVOLVE_STATE_ROOT="${DPL_EVOLVE_AGENT_ROOT}/.dpl_evolve_state"
 
 Keep machine-local paths in ignored `env.sh`, not in tracked files.
 
-You need:
-
-- `bash`, `git`, `python3`, `make`, `cmake`, and a working C++ toolchain.
-- OpenROAD/ORFS build dependencies already available on the machine.
-- Python with `yaml`/PyYAML for evaluator and case-registry paths.
-- `codex` CLI for launched Teacher/Student runs.
-
 If the default Python cannot import `yaml`, set candidates in `env.sh`:
 
 ```bash
 export DPL_EVOLVE_PYTHON_CANDIDATES="/path/to/python3:/another/python"
 ```
 
-Most examples assume you run from the parent workspace:
+Run from the parent workspace that contains both repos:
 
 ```bash
 cd "$(dirname "$DPL_EVOLVE_AGENT_ROOT")"
 source "$DPL_EVOLVE_AGENT_ROOT/env.sh"
 ```
-
-## Quick Run
-
-This is the copy/paste flow for "repatch ORFS/OpenROAD into the framework
-state, compile the common core, then run `ibex_nangate45`".
 
 Reset to the supported anchors and apply the framework overlay:
 
