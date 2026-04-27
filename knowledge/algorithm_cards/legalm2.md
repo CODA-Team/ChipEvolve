@@ -19,6 +19,18 @@ but it is an excellent **idea donor** for:
 - escape from stuck local regions
 - explicit refinement after legality is reached
 
+## Current calibration
+
+Treat a LEGALM-style implementation as a donor or ablation until strict final
+metrics prove otherwise.  A self-legal LEGALM path can be useful and
+inspectable, but legality and paper fidelity do not by themselves mean it is
+the best parent for a case.
+
+Do not replace the active `detailed_placement_evolve` parent with a full
+LEGALM route only because it is more paper-faithful.  Promote it only when the
+complete flow beats the active case baseline and the best-so-far evolved
+artifact.
+
 ## Mechanisms worth borrowing first
 - better initialization
 - overflow-stagnation detection

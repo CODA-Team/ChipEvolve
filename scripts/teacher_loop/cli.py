@@ -1,0 +1,149 @@
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+
+from scripts.teacher_loop.common import START_KINDS
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Teacher/child Codex entrypoint for optimizing one DPL case."
+    )
+    parser.add_argument("--case", default="jpeg_nangate45")
+    parser.add_argument(
+        "--flow-variant",
+        default=None,
+        help=(
+            "ORFS FLOW_VARIANT containing 3_4_place_resized.odb. If omitted, "
+            "uses DPL_EVOLVE_FLOW_VARIANT or a placeholder for dry-run prompts."
+        ),
+    )
+    parser.add_argument("--round-id")
+    parser.add_argument(
+        "--start-kind",
+        choices=START_KINDS,
+        default="framework",
+        help=(
+            "Initial dpl_evolve source seed for student variants. "
+            "`framework` starts from the constrained top-level framework; "
+            "`diamond` starts from the clean dpl_evolve/base implementation; "
+            "`prepared` copies the current prepared ORFS dpl_evolve source."
+        ),
+    )
+    parser.add_argument(
+        "--prepare-workspace",
+        action="store_true",
+        help=(
+            "Run scripts/prepare_workspace.sh before baseline preflight. This "
+            "anchors ORFS/OpenROAD, applies supported patches, and refreshes "
+            "start-kind seed snapshots."
+        ),
+    )
+    parser.add_argument(
+        "--prepare-force",
+        action="store_true",
+        help="Pass --force to prepare_workspace.sh when --prepare-workspace is used.",
+    )
+    parser.add_argument(
+        "--iterations",
+        type=int,
+        default=1,
+        help="Teacher/child/review loop iterations to generate or launch.",
+    )
+    parser.add_argument("--children", type=int, default=4)
+    parser.add_argument("--strategy", action="append", default=[])
+    parser.add_argument("--threads", type=int, default=10)
+    parser.add_argument("--max-parallel", type=int, default=2)
+    parser.add_argument("--model")
+    parser.add_argument(
+        "--reasoning-effort",
+        choices=["low", "medium", "high", "xhigh"],
+        help="Passed to codex exec as model_reasoning_effort.",
+    )
+    parser.add_argument("--teacher-model", help="Model for Teacher planning/review.")
+    parser.add_argument(
+        "--teacher-reasoning-effort",
+        choices=["low", "medium", "high", "xhigh"],
+        help="Reasoning effort for Teacher planning/review.",
+    )
+    parser.add_argument("--student-model", help="Model for Student workers.")
+    parser.add_argument(
+        "--student-reasoning-effort",
+        choices=["low", "medium", "high", "xhigh"],
+        help="Reasoning effort for Student implementation workers.",
+    )
+    parser.add_argument(
+        "--resume-sessions",
+        action="store_true",
+        help=(
+            "Resume prior Codex sessions only when the previous operation "
+            "summary proves the session is safe to continue."
+        ),
+    )
+    parser.add_argument(
+        "--resume-child-sessions",
+        action="store_true",
+        help=(
+            "Unsafe opt-in: for iteration > 1, resume each student's previous "
+            "Codex exec session."
+        ),
+    )
+    parser.add_argument(
+        "--compact-after-first",
+        action="store_true",
+        help="After iteration 1, send compact follow-up prompts.",
+    )
+    parser.add_argument(
+        "--stable-student-workspaces",
+        action="store_true",
+        help="Keep each student's active source workspace stable across iterations.",
+    )
+    parser.add_argument("--profile")
+    parser.add_argument("--sandbox", default="workspace-write")
+    parser.add_argument(
+        "--child-cwd",
+        type=Path,
+        help="Cwd for Teacher/Student Codex sessions. Defaults to Agenticflow root.",
+    )
+    parser.add_argument("--teacher-only", action="store_true")
+    parser.add_argument(
+        "--skip-baseline-preflight",
+        action="store_true",
+        help="Do not run/refresh the canonical baseline suite before planning.",
+    )
+    parser.add_argument(
+        "--refresh-baseline",
+        action="store_true",
+        help="Deprecated alias: the canonical baseline suite is refreshed by default.",
+    )
+    parser.add_argument(
+        "--reuse-baseline-preflight",
+        action="store_true",
+        help="Reuse canonical baseline metrics when all rows already exist.",
+    )
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--audit-prompts",
+        action="store_true",
+        help="Write prompt_audit.json/PROMPT_AUDIT.md after prompt generation.",
+    )
+    parser.add_argument(
+        "--prompt-audit-max-agent-bytes",
+        type=int,
+        default=12000,
+        help="Warn when an agent-facing prompt is larger than this many bytes.",
+    )
+    parser.add_argument(
+        "--fail-on-prompt-audit",
+        action="store_true",
+        help="Return nonzero if prompt audit finds warnings.",
+    )
+    parser.add_argument("--launch", action="store_true")
+    parser.add_argument(
+        "--start-iteration",
+        type=int,
+        default=1,
+        help="Start generating/launching from this 1-based iteration.",
+    )
+    return parser.parse_args(argv)

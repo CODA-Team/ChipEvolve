@@ -88,3 +88,8 @@ Keep these as paper-faithful algorithm work, not hidden flow policy:
 Do not call this final quality-ready LEGALM.  It is a self-legal closure
 milestone.  The legality path is now real enough to evolve, but the objective
 and partitioning are still immature.
+
+This path is a donor or ablation until the complete strict flow beats the
+active case baseline and the best-so-far evolved artifact.  A later student
+should not promote full LEGALM self-legalization merely because it avoids
+diamond or reports clean legality.

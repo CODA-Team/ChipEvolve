@@ -35,12 +35,16 @@ canonical_references:
     path: family_variants/legalm_guidance
     artifact_kind: source_snapshot_reference
     evidence_level: measured_observation
-    apply_policy: reference_only_port_or_replace_bounded_mechanisms
+    apply_policy: reference_only_port_or_replace_bounded_mechanisms_do_not_promote_without_final_strict_win
     use_for:
       - staged_cpu_guidance_implementation
       - alm_bgd_inspired_repair
       - stage3_no_overflow_refinement
       - telemetry_reference
+    quality_guard: >
+      Legal, paper-faithful, or fast LEGALM-style runs are donor evidence until
+      the complete strict flow beats the active baseline and best-so-far
+      evolved artifact.
 
   - id: dreamplace_abacus
     role: row_assignment_reference

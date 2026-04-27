@@ -19,7 +19,7 @@ part of the default workflow.
 | Script | Purpose | Called by | Stage |
 | --- | --- | --- | --- |
 | `scripts/runtime_env.sh` | Resolve `DPL_EVOLVE_AGENT_ROOT`, `ORFS_ROOT`, `DPL_EVOLVE_STATE_ROOT`, and stable build aliases. | Sourced by shell entrypoints. | All shell-script stages. |
-| `scripts/prepare_workspace.sh` | Prepare a clean ORFS/OpenROAD workspace by applying supported patches. | Human/Teacher before experiments. | Bootstrap. |
+| `scripts/prepare_workspace.sh` | Prepare a clean ORFS/OpenROAD workspace by applying supported patches and snapshot reusable `dpl_evolve` seed sources. | Human/Teacher before experiments. | Bootstrap. |
 | `scripts/case_registry.py` | Resolve cases from the single `problems/` registry. | `run_place_batch.sh`, `run_baseline.sh`, Teacher tooling, humans. | Case selection. |
 | `scripts/checkpoint.py` | Snapshot/restore local candidate source state under ignored runtime state. | Teacher/child loop and manual recovery. | Experiment state management. |
 | `scripts/audit_repo_hygiene.py` | Check that GitHub-facing files avoid stale family-flow references and unclassified patch artifacts. | Human/CI-style preflight. | Repo hygiene. |
@@ -31,7 +31,7 @@ part of the default workflow.
 | `scripts/configure_openroad_core.sh` | Write common-core `core_env.sh` with build/install/binary paths. | Human/Teacher before common-core build. | Common-core configure. |
 | `scripts/build_openroad_core.sh` | Choose the common-core root and delegate the actual OpenROAD build. | Human/Teacher before variants. | Common-core build. |
 | `scripts/build_openroad_only.sh` | Single OpenROAD configure/build/install implementation.  Also used by evaluator `openroad_only` mode. | `build_openroad_core.sh`, evaluator, advanced manual builds. | Common-core or explicit OpenROAD build. |
-| `scripts/create_variant_start.sh` | Copy the prepared `tools/OpenROAD/src/dpl_evolve` seed into one private variant source tree. Preserves existing source unless `--force` is passed. | Human/Teacher/child agents. | Variant initialize. |
+| `scripts/create_variant_start.sh` | Copy a `dpl_evolve` seed into one private variant source tree. `--start-kind framework` starts from the constrained top framework; `--start-kind diamond` starts from the direct DPL/evolve base; `--start-kind prepared` copies the current ORFS tree; `--seed-src` can start from an elite source backup. Preserves existing source unless `--force` is passed. | Human/Teacher/child agents. | Variant initialize. |
 | `scripts/configure_openroad_variant_relink.sh` | Write `variant_env.sh` for a private candidate `dpl_evolve` source. | Human/Teacher/child agents. | Variant configure. |
 | `scripts/build_openroad_variant_relink.sh` | Thin shell wrapper around the Python relinker. | Human/Teacher/child agents. | Variant build. |
 | `scripts/build_openroad_variant_relink.py` | Recompile variant-owned `dpl_evolve` objects and relink a private OpenROAD binary from common-core link recipes. | `build_openroad_variant_relink.sh`. | Fast variant build. |
@@ -48,9 +48,24 @@ part of the default workflow.
 
 | Script | Purpose | Called by | Stage |
 | --- | --- | --- | --- |
-| `scripts/optimize_case_with_codex.py` | Create a multi-iteration Teacher/child optimization round, prompts, manifests, and optional worker launches. | Human/Teacher. | Case-specific algorithm search. |
-| `scripts/run_codex_exec.py` | Low-level `codex exec --json` recorder used by launched child agents.  Can resume a prior Codex session with `--resume-session-id` and can keep sessions in a local `--codex-home`. | `optimize_case_with_codex.py`. | Worker execution. |
+| `scripts/optimize_case_with_codex.py` | Stable CLI shim for the multi-iteration Teacher/child optimization round. The implementation is split under `scripts/teacher_loop/`. | Human/Teacher. | Case-specific algorithm search. |
+| `scripts/run_codex_exec.py` | Stable CLI shim for the low-level `codex exec --json` recorder used by launched Teacher/Student agents.  Can resume a prior Codex session with `--resume-session-id`; records usage and stderr category summaries. Implementation lives under `scripts/codex_exec/`. | `optimize_case_with_codex.py`. | Worker execution. |
 | `scripts/watch_teacher_round.py` | Terminal or local-web dashboard for a Teacher/Student round.  Shows observable status, paths, last visible messages, diffs, metrics, and usage. | Human/Teacher. | Monitoring. |
+
+`scripts/teacher_loop/` contains the Python implementation modules:
+`orchestrator.py` for the top-level loop, `common.py` for shared data,
+`evidence.py` for metrics and artifact validity, `prompts.py` for generated
+prompt/packet material, and `execution.py` for Codex command execution and
+source snapshots.
+
+`scripts/codex_exec/` contains the low-level Codex recorder implementation:
+`cli.py` for options, `runner.py` for the execution flow, and `artifacts.py`
+for event/stderr/usage summaries.
+
+Prompt text for the Teacher/child loop lives in
+`prompt_templates/teacher_loop/`.  Python orchestration fills template
+variables and writes generated packets; avoid burying long prompt prose inside
+`optimize_case_with_codex.py`.
 
 ### References And Local Research
 
@@ -97,6 +112,17 @@ Teacher/child case-optimization loop.
 3. Create a candidate `dpl_evolve` source under `DPL_EVOLVE_STATE_ROOT`, relink,
    and run a canonical line with an explicit binary.
 
+`prepare_workspace.sh` writes two seed snapshots when the patch sequence is
+available from a clean anchor:
+
+```text
+$DPL_EVOLVE_STATE_ROOT/seed_sources/diamond_dpl_evolve
+$DPL_EVOLVE_STATE_ROOT/seed_sources/framework_dpl_evolve
+```
+
+Use `--start-kind diamond` for direct/default DPL-code evolution and
+`--start-kind framework` for the constrained top-framework evolution line.
+
 The default evolved command remains `detailed_placement_evolve`.  Student
 experiments use private `dpl_evolve` source trees and the lightweight variant
 relink path.
@@ -108,16 +134,26 @@ Create a reviewable optimization round without launching agents:
 ```bash
 "$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py" \
   --case jpeg_nangate45 \
+  --start-kind framework \
   --children 4 \
   --iterations 2 \
-  --dry-run
+  --dry-run \
+  --audit-prompts
 ```
+
+`--dry-run --audit-prompts` does not call Codex.  It writes prompts, generated
+workspace/review packets, `PROMPT_AUDIT.md`, and `prompt_audit.json`.  The
+audit flags agent-facing prompts that accidentally contain generated shell
+commands, old dispatch wording, or excessive path noise.  Long exact commands
+belong in `iter_XX/packet/*_workspace.md`, not in `iter_XX/prompts/*.md`.
 
 Launch the teacher/child/review loop explicitly:
 
 ```bash
 "$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py" \
   --case jpeg_nangate45 \
+  --prepare-workspace \
+  --start-kind framework \
   --children 4 \
   --iterations 3 \
   --max-parallel 2 \
@@ -130,6 +166,7 @@ source snapshots, and shorter follow-up prompts after the first iteration:
 ```bash
 "$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py" \
   --case jpeg_nangate45 \
+  --start-kind framework \
   --children 4 \
   --iterations 5 \
   --max-parallel 4 \
@@ -156,15 +193,31 @@ After every iteration, the orchestrator snapshots that source tree to:
 Per-iteration diffs, build logs, and eval logs still live under
 `students/student_XX/iter_XX/artifacts`.
 
-By default, launched Teacher/Student sessions use a local Codex home:
+`--prepare-workspace` is the one-flag bootstrap path for launched rounds.  It
+runs `prepare_workspace.sh --workspace-root "$ORFS_ROOT"` before baseline
+preflight, which refreshes the start-kind seed snapshots.  Use
+`--prepare-force` only when it is safe to reset the prepared ORFS/OpenROAD
+workspace.
+
+The top-level orchestrator writes human-readable progress to:
 
 ```text
-.dpl_evolve_state/codex_home
+.dpl_evolve_state/teacher_rounds/<round>/round.log
+.dpl_evolve_state/teacher_rounds/<round>/events.jsonl
 ```
 
-That directory stores experiment sessions/cache locally and symlinks user-level
-Codex auth/config/skills from `~/.codex`.  Use `--global-codex-home` only when
-you intentionally want sessions to be written back under `~/.codex`.
+Those files are the quickest way to verify whether baseline preflight,
+prompt generation, Teacher launch, Student launch, source backup, review, and
+prompt audit phases were reached.
+
+For iteration 2 and later, the orchestrator also finds the best clean strict
+candidate so far and pre-seeds `student_01` from that source backup.  This
+keeps one protected elite-continuation branch alive while the other students
+continue, cross-learn, or pivot.
+
+Launched Teacher/Student sessions use the normal Codex session store.  The
+orchestrator does not override `CODEX_HOME`; resume behavior comes from the
+`thread_id` recorded in each operation summary plus `codex exec resume`.
 
 Watch a running round in the terminal:
 

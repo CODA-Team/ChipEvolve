@@ -15,7 +15,9 @@ Patch status is tracked in:
   `DPL_EVOLVE_SRC_DIR` build hook to a clean OpenROAD checkout. It
   intentionally does not install a target-side `src/dpl_evolve/README.md`;
   use this control repo's README,
-  `AGENTS.md`, and `knowledge/` as the documentation source of truth.
+  `AGENTS.md`, and `knowledge/` as the documentation source of truth. During
+  `prepare_workspace.sh`, this state is snapshotted as the `diamond`
+  start-kind seed before the framework patch is applied.
 - `openroad_dpl_evolve_framework.patch`
   Applies the constrained top-level `dpl_evolve` framework on top of the clean
   base. The primary evolved placement command remains `detailed_placement_evolve`; the patch
@@ -23,7 +25,9 @@ Patch status is tracked in:
   LEGALM-style guidance/legalization starting path, and Abacus-enabled
   negotiation repair as a downstream repair stage. Child agents implement
   case-specific behavior by modifying this private `dpl_evolve` source after
-  the orchestrator has collected baseline evidence.
+  the orchestrator has collected baseline evidence. During
+  `prepare_workspace.sh`, this state is snapshotted as the `framework`
+  start-kind seed.
 - `orfs_make_overlay.patch`
   Applies the `flow/Makefile` runner hook needed by the control plane so the
   strict baseline wrappers can pass `RUN_OPENROAD_ARGS` and `RUN_SCRIPT_ARGS`

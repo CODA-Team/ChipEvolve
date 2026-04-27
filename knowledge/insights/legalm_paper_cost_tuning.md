@@ -90,6 +90,12 @@ paper-faithful LEGALM path:
 - displacement tail is controlled,
 - HPWL is near the diamond-order baseline rather than catastrophically worse.
 
+This is still not promotion evidence for the active case loop.  Treat the
+paper-cost path as a strong donor and ablation unless the complete strict flow
+beats both `openroad_dpl_flow` and the best-so-far evolved artifact.  Legalizer
+HPWL and displacement improvements explain the handoff quality, but they do not
+replace final strict metrics.
+
 ## Next Paper-Faithful Work
 
 Do not freeze the current details as final.  The algorithmic flow is still open.
@@ -208,8 +214,8 @@ Interpretation:
   updates, restart-style early iterations, and row-aware displacement.
 - JPEG quality regressed slightly from the best Stage3-stencil version
   (`19%` HPWL delta to `20%`), but legality and runtime stayed within the gate.
-  Keep this as the current paper-faithful Stage A baseline, not as the final
-  quality optimum.
+  Keep this as a paper-faithful Stage A donor/ablation, not as the final
+  quality optimum or the automatic next-round parent.
 - The next paper-faithful improvement should be triplefold-style partitioned
   BGD scheduling.  That should reduce update interference from simultaneous
   all-cell moves without falling back to serial full-design passes.

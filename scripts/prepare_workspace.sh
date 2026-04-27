@@ -10,8 +10,10 @@ if [[ "${DPL_EVOLVE_SKIP_ENV_SH:-0}" != "1" && -f "${AGENT_ROOT}/env.sh" ]]; the
   source "${AGENT_ROOT}/env.sh"
 fi
 DEFAULT_WORKSPACE_ROOT="${ORFS_ROOT:-$(realpath -m "${AGENT_ROOT}/../OpenROAD-flow-scripts")}"
+DEFAULT_STATE_ROOT="${DPL_EVOLVE_STATE_ROOT:-${AGENT_ROOT}/.dpl_evolve_state}"
 
 workspace_root="${DEFAULT_WORKSPACE_ROOT}"
+seed_root="${DEFAULT_STATE_ROOT}/seed_sources"
 orfs_branch=""
 openroad_branch=""
 skip_commit=0
@@ -31,6 +33,8 @@ Actions:
 
 Options:
   --workspace-root PATH   ORFS workspace root. Default: parent of this repo.
+  --seed-root PATH        Directory for prepared seed source snapshots.
+                          Default: $DPL_EVOLVE_STATE_ROOT/seed_sources.
   --orfs-branch NAME      Optional local ORFS branch to create/reset before patching.
   --openroad-branch NAME  Optional local OpenROAD branch to create/reset before patching.
   --skip-commit           Do not create local commits after patching.
@@ -49,6 +53,10 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --workspace-root)
       workspace_root="$2"
+      shift 2
+      ;;
+    --seed-root)
+      seed_root="$2"
       shift 2
       ;;
     --orfs-branch)
@@ -80,6 +88,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 workspace_root="$(realpath -m "${workspace_root}")"
+seed_root="$(realpath -m "${seed_root}")"
 anchors_json="${AGENT_ROOT}/metadata/anchors.json"
 orfs_patch="${AGENT_ROOT}/patches/orfs_overlay.patch"
 orfs_make_patch="${AGENT_ROOT}/patches/orfs_make_overlay.patch"
@@ -189,6 +198,42 @@ commit_if_dirty() {
   fi
 }
 
+snapshot_dpl_seed() {
+  local seed_name="$1"
+  local require_framework="$2"
+  local source_dir="${workspace_root}/tools/OpenROAD/src/dpl_evolve"
+  local target_dir="${seed_root}/${seed_name}"
+
+  if [[ ! -f "${source_dir}/CMakeLists.txt" ]]; then
+    echo "[WARN] Cannot snapshot ${seed_name}; missing dpl_evolve source: ${source_dir}" >&2
+    return
+  fi
+  if [[ "${require_framework}" == "1" && ! -f "${source_dir}/src/EvolveLegalizer.cpp" ]]; then
+    echo "[WARN] Cannot snapshot ${seed_name}; framework source is not present: ${source_dir}" >&2
+    return
+  fi
+  if [[ "${require_framework}" == "0" && -f "${source_dir}/src/EvolveLegalizer.cpp" ]]; then
+    if [[ -d "${target_dir}" ]]; then
+      echo "[INFO] ${seed_name}: preserving existing seed snapshot at ${target_dir}"
+    else
+      echo "[WARN] ${seed_name}: current source already includes framework; cannot derive clean diamond seed without a fresh anchored prepare" >&2
+    fi
+    return
+  fi
+
+  mkdir -p "${seed_root}"
+  rm -rf "${target_dir}"
+  rsync -a --delete \
+    --exclude '__pycache__/' \
+    --exclude '*.pyc' \
+    --exclude '*.o' \
+    --exclude '*.a' \
+    --exclude '*.so' \
+    --exclude 'CMakeFiles/' \
+    "${source_dir}/" "${target_dir}/"
+  echo "[INFO] Snapshotted ${seed_name}: ${target_dir}"
+}
+
 ensure_clean_or_reset "${workspace_root}" "${orfs_branch}" "${orfs_base_commit}" "ORFS"
 
 # After pinning the ORFS/OpenROAD anchors, sync nested submodules so OpenROAD
@@ -222,12 +267,15 @@ git -C "${workspace_root}/tools/OpenROAD" submodule update --init --recursive
 apply_patch_if_needed "${workspace_root}" "${orfs_patch}" "ORFS"
 apply_patch_if_needed "${workspace_root}" "${orfs_make_patch}" "ORFS"
 apply_patch_if_needed "${workspace_root}/tools/OpenROAD" "${openroad_patch}" "OpenROAD"
+snapshot_dpl_seed "diamond_dpl_evolve" "0"
 apply_patch_if_needed "${workspace_root}/tools/OpenROAD" "${openroad_framework_patch}" "OpenROAD"
+snapshot_dpl_seed "framework_dpl_evolve" "1"
 
 commit_if_dirty "${workspace_root}/tools/OpenROAD" "Prepare constrained dpl_evolve framework"
 commit_if_dirty "${workspace_root}" "Prepare ORFS overlay for dpl_evolve_agent" flow/Makefile
 
 echo "[INFO] prepare complete"
 echo "[INFO] workspace_root=${workspace_root}"
+echo "[INFO] seed_root=${seed_root}"
 echo "[INFO] orfs_branch=${orfs_branch:-current}"
 echo "[INFO] openroad_branch=${openroad_branch:-current}"

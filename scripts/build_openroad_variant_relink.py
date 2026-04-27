@@ -18,7 +18,7 @@ AGENT_ROOT = SCRIPT_DIR.parent
 if str(AGENT_ROOT) not in sys.path:
     sys.path.insert(0, str(AGENT_ROOT))
 
-from runtime_paths import resolve_input_path, resolve_runtime_paths
+from runtime_paths import clean_subprocess_env, resolve_input_path, resolve_runtime_paths
 
 
 def is_relative_to(path: Path, other: Path) -> bool:
@@ -109,6 +109,7 @@ def run_shell(command: str, *, cwd: Path | None = None) -> None:
     subprocess.run(
         command,
         cwd=str(cwd) if cwd is not None else None,
+        env=clean_subprocess_env(),
         shell=True,
         check=True,
         executable="/bin/bash",

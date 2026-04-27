@@ -1,0 +1,789 @@
+#!/usr/bin/env python3
+"""Teacher/child Codex entrypoint for case-specific DPL-Evolve optimization.
+
+This script is intentionally an orchestration layer, not another evaluator.
+It creates a teacher-authored optimization round for one case, writes bounded
+child prompts, and optionally launches `codex exec` workers through the existing
+`run_codex_exec.py` recorder.
+"""
+from __future__ import annotations
+
+import json
+import os
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
+
+AGENT_ROOT = Path(__file__).resolve().parents[2]
+if str(AGENT_ROOT) not in sys.path:
+    sys.path.insert(0, str(AGENT_ROOT))
+
+from runtime_paths import clean_subprocess_env, resolve_runtime_paths
+from scripts.case_registry import get_case
+from scripts.teacher_loop.cli import parse_args
+from scripts.teacher_loop.common import (
+    CANONICAL_LINES,
+    DEFAULT_STRATEGIES,
+    ChildRound,
+    MetricSummary,
+    RoundLogger,
+    default_round_id,
+    iter_name,
+    student_workspace_paths,
+)
+
+
+from scripts.teacher_loop.evidence import (
+    baseline_suite_complete,
+    discover_case_metrics,
+    ensure_baseline_suite,
+    round_scoreboard,
+    source_backup_for_candidate,
+    best_round_candidate,
+    write_baseline_artifacts_packet,
+    write_child_artifact_status_json,
+    write_peer_learning_packet,
+)
+
+from scripts.teacher_loop.execution import (
+    append_lineage,
+    backup_child_sources,
+    build_codex_exec_command,
+    inline_teacher_plan_for_children,
+    resumable_thread_id,
+    run_commands,
+    seed_elite_children,
+)
+from scripts.teacher_loop.prompts import (
+    build_packet,
+    child_prompt,
+    common_context,
+    compact_child_prompt,
+    compact_teacher_prompt,
+    compact_teacher_review_prompt,
+    prompt_audit,
+    prior_iteration_context,
+    teacher_prompt,
+    teacher_review_prompt,
+    validate_start_kind_seed,
+    write_child_workspace_packet,
+    write_iteration_context,
+    write_review_artifacts_packet,
+    write_round_readme,
+)
+
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+    runtime = resolve_runtime_paths(
+        anchor_file=__file__,
+        agent_root_levels_up=2,
+        script_name="optimize_case_with_codex.py",
+    )
+    get_case(args.case)  # Validate early.
+    if not args.flow_variant:
+        args.flow_variant = os.environ.get(
+            "DPL_EVOLVE_FLOW_VARIANT",
+            "<FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB>",
+        )
+    if args.launch and args.flow_variant.startswith("<"):
+        raise SystemExit(
+            "--launch requires --flow-variant or DPL_EVOLVE_FLOW_VARIANT; "
+            "the dry-run placeholder is not runnable."
+        )
+
+    iterations = max(1, args.iterations)
+    start_iteration = max(1, min(args.start_iteration, iterations))
+    strategies = args.strategy or DEFAULT_STRATEGIES[: max(1, args.children)]
+    strategies = strategies[: max(1, args.children)]
+    teacher_model = args.teacher_model or args.model
+    teacher_reasoning_effort = args.teacher_reasoning_effort or args.reasoning_effort
+    student_model = args.student_model or args.model
+    student_reasoning_effort = args.student_reasoning_effort or args.reasoning_effort
+    round_id = args.round_id or default_round_id(args.case)
+    round_dir = runtime.state_root / "teacher_rounds" / round_id
+    round_dir.mkdir(parents=True, exist_ok=True)
+    logger = RoundLogger(round_dir)
+    run_codex = runtime.agent_root / "scripts" / "run_codex_exec.py"
+    child_cwd = (args.child_cwd or runtime.agent_root.parent).resolve()
+    dry_run = args.dry_run or not args.launch
+    logger.event(
+        "round",
+        "start",
+        round_id=round_id,
+        case=args.case,
+        flow_variant=args.flow_variant,
+        start_kind=args.start_kind,
+        iterations=iterations,
+        start_iteration=start_iteration,
+        children=len(strategies),
+        dry_run=dry_run,
+        launch=args.launch,
+    )
+
+    all_commands: list[list[str]] = []
+    manifest_iterations: list[dict[str, Any]] = []
+    last_metrics: dict[str, MetricSummary | None] | None = None
+    baseline_preflight_commands: list[list[str]] = []
+
+    prepare_command: list[str] | None = None
+    if args.prepare_workspace:
+        prepare_command = [
+            str(runtime.agent_root / "scripts" / "prepare_workspace.sh"),
+            "--workspace-root",
+            str(runtime.orfs_root),
+        ]
+        if args.prepare_force:
+            prepare_command.append("--force")
+        all_commands.append(prepare_command)
+        if dry_run:
+            logger.event(
+                "prepare",
+                "planned",
+                command=" ".join(shlex.quote(part) for part in prepare_command),
+            )
+        else:
+            logger.event("prepare", "start", command=prepare_command)
+            rc = subprocess.run(prepare_command, env=clean_subprocess_env()).returncode
+            if rc:
+                logger.event("prepare", "failed", return_code=rc)
+                return rc
+            logger.event("prepare", "done")
+
+    seed_ready, seed_path = validate_start_kind_seed(runtime, args.start_kind)
+    if not seed_ready:
+        logger.event(
+            "prepare",
+            "seed_missing",
+            start_kind=args.start_kind,
+            seed_path=seed_path,
+            launch=args.launch,
+        )
+        if args.launch:
+            raise SystemExit(
+                f"Missing start-kind seed for {args.start_kind}: {seed_path}. "
+                "Run optimize_case_with_codex.py with --prepare-workspace or "
+                "run scripts/prepare_workspace.sh first."
+            )
+
+    if not args.skip_baseline_preflight:
+        logger.event(
+            "baseline",
+            "preflight_start",
+            refresh=args.refresh_baseline or not args.reuse_baseline_preflight,
+            reuse=args.reuse_baseline_preflight,
+        )
+        baseline_metrics, baseline_preflight_commands = ensure_baseline_suite(
+            runtime=runtime,
+            case_id=args.case,
+            flow_variant=args.flow_variant,
+            threads=args.threads,
+            round_id=round_id,
+            refresh=args.refresh_baseline or not args.reuse_baseline_preflight,
+            dry_run=dry_run,
+        )
+        last_metrics = baseline_metrics
+        all_commands.extend(baseline_preflight_commands)
+        logger.event(
+            "baseline",
+            "preflight_ready",
+            command_count=len(baseline_preflight_commands),
+            openroad_hpwl=None
+            if baseline_metrics.get("openroad_dpl_flow") is None
+            else baseline_metrics["openroad_dpl_flow"].hpwl_after,
+            evolve_hpwl=None
+            if baseline_metrics.get("evolve_default") is None
+            else baseline_metrics["evolve_default"].hpwl_after,
+        )
+    else:
+        logger.event("baseline", "preflight_skipped")
+
+    for iteration in range(start_iteration, iterations + 1):
+        iteration_dir = round_dir / iter_name(iteration)
+        prompt_dir = iteration_dir / "prompts"
+        packet_dir = iteration_dir / "packet"
+        prompt_dir.mkdir(parents=True, exist_ok=True)
+        logger.event(
+            "iteration",
+            "generate_start",
+            iteration=iter_name(iteration),
+            iteration_dir=iteration_dir,
+        )
+
+        packet_path = build_packet(
+            agent_root=runtime.agent_root,
+            case_id=args.case,
+            packet_dir=packet_dir,
+        )
+        metrics = discover_case_metrics(
+            orfs_root=runtime.orfs_root,
+            case_id=args.case,
+            flow_variant=args.flow_variant,
+        )
+        baseline_artifacts_path = write_baseline_artifacts_packet(
+            path=packet_dir / "baseline_artifacts.md",
+            runtime=runtime,
+            case_id=args.case,
+            flow_variant=args.flow_variant,
+            metrics=metrics,
+        )
+        if (
+            not dry_run
+            and not args.skip_baseline_preflight
+            and not baseline_suite_complete(metrics)
+        ):
+            missing = ", ".join(line for line in CANONICAL_LINES if metrics.get(line) is None)
+            raise SystemExit(
+                "Missing canonical baseline metrics after baseline preflight "
+                f"({missing}); refusing to start Teacher planning without the "
+                "full comparison anchor."
+            )
+        last_metrics = metrics
+        prior_context = prior_iteration_context(
+            runtime=runtime,
+            round_dir=round_dir,
+            round_id=round_id,
+            iteration=iteration,
+            strategies=strategies,
+        )
+        scoreboard = round_scoreboard(
+            runtime=runtime,
+            case_id=args.case,
+            flow_variant=args.flow_variant,
+            round_id=round_id,
+            metrics=metrics,
+            before_iteration=iteration,
+        )
+        peer_learning_path = write_peer_learning_packet(
+            path=packet_dir / "peer_learning.md",
+            runtime=runtime,
+            round_dir=round_dir,
+            case_id=args.case,
+            flow_variant=args.flow_variant,
+            round_id=round_id,
+            iteration=iteration,
+            metrics=metrics,
+        )
+        elite_candidate = (
+            best_round_candidate(
+                runtime=runtime,
+                case_id=args.case,
+                flow_variant=args.flow_variant,
+                round_id=round_id,
+                baseline=metrics.get("openroad_dpl_flow"),
+                require_baseline_beat=True,
+                before_iteration=iteration,
+            )
+            if iteration > 1
+            else None
+        )
+        elite_source = source_backup_for_candidate(
+            round_dir=round_dir,
+            round_id=round_id,
+            case_id=args.case,
+            candidate=elite_candidate,
+        )
+        context = common_context(
+            case_id=args.case,
+            flow_variant=args.flow_variant,
+            threads=args.threads,
+            start_kind=args.start_kind,
+            runtime=runtime,
+            metrics=metrics,
+            packet_path=packet_path,
+            baseline_artifacts_path=baseline_artifacts_path,
+            peer_learning_path=peer_learning_path,
+            round_id=round_id,
+            iteration=iteration,
+            prior_context=prior_context,
+            scoreboard=scoreboard,
+            elite_seed_source=elite_source,
+        )
+        full_context_path = write_iteration_context(
+            iteration_dir=iteration_dir,
+            context=context,
+        )
+        compact_child_prompts = bool(args.compact_after_first and iteration > 1)
+
+        teacher_op = f"{round_id}_{iter_name(iteration)}_teacher_plan"
+        teacher_path = prompt_dir / "teacher_plan.md"
+        compact_followup_prompts = bool(args.compact_after_first and iteration > 1)
+        teacher_path.write_text(
+            (
+                compact_teacher_prompt(
+                    context_path=full_context_path,
+                    strategies=strategies,
+                    children=len(strategies),
+                    iteration=iteration,
+                )
+                if compact_followup_prompts
+                else teacher_prompt(
+                    context_path=full_context_path,
+                    strategies=strategies,
+                    children=len(strategies),
+                    iteration=iteration,
+                )
+            ),
+            encoding="utf-8",
+        )
+        teacher_resume_session_id = None
+        if args.resume_sessions and iteration > 1:
+            teacher_resume_session_id = resumable_thread_id(
+                runtime=runtime,
+                operation_id=f"{round_id}_{iter_name(iteration - 1)}_teacher_plan",
+                expected_cwd=child_cwd,
+                allow_unsafe_resume=args.resume_child_sessions,
+            )
+        teacher_cmd = build_codex_exec_command(
+            run_codex=run_codex,
+            operation_id=teacher_op,
+            prompt_path=teacher_path,
+            sandbox=args.sandbox,
+            add_dir=runtime.agent_root,
+            model=teacher_model,
+            reasoning_effort=teacher_reasoning_effort,
+            profile=args.profile,
+            resume_session_id=teacher_resume_session_id,
+            cwd=child_cwd,
+            skip_git_repo_check=True,
+        )
+
+        child_commands: list[list[str]] = []
+        child_rounds: list[ChildRound] = []
+        if not args.teacher_only:
+            for idx, strategy in enumerate(strategies, start=1):
+                student_id = f"student_{idx:02d}"
+                operation_id = f"{round_id}_{iter_name(iteration)}_{student_id}"
+                run_tag = f"{operation_id}_{args.case}"
+                prompt_path = prompt_dir / f"{student_id}.md"
+                elite_seed_source = elite_source if idx == 1 else None
+                workspace_packet = write_child_workspace_packet(
+                    path=packet_dir / f"{student_id}_workspace.md",
+                    runtime=runtime,
+                    round_dir=round_dir,
+                    teacher_operation_id=teacher_op,
+                    teacher_prompt_path=teacher_path,
+                    case_id=args.case,
+                    flow_variant=args.flow_variant,
+                    threads=args.threads,
+                    start_kind=args.start_kind,
+                    strategy=strategy,
+                    child_id=idx,
+                    iteration=iteration,
+                    student_id=student_id,
+                    run_tag=run_tag,
+                    stable_workspace=args.stable_student_workspaces,
+                    elite_seed_source=elite_seed_source,
+                    peer_learning_path=peer_learning_path,
+                )
+                prompt_path.write_text(
+                    (
+                        compact_child_prompt(
+                            context_path=full_context_path,
+                            runtime=runtime,
+                            round_dir=round_dir,
+                            teacher_operation_id=teacher_op,
+                            teacher_prompt_path=teacher_path,
+                            case_id=args.case,
+                            flow_variant=args.flow_variant,
+                            threads=args.threads,
+                            strategy=strategy,
+                            child_id=idx,
+                            iteration=iteration,
+                            student_id=student_id,
+                            run_tag=run_tag,
+                            workspace_packet_path=workspace_packet,
+                            peer_learning_path=peer_learning_path,
+                            stable_workspace=args.stable_student_workspaces,
+                            elite_seed_source=elite_seed_source,
+                        )
+                        if compact_child_prompts
+                        else child_prompt(
+                            context_path=full_context_path,
+                            runtime=runtime,
+                            round_dir=round_dir,
+                            teacher_operation_id=teacher_op,
+                            teacher_prompt_path=teacher_path,
+                            case_id=args.case,
+                            flow_variant=args.flow_variant,
+                            threads=args.threads,
+                            strategy=strategy,
+                            child_id=idx,
+                            iteration=iteration,
+                            student_id=student_id,
+                            run_tag=run_tag,
+                            workspace_packet_path=workspace_packet,
+                            peer_learning_path=peer_learning_path,
+                            compact=compact_child_prompts,
+                            stable_workspace=args.stable_student_workspaces,
+                            elite_seed_source=elite_seed_source,
+                        )
+                    ),
+                    encoding="utf-8",
+                )
+                append_lineage(
+                    round_dir=round_dir,
+                    student_id=student_id,
+                    strategy=strategy,
+                    iteration=iteration,
+                    operation_id=operation_id,
+                    run_tag=run_tag,
+                    prompt_path=prompt_path,
+                )
+                paths = student_workspace_paths(
+                    round_dir=round_dir,
+                    iteration=iteration,
+                    student_id=student_id,
+                    stable_workspace=args.stable_student_workspaces,
+                )
+                child_round = ChildRound(
+                    student_id=student_id,
+                    strategy=strategy,
+                    operation_id=operation_id,
+                    run_tag=run_tag,
+                    prompt_path=prompt_path,
+                    workspace_packet=workspace_packet,
+                    operation_dir=runtime.operations_dir / operation_id,
+                    last_message=runtime.operations_dir
+                    / operation_id
+                    / "codex_last_message.txt",
+                    usage_summary=runtime.operations_dir
+                    / operation_id
+                    / "codex_usage_summary.json",
+                    stderr_log=runtime.operations_dir
+                    / operation_id
+                    / "codex_stderr.log",
+                    events_jsonl=runtime.operations_dir
+                    / operation_id
+                    / "codex_events.jsonl",
+                    student_workspace=paths.student_workspace,
+                    variant_root=paths.variant_root,
+                    dpl_src=paths.dpl_src,
+                    private_binary=paths.private_binary,
+                    implementation_diff=paths.implementation_diff,
+                    source_backup=paths.source_backup,
+                    elite_seed_source=elite_seed_source,
+                )
+                child_rounds.append(child_round)
+                resume_session_id = None
+                if args.resume_sessions and iteration > 1:
+                    previous_op = f"{round_id}_{iter_name(iteration - 1)}_{student_id}"
+                    resume_session_id = resumable_thread_id(
+                        runtime=runtime,
+                        operation_id=previous_op,
+                        expected_cwd=child_cwd,
+                        allow_unsafe_resume=args.resume_child_sessions,
+                    )
+                child_commands.append(
+                    build_codex_exec_command(
+                        run_codex=run_codex,
+                        operation_id=operation_id,
+                        prompt_path=prompt_path,
+                        sandbox=args.sandbox,
+                        add_dir=runtime.agent_root,
+                        model=student_model,
+                        reasoning_effort=student_reasoning_effort,
+                        profile=args.profile,
+                        resume_session_id=resume_session_id,
+                        cwd=child_cwd,
+                        skip_git_repo_check=True,
+                    )
+                )
+
+        review_commands: list[list[str]] = []
+        if not args.teacher_only:
+            review_op = f"{round_id}_{iter_name(iteration)}_teacher_review"
+            review_path = prompt_dir / "teacher_review.md"
+            review_packet_path = write_review_artifacts_packet(
+                path=packet_dir / "teacher_review_artifacts.md",
+                runtime=runtime,
+                case_id=args.case,
+                flow_variant=args.flow_variant,
+                child_rounds=child_rounds,
+            )
+            review_path.write_text(
+                (
+                    compact_teacher_review_prompt(
+                        context_path=full_context_path,
+                        review_packet_path=review_packet_path,
+                    )
+                    if compact_followup_prompts
+                    else teacher_review_prompt(
+                        context_path=full_context_path,
+                        review_packet_path=review_packet_path,
+                    )
+                ),
+                encoding="utf-8",
+            )
+            review_resume_session_id = None
+            if args.resume_sessions and iteration > 1:
+                review_resume_session_id = resumable_thread_id(
+                    runtime=runtime,
+                    operation_id=f"{round_id}_{iter_name(iteration - 1)}_teacher_review",
+                    expected_cwd=child_cwd,
+                    allow_unsafe_resume=args.resume_child_sessions,
+                )
+            review_commands.append(
+                build_codex_exec_command(
+                    run_codex=run_codex,
+                    operation_id=review_op,
+                    prompt_path=review_path,
+                    sandbox=args.sandbox,
+                    add_dir=runtime.agent_root,
+                    model=teacher_model,
+                    reasoning_effort=teacher_reasoning_effort,
+                    profile=args.profile,
+                    resume_session_id=review_resume_session_id,
+                    cwd=child_cwd,
+                    skip_git_repo_check=True,
+                )
+            )
+
+        iteration_commands = [teacher_cmd, *child_commands, *review_commands]
+        all_commands.extend(iteration_commands)
+        manifest_iterations.append(
+            {
+                "iteration": iter_name(iteration),
+                "iteration_dir": str(iteration_dir),
+                "start_kind": args.start_kind,
+                "packet": str(packet_path),
+                "peer_learning_packet": str(peer_learning_path),
+                "full_context": str(full_context_path),
+                "compact_child_prompts": compact_child_prompts,
+                "teacher_plan_operation": teacher_op,
+                "children": [
+                    {
+                        "student_id": child.student_id,
+                        "strategy": child.strategy,
+                        "operation_id": child.operation_id,
+                        "run_tag": child.run_tag,
+                        "prompt": str(child.prompt_path),
+                        "workspace_packet": str(child.workspace_packet),
+                        "student_workspace": str(child.student_workspace),
+                        "private_dpl_src": str(child.dpl_src),
+                        "source_backup": str(child.source_backup),
+                        "elite_seed_source": None
+                        if child.elite_seed_source is None
+                        else str(child.elite_seed_source),
+                        "implementation_diff": str(child.implementation_diff),
+                    }
+                    for child in child_rounds
+                ],
+                "teacher_review_operation": None
+                if args.teacher_only
+                else f"{round_id}_{iter_name(iteration)}_teacher_review",
+                "teacher_review_artifacts": None
+                if args.teacher_only
+                else str(packet_dir / "teacher_review_artifacts.md"),
+                "child_artifact_status": None
+                if args.teacher_only
+                else str(packet_dir / "child_artifact_status.json"),
+                "commands": iteration_commands,
+            }
+        )
+
+        print(f"[optimize_case] round_dir: {round_dir}")
+        print(f"[optimize_case] iteration: {iteration_dir}")
+        print(f"[optimize_case] packet: {packet_path}")
+        print(f"[optimize_case] prompts: {prompt_dir}")
+        logger.event(
+            "iteration",
+            "generate_done",
+            iteration=iter_name(iteration),
+            context=full_context_path,
+            peer_learning=peer_learning_path,
+            prompts=prompt_dir,
+            teacher_op=teacher_op,
+            students=len(child_rounds),
+            review=not args.teacher_only,
+            elite_source=elite_source,
+            command_count=len(iteration_commands),
+        )
+
+        if not dry_run:
+            logger.event(
+                "teacher",
+                "plan_launch",
+                iteration=iter_name(iteration),
+                operation_id=teacher_op,
+            )
+            rc = run_commands([teacher_cmd], max_parallel=1, dry_run=False)
+            if rc:
+                logger.event(
+                    "teacher",
+                    "plan_failed",
+                    iteration=iter_name(iteration),
+                    operation_id=teacher_op,
+                    return_code=rc,
+                )
+                return rc
+            logger.event(
+                "teacher",
+                "plan_done",
+                iteration=iter_name(iteration),
+                operation_id=teacher_op,
+            )
+            if child_rounds:
+                seed_elite_children(child_rounds)
+                inline_teacher_plan_for_children(
+                    child_rounds=child_rounds,
+                    teacher_last_message=runtime.operations_dir
+                    / teacher_op
+                    / "codex_last_message.txt",
+                )
+            if child_commands:
+                logger.event(
+                    "student",
+                    "launch",
+                    iteration=iter_name(iteration),
+                    count=len(child_commands),
+                    max_parallel=max(1, args.max_parallel),
+                )
+                rc = run_commands(
+                    child_commands,
+                    max_parallel=max(1, args.max_parallel),
+                    dry_run=False,
+                )
+                if rc:
+                    print(
+                        "[optimize_case] warning: one or more child workers "
+                        "failed; continuing to Teacher review so failures can "
+                        "be analyzed and turned into next-iteration guidance.",
+                        file=sys.stderr,
+                    )
+                    logger.event(
+                        "student",
+                        "completed_with_failures",
+                        iteration=iter_name(iteration),
+                        return_code=rc,
+                    )
+                else:
+                    logger.event(
+                        "student",
+                        "completed",
+                        iteration=iter_name(iteration),
+                        count=len(child_commands),
+                    )
+                backup_child_sources(child_rounds)
+                write_child_artifact_status_json(
+                    path=packet_dir / "child_artifact_status.json",
+                    runtime=runtime,
+                    case_id=args.case,
+                    flow_variant=args.flow_variant,
+                    child_rounds=child_rounds,
+                )
+                write_review_artifacts_packet(
+                    path=packet_dir / "teacher_review_artifacts.md",
+                    runtime=runtime,
+                    case_id=args.case,
+                    flow_variant=args.flow_variant,
+                    child_rounds=child_rounds,
+                )
+            if review_commands:
+                logger.event(
+                    "teacher",
+                    "review_launch",
+                    iteration=iter_name(iteration),
+                    operation_id=f"{round_id}_{iter_name(iteration)}_teacher_review",
+                )
+                rc = run_commands(review_commands, max_parallel=1, dry_run=False)
+                if rc:
+                    logger.event(
+                        "teacher",
+                        "review_failed",
+                        iteration=iter_name(iteration),
+                        return_code=rc,
+                    )
+                    return rc
+                logger.event(
+                    "teacher",
+                    "review_done",
+                    iteration=iter_name(iteration),
+                    operation_id=f"{round_id}_{iter_name(iteration)}_teacher_review",
+                )
+
+    write_round_readme(
+        runtime=runtime,
+        round_dir=round_dir,
+        case_id=args.case,
+        flow_variant=args.flow_variant,
+        start_kind=args.start_kind,
+        strategies=strategies,
+        metrics=last_metrics or {},
+        launch_commands=all_commands,
+    )
+    (round_dir / "manifest.json").write_text(
+        json.dumps(
+            {
+                "round_id": round_id,
+                "case": args.case,
+                "flow_variant": args.flow_variant,
+                "start_kind": args.start_kind,
+                "round_dir": str(round_dir),
+                "iterations": manifest_iterations,
+                "strategies": strategies,
+                "model": args.model,
+                "reasoning_effort": args.reasoning_effort,
+                "teacher_model": teacher_model,
+                "teacher_reasoning_effort": teacher_reasoning_effort,
+                "student_model": student_model,
+                "student_reasoning_effort": student_reasoning_effort,
+                "resume_sessions": args.resume_sessions,
+                "compact_after_first": args.compact_after_first,
+                "stable_student_workspaces": args.stable_student_workspaces,
+                "child_cwd": str(child_cwd),
+                "prepare_workspace": args.prepare_workspace,
+                "prepare_force": args.prepare_force,
+                "prepare_command": prepare_command,
+                "baseline_preflight_commands": baseline_preflight_commands,
+                "commands": all_commands,
+                "dry_run": dry_run,
+                "launch": args.launch,
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    if dry_run or args.audit_prompts:
+        audit_json, audit_md, audit_warnings = prompt_audit(
+            round_dir=round_dir,
+            max_agent_prompt_bytes=args.prompt_audit_max_agent_bytes,
+        )
+        print(f"[optimize_case] prompt_audit_json: {audit_json}")
+        print(f"[optimize_case] prompt_audit_md: {audit_md}")
+        print(f"[optimize_case] prompt_audit_warnings: {audit_warnings}")
+        logger.event(
+            "audit",
+            "prompt_audit",
+            json=audit_json,
+            markdown=audit_md,
+            warnings=audit_warnings,
+        )
+        if audit_warnings and args.fail_on_prompt_audit:
+            return 2
+
+    if dry_run:
+        rc = run_commands(
+            all_commands,
+            max_parallel=max(1, args.max_parallel),
+            dry_run=True,
+        )
+        logger.event(
+            "round",
+            "dry_run_done",
+            round_dir=round_dir,
+            command_count=len(all_commands),
+            return_code=rc,
+        )
+        return rc
+    logger.event("round", "done", round_dir=round_dir)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

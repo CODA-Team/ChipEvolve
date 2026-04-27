@@ -13,7 +13,9 @@ prepare_patches:
       recorded OpenROAD anchor.
       Target-side README documentation is intentionally excluded from this
       patch; the control repo README/AGENTS/knowledge files are the canonical
-      human and agent-facing instructions.
+      human and agent-facing instructions.  prepare_workspace.sh snapshots
+      this state as seed_sources/diamond_dpl_evolve before applying the
+      framework patch.
     apply_target: clean OpenROAD anchor from metadata/anchors.json
 
   - path: patches/openroad_dpl_evolve_framework.patch
@@ -24,7 +26,8 @@ prepare_patches:
       Abacus-enabled negotiation repair on top of the clean dpl_evolve base.
       Baseline collection is handled by the control repo, and child agents
       modify a private variant implementation after reading source references
-      and measured case evidence.
+      and measured case evidence.  prepare_workspace.sh snapshots this state
+      as seed_sources/framework_dpl_evolve.
     apply_target: prepared OpenROAD after openroad_dpl_evolve_base.patch
     verification: framework_smoke_passed
 

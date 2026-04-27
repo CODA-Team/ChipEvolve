@@ -65,3 +65,26 @@ For each student/Teacher round:
 Do not treat "faster but same HPWL" as the main success criterion for JPEG.
 The near-term goal is to test whether aggressive case-specific algorithm
 changes can beat the OpenROAD DPL flow anchor without changing the evaluator.
+
+## JPEG Evolution Calibration
+
+Recent Teacher/Child runs showed that JPEG can beat the OpenROAD DPL flow
+anchor, but the winning signal is fragile:
+
+- a middle iteration found a strict final HPWL improvement over the baseline,
+  even though the legalizer-stage handoff was not clearly better,
+- later iterations regressed when they continued weaker lineages or trusted
+  local proxies too much,
+- higher row-assignment coverage or more LEGALM seeds did not by itself predict
+  final HPWL,
+- local window/proxy HPWL improvements can be erased or reversed by the
+  complete flow.
+
+Therefore JPEG rounds must preserve the best-so-far evolved artifact as an
+elite parent.  At least one child should continue from that artifact each
+iteration.  Other children can explore aggressively, but they should be judged
+against both the baseline and the elite parent.
+
+Use legalizer-stage HPWL, seed counts, local proxy deltas, and Stage3 move
+counts to explain behavior.  Do not promote a candidate on those numbers unless
+the final strict evaluator result also improves.

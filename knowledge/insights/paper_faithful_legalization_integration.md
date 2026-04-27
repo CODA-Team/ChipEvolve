@@ -19,6 +19,25 @@ easy to mix up:
 The first goal should be paper-faithful.  The second goal should be controlled
 by telemetry, experiments, and outer policy.
 
+## Calibration Against Case Evolution
+
+Paper-faithful implementation is not the same thing as parent selection.
+LEGALM-like stages should remain inspectable and faithful enough to study, but
+the active case parent is chosen by the complete strict flow result.
+
+A paper-faithful route that legalizes cleanly but loses final HPWL is still
+valuable as a donor or ablation.  It should not replace a better evolved parent
+unless it beats both the baseline and the best-so-far evolved artifact on final
+strict metrics.
+
+Conversely, a stage-local metric can be misleading in either direction:
+
+- legalizer-stage HPWL may look worse while downstream polish creates a final
+  strict win,
+- local HPWL or displacement proxy improvements may still lose after the full
+  flow,
+- seed counts or assignment coverage are explanations, not promotion gates.
+
 ## Current Interpretation
 
 The evolved command remains:
@@ -125,4 +144,3 @@ trying to reproduce.
 If it is flow policy, keep it explicit, measurable, and easy to disable for
 ablation.  Do not let it obscure whether the paper-derived algorithm is
 actually working.
-
