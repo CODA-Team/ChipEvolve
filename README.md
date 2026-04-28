@@ -113,6 +113,20 @@ test -f "$DPL_EVOLVE_STATE_ROOT/seed_sources/framework_dpl_evolve/src/Differenti
 echo "framework seed ready"
 ```
 
+Run the ibex baseline first:
+
+```bash
+"$DPL_EVOLVE_AGENT_ROOT/baseline/run_baseline_suite.sh" \
+  --case ibex_nangate45 \
+  --flow-variant place_batch_20260421_220319 \
+  --threads 10 \
+  --tag-prefix ibex_framework_baseline
+```
+
+The launch step also refreshes the canonical baseline suite, but running it
+explicitly first gives you a visible anchor before Teacher/Student evolution
+starts.
+
 Launch the ibex Teacher/Student loop:
 
 ```bash
@@ -267,7 +281,7 @@ $DPL_EVOLVE_STATE_ROOT
 
 Follow-up prompts are compact by default after iteration 1, and each student
 keeps one stable active workspace across iterations. The orchestrator snapshots
-every iteration for review and rollback.
+every iteration for review, matrix testing, and lineage comparison.
 
 ### Round Outputs
 

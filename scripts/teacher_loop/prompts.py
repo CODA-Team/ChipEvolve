@@ -65,7 +65,8 @@ def focused_message_excerpt(text: str, *, max_chars: int = 900) -> str:
         "delta",
         "borrow",
         "next",
-        "rollback",
+        "validity",
+        "complexity",
         "metrics",
     )
     for raw in text.splitlines():
@@ -498,7 +499,10 @@ commands.  Do not ask Teacher to rewrite this content.
 - private_binary: `{paths.private_binary}`
 - artifact_dir: `{paths.artifact_dir}`
 - implementation_diff: `{paths.implementation_diff}`
+- knowledge_card: `{paths.knowledge_card}`
 - source_backup_after_iteration: `{paths.source_backup}`
+- codex_session_state: `{paths.session_state}`
+- codex_identity_env: `{paths.session_env_file}`
 - peer_learning_packet: `{peer_learning_path}`
 - teacher_plan_prompt: `{teacher_prompt_path}`
 - teacher_plan_operation: `{teacher_operation_id}`
@@ -519,8 +523,10 @@ the exact blocker and do not call the candidate successful.
   `{expected_metrics_path(runtime=runtime, case_id=case_id, flow_variant=flow_variant, run_tag=run_tag)}`
 - implementation diff exists and is non-empty:
   `{paths.implementation_diff}`
+- knowledge card exists and is non-empty:
+  `{paths.knowledge_card}`
 - final answer includes metrics path, HPWL/runtime/displacement delta, diff path,
-  and rollback risk
+  knowledge card path, and algorithmic validity/complexity assessment
 
 ## Prepare
 
@@ -568,11 +574,26 @@ diff -ruN \\
   > {shlex.quote(str(paths.implementation_diff))} || true
 ```
 
+## Knowledge Card
+
+Write this file before your final answer:
+
+`{paths.knowledge_card}`
+
+Required sections:
+
+- `Hypothesis`: the major flow or algorithm idea you tried.
+- `Mechanism`: where it changes `detailed_placement_evolve`,
+  `improve_placement_evolve`, or `optimize_mirroring_evolve`.
+- `Result`: HPWL/runtime/displacement/legality versus baseline.
+- `Causal lesson`: what future students should borrow or avoid.
+- `Next experiment`: the next aggressive test, not a tiny parameter tweak.
+
 ## Locked Surfaces
 
 - Do not edit evaluator, baseline Tcl, benchmark selection, root ORFS source,
   or classic `tools/OpenROAD/src/dpl`.
-- Do not claim success through fallback-to-default behavior.
+- Do not claim success through default-equivalent or no-op behavior.
 """,
         encoding="utf-8",
     )
@@ -614,7 +635,10 @@ def write_review_artifacts_packet(
                 f"- private_dpl_src: `{child.dpl_src}`",
                 f"- private_binary: `{child.private_binary}`",
                 f"- implementation_diff: `{child.implementation_diff}`",
+                f"- knowledge_card: `{child.knowledge_card}`",
                 f"- source_backup_after_iteration: `{child.source_backup}`",
+                f"- codex_session_state: `{child.session_state}`",
+                f"- codex_identity_env: `{child.session_env_file}`",
                 child_artifact_status_block(
                     runtime=runtime,
                     case_id=case_id,

@@ -25,6 +25,15 @@
 - primary target: strict legal HPWL better than `openroad_dpl_flow`
 - runtime may rise if HPWL gain is meaningful and displacement is explainable
 - editable flow: `detailed_placement_evolve -> improve_placement_evolve -> optimize_mirroring_evolve`
+- goal: discover transferable code-change knowledge for large HPWL gains, not
+  only preserve micro-gains
+
+## Current Research Bias
+
+- prefer large, explainable HPWL improvements; preserve micro-gains only as donors
+- convert strong slow donors into faster algorithms using incremental metrics,
+  dirty legality, sparse snapshots, predictors, checkpointing, or parallelism
+- high-utilization failures usually need earlier flow/objective/assignment changes
 
 ## Design Characteristics
 
@@ -66,4 +75,4 @@ $prior_context
 
 - missing canonical baseline means no promotion decision
 - do not print shell commands or private paths in Teacher output
-- output algorithmic insight, peer learning, and risk controls
+- output algorithmic insight, peer learning, and complexity requirements

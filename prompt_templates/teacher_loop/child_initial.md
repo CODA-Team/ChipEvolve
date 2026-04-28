@@ -18,23 +18,52 @@ Read for exact paths, prepare/build/evaluate commands, and artifact locations:
 
 `$workspace_packet_path`
 
-Mandatory gate: prepare, build, evaluate, non-empty diff, exact artifacts.
+Mandatory gate: prepare, build, evaluate, non-empty diff, non-empty knowledge
+card, exact artifacts.
 
 ## Teacher Insight
 
 - Teacher plan: `$teacher_plan_last_message`
 - your `### $student_id` insight is appended below
 
-## Programming Contract
+## Required Behavior
 
-- edit only the private `dpl_evolve` source in your workspace
-- keep the public flow surface: `detailed_placement_evolve -> improve_placement_evolve -> optimize_mirroring_evolve`
-- freely change objective, stage order, LEGALM/guidance, row assignment, Abacus-style compaction, negotiation/repair, improve placement, mirroring, telemetry, rollback, and data structures
-- high-performance C++ only: bounded candidates, cached row/net data, no avoidable hot-loop O(n^2), no full-grid inner loops, deterministic parallelism when safe
-- strict legality is required; optimize HPWL first, then runtime/displacement
-- do not edit evaluator, baseline Tcl, benchmark selection, root ORFS source, or classic `dpl`
-- do not claim success through fallback-to-default behavior; leave clear evidence even when worse
+- Edit only private `dpl_evolve`; never edit evaluator, baseline Tcl, benchmark
+  selection, root ORFS source, or classic `tools/OpenROAD/src/dpl`.
+- Keep the public evolved flow callable:
+  `detailed_placement_evolve -> improve_placement_evolve -> optimize_mirroring_evolve`.
+- Implement one coherent case-specific mechanism.  Constants, quotas, and
+  thresholds can support the mechanism but cannot be the mechanism.
+- You may change objective, stage order, legalization, assignment, repair,
+  improve placement, mirroring, telemetry, commit logic, and data structures.
+- Strict legality is mandatory.  Optimize HPWL first; explain runtime and
+  displacement as tradeoffs.
+
+## Mechanism Menu
+
+Use the active case evidence: density, displacement tail, net structure, failed
+stages, and baseline behavior.  Strong directions include early net/size-aware
+row assignment, touched-net HPWL deltas, dirty-row legality, sparse snapshots,
+cheap branch predictors, checkpointed endpoint search, isolated-state
+parallelism, and flow-order changes across legalize/improve/mirror.
+
+Avoid low-value work: pure retunes, blind branch proliferation, case-name
+hardcoding, default-equivalent/no-op behavior, or local proxy-only wins.
+
+## Implementation Standard
+
+- High-performance C++: bounded candidates, cached row/net/branch state, no
+  avoidable hot-loop O(n^2), no full-grid inner loops.
+- Avoid excessive defensive programming.  Do not add broad safety wrappers,
+  repeated full validation, or hot-loop guard clutter to mask uncontrolled
+  logic.
+- Make invalid moves unrepresentable or reject them before commit.
+- Telemetry and knowledge card must state candidate cap, touched-data scope,
+  cache lifetime, expected complexity, accepted moves, legality vetoes, and
+  rejection reason.
 
 ## Final Response Required
 
-Report: touched files, mechanism, build/eval status, metrics path, private binary, diff path, HPWL/runtime/displacement delta, telemetry, rollback risk.
+Report: touched files, mechanism, build/eval status, metrics path, private
+binary, diff path, knowledge card path, HPWL/runtime/displacement delta,
+telemetry, algorithmic validity and complexity assessment.

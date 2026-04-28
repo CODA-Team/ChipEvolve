@@ -85,13 +85,15 @@ actually implements:
 Avoid this pattern:
 
 ```text
-stage behaves badly on JPEG -> add hidden local guard -> call it LEGALM
+stage behaves badly on one wirelength-sensitive target
+-> add hidden local guard
+-> call it LEGALM
 ```
 
 Prefer this pattern:
 
 ```text
-paper-faithful stage behaves badly on JPEG
+paper-faithful stage behaves badly on a design class
 -> record stage telemetry and final metrics
 -> add an explicit integration policy or ablation variant
 -> compare paper-faithful vs policy-assisted flow

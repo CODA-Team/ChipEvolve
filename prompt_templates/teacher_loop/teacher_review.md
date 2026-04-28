@@ -15,18 +15,27 @@ Checks:
 - use `artifact_status`, `artifact_problems`, and existence flags from the packet
 - never promote a candidate with missing metrics, missing diff, failed returncode,
   or no agent message
-- read `codex_last_message`, usage/stderr hints, metrics path, and `implementation_diff`
-- inspect changed source only where needed
+- read `codex_last_message`, metrics, `implementation_diff`, and
+  `knowledge_card`; inspect changed source only where needed
 - compare HPWL/runtime/displacement/legality to anchors and peers
-- classify real mechanism vs parameter tweak vs fallback
-- name useful peer mechanisms and harmful mechanisms
+- classify real mechanism vs parameter tweak vs default-equivalent/no-op behavior
+- classify tiny HPWL gains as micro-gain donor evidence unless the mechanism
+  plausibly scales to a much larger improvement
+- diagnose runtime/complexity: endpoint proliferation, full scans, repeated
+  import/init, full HPWL recomputation, unbounded loops, or guard clutter
+- prefer donors that combine HPWL gain with an implementable efficiency path
 - include the full evolved flow, not only first legalization
+- mark any promising lineage whose `source_backup` should be frozen and tested
+  with `scripts/run_candidate_matrix.sh`
 
 ## Output Required
 
 - compact review table
 - best one or two lineages
 - peer mechanisms to borrow/avoid
+- efficiency bottleneck and concrete faster version to try
+- knowledge cards worth preserving
+- fixed-source matrix candidates, if any
 - one short next insight per student
 
 End with `## Next Insight Packets` and one concise `### student_XX` section per student.

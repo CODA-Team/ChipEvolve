@@ -30,34 +30,43 @@ CANONICAL_LINES = (
 
 STRATEGY_BRIEFS = {
     "open_guidance_objective": (
-        "Open exploration seed: start by questioning guidance and objective "
-        "design.  Differential/static ideas, HPWL proxies, net-aware or "
-        "size-aware scoring, and stage-order changes are all fair game."
+        "Aggressive exploration seed: redesign guidance/objective and move "
+        "HPWL-aware decisions earlier if needed.  Try connected-net or "
+        "size-aware scoring, touched-net HPWL deltas, cached net boxes, or "
+        "stage-order changes.  Avoid constant retunes and local proxy-only wins."
     ),
     "open_row_compaction": (
-        "Open exploration seed: start by questioning row/segment assignment, "
-        "Abacus-style compaction, candidate generation, and local data "
-        "structures.  Pivot freely if another mechanism is stronger."
+        "Aggressive exploration seed: redesign row/segment assignment, "
+        "Abacus-style compaction, candidate generation, or occupancy data "
+        "structures.  Prefer bounded candidate stencils, dirty row intervals, "
+        "and net-aware commit rules.  Pivot freely if another mechanism is "
+        "stronger, but make a real flow or algorithm change."
     ),
     "open_repair_polish": (
-        "Open exploration seed: start by questioning repair, negotiation, "
-        "mirroring, and post-legal polish.  Broaden into earlier stages if "
-        "late polish alone cannot move the metric."
+        "Aggressive exploration seed: redesign repair, negotiation, "
+        "improve-placement, mirroring, or post-legal polish.  Pull repair "
+        "earlier or change the flow order if late polish alone cannot move the "
+        "metric.  Prefer self-validating aggressive repair with exact final "
+        "metric guards over small threshold tweaks."
     ),
     "open_runtime_architecture": (
-        "Open exploration seed: start by questioning runtime architecture, "
-        "parallelism, caching, and data movement.  Algorithmic quality remains "
-        "the goal; runtime is a budget to spend deliberately."
+        "Aggressive exploration seed: redesign runtime architecture, "
+        "parallelism, caching, and data movement so larger HPWL experiments are "
+        "affordable.  Target sparse snapshots, dirty legality, touched-net "
+        "metrics, cheap predictors, checkpoint early stop, or isolated-state "
+        "branch parallelism.  Algorithmic quality remains the goal."
     ),
     "open_paper_hybrid": (
-        "Open exploration seed: start by hybridizing paper donors such as "
-        "LEGALM, NBLG, Diamond, and DREAMPlace/Abacus.  Respect papers as "
-        "sources of mechanisms, not handcuffs."
+        "Aggressive exploration seed: hybridize paper donors such as LEGALM, "
+        "NBLG, Diamond, and DREAMPlace/Abacus.  Respect papers as sources of "
+        "mechanisms, not handcuffs.  Convert donor ideas into bounded, cached, "
+        "strictly legal flow components rather than wholesale slow copies."
     ),
     "open_telemetry_selector": (
-        "Open exploration seed: start by adding telemetry-driven acceptance, "
-        "rollback, or stage selection.  Use data to justify any case-specific "
-        "algorithm change."
+        "Aggressive exploration seed: add telemetry-driven acceptance, "
+        "commit logic, or stage selection so risky ideas can be tried with "
+        "intrinsic validity checks.  Include runtime/complexity telemetry and "
+        "use data to choose larger algorithm changes, not to excuse tiny tweaks."
     ),
 }
 
@@ -88,6 +97,7 @@ class CandidateArtifacts:
     last_message: Path
     source_backup: Path
     implementation_diff: Path
+    knowledge_card: Path
 
 
 @dataclass(frozen=True)
@@ -108,7 +118,10 @@ class ChildRound:
     dpl_src: Path
     private_binary: Path
     implementation_diff: Path
+    knowledge_card: Path
     source_backup: Path
+    session_state: Path
+    session_env_file: Path
     elite_seed_source: Path | None = None
 
 
@@ -121,7 +134,18 @@ class StudentWorkspace:
     private_binary: Path
     artifact_dir: Path
     implementation_diff: Path
+    knowledge_card: Path
     source_backup: Path
+    session_state: Path
+    session_env_file: Path
+
+
+@dataclass(frozen=True)
+class WorkerSession:
+    identity: str
+    workspace: Path
+    session_state: Path
+    session_env_file: Path
 
 
 def render_prompt_template(name: str, **values: Any) -> str:
@@ -164,7 +188,20 @@ def student_workspace_paths(
         private_binary=variant_root / "install" / "OpenROAD" / "bin" / "openroad",
         artifact_dir=artifact_dir,
         implementation_diff=artifact_dir / "implementation.diff",
+        knowledge_card=artifact_dir / "knowledge_card.md",
         source_backup=student_root / "source_backups" / iter_name(iteration) / "dpl_evolve",
+        session_state=student_workspace / ".codex_session_state.json",
+        session_env_file=student_workspace / ".codex_identity.env",
+    )
+
+
+def teacher_session_paths(*, round_dir: Path, round_id: str) -> WorkerSession:
+    workspace = round_dir / "teacher_workspace"
+    return WorkerSession(
+        identity=f"{round_id}:teacher",
+        workspace=workspace,
+        session_state=workspace / ".codex_session_state.json",
+        session_env_file=workspace / ".codex_identity.env",
     )
 
 

@@ -32,8 +32,8 @@ Child Agent:
 - starts from concrete source references, not blank brainstorming,
 - edits only the evolved DPL implementation surface,
 - builds and evaluates its own candidate,
-- reports touched files, mechanism, metrics path, telemetry, and rollback
-  condition,
+- reports touched files, mechanism, metrics path, telemetry, and validity /
+  complexity assessment,
 - does not edit evaluator, benchmark selection, or classic `dpl`.
 
 ## Multi-Iteration Loop
@@ -103,7 +103,7 @@ short per-student insight packets:
 - parent/seed to use,
 - peer mechanism to borrow or avoid,
 - likely code area or mechanism to try,
-- success metric and rollback guard,
+- success metric and validity/complexity requirement,
 - what not to re-analyze.
 
 Student prompts may include a compact peer table so each student knows what the
@@ -117,7 +117,7 @@ Use:
 
 ```bash
 "$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py" \
-  --case jpeg_nangate45 \
+  --case <case_id_from_case_registry> \
   --children 4 \
   --iterations 2 \
   --dry-run
@@ -149,7 +149,7 @@ A child result is only useful if it provides:
 - strict legal result,
 - HPWL/runtime/displacement comparison against baseline,
 - telemetry explaining which stage produced the effect,
-- a rollback condition.
+- an algorithmic validity and complexity assessment.
 
 Fallback-to-default behavior is diagnostic, not success evidence.
 
@@ -177,6 +177,18 @@ The loop must never lose the best known code path for a case:
 The promotion metric is the final strict evaluator result after the configured
 flow.  Legalizer-stage HPWL, local HPWL proxy, row-assignment coverage, seed
 counts, or Stage3 local improvements are diagnostic signals only.
+
+## Micro-Gain Rule
+
+Tiny strict HPWL wins should be preserved as elite donors, but they are not
+evidence of a meaningful algorithmic breakthrough.  Teacher must say this
+explicitly when the gain is only a small local-polish improvement, and at least
+one child should continue to pursue larger flow/objective/assignment/repair
+changes instead of spending every round on quota or threshold tuning.
+
+See `../case_evolution/micro_gain_trap_and_elite_donors.md` for an example
+where a clean but tiny strict HPWL improvement was useful to keep but too small
+to count as a strategic DPL improvement.
 
 This matters because a legalizer-stage result may look worse while the complete
 flow improves after downstream polish, and a local proxy improvement may still

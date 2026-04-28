@@ -92,7 +92,7 @@ def summarize_stderr(stderr_path: Path) -> dict[str, Any]:
     categories = {
         "analytics_noise": ["codex_analytics::client", "analytics-events", "403 Forbidden"],
         "file_watcher_noise": ["file_watcher", "failed to unwatch"],
-        "session_recording_error": ["failed to record rollout items"],
+        "rollout_recording_warning": ["failed to record rollout items"],
         "tool_router_error": [
             "codex_core::tools::router",
             "exec_command failed",

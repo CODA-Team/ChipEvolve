@@ -32,6 +32,7 @@ from scripts.teacher_loop.common import (
     default_round_id,
     iter_name,
     student_workspace_paths,
+    teacher_session_paths,
 )
 
 
@@ -108,6 +109,7 @@ def main(argv: list[str] | None = None) -> int:
     round_dir = runtime.state_root / "teacher_rounds" / round_id
     round_dir.mkdir(parents=True, exist_ok=True)
     logger = RoundLogger(round_dir)
+    teacher_session = teacher_session_paths(round_dir=round_dir, round_id=round_id)
     run_codex = runtime.agent_root / "scripts" / "run_codex_exec.py"
     child_cwd = (args.child_cwd or runtime.agent_root.parent).resolve()
     codex_add_dirs = [runtime.agent_root, runtime.orfs_root, runtime.state_root]
@@ -396,6 +398,9 @@ def main(argv: list[str] | None = None) -> int:
             reasoning_effort=teacher_reasoning_effort,
             profile=args.profile,
             resume_session_id=teacher_resume_session_id,
+            session_identity=teacher_session.identity,
+            session_state=teacher_session.session_state,
+            session_env_file=teacher_session.session_env_file,
             cwd=child_cwd,
             skip_git_repo_check=True,
         )
@@ -513,7 +518,10 @@ def main(argv: list[str] | None = None) -> int:
                     dpl_src=paths.dpl_src,
                     private_binary=paths.private_binary,
                     implementation_diff=paths.implementation_diff,
+                    knowledge_card=paths.knowledge_card,
                     source_backup=paths.source_backup,
+                    session_state=paths.session_state,
+                    session_env_file=paths.session_env_file,
                     elite_seed_source=elite_seed_source,
                 )
                 child_rounds.append(child_round)
@@ -537,6 +545,9 @@ def main(argv: list[str] | None = None) -> int:
                         reasoning_effort=student_reasoning_effort,
                         profile=args.profile,
                         resume_session_id=resume_session_id,
+                        session_identity=f"{round_id}:{student_id}",
+                        session_state=paths.session_state,
+                        session_env_file=paths.session_env_file,
                         cwd=child_cwd,
                         skip_git_repo_check=True,
                     )
@@ -586,6 +597,9 @@ def main(argv: list[str] | None = None) -> int:
                     reasoning_effort=teacher_reasoning_effort,
                     profile=args.profile,
                     resume_session_id=review_resume_session_id,
+                    session_identity=teacher_session.identity,
+                    session_state=teacher_session.session_state,
+                    session_env_file=teacher_session.session_env_file,
                     cwd=child_cwd,
                     skip_git_repo_check=True,
                 )
@@ -618,6 +632,7 @@ def main(argv: list[str] | None = None) -> int:
                         if child.elite_seed_source is None
                         else str(child.elite_seed_source),
                         "implementation_diff": str(child.implementation_diff),
+                        "knowledge_card": str(child.knowledge_card),
                     }
                     for child in child_rounds
                 ],
@@ -773,6 +788,12 @@ def main(argv: list[str] | None = None) -> int:
                 "start_kind": args.start_kind,
                 "round_dir": str(round_dir),
                 "iterations": manifest_iterations,
+                "teacher_session": {
+                    "identity": teacher_session.identity,
+                    "workspace": str(teacher_session.workspace),
+                    "session_state": str(teacher_session.session_state),
+                    "session_env_file": str(teacher_session.session_env_file),
+                },
                 "strategies": strategies,
                 "model": args.model,
                 "reasoning_effort": args.reasoning_effort,

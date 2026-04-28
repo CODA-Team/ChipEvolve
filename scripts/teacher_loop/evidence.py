@@ -169,6 +169,7 @@ def candidate_artifacts(
         / iter_part
         / "artifacts"
         / "implementation.diff",
+        knowledge_card=student_root / iter_part / "artifacts" / "knowledge_card.md",
     )
 
 
@@ -395,6 +396,7 @@ def peer_candidate_row(
     )
     source_backup = artifacts.source_backup if artifacts else None
     implementation_diff = artifacts.implementation_diff if artifacts else None
+    knowledge_card = artifacts.knowledge_card if artifacts else None
     delta = (
         None
         if baseline is None
@@ -416,6 +418,8 @@ def peer_candidate_row(
         f"  - source_backup_exists: `{source_backup.exists() if source_backup is not None else False}`",
         f"  - implementation_diff: `{implementation_diff or ''}`",
         f"  - implementation_diff_exists: `{implementation_diff.exists() if implementation_diff is not None else False}`",
+        f"  - knowledge_card: `{knowledge_card or ''}`",
+        f"  - knowledge_card_exists: `{knowledge_card.exists() if knowledge_card is not None else False}`",
         f"  - last_message: `{artifacts.last_message if artifacts else ''}`",
     ]
 
@@ -862,6 +866,7 @@ def child_artifact_status(
     )
     metric_summary = summarize_metrics(metrics_path) if metrics_path.exists() else None
     diff_size = child.implementation_diff.stat().st_size if child.implementation_diff.exists() else 0
+    knowledge_size = child.knowledge_card.stat().st_size if child.knowledge_card.exists() else 0
     last_message_size = child.last_message.stat().st_size if child.last_message.exists() else 0
     returncode = usage.get("returncode")
     agent_message_count = int(usage.get("agent_message_count", 0) or 0)
@@ -883,6 +888,10 @@ def child_artifact_status(
         problems.append("missing_implementation_diff")
     elif diff_size <= 0:
         problems.append("empty_implementation_diff")
+    if not child.knowledge_card.exists():
+        problems.append("missing_knowledge_card")
+    elif knowledge_size <= 0:
+        problems.append("empty_knowledge_card")
 
     status = "valid" if not problems else "invalid"
     return {
@@ -899,6 +908,9 @@ def child_artifact_status(
         "metric_summary": metric_summary,
         "diff_exists": child.implementation_diff.exists(),
         "diff_size": diff_size,
+        "knowledge_card": child.knowledge_card,
+        "knowledge_exists": child.knowledge_card.exists(),
+        "knowledge_size": knowledge_size,
     }
 
 
@@ -943,6 +955,9 @@ def child_artifact_status_block(
             f"- metrics_json_exists: `{status['metrics_exists']}`",
             f"- implementation_diff_exists: `{status['diff_exists']}`",
             f"- implementation_diff_size: `{status['diff_size']}`",
+            f"- knowledge_card: `{status['knowledge_card']}`",
+            f"- knowledge_card_exists: `{status['knowledge_exists']}`",
+            f"- knowledge_card_size: `{status['knowledge_size']}`",
             *metric_lines,
         ]
     )
@@ -967,6 +982,7 @@ def write_child_artifact_status_json(
         metric_summary = status.pop("metric_summary")
         status.pop("usage", None)
         status["metrics_path"] = str(status["metrics_path"])
+        status["knowledge_card"] = str(status["knowledge_card"])
         if metric_summary is not None:
             status["metrics_summary"] = {
                 "hpwl_after": metric_summary.hpwl_after,

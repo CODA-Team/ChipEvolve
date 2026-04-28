@@ -14,17 +14,28 @@ $strategy_lines
 
 ## Policy
 
-- target strict legal HPWL
-- runtime is a tradeoff, not a veto
-- prefer real algorithmic changes over constant retunes
-- large moves are allowed with evidence and rollback
-- seeds are hypotheses, not boundaries
-- any student may change objective, flow order, net-aware/size-aware scoring,
-  legalization, repair, polish, telemetry, or data structures
-- keep student guidance compatible with high-performance C++ constraints:
-  bounded candidates, cached row/net data, safe parallelism, no hot-loop O(n^2)
-- cross-pollinate useful peer mechanisms
-- do not freeze students with status labels
+- Target strict legal HPWL. Runtime and displacement are tradeoffs to explain.
+- Seeds are hypotheses, not boundaries. Students may change objective, flow
+  order, legalization, repair, improve placement, mirroring, telemetry, commit
+  logic, and data structures.
+- Assign diverse, case-specific mechanisms. At least half the students should
+  test major flow/objective/assignment/repair/mirroring changes.
+- Treat tiny HPWL gains as donor evidence, not success.
+- Require high-performance structure: bounded candidates, cached row/net data,
+  safe parallelism, no hot-loop O(n^2), no repeated full validation as a crutch.
+- Cross-pollinate useful peer mechanisms; do not freeze students with labels.
+
+## Strategy Quality Bar
+
+Push mechanisms that can change the frontier, not local polish: early net-aware
+assignment, touched-net HPWL deltas, dirty-row legality, sparse snapshots, cheap
+predictors, checkpointed endpoint search, isolated-state parallelism, and
+legalize/improve/mirror flow-order changes.
+
+For each student, name one primary mechanism, one structural efficiency
+requirement, and the active-design property that should drive the choice.  If a
+donor is strong but slow, ask for the faster algorithmic version, not another
+blind branch.
 
 ## Output Required
 
@@ -40,5 +51,8 @@ Each packet:
 - key insight
 - useful peer/donor idea
 - likely code area
+- primary mechanism to implement
+- efficiency requirement
 - success target
-- risk/rollback guard
+- validity and complexity requirement
+- knowledge to record

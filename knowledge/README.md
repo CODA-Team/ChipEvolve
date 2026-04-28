@@ -17,12 +17,16 @@ Current compact algorithm cards:
 
 - `CONTEXT_AUDIT.md`
 - `EVIDENCE_POLICY.md`
-- `insights/paper_faithful_legalization_integration.md`
-- `insights/legalm_self_legal_closure.md`
-- `insights/legalm_paper_cost_tuning.md`
-- `insights/legalm_bpquad_runtime.md`
-- `insights/full_opt_timeout_and_jpeg_plan.md`
-- `insights/teacher_child_case_evolution.md`
+- `insights/README.md`
+- `insights/workflow/teacher_child_case_evolution.md`
+- `insights/workflow/cross_case_experiment_design.md`
+- `insights/case_evolution/cross_case_transfer_matrix.md`
+- `insights/case_evolution/micro_gain_trap_and_elite_donors.md`
+- `insights/case_evolution/full_flow_timeout_and_target_selection.md`
+- `insights/legalm/paper_faithful_legalization_integration.md`
+- `insights/legalm/legalm_self_legal_closure.md`
+- `insights/legalm/legalm_paper_cost_tuning.md`
+- `insights/legalm/legalm_large_case_runtime.md`
 - `algorithm_cards/openroad_dpl.md`
 - `algorithm_cards/nblg.md`
 - `algorithm_cards/legalm2.md`
@@ -35,4 +39,5 @@ forensics.
 
 Knowledge cards are not all equal. Use `EVIDENCE_POLICY.md` to distinguish
 hard contracts from measured observations, working hypotheses, and reference
-donors.
+donors.  Use `insights/README.md` to pick only the insight cards relevant to
+the current task.

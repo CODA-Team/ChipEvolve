@@ -33,6 +33,8 @@ def operation_safe_to_resume(runtime: Any, operation_id: str) -> tuple[bool, str
         return False, f"returncode={summary.get('returncode')}"
     if not summary.get("thread_id"):
         return False, "missing thread id"
+    if summary.get("local_session_recorded") is False:
+        return False, "thread not recorded in Codex session store"
     if int(summary.get("agent_message_count", 0) or 0) <= 0:
         return False, "no agent messages"
     if not str(summary.get("last_agent_message") or "").strip():
@@ -86,6 +88,9 @@ def build_codex_exec_command(
     reasoning_effort: str | None,
     profile: str | None,
     resume_session_id: str | None = None,
+    session_identity: str | None = None,
+    session_state: Path | None = None,
+    session_env_file: Path | None = None,
     cwd: Path | None = None,
     skip_git_repo_check: bool = False,
 ) -> list[str]:
@@ -113,6 +118,12 @@ def build_codex_exec_command(
         cmd.extend(["--profile", profile])
     if resume_session_id:
         cmd.extend(["--resume-session-id", resume_session_id])
+    if session_identity:
+        cmd.extend(["--session-identity", session_identity])
+    if session_state is not None:
+        cmd.extend(["--session-state", str(session_state)])
+    if session_env_file is not None:
+        cmd.extend(["--session-env-file", str(session_env_file)])
     return cmd
 
 

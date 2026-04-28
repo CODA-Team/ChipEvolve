@@ -19,7 +19,8 @@ Read for exact paths, commands, run tag, and artifact locations:
 
 `$workspace_packet_path`
 
-Mandatory gate: prepare, build, evaluate, non-empty diff, exact artifacts.
+Mandatory gate: prepare, build, evaluate, non-empty diff, non-empty knowledge
+card, exact artifacts.
 
 ## Current Iteration
 
@@ -34,13 +35,40 @@ $elite_note
 
 $peer_context
 
-## Programming Contract
+## Required Behavior
 
-- edit only the private `dpl_evolve` source in your workspace
-- freely change objective, flow order, net-aware/size-aware scoring, legalization, repair, polish, telemetry, or data structures
-- high-performance C++ only: bounded candidates, cached row/net data, no avoidable hot-loop O(n^2), deterministic parallelism when safe
-- strict legality is required; HPWL is the main target
-- do not claim success through fallback-to-default behavior
+- Edit only private `dpl_evolve`; use the workspace packet for exact commands.
+- Implement one coherent case-specific mechanism.  Constants or thresholds may
+  support it, but cannot be the main contribution.
+- You may change objective, flow order, scoring, legalization, repair, improve
+  placement, mirroring, telemetry, commit logic, or data structures.
+- Strict legality is mandatory; HPWL is the main target.
+- Write a knowledge card explaining what future students should borrow or avoid.
+
+## Mechanism Direction
+
+Use Teacher insight and peer evidence, then make your own code decision.  If
+borrowing a donor, change one important part: make it faster, earlier in the
+flow, more net-aware, more transferable, or more scalable.
+
+High-value tools: early net/size-aware assignment, touched-net HPWL deltas,
+dirty-row legality, sparse snapshots, cheap predictors, checkpointed endpoint
+search, isolated-state parallelism, and legalize/improve/mirror flow-order
+changes.
+
+Avoid weak repeats: pure retunes, blind branches, case-name hardcoding,
+default-equivalent/no-op behavior, or local proxy-only wins.
+
+## Implementation Standard
+
+- High-performance C++: bounded candidates, cached row/net/branch state,
+  deterministic tie-breaks, no avoidable hot-loop O(n^2).
+- Prefer incremental touched metrics over full rescans.
+- Avoid excessive defensive programming: no broad catch-all logic, repeated
+  full validation, redundant safety layers, or hot-loop guard clutter.
+- Telemetry and knowledge card must state candidate cap, touched-data scope,
+  cache lifetime, expected complexity, accepted moves, legality vetoes, and
+  why the candidate should scale or why it failed.
 
 ## Instructions
 
@@ -49,4 +77,5 @@ $peer_context
 - inspect peer code only when it helps the concrete change you choose
 - continue your private source lineage unless Teacher requested a pivot
 - use the generated workspace packet for prepare/build/evaluate/diff
-- final answer: touched files, mechanism, build/eval status, metrics path, HPWL/runtime/displacement delta, diff path, next risk
+- final answer: touched files, mechanism, build/eval status, metrics path,
+  HPWL/runtime/displacement delta, diff path, knowledge card path, next uncertainty

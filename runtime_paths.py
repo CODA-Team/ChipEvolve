@@ -172,12 +172,24 @@ def clean_subprocess_env(env: dict[str, str] | None = None) -> dict[str, str]:
     non-interactive /bin/bash can print noisy "error importing function"
     diagnostics when those definitions are not portable.  They are not needed
     by the dpl_evolve workflow, so strip them from captured build/eval logs.
+
+    Nested Codex workers should also not inherit the parent Codex thread.  The
+    worker wrapper records each child operation from its own JSON event stream;
+    inheriting CODEX_THREAD_ID can confuse Codex's local session recorder.
     """
 
     cleaned = dict(os.environ if env is None else env)
     for key in list(cleaned):
         if key.startswith("BASH_FUNC_"):
             del cleaned[key]
+    for key in (
+        "CODEX_CI",
+        "CODEX_THREAD_ID",
+        "CODEX_INTERNAL_ORIGINATOR_OVERRIDE",
+        "BASH_ENV",
+        "ENV",
+    ):
+        cleaned.pop(key, None)
     return cleaned
 
 

@@ -41,6 +41,10 @@ part of the default workflow.
 | Script | Purpose | Called by | Stage |
 | --- | --- | --- | --- |
 | `scripts/run_place_batch.sh` | Produce reusable `3_4_place_resized.odb` snapshots for selected cases. | Human/Teacher before baseline/evolve gates. | Input snapshot generation. |
+| `scripts/run_aggressive_flow_knowledge_experiments.sh` | One-click large experiment driver: build core, create placement snapshots, refresh canonical baselines, then sequentially launch Teacher/Student loops from a TSV plan such as `configs/experiment_plans/flow_knowledge_core_util.tsv`. | Human/Teacher. | Batch knowledge collection. |
+| `scripts/run_candidate_matrix.sh` | Build one fixed candidate `dpl_evolve` source once, then evaluate that identical code across every enabled row in a TSV plan. | Human/Teacher after a promising student source backup exists. | Cross-case candidate validation. |
+| `scripts/run_round_candidate_matrices.sh` | Enumerate all `students/*/source_backups/iter_*/dpl_evolve` candidates from one Teacher round and run `run_candidate_matrix.sh` for each. | Human/Teacher after a completed round. | 4xN candidate validation. |
+| `scripts/run_jpeg_util60_discovery_then_matrix.sh` | Full pipeline: full baseline matrix, JPEG util60 4x12 framework-start evolution, then fixed-source matrix validation for every generated program. | Human/Teacher. | Main knowledge experiment. |
 | `scripts/run_canonical_line.sh` | Dispatch one canonical line: `openroad_dpl_flow` or `evolve_default`. | Humans, evaluator, Teacher loop. | Single run. |
 | `scripts/compare_runs.py` | Compare two evaluator or metrics JSON files using stable metrics. | Human/Teacher review. | Result analysis. |
 
@@ -215,8 +219,17 @@ keeps one protected elite-continuation branch alive while the other students
 continue, cross-learn, or pivot.
 
 Launched Teacher/Student sessions use the normal Codex session store.  The
-orchestrator does not override `CODEX_HOME`; resume behavior comes from the
-`thread_id` recorded in each operation summary plus `codex exec resume`.
+orchestrator does not override `CODEX_HOME`, so sessions are recorded under
+the user's default Codex home, usually `~/.codex`.  Each Teacher/Student
+workspace stores only its identity and last thread id:
+
+```text
+.dpl_evolve_state/teacher_rounds/<round>/teacher_workspace/.codex_session_state.json
+.dpl_evolve_state/teacher_rounds/<round>/students/student_XX/workspace/.codex_session_state.json
+```
+
+`scripts/run_codex_exec.py` auto-resumes from that state file when it contains
+a recorded `last_thread_id`.
 
 Watch a running round in the terminal:
 

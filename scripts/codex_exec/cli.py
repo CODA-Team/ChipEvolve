@@ -40,6 +40,28 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Resume the most recent Codex exec session. Mostly for manual debugging.",
     )
+    parser.add_argument(
+        "--session-identity",
+        help="Stable human-readable identity for this Teacher/Student worker.",
+    )
+    parser.add_argument(
+        "--session-state",
+        type=Path,
+        help=(
+            "JSON state file storing the worker identity and last thread id. "
+            "If present, a later run auto-resumes the recorded thread."
+        ),
+    )
+    parser.add_argument(
+        "--session-env-file",
+        type=Path,
+        help="Shell env file recording the identity and last thread id for this workspace.",
+    )
+    parser.add_argument(
+        "--no-session-auto-resume",
+        action="store_true",
+        help="Do not auto-resume from --session-state even if it has a thread id.",
+    )
     parser.add_argument("--input-price-per-1m", type=float)
     parser.add_argument("--cached-input-price-per-1m", type=float)
     parser.add_argument("--output-price-per-1m", type=float)

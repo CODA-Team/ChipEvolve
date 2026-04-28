@@ -1,0 +1,156 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import csv
+import json
+import re
+from pathlib import Path
+from typing import Any
+
+
+FIELDS = [
+    "case",
+    "core_utilization",
+    "flow_variant",
+    "baseline_tag",
+    "candidate_tag",
+    "status",
+    "exit_code",
+    "hpwl_after_micron",
+    "avg_displacement_micron",
+    "max_displacement_micron",
+    "runtime_seconds",
+    "candidate_metrics",
+]
+
+
+def legalize_log_path(metrics_path: Path) -> Path | None:
+    parts = metrics_path.parts
+    try:
+        flow_index = parts.index("flow")
+        reports_index = flow_index + 1
+        platform = parts[reports_index + 1]
+        design = parts[reports_index + 2]
+        flow_variant = parts[reports_index + 3]
+        run_tag = parts[reports_index + 5]
+    except (ValueError, IndexError):
+        return None
+    flow_root = Path(*parts[: flow_index + 1]) if metrics_path.is_absolute() else Path(*parts[: flow_index + 1])
+    return (
+        flow_root
+        / "logs"
+        / platform
+        / design
+        / flow_variant
+        / "dpl_evolve_baseline"
+        / run_tag
+        / f"dpl_evolve_{run_tag}_legalize.log"
+    )
+
+
+def parse_runtime(text: str) -> str:
+    matches = re.findall(r"Elapsed time:\s+([0-9:.]+)\[h:\]min:sec", text, flags=re.MULTILINE)
+    if not matches:
+        return ""
+    parts = [float(part) for part in matches[-1].split(":")]
+    if len(parts) == 3:
+        return str(parts[0] * 3600 + parts[1] * 60 + parts[2])
+    if len(parts) == 2:
+        return str(parts[0] * 60 + parts[1])
+    if len(parts) == 1:
+        return str(parts[0])
+    return ""
+
+
+def metric_summary(path: str) -> tuple[str, str, str, str, bool]:
+    if not path:
+        return "", "", "", "", False
+    metrics_path = Path(path)
+    if not metrics_path.is_file():
+        log_path = legalize_log_path(metrics_path)
+        return log_summary(log_path)
+    try:
+        data: dict[str, Any] = json.loads(metrics_path.read_text(encoding="utf-8"))
+    except Exception:
+        log_path = legalize_log_path(metrics_path)
+        return log_summary(log_path)
+    hpwl = data.get("hpwl_proxy", {})
+    disp = data.get("displacement", {})
+    return (
+        str(hpwl.get("after_micron", "") or ""),
+        str(disp.get("average_displacement_micron", "") or ""),
+        str(disp.get("max_displacement_micron", "") or ""),
+        str(data.get("runtime_seconds", "") or ""),
+        True,
+    )
+
+
+def log_summary(path: Path | None) -> tuple[str, str, str, str, bool]:
+    if path is None or not path.is_file():
+        return "", "", "", "", False
+    text = path.read_text(encoding="utf-8", errors="replace")
+
+    def last(pattern: str) -> str:
+        matches = re.findall(pattern, text, flags=re.MULTILINE)
+        return matches[-1] if matches else ""
+
+    hpwl = last(r"legalized HPWL\s+([0-9.+-eE]+)\s+u")
+    avg = last(r"average displacement\s+([0-9.+-eE]+)\s+u")
+    maxd = last(r"max displacement\s+([0-9.+-eE]+)\s+u")
+    runtime = parse_runtime(text)
+    return hpwl, avg, maxd, runtime, any((hpwl, avg, maxd, runtime))
+
+
+def normalize(path: Path) -> None:
+    rows: list[dict[str, str]]
+    with path.open("r", encoding="utf-8", newline="") as fh:
+        reader = csv.DictReader(fh, delimiter="\t")
+        rows = list(reader)
+
+    normalized: list[dict[str, str]] = []
+    for row in rows:
+        metrics_path = row.get("candidate_metrics", "")
+        hpwl, avg_disp, max_disp, runtime, has_metrics = metric_summary(metrics_path)
+        hpwl = row.get("hpwl_after_micron") or hpwl
+        avg_disp = row.get("avg_displacement_micron") or avg_disp
+        max_disp = row.get("max_displacement_micron") or max_disp
+        runtime = row.get("runtime_seconds") or runtime
+        status = row.get("status") or ("PASS" if has_metrics else "FAIL_MISSING_METRICS")
+        exit_code = row.get("exit_code") or ("0" if has_metrics else "1")
+        normalized.append(
+            {
+                "case": row.get("case", ""),
+                "core_utilization": row.get("core_utilization", ""),
+                "flow_variant": row.get("flow_variant", ""),
+                "baseline_tag": row.get("baseline_tag", ""),
+                "candidate_tag": row.get("candidate_tag", ""),
+                "status": status,
+                "exit_code": exit_code,
+                "hpwl_after_micron": hpwl,
+                "avg_displacement_micron": avg_disp,
+                "max_displacement_micron": max_disp,
+                "runtime_seconds": runtime,
+                "candidate_metrics": metrics_path,
+            }
+        )
+
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    with tmp.open("w", encoding="utf-8", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=FIELDS, delimiter="\t", lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(normalized)
+    tmp.replace(path)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Upgrade candidate matrix results.tsv to include comparison metrics."
+    )
+    parser.add_argument("results_tsv", type=Path)
+    args = parser.parse_args()
+    normalize(args.results_tsv)
+
+
+if __name__ == "__main__":
+    main()
