@@ -127,8 +127,8 @@ if [[ "${start_kind}" == "framework" && -z "${seed_src_override}" && ! -f "${see
   echo "[ERROR] Prepared seed source lacks EvolveLegalizer.cpp: ${seed_src}" >&2
   exit 1
 fi
-if [[ "${start_kind}" == "framework" && -z "${seed_src_override}" && ! -f "${seed_src}/src/DifferentialGuidance.cpp" ]]; then
-  echo "[ERROR] Prepared seed source lacks DifferentialGuidance.cpp: ${seed_src}" >&2
+if [[ "${start_kind}" == "framework" && -z "${seed_src_override}" && ! -f "${seed_src}/src/LegalmGuidance.cpp" ]]; then
+  echo "[ERROR] Prepared seed source lacks LegalmGuidance.cpp: ${seed_src}" >&2
   exit 1
 fi
 

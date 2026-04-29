@@ -15,9 +15,10 @@ struct EvolveContext
   int max_threads = 10;
   int max_displacement_x = 0;
   int max_displacement_y = 0;
+  // LEGALM Algorithm 1 input T.  A value <= 0 selects the reference default
+  // used by this CPU framework: Kthre plus the paper's local-optimum window.
+  int legalm_iteration_limit = 0;
   bool incremental = false;
-  bool negotiation_requested = false;
-  bool abacus_requested = false;
   std::string report_file_name;
 };
 

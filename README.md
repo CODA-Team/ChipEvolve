@@ -109,7 +109,7 @@ Confirm the framework seed exists:
 
 ```bash
 test -f "$DPL_EVOLVE_STATE_ROOT/seed_sources/framework_dpl_evolve/src/EvolveLegalizer.cpp" && \
-test -f "$DPL_EVOLVE_STATE_ROOT/seed_sources/framework_dpl_evolve/src/DifferentialGuidance.cpp" && \
+test -f "$DPL_EVOLVE_STATE_ROOT/seed_sources/framework_dpl_evolve/src/LegalmGuidance.cpp" && \
 echo "framework seed ready"
 ```
 

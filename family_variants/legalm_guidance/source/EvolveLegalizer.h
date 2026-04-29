@@ -21,11 +21,6 @@ struct EvolveHooks
   // Student-owned top-level implementation.  This is a coarse stage boundary,
   // not a per-cell callback surface; hot data stays inside the C++ DPL process.
   std::function<bool(const EvolveContext& context)> run_student_algorithm;
-
-  // Coarse donor hooks exposed to student implementations.  The framework
-  // never calls these automatically and they must not be used in inner loops.
-  std::function<void()> run_diamond_compatible;
-  std::function<void(bool run_abacus)> run_negotiation_repair;
 };
 
 class EvolveLegalizer

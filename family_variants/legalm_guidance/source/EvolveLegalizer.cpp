@@ -65,10 +65,6 @@ void EvolveLegalizer::run(const EvolveContext& context)
                 1200,
                 "Legalizing using constrained DPL-Evolve framework.");
   logger_->metric("dpl_evolve__framework__entry", 1);
-  logger_->metric("dpl_evolve__framework__negotiation_requested",
-                  context.negotiation_requested ? 1 : 0);
-  logger_->metric("dpl_evolve__framework__abacus_requested",
-                  context.abacus_requested ? 1 : 0);
 
   if (runStudentAlgorithmStage(context)) {
     return;

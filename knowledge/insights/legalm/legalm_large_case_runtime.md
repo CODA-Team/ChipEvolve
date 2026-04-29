@@ -9,8 +9,9 @@ separate costs.
 
 ## Observed Bottleneck
 
-The slow path was not primarily final no-overflow polish.  The dominant cost
-was row/interval assignment inside full LEGALM legalization:
+Earlier large-case runs showed that the slow path was not primarily final
+no-overflow polish.  The dominant legalizer-stage cost was row/interval
+assignment inside full LEGALM legalization:
 
 - per-cell construction of fresh row-order vectors,
 - scanning many free intervals in candidate rows,
@@ -18,6 +19,26 @@ was row/interval assignment inside full LEGALM legalization:
   fragmented.
 
 This pattern scales poorly on large, fragmented designs.
+
+Later optimized runs changed the bottleneck profile.  After replacing full
+occupancy rebuilds with exact incremental footprint updates, the LEGALM
+pipeline can be around one second on a medium-density large standard-cell
+case.  In that profile, the full strict-flow elapsed time is dominated by
+downstream detailed-improvement work, not by differential guidance itself.
+
+Within differential guidance, the useful breakdown is:
+
+- demand scoring: Eq. 36 demand over cells that actually participate in the
+  current triplefold partition scheme,
+- partition sorting: stable descending demand order inside each partition,
+- BGD candidate evaluation: finite-ALM candidate scoring and pruning,
+- occupancy commit: accepted footprint deltas applied after the parallel
+  partition region,
+- overflow stats: the end-of-iteration ALM stopping/telemetry scan.
+
+If the LEGALM pipeline is already small relative to the rest of the flow, do
+not keep simplifying the paper algorithm just to chase total wall time.  First
+separate legalizer-stage runtime from downstream improvement/mirroring time.
 
 ## Effective Fix
 
@@ -42,6 +63,12 @@ For large cases:
 - use row-id keyed vectors, sorted interval arrays, `lower_bound`, and bounded
   neighbor probes,
 - keep candidate caps explicit in telemetry,
+- score demand only for cells that can be processed by the current partition
+  scheme; boundary-excluded cells do not affect that iteration's order,
+- avoid full target/occupancy vector reconstruction inside ALM iterations when
+  accepted move records can update the same state incrementally,
+- keep legalizer-stage timing separate from downstream `improve_placement` and
+  mirroring timing,
 - only add richer scoring after the bounded probe path is already efficient.
 
 If quality regresses, improve target scoring or commit criteria around bounded

@@ -31,6 +31,8 @@ should act on it.
 
 ## LEGALM Notes
 
+- `legalm/paper_code_alignment.md`: formula/pseudocode-to-code map for
+  checking that LEGALM edits preserve the paper flow.
 - `legalm/paper_faithful_legalization_integration.md`: separation between
   paper-faithful legalizer work and full-flow integration.
 - `legalm/legalm_self_legal_closure.md`: LEGALM self-legal closure milestone and

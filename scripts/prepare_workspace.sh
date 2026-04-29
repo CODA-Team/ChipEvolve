@@ -90,12 +90,11 @@ done
 workspace_root="$(realpath -m "${workspace_root}")"
 seed_root="$(realpath -m "${seed_root}")"
 anchors_json="${AGENT_ROOT}/metadata/anchors.json"
-orfs_patch="${AGENT_ROOT}/patches/orfs_overlay.patch"
 orfs_make_patch="${AGENT_ROOT}/patches/orfs_make_overlay.patch"
 openroad_patch="${AGENT_ROOT}/patches/openroad_dpl_evolve_base.patch"
 openroad_framework_patch="${AGENT_ROOT}/patches/openroad_dpl_evolve_framework.patch"
 
-if [[ ! -d "${workspace_root}/.git" ]]; then
+if ! git -C "${workspace_root}" rev-parse --git-dir >/dev/null 2>&1; then
   echo "[ERROR] workspace root is not a git repository: ${workspace_root}" >&2
   exit 1
 fi
@@ -173,6 +172,49 @@ apply_patch_if_needed() {
 
   echo "[ERROR] ${label}: patch does not apply cleanly: ${patch_file}" >&2
   exit 1
+}
+
+git_submodule_update() {
+  local repo_root="$1"
+  shift
+  if [[ -n "${DPL_EVOLVE_OPENROAD_URL:-}" \
+        && ( "${DPL_EVOLVE_OPENROAD_URL}" == /* \
+             || "${DPL_EVOLVE_OPENROAD_URL}" == file://* ) ]]; then
+    git -c protocol.file.allow=always -C "${repo_root}" "$@"
+  else
+    git -C "${repo_root}" "$@"
+  fi
+}
+
+mirror_openroad_nested_submodule_urls() {
+  local target_openroad="$1"
+  local source_openroad="${DPL_EVOLVE_OPENROAD_URL:-}"
+  if [[ -z "${source_openroad}" ]]; then
+    return
+  fi
+  if [[ "${source_openroad}" == file://* ]]; then
+    source_openroad="${source_openroad#file://}"
+  fi
+  if [[ "${source_openroad}" != /* ]]; then
+    return
+  fi
+  if ! git -C "${source_openroad}" rev-parse --git-dir >/dev/null 2>&1; then
+    return
+  fi
+
+  local copied=0
+  while read -r key url; do
+    [[ -n "${key}" && -n "${url}" ]] || continue
+    git -C "${target_openroad}" config "${key}" "${url}"
+    copied=1
+  done < <(
+    git -C "${source_openroad}" config --get-regexp '^submodule\..*\.url' 2>/dev/null \
+      || git -C "${source_openroad}" config --file .gitmodules --get-regexp '^submodule\..*\.url' 2>/dev/null \
+      || true
+  )
+  if [[ "${copied}" -eq 1 ]]; then
+    echo "[INFO] OpenROAD: mirrored nested submodule URLs from ${source_openroad}"
+  fi
 }
 
 commit_if_dirty() {
@@ -255,16 +297,24 @@ fi
 if [[ -n "${DPL_EVOLVE_OPENROAD_URL:-}" ]]; then
   git -C "${workspace_root}" config submodule.tools/OpenROAD.url "${DPL_EVOLVE_OPENROAD_URL}"
 fi
-git -C "${workspace_root}" submodule update --init --recursive tools/OpenROAD
+submodule_update_args=(submodule update --init)
+if [[ "${force}" -eq 1 ]]; then
+  submodule_update_args+=(--force)
+fi
+git_submodule_update "${workspace_root}" "${submodule_update_args[@]}" tools/OpenROAD
 if ! git -C "${workspace_root}/tools/OpenROAD" rev-parse --git-dir >/dev/null 2>&1; then
   echo "[ERROR] Failed to initialize OpenROAD submodule at ${workspace_root}/tools/OpenROAD" >&2
   exit 1
 fi
 ensure_clean_or_reset "${workspace_root}/tools/OpenROAD" "${openroad_branch}" "${openroad_base_commit}" "OpenROAD"
 git -C "${workspace_root}/tools/OpenROAD" submodule sync --recursive
-git -C "${workspace_root}/tools/OpenROAD" submodule update --init --recursive
+mirror_openroad_nested_submodule_urls "${workspace_root}/tools/OpenROAD"
+nested_update_args=(submodule update --init --recursive)
+if [[ "${force}" -eq 1 ]]; then
+  nested_update_args+=(--force)
+fi
+git_submodule_update "${workspace_root}/tools/OpenROAD" "${nested_update_args[@]}"
 
-apply_patch_if_needed "${workspace_root}" "${orfs_patch}" "ORFS"
 apply_patch_if_needed "${workspace_root}" "${orfs_make_patch}" "ORFS"
 apply_patch_if_needed "${workspace_root}/tools/OpenROAD" "${openroad_patch}" "OpenROAD"
 snapshot_dpl_seed "diamond_dpl_evolve" "0"

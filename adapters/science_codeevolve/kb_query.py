@@ -29,24 +29,35 @@ except ModuleNotFoundError:  # Keep packet generation usable in minimal envs.
 
 
 FRAMEWORK_SURFACE = {
-    "file": "tools/OpenROAD/src/dpl_evolve/src/EvolveLegalizer.cpp",
+    "file": "tools/OpenROAD/src/dpl_evolve/src/StudentAlgorithm.cpp",
     "header_files": [
+        "adapters/science_codeevolve/patch_surface.yaml",
+        "tools/OpenROAD/src/dpl_evolve/include/dpl_evolve/Opendp.h",
+        "tools/OpenROAD/src/dpl_evolve/include/dpl_evolve/OptMirror.h",
         "tools/OpenROAD/src/dpl_evolve/src/EvolveLegalizer.h",
         "tools/OpenROAD/src/dpl_evolve/src/EvolveContext.h",
         "tools/OpenROAD/src/dpl_evolve/src/EvolveTelemetry.h",
+        "tools/OpenROAD/src/dpl_evolve/src/LegalmCommon.h",
+        "tools/OpenROAD/src/dpl_evolve/src/optimization/detailed_random.h",
+        "tools/OpenROAD/src/dpl_evolve/src/optimization/detailed_manager.h",
+        "tools/OpenROAD/src/dpl_evolve/src/objective/detailed_hpwl.h",
     ],
-    "symbol": "dpl_evolve::EvolveLegalizer::run",
+    "symbol": "dpl_evolve legalize/improve/mirror flow",
     "allowed_patch_modes": [
         "stage_ordering",
         "stage_guarding",
         "relaxed_guidance_stage",
         "assignment_donor_stage",
-        "diamond_compatible_stage",
-        "negotiation_repair_stage",
+        "full_legalization_stage",
+        "detailed_improvement_strategy",
+        "mirror_or_orientation_strategy",
+        "objective_redesign",
+        "bounded_candidate_generation",
         "bounded_polish_stage",
+        "high_performance_data_structure",
         "telemetry_only",
     ],
-    "risk": "medium",
+    "risk": "high",
 }
 
 
@@ -245,14 +256,18 @@ def build_packet(problem_dir: Path, out_dir: Path) -> dict[str, Any]:
             "adapters/science_codeevolve/current_run_packet.md",
             "skills/patch_rules.md",
             str(problem_path.relative_to(AGENT_ROOT)),
+            "adapters/science_codeevolve/patch_surface.yaml",
             "knowledge/EVIDENCE_POLICY.md",
             "knowledge/CONTEXT_AUDIT.md",
             FRAMEWORK_SURFACE["file"],
+            "tools/OpenROAD/src/dpl_evolve/src/Optdp.cpp",
+            "tools/OpenROAD/src/dpl_evolve/src/OptMirror.cpp",
+            "tools/OpenROAD/src/dpl_evolve/src/LegalmGuidance.cpp",
             "family_variants/REFERENCE_INDEX.yaml",
         ],
         "allowed_actions": [
             "Edit only `tools/OpenROAD/src/dpl_evolve` in a prepared private variant source.",
-            "Use reference algorithms to implement one bounded framework-stage mechanism.",
+            "Use reference algorithms to implement bounded legalize, improve, or mirror mechanisms.",
             "Add or refine `EvolveTelemetry` counters that explain stage behavior.",
         ],
         "forbidden_actions": [

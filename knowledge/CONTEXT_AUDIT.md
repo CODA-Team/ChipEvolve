@@ -11,7 +11,10 @@ family-tree tuning to a constrained `detailed_placement_evolve` framework.
 - Student experiments use private `dpl_evolve` source trees plus lightweight
   variant relink.
 - The default LEGALM-style implementation reference is
-  `family_variants/legalm_guidance/`.
+  `family_variants/legalm_guidance/`; its code is split by stage, with
+  `LegalmGuidance.cpp`, `LegalmRowAssignment.cpp`,
+  `LegalmFullLegalization.cpp`, repair handoff, and pipeline composition kept
+  separate.
 
 ## Calibrated Baselines And Donors
 
@@ -25,8 +28,11 @@ family-tree tuning to a constrained `detailed_placement_evolve` framework.
 - Selected threaded-frontier mechanisms from earlier negotiation experiments
   live under
   `family_variants/openroad_negotiation_nblg/mechanism_deltas/`.
-- LEGALM and DREAMPlace/Abacus are source and idea donors. Their objectives,
-  stage order, and data structures are not fixed project requirements.
+- LEGALM is a paper-faithful source reference: keep Stage 1 projection,
+  Stage 2 ALM/BGD-style overflow reduction, and Stage 3 no-overflow refinement
+  semantically clean. Extra HPWL, negotiation, or flow-level ideas must be
+  explicit outer stages, not hidden inside LEGALM.
+- DREAMPlace/Abacus remain source and idea donors for separate experiments.
 
 ## Default Context Hygiene
 

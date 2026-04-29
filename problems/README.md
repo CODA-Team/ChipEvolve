@@ -28,8 +28,12 @@ Examples:
 - Algorithm/reference context lives under `../knowledge/` and
   `../family_variants/`.
 - Baseline outputs still live under the ORFS `flow/` tree
-- `patch_surface` lists the current constrained framework files that agents may
-  modify for this case; detailed symbol-level policy lives in
+- `patch_surface` lists the current framework files that agents may modify for
+  this case.  It intentionally includes LEGALM/legalization, row assignment,
+  repair handoff, the `detailed_placement_evolve` interface,
+  detailed-improvement internals, and mirror/orientation strategy so agents
+  are not restricted to stale top-level scaffolding.
+  Detailed symbol-level policy lives in
   `../adapters/science_codeevolve/patch_surface.yaml`.
 
 ## Case Sets

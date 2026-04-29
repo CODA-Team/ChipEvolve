@@ -37,13 +37,6 @@ prepare_patches:
       Small ORFS Makefile runner hook used by strict baseline wrappers.
     apply_target: recorded ORFS anchor from metadata/anchors.json
 
-  - path: patches/orfs_overlay.patch
-    status: intentionally_empty_placeholder
-    meaning: >
-      Kept so prepare_workspace.sh can use the same patch sequence even when a
-      specific ORFS anchor does not need extra overlay content.
-    apply_target: none
-
 reference_deltas:
   - path: family_variants/openroad_negotiation_nblg/mechanism_deltas/parallel_frontier.diff
     status: historical_delta_reference

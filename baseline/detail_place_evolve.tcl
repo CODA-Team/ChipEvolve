@@ -39,7 +39,7 @@ dpl_evolve_baseline::dump_instance_snapshot $before_snapshot
 log_cmd set_placement_padding_evolve -global -left 0 -right 0
 log_cmd detailed_placement_evolve \
   -report_file_name [dpl_evolve_baseline::resolve_flow_path $dp_report]
-log_cmd improve_placement_evolve
+log_cmd improve_placement_evolve -random_seed 1
 log_cmd optimize_mirroring_evolve
 
 set hpwl_after [dpl_evolve_baseline::compute_hpwl_proxy]
