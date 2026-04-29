@@ -110,7 +110,13 @@ class Opendp
                          const std::string& report_file_name = std::string(""),
                          bool incremental = false,
                          bool use_negotiation = false,
-                         bool run_abacus = false);
+                         bool run_abacus = false,
+                         int threads = 10,
+                         int legalm_iterations = 800,
+                         int legalm_candidate_vertical_radius = 3,
+                         int legalm_candidate_horizontal_steps = 17,
+                         int legalm_stage3_partition_schemes = 3,
+                         int legalm_stage3_rounds_per_scheme = 10);
   void reportLegalizationStats() const;
 
   void setPaddingGlobal(int left, int right);
@@ -419,6 +425,7 @@ class Opendp
   bool deep_iterative_debug_ = false;
   bool incremental_ = false;
   bool use_negotiation_ = false;
+  bool run_abacus_ = false;
 
   // Magic numbers
   static constexpr double group_refine_percent_ = .05;

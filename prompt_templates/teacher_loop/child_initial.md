@@ -32,12 +32,34 @@ card, exact artifacts.
   selection, root ORFS source, or classic `tools/OpenROAD/src/dpl`.
 - Keep the public evolved flow callable:
   `detailed_placement_evolve -> improve_placement_evolve -> optimize_mirroring_evolve`.
-- Implement one coherent case-specific mechanism.  Constants, quotas, and
-  thresholds can support the mechanism but cannot be the mechanism.
+- Implement one coherent case-specific flow change across all three commands.
+  Constants, quotas, and thresholds can support the mechanism but cannot be the
+  mechanism.
 - You may change objective, stage order, legalization, assignment, repair,
   improve placement, mirroring, telemetry, commit logic, and data structures.
 - Strict legality is mandatory.  Optimize HPWL first; explain runtime and
   displacement as tradeoffs.
+
+## Mandatory Three-Part Implementation
+
+Do not stop after one local change. A valid attempt has non-empty source edits
+in all three areas, plus a final co-optimization pass:
+
+- Legalization: change global guidance, row assignment, candidate scoring,
+  Stage 3 refinement, repair handoff, or legalization objective.
+- Improve placement: change detailed objective, candidate generator, manager,
+  swap/reorder/vertical/orient pass, touched-net scoring, or commit policy.
+- Mirror: change mirror/orientation scoring, acceptance, ordering, candidate
+  filtering, or its interaction with detailed improve.
+- Co-optimization: connect the three parts through a shared objective, touched
+  net/cache data, displacement/reference snapshots, stage handoff, telemetry,
+  or flow ordering decision.
+
+Before editing, inspect the relevant current source and write down the intended
+three-part mechanism in your own notes. After editing the three parts, revisit
+the top-level flow once and make the stages work together; do not leave them as
+three unrelated tweaks. If your final diff touches only one or two areas, treat
+the attempt as incomplete.
 
 ## Mechanism Menu
 
@@ -52,6 +74,8 @@ hardcoding, default-equivalent/no-op behavior, or local proxy-only wins.
 
 ## Implementation Standard
 
+- Expect a substantial diff. Prefer changing several focused source files over
+  hiding the whole idea in one flag or constant.
 - High-performance C++: bounded candidates, cached row/net/branch state, no
   avoidable hot-loop O(n^2), no full-grid inner loops.
 - Avoid excessive defensive programming.  Do not add broad safety wrappers,
@@ -66,4 +90,6 @@ hardcoding, default-equivalent/no-op behavior, or local proxy-only wins.
 
 Report: touched files, mechanism, build/eval status, metrics path, private
 binary, diff path, knowledge card path, HPWL/runtime/displacement delta,
-telemetry, algorithmic validity and complexity assessment.
+telemetry, algorithmic validity and complexity assessment. Explicitly state the
+legalization change, improve-placement change, mirror change, and cross-stage
+co-optimization.

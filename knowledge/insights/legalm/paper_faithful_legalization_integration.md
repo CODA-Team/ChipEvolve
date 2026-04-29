@@ -109,8 +109,11 @@ paper-faithful reference implementation.
   final bridge while the staged algorithm matures.
 - If diamond runs after guidance, the report must state how much was done by
   guidance and how much was resolved by diamond.
-- Negotiation/NBLG is a repair donor.  It should be invoked only when telemetry
-  says overflow/stuck repair is needed.
+- Negotiation/NBLG is a repair donor, not a LEGALM paper stage.  If it runs
+  unconditionally inside the default LEGALM path, it can dominate the final
+  placement and make later Stage 1/2/3 edits appear ineffective.  Keep it as an
+  explicit policy-assisted fallback or ablation path, and label those results
+  separately from `legalm_only`.
 - Stage metrics should be produced by each stage directly.  Avoid heavyweight
   generic callbacks between stages.
 - Use ODB as the handoff artifact; do not add DEF/SDC/Verilog writes to the

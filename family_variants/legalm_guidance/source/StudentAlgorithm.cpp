@@ -36,24 +36,45 @@ bool Opendp::runStudentAlgorithm(const EvolveContext& context)
   const double legalm_ms = elapsed_ms(legalm_begin, legalm_end);
   logger_->metric("dpl_evolve__pipeline__legalm_full_ms", legalm_ms);
   logger_->metric("dpl_evolve__pipeline__legalm_status", legalm_ok ? 1 : 0);
-  if (!legalm_ok) {
-    logger_->warn(DPL,
-                  1222,
-                  "LEGALM full legalization did not close legality; running "
-                  "negotiation repair on the current placement state.");
+
+  if (legalm_ok) {
+    logger_->metric("dpl_evolve__pipeline__policy_repair_used", 0);
+    logger_->info(DPL,
+                  1221,
+                  "DPL-Evolve LEGALM-only pipeline timing: guidance {:.2f} ms, "
+                  "full legalization {:.2f} ms.",
+                  guidance_ms,
+                  legalm_ms);
+    reportEvolvePlacementMetrics("legalm_only");
+    return true;
   }
 
+  if (!use_negotiation_) {
+    logger_->metric("dpl_evolve__pipeline__policy_repair_used", 0);
+    logger_->warn(DPL,
+                  1222,
+                  "LEGALM full legalization did not close legality; no "
+                  "policy-assisted repair was requested.");
+    return false;
+  }
+
+  logger_->warn(DPL,
+                1223,
+                "LEGALM full legalization did not close legality; running "
+                "explicit policy-assisted negotiation repair.");
   const auto repair_begin = Clock::now();
-  const bool negotiation_ok = runEvolveNegotiationRepair(false);
+  const bool negotiation_ok = runEvolveNegotiationRepair(run_abacus_);
   const auto repair_end = Clock::now();
   const double repair_ms = elapsed_ms(repair_begin, repair_end);
+  logger_->metric("dpl_evolve__pipeline__policy_repair_used", 1);
   logger_->metric("dpl_evolve__pipeline__negotiation_repair_ms", repair_ms);
   logger_->metric("dpl_evolve__pipeline__negotiation_status",
                   negotiation_ok ? 1 : 0);
   logger_->info(DPL,
-                1221,
-                "DPL-Evolve LEGALM pipeline timing: guidance {:.2f} ms, "
-                "full legalization {:.2f} ms, negotiation repair {:.2f} ms.",
+                1224,
+                "DPL-Evolve policy-assisted pipeline timing: guidance {:.2f} "
+                "ms, full legalization {:.2f} ms, negotiation repair {:.2f} "
+                "ms.",
                 guidance_ms,
                 legalm_ms,
                 repair_ms);

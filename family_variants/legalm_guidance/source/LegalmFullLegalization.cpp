@@ -17,13 +17,6 @@ namespace dpl_evolve {
 namespace {
 
 constexpr LegalmPaperParams kPaper = legalmPaperParams();
-constexpr LegalmCpuCaps kCpuCaps = legalmCpuCaps();
-constexpr int kStage3PartitionSchemes = kPaper.stage3_partition_schemes;
-constexpr int kStage3RoundsPerScheme = kPaper.stage3_rounds_per_scheme;
-constexpr int kLegalmCandidateVerticalRadius
-    = kCpuCaps.candidate_vertical_radius;
-constexpr int kLegalmCandidateHorizontalSteps
-    = kCpuCaps.candidate_horizontal_steps;
 
 struct LegalmPlaceCell
 {
@@ -116,6 +109,11 @@ bool Opendp::runLegalmFullLegalization(const EvolveContext& context)
     logger_->metric("dpl_evolve__legalm_full__status", 0);
     return false;
   }
+  const LegalmCpuCaps cpu_caps = resolveLegalmCpuCaps(context);
+  const int stage3_partition_schemes
+      = resolveLegalmStage3PartitionSchemes(context);
+  const int stage3_rounds_per_scheme
+      = resolveLegalmStage3RoundsPerScheme(context);
 
   std::vector<LegalmPlaceCell> cells;
   cells.reserve(network_->getNumCells());
@@ -769,7 +767,7 @@ bool Opendp::runLegalmFullLegalization(const EvolveContext& context)
   const int stage3_partition_count
       = stage3_partition_cols * stage3_partition_rows;
   const std::vector<LegalmCandidateOffset> stage3_stencil
-      = legalmCandidateStencil(kCpuCaps);
+      = legalmCandidateStencil(cpu_caps);
 
   if (failed_cells == 0) {
     auto shifted_partition
@@ -910,13 +908,13 @@ bool Opendp::runLegalmFullLegalization(const EvolveContext& context)
                                     evaluate_lambda_infinity_candidate);
     };
 
-    for (int scheme = 0; scheme < kStage3PartitionSchemes; ++scheme) {
+    for (int scheme = 0; scheme < stage3_partition_schemes; ++scheme) {
       std::vector<std::mutex> row_mutexes(row_count);
       const int site_shift
-          = (scheme * stage3_xhint_sites) / kStage3PartitionSchemes;
+          = (scheme * stage3_xhint_sites) / stage3_partition_schemes;
       const int row_shift
-          = (scheme * stage3_yhint_rows) / kStage3PartitionSchemes;
-      for (int scheme_round = 0; scheme_round < kStage3RoundsPerScheme;
+          = (scheme * stage3_yhint_rows) / stage3_partition_schemes;
+      for (int scheme_round = 0; scheme_round < stage3_rounds_per_scheme;
            ++scheme_round) {
         ++stage3_rounds;
         std::vector<std::vector<int>> partitions(stage3_partition_count);
@@ -1010,7 +1008,7 @@ bool Opendp::runLegalmFullLegalization(const EvolveContext& context)
               int64_t pin_access_terms = 0;
               std::vector<std::unique_lock<std::mutex>> locks;
               locks.reserve(max_height_rows
-                            + 2 * kLegalmCandidateVerticalRadius);
+                            + 2 * cpu_caps.candidate_vertical_radius);
               for (int part = begin; part < end; ++part) {
                 for (const int idx : partitions[part]) {
                   const LegalmPlaceCell& item = cells[idx];
@@ -1048,11 +1046,11 @@ bool Opendp::runLegalmFullLegalization(const EvolveContext& context)
                                                           &pin_access_terms);
                   ++attempted;
                   const int lock_begin
-                      = std::max(0, row - kLegalmCandidateVerticalRadius);
+                      = std::max(0, row - cpu_caps.candidate_vertical_radius);
                   const int lock_end
                       = std::min(row_count - 1,
                                  row + item.height_rows - 1
-                                     + kLegalmCandidateVerticalRadius);
+                                     + cpu_caps.candidate_vertical_radius);
                   locks.clear();
                   for (int lock_row = lock_begin; lock_row <= lock_end;
                        ++lock_row) {
@@ -1175,7 +1173,7 @@ bool Opendp::runLegalmFullLegalization(const EvolveContext& context)
         stage3_last_round_moves = round_moved;
         if (round_moved == 0) {
           stage3_early_stopped_rounds
-              += kStage3RoundsPerScheme - scheme_round - 1;
+              += stage3_rounds_per_scheme - scheme_round - 1;
           break;
         }
       }
@@ -1269,15 +1267,15 @@ bool Opendp::runLegalmFullLegalization(const EvolveContext& context)
   logger_->metric("dpl_evolve__legalm_stage3__early_stopped_rounds",
                   stage3_early_stopped_rounds);
   logger_->metric("dpl_evolve__legalm_stage3__partition_schemes",
-                  kStage3PartitionSchemes);
+                  stage3_partition_schemes);
   logger_->metric("dpl_evolve__legalm_stage3__rounds_per_scheme",
-                  kStage3RoundsPerScheme);
+                  stage3_rounds_per_scheme);
   logger_->metric("dpl_evolve__legalm_stage3__threads",
                   stage3_thread_count_metric);
   logger_->metric("dpl_evolve__legalm_stage3__candidate_vertical_radius",
-                  kLegalmCandidateVerticalRadius);
+                  cpu_caps.candidate_vertical_radius);
   logger_->metric("dpl_evolve__legalm_stage3__candidate_horizontal_steps",
-                  kLegalmCandidateHorizontalSteps);
+                  cpu_caps.candidate_horizontal_steps);
   logger_->metric("dpl_evolve__legalm_stage3__candidate_stencil_size",
                   static_cast<int>(stage3_stencil.size()));
   logger_->metric("dpl_evolve__legalm_stage3__partitioned_cells",
@@ -1292,10 +1290,10 @@ bool Opendp::runLegalmFullLegalization(const EvolveContext& context)
                   kPaper.yhint_rows);
   logger_->metric(
       "dpl_evolve__legalm_stage3__cpu_cap_candidate_vertical_radius",
-      kLegalmCandidateVerticalRadius);
+      cpu_caps.candidate_vertical_radius);
   logger_->metric(
       "dpl_evolve__legalm_stage3__cpu_cap_candidate_horizontal_steps",
-      kLegalmCandidateHorizontalSteps);
+      cpu_caps.candidate_horizontal_steps);
   logger_->metric("dpl_evolve__legalm_stage3__last_round_moves",
                   stage3_last_round_moves);
   logger_->metric("dpl_evolve__legalm_stage3__site_improvement",

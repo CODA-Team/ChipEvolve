@@ -18,6 +18,7 @@
 - Diamond donor: `$openroad_diamond`
 - NBLG/negotiation donor: `$openroad_negotiation_nblg`
 - DREAMPlace/Abacus donor: `$dreamplace_abacus`
+- Teacher peer-coaching skill: `$teacher_coaching_skill`
 
 ## Objective
 
@@ -25,6 +26,8 @@
 - primary target: strict legal HPWL better than `openroad_dpl_flow`
 - runtime may rise if HPWL gain is meaningful and displacement is explainable
 - editable flow: `detailed_placement_evolve -> improve_placement_evolve -> optimize_mirroring_evolve`
+- every student attempt should modify legalization, improve placement, mirror,
+  and the cross-stage handoff/objective connecting them
 - goal: discover transferable code-change knowledge for large HPWL gains, not
   only preserve micro-gains
 
@@ -46,6 +49,9 @@ Detailed packet: `$design_characteristics_path`
 - students edit only private variant `dpl_evolve` source
 - students relink a private OpenROAD binary
 - do not edit evaluator, benchmark selection, root ORFS source, or classic `dpl`
+- valid student attempts should produce a substantial diff across the evolved
+  legalization, detailed improve, mirror/orientation, and shared flow-control
+  surfaces
 
 ## Current Baseline Evidence
 

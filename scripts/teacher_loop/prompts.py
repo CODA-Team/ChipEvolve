@@ -307,6 +307,9 @@ def common_context(
         / "family_variants"
         / "openroad_negotiation_nblg",
         dreamplace_abacus=runtime.agent_root / "family_variants" / "dreamplace_abacus",
+        teacher_coaching_skill=runtime.agent_root
+        / "skills"
+        / "teacher_peer_coaching.md",
         metric_table=metric_table(metrics),
         scoreboard=scoreboard,
         elite_text=elite_text,

@@ -14,6 +14,9 @@ surfaces:
       - top_level_flow
       - stage_ordering
       - stage_guarding
+      - cross_stage_cooptimization
+      - shared_objective_handoff
+      - legalize_improve_mirror_coordination
       - aggressive_case_strategy
       - telemetry_only
     risk: "medium"
@@ -26,6 +29,8 @@ surfaces:
       - alm_bgd_guidance
       - objective_design
       - net_or_size_aware_scoring
+      - legalize_improve_handoff
+      - shared_touched_net_cache
       - partitioning
       - local_optimum_escape
       - high_performance_data_structure
@@ -52,6 +57,8 @@ surfaces:
       - row_candidate_generation
       - interval_probe
       - cluster_or_abacus_like_assignment
+      - improve_seed_generation
+      - mirror_aware_row_choice
       - high_performance_data_structure
     risk: "medium-high"
 
@@ -62,6 +69,8 @@ surfaces:
       - parameter_separation
       - candidate_driver
       - shared_data_structure
+      - cross_stage_cache
+      - shared_objective_terms
       - telemetry_support
     risk: "medium"
 
@@ -91,6 +100,7 @@ surfaces:
       - repair_handoff
       - failure_clear_policy
       - negotiation_or_nblg_donor
+      - improve_or_mirror_seed_handoff
       - telemetry_only
     risk: "medium"
 
@@ -118,6 +128,8 @@ surfaces:
       - case_feature_addition
       - runtime_budget_addition
       - stage_policy_input
+      - cross_stage_signal_addition
+      - shared_objective_input
     risk: "low-medium"
 
   - file: "tools/OpenROAD/src/dpl_evolve/src/DifferentialGuidance.cpp"
@@ -154,6 +166,9 @@ surfaces:
       - detailed_improvement_flow
       - improve_runtime_control
       - hpwl_polish_strategy
+      - legalize_output_consumption
+      - mirror_seed_preparation
+      - cross_stage_cooptimization
     risk: "medium-high"
 
   - file: "tools/OpenROAD/src/dpl_evolve/src/optimization/detailed.cxx"
@@ -163,6 +178,8 @@ surfaces:
       - detailed_improvement_flow
       - hpwl_polish_strategy
       - high_performance_data_structure
+      - legalize_output_consumption
+      - mirror_seed_preparation
     risk: "medium-high"
 
   - file: "tools/OpenROAD/src/dpl_evolve/src/optimization/detailed.h"
@@ -189,6 +206,8 @@ surfaces:
       - candidate_local_drc_cache
       - commit_logic
       - sparse_checkpoint
+      - cross_stage_checkpoint
+      - touched_net_cache_handoff
       - high_performance_data_structure
     risk: "high"
 
@@ -314,6 +333,7 @@ surfaces:
     allowed_patch_modes:
       - objective_design
       - touched_net_delta
+      - cross_stage_shared_hpwl_delta
       - high_performance_data_structure
     risk: "high"
 
@@ -378,6 +398,9 @@ surfaces:
       - orientation_hpwl_delta
       - flow_ordering
       - sparse_checkpoint
+      - improve_output_consumption
+      - legalize_reference_consumption
+      - cross_stage_cooptimization
       - telemetry_support
     risk: "medium-high"
 
@@ -435,6 +458,6 @@ policy:
     - "benchmark or snapshot selection"
 
 notes:
-  - "Students may change LEGALM/legalization, detailed-improvement internals, mirror/orientation strategy, row assignment, Stage 3 refinement, and repair handoff when case evidence supports it."
+  - "Students are expected to make coherent changes across LEGALM/legalization, detailed-improvement internals, mirror/orientation strategy, and their shared top-level handoff when Teacher requests a full-flow attempt."
   - "Do not hide HPWL or flow-level experiments inside a paper-fidelity claim; label them as objective or flow redesign."
   - "Use private variant source plus lightweight relink for normal student algorithm experiments."

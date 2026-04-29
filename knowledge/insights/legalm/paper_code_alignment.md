@@ -39,8 +39,23 @@ The following constants are taken from the paper implementation paragraph:
 - `(xhint, yhint) = (250um, 25H)`
 
 The paper leaves maximum ALM iteration `T` as an input.  The current CPU
-reference sets `T = Kthre + 500` so the documented 500-iteration local-optimum
-window can be observed after the `Kthre` restart.
+reference defaults `T = Kthre + 500 = 800` so the documented 500-iteration
+local-optimum window can be observed after the `Kthre` restart.
+
+Runtime-experiment parameters exposed through `detailed_placement_evolve` keep
+paper defaults unless the caller overrides them:
+
+- `-threads`: default `10`.
+- `-legalm_iterations`: Algorithm 1 input `T`, default `800`.
+- `-legalm_candidate_vertical_radius`: default `3`.
+- `-legalm_candidate_horizontal_steps`: default `17`.
+- `-legalm_stage3_partition_schemes`: default `3`.
+- `-legalm_stage3_rounds_per_scheme`: default `10`.
+
+The default BGD stencil is `(2*3+1)*(2*17+1) = 245`, matching the paper's
+`D = 245` candidate set in Fig. 5.  Stage 3 defaults to the paper's Section
+III-H refinement setting: three partition schemes and roughly ten rounds per
+scheme.
 
 ## Formula Mapping
 
@@ -127,6 +142,9 @@ window can be observed after the `Kthre` restart.
   Stage 3 consumes directly.  The CPU implementation still has to construct a
   self-legal placement before lambda-infinity refinement; that construction is
   a CPU data-structure bridge, not a separate algorithmic objective.
+- Algorithm 1 input `T` is not specified as a fixed implementation paragraph
+  constant by the paper.  The default `800` is therefore a documented CPU
+  reference default derived from `Kthre + 500`, not a paper-reported constant.
 
 ## CPU Efficiency Notes
 
@@ -150,3 +168,6 @@ window can be observed after the `Kthre` restart.
 - Stage 2 reports internal ALM timing for demand scoring, partition sorting,
   BGD candidate evaluation, accepted-move commit, and overflow-stat collection.
   Use those counters before changing algorithm semantics for runtime reasons.
+- The exposed runtime knobs are control-plane parameters only.  Hot-path
+  per-cell/per-net data must stay in contiguous vectors and row/site indexes
+  built inside each stage, not in `EvolveContext`.

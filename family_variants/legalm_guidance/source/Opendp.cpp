@@ -120,10 +120,19 @@ void Opendp::detailedPlacement(const int max_displacement_x,
                                const std::string& report_file_name,
                                bool incremental,
                                const bool use_negotiation,
-                               const bool run_abacus)
+                               const bool run_abacus,
+                               const int threads,
+                               const int legalm_iterations,
+                               const int legalm_candidate_vertical_radius,
+                               const int legalm_candidate_horizontal_steps,
+                               const int legalm_stage3_partition_schemes,
+                               const int legalm_stage3_rounds_per_scheme)
 {
   incremental_ = incremental;
-  use_negotiation_ |= use_negotiation;
+  // Keep repair policy local to this command invocation.  The paper-faithful
+  // LEGALM path must not inherit a previous run's policy-assisted repair mode.
+  use_negotiation_ = use_negotiation || run_abacus;
+  run_abacus_ = run_abacus;
   importDb();
   adjustNodesOrient();
   if (!incremental_) {
@@ -186,11 +195,43 @@ void Opendp::detailedPlacement(const int max_displacement_x,
                 max_displacement_y_);
 
   EvolveContext evolve_context;
-  evolve_context.max_threads = 10;
+  evolve_context.max_threads = std::max(1, threads);
   evolve_context.max_displacement_x = max_displacement_x_;
   evolve_context.max_displacement_y = max_displacement_y_;
+  evolve_context.legalm_iteration_limit = std::max(1, legalm_iterations);
+  evolve_context.legalm_candidate_vertical_radius
+      = std::max(1, legalm_candidate_vertical_radius);
+  evolve_context.legalm_candidate_horizontal_steps
+      = std::max(1, legalm_candidate_horizontal_steps);
+  evolve_context.legalm_stage3_partition_schemes
+      = std::max(1, legalm_stage3_partition_schemes);
+  evolve_context.legalm_stage3_rounds_per_scheme
+      = std::max(1, legalm_stage3_rounds_per_scheme);
   evolve_context.incremental = incremental_;
   evolve_context.report_file_name = report_file_name;
+  logger_->info(DPL,
+                1225,
+                "LEGALM parameters: threads {}, T {}, candidate radius {}, "
+                "candidate horizontal steps {}, Stage3 schemes {}, Stage3 "
+                "rounds/scheme {}.",
+                evolve_context.max_threads,
+                evolve_context.legalm_iteration_limit,
+                evolve_context.legalm_candidate_vertical_radius,
+                evolve_context.legalm_candidate_horizontal_steps,
+                evolve_context.legalm_stage3_partition_schemes,
+                evolve_context.legalm_stage3_rounds_per_scheme);
+  logger_->metric("dpl_evolve__legalm__threads",
+                  evolve_context.max_threads);
+  logger_->metric("dpl_evolve__legalm__paper_input_T",
+                  evolve_context.legalm_iteration_limit);
+  logger_->metric("dpl_evolve__legalm__candidate_vertical_radius",
+                  evolve_context.legalm_candidate_vertical_radius);
+  logger_->metric("dpl_evolve__legalm__candidate_horizontal_steps",
+                  evolve_context.legalm_candidate_horizontal_steps);
+  logger_->metric("dpl_evolve__legalm__stage3_partition_schemes",
+                  evolve_context.legalm_stage3_partition_schemes);
+  logger_->metric("dpl_evolve__legalm__stage3_rounds_per_scheme",
+                  evolve_context.legalm_stage3_rounds_per_scheme);
 
   EvolveHooks evolve_hooks;
   evolve_hooks.run_student_algorithm = [this](const EvolveContext& context) {

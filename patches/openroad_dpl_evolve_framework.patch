@@ -1,5 +1,5 @@
 diff --git a/src/dpl_evolve/BUILD b/src/dpl_evolve/BUILD
-index b9775dac09..0fe236dce1 100644
+index b9775da..0fe236d 100644
 --- a/src/dpl_evolve/BUILD
 +++ b/src/dpl_evolve/BUILD
 @@ -17,6 +17,11 @@ cc_library(
@@ -15,13 +15,13 @@ index b9775dac09..0fe236dce1 100644
          "src/NegotiationLegalizer.cpp",
          "src/NegotiationLegalizer.h",
 diff --git a/src/dpl_evolve/CMakeLists.txt b/src/dpl_evolve/CMakeLists.txt
-index 5828896c4e..f5294e2ad1 100644
+index 5828896..f5294e2 100644
 --- a/src/dpl_evolve/CMakeLists.txt
 +++ b/src/dpl_evolve/CMakeLists.txt
 @@ -17,8 +17,31 @@ swig_lib(NAME         dpl_evolve
                         ${ODB_HOME}/include
  )
- 
+
 +add_library(dpl_evolve_framework_lib
 +  src/EvolveLegalizer.cpp
 +)
@@ -57,14 +57,14 @@ index 5828896c4e..f5294e2ad1 100644
 +    dpl_evolve_framework_lib
      utl_lib
  )
- 
+
 @@ -121,4 +145,3 @@ if (Python3_FOUND AND BUILD_PYTHON)
    )
- 
+
  endif()
 -
 diff --git a/src/dpl_evolve/include/dpl_evolve/Opendp.h b/src/dpl_evolve/include/dpl_evolve/Opendp.h
-index 0acaf43d50..91709c3bfc 100644
+index 0acaf43..1f5f3cc 100644
 --- a/src/dpl_evolve/include/dpl_evolve/Opendp.h
 +++ b/src/dpl_evolve/include/dpl_evolve/Opendp.h
 @@ -67,6 +67,7 @@ using DbuY = TypedCoordinate<DbuYType>;
@@ -72,10 +72,25 @@ index 0acaf43d50..91709c3bfc 100644
  struct DbuPt;
  struct DbuRect;
 +struct EvolveContext;
- 
+
  using dbMasterSeq = std::vector<odb::dbMaster*>;
- 
-@@ -242,6 +243,15 @@ class Opendp
+
+@@ -109,7 +110,13 @@ class Opendp
+                          const std::string& report_file_name = std::string(""),
+                          bool incremental = false,
+                          bool use_negotiation = false,
+-                         bool run_abacus = false);
++                         bool run_abacus = false,
++                         int threads = 10,
++                         int legalm_iterations = 800,
++                         int legalm_candidate_vertical_radius = 3,
++                         int legalm_candidate_horizontal_steps = 17,
++                         int legalm_stage3_partition_schemes = 3,
++                         int legalm_stage3_rounds_per_scheme = 10);
+   void reportLegalizationStats() const;
+
+   void setPaddingGlobal(int left, int right);
+@@ -242,6 +249,15 @@ class Opendp
    bool ripUpAndReplace(Node* cell);
    bool diamondMove(Node* cell);
    bool diamondMove(Node* cell, const GridPt& grid_pt);
@@ -91,7 +106,7 @@ index 0acaf43d50..91709c3bfc 100644
    int distChange(const Node* cell, DbuX x, DbuY y) const;
    bool swapCells(Node* cell1, Node* cell2);
    bool refineMove(Node* cell);
-@@ -369,6 +379,16 @@ class Opendp
+@@ -369,6 +385,16 @@ class Opendp
    int max_displacement_y_ = 0;  // sites
    bool disallow_one_site_gaps_ = false;
    std::vector<Node*> placement_failures_;
@@ -105,12 +120,139 @@ index 0acaf43d50..91709c3bfc 100644
 +  int legalm_stage2_final_overflow_bins_ = 0;
 +  double legalm_stage2_final_max_density_ = 0.0;
 +  bool legalm_stage2_overflow_free_ = false;
- 
+
    // 2D pixel grid
    std::unique_ptr<Grid> grid_;
+@@ -399,6 +425,7 @@ class Opendp
+   bool deep_iterative_debug_ = false;
+   bool incremental_ = false;
+   bool use_negotiation_ = false;
++  bool run_abacus_ = false;
+
+   // Magic numbers
+   static constexpr double group_refine_percent_ = .05;
+diff --git a/src/dpl_evolve/messages.txt b/src/dpl_evolve/messages.txt
+index fa114cd..4610be8 100644
+--- a/src/dpl_evolve/messages.txt
++++ b/src/dpl_evolve/messages.txt
+@@ -1,9 +1,9 @@
+ DPL 0001 FillerPlacement.cpp:125   Placed {} filler instances. INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/FillerPlacement.cpp#L125
+ DPL 0002 FillerPlacement.cpp:203   Could not fill gap of {} sites ({:.2f}x{:.2f} um)  ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/FillerPlacement.cpp#L203
+-DPL 0003 Opendp.tcl:43             -disallow_one_site_gaps is deprecated WARN https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L43
+-DPL 0004 Opendp.tcl:147            -disallow_one_site_gaps is deprecated WARN https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L147
+-DPL 0005 Opendp.cpp:181            Diamond search max displacement: +/- {} sites horizontally,  INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp#L181
+-DPL 0006 Opendp.cpp:156            Core area: {:.2f} um^2, Instances area: {:.2f} um^2,  INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp#L156
++DPL 0003 Opendp.tcl:86             -disallow_one_site_gaps is deprecated WARN https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L86
++DPL 0004 Opendp.tcl:193            -disallow_one_site_gaps is deprecated WARN https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L193
++DPL 0005 Opendp.cpp:190            Diamond search max displacement: +/- {} sites horizontally,  INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp#L190
++DPL 0006 Opendp.cpp:165            Core area: {:.2f} um^2, Instances area: {:.2f} um^2,  INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp#L165
+ DPL 0012 Grid.cpp:733              no rows found. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/infrastructure/Grid.cpp#L733
+ DPL 0015 Place.cpp:374             instance {} does not fit inside the ROW core area. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Place.cpp#L374
+ DPL 0016 Place.cpp:498             cannot place instance {}. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Place.cpp#L498
+@@ -13,30 +13,30 @@ DPL 0021 OptMirror.cpp:80          HPWL before          {:8.1f} u INFO https://g
+ DPL 0022 OptMirror.cpp:84          HPWL after           {:8.1f} u INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/OptMirror.cpp#L84
+ DPL 0023 OptMirror.cpp:91          HPWL delta           {:8.1f} % INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/OptMirror.cpp#L91
+ DPL 0026 Place.cpp:1371            legalPt called on fixed cell {}. CRITICAL https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Place.cpp#L1371
+-DPL 0027 Opendp.tcl:59             no rows defined in design. Use initialize_floorplan to add rows. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L59
+-DPL 0028 Opendp.tcl:367            $name did not match any masters. WARN https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L367
+-DPL 0029 Opendp.tcl:384            cannot find instance $inst_name ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L384
+-DPL 0030 Opendp.tcl:400            cannot find instance $inst_name ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L400
+-DPL 0031 Opendp.tcl:28             -max_displacement disp|{disp_x disp_y} ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L28
+-DPL 0032 Opendp.tcl:340            Debug instance $instance_name not found. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L340
++DPL 0027 Opendp.tcl:105            no rows defined in design. Use initialize_floorplan to add rows. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L105
++DPL 0028 Opendp.tcl:413            $name did not match any masters. WARN https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L413
++DPL 0029 Opendp.tcl:430            cannot find instance $inst_name ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L430
++DPL 0030 Opendp.tcl:446            cannot find instance $inst_name ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L446
++DPL 0031 Opendp.tcl:37             -max_displacement disp|{disp_x disp_y} ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L37
++DPL 0032 Opendp.tcl:386            Debug instance $instance_name not found. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L386
+ DPL 0033 CheckPlacement.cpp:136    detailed placement checks failed during check placement. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/CheckPlacement.cpp#L136
+-DPL 0034 Opendp.cpp:206            Detailed placement failed on the following {} instances: INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp#L206
+-DPL 0035 Opendp.cpp:211             {} INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp#L211
+-DPL 0036 Opendp.cpp:218            Detailed placement failed inside DPL. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp#L218
+-DPL 0037 Opendp.cpp:138            Use remove_fillers before detailed placement. WARN https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp#L138
+-DPL 0038 Opendp.cpp:165            Utilization greater than 100%, impossible to legalize ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp#L165
+-DPL 0039 Opendp.tcl:371            \ ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L371
+-DPL 0042 Opendp.cpp:709            No cells found in group {}.  WARN https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp#L709
++DPL 0034 Opendp.cpp:247            Detailed placement failed on the following {} instances: INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp#L247
++DPL 0035 Opendp.cpp:252             {} INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp#L252
++DPL 0036 Opendp.cpp:259            Detailed placement failed inside DPL. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp#L259
++DPL 0037 Opendp.cpp:147            Use remove_fillers before detailed placement. WARN https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp#L147
++DPL 0038 Opendp.cpp:174            Utilization greater than 100%, impossible to legalize ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp#L174
++DPL 0039 Opendp.tcl:417            \ ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L417
++DPL 0042 Opendp.cpp:750            No cells found in group {}.  WARN https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp#L750
+ DPL 0048 CheckPlacement.cpp:158    Could not find overlapping cell for cell {} ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/CheckPlacement.cpp#L158
+ DPL 0050 FillerPlacement.cpp:265   No fillers found for {}. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/FillerPlacement.cpp#L265
+ DPL 0051 Grid.cpp:722              Site widths are not equal: {}={} != {}={} ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/infrastructure/Grid.cpp#L722
+ DPL 0054 DecapPlacement.cpp:125    Run remove_fillers before inserting decap cells ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/DecapPlacement.cpp#L125
+ DPL 0055 DecapPlacement.cpp:106    Gaps not found when inserting decap cells. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/DecapPlacement.cpp#L106
+ DPL 0056 DecapPlacement.cpp:164    Placed {} decap cells. Total capacitance: {:6.6f} INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/DecapPlacement.cpp#L164
+-DPL 0103 Opendp.tcl:135            No design block found. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L135
+-DPL 0104 Opendp.tcl:158            No design block found. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L158
+-DPL 0105 Opendp.tcl:124            No design block found. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L124
+-DPL 0106 Opendp.tcl:171            No design block found. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L171
++DPL 0103 Opendp.tcl:181            No design block found. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L181
++DPL 0104 Opendp.tcl:204            No design block found. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L204
++DPL 0105 Opendp.tcl:170            No design block found. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L170
++DPL 0106 Opendp.tcl:217            No design block found. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L217
+ DPL 0200 legalize_shift.cxx:172    Unexpected displacement during legalization. WARN https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/legalize_shift.cxx#L172
+ DPL 0201 legalize_shift.cxx:188    Placement check failure during legalization. WARN https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/legalize_shift.cxx#L188
+ DPL 0202 detailed_mis.cxx:156      No movable cells found INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/optimization/detailed_mis.cxx#L156
+@@ -83,12 +83,12 @@ DPL 0338 detailed_random.cxx:478   End of pass, Total cost is {:.6e}. INFO https
+ DPL 0339 detailed_manager.cxx:1344 One-site gap violation detected with a  WARN https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/optimization/detailed_manager.cxx#L1344
+ DPL 0340 detailed_manager.cxx:1354 One-site gap violation detected with a  WARN https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/optimization/detailed_manager.cxx#L1354
+ DPL 0341 detailed.cxx:135          Unknown algorithm {:s}. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/optimization/detailed.cxx#L135
+-DPL 0342 Opendp.tcl:192            No design block found. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L192
+-DPL 0343 Opendp.tcl:196            -disallow_one_site_gaps is deprecated WARN https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L196
+-DPL 0344 Opendp.tcl:213            -max_displacement disp|{disp_x disp_y} ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L213
+-DPL 0345 Opendp.tcl:236            -global_swap_args must be key/value pairs ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L236
+-DPL 0346 Opendp.tcl:281            Unknown -global_swap_args option $opt ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L281
+-DPL 0347 Opendp.tcl:275            Invalid -budget_multipliers value \ ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L275
++DPL 0342 Opendp.tcl:238            No design block found. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L238
++DPL 0343 Opendp.tcl:242            -disallow_one_site_gaps is deprecated WARN https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L242
++DPL 0344 Opendp.tcl:259            -max_displacement disp|{disp_x disp_y} ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L259
++DPL 0345 Opendp.tcl:282            -global_swap_args must be key/value pairs ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L282
++DPL 0346 Opendp.tcl:327            Unknown -global_swap_args option $opt ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L327
++DPL 0347 Opendp.tcl:321            Invalid -budget_multipliers value \ ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl#L321
+ DPL 0348 detailed_global_legacy.cxx:406 Generator {:s},  INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/optimization/detailed_global_legacy.cxx#L406
+ DPL 0380 detailed_orient.cxx:71    Cell flipping. INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/optimization/detailed_orient.cxx#L71
+ DPL 0381 detailed_orient.cxx:82    Encountered {:d} issues when orienting cells for rows. WARN https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/optimization/detailed_orient.cxx#L82
+@@ -124,18 +124,21 @@ DPL 0925 detailed_global.cxx:399   Tapered congestion weight: base={:.3f},  INFO
+ DPL 1200 EvolveLegalizer.cpp:64    Legalizing using constrained DPL-Evolve framework. INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/EvolveLegalizer.cpp#L64
+ DPL 1201 EvolveLegalizer.cpp:54    DPL-Evolve stage {}: {} ({:.2f} ms). INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/EvolveLegalizer.cpp#L54
+ DPL 1206 EvolveLegalizer.cpp:73    detailed_placement_evolve framework is prepared, but no  ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/EvolveLegalizer.cpp#L73
+-DPL 1210 LegalmGuidance.cpp:1977   Differential guidance prepared a complete {}-cell target field  INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/LegalmGuidance.cpp#L1977
+-DPL 1211 Opendp.cpp:295            DPL-Evolve stage {} DP metrics: moved {}/{}, avg disp {:.3f}  INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp#L295
+-DPL 1212 LegalmGuidance.cpp:1670   Differential guidance ALM iter {}: overflow {:.1f}->{:.1f}  INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/LegalmGuidance.cpp#L1670
++DPL 1210 LegalmGuidance.cpp:1976   Differential guidance prepared a complete {}-cell target field  INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/LegalmGuidance.cpp#L1976
++DPL 1211 Opendp.cpp:336            DPL-Evolve stage {} DP metrics: moved {}/{}, avg disp {:.3f}  INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp#L336
++DPL 1212 LegalmGuidance.cpp:1669   Differential guidance ALM iter {}: overflow {:.1f}->{:.1f}  INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/LegalmGuidance.cpp#L1669
+ DPL 1213 LegalmRowAssignment.cpp:238 Row assignment guidance assigned {} ALM seed cells across {}  INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/LegalmRowAssignment.cpp#L238
+-DPL 1214 LegalmFullLegalization.cpp:1306 LEGALM full legalization placed {} / {} cells self-legally  INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/LegalmFullLegalization.cpp#L1306
+-DPL 1215 EvolveNegotiationRepair.cpp:22 DPL-Evolve repair stage: NegotiationLegalizer with Abacus {}. INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/EvolveNegotiationRepair.cpp#L22
+-DPL 1216 EvolveNegotiationRepair.cpp:42 DPL-Evolve negotiation repair left {} placement violations. WARN https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/EvolveNegotiationRepair.cpp#L42
+-DPL 1217 LegalmGuidance.cpp:1730   Differential guidance ALM iter {}: overflow {:.1f}->{:.1f}  INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/LegalmGuidance.cpp#L1730
+-DPL 1218 LegalmGuidance.cpp:1993   Differential guidance timing: total {:.2f} ms, ALM/BGD loop  INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/LegalmGuidance.cpp#L1993
++DPL 1214 LegalmFullLegalization.cpp:1304 LEGALM full legalization placed {} / {} cells self-legally  INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/LegalmFullLegalization.cpp#L1304
++DPL 1215 EvolveNegotiationRepair.cpp:23 DPL-Evolve repair stage: NegotiationLegalizer with Abacus {}. INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/EvolveNegotiationRepair.cpp#L23
++DPL 1216 EvolveNegotiationRepair.cpp:43 DPL-Evolve negotiation repair left {} placement violations. WARN https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/EvolveNegotiationRepair.cpp#L43
++DPL 1217 LegalmGuidance.cpp:1729   Differential guidance ALM iter {}: overflow {:.1f}->{:.1f}  INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/LegalmGuidance.cpp#L1729
++DPL 1218 LegalmGuidance.cpp:1992   Differential guidance timing: total {:.2f} ms, ALM/BGD loop  INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/LegalmGuidance.cpp#L1992
+ DPL 1220 StudentAlgorithm.cpp:15   Running DPL-Evolve pipeline: LEGALM guidance, complete target  INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/StudentAlgorithm.cpp#L15
+-DPL 1221 StudentAlgorithm.cpp:53   DPL-Evolve LEGALM pipeline timing: guidance {:.2f} ms,  INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/StudentAlgorithm.cpp#L53
+-DPL 1222 StudentAlgorithm.cpp:40   LEGALM full legalization did not close legality; running  WARN https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/StudentAlgorithm.cpp#L40
+-DPL 1280 Opendp.cpp:422            Utilization weights must be non-negative. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp#L422
+-DPL 1281 Opendp.cpp:426            At least one utilization weight must be greater than 0. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp#L426
++DPL 1221 StudentAlgorithm.cpp:42   DPL-Evolve LEGALM-only pipeline timing: guidance {:.2f} ms,  INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/StudentAlgorithm.cpp#L42
++DPL 1222 StudentAlgorithm.cpp:54   LEGALM full legalization did not close legality; no  WARN https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/StudentAlgorithm.cpp#L54
++DPL 1223 StudentAlgorithm.cpp:61   LEGALM full legalization did not close legality; running  WARN https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/StudentAlgorithm.cpp#L61
++DPL 1224 StudentAlgorithm.cpp:73   DPL-Evolve policy-assisted pipeline timing: guidance {:.2f}  INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/StudentAlgorithm.cpp#L73
++DPL 1225 Opendp.cpp:212            LEGALM parameters: threads {}, T {}, candidate radius {},  INFO https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp#L212
++DPL 1280 Opendp.cpp:463            Utilization weights must be non-negative. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp#L463
++DPL 1281 Opendp.cpp:467            At least one utilization weight must be greater than 0. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp#L467
+ DPL 1300 Grid.cpp:909              Utilization normalization failed: max area {} max pins {}. ERROR https://github.com/The-OpenROAD-Project/OpenROAD/tree/master/home/zhiyuzheng/Project/Agenticflow/OpenROAD-flow-scripts/tools/OpenROAD/src/dpl_evolve/src/infrastructure/Grid.cpp#L909
 diff --git a/src/dpl_evolve/src/DifferentialGuidance.cpp b/src/dpl_evolve/src/DifferentialGuidance.cpp
 new file mode 100644
-index 0000000000..c7535e4ee5
+index 0000000..c7535e4
 --- /dev/null
 +++ b/src/dpl_evolve/src/DifferentialGuidance.cpp
 @@ -0,0 +1,82 @@
@@ -198,10 +340,10 @@ index 0000000000..c7535e4ee5
 +}  // namespace dpl_evolve
 diff --git a/src/dpl_evolve/src/EvolveContext.h b/src/dpl_evolve/src/EvolveContext.h
 new file mode 100644
-index 0000000000..1449174793
+index 0000000..2ca93b5
 --- /dev/null
 +++ b/src/dpl_evolve/src/EvolveContext.h
-@@ -0,0 +1,25 @@
+@@ -0,0 +1,40 @@
 +// SPDX-License-Identifier: BSD-3-Clause
 +// Copyright (c) 2018-2025, The OpenROAD Authors
 +
@@ -211,17 +353,32 @@ index 0000000000..1449174793
 +
 +namespace dpl_evolve {
 +
++inline constexpr int kDefaultEvolveThreads = 10;
++inline constexpr int kDefaultLegalmIterationLimit = 800;
++inline constexpr int kDefaultLegalmCandidateVerticalRadius = 3;
++inline constexpr int kDefaultLegalmCandidateHorizontalSteps = 17;
++inline constexpr int kDefaultLegalmStage3PartitionSchemes = 3;
++inline constexpr int kDefaultLegalmStage3RoundsPerScheme = 10;
++
 +struct EvolveContext
 +{
 +  // Control-plane values only.  Do not route per-cell/per-net hot data through
 +  // this context: stage implementations should build in-process contiguous
 +  // vectors, row/segment indexes, and node-id keyed side arrays from Opendp.
-+  int max_threads = 10;
++  int max_threads = kDefaultEvolveThreads;
 +  int max_displacement_x = 0;
 +  int max_displacement_y = 0;
-+  // LEGALM Algorithm 1 input T.  A value <= 0 selects the reference default
-+  // used by this CPU framework: Kthre plus the paper's local-optimum window.
-+  int legalm_iteration_limit = 0;
++  // LEGALM Algorithm 1 input T.  The default is Kthre plus the paper's
++  // local-optimum detection window so the escape branch can be exercised.
++  int legalm_iteration_limit = kDefaultLegalmIterationLimit;
++  // CPU execution caps.  The default stencil has (2*3+1)*(2*17+1) = 245
++  // candidates, matching the paper's D = 245 BGD candidate set.
++  int legalm_candidate_vertical_radius = kDefaultLegalmCandidateVerticalRadius;
++  int legalm_candidate_horizontal_steps = kDefaultLegalmCandidateHorizontalSteps;
++  int legalm_stage3_partition_schemes
++      = kDefaultLegalmStage3PartitionSchemes;
++  int legalm_stage3_rounds_per_scheme
++      = kDefaultLegalmStage3RoundsPerScheme;
 +  bool incremental = false;
 +  std::string report_file_name;
 +};
@@ -229,7 +386,7 @@ index 0000000000..1449174793
 +}  // namespace dpl_evolve
 diff --git a/src/dpl_evolve/src/EvolveLegalizer.cpp b/src/dpl_evolve/src/EvolveLegalizer.cpp
 new file mode 100644
-index 0000000000..d6e98d80e3
+index 0000000..d6e98d8
 --- /dev/null
 +++ b/src/dpl_evolve/src/EvolveLegalizer.cpp
 @@ -0,0 +1,96 @@
@@ -331,7 +488,7 @@ index 0000000000..d6e98d80e3
 +}  // namespace dpl_evolve
 diff --git a/src/dpl_evolve/src/EvolveLegalizer.h b/src/dpl_evolve/src/EvolveLegalizer.h
 new file mode 100644
-index 0000000000..8ce3b09b57
+index 0000000..8ce3b09
 --- /dev/null
 +++ b/src/dpl_evolve/src/EvolveLegalizer.h
 @@ -0,0 +1,43 @@
@@ -380,10 +537,10 @@ index 0000000000..8ce3b09b57
 +}  // namespace dpl_evolve
 diff --git a/src/dpl_evolve/src/EvolveNegotiationRepair.cpp b/src/dpl_evolve/src/EvolveNegotiationRepair.cpp
 new file mode 100644
-index 0000000000..3d976d2b0f
+index 0000000..bbd7c36
 --- /dev/null
 +++ b/src/dpl_evolve/src/EvolveNegotiationRepair.cpp
-@@ -0,0 +1,56 @@
+@@ -0,0 +1,57 @@
 +// SPDX-License-Identifier: BSD-3-Clause
 +// Copyright (c) 2018-2025, The OpenROAD Authors
 +
@@ -392,9 +549,10 @@ index 0000000000..3d976d2b0f
 +
 +namespace dpl_evolve {
 +
-+// Negotiation/Abacus handoff after the paper-style LEGALM path.  LEGALM writes
-+// Opendp Node positions first, so sync them to ODB before the negotiation
-+// legalizer imports its compact DB-backed state.
++// Explicit policy-assisted repair after the paper-style LEGALM path.  This is
++// not a LEGALM paper stage.  LEGALM writes Opendp Node positions first, so sync
++// them to ODB before the negotiation legalizer imports its compact DB-backed
++// state.
 +bool Opendp::runEvolveNegotiationRepair(const bool run_abacus)
 +{
 +  updateDbInstLocations();
@@ -442,7 +600,7 @@ index 0000000000..3d976d2b0f
 +}  // namespace dpl_evolve
 diff --git a/src/dpl_evolve/src/EvolveTelemetry.h b/src/dpl_evolve/src/EvolveTelemetry.h
 new file mode 100644
-index 0000000000..eaf4716174
+index 0000000..eaf4716
 --- /dev/null
 +++ b/src/dpl_evolve/src/EvolveTelemetry.h
 @@ -0,0 +1,33 @@
@@ -481,10 +639,10 @@ index 0000000000..eaf4716174
 +}  // namespace dpl_evolve
 diff --git a/src/dpl_evolve/src/LegalmCommon.h b/src/dpl_evolve/src/LegalmCommon.h
 new file mode 100644
-index 0000000000..2621101c19
+index 0000000..c105bee
 --- /dev/null
 +++ b/src/dpl_evolve/src/LegalmCommon.h
-@@ -0,0 +1,147 @@
+@@ -0,0 +1,168 @@
 +// SPDX-License-Identifier: BSD-3-Clause
 +// Copyright (c) 2018-2025, The OpenROAD Authors
 +
@@ -631,13 +789,34 @@ index 0000000000..2621101c19
 +  return {};
 +}
 +
++inline LegalmCpuCaps resolveLegalmCpuCaps(const EvolveContext& context)
++{
++  LegalmCpuCaps caps = legalmCpuCaps();
++  caps.target_threads = std::max(1, context.max_threads);
++  caps.candidate_vertical_radius
++      = std::max(1, context.legalm_candidate_vertical_radius);
++  caps.candidate_horizontal_steps
++      = std::max(1, context.legalm_candidate_horizontal_steps);
++  return caps;
++}
++
++inline int resolveLegalmStage3PartitionSchemes(const EvolveContext& context)
++{
++  return std::max(1, context.legalm_stage3_partition_schemes);
++}
++
++inline int resolveLegalmStage3RoundsPerScheme(const EvolveContext& context)
++{
++  return std::max(1, context.legalm_stage3_rounds_per_scheme);
++}
++
 +}  // namespace dpl_evolve
 diff --git a/src/dpl_evolve/src/LegalmFullLegalization.cpp b/src/dpl_evolve/src/LegalmFullLegalization.cpp
 new file mode 100644
-index 0000000000..7ecf130002
+index 0000000..d15528b
 --- /dev/null
 +++ b/src/dpl_evolve/src/LegalmFullLegalization.cpp
-@@ -0,0 +1,1327 @@
+@@ -0,0 +1,1325 @@
 +// SPDX-License-Identifier: BSD-3-Clause
 +// Copyright (c) 2018-2025, The OpenROAD Authors
 +
@@ -657,13 +836,6 @@ index 0000000000..7ecf130002
 +namespace {
 +
 +constexpr LegalmPaperParams kPaper = legalmPaperParams();
-+constexpr LegalmCpuCaps kCpuCaps = legalmCpuCaps();
-+constexpr int kStage3PartitionSchemes = kPaper.stage3_partition_schemes;
-+constexpr int kStage3RoundsPerScheme = kPaper.stage3_rounds_per_scheme;
-+constexpr int kLegalmCandidateVerticalRadius
-+    = kCpuCaps.candidate_vertical_radius;
-+constexpr int kLegalmCandidateHorizontalSteps
-+    = kCpuCaps.candidate_horizontal_steps;
 +
 +struct LegalmPlaceCell
 +{
@@ -756,6 +928,11 @@ index 0000000000..7ecf130002
 +    logger_->metric("dpl_evolve__legalm_full__status", 0);
 +    return false;
 +  }
++  const LegalmCpuCaps cpu_caps = resolveLegalmCpuCaps(context);
++  const int stage3_partition_schemes
++      = resolveLegalmStage3PartitionSchemes(context);
++  const int stage3_rounds_per_scheme
++      = resolveLegalmStage3RoundsPerScheme(context);
 +
 +  std::vector<LegalmPlaceCell> cells;
 +  cells.reserve(network_->getNumCells());
@@ -1409,7 +1586,7 @@ index 0000000000..7ecf130002
 +  const int stage3_partition_count
 +      = stage3_partition_cols * stage3_partition_rows;
 +  const std::vector<LegalmCandidateOffset> stage3_stencil
-+      = legalmCandidateStencil(kCpuCaps);
++      = legalmCandidateStencil(cpu_caps);
 +
 +  if (failed_cells == 0) {
 +    auto shifted_partition
@@ -1550,13 +1727,13 @@ index 0000000000..7ecf130002
 +                                    evaluate_lambda_infinity_candidate);
 +    };
 +
-+    for (int scheme = 0; scheme < kStage3PartitionSchemes; ++scheme) {
++    for (int scheme = 0; scheme < stage3_partition_schemes; ++scheme) {
 +      std::vector<std::mutex> row_mutexes(row_count);
 +      const int site_shift
-+          = (scheme * stage3_xhint_sites) / kStage3PartitionSchemes;
++          = (scheme * stage3_xhint_sites) / stage3_partition_schemes;
 +      const int row_shift
-+          = (scheme * stage3_yhint_rows) / kStage3PartitionSchemes;
-+      for (int scheme_round = 0; scheme_round < kStage3RoundsPerScheme;
++          = (scheme * stage3_yhint_rows) / stage3_partition_schemes;
++      for (int scheme_round = 0; scheme_round < stage3_rounds_per_scheme;
 +           ++scheme_round) {
 +        ++stage3_rounds;
 +        std::vector<std::vector<int>> partitions(stage3_partition_count);
@@ -1650,7 +1827,7 @@ index 0000000000..7ecf130002
 +              int64_t pin_access_terms = 0;
 +              std::vector<std::unique_lock<std::mutex>> locks;
 +              locks.reserve(max_height_rows
-+                            + 2 * kLegalmCandidateVerticalRadius);
++                            + 2 * cpu_caps.candidate_vertical_radius);
 +              for (int part = begin; part < end; ++part) {
 +                for (const int idx : partitions[part]) {
 +                  const LegalmPlaceCell& item = cells[idx];
@@ -1688,11 +1865,11 @@ index 0000000000..7ecf130002
 +                                                          &pin_access_terms);
 +                  ++attempted;
 +                  const int lock_begin
-+                      = std::max(0, row - kLegalmCandidateVerticalRadius);
++                      = std::max(0, row - cpu_caps.candidate_vertical_radius);
 +                  const int lock_end
 +                      = std::min(row_count - 1,
 +                                 row + item.height_rows - 1
-+                                     + kLegalmCandidateVerticalRadius);
++                                     + cpu_caps.candidate_vertical_radius);
 +                  locks.clear();
 +                  for (int lock_row = lock_begin; lock_row <= lock_end;
 +                       ++lock_row) {
@@ -1815,7 +1992,7 @@ index 0000000000..7ecf130002
 +        stage3_last_round_moves = round_moved;
 +        if (round_moved == 0) {
 +          stage3_early_stopped_rounds
-+              += kStage3RoundsPerScheme - scheme_round - 1;
++              += stage3_rounds_per_scheme - scheme_round - 1;
 +          break;
 +        }
 +      }
@@ -1909,15 +2086,15 @@ index 0000000000..7ecf130002
 +  logger_->metric("dpl_evolve__legalm_stage3__early_stopped_rounds",
 +                  stage3_early_stopped_rounds);
 +  logger_->metric("dpl_evolve__legalm_stage3__partition_schemes",
-+                  kStage3PartitionSchemes);
++                  stage3_partition_schemes);
 +  logger_->metric("dpl_evolve__legalm_stage3__rounds_per_scheme",
-+                  kStage3RoundsPerScheme);
++                  stage3_rounds_per_scheme);
 +  logger_->metric("dpl_evolve__legalm_stage3__threads",
 +                  stage3_thread_count_metric);
 +  logger_->metric("dpl_evolve__legalm_stage3__candidate_vertical_radius",
-+                  kLegalmCandidateVerticalRadius);
++                  cpu_caps.candidate_vertical_radius);
 +  logger_->metric("dpl_evolve__legalm_stage3__candidate_horizontal_steps",
-+                  kLegalmCandidateHorizontalSteps);
++                  cpu_caps.candidate_horizontal_steps);
 +  logger_->metric("dpl_evolve__legalm_stage3__candidate_stencil_size",
 +                  static_cast<int>(stage3_stencil.size()));
 +  logger_->metric("dpl_evolve__legalm_stage3__partitioned_cells",
@@ -1932,10 +2109,10 @@ index 0000000000..7ecf130002
 +                  kPaper.yhint_rows);
 +  logger_->metric(
 +      "dpl_evolve__legalm_stage3__cpu_cap_candidate_vertical_radius",
-+      kLegalmCandidateVerticalRadius);
++      cpu_caps.candidate_vertical_radius);
 +  logger_->metric(
 +      "dpl_evolve__legalm_stage3__cpu_cap_candidate_horizontal_steps",
-+      kLegalmCandidateHorizontalSteps);
++      cpu_caps.candidate_horizontal_steps);
 +  logger_->metric("dpl_evolve__legalm_stage3__last_round_moves",
 +                  stage3_last_round_moves);
 +  logger_->metric("dpl_evolve__legalm_stage3__site_improvement",
@@ -1967,10 +2144,10 @@ index 0000000000..7ecf130002
 +}  // namespace dpl_evolve
 diff --git a/src/dpl_evolve/src/LegalmGuidance.cpp b/src/dpl_evolve/src/LegalmGuidance.cpp
 new file mode 100644
-index 0000000000..b2221e8257
+index 0000000..fc419d7
 --- /dev/null
 +++ b/src/dpl_evolve/src/LegalmGuidance.cpp
-@@ -0,0 +1,2008 @@
+@@ -0,0 +1,2007 @@
 +// SPDX-License-Identifier: BSD-3-Clause
 +// Copyright (c) 2018-2025, The OpenROAD Authors
 +
@@ -1989,8 +2166,7 @@ index 0000000000..b2221e8257
 +namespace {
 +
 +constexpr LegalmPaperParams kPaper = legalmPaperParams();
-+constexpr LegalmCpuCaps kCpuCaps = legalmCpuCaps();
-+constexpr int kTargetThreads = kCpuCaps.target_threads;
++constexpr int kTargetThreads = legalmCpuCaps().target_threads;
 +constexpr int kLegalmKpart = kPaper.kpart;
 +constexpr int kLegalmKely = kPaper.kely;
 +constexpr int kLegalmKthre = kPaper.kthre;
@@ -2001,10 +2177,6 @@ index 0000000000..b2221e8257
 +// window so the escape branch can actually run before termination.
 +constexpr int kDefaultAlmOuterIterations
 +    = kLegalmKthre + kLegalmLocalOptimumWindow;
-+constexpr int kLegalmCandidateVerticalRadius
-+    = kCpuCaps.candidate_vertical_radius;
-+constexpr int kLegalmCandidateHorizontalSteps
-+    = kCpuCaps.candidate_horizontal_steps;
 +
 +template <typename Func>
 +void parallelFor(const int count, const int threads, Func&& func)
@@ -2255,7 +2427,8 @@ index 0000000000..b2221e8257
 +    return;
 +  }
 +
-+  const int thread_count = chooseThreadCount(context.max_threads);
++  const LegalmCpuCaps cpu_caps = resolveLegalmCpuCaps(context);
++  const int thread_count = chooseThreadCount(cpu_caps.target_threads);
 +  const int alm_iteration_limit = context.legalm_iteration_limit > 0
 +                                      ? context.legalm_iteration_limit
 +                                      : kDefaultAlmOuterIterations;
@@ -2930,7 +3103,7 @@ index 0000000000..b2221e8257
 +  int vertical_guided_moves = 0;
 +  std::vector<double> overflow_history;
 +  const std::vector<LegalmCandidateOffset> candidate_stencil
-+      = legalmCandidateStencil(kCpuCaps);
++      = legalmCandidateStencil(cpu_caps);
 +
 +  const int dbu_per_micron
 +      = db_ != nullptr && db_->getTech() != nullptr
@@ -3352,19 +3525,22 @@ index 0000000000..b2221e8257
 +        += static_cast<int64_t>(partitioned_cell_indices.size());
 +
 +    const auto sort_begin = Clock::now();
-+    for (auto& partition : partitions) {
-+      std::stable_sort(partition.begin(),
-+                       partition.end(),
-+                       [&](const int lhs, const int rhs) {
-+                         const double lhs_demand = demand_cache[lhs];
-+                         const double rhs_demand = demand_cache[rhs];
-+                         if (lhs_demand != rhs_demand) {
-+                           return lhs_demand > rhs_demand;
-+                         }
-+                         return cells[lhs].cell->getId()
-+                                < cells[rhs].cell->getId();
-+                       });
-+    }
++    parallelFor(partition_count, thread_count, [&](int begin, int end, int) {
++      for (int part = begin; part < end; ++part) {
++        auto& partition = partitions[part];
++        std::stable_sort(partition.begin(),
++                         partition.end(),
++                         [&](const int lhs, const int rhs) {
++                           const double lhs_demand = demand_cache[lhs];
++                           const double rhs_demand = demand_cache[rhs];
++                           if (lhs_demand != rhs_demand) {
++                             return lhs_demand > rhs_demand;
++                           }
++                           return cells[lhs].cell->getId()
++                                  < cells[rhs].cell->getId();
++                         });
++      }
++    });
 +    const auto sort_end = Clock::now();
 +    alm_sort_ms += elapsed_ms(sort_begin, sort_end);
 +
@@ -3864,10 +4040,10 @@ index 0000000000..b2221e8257
 +                  kPaper.yhint_rows);
 +  logger_->metric(
 +      "dpl_evolve__diff_guidance__cpu_cap_candidate_vertical_radius",
-+      kLegalmCandidateVerticalRadius);
++      cpu_caps.candidate_vertical_radius);
 +  logger_->metric(
 +      "dpl_evolve__diff_guidance__cpu_cap_candidate_horizontal_steps",
-+      kLegalmCandidateHorizontalSteps);
++      cpu_caps.candidate_horizontal_steps);
 +  logger_->metric("dpl_evolve__diff_guidance__paper_target_density",
 +                  target_density);
 +  logger_->metric("dpl_evolve__diff_guidance__alm_initial_overflow_bins",
@@ -3898,9 +4074,9 @@ index 0000000000..b2221e8257
 +  logger_->metric("dpl_evolve__diff_guidance__candidate_stencil_size",
 +                  static_cast<int>(candidate_stencil.size()));
 +  logger_->metric("dpl_evolve__diff_guidance__candidate_vertical_radius",
-+                  kLegalmCandidateVerticalRadius);
++                  cpu_caps.candidate_vertical_radius);
 +  logger_->metric("dpl_evolve__diff_guidance__candidate_horizontal_steps",
-+                  kLegalmCandidateHorizontalSteps);
++                  cpu_caps.candidate_horizontal_steps);
 +  logger_->metric("dpl_evolve__diff_guidance__tp_scheme", last_tp_scheme);
 +  logger_->metric("dpl_evolve__diff_guidance__tp_partition_count",
 +                  partition_count);
@@ -3981,7 +4157,7 @@ index 0000000000..b2221e8257
 +}  // namespace dpl_evolve
 diff --git a/src/dpl_evolve/src/LegalmRowAssignment.cpp b/src/dpl_evolve/src/LegalmRowAssignment.cpp
 new file mode 100644
-index 0000000000..e9ce62a388
+index 0000000..e9ce62a
 --- /dev/null
 +++ b/src/dpl_evolve/src/LegalmRowAssignment.cpp
 @@ -0,0 +1,251 @@
@@ -4238,7 +4414,7 @@ index 0000000000..e9ce62a388
 +}  // namespace dpl_evolve
 diff --git a/src/dpl_evolve/src/LegalmTechPenalty.cpp b/src/dpl_evolve/src/LegalmTechPenalty.cpp
 new file mode 100644
-index 0000000000..a3d0f881ef
+index 0000000..a3d0f88
 --- /dev/null
 +++ b/src/dpl_evolve/src/LegalmTechPenalty.cpp
 @@ -0,0 +1,48 @@
@@ -4292,7 +4468,7 @@ index 0000000000..a3d0f881ef
 +}  // namespace dpl_evolve
 diff --git a/src/dpl_evolve/src/LegalmTechPenalty.h b/src/dpl_evolve/src/LegalmTechPenalty.h
 new file mode 100644
-index 0000000000..a52311b631
+index 0000000..a52311b
 --- /dev/null
 +++ b/src/dpl_evolve/src/LegalmTechPenalty.h
 @@ -0,0 +1,36 @@
@@ -4333,22 +4509,44 @@ index 0000000000..a52311b631
 +
 +}  // namespace dpl_evolve
 diff --git a/src/dpl_evolve/src/Opendp.cpp b/src/dpl_evolve/src/Opendp.cpp
-index 5a7b2ced13..473d716c90 100644
+index 5a7b2ce..cbeb6b4 100644
 --- a/src/dpl_evolve/src/Opendp.cpp
 +++ b/src/dpl_evolve/src/Opendp.cpp
 @@ -14,6 +14,8 @@
  #include <utility>
  #include <vector>
- 
+
 +#include "EvolveContext.h"
 +#include "EvolveLegalizer.h"
  #include "NegotiationLegalizer.h"
  #include "PlacementDRC.h"
  #include "boost/geometry/index/predicates.hpp"
-@@ -183,59 +185,37 @@ void Opendp::detailedPlacement(const int max_displacement_x,
+@@ -118,10 +120,19 @@ void Opendp::detailedPlacement(const int max_displacement_x,
+                                const std::string& report_file_name,
+                                bool incremental,
+                                const bool use_negotiation,
+-                               const bool run_abacus)
++                               const bool run_abacus,
++                               const int threads,
++                               const int legalm_iterations,
++                               const int legalm_candidate_vertical_radius,
++                               const int legalm_candidate_horizontal_steps,
++                               const int legalm_stage3_partition_schemes,
++                               const int legalm_stage3_rounds_per_scheme)
+ {
+   incremental_ = incremental;
+-  use_negotiation_ |= use_negotiation;
++  // Keep repair policy local to this command invocation.  The paper-faithful
++  // LEGALM path must not inherit a previous run's policy-assisted repair mode.
++  use_negotiation_ = use_negotiation || run_abacus;
++  run_abacus_ = run_abacus;
+   importDb();
+   adjustNodesOrient();
+   if (!incremental_) {
+@@ -183,59 +194,69 @@ void Opendp::detailedPlacement(const int max_displacement_x,
                  max_displacement_x_,
                  max_displacement_y_);
- 
+
 -  if (!use_negotiation_) {
 -    logger_->info(DPL, 1101, "Legalizing using diamond search.");
 -    diamondDPL();
@@ -4362,13 +4560,7 @@ index 5a7b2ced13..473d716c90 100644
 -      for (auto cell : placement_failures_) {
 -        logger_->info(DPL, 35, " {}", cell->name());
 -      }
-+  EvolveContext evolve_context;
-+  evolve_context.max_threads = 10;
-+  evolve_context.max_displacement_x = max_displacement_x_;
-+  evolve_context.max_displacement_y = max_displacement_y_;
-+  evolve_context.incremental = incremental_;
-+  evolve_context.report_file_name = report_file_name;
- 
+-
 -      saveFailures({}, {}, {}, {}, {}, {}, {}, placement_failures_, {}, {});
 -      if (!report_file_name.empty()) {
 -        writeJsonReport(report_file_name);
@@ -4404,6 +4596,45 @@ index 5a7b2ced13..473d716c90 100644
 -                    negotiation.numViolations());
 -      logger_->metric("NL__no__converge__final_violations",
 -                      negotiation.numViolations());
++  EvolveContext evolve_context;
++  evolve_context.max_threads = std::max(1, threads);
++  evolve_context.max_displacement_x = max_displacement_x_;
++  evolve_context.max_displacement_y = max_displacement_y_;
++  evolve_context.legalm_iteration_limit = std::max(1, legalm_iterations);
++  evolve_context.legalm_candidate_vertical_radius
++      = std::max(1, legalm_candidate_vertical_radius);
++  evolve_context.legalm_candidate_horizontal_steps
++      = std::max(1, legalm_candidate_horizontal_steps);
++  evolve_context.legalm_stage3_partition_schemes
++      = std::max(1, legalm_stage3_partition_schemes);
++  evolve_context.legalm_stage3_rounds_per_scheme
++      = std::max(1, legalm_stage3_rounds_per_scheme);
++  evolve_context.incremental = incremental_;
++  evolve_context.report_file_name = report_file_name;
++  logger_->info(DPL,
++                1225,
++                "LEGALM parameters: threads {}, T {}, candidate radius {}, "
++                "candidate horizontal steps {}, Stage3 schemes {}, Stage3 "
++                "rounds/scheme {}.",
++                evolve_context.max_threads,
++                evolve_context.legalm_iteration_limit,
++                evolve_context.legalm_candidate_vertical_radius,
++                evolve_context.legalm_candidate_horizontal_steps,
++                evolve_context.legalm_stage3_partition_schemes,
++                evolve_context.legalm_stage3_rounds_per_scheme);
++  logger_->metric("dpl_evolve__legalm__threads",
++                  evolve_context.max_threads);
++  logger_->metric("dpl_evolve__legalm__paper_input_T",
++                  evolve_context.legalm_iteration_limit);
++  logger_->metric("dpl_evolve__legalm__candidate_vertical_radius",
++                  evolve_context.legalm_candidate_vertical_radius);
++  logger_->metric("dpl_evolve__legalm__candidate_horizontal_steps",
++                  evolve_context.legalm_candidate_horizontal_steps);
++  logger_->metric("dpl_evolve__legalm__stage3_partition_schemes",
++                  evolve_context.legalm_stage3_partition_schemes);
++  logger_->metric("dpl_evolve__legalm__stage3_rounds_per_scheme",
++                  evolve_context.legalm_stage3_rounds_per_scheme);
++
 +  EvolveHooks evolve_hooks;
 +  evolve_hooks.run_student_algorithm = [this](const EvolveContext& context) {
 +    return runStudentAlgorithm(context);
@@ -4422,7 +4653,7 @@ index 5a7b2ced13..473d716c90 100644
 +    for (auto cell : placement_failures_) {
 +      logger_->info(DPL, 35, " {}", cell->name());
      }
- 
+
 -    findDisplacementStats();
 -    updateDbInstLocations();
 +    saveFailures({}, {}, {}, {}, {}, {}, {}, placement_failures_, {}, {});
@@ -4432,11 +4663,11 @@ index 5a7b2ced13..473d716c90 100644
 +    logger_->error(DPL, 36, "Detailed placement failed inside DPL.");
    }
  }
- 
-@@ -259,6 +239,70 @@ void Opendp::updateDbInstLocations()
+
+@@ -259,6 +280,70 @@ void Opendp::updateDbInstLocations()
    }
  }
- 
+
 +void Opendp::reportEvolvePlacementMetrics(const char* stage_name) const
 +{
 +  if (stage_name == nullptr || block_ == nullptr || network_ == nullptr) {
@@ -4504,12 +4735,121 @@ index 5a7b2ced13..473d716c90 100644
  void Opendp::reportLegalizationStats() const
  {
    logger_->report("Placement Analysis");
+diff --git a/src/dpl_evolve/src/Opendp.i b/src/dpl_evolve/src/Opendp.i
+index 24a7f9f..19ebcd4 100644
+--- a/src/dpl_evolve/src/Opendp.i
++++ b/src/dpl_evolve/src/Opendp.i
+@@ -29,11 +29,22 @@ detailed_placement_cmd(int max_displacment_x,
+                        const char* report_file_name,
+                        bool incremental,
+                        bool use_negotiation,
+-                       bool run_abacus){
++                       bool run_abacus,
++                       int threads,
++                       int legalm_iterations,
++                       int legalm_candidate_vertical_radius,
++                       int legalm_candidate_horizontal_steps,
++                       int legalm_stage3_partition_schemes,
++                       int legalm_stage3_rounds_per_scheme){
+   dpl_evolve::Opendp *opendp = ord::OpenRoad::openRoad()->getOpendpEvolve();
+   opendp->detailedPlacement(max_displacment_x, max_displacment_y,
+                             std::string(report_file_name),
+-                            incremental, use_negotiation, run_abacus);
++                            incremental, use_negotiation, run_abacus,
++                            threads, legalm_iterations,
++                            legalm_candidate_vertical_radius,
++                            legalm_candidate_horizontal_steps,
++                            legalm_stage3_partition_schemes,
++                            legalm_stage3_rounds_per_scheme);
+ }
+
+ void
+diff --git a/src/dpl_evolve/src/Opendp.tcl b/src/dpl_evolve/src/Opendp.tcl
+index f712dfd..20bd62d 100644
+--- a/src/dpl_evolve/src/Opendp.tcl
++++ b/src/dpl_evolve/src/Opendp.tcl
+@@ -6,12 +6,21 @@ sta::define_cmd_args "detailed_placement_evolve" { \
+                            [-disallow_one_site_gaps] \
+                            [-incremental] \
+                            [-report_file_name file_name] \
++                           [-threads threads] \
++                           [-legalm_iterations iterations] \
++                           [-legalm_candidate_vertical_radius radius] \
++                           [-legalm_candidate_horizontal_steps steps] \
++                           [-legalm_stage3_partition_schemes schemes] \
++                           [-legalm_stage3_rounds_per_scheme rounds] \
+                            [-use_negotiation] \
+                            [-abacus]}
+
+ proc detailed_placement_evolve { args } {
+   sta::parse_key_args "detailed_placement_evolve" args \
+-    keys {-max_displacement -report_file_name} \
++    keys {-max_displacement -report_file_name -threads -legalm_iterations \
++            -legalm_candidate_vertical_radius -legalm_candidate_horizontal_steps \
++            -legalm_stage3_partition_schemes \
++            -legalm_stage3_rounds_per_scheme} \
+     flags {-disallow_one_site_gaps -incremental -use_negotiation -abacus}
+
+   if { [info exists keys(-max_displacement)] } {
+@@ -36,6 +45,40 @@ proc detailed_placement_evolve { args } {
+   if { [info exists keys(-report_file_name)] } {
+     set file_name $keys(-report_file_name)
+   }
++  set threads 10
++  if { [info exists keys(-threads)] } {
++    set threads $keys(-threads)
++    sta::check_positive_integer "-threads" $threads
++  }
++  set legalm_iterations 800
++  if { [info exists keys(-legalm_iterations)] } {
++    set legalm_iterations $keys(-legalm_iterations)
++    sta::check_positive_integer "-legalm_iterations" $legalm_iterations
++  }
++  set legalm_candidate_vertical_radius 3
++  if { [info exists keys(-legalm_candidate_vertical_radius)] } {
++    set legalm_candidate_vertical_radius $keys(-legalm_candidate_vertical_radius)
++    sta::check_positive_integer "-legalm_candidate_vertical_radius" \
++      $legalm_candidate_vertical_radius
++  }
++  set legalm_candidate_horizontal_steps 17
++  if { [info exists keys(-legalm_candidate_horizontal_steps)] } {
++    set legalm_candidate_horizontal_steps $keys(-legalm_candidate_horizontal_steps)
++    sta::check_positive_integer "-legalm_candidate_horizontal_steps" \
++      $legalm_candidate_horizontal_steps
++  }
++  set legalm_stage3_partition_schemes 3
++  if { [info exists keys(-legalm_stage3_partition_schemes)] } {
++    set legalm_stage3_partition_schemes $keys(-legalm_stage3_partition_schemes)
++    sta::check_positive_integer "-legalm_stage3_partition_schemes" \
++      $legalm_stage3_partition_schemes
++  }
++  set legalm_stage3_rounds_per_scheme 10
++  if { [info exists keys(-legalm_stage3_rounds_per_scheme)] } {
++    set legalm_stage3_rounds_per_scheme $keys(-legalm_stage3_rounds_per_scheme)
++    sta::check_positive_integer "-legalm_stage3_rounds_per_scheme" \
++      $legalm_stage3_rounds_per_scheme
++  }
+
+   sta::check_argc_eq0 "detailed_placement_evolve" $args
+
+@@ -53,7 +96,10 @@ proc detailed_placement_evolve { args } {
+     dpl_evolve::detailed_placement_cmd $max_displacement_x $max_displacement_y \
+       $file_name [info exists flags(-incremental)] \
+       [info exists flags(-use_negotiation)] \
+-      [info exists flags(-abacus)]
++      [info exists flags(-abacus)] \
++      $threads $legalm_iterations \
++      $legalm_candidate_vertical_radius $legalm_candidate_horizontal_steps \
++      $legalm_stage3_partition_schemes $legalm_stage3_rounds_per_scheme
+     dpl_evolve::report_legalization_stats
+   } else {
+     utl::error "DPL" 27 "no rows defined in design. Use initialize_floorplan to add rows."
 diff --git a/src/dpl_evolve/src/Place.cpp b/src/dpl_evolve/src/Place.cpp
-index 564f27b212..e5bc16343b 100644
+index 564f27b..e5bc163 100644
 --- a/src/dpl_evolve/src/Place.cpp
 +++ b/src/dpl_evolve/src/Place.cpp
 @@ -1344,6 +1344,12 @@ void Opendp::legalCellPos(odb::dbInst* db_inst)
- 
+
  DbuPt Opendp::initialLocation(const Node* cell, const bool padded) const
  {
 +  if (!padded && use_guided_initial_locations_
@@ -4522,13 +4862,13 @@ index 564f27b212..e5bc16343b 100644
    cell->getDbInst()->getLocation(loc.x.v, loc.y.v);
    loc.x -= core_.xMin();
 diff --git a/src/dpl_evolve/src/PlacementDRC.cpp b/src/dpl_evolve/src/PlacementDRC.cpp
-index 8fad5f889a..64dab96fda 100644
+index 8fad5f8..64dab96 100644
 --- a/src/dpl_evolve/src/PlacementDRC.cpp
 +++ b/src/dpl_evolve/src/PlacementDRC.cpp
 @@ -159,6 +159,87 @@ bool PlacementDRC::checkEdgeSpacing(const Node* cell,
    return true;
  }
- 
+
 +int PlacementDRC::countEdgeSpacingViolations(
 +    const Node* cell,
 +    const GridX x,
@@ -4614,7 +4954,7 @@ index 8fad5f889a..64dab96fda 100644
  {
    return checkBlockedLayers(cell, grid_->gridX(cell), grid_->gridRoundY(cell));
 diff --git a/src/dpl_evolve/src/PlacementDRC.h b/src/dpl_evolve/src/PlacementDRC.h
-index 09ce4e8122..4609ad51fa 100644
+index 09ce4e8..4609ad5 100644
 --- a/src/dpl_evolve/src/PlacementDRC.h
 +++ b/src/dpl_evolve/src/PlacementDRC.h
 @@ -47,6 +47,10 @@ class PlacementDRC
@@ -4631,16 +4971,16 @@ index 09ce4e8122..4609ad51fa 100644
 @@ -92,4 +96,4 @@ class PlacementDRC
    bool hasPaddingConflict(const Node* cell, const Node* padding_cell) const;
  };
- 
+
 -}  // namespace dpl_evolve
 \ No newline at end of file
 +}  // namespace dpl_evolve
 diff --git a/src/dpl_evolve/src/StudentAlgorithm.cpp b/src/dpl_evolve/src/StudentAlgorithm.cpp
 new file mode 100644
-index 0000000000..0a55c4662f
+index 0000000..78cd8c1
 --- /dev/null
 +++ b/src/dpl_evolve/src/StudentAlgorithm.cpp
-@@ -0,0 +1,63 @@
+@@ -0,0 +1,84 @@
 +// SPDX-License-Identifier: BSD-3-Clause
 +// Copyright (c) 2018-2025, The OpenROAD Authors
 +
@@ -4679,24 +5019,45 @@ index 0000000000..0a55c4662f
 +  const double legalm_ms = elapsed_ms(legalm_begin, legalm_end);
 +  logger_->metric("dpl_evolve__pipeline__legalm_full_ms", legalm_ms);
 +  logger_->metric("dpl_evolve__pipeline__legalm_status", legalm_ok ? 1 : 0);
-+  if (!legalm_ok) {
-+    logger_->warn(DPL,
-+                  1222,
-+                  "LEGALM full legalization did not close legality; running "
-+                  "negotiation repair on the current placement state.");
++
++  if (legalm_ok) {
++    logger_->metric("dpl_evolve__pipeline__policy_repair_used", 0);
++    logger_->info(DPL,
++                  1221,
++                  "DPL-Evolve LEGALM-only pipeline timing: guidance {:.2f} ms, "
++                  "full legalization {:.2f} ms.",
++                  guidance_ms,
++                  legalm_ms);
++    reportEvolvePlacementMetrics("legalm_only");
++    return true;
 +  }
 +
++  if (!use_negotiation_) {
++    logger_->metric("dpl_evolve__pipeline__policy_repair_used", 0);
++    logger_->warn(DPL,
++                  1222,
++                  "LEGALM full legalization did not close legality; no "
++                  "policy-assisted repair was requested.");
++    return false;
++  }
++
++  logger_->warn(DPL,
++                1223,
++                "LEGALM full legalization did not close legality; running "
++                "explicit policy-assisted negotiation repair.");
 +  const auto repair_begin = Clock::now();
-+  const bool negotiation_ok = runEvolveNegotiationRepair(false);
++  const bool negotiation_ok = runEvolveNegotiationRepair(run_abacus_);
 +  const auto repair_end = Clock::now();
 +  const double repair_ms = elapsed_ms(repair_begin, repair_end);
++  logger_->metric("dpl_evolve__pipeline__policy_repair_used", 1);
 +  logger_->metric("dpl_evolve__pipeline__negotiation_repair_ms", repair_ms);
 +  logger_->metric("dpl_evolve__pipeline__negotiation_status",
 +                  negotiation_ok ? 1 : 0);
 +  logger_->info(DPL,
-+                1221,
-+                "DPL-Evolve LEGALM pipeline timing: guidance {:.2f} ms, "
-+                "full legalization {:.2f} ms, negotiation repair {:.2f} ms.",
++                1224,
++                "DPL-Evolve policy-assisted pipeline timing: guidance {:.2f} "
++                "ms, full legalization {:.2f} ms, negotiation repair {:.2f} "
++                "ms.",
 +                guidance_ms,
 +                legalm_ms,
 +                repair_ms);

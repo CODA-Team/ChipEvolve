@@ -144,4 +144,25 @@ inline constexpr LegalmCpuCaps legalmCpuCaps()
   return {};
 }
 
+inline LegalmCpuCaps resolveLegalmCpuCaps(const EvolveContext& context)
+{
+  LegalmCpuCaps caps = legalmCpuCaps();
+  caps.target_threads = std::max(1, context.max_threads);
+  caps.candidate_vertical_radius
+      = std::max(1, context.legalm_candidate_vertical_radius);
+  caps.candidate_horizontal_steps
+      = std::max(1, context.legalm_candidate_horizontal_steps);
+  return caps;
+}
+
+inline int resolveLegalmStage3PartitionSchemes(const EvolveContext& context)
+{
+  return std::max(1, context.legalm_stage3_partition_schemes);
+}
+
+inline int resolveLegalmStage3RoundsPerScheme(const EvolveContext& context)
+{
+  return std::max(1, context.legalm_stage3_rounds_per_scheme);
+}
+
 }  // namespace dpl_evolve

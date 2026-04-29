@@ -46,6 +46,9 @@ FRAMEWORK_SURFACE = {
     "allowed_patch_modes": [
         "stage_ordering",
         "stage_guarding",
+        "cross_stage_cooptimization",
+        "shared_objective_handoff",
+        "legalize_improve_mirror_coordination",
         "relaxed_guidance_stage",
         "assignment_donor_stage",
         "full_legalization_stage",
@@ -263,11 +266,16 @@ def build_packet(problem_dir: Path, out_dir: Path) -> dict[str, Any]:
             "tools/OpenROAD/src/dpl_evolve/src/Optdp.cpp",
             "tools/OpenROAD/src/dpl_evolve/src/OptMirror.cpp",
             "tools/OpenROAD/src/dpl_evolve/src/LegalmGuidance.cpp",
+            "tools/OpenROAD/src/dpl_evolve/src/LegalmFullLegalization.cpp",
+            "tools/OpenROAD/src/dpl_evolve/src/LegalmRowAssignment.cpp",
+            "tools/OpenROAD/src/dpl_evolve/src/optimization/detailed_manager.cxx",
+            "tools/OpenROAD/src/dpl_evolve/src/objective/detailed_hpwl.cxx",
             "family_variants/REFERENCE_INDEX.yaml",
         ],
         "allowed_actions": [
             "Edit only `tools/OpenROAD/src/dpl_evolve` in a prepared private variant source.",
-            "Use reference algorithms to implement bounded legalize, improve, or mirror mechanisms.",
+            "Implement coherent full-flow changes across legalization, improve placement, mirror/orientation, and their shared handoff.",
+            "Use reference algorithms to implement bounded legalize, improve, and mirror mechanisms; avoid one-stage-only attempts.",
             "Add or refine `EvolveTelemetry` counters that explain stage behavior.",
         ],
         "forbidden_actions": [
@@ -286,9 +294,10 @@ def build_packet(problem_dir: Path, out_dir: Path) -> dict[str, Any]:
         "required_final_note": [
             "Touched files and stage owner.",
             "Mechanism implemented and reference donor used.",
+            "Legalization change, improve-placement change, mirror change, and cross-stage co-optimization.",
             "Build command and private binary path.",
             "AES/JPEG result paths when available.",
-            "Telemetry snippet and rollback condition.",
+            "Telemetry snippet, expected complexity, and remaining failure mode.",
         ],
     }
 

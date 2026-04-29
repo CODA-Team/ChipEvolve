@@ -16,8 +16,7 @@ namespace dpl_evolve {
 namespace {
 
 constexpr LegalmPaperParams kPaper = legalmPaperParams();
-constexpr LegalmCpuCaps kCpuCaps = legalmCpuCaps();
-constexpr int kTargetThreads = kCpuCaps.target_threads;
+constexpr int kTargetThreads = legalmCpuCaps().target_threads;
 constexpr int kLegalmKpart = kPaper.kpart;
 constexpr int kLegalmKely = kPaper.kely;
 constexpr int kLegalmKthre = kPaper.kthre;
@@ -28,10 +27,6 @@ constexpr int kLegalmLocalOptimumWindow = kPaper.local_optimum_window;
 // window so the escape branch can actually run before termination.
 constexpr int kDefaultAlmOuterIterations
     = kLegalmKthre + kLegalmLocalOptimumWindow;
-constexpr int kLegalmCandidateVerticalRadius
-    = kCpuCaps.candidate_vertical_radius;
-constexpr int kLegalmCandidateHorizontalSteps
-    = kCpuCaps.candidate_horizontal_steps;
 
 template <typename Func>
 void parallelFor(const int count, const int threads, Func&& func)
@@ -282,7 +277,8 @@ void Opendp::runDifferentialGuidance(const EvolveContext& context)
     return;
   }
 
-  const int thread_count = chooseThreadCount(context.max_threads);
+  const LegalmCpuCaps cpu_caps = resolveLegalmCpuCaps(context);
+  const int thread_count = chooseThreadCount(cpu_caps.target_threads);
   const int alm_iteration_limit = context.legalm_iteration_limit > 0
                                       ? context.legalm_iteration_limit
                                       : kDefaultAlmOuterIterations;
@@ -957,7 +953,7 @@ void Opendp::runDifferentialGuidance(const EvolveContext& context)
   int vertical_guided_moves = 0;
   std::vector<double> overflow_history;
   const std::vector<LegalmCandidateOffset> candidate_stencil
-      = legalmCandidateStencil(kCpuCaps);
+      = legalmCandidateStencil(cpu_caps);
 
   const int dbu_per_micron
       = db_ != nullptr && db_->getTech() != nullptr
@@ -1379,19 +1375,22 @@ void Opendp::runDifferentialGuidance(const EvolveContext& context)
         += static_cast<int64_t>(partitioned_cell_indices.size());
 
     const auto sort_begin = Clock::now();
-    for (auto& partition : partitions) {
-      std::stable_sort(partition.begin(),
-                       partition.end(),
-                       [&](const int lhs, const int rhs) {
-                         const double lhs_demand = demand_cache[lhs];
-                         const double rhs_demand = demand_cache[rhs];
-                         if (lhs_demand != rhs_demand) {
-                           return lhs_demand > rhs_demand;
-                         }
-                         return cells[lhs].cell->getId()
-                                < cells[rhs].cell->getId();
-                       });
-    }
+    parallelFor(partition_count, thread_count, [&](int begin, int end, int) {
+      for (int part = begin; part < end; ++part) {
+        auto& partition = partitions[part];
+        std::stable_sort(partition.begin(),
+                         partition.end(),
+                         [&](const int lhs, const int rhs) {
+                           const double lhs_demand = demand_cache[lhs];
+                           const double rhs_demand = demand_cache[rhs];
+                           if (lhs_demand != rhs_demand) {
+                             return lhs_demand > rhs_demand;
+                           }
+                           return cells[lhs].cell->getId()
+                                  < cells[rhs].cell->getId();
+                         });
+      }
+    });
     const auto sort_end = Clock::now();
     alm_sort_ms += elapsed_ms(sort_begin, sort_end);
 
@@ -1891,10 +1890,10 @@ void Opendp::runDifferentialGuidance(const EvolveContext& context)
                   kPaper.yhint_rows);
   logger_->metric(
       "dpl_evolve__diff_guidance__cpu_cap_candidate_vertical_radius",
-      kLegalmCandidateVerticalRadius);
+      cpu_caps.candidate_vertical_radius);
   logger_->metric(
       "dpl_evolve__diff_guidance__cpu_cap_candidate_horizontal_steps",
-      kLegalmCandidateHorizontalSteps);
+      cpu_caps.candidate_horizontal_steps);
   logger_->metric("dpl_evolve__diff_guidance__paper_target_density",
                   target_density);
   logger_->metric("dpl_evolve__diff_guidance__alm_initial_overflow_bins",
@@ -1925,9 +1924,9 @@ void Opendp::runDifferentialGuidance(const EvolveContext& context)
   logger_->metric("dpl_evolve__diff_guidance__candidate_stencil_size",
                   static_cast<int>(candidate_stencil.size()));
   logger_->metric("dpl_evolve__diff_guidance__candidate_vertical_radius",
-                  kLegalmCandidateVerticalRadius);
+                  cpu_caps.candidate_vertical_radius);
   logger_->metric("dpl_evolve__diff_guidance__candidate_horizontal_steps",
-                  kLegalmCandidateHorizontalSteps);
+                  cpu_caps.candidate_horizontal_steps);
   logger_->metric("dpl_evolve__diff_guidance__tp_scheme", last_tp_scheme);
   logger_->metric("dpl_evolve__diff_guidance__tp_partition_count",
                   partition_count);

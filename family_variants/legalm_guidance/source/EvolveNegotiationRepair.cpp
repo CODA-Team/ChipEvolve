@@ -6,9 +6,10 @@
 
 namespace dpl_evolve {
 
-// Negotiation/Abacus handoff after the paper-style LEGALM path.  LEGALM writes
-// Opendp Node positions first, so sync them to ODB before the negotiation
-// legalizer imports its compact DB-backed state.
+// Explicit policy-assisted repair after the paper-style LEGALM path.  This is
+// not a LEGALM paper stage.  LEGALM writes Opendp Node positions first, so sync
+// them to ODB before the negotiation legalizer imports its compact DB-backed
+// state.
 bool Opendp::runEvolveNegotiationRepair(const bool run_abacus)
 {
   updateDbInstLocations();

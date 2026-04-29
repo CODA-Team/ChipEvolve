@@ -10,6 +10,8 @@ Read only the skill needed for the current action:
 - `run_single_baseline.md`: manual one-line baseline/evolve runs.
 - `run_baseline_suite.md`: manual suite runs.
 - `run_codex_exec.md`: external `codex exec` logging wrapper.
+- `teacher_peer_coaching.md`: Teacher-side peer-learning and feedback protocol
+  for multi-student optimization rounds.
 
 Default for loop-driven Codex turns:
 

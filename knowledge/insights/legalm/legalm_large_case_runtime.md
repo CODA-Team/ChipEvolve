@@ -36,6 +36,13 @@ Within differential guidance, the useful breakdown is:
   partition region,
 - overflow stats: the end-of-iteration ALM stopping/telemetry scan.
 
+Recent repair-boundary runs showed partition sorting can again become a visible
+Stage 2 cost when more cells participate in the LEGALM-only path.  Sorting is
+independent across triplefold partitions, so it is safe to parallelize over
+partitions while keeping each partition's stable descending demand order.  This
+preserves deterministic per-partition cell order and does not change the paper
+cost model.
+
 If the LEGALM pipeline is already small relative to the rest of the flow, do
 not keep simplifying the paper algorithm just to chase total wall time.  First
 separate legalizer-stage runtime from downstream improvement/mirroring time.
@@ -63,12 +70,31 @@ For large cases:
 - use row-id keyed vectors, sorted interval arrays, `lower_bound`, and bounded
   neighbor probes,
 - keep candidate caps explicit in telemetry,
+- keep default LEGALM runtime parameters aligned to the paper: `T=800`
+  (`Kthre + 500` to cover local-optimum detection), `D=245` candidate stencil
+  (`vertical_radius=3`, `horizontal_steps=17`), and Stage 3 `3 x 10`
+  partition-scheme refinement,
+- when extra runtime budget is available, first expand horizontal candidate
+  reach while keeping vertical radius fixed.  In the latest medium-density
+  standard-cell sweep, horizontal-only expansion improved HPWL while staying
+  faster than the diamond baseline, but the benefit saturated after moderate
+  expansion.  After saturation, spend effort on HPWL-aware candidate scoring
+  rather than larger `D`; vertical-radius expansion regressed both quality and
+  runtime,
+- do not assume more Stage 3 rounds help.  If Stage 3 reports no additional
+  HPWL movement, spend the budget on Stage 2 candidate reach or objective
+  quality instead,
 - score demand only for cells that can be processed by the current partition
   scheme; boundary-excluded cells do not affect that iteration's order,
 - avoid full target/occupancy vector reconstruction inside ALM iterations when
   accepted move records can update the same state incrementally,
+- parallelize per-partition stable sorts before changing candidate costs or
+  candidate stencil order,
 - keep legalizer-stage timing separate from downstream `improve_placement` and
   mirroring timing,
+- treat detailed-improvement attempt-count reductions as quality-risk
+  experiments, not default runtime fixes; lower random attempt factors can save
+  seconds but may lose enough HPWL to erase the evolved legalizer's advantage,
 - only add richer scoring after the bounded probe path is already efficient.
 
 If quality regresses, improve target scoring or commit criteria around bounded

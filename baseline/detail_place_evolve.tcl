@@ -37,8 +37,15 @@ set hpwl_before [dpl_evolve_baseline::compute_hpwl_proxy]
 dpl_evolve_baseline::dump_instance_snapshot $before_snapshot
 
 log_cmd set_placement_padding_evolve -global -left 0 -right 0
-log_cmd detailed_placement_evolve \
-  -report_file_name [dpl_evolve_baseline::resolve_flow_path $dp_report]
+set dpl_args [list detailed_placement_evolve \
+  -report_file_name [dpl_evolve_baseline::resolve_flow_path $dp_report]]
+if { [info exists ::env(DPL_EVOLVE_DETAIL_ARGS)]
+     && $::env(DPL_EVOLVE_DETAIL_ARGS) ne "" } {
+  foreach arg $::env(DPL_EVOLVE_DETAIL_ARGS) {
+    lappend dpl_args $arg
+  }
+}
+log_cmd {*}$dpl_args
 log_cmd improve_placement_evolve -random_seed 1
 log_cmd optimize_mirroring_evolve
 
@@ -62,7 +69,7 @@ set summary [dict create \
   hpwl_after_dbu $hpwl_after \
   hpwl_delta_dbu [expr {$hpwl_after - $hpwl_before}] \
   stage_sequence "detailed_placement_evolve,improve_placement_evolve,optimize_mirroring_evolve" \
-  place_command "detailed_placement_evolve" \
+  place_command [join $dpl_args " "] \
   improve_command "improve_placement_evolve" \
   optimize_command "optimize_mirroring_evolve" \
   padding_command "set_placement_padding_evolve"]

@@ -40,6 +40,9 @@ should act on it.
 - `legalm/legalm_paper_cost_tuning.md`: paper-detail tuning history and
   evidence.  This is a long reference, not a default prompt payload.
 - `legalm/legalm_large_case_runtime.md`: large-case runtime bottleneck notes.
+- `legalm/search_space_and_hpwl_objective.md`: why larger candidate stencils
+  can saturate, and when to switch to bounded local HPWL-aware candidate
+  scoring.
 
 ## Hygiene Rules
 

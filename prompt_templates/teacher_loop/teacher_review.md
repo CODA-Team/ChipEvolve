@@ -2,6 +2,7 @@
 
 Context file: `$context_path`
 
+Read context and the Teacher peer-coaching skill referenced in context.
 Review code, logs, metrics, and peer effects. Produce next-round insights only.
 
 ## Generated Artifact Packet
@@ -25,6 +26,13 @@ Checks:
   import/init, full HPWL recomputation, unbounded loops, or guard clutter
 - prefer donors that combine HPWL gain with an implementable efficiency path
 - include the full evolved flow, not only first legalization
+- reject next-round plans that only ask for one-stage local tweaks; each next
+  student insight must include legalization, improve-placement, mirror, and
+  cross-stage co-optimization directives
+- if multiple students fail in the same way, name the failed assumption and
+  force different mechanism classes instead of retuning the same idea
+- when a peer is better, teach others what mechanism to borrow, what evidence
+  supports it, and what inefficiency or brittleness to fix
 - mark any promising lineage whose `source_backup` should be frozen and tested
   with `scripts/run_candidate_matrix.sh`
 
@@ -36,6 +44,7 @@ Checks:
 - efficiency bottleneck and concrete faster version to try
 - knowledge cards worth preserving
 - fixed-source matrix candidates, if any
-- one short next insight per student
+- one short next insight per student with four directives:
+  legalization, improve placement, mirror, and cross-stage co-optimization
 
 End with `## Next Insight Packets` and one concise `### student_XX` section per student.

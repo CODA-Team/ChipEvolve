@@ -38,12 +38,33 @@ $peer_context
 ## Required Behavior
 
 - Edit only private `dpl_evolve`; use the workspace packet for exact commands.
-- Implement one coherent case-specific mechanism.  Constants or thresholds may
-  support it, but cannot be the main contribution.
+- Implement one coherent case-specific flow change across legalization, improve
+  placement, and mirror. Constants or thresholds may support it, but cannot be
+  the main contribution.
 - You may change objective, flow order, scoring, legalization, repair, improve
   placement, mirroring, telemetry, commit logic, or data structures.
 - Strict legality is mandatory; HPWL is the main target.
 - Write a knowledge card explaining what future students should borrow or avoid.
+
+## Mandatory Three-Part Implementation
+
+Do not stop after one local change. A valid attempt has non-empty source edits
+in all three areas, plus a final co-optimization pass:
+
+- Legalization: change global guidance, row assignment, candidate scoring,
+  Stage 3 refinement, repair handoff, or legalization objective.
+- Improve placement: change detailed objective, candidate generator, manager,
+  swap/reorder/vertical/orient pass, touched-net scoring, or commit policy.
+- Mirror: change mirror/orientation scoring, acceptance, ordering, candidate
+  filtering, or its interaction with detailed improve.
+- Co-optimization: connect the three parts through a shared objective, touched
+  net/cache data, displacement/reference snapshots, stage handoff, telemetry,
+  or flow ordering decision.
+
+Use Teacher insight and peer results to choose the mechanism, then execute it.
+After editing the three parts, revisit the top-level flow once and make the
+stages work together. If your final diff touches only one or two areas, treat
+the attempt as incomplete.
 
 ## Mechanism Direction
 
@@ -61,6 +82,8 @@ default-equivalent/no-op behavior, or local proxy-only wins.
 
 ## Implementation Standard
 
+- Expect a substantial diff. Prefer changing several focused source files over
+  hiding the whole idea in one flag or constant.
 - High-performance C++: bounded candidates, cached row/net/branch state,
   deterministic tie-breaks, no avoidable hot-loop O(n^2).
 - Prefer incremental touched metrics over full rescans.
@@ -79,3 +102,5 @@ default-equivalent/no-op behavior, or local proxy-only wins.
 - use the generated workspace packet for prepare/build/evaluate/diff
 - final answer: touched files, mechanism, build/eval status, metrics path,
   HPWL/runtime/displacement delta, diff path, knowledge card path, next uncertainty
+- explicitly state the legalization change, improve-placement change, mirror
+  change, and cross-stage co-optimization
