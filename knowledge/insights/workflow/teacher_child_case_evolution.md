@@ -10,7 +10,7 @@ evolvable case by case.
 Teacher Agent:
 
 - owns the case-level objective and evidence,
-- compares against Diamond/openroad baselines,
+- compares against canonical `openroad_dpl_flow` and best evolved artifacts,
 - assigns distinct hypothesis slots to child workers,
 - reads each child's result artifacts,
 - reviews child code changes, diffs/patches, telemetry, logs, and metrics,
@@ -43,16 +43,16 @@ Child Agent:
 2. Teacher reads the current packet, the baseline metrics table, and the
    explicit report/log/result paths for those baseline rows.
 3. Teacher starts children with non-overlapping hypotheses:
-   - Stage A relaxed/differential guidance,
-   - Stage2 row/segment assignment quality,
-   - Stage3 bounded HPWL/displacement polish,
-   - large-case runtime guard/bypass,
-   - ALM/BGD paper-fidelity improvements,
-   - telemetry and stage selector.
+   - legalization/global guidance and row/segment assignment,
+   - detailed-improvement objective and candidate generation,
+   - mirror/orientation acceptance and ordering,
+   - cross-stage objective/cache/flow-order co-optimization,
+   - runtime/data-structure efficiency.
 4. Each child starts from:
    - the current `tools/OpenROAD/src/dpl_evolve/src` framework,
    - `family_variants/legalm_guidance`,
-   - one relevant donor such as Diamond, NBLG, LEGALM, or DREAMPlace/Abacus,
+   - one relevant donor such as OpenROAD DPL, NBLG, LEGALM, or
+     DREAMPlace/Abacus,
    - Teacher's case-specific top-level framework guidance.
 5. Each child implements one idea and runs the strict evaluator.
 6. Teacher reads every child's `codex_last_message`, operation summary,
@@ -175,8 +175,9 @@ The loop must never lose the best known code path for a case:
 ## Metric Interpretation
 
 The promotion metric is the final strict evaluator result after the configured
-flow.  Legalizer-stage HPWL, local HPWL proxy, row-assignment coverage, seed
-counts, or Stage3 local improvements are diagnostic signals only.
+flow.  Use `metrics.json:hpwl`, which is parsed from OpenROAD/DPL pin-based
+log HPWL.  Legalizer-stage HPWL, local HPWL proxy, row-assignment coverage,
+seed counts, or Stage3 local improvements are diagnostic signals only.
 
 ## Micro-Gain Rule
 

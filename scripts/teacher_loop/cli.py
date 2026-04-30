@@ -52,7 +52,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Teacher/child/review loop iterations to generate or launch.",
     )
     parser.add_argument("--children", type=int, default=4)
-    parser.add_argument("--strategy", action="append", default=[])
+    parser.add_argument(
+        "--route-label",
+        action="append",
+        dest="route_label",
+        default=[],
+        help=(
+            "Optional bookkeeping label for a student slot. It does not assign "
+            "an algorithm direction; Teacher still chooses directions from "
+            "context and source evidence."
+        ),
+    )
     parser.add_argument("--threads", type=int, default=10)
     parser.add_argument("--max-parallel", type=int, default=2)
     parser.add_argument("--model")

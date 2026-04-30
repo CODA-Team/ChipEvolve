@@ -12,8 +12,10 @@ If the run is agent-managed rather than manual, prefer calling it through:
 
 ## What this should cover
 - OpenROAD DPL flow: `detailed_placement`, `improve_placement`, `optimize_mirroring`
-- DREAMPlace Abacus bridge
 - current evolve line
+
+DREAMPlace/Abacus remains a donor/reference mechanism, not part of the default
+baseline suite.
 
 ## Procedure
 1. Move to ORFS repo root.

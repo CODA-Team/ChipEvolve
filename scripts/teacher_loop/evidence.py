@@ -27,11 +27,40 @@ def load_json(path: Path) -> dict[str, Any] | None:
         return None
 
 
+def canonical_hpwl(data: dict[str, Any]) -> dict[str, Any]:
+    """Return only the OpenROAD/DPL pin-based HPWL metric.
+
+    `hpwl_proxy` is a legacy cell-bbox proxy.  It is useful for debugging data
+    extraction, but it must not drive Teacher decisions, baseline reuse, or
+    candidate promotion.
+    """
+    hpwl = data.get("hpwl")
+    if isinstance(hpwl, dict) and hpwl.get("source") != "cell_bbox_proxy":
+        return hpwl
+    hpwl = data.get("hpwl_openroad_log")
+    if isinstance(hpwl, dict):
+        return hpwl
+    return {}
+
+
+def hpwl_delta_percent(hpwl: dict[str, Any]) -> float | None:
+    if hpwl.get("delta_percent") is not None:
+        return float(hpwl["delta_percent"])
+    before = hpwl.get("before_micron")
+    delta = hpwl.get("delta_micron")
+    if before in (None, 0) or delta is None:
+        return None
+    before_value = float(before)
+    if before_value == 0.0:
+        return None
+    return float(delta) / before_value * 100.0
+
+
 def summarize_metrics(metrics_path: Path) -> MetricSummary | None:
     data = load_json(metrics_path)
     if not data:
         return None
-    hpwl = data.get("hpwl_proxy", {})
+    hpwl = canonical_hpwl(data)
     disp = data.get("displacement", {})
     legal = data.get("legality", {})
     legalization = data.get("legalization", {})
@@ -48,6 +77,7 @@ def summarize_metrics(metrics_path: Path) -> MetricSummary | None:
         avg_disp=disp.get("average_displacement_micron"),
         max_disp=disp.get("max_displacement_micron"),
         violations=str(legal.get("placement_violations", "")),
+        hpwl_delta_percent=hpwl_delta_percent(hpwl),
     )
 
 
@@ -65,6 +95,7 @@ def is_canonical_baseline_summary(summary: MetricSummary, line: str) -> bool:
         and f"baseline_probe_{line}" in tag
         and "_student_" not in tag
         and "_iter_" not in tag
+        and summary.hpwl_after is not None
     )
 
 
@@ -119,8 +150,8 @@ def parse_candidate_tag(round_id: str, case_id: str, tag: str) -> tuple[str, str
     pieces = rest.split("_")
     if not pieces:
         return iter_part, "", body
-    strategy = "_".join(pieces[1:]) if len(pieces) > 1 else "open_explore"
-    return iter_part, f"student_{pieces[0]}", strategy
+    route_label = "_".join(pieces[1:]) if len(pieces) > 1 else "teacher_assigned"
+    return iter_part, f"student_{pieces[0]}", route_label
 
 
 def candidate_iteration_number(iter_part: str) -> int | None:
@@ -148,7 +179,7 @@ def candidate_artifacts(
     case_id: str,
     candidate: MetricSummary,
 ) -> CandidateArtifacts | None:
-    iter_part, student_id, strategy = parse_candidate_tag(
+    iter_part, student_id, route_label = parse_candidate_tag(
         round_id, case_id, candidate.tag
     )
     if not iter_part or not student_id:
@@ -160,7 +191,7 @@ def candidate_artifacts(
         iter_part=iter_part,
         iter_number=candidate_iteration_number(iter_part),
         student_id=student_id,
-        strategy=strategy,
+        route_label=route_label,
         operation_id=operation_id,
         operation_dir=operation_dir,
         last_message=operation_dir / "codex_last_message.txt",
@@ -197,7 +228,7 @@ def discover_round_candidate_metrics(
         if summary is None:
             continue
         if before_iteration is not None:
-            iter_part, _student_id, _strategy = parse_candidate_tag(
+            iter_part, _student_id, _route_label = parse_candidate_tag(
                 round_id, case_id, summary.tag
             )
             iter_number = candidate_iteration_number(iter_part)
@@ -221,6 +252,36 @@ def candidate_beats_baseline(
     )
 
 
+def strongest_baseline_anchor(
+    metrics: dict[str, MetricSummary | None],
+) -> tuple[str | None, MetricSummary | None]:
+    """Return the clean baseline with the lowest canonical HPWL."""
+    best_label: str | None = None
+    best_summary: MetricSummary | None = None
+    for label in CANONICAL_LINES:
+        summary = metrics.get(label)
+        if (
+            summary is None
+            or not is_clean_placement(summary)
+            or summary.hpwl_after is None
+        ):
+            continue
+        if (
+            best_summary is None
+            or best_summary.hpwl_after is None
+            or summary.hpwl_after < best_summary.hpwl_after
+        ):
+            best_label = label
+            best_summary = summary
+    return best_label, best_summary
+
+
+def five_percent_target_hpwl(baseline: MetricSummary | None) -> float | None:
+    if baseline is None or baseline.hpwl_after is None:
+        return None
+    return baseline.hpwl_after * 0.95
+
+
 def round_scoreboard(
     *,
     runtime: Any,
@@ -240,16 +301,17 @@ def round_scoreboard(
     if not candidates:
         return "No student candidate metrics have been found for this round yet."
 
-    baseline = metrics.get("openroad_dpl_flow")
+    baseline_label, baseline = strongest_baseline_anchor(metrics)
     baseline_hpwl = baseline.hpwl_after if baseline else None
+    target_hpwl = five_percent_target_hpwl(baseline)
     lines = [
-        "| iter | student | strategy | hpwl_after | delta_vs_openroad | beats_openroad | runtime_s | avg_disp | max_disp | violations | metrics |",
-        "|---|---|---|---:|---:|---|---:|---:|---:|---|---|",
+        "| iter | student | route_label | hpwl_after | hpwl_delta_pct | delta_vs_strongest | beats_strongest | gap_to_5pct_target | runtime_s | avg_disp | max_disp | violations | metrics |",
+        "|---|---|---|---:|---:|---:|---|---:|---:|---:|---:|---|---|",
     ]
     best: MetricSummary | None = None
     best_beating: MetricSummary | None = None
     for summary in candidates:
-        iter_part, student_id, strategy = parse_candidate_tag(
+        iter_part, student_id, route_label = parse_candidate_tag(
             round_id, case_id, summary.tag
         )
         if (
@@ -279,15 +341,24 @@ def round_scoreboard(
             if baseline_hpwl is None or summary.hpwl_after is None
             else summary.hpwl_after - baseline_hpwl
         )
+        target_gap = (
+            None
+            if target_hpwl is None or summary.hpwl_after is None
+            else summary.hpwl_after - target_hpwl
+        )
         lines.append(
-            "| {iter_part} | {student_id} | {strategy} | {hpwl} | {delta} | "
-            "{beats} | {runtime_s} | {avg_disp} | {max_disp} | {violations} | `{metrics_path}` |".format(
+            "| {iter_part} | {student_id} | {route_label} | {hpwl} | {hpwl_delta_pct} | {delta} | "
+            "{beats} | {target_gap} | {runtime_s} | {avg_disp} | {max_disp} | {violations} | `{metrics_path}` |".format(
                 iter_part=iter_part or "?",
                 student_id=student_id or "?",
-                strategy=strategy or summary.tag,
+                route_label=route_label or summary.tag,
                 hpwl="" if summary.hpwl_after is None else f"{summary.hpwl_after:.3f}",
+                hpwl_delta_pct=""
+                if summary.hpwl_delta_percent is None
+                else f"{summary.hpwl_delta_percent:.4f}%",
                 delta="" if delta is None else f"{delta:.3f}",
                 beats="yes" if candidate_beats_baseline(summary, baseline) else "no",
+                target_gap="" if target_gap is None else f"{target_gap:.3f}",
                 runtime_s=""
                 if summary.runtime_seconds is None
                 else f"{summary.runtime_seconds:.3f}",
@@ -299,7 +370,7 @@ def round_scoreboard(
         )
 
     if best and best.hpwl_after is not None:
-        best_iter, best_student, best_strategy = parse_candidate_tag(
+        best_iter, best_student, best_route_label = parse_candidate_tag(
             round_id, case_id, best.tag
         )
         best_delta = (
@@ -312,21 +383,32 @@ def round_scoreboard(
                 "",
                 "Best clean candidate so far: "
                 f"`{best_iter or '?'}` / `{best_student or '?'}` / "
-                f"`{best_strategy or best.tag}` with HPWL `{best.hpwl_after:.3f}`"
-                + ("" if best_delta is None else f" (`{best_delta:.3f}` vs OpenROAD)."),
+                f"`{best_route_label or best.tag}` with HPWL `{best.hpwl_after:.3f}`"
+                + (
+                    ""
+                    if best_delta is None
+                    else f" (`{best_delta:.3f}` vs {baseline_label or 'strongest baseline'})."
+                ),
             ]
         )
     if best_beating and best_beating.hpwl_after is not None:
-        beat_iter, beat_student, beat_strategy = parse_candidate_tag(
+        beat_iter, beat_student, beat_route_label = parse_candidate_tag(
             round_id, case_id, best_beating.tag
         )
         lines.append(
-            "Best baseline-beating candidate: "
+            "Best strongest-baseline-beating candidate: "
             f"`{beat_iter or '?'}` / `{beat_student or '?'}` / "
-            f"`{beat_strategy or best_beating.tag}`."
+            f"`{beat_route_label or best_beating.tag}`."
         )
     else:
-        lines.append("No prior student candidate beats `openroad_dpl_flow` yet.")
+        lines.append(
+            "No prior student candidate beats the strongest clean baseline "
+            f"(`{baseline_label or 'unknown'}`) yet."
+        )
+    if target_hpwl is not None:
+        lines.append(
+            f"Five-percent target from `{baseline_label}`: `{target_hpwl:.3f}`."
+        )
     return "\n".join(lines)
 
 
@@ -366,7 +448,7 @@ def source_backup_for_candidate(
 ) -> Path | None:
     if candidate is None:
         return None
-    iter_part, student_id, _strategy = parse_candidate_tag(
+    iter_part, student_id, _route_label = parse_candidate_tag(
         round_id, case_id, candidate.tag
     )
     if not iter_part or not student_id:
@@ -391,7 +473,7 @@ def peer_candidate_row(
         case_id=case_id,
         candidate=candidate,
     )
-    iter_part, student_id, strategy = parse_candidate_tag(
+    iter_part, student_id, route_label = parse_candidate_tag(
         round_id, case_id, candidate.tag
     )
     source_backup = artifacts.source_backup if artifacts else None
@@ -404,24 +486,21 @@ def peer_candidate_row(
         or candidate.hpwl_after is None
         else candidate.hpwl_after - baseline.hpwl_after
     )
-    return [
-        f"- candidate: `{iter_part or '?'}` / `{student_id or '?'}` / `{strategy or candidate.tag}`",
-        f"  - beats_openroad_dpl_flow: `{'yes' if candidate_beats_baseline(candidate, baseline) else 'no'}`",
-        f"  - hpwl_after: `{candidate.hpwl_after}`",
-        f"  - delta_vs_openroad: `{delta}`",
-        f"  - runtime_seconds: `{candidate.runtime_seconds}`",
-        f"  - avg_disp: `{candidate.avg_disp}`",
-        f"  - max_disp: `{candidate.max_disp}`",
-        f"  - violations: `{candidate.violations or 'clean'}`",
-        f"  - metrics_json: `{candidate.metrics_path}`",
-        f"  - source_backup: `{source_backup or ''}`",
-        f"  - source_backup_exists: `{source_backup.exists() if source_backup is not None else False}`",
-        f"  - implementation_diff: `{implementation_diff or ''}`",
-        f"  - implementation_diff_exists: `{implementation_diff.exists() if implementation_diff is not None else False}`",
-        f"  - knowledge_card: `{knowledge_card or ''}`",
-        f"  - knowledge_card_exists: `{knowledge_card.exists() if knowledge_card is not None else False}`",
-        f"  - last_message: `{artifacts.last_message if artifacts else ''}`",
-    ]
+    beats = "yes" if candidate_beats_baseline(candidate, baseline) else "no"
+    summary = (
+        f"- `{iter_part or '?'}` / `{student_id or '?'}` / "
+        f"`{route_label or candidate.tag}`: HPWL `{candidate.hpwl_after}`, "
+        f"run_delta `{candidate.hpwl_delta_percent}%`, "
+        f"delta_vs_baseline `{delta}`, runtime `{candidate.runtime_seconds}`, "
+        f"avg/max disp `{candidate.avg_disp}/{candidate.max_disp}`, "
+        f"legality `{candidate.violations or 'clean'}`, beats `{beats}`"
+    )
+    pointers = (
+        f"  - inspect only if useful: metrics `{candidate.metrics_path}`; "
+        f"source `{source_backup or ''}`; diff `{implementation_diff or ''}`; "
+        f"knowledge `{knowledge_card or ''}`"
+    )
+    return [summary, pointers]
 
 
 def write_peer_learning_packet(
@@ -436,7 +515,8 @@ def write_peer_learning_packet(
     metrics: dict[str, MetricSummary | None],
 ) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
-    baseline = metrics.get("openroad_dpl_flow")
+    baseline_label, baseline = strongest_baseline_anchor(metrics)
+    target_hpwl = five_percent_target_hpwl(baseline)
     candidates = discover_round_candidate_metrics(
         orfs_root=runtime.orfs_root,
         case_id=case_id,
@@ -461,16 +541,20 @@ def write_peer_learning_packet(
         "index for the next Teacher/Student step.",
         "",
         "Use it to borrow mechanisms and source from validated peer candidates. "
-        "Do not promote a candidate unless it is clean and beats `openroad_dpl_flow`.",
+        "A clean candidate that beats the strongest baseline is useful donor "
+        "evidence; the final research target remains 5% below that strongest "
+        "baseline.",
         "",
         "## Baseline Anchor",
     ]
     if baseline is None:
-        chunks.append("- `openroad_dpl_flow`: missing")
+        chunks.append("- strongest clean baseline: missing")
     else:
         chunks.extend(
             [
+                f"- strongest_baseline: `{baseline_label}`",
                 f"- hpwl_after: `{baseline.hpwl_after}`",
+                f"- five_percent_target_hpwl: `{target_hpwl}`",
                 f"- runtime_seconds: `{baseline.runtime_seconds}`",
                 f"- avg_disp: `{baseline.avg_disp}`",
                 f"- max_disp: `{baseline.max_disp}`",
@@ -479,15 +563,15 @@ def write_peer_learning_packet(
             ]
         )
 
-    chunks.extend(["", "## Best Baseline-Beating Candidates"])
+    chunks.extend(["", "## Best Strongest-Baseline-Beating Candidates"])
     if not beating_candidates:
         chunks.append(
-            "No prior clean student candidate beats `openroad_dpl_flow` yet. "
+            "No prior clean student candidate beats the strongest baseline yet. "
             "Students may still inspect the best clean candidate as a clue, "
             "but it is not an elite seed."
         )
     else:
-        for candidate in beating_candidates[:5]:
+        for candidate in beating_candidates[:3]:
             chunks.extend(
                 peer_candidate_row(
                     runtime=runtime,
@@ -503,7 +587,7 @@ def write_peer_learning_packet(
     if not clean_candidates:
         chunks.append("No prior clean student candidate metrics are available.")
     else:
-        for candidate in clean_candidates[:8]:
+        for candidate in clean_candidates[:3]:
             chunks.extend(
                 peer_candidate_row(
                     runtime=runtime,
@@ -521,8 +605,10 @@ def write_peer_learning_packet(
             "## Use Policy",
             "- Teacher should compare code and metrics before assigning a borrow/merge direction.",
             "- Student may inspect peer code when it directly supports the chosen implementation change.",
+            "- If a student opens peer code or diff, first summarize the peer idea in 2-3 lines, then decide what to borrow.",
             "- Prefer learning a mechanism over blind wholesale replacement.",
-            "- A clean baseline-beating candidate may seed an elite continuation branch.",
+            "- A clean strongest-baseline-beating candidate may seed an elite continuation branch.",
+            "- Sub-1% wins over `evolve_default` are donor evidence, not success.",
         ]
     )
     path.write_text("\n".join(chunks) + "\n", encoding="utf-8")
@@ -562,7 +648,7 @@ def baseline_suite_preflight_command(
     threads: int,
     round_id: str,
 ) -> list[str]:
-    return [
+    command = [
         str(runtime.agent_root / "baseline" / "run_baseline_suite.sh"),
         "--case",
         case_id,
@@ -573,6 +659,42 @@ def baseline_suite_preflight_command(
         "--tag-prefix",
         f"{round_id}_baseline_probe",
     ]
+    core_binary = openroad_core_binary(runtime)
+    if core_binary is not None:
+        command.extend(["--openroad-binary", str(core_binary)])
+    return command
+
+
+def openroad_core_binary(runtime: Any) -> Path | None:
+    """Return the freshly built common OpenROAD core binary if identifiable."""
+    try:
+        proc = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(runtime.orfs_root / "tools" / "OpenROAD"),
+                "rev-parse",
+                "--short",
+                "HEAD",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except Exception:
+        return None
+    anchor_id = proc.stdout.strip()
+    if not anchor_id:
+        return None
+    return (
+        runtime.state_root
+        / "openroad_core"
+        / anchor_id
+        / "install"
+        / "OpenROAD"
+        / "bin"
+        / "openroad"
+    )
 
 
 def baseline_suite_complete(metrics: dict[str, MetricSummary | None]) -> bool:
@@ -625,21 +747,24 @@ def ensure_baseline_suite(
 
 def metric_table(metrics: dict[str, MetricSummary | None]) -> str:
     lines = [
-        "| line | tag | hpwl_after | hpwl_delta | runtime_s | avg_disp | max_disp | violations |",
-        "|---|---|---:|---:|---:|---:|---:|---|",
+        "| line | tag | hpwl_after | hpwl_delta | hpwl_delta_pct | runtime_s | avg_disp | max_disp | violations |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---|",
     ]
     for name in CANONICAL_LINES:
         summary = metrics.get(name)
         if summary is None:
-            lines.append(f"| {name} | missing |  |  |  |  |  |  |")
+            lines.append(f"| {name} | missing |  |  |  |  |  |  |  |")
             continue
         lines.append(
-            "| {name} | {tag} | {hpwl_after} | {hpwl_delta} | {runtime} | "
+            "| {name} | {tag} | {hpwl_after} | {hpwl_delta} | {hpwl_delta_pct} | {runtime} | "
             "{avg_disp} | {max_disp} | {violations} |".format(
                 name=name,
                 tag=summary.tag,
                 hpwl_after="" if summary.hpwl_after is None else f"{summary.hpwl_after:.3f}",
                 hpwl_delta="" if summary.hpwl_delta is None else f"{summary.hpwl_delta:.3f}",
+                hpwl_delta_pct=""
+                if summary.hpwl_delta_percent is None
+                else f"{summary.hpwl_delta_percent:.4f}%",
                 runtime=""
                 if summary.runtime_seconds is None
                 else f"{summary.runtime_seconds:.3f}",
@@ -672,7 +797,8 @@ def design_characteristics_block(
     this block gives it the concrete design/baseline facts that matter before
     asking students to modify algorithms.
     """
-    anchor = metrics.get("openroad_dpl_flow") or metrics.get("evolve_default")
+    anchor_label, anchor = strongest_baseline_anchor(metrics)
+    target_hpwl = five_percent_target_hpwl(anchor)
     anchor_data = load_json(anchor.metrics_path) if anchor is not None else None
     design = (anchor_data or {}).get("design_metrics", {})
     disp = (anchor_data or {}).get("displacement", {})
@@ -707,28 +833,36 @@ def design_characteristics_block(
             maxd=_fmt_float(disp.get("max_displacement_micron"), 4),
             moved=disp.get("moved_instance_count", ""),
         ),
+        "- strongest baseline: `{label}`, five_percent_target_hpwl={target}".format(
+            label=anchor_label or "",
+            target=_fmt_float(target_hpwl, 3),
+        ),
     ]
 
     lines.extend(
         [
             "",
-            "| line | hpwl_before | hpwl_after | hpwl_delta | runtime_s | violations |",
-            "|---|---:|---:|---:|---:|---|",
+            "HPWL values below use OpenROAD/DPL pin-based log HPWL only. "
+            "`hpwl_proxy` is debug-only and is never a promotion metric.",
+            "",
+            "| line | hpwl_before | hpwl_after | hpwl_delta | hpwl_delta_pct | runtime_s | violations |",
+            "|---|---:|---:|---:|---:|---:|---|",
         ]
     )
     for line in CANONICAL_LINES:
         summary = metrics.get(line)
         if summary is None:
-            lines.append(f"| {line} | missing |  |  |  |  |")
+            lines.append(f"| {line} | missing |  |  |  |  |  |")
             continue
         data = load_json(summary.metrics_path) or {}
-        hpwl = data.get("hpwl_proxy", {})
+        hpwl = canonical_hpwl(data)
         lines.append(
-            "| {line} | {before} | {after} | {delta} | {runtime} | {violations} |".format(
+            "| {line} | {before} | {after} | {delta} | {delta_pct} | {runtime} | {violations} |".format(
                 line=line,
                 before=_fmt_float(hpwl.get("before_micron"), 3),
                 after=_fmt_float(summary.hpwl_after, 3),
                 delta=_fmt_float(summary.hpwl_delta, 3),
+                delta_pct=_fmt_float(summary.hpwl_delta_percent, 4, "%"),
                 runtime=_fmt_float(summary.runtime_seconds, 3),
                 violations=summary.violations or "clean",
             )
@@ -997,7 +1131,7 @@ def write_child_artifact_status_json(
         rows.append(
             {
                 "student_id": child.student_id,
-                "strategy": child.strategy,
+                "route_label": child.route_label,
                 "operation_id": child.operation_id,
                 "run_tag": child.run_tag,
                 **status,

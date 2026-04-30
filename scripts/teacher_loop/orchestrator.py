@@ -25,7 +25,6 @@ from scripts.case_registry import get_case
 from scripts.teacher_loop.cli import parse_args
 from scripts.teacher_loop.common import (
     CANONICAL_LINES,
-    DEFAULT_STRATEGIES,
     ChildRound,
     MetricSummary,
     RoundLogger,
@@ -43,6 +42,7 @@ from scripts.teacher_loop.evidence import (
     round_scoreboard,
     source_backup_for_candidate,
     best_round_candidate,
+    strongest_baseline_anchor,
     write_baseline_artifacts_packet,
     write_child_artifact_status_json,
     write_design_characteristics_packet,
@@ -59,6 +59,7 @@ from scripts.teacher_loop.execution import (
     seed_elite_children,
 )
 from scripts.teacher_loop.prompts import (
+    agent_prompt_warnings,
     build_packet,
     child_prompt,
     common_context,
@@ -76,6 +77,29 @@ from scripts.teacher_loop.prompts import (
     write_round_readme,
 )
 
+
+def child_prompt_warning_lines(
+    *,
+    child_rounds: list[ChildRound],
+    max_agent_prompt_bytes: int,
+) -> list[str]:
+    lines: list[str] = []
+    for child in child_rounds:
+        if not child.prompt_path.exists():
+            lines.append(f"{child.student_id}: missing prompt {child.prompt_path}")
+            continue
+        text = child.prompt_path.read_text(encoding="utf-8", errors="replace")
+        for warning in agent_prompt_warnings(
+            text, max_agent_prompt_bytes=max_agent_prompt_bytes
+        ):
+            try:
+                prompt_label = child.prompt_path.relative_to(AGENT_ROOT)
+            except ValueError:
+                prompt_label = child.prompt_path
+            lines.append(
+                f"{child.student_id}: {prompt_label}: {warning}"
+            )
+    return lines
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -99,8 +123,13 @@ def main(argv: list[str] | None = None) -> int:
 
     iterations = max(1, args.iterations)
     start_iteration = max(1, min(args.start_iteration, iterations))
-    strategies = args.strategy or DEFAULT_STRATEGIES[: max(1, args.children)]
-    strategies = strategies[: max(1, args.children)]
+    if args.route_label:
+        route_labels = args.route_label[: max(1, args.children)]
+    else:
+        route_labels = [
+            f"teacher_assigned_{idx:02d}"
+            for idx in range(1, max(1, args.children) + 1)
+        ]
     teacher_model = args.teacher_model or args.model
     teacher_reasoning_effort = args.teacher_reasoning_effort or args.reasoning_effort
     student_model = args.student_model or args.model
@@ -123,7 +152,7 @@ def main(argv: list[str] | None = None) -> int:
         start_kind=args.start_kind,
         iterations=iterations,
         start_iteration=start_iteration,
-        children=len(strategies),
+        children=len(route_labels),
         dry_run=dry_run,
         launch=args.launch,
     )
@@ -239,7 +268,7 @@ def main(argv: list[str] | None = None) -> int:
             openroad_hpwl=None
             if baseline_metrics.get("openroad_dpl_flow") is None
             else baseline_metrics["openroad_dpl_flow"].hpwl_after,
-            evolve_hpwl=None
+            evolve_command_hpwl=None
             if baseline_metrics.get("evolve_default") is None
             else baseline_metrics["evolve_default"].hpwl_after,
         )
@@ -298,7 +327,7 @@ def main(argv: list[str] | None = None) -> int:
             round_dir=round_dir,
             round_id=round_id,
             iteration=iteration,
-            strategies=strategies,
+            strategies=route_labels,
         )
         scoreboard = round_scoreboard(
             runtime=runtime,
@@ -324,7 +353,7 @@ def main(argv: list[str] | None = None) -> int:
                 case_id=args.case,
                 flow_variant=args.flow_variant,
                 round_id=round_id,
-                baseline=metrics.get("openroad_dpl_flow"),
+                baseline=strongest_baseline_anchor(metrics)[1],
                 require_baseline_beat=True,
                 before_iteration=iteration,
             )
@@ -366,15 +395,15 @@ def main(argv: list[str] | None = None) -> int:
             (
                 compact_teacher_prompt(
                     context_path=full_context_path,
-                    strategies=strategies,
-                    children=len(strategies),
+                    strategies=route_labels,
+                    children=len(route_labels),
                     iteration=iteration,
                 )
                 if compact_followup_prompts
                 else teacher_prompt(
                     context_path=full_context_path,
-                    strategies=strategies,
-                    children=len(strategies),
+                    strategies=route_labels,
+                    children=len(route_labels),
                     iteration=iteration,
                 )
             ),
@@ -408,7 +437,7 @@ def main(argv: list[str] | None = None) -> int:
         child_commands: list[list[str]] = []
         child_rounds: list[ChildRound] = []
         if not args.teacher_only:
-            for idx, strategy in enumerate(strategies, start=1):
+            for idx, route_label in enumerate(route_labels, start=1):
                 student_id = f"student_{idx:02d}"
                 operation_id = f"{round_id}_{iter_name(iteration)}_{student_id}"
                 run_tag = f"{operation_id}_{args.case}"
@@ -424,7 +453,7 @@ def main(argv: list[str] | None = None) -> int:
                     flow_variant=args.flow_variant,
                     threads=args.threads,
                     start_kind=args.start_kind,
-                    strategy=strategy,
+                    route_label=route_label,
                     child_id=idx,
                     iteration=iteration,
                     student_id=student_id,
@@ -444,7 +473,7 @@ def main(argv: list[str] | None = None) -> int:
                             case_id=args.case,
                             flow_variant=args.flow_variant,
                             threads=args.threads,
-                            strategy=strategy,
+                            route_label=route_label,
                             child_id=idx,
                             iteration=iteration,
                             student_id=student_id,
@@ -464,7 +493,7 @@ def main(argv: list[str] | None = None) -> int:
                             case_id=args.case,
                             flow_variant=args.flow_variant,
                             threads=args.threads,
-                            strategy=strategy,
+                            route_label=route_label,
                             child_id=idx,
                             iteration=iteration,
                             student_id=student_id,
@@ -481,7 +510,7 @@ def main(argv: list[str] | None = None) -> int:
                 append_lineage(
                     round_dir=round_dir,
                     student_id=student_id,
-                    strategy=strategy,
+                    route_label=route_label,
                     iteration=iteration,
                     operation_id=operation_id,
                     run_tag=run_tag,
@@ -495,7 +524,7 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 child_round = ChildRound(
                     student_id=student_id,
-                    strategy=strategy,
+                    route_label=route_label,
                     operation_id=operation_id,
                     run_tag=run_tag,
                     prompt_path=prompt_path,
@@ -620,7 +649,7 @@ def main(argv: list[str] | None = None) -> int:
                 "children": [
                     {
                         "student_id": child.student_id,
-                        "strategy": child.strategy,
+                        "route_label": child.route_label,
                         "operation_id": child.operation_id,
                         "run_tag": child.run_tag,
                         "prompt": str(child.prompt_path),
@@ -698,6 +727,24 @@ def main(argv: list[str] | None = None) -> int:
                     / teacher_op
                     / "codex_last_message.txt",
                 )
+                prompt_warnings = child_prompt_warning_lines(
+                    child_rounds=child_rounds,
+                    max_agent_prompt_bytes=args.prompt_audit_max_agent_bytes,
+                )
+                if prompt_warnings:
+                    for warning in prompt_warnings:
+                        print(
+                            f"[optimize_case] prompt warning: {warning}",
+                            file=sys.stderr,
+                        )
+                    logger.event(
+                        "audit",
+                        "child_prompt_prelaunch_warnings",
+                        iteration=iter_name(iteration),
+                        warnings=prompt_warnings,
+                    )
+                    if args.fail_on_prompt_audit:
+                        return 2
             if child_commands:
                 logger.event(
                     "student",
@@ -775,7 +822,7 @@ def main(argv: list[str] | None = None) -> int:
         case_id=args.case,
         flow_variant=args.flow_variant,
         start_kind=args.start_kind,
-        strategies=strategies,
+        strategies=route_labels,
         metrics=last_metrics or {},
         launch_commands=all_commands,
     )
@@ -794,7 +841,7 @@ def main(argv: list[str] | None = None) -> int:
                     "session_state": str(teacher_session.session_state),
                     "session_env_file": str(teacher_session.session_env_file),
                 },
-                "strategies": strategies,
+                "route_labels": route_labels,
                 "model": args.model,
                 "reasoning_effort": args.reasoning_effort,
                 "teacher_model": teacher_model,

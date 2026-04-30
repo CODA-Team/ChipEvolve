@@ -1,1 +1,0 @@
-"""Vendored legality check wrapper."""

@@ -9,9 +9,10 @@ should act on it.
 
 1. `workflow/teacher_child_case_evolution.md`
 2. `workflow/cross_case_experiment_design.md`
-3. `case_evolution/cross_case_transfer_matrix.md`
-4. `case_evolution/micro_gain_trap_and_elite_donors.md`
-5. Relevant LEGALM card under `legalm/` only when changing legalization.
+3. `workflow/metric_contract.md`
+4. `case_evolution/cross_case_transfer_matrix.md`
+5. `case_evolution/micro_gain_trap_and_elite_donors.md`
+6. Relevant LEGALM card under `legalm/` only when changing legalization.
 
 ## Workflow
 
@@ -19,6 +20,8 @@ should act on it.
   promotion rules, peer learning, and elite preservation.
 - `workflow/cross_case_experiment_design.md`: outer matrix design for testing
   one generated program across many cases and utilization points.
+- `workflow/metric_contract.md`: canonical HPWL source, comparable experiment
+  classes, and reporting requirements.
 
 ## Case Evolution Evidence
 

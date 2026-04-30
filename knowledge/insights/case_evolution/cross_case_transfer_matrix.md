@@ -9,6 +9,11 @@ design families, utilization points, and technology settings.
 Use this as transfer evidence, not as a case recipe.  Exact case ids and raw
 paths belong in matrix artifacts, not in default agent context.
 
+Metric calibration: use this card as mechanism evidence only unless the source
+matrix has been normalized under `workflow/metric_contract.md`.  Any older
+table that relied on bbox HPWL proxy must be re-read through canonical
+`metrics.json:hpwl` before promotion or publication.
+
 ## Result Pattern
 
 The strongest donor lineage beat most validation rows with about one percent

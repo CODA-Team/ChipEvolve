@@ -9,8 +9,25 @@ from pathlib import Path
 from typing import Any
 
 
+def hpwl_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
+    return metrics.get("hpwl") or metrics.get("hpwl_openroad_log") or metrics["hpwl_proxy"]
+
+
+def hpwl_delta_percent(metrics: dict[str, Any]) -> float:
+    hpwl = hpwl_metrics(metrics)
+    if "delta_percent" in hpwl:
+        return float(hpwl["delta_percent"])
+    before = float(hpwl["before_micron"])
+    delta = float(hpwl["delta_micron"])
+    if before == 0.0:
+        raise ZeroDivisionError("cannot compute HPWL delta percent with zero before HPWL")
+    return delta / before * 100.0
+
+
 METRICS = {
-    "hpwl_delta_micron": ("lower", lambda m: m["hpwl_proxy"]["delta_micron"]),
+    "hpwl_after_micron": ("lower", lambda m: hpwl_metrics(m)["after_micron"]),
+    "hpwl_delta_micron": ("lower", lambda m: hpwl_metrics(m)["delta_micron"]),
+    "hpwl_delta_percent": ("lower", hpwl_delta_percent),
     "setup_ws": ("higher", lambda m: m["timing_metrics"]["setup_ws"]),
     "setup_tns": ("higher", lambda m: m["timing_metrics"]["setup_tns"]),
     "hold_ws": ("higher", lambda m: m["timing_metrics"]["hold_ws"]),
@@ -33,7 +50,10 @@ def load_json(path: Path) -> dict[str, Any]:
 
 def resolve_metrics(input_path: Path) -> tuple[dict[str, Any], dict[str, Any] | None, Path]:
     payload = load_json(input_path)
-    if "hpwl_proxy" in payload and "manifest" in payload:
+    if (
+        ("hpwl" in payload or "hpwl_openroad_log" in payload or "hpwl_proxy" in payload)
+        and "manifest" in payload
+    ):
         return payload, None, input_path
 
     metrics_path = payload.get("metrics_path")

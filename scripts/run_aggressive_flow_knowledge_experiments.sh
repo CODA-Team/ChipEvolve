@@ -11,7 +11,7 @@ THREADS="10"
 CHILDREN="4"
 ITERATIONS="12"
 MAX_PARALLEL="4"
-START_KIND="diamond"
+START_KIND="framework"
 TEACHER_MODEL="gpt-5.5"
 TEACHER_REASONING_EFFORT="xhigh"
 STUDENT_MODEL="gpt-5.4"
@@ -51,7 +51,7 @@ Options:
   --children N                  Student agents per round. Default: 4.
   --iterations N                Iterations per case/utilization. Default: 12.
   --max-parallel N              Parallel students inside one round. Default: 4.
-  --start-kind KIND             diamond, framework, or prepared. Default: diamond.
+  --start-kind KIND             diamond, framework, or prepared. Default: framework.
   --teacher-model NAME          Default: gpt-5.5.
   --teacher-reasoning-effort E  Default: xhigh.
   --student-model NAME          Default: gpt-5.4.

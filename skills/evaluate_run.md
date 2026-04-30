@@ -42,11 +42,13 @@ flow/reports/<platform>/<design>/<FLOW_VARIANT>/dpl_evolve_baseline/<run_tag>/me
 Compare these first:
 
 - legality
-- HPWL delta
-- setup WNS/TNS
+- HPWL delta from `metrics.json:hpwl`
 - displacement
 - runtime
 - memory, when recorded
+
+`metrics.json:hpwl` is the canonical OpenROAD/DPL pin-based log HPWL.  The
+legacy `hpwl_proxy` field is a cell-bbox diagnostic only.
 
 ## Strict Track Rule
 

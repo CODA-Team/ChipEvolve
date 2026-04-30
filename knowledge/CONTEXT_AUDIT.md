@@ -20,6 +20,8 @@ family-tree tuning to a constrained `detailed_placement_evolve` framework.
 
 - OpenROAD DPL flow is the current strict-track comparison anchor:
   `detailed_placement`, `improve_placement`, `optimize_mirroring`.
+- Strict HPWL comparisons use OpenROAD/DPL pin-based log HPWL in
+  `metrics.json:hpwl`.  The legacy bbox proxy is a debug field only.
 - OpenROAD diamond remains a local-search donor and prepass reference, not a
   standalone canonical baseline runner in the current harness.
 - OpenROAD negotiation/NBLG is a repair and mechanism donor. It should not be

@@ -20,6 +20,7 @@ Current compact algorithm cards:
 - `insights/README.md`
 - `insights/workflow/teacher_child_case_evolution.md`
 - `insights/workflow/cross_case_experiment_design.md`
+- `insights/workflow/metric_contract.md`
 - `insights/case_evolution/cross_case_transfer_matrix.md`
 - `insights/case_evolution/micro_gain_trap_and_elite_donors.md`
 - `insights/case_evolution/full_flow_timeout_and_target_selection.md`

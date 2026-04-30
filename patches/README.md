@@ -10,8 +10,7 @@ Patch status is tracked in:
 - `openroad_dpl_evolve_base.patch`
   Applies the clean `dpl_evolve` base, the minimal `ord` hooks needed to
   register the evolve command surface (`detailed_placement_evolve`,
-  `improve_placement_evolve`, and `optimize_mirroring_evolve`; the legacy
-  `optimize_evolve` alias may also exist in older prepared source), and the
+  `improve_placement_evolve`, and `optimize_mirroring_evolve`), and the
   `DPL_EVOLVE_SRC_DIR` build hook to a clean OpenROAD checkout. It
   intentionally does not install a target-side `src/dpl_evolve/README.md`;
   use this control repo's README,

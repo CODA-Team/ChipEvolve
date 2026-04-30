@@ -17,7 +17,7 @@ surfaces:
       - cross_stage_cooptimization
       - shared_objective_handoff
       - legalize_improve_mirror_coordination
-      - aggressive_case_strategy
+      - aggressive_case_mechanism
       - telemetry_only
     risk: "medium"
 
@@ -165,7 +165,7 @@ surfaces:
     allowed_patch_modes:
       - detailed_improvement_flow
       - improve_runtime_control
-      - hpwl_polish_strategy
+      - hpwl_polish_mechanism
       - legalize_output_consumption
       - mirror_seed_preparation
       - cross_stage_cooptimization
@@ -176,7 +176,7 @@ surfaces:
     signature: "core detailed optimizer implementation"
     allowed_patch_modes:
       - detailed_improvement_flow
-      - hpwl_polish_strategy
+      - hpwl_polish_mechanism
       - high_performance_data_structure
       - legalize_output_consumption
       - mirror_seed_preparation
@@ -195,7 +195,7 @@ surfaces:
     signature: "candidate generator declarations"
     allowed_patch_modes:
       - bounded_candidate_generation
-      - hpwl_polish_strategy
+      - hpwl_polish_mechanism
       - high_performance_data_structure
     risk: "medium-high"
 
@@ -225,7 +225,7 @@ surfaces:
     signature: "global swap detailed-improve implementation"
     allowed_patch_modes:
       - detailed_improvement_flow
-      - hpwl_polish_strategy
+      - hpwl_polish_mechanism
       - bounded_candidate_generation
     risk: "medium-high"
 
@@ -242,7 +242,7 @@ surfaces:
     signature: "independent-set detailed-improve implementation"
     allowed_patch_modes:
       - detailed_improvement_flow
-      - hpwl_polish_strategy
+      - hpwl_polish_mechanism
       - bounded_candidate_generation
     risk: "medium-high"
 
@@ -259,8 +259,8 @@ surfaces:
     signature: "orientation detailed-improve implementation"
     allowed_patch_modes:
       - detailed_improvement_flow
-      - mirror_or_orientation_strategy
-      - hpwl_polish_strategy
+      - mirror_or_orientation_flow
+      - hpwl_polish_mechanism
     risk: "medium"
 
   - file: "tools/OpenROAD/src/dpl_evolve/src/optimization/detailed_orient.h"
@@ -268,7 +268,7 @@ surfaces:
     signature: "orientation detailed-improve declarations"
     allowed_patch_modes:
       - detailed_improvement_flow
-      - mirror_or_orientation_strategy
+      - mirror_or_orientation_flow
       - api_extension
     risk: "medium"
 
@@ -277,7 +277,7 @@ surfaces:
     signature: "random and priority detailed-improve implementation"
     allowed_patch_modes:
       - detailed_improvement_flow
-      - hpwl_polish_strategy
+      - hpwl_polish_mechanism
       - bounded_candidate_generation
       - sparse_checkpoint
       - high_performance_data_structure
@@ -288,7 +288,7 @@ surfaces:
     signature: "random and priority detailed-improve declarations"
     allowed_patch_modes:
       - detailed_improvement_flow
-      - hpwl_polish_strategy
+      - hpwl_polish_mechanism
       - api_extension
     risk: "high"
 
@@ -297,7 +297,7 @@ surfaces:
     signature: "reorder detailed-improve implementation"
     allowed_patch_modes:
       - detailed_improvement_flow
-      - hpwl_polish_strategy
+      - hpwl_polish_mechanism
       - bounded_candidate_generation
     risk: "medium-high"
 
@@ -314,8 +314,8 @@ surfaces:
     signature: "vertical detailed-improve implementation"
     allowed_patch_modes:
       - detailed_improvement_flow
-      - row_relocation_strategy
-      - hpwl_polish_strategy
+      - row_relocation_mechanism
+      - hpwl_polish_mechanism
     risk: "medium-high"
 
   - file: "tools/OpenROAD/src/dpl_evolve/src/optimization/detailed_vertical.h"
@@ -323,7 +323,7 @@ surfaces:
     signature: "vertical detailed-improve declarations"
     allowed_patch_modes:
       - detailed_improvement_flow
-      - row_relocation_strategy
+      - row_relocation_mechanism
       - api_extension
     risk: "medium-high"
 
@@ -394,7 +394,7 @@ surfaces:
     symbol: "dpl_evolve::Opendp::optimizeMirroring"
     signature: "void Opendp::optimizeMirroring()"
     allowed_patch_modes:
-      - mirror_strategy
+      - mirror_flow_mechanism
       - orientation_hpwl_delta
       - flow_ordering
       - sparse_checkpoint
@@ -408,7 +408,7 @@ surfaces:
     symbol: "dpl_evolve mirror optimizer API"
     signature: "mirror/orientation declarations"
     allowed_patch_modes:
-      - mirror_strategy
+      - mirror_flow_mechanism
       - api_extension
     risk: "medium"
 
@@ -458,6 +458,6 @@ policy:
     - "benchmark or snapshot selection"
 
 notes:
-  - "Students are expected to make coherent changes across LEGALM/legalization, detailed-improvement internals, mirror/orientation strategy, and their shared top-level handoff when Teacher requests a full-flow attempt."
+  - "Students are expected to make coherent changes across LEGALM/legalization, detailed-improvement internals, mirror/orientation flow, and their shared top-level handoff when Teacher requests a full-flow attempt."
   - "Do not hide HPWL or flow-level experiments inside a paper-fidelity claim; label them as objective or flow redesign."
   - "Use private variant source plus lightweight relink for normal student algorithm experiments."

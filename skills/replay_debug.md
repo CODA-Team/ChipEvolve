@@ -18,7 +18,7 @@ Codex should prefer:
 ## Expected replay sources
 - extracted local windows / plates
 - design-specific small manifests
-- explicit historical replay archives named by the task
+- explicit replay archives named by the task
 
 ## Required replay outputs
 - failing surface

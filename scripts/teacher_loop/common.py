@@ -12,64 +12,12 @@ from typing import Any
 AGENT_ROOT = Path(__file__).resolve().parents[2]
 PROMPT_TEMPLATE_DIR = AGENT_ROOT / "prompt_templates" / "teacher_loop"
 
-DEFAULT_STRATEGIES = [
-    "open_guidance_objective",
-    "open_row_compaction",
-    "open_repair_polish",
-    "open_runtime_architecture",
-    "open_paper_hybrid",
-    "open_telemetry_selector",
-]
-
 START_KINDS = ("framework", "diamond", "prepared")
 
 CANONICAL_LINES = (
     "openroad_dpl_flow",
     "evolve_default",
 )
-
-STRATEGY_BRIEFS = {
-    "open_guidance_objective": (
-        "Aggressive exploration seed: redesign guidance/objective and move "
-        "HPWL-aware decisions earlier if needed.  Try connected-net or "
-        "size-aware scoring, touched-net HPWL deltas, cached net boxes, or "
-        "stage-order changes.  Avoid constant retunes and local proxy-only wins."
-    ),
-    "open_row_compaction": (
-        "Aggressive exploration seed: redesign row/segment assignment, "
-        "Abacus-style compaction, candidate generation, or occupancy data "
-        "structures.  Prefer bounded candidate stencils, dirty row intervals, "
-        "and net-aware commit rules.  Pivot freely if another mechanism is "
-        "stronger, but make a real flow or algorithm change."
-    ),
-    "open_repair_polish": (
-        "Aggressive exploration seed: redesign repair, negotiation, "
-        "improve-placement, mirroring, or post-legal polish.  Pull repair "
-        "earlier or change the flow order if late polish alone cannot move the "
-        "metric.  Prefer self-validating aggressive repair with exact final "
-        "metric guards over small threshold tweaks."
-    ),
-    "open_runtime_architecture": (
-        "Aggressive exploration seed: redesign runtime architecture, "
-        "parallelism, caching, and data movement so larger HPWL experiments are "
-        "affordable.  Target sparse snapshots, dirty legality, touched-net "
-        "metrics, cheap predictors, checkpoint early stop, or isolated-state "
-        "branch parallelism.  Algorithmic quality remains the goal."
-    ),
-    "open_paper_hybrid": (
-        "Aggressive exploration seed: hybridize paper donors such as LEGALM, "
-        "NBLG, Diamond, and DREAMPlace/Abacus.  Respect papers as sources of "
-        "mechanisms, not handcuffs.  Convert donor ideas into bounded, cached, "
-        "strictly legal flow components rather than wholesale slow copies."
-    ),
-    "open_telemetry_selector": (
-        "Aggressive exploration seed: add telemetry-driven acceptance, "
-        "commit logic, or stage selection so risky ideas can be tried with "
-        "intrinsic validity checks.  Include runtime/complexity telemetry and "
-        "use data to choose larger algorithm changes, not to excuse tiny tweaks."
-    ),
-}
-
 
 @dataclass(frozen=True)
 class MetricSummary:
@@ -84,6 +32,7 @@ class MetricSummary:
     avg_disp: float | None
     max_disp: float | None
     violations: str
+    hpwl_delta_percent: float | None = None
 
 
 @dataclass(frozen=True)
@@ -91,7 +40,7 @@ class CandidateArtifacts:
     iter_part: str
     iter_number: int | None
     student_id: str
-    strategy: str
+    route_label: str
     operation_id: str
     operation_dir: Path
     last_message: Path
@@ -103,7 +52,7 @@ class CandidateArtifacts:
 @dataclass(frozen=True)
 class ChildRound:
     student_id: str
-    strategy: str
+    route_label: str
     operation_id: str
     run_tag: str
     prompt_path: Path

@@ -1,1 +1,0 @@
-"""Vendored Greedy legalize wrapper."""

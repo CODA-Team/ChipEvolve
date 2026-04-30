@@ -112,6 +112,10 @@ LOCAL_CONTEXT_ALLOWED_FILES = {
     "scripts/audit_repo_hygiene.py",
 }
 
+FORBIDDEN_TRACKED_PREFIXES = (
+    "baseline/dreamplace_vendor/",
+)
+
 
 def git_ls_files(*patterns: str) -> list[str]:
     proc = subprocess.run(
@@ -193,6 +197,12 @@ def main() -> int:
     visible_research = sorted(
         path for path in git_ls_files("family_variants/**") if "/research_patches/" in path
     )
+    forbidden_tracked = sorted(
+        path
+        for path in git_ls_files()
+        if (AGENT_ROOT / path).exists()
+        and any(path.startswith(prefix) for prefix in FORBIDDEN_TRACKED_PREFIXES)
+    )
     problem_errors: list[str] = []
     for path in problem_yaml_files():
         header = problem_header_values(path)
@@ -246,6 +256,11 @@ def main() -> int:
         ok = False
         print("[FAIL] Visible family_variants research_patches are not allowed:")
         for path in visible_research:
+            print(f"  - {path}")
+    if forbidden_tracked:
+        ok = False
+        print("[FAIL] Forbidden tracked files that pollute default context:")
+        for path in forbidden_tracked:
             print(f"  - {path}")
     if problem_errors:
         ok = False

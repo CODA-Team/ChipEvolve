@@ -10,8 +10,8 @@ Current stores:
 - `observations.jsonl`: factual observations extracted from RunDB records.
 - `knowledge_cards.jsonl`: compact prompt fragments with evidence and scope.
 - `family_region_stats.json`: posterior counters for strategy families/stages
-  and target symbols.  The filename is kept for compatibility with the older
-  family-tree loop.
+  and target symbols.  The filename is compatibility storage only; it is not a
+  separate default experiment family or prompt source.
 
 The packet builder reads recent RunDB failures before each Codex attempt so the
 next prompt can avoid repeating rejected mechanisms. The learning step updates

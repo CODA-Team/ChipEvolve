@@ -27,7 +27,7 @@ canonical_references:
       - candidate_telemetry
     mechanism_deltas:
       - path: family_variants/openroad_negotiation_nblg/mechanism_deltas/parallel_frontier.diff
-        status: historical_delta_reference
+        status: archived_delta_reference
         apply_policy: port_mechanism_not_direct_patch
 
   - id: legalm_guidance

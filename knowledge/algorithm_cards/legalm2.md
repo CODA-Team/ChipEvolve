@@ -26,10 +26,14 @@ metrics prove otherwise.  A self-legal LEGALM path can be useful and
 inspectable, but legality and paper fidelity do not by themselves mean it is
 the best parent for a case.
 
-Do not replace the active `detailed_placement_evolve` parent with a full
-LEGALM route only because it is more paper-faithful.  Promote it only when the
-complete flow beats the active case baseline and the best-so-far evolved
-artifact.
+When the task is specifically to implement or repair LEGALM, preserve the paper
+mainline: relaxed/static legalization, ALM/BGD overflow reduction, local
+optimum escape, and zero-overflow refinement.  Flow-level repair or negotiation
+may be an outer integration stage, but should not be hidden inside the LEGALM
+paper stage.
+
+Promote a LEGALM-derived candidate only when the complete flow beats the active
+case baseline and best-so-far evolved artifact on canonical pin-based HPWL.
 
 ## Mechanisms worth borrowing first
 - better initialization
@@ -37,9 +41,11 @@ artifact.
 - connected-component / plate aware escape
 - no-overflow refinement stage
 
-## Mechanisms to postpone
-- full ALM variable formulation
-- GPU / TP / BGD full rewrite
+## Implementation notes
 
-Treat these as hypotheses to port and test.  The current framework does not
-fix the exact LEGALM objective, partitioning scheme, or stage order.
+- Map code to paper equations or pseudocode when changing the LEGALM stage.
+- Keep paper-sourced parameters explicit; if a parameter is a CPU-reference
+  default rather than a paper constant, label it that way.
+- CPU implementation should use OpenMP and compact row/site/net data
+  structures; do not replace the paper flow with a simpler heuristic only to
+  reduce runtime.

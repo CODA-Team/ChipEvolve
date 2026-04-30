@@ -51,7 +51,8 @@ You need:
 ## Quick Run
 
 This is the copy/paste flow for "repatch ORFS/OpenROAD into the framework
-state, compile the common core, then run `ibex_nangate45`".
+state, compile the common core, then run one case from an existing placement
+snapshot".
 
 Create and source the machine-local environment:
 
@@ -113,12 +114,24 @@ test -f "$DPL_EVOLVE_STATE_ROOT/seed_sources/framework_dpl_evolve/src/LegalmGuid
 echo "framework seed ready"
 ```
 
-Run the ibex baseline first:
+Choose an existing snapshot variant. It must contain:
+
+```text
+$ORFS_ROOT/flow/results/<platform>/<design>/<FLOW_VARIANT>/3_4_place_resized.odb
+```
+
+If you need to create snapshots first, use `scripts/run_place_batch.sh`.
+
+```bash
+export FLOW_VARIANT="<FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB>"
+```
+
+Run the case baseline first:
 
 ```bash
 "$DPL_EVOLVE_AGENT_ROOT/baseline/run_baseline_suite.sh" \
   --case ibex_nangate45 \
-  --flow-variant place_batch_20260421_220319 \
+  --flow-variant "$FLOW_VARIANT" \
   --threads 10 \
   --tag-prefix ibex_framework_baseline
 ```
@@ -132,7 +145,7 @@ Launch the ibex Teacher/Student loop:
 ```bash
 python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py" \
   --case ibex_nangate45 \
-  --flow-variant place_batch_20260421_220319 \
+  --flow-variant "$FLOW_VARIANT" \
   --round-id ibex_framework_2x2_$(date +%Y%m%d_%H%M%S) \
   --start-kind framework \
   --children 2 \
@@ -225,6 +238,11 @@ Read results under:
 ```text
 $ORFS_ROOT/flow/reports/<platform>/<design>/<FLOW_VARIANT>/dpl_evolve_baseline/<run_tag>/metrics.json
 ```
+
+The canonical HPWL field is `metrics.json:hpwl`, sourced from OpenROAD/DPL
+pin-based log lines such as `[INFO DPL-0022] HPWL after`.  The legacy
+cell-bbox `hpwl_proxy` may still appear for debugging; do not use it for
+promotion, Teacher decisions, or published tables.
 
 ### Teacher/Student Loop
 

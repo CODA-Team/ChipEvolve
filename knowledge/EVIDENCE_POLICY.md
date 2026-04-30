@@ -15,7 +15,7 @@ not treat every note as a rule.
   guide a patch, but must be tested before promotion.
 - `reference_donor`: code or paper mechanism worth studying. It is not a
   direct apply target unless a patch inventory explicitly marks it as such.
-- `deprecated_context`: historical evidence kept only for forensics. It should
+- `deprecated_context`: archived evidence kept only for forensics. It should
   not appear in default prompts.
 
 ## Current Calibration
@@ -41,6 +41,14 @@ not treat every note as a rule.
 - Legalizer-stage HPWL, local HPWL proxies, row-assignment seed counts, and
   stage-local move counts are diagnostics.  They must not override final strict
   legality and metrics.
+- The canonical HPWL value for strict comparisons is `metrics.json:hpwl`,
+  parsed from OpenROAD/DPL pin-based log reports such as `[INFO DPL-0022]
+  HPWL after`.  `hpwl_proxy` is a legacy cell-bbox diagnostic kept only for
+  debugging and must not drive promotion, Teacher planning, or published
+  result tables.
+- External handoff experiments, such as importing an outside DEF and running
+  only `optimize_mirroring`, are valid diagnostics but are not the same class
+  as a complete `openroad_dpl_flow` or `evolve_default` run.
 
 ## Parent Selection Policy
 

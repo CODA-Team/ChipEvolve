@@ -18,6 +18,7 @@ FIELDS = [
     "status",
     "exit_code",
     "hpwl_after_micron",
+    "hpwl_delta_percent",
     "avg_displacement_micron",
     "max_displacement_micron",
     "runtime_seconds",
@@ -63,9 +64,9 @@ def parse_runtime(text: str) -> str:
     return ""
 
 
-def metric_summary(path: str) -> tuple[str, str, str, str, bool]:
+def metric_summary(path: str) -> tuple[str, str, str, str, str, bool]:
     if not path:
-        return "", "", "", "", False
+        return "", "", "", "", "", False
     metrics_path = Path(path)
     if not metrics_path.is_file():
         log_path = legalize_log_path(metrics_path)
@@ -75,10 +76,31 @@ def metric_summary(path: str) -> tuple[str, str, str, str, bool]:
     except Exception:
         log_path = legalize_log_path(metrics_path)
         return log_summary(log_path)
-    hpwl = data.get("hpwl_proxy", {})
+    hpwl = data.get("hpwl")
+    if not isinstance(hpwl, dict) or hpwl.get("source") == "cell_bbox_proxy":
+        hpwl = data.get("hpwl_openroad_log")
+    if not isinstance(hpwl, dict):
+        hpwl = {}
     disp = data.get("displacement", {})
+    hpwl_after = str(hpwl.get("after_micron", "") or "")
+    hpwl_delta_percent = str(hpwl.get("delta_percent", "") or "")
+    if not hpwl_delta_percent:
+        try:
+            before_value = float(hpwl.get("before_micron", ""))
+            delta_value = float(hpwl.get("delta_micron", ""))
+            if before_value != 0.0:
+                hpwl_delta_percent = str(delta_value / before_value * 100.0)
+        except (TypeError, ValueError):
+            pass
+    if not hpwl_after:
+        log_hpwl, log_delta_percent, _, _, _, _ = log_summary(
+            legalize_log_path(metrics_path)
+        )
+        hpwl_after = log_hpwl
+        hpwl_delta_percent = hpwl_delta_percent or log_delta_percent
     return (
-        str(hpwl.get("after_micron", "") or ""),
+        hpwl_after,
+        hpwl_delta_percent,
         str(disp.get("average_displacement_micron", "") or ""),
         str(disp.get("max_displacement_micron", "") or ""),
         str(data.get("runtime_seconds", "") or ""),
@@ -86,20 +108,36 @@ def metric_summary(path: str) -> tuple[str, str, str, str, bool]:
     )
 
 
-def log_summary(path: Path | None) -> tuple[str, str, str, str, bool]:
+def log_summary(path: Path | None) -> tuple[str, str, str, str, str, bool]:
     if path is None or not path.is_file():
-        return "", "", "", "", False
+        return "", "", "", "", "", False
     text = path.read_text(encoding="utf-8", errors="replace")
 
     def last(pattern: str) -> str:
         matches = re.findall(pattern, text, flags=re.MULTILINE)
         return matches[-1] if matches else ""
 
-    hpwl = last(r"legalized HPWL\s+([0-9.+-eE]+)\s+u")
+    hpwl = (
+        last(r"^\[INFO DPL-0022\]\s+HPWL after\s+([0-9.+-eE]+)\s+u")
+        or last(r"^Final HPWL\s+([0-9.+-eE]+)\s+u")
+        or last(r"^legalized HPWL\s+([0-9.+-eE]+)\s+u")
+    )
+    before = (
+        last(r"^original HPWL\s+([0-9.+-eE]+)\s+u")
+        or last(r"^Original HPWL\s+([0-9.+-eE]+)\s+u")
+    )
+    delta_percent = ""
+    try:
+        before_value = float(before)
+        after_value = float(hpwl)
+        if before_value != 0.0:
+            delta_percent = str((after_value - before_value) / before_value * 100.0)
+    except (TypeError, ValueError):
+        pass
     avg = last(r"average displacement\s+([0-9.+-eE]+)\s+u")
     maxd = last(r"max displacement\s+([0-9.+-eE]+)\s+u")
     runtime = parse_runtime(text)
-    return hpwl, avg, maxd, runtime, any((hpwl, avg, maxd, runtime))
+    return hpwl, delta_percent, avg, maxd, runtime, any((hpwl, avg, maxd, runtime))
 
 
 def normalize(path: Path) -> None:
@@ -111,8 +149,9 @@ def normalize(path: Path) -> None:
     normalized: list[dict[str, str]] = []
     for row in rows:
         metrics_path = row.get("candidate_metrics", "")
-        hpwl, avg_disp, max_disp, runtime, has_metrics = metric_summary(metrics_path)
+        hpwl, hpwl_delta_percent, avg_disp, max_disp, runtime, has_metrics = metric_summary(metrics_path)
         hpwl = row.get("hpwl_after_micron") or hpwl
+        hpwl_delta_percent = row.get("hpwl_delta_percent") or hpwl_delta_percent
         avg_disp = row.get("avg_displacement_micron") or avg_disp
         max_disp = row.get("max_displacement_micron") or max_disp
         runtime = row.get("runtime_seconds") or runtime
@@ -128,6 +167,7 @@ def normalize(path: Path) -> None:
                 "status": status,
                 "exit_code": exit_code,
                 "hpwl_after_micron": hpwl,
+                "hpwl_delta_percent": hpwl_delta_percent,
                 "avg_displacement_micron": avg_disp,
                 "max_displacement_micron": max_disp,
                 "runtime_seconds": runtime,

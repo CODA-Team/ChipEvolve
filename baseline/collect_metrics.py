@@ -6,6 +6,7 @@ import csv
 import json
 import math
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -123,6 +124,81 @@ def relative_artifact(path: str | None, report_dir: Path) -> str | None:
     return os.path.relpath(artifact, report_dir)
 
 
+def _first_float(pattern: str, text: str, flags: int = re.MULTILINE) -> float | None:
+    match = re.search(pattern, text, flags=flags)
+    if match is None:
+        return None
+    try:
+        return float(match.group(1))
+    except ValueError:
+        return None
+
+
+def _last_float(pattern: str, text: str, flags: int = re.MULTILINE) -> float | None:
+    matches = re.findall(pattern, text, flags=flags)
+    if not matches:
+        return None
+    try:
+        return float(matches[-1])
+    except ValueError:
+        return None
+
+
+def parse_legalize_log_hpwl(path: str | None) -> dict[str, Any]:
+    """Extract OpenROAD/DPL's pin-based HPWL from the legalize log.
+
+    The older `hpwl_proxy` in this file is a cell-bbox proxy computed from ODB
+    instance rectangles.  DPL reports pin-based HPWL in its own log; this is the
+    OpenROAD/DPL comparison metric, but it is not routed wirelength.
+    """
+    if not path:
+        return {}
+    log_path = resolve_flow_path(path)
+    if not log_path.exists():
+        return {}
+    text = log_path.read_text(encoding="utf-8", errors="replace")
+
+    before = _first_float(r"^original HPWL\s+([0-9.+-eE]+)\s+u", text)
+    if before is None:
+        before = _first_float(r"^Original HPWL\s+([0-9.+-eE]+)\s+u", text)
+
+    after = _last_float(r"^\[INFO DPL-0022\]\s+HPWL after\s+([0-9.+-eE]+)\s+u", text)
+    if after is None:
+        after = _last_float(r"^Final HPWL\s+([0-9.+-eE]+)\s+u", text)
+    if after is None:
+        after = _last_float(r"^legalized HPWL\s+([0-9.+-eE]+)\s+u", text)
+
+    if before is None and after is None:
+        return {}
+    result: dict[str, Any] = {"source": "openroad_dpl_log", "log": str(log_path)}
+    if before is not None:
+        result["before_micron"] = before
+    if after is not None:
+        result["after_micron"] = after
+    if before is not None and after is not None:
+        result["delta_micron"] = after - before
+        if before != 0.0:
+            result["delta_ratio"] = (after - before) / before
+            result["delta_percent"] = result["delta_ratio"] * 100.0
+    return result
+
+
+def add_delta_ratio(metric: dict[str, Any], *, before_key: str, after_key: str) -> None:
+    before = metric.get(before_key)
+    after = metric.get(after_key)
+    if before is None or after is None:
+        return
+    try:
+        before_value = float(before)
+        after_value = float(after)
+    except (TypeError, ValueError):
+        return
+    if before_value == 0.0:
+        return
+    metric["delta_ratio"] = (after_value - before_value) / before_value
+    metric["delta_percent"] = metric["delta_ratio"] * 100.0
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Combine dpl_evolve baseline metrics.")
     parser.add_argument("--before", required=True, help="Before-placement TSV snapshot.")
@@ -131,6 +207,10 @@ def main() -> None:
     parser.add_argument("--post-metrics-summary", help="Post-legalization ODB metrics summary JSON.")
     parser.add_argument("--manifest", help="Run manifest JSON.")
     parser.add_argument("--detailed-placement-report", help="Detailed placement JSON report.")
+    parser.add_argument(
+        "--legalize-log",
+        help="OpenROAD legalize log containing DPL pin-based HPWL reports.",
+    )
     parser.add_argument("--orfs-metrics", help="ORFS stage metrics JSON.")
     parser.add_argument(
         "--orfs-metadata",
@@ -169,14 +249,6 @@ def main() -> None:
         hpwl_before = run_summary["hpwl_before_dbu"]
         hpwl_after = run_summary["hpwl_after_dbu"]
         hpwl_delta = run_summary.get("hpwl_delta_dbu", hpwl_after - hpwl_before)
-    elif "hpwl_proxy_dbu" in before_summary and "hpwl_after_dbu" in run_summary:
-        hpwl_before = before_summary["hpwl_proxy_dbu"]
-        hpwl_after = run_summary["hpwl_after_dbu"]
-        hpwl_delta = hpwl_after - hpwl_before
-    elif "hpwl_proxy_dbu" in before_summary and "hpwl_proxy_dbu" in after_summary:
-        hpwl_before = before_summary["hpwl_proxy_dbu"]
-        hpwl_after = after_summary["hpwl_proxy_dbu"]
-        hpwl_delta = hpwl_after - hpwl_before
 
     payload: dict[str, Any] = {
         "manifest": manifest,
@@ -225,6 +297,28 @@ def main() -> None:
             payload["hpwl_proxy"]["before_micron"] = hpwl_before / dbu_per_micron
             payload["hpwl_proxy"]["after_micron"] = hpwl_after / dbu_per_micron
             payload["hpwl_proxy"]["delta_micron"] = hpwl_delta / dbu_per_micron
+            add_delta_ratio(
+                payload["hpwl_proxy"],
+                before_key="before_micron",
+                after_key="after_micron",
+            )
+        else:
+            add_delta_ratio(
+                payload["hpwl_proxy"],
+                before_key="before_dbu",
+                after_key="after_dbu",
+            )
+
+    hpwl_openroad_log = parse_legalize_log_hpwl(args.legalize_log)
+    if hpwl_openroad_log:
+        if dbu_per_micron:
+            for key in ("before_micron", "after_micron", "delta_micron"):
+                if key in hpwl_openroad_log:
+                    hpwl_openroad_log[key.replace("_micron", "_dbu")] = int(
+                        round(float(hpwl_openroad_log[key]) * dbu_per_micron)
+                    )
+        payload["hpwl_openroad_log"] = hpwl_openroad_log
+        payload["hpwl"] = hpwl_openroad_log
 
     payload["timing_metrics"] = select_metrics(
         merged_stage_metrics,
@@ -272,6 +366,7 @@ def main() -> None:
         "legalize_summary_json": relative_artifact(args.run_summary, report_dir),
         "post_metrics_summary_json": relative_artifact(args.post_metrics_summary, report_dir),
         "detailed_placement_report_json": relative_artifact(args.detailed_placement_report, report_dir),
+        "legalize_log": relative_artifact(args.legalize_log, report_dir),
         "raw_metrics_json": relative_artifact(args.orfs_metrics, report_dir),
         "normalized_metadata_json": relative_artifact(args.orfs_metadata, report_dir),
     }

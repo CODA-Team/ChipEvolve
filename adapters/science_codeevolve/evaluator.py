@@ -202,9 +202,87 @@ def load_metrics(metrics_path: Path) -> Dict[str, Any]:
     return json.loads(metrics_path.read_text(encoding="utf-8"))
 
 
-def summarize_metrics(metrics: Dict[str, Any]) -> Dict[str, Any]:
+def canonical_hpwl(metrics: Dict[str, Any]) -> Dict[str, Any]:
+    hpwl = metrics.get("hpwl")
+    if not isinstance(hpwl, dict) or hpwl.get("source") == "cell_bbox_proxy":
+        hpwl = metrics.get("hpwl_openroad_log")
+    if not isinstance(hpwl, dict):
+        hpwl = {}
+    return hpwl
+
+
+def is_clean_placement(metrics: Dict[str, Any]) -> bool:
+    violations = str(metrics.get("legality", {}).get("placement_violations", ""))
+    return violations.strip().lower() in {"", "0", "clean", "none"}
+
+
+def canonical_line(metrics: Dict[str, Any]) -> str:
+    manifest = metrics.get("manifest", {})
+    line = manifest.get("line")
+    if line:
+        return str(line)
+    legalization = metrics.get("legalization", {})
+    return str(legalization.get("legalizer_mode", ""))
+
+
+def canonical_run_tag(metrics: Dict[str, Any], metrics_path: Path) -> str:
+    manifest = metrics.get("manifest", {})
+    return str(manifest.get("run_tag", metrics_path.parent.name))
+
+
+def discover_strongest_baseline(
+    report_dir: Path,
+) -> tuple[str | None, float | None, Path | None]:
+    best_label: str | None = None
+    best_hpwl: float | None = None
+    best_path: Path | None = None
+    for metrics_path in sorted(report_dir.glob("*/metrics.json")):
+        metrics = load_metrics(metrics_path)
+        line = canonical_line(metrics)
+        if line not in {"openroad_dpl_flow", "evolve_default"}:
+            continue
+        tag = canonical_run_tag(metrics, metrics_path)
+        if (
+            f"baseline_probe_{line}" not in tag
+            or "_student_" in tag
+            or "_iter_" in tag
+            or not is_clean_placement(metrics)
+        ):
+            continue
+        after = canonical_hpwl(metrics).get("after_micron")
+        if after is None:
+            continue
+        after_value = float(after)
+        if best_hpwl is None or after_value < best_hpwl:
+            best_label = line
+            best_hpwl = after_value
+            best_path = metrics_path
+    return best_label, best_hpwl, best_path
+
+
+def hpwl_delta_percent(hpwl: Dict[str, Any]) -> float | None:
+    if hpwl.get("delta_percent") is not None:
+        return float(hpwl["delta_percent"])
+    before = hpwl.get("before_micron")
+    delta = hpwl.get("delta_micron")
+    if before in (None, 0) or delta is None:
+        return None
+    before_value = float(before)
+    if before_value == 0.0:
+        return None
+    return float(delta) / before_value * 100.0
+
+
+def summarize_metrics(
+    metrics: Dict[str, Any],
+    *,
+    baseline_label: str | None = None,
+    baseline_hpwl_after_micron: float | None = None,
+    baseline_metrics_path: Path | None = None,
+) -> Dict[str, Any]:
     manifest = metrics.get("manifest", {})
     legalization = metrics.get("legalization", {})
+    hpwl = canonical_hpwl(metrics)
     engine = manifest.get("engine")
     legalizer_mode = legalization.get("legalizer_mode")
     confirmed_paths = {
@@ -214,16 +292,24 @@ def summarize_metrics(metrics: Dict[str, Any]) -> Dict[str, Any]:
     engine_path_confirmed = confirmed_paths.get(str(legalizer_mode))
     if engine_path_confirmed is None:
         engine_path_confirmed = "unknown"
-    return {
+    hpwl_after = hpwl.get("after_micron")
+    delta_vs_baseline = None
+    delta_vs_baseline_pct = None
+    if hpwl_after is not None and baseline_hpwl_after_micron not in (None, 0):
+        delta_vs_baseline = float(hpwl_after) - float(baseline_hpwl_after_micron)
+        delta_vs_baseline_pct = delta_vs_baseline / float(baseline_hpwl_after_micron) * 100.0
+    summary = {
         "engine": engine,
         "engine_path_confirmed": engine_path_confirmed,
         "track": manifest.get("track"),
         "command_set": manifest.get("command_set"),
         "legalization_status": legalization.get("status"),
         "placement_violations": metrics.get("legality", {}).get("placement_violations"),
-        "hpwl_before_micron": metrics.get("hpwl_proxy", {}).get("before_micron"),
-        "hpwl_after_micron": metrics.get("hpwl_proxy", {}).get("after_micron"),
-        "hpwl_delta_micron": metrics.get("hpwl_proxy", {}).get("delta_micron"),
+        "hpwl_source": hpwl.get("source"),
+        "hpwl_before_micron": hpwl.get("before_micron"),
+        "hpwl_after_micron": hpwl_after,
+        "hpwl_delta_micron": hpwl.get("delta_micron"),
+        "hpwl_delta_percent": hpwl_delta_percent(hpwl),
         "runtime_seconds": metrics.get("runtime_seconds"),
         "setup_ws": metrics.get("timing_metrics", {}).get("setup_ws"),
         "setup_tns": metrics.get("timing_metrics", {}).get("setup_tns"),
@@ -233,6 +319,19 @@ def summarize_metrics(metrics: Dict[str, Any]) -> Dict[str, Any]:
         "avg_displacement_micron": metrics.get("displacement", {}).get("average_displacement_micron"),
         "max_displacement_micron": metrics.get("displacement", {}).get("max_displacement_micron"),
     }
+    if baseline_hpwl_after_micron is not None:
+        summary.update(
+            {
+                "baseline_label": baseline_label,
+                "baseline_hpwl_after_micron": baseline_hpwl_after_micron,
+                "baseline_metrics_path": None
+                if baseline_metrics_path is None
+                else str(baseline_metrics_path),
+                "hpwl_delta_vs_baseline_micron": delta_vs_baseline,
+                "hpwl_delta_vs_baseline_percent": delta_vs_baseline_pct,
+            }
+        )
+    return summary
 
 
 def load_suite_summary(summary_tsv: Path) -> List[Dict[str, str]]:
@@ -484,12 +583,40 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
         if args.mode == "suite":
             summary_rows = load_suite_summary(summary_tsv)
             evaluated_rows = []
+            loaded_rows: list[tuple[Dict[str, str], Path, Dict[str, Any] | None]] = []
             for row in summary_rows:
                 metrics_path = Path(row["metrics_json"])
                 if metrics_path.exists():
-                    summary = summarize_metrics(load_metrics(metrics_path))
+                    loaded_rows.append((row, metrics_path, load_metrics(metrics_path)))
                 else:
-                    summary = {"status": "missing_metrics"}
+                    loaded_rows.append((row, metrics_path, None))
+
+            baseline_label: str | None = None
+            baseline_hpwl: float | None = None
+            baseline_path: Path | None = None
+            for row, metrics_path, metrics_data in loaded_rows:
+                if metrics_data is None or not is_clean_placement(metrics_data):
+                    continue
+                after = canonical_hpwl(metrics_data).get("after_micron")
+                if after is None:
+                    continue
+                after_value = float(after)
+                if baseline_hpwl is None or after_value < baseline_hpwl:
+                    baseline_label = row["line_id"]
+                    baseline_hpwl = after_value
+                    baseline_path = metrics_path
+
+            for row, metrics_path, metrics_data in loaded_rows:
+                summary = (
+                    {"status": "missing_metrics"}
+                    if metrics_data is None
+                    else summarize_metrics(
+                        metrics_data,
+                        baseline_label=baseline_label,
+                        baseline_hpwl_after_micron=baseline_hpwl,
+                        baseline_metrics_path=baseline_path,
+                    )
+                )
                 evaluated_rows.append(
                     {
                         "line_id": row["line_id"],
@@ -505,9 +632,17 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
 
         metrics_path = metrics_path_for_run(report_root(root, problem, flow_variant), result["run_tag"])
         metrics = load_metrics(metrics_path)
+        baseline_label, baseline_hpwl, baseline_path = discover_strongest_baseline(
+            report_root(root, problem, flow_variant)
+        )
         result["status"] = "ok"
         result["metrics_path"] = str(metrics_path)
-        result["summary"] = summarize_metrics(metrics)
+        result["summary"] = summarize_metrics(
+            metrics,
+            baseline_label=baseline_label,
+            baseline_hpwl_after_micron=baseline_hpwl,
+            baseline_metrics_path=baseline_path,
+        )
         return result
     except DirectoryLockError as exc:
         result["status"] = "locked"

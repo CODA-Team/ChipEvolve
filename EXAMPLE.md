@@ -1,7 +1,7 @@
 # Example: One Teacher/Child Case Optimization Round
 
 This example shows the current default way to ask agents to improve one case.
-The goal is not to tune a historical family.  The goal is to evolve the
+The goal is not to tune an archived family.  The goal is to evolve the
 algorithm behind the stable command:
 
 ```text
@@ -31,7 +31,7 @@ Each iteration contains:
 
 - `packet/current_run_packet.md`
 - `prompts/teacher_plan.md`
-- `prompts/student_XX_<strategy>.md`
+- `prompts/student_XX.md`
 - `prompts/teacher_review.md`
 - `manifest.json`
 - `README.md`
@@ -82,8 +82,9 @@ Teacher should inspect:
 - child code changes,
 - build and strict evaluator results,
 - stage telemetry,
-- HPWL/runtime/displacement versus Diamond and current evolve,
-- failure signatures and rollback conditions.
+- HPWL/runtime/displacement versus canonical `openroad_dpl_flow` and current
+  evolve,
+- failure signatures and in-algorithm repair policies.
 
 Only one or two promising directions should continue into the next iteration.
 The next prompt should tell those students how to modify their own code
@@ -94,3 +95,6 @@ lineage, not restart unrelated ideas.
 Acceptance is always based on strict evaluator output and metrics artifacts,
 not on an agent's prose claim.  Durable lessons should be committed to
 `knowledge/` or the database helpers with explicit evidence scope.
+
+Use `metrics.json:hpwl` for HPWL decisions.  It is the OpenROAD/DPL pin-based
+log HPWL.  Do not promote candidates based on the legacy bbox `hpwl_proxy`.

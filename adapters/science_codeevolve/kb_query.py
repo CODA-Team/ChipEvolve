@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Build a compact packet for constrained DPL-Evolve framework edits.
+"""Build a compact packet for DPL-Evolve full-flow framework edits.
 
-The old packet builder routed among many historical patch families.  The
-current project direction is different: `detailed_placement_evolve` is a stable
-entrypoint, and agents should evolve one stage of the constrained top-level
-framework while using archived algorithms only as references.
+`detailed_placement_evolve` is the stable legalize entrypoint, followed by the
+evolved improve-placement and mirror/orientation steps.  Agents should evolve a
+coherent legalize/improve/mirror mechanism in private `dpl_evolve` source while
+using archived algorithms only as donors.
 """
 from __future__ import annotations
 
@@ -52,8 +52,8 @@ FRAMEWORK_SURFACE = {
         "relaxed_guidance_stage",
         "assignment_donor_stage",
         "full_legalization_stage",
-        "detailed_improvement_strategy",
-        "mirror_or_orientation_strategy",
+        "detailed_improvement_flow",
+        "mirror_or_orientation_flow",
         "objective_redesign",
         "bounded_candidate_generation",
         "bounded_polish_stage",
@@ -67,6 +67,7 @@ FRAMEWORK_SURFACE = {
 REFERENCE_FILES = [
     "knowledge/CONTEXT_AUDIT.md",
     "knowledge/EVIDENCE_POLICY.md",
+    "knowledge/insights/workflow/metric_contract.md",
     "family_variants/REFERENCE_INDEX.yaml",
     "family_variants/README.md",
     "family_variants/openroad_diamond/README.md",
@@ -184,9 +185,9 @@ def packet_markdown(packet: dict[str, Any]) -> str:
         "",
         "## Direction",
         "- Keep `detailed_placement_evolve` as the primary evolved placement command.",
-        "- Patch the constrained framework in private `dpl_evolve` source, not classic `dpl` or evaluator scripts.",
-        "- Use reference algorithms as donors, then implement a clean staged mechanism in `dpl_evolve`.",
-        "- Treat the stage flow as a scaffold; implementation details must be justified by evidence.",
+        "- Patch private `dpl_evolve` source across legalize, improve placement, mirror/orientation, and their handoff.",
+        "- Use reference algorithms as donors, then implement a clean, high-performance mechanism in `dpl_evolve`.",
+        "- Treat the stage flow as a scaffold; implementation details must be justified by canonical evaluator evidence.",
         "",
         "## Selected Patch Surface",
         f"- file: {surface['file']}",
@@ -261,6 +262,7 @@ def build_packet(problem_dir: Path, out_dir: Path) -> dict[str, Any]:
             str(problem_path.relative_to(AGENT_ROOT)),
             "adapters/science_codeevolve/patch_surface.yaml",
             "knowledge/EVIDENCE_POLICY.md",
+            "knowledge/insights/workflow/metric_contract.md",
             "knowledge/CONTEXT_AUDIT.md",
             FRAMEWORK_SURFACE["file"],
             "tools/OpenROAD/src/dpl_evolve/src/Optdp.cpp",
@@ -288,13 +290,14 @@ def build_packet(problem_dir: Path, out_dir: Path) -> dict[str, Any]:
             "Private OpenROAD binary builds successfully through lightweight relink.",
             "`detailed_placement_evolve` remains the primary evolved placement command.",
             "Strict evaluator reports legal placement.",
+            "Use `metrics.json:hpwl` or `hpwl_openroad_log` as canonical HPWL; `hpwl_proxy` is debug-only.",
             "Telemetry identifies which stages ran and whether repair/polish was needed.",
-            "Runtime must be comparable to the OpenROAD DPL flow baseline before large-case promotion.",
+            "Runtime must remain acceptable for the case, with controlled complexity and clear HPWL or algorithmic evidence when it is slower than baseline.",
         ],
         "required_final_note": [
             "Touched files and stage owner.",
             "Mechanism implemented and reference donor used.",
-            "Legalization change, improve-placement change, mirror change, and cross-stage co-optimization.",
+            "Legalization change, improve-placement change, mirror/orientation change, and any shared handoff used between them.",
             "Build command and private binary path.",
             "AES/JPEG result paths when available.",
             "Telemetry snippet, expected complexity, and remaining failure mode.",

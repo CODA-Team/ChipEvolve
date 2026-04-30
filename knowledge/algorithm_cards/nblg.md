@@ -30,5 +30,5 @@ strategy for every strict-track case.
 ## What to avoid
 - full paper reimplementation before verifying current repo deltas
 - broad multithreading rewrite before strict-track metrics are stable
-- promoting a negotiation-only result without comparing against the diamond
-  donor and the current OpenROAD DPL flow baseline
+- promoting a negotiation-only result without comparing against the current
+  OpenROAD DPL flow baseline and best evolved artifact

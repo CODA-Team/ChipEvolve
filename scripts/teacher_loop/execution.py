@@ -131,7 +131,7 @@ def append_lineage(
     *,
     round_dir: Path,
     student_id: str,
-    strategy: str,
+    route_label: str,
     iteration: int,
     operation_id: str,
     run_tag: str,
@@ -143,11 +143,15 @@ def append_lineage(
     if lineage_path.exists():
         data = load_json(lineage_path) or {}
     else:
-        data = {"student_id": student_id, "strategy": strategy, "iterations": []}
+        data = {
+            "student_id": student_id,
+            "route_label": route_label,
+            "iterations": [],
+        }
     data.setdefault("iterations", []).append(
         {
             "iteration": iter_name(iteration),
-            "strategy": strategy,
+            "route_label": route_label,
             "operation_id": operation_id,
             "run_tag": run_tag,
             "prompt": str(prompt_path),
@@ -222,7 +226,11 @@ def backup_child_sources(child_rounds: list[ChildRound]) -> None:
         print(f"[optimize_case] backed up {child.student_id} source: {backup}")
 
 
-def teacher_insight_for_student(text: str, student_id: str, max_chars: int = 1800) -> str:
+def teacher_insight_for_student(
+    text: str,
+    student_id: str,
+    fallback_max_chars: int = 1800,
+) -> str:
     """Return the global diagnosis plus one `### student_XX` section."""
     section_markers = ("## Insight Packets", "## Next Insight Packets")
     global_part = text
@@ -233,15 +241,42 @@ def teacher_insight_for_student(text: str, student_id: str, max_chars: int = 180
     global_lines = [line.strip() for line in global_part.splitlines() if line.strip()]
     global_excerpt = "\n".join(global_lines[:4]).strip()
 
+    def zero_based_alias(student: str) -> str | None:
+        prefix = "student_"
+        if not student.startswith(prefix):
+            return None
+        try:
+            number = int(student[len(prefix) :])
+        except ValueError:
+            return None
+        if number <= 0:
+            return None
+        return f"{prefix}{number - 1:02d}"
+
+    def find_section_start(header: str) -> int | None:
+        needle = f"### {header}".lower()
+        for idx, line in enumerate(lines):
+            if line.strip().lower().startswith(needle):
+                return idx
+        return None
+
     lines = text.splitlines()
+    has_zero_based_roster = find_section_start("student_00") is not None
+    alias = zero_based_alias(student_id)
     start = None
-    for idx, line in enumerate(lines):
-        if line.strip().lower().startswith(f"### {student_id}".lower()):
-            start = idx
-            break
+    matched_header = student_id
+    if has_zero_based_roster and alias is not None:
+        start = find_section_start(alias)
+        matched_header = alias if start is not None else student_id
     if start is None:
-        fallback = focused_message_excerpt(text, max_chars=max_chars)
-        return fallback if len(fallback) <= max_chars else fallback[:max_chars].rstrip()
+        start = find_section_start(student_id)
+        matched_header = student_id
+    if start is None and alias is not None:
+        start = find_section_start(alias)
+        matched_header = alias if start is not None else student_id
+    if start is None:
+        fallback = focused_message_excerpt(text, max_chars=fallback_max_chars)
+        return fallback
 
     end = len(lines)
     for idx in range(start + 1, len(lines)):
@@ -249,18 +284,15 @@ def teacher_insight_for_student(text: str, student_id: str, max_chars: int = 180
         if stripped.startswith("### ") and stripped.lower().startswith("### student_"):
             end = idx
             break
-    student_section = "\n".join(lines[start:end]).strip()
+    student_lines = lines[start:end]
+    if matched_header != student_id and student_lines:
+        student_lines = [f"### {student_id}"] + student_lines[1:]
+    student_section = "\n".join(student_lines).strip()
     parts = []
     if global_excerpt:
-        if global_excerpt.lower().startswith("global diagnosis"):
-            parts.extend([global_excerpt, ""])
-        else:
-            parts.extend(["Global diagnosis:", global_excerpt, ""])
+        parts.extend([global_excerpt, ""])
     parts.append(student_section)
-    result = "\n".join(parts).strip()
-    if len(result) <= max_chars:
-        return result
-    return result[:max_chars].rstrip() + "\n[truncated]"
+    return "\n".join(parts).strip()
 
 
 def inline_teacher_plan_for_children(
@@ -273,7 +305,12 @@ def inline_teacher_plan_for_children(
     relevant `### student_XX` section so children do not waste context on peer
     instructions they are not executing.
     """
-    teacher_text = read_text_excerpt(teacher_last_message, max_chars=20000)
+    if not teacher_last_message.exists():
+        teacher_text = ""
+    else:
+        teacher_text = teacher_last_message.read_text(
+            encoding="utf-8", errors="replace"
+        ).strip()
     marker = "## Current Teacher Insight Packet"
     for child in child_rounds:
         if not child.prompt_path.exists():
@@ -281,8 +318,7 @@ def inline_teacher_plan_for_children(
         assigned = teacher_insight_for_student(teacher_text, child.student_id)
         section = (
             f"\n\n{marker}\n\n"
-            "This is your assigned Teacher insight. Execute it with your own "
-            "implementation judgment; do not redo Teacher's global review.\n\n"
+            "Use this assigned packet. Do not redo Teacher review.\n\n"
             f"{assigned}\n"
         )
         prompt_text = child.prompt_path.read_text(encoding="utf-8", errors="replace")

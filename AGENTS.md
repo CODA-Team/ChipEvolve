@@ -53,7 +53,7 @@ OpenROAD DPL flow baseline.
 
 ## Reference Sources
 
-Use the compact donor shelf, not historical experiment directories:
+Use the compact donor shelf, not old experiment directories:
 
 ```text
 family_variants/
@@ -97,6 +97,13 @@ Preferred target surface for framework work:
 - `tools/OpenROAD/src/dpl_evolve/src/EvolveLegalizer.h`
 - `tools/OpenROAD/src/dpl_evolve/src/EvolveContext.h`
 - `tools/OpenROAD/src/dpl_evolve/src/EvolveTelemetry.h`
+- `tools/OpenROAD/src/dpl_evolve/src/StudentAlgorithm.cpp`
+- LEGALM-stage files under `tools/OpenROAD/src/dpl_evolve/src/Legalm*.{h,cpp}`
+- detailed-improvement files under
+  `tools/OpenROAD/src/dpl_evolve/src/optimization/` and
+  `tools/OpenROAD/src/dpl_evolve/src/objective/`
+- `tools/OpenROAD/src/dpl_evolve/src/Optdp.cpp`
+- `tools/OpenROAD/src/dpl_evolve/src/OptMirror.cpp`
 - existing donor files under `tools/OpenROAD/src/dpl_evolve/src/` when a stage
   intentionally borrows diamond, negotiation, or DRC logic.
 
@@ -138,7 +145,7 @@ Every algorithmic patch should state:
 - stage touched,
 - expected HPWL/runtime/displacement/legality effect,
 - expected failure mode,
-- rollback condition.
+- repair or failure-handling policy inside the algorithm.
 
 Use `knowledge/EVIDENCE_POLICY.md` when converting run results or paper notes
 into prompt text. Do not encode a single-case observation as a permanent
@@ -196,6 +203,10 @@ Strict evaluator output lives under:
 ```text
 flow/reports/<platform>/<design>/<FLOW_VARIANT>/dpl_evolve_baseline/<run_tag>/metrics.json
 ```
+
+The canonical HPWL field is `hpwl`, sourced from OpenROAD/DPL pin-based log
+reports.  `hpwl_proxy` is a legacy cell-bbox diagnostic and must not be used
+for promotion, Teacher planning, or public result tables.
 
 Hard failures:
 

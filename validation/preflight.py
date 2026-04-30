@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Preflight diff-scope validation for bounded Codex patches."""
+"""Preflight diff-scope validation for evolved dpl_evolve source patches.
+
+The active workflow lets a student change legalization, improve placement, and
+mirror/orientation code together inside a private `src/dpl_evolve` tree.  The
+preflight gate should therefore protect the control plane and classic OpenROAD
+`dpl` implementation, not force an obsolete single-file patch model.
+"""
 from __future__ import annotations
 
 import argparse
@@ -34,6 +40,13 @@ FORBIDDEN_EXACT = {
     ".gitmodules",
     "flow/Makefile",
     "Makefile",
+}
+
+IGNORED_EXACT = {
+    # ORFS records OpenROAD as a submodule/gitlink.  Prepared workspaces often
+    # show only this pointer at the ORFS root while the real source diff lives
+    # inside the OpenROAD checkout or private variant tree.
+    "tools/OpenROAD",
 }
 
 
@@ -76,25 +89,29 @@ def allowed_files_from_packet(packet: dict[str, Any]) -> set[str]:
     if target:
         allowed.add(target)
 
-    # Bounded framework patches often need the matching declaration or
-    # telemetry/context helper. Keep this narrow rather than allowing the whole
-    # dpl_evolve tree.
-    if target == "tools/OpenROAD/src/dpl_evolve/src/DifferentialGuidance.cpp":
-        allowed.update(
-            {
-                "tools/OpenROAD/src/dpl_evolve/src/EvolveTelemetry.h",
-                "tools/OpenROAD/src/dpl_evolve/src/EvolveContext.h",
-            }
-        )
-    if target == "tools/OpenROAD/src/dpl_evolve/src/EvolveLegalizer.cpp":
-        allowed.update(
-            {
-                "tools/OpenROAD/src/dpl_evolve/src/EvolveLegalizer.h",
-                "tools/OpenROAD/src/dpl_evolve/src/EvolveContext.h",
-                "tools/OpenROAD/src/dpl_evolve/src/EvolveTelemetry.h",
-            }
-        )
+    for key in ("header_files", "extra_files"):
+        for raw_path in surface.get(key, []) or []:
+            normalized = _norm_repo_path(str(raw_path))
+            if normalized:
+                allowed.add(normalized)
+
+    for raw_path in packet.get("patch_surface", []) or []:
+        normalized = _norm_repo_path(str(raw_path))
+        if normalized:
+            allowed.add(normalized)
     return allowed
+
+
+def allows_dpl_evolve_tree(packet: dict[str, Any]) -> bool:
+    """Return whether this packet represents the active full-flow framework."""
+
+    if bool(packet.get("allow_dpl_evolve_tree_patch")):
+        return True
+    packet_type = str(packet.get("packet_type") or "")
+    if packet_type in {"constrained_framework_patch", "full_flow_framework_patch"}:
+        return True
+    symbol = str((packet.get("selected_patch_surface") or {}).get("symbol") or "")
+    return "legalize/improve/mirror" in symbol or "full-flow" in symbol
 
 
 def _is_forbidden(path: str) -> bool:
@@ -106,12 +123,15 @@ def _is_forbidden(path: str) -> bool:
 def run_preflight(*, orfs_root: Path, packet: dict[str, Any]) -> dict[str, Any]:
     files = changed_files(orfs_root)
     allowed = allowed_files_from_packet(packet)
+    allow_dpl_evolve_tree = allows_dpl_evolve_tree(packet)
     surface = packet.get("selected_patch_surface", {})
     family_variant_required = bool(surface.get("family_variant_required"))
     violations: list[dict[str, str]] = []
     warnings: list[str] = []
 
     for path in files:
+        if path in IGNORED_EXACT:
+            continue
         if _is_forbidden(path):
             violations.append(
                 {
@@ -119,18 +139,23 @@ def run_preflight(*, orfs_root: Path, packet: dict[str, Any]) -> dict[str, Any]:
                     "reason": "forbidden control-plane, flow, or classic dpl path",
                 }
             )
+        elif (
+            path.startswith("tools/OpenROAD/src/dpl_evolve/")
+            and allow_dpl_evolve_tree
+        ):
+            continue
         elif path.startswith("tools/OpenROAD/src/dpl_evolve/") and path not in allowed:
             violations.append(
                 {
                     "path": path,
-                    "reason": "outside selected bounded dpl_evolve patch surface",
+                    "reason": "outside declared dpl_evolve patch surface",
                 }
             )
         elif path not in allowed:
             violations.append(
                 {
                     "path": path,
-                    "reason": "outside selected target file and narrow helper allowlist",
+                    "reason": "outside declared patch surface",
                 }
             )
 
@@ -147,6 +172,7 @@ def run_preflight(*, orfs_root: Path, packet: dict[str, Any]) -> dict[str, Any]:
         "status": "ok" if ok else "failed",
         "changed_files": files,
         "allowed_files": sorted(allowed),
+        "allow_dpl_evolve_tree": allow_dpl_evolve_tree,
         "violations": violations,
         "warnings": warnings,
         "selected_family": packet.get("selected_patch_family", {}).get("id"),

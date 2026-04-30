@@ -39,6 +39,36 @@ allowed_patch_surfaces:
     allowed_modes:
       - metric_addition
       - stage_trace_addition
+  - file: tools/OpenROAD/src/dpl_evolve/src/Optdp.cpp
+    rationale: "Evolved improve_placement implementation and detailed HPWL recovery flow."
+    allowed_modes:
+      - detailed_improvement_flow
+      - touched_net_objective
+      - candidate_generation
+      - commit_policy
+      - legalize_output_consumption
+      - mirror_input_preparation
+      - cross_stage_handoff
+  - file: tools/OpenROAD/src/dpl_evolve/src/optimization/detailed.cxx
+    rationale: "Detailed-improvement optimizer internals."
+    allowed_modes:
+      - candidate_generation
+      - touched_metric_cache
+      - bounded_polish_mechanism
+      - high_performance_data_structure
+  - file: tools/OpenROAD/src/dpl_evolve/src/optimization/detailed_orient.cxx
+    rationale: "Mirror/orientation optimization implementation."
+    allowed_modes:
+      - mirror_flow_mechanism
+      - orientation_hpwl_delta
+      - improve_output_consumption
+      - legalize_reference_consumption
+      - cross_stage_handoff
+  - file: tools/OpenROAD/src/dpl_evolve/src/optimization/detailed_orient.h
+    rationale: "Mirror/orientation optimization declarations."
+    allowed_modes:
+      - mirror_flow_api
+      - cross_stage_state
 forbidden_paths:
   - baseline
   - scripts
@@ -53,12 +83,17 @@ forbidden_paths:
 forbidden_actions:
   - "Do not rewrite ORFS baseline flow as part of algorithm mutation."
   - "Do not change output metrics schema without updating contract docs and evaluator together."
-  - "Do not widen patch scope beyond allowlist unless task explicitly expands scope."
+  - "Do not edit evaluator, baseline flow, benchmark selection, or unrelated OpenROAD tools for an algorithm win."
   - "Do not bypass baseline harness with ad hoc commands for acceptance decisions."
-budgets:
-  max_files_touched_per_patch: 4
-  max_non_test_lines_changed_soft: 120
-  max_new_files_per_patch: 2
+scope_policy:
+  static_file_or_line_budget: none
+  guidance: "Patch size is determined by the mechanism Teacher assigns and the code surfaces required to implement it correctly."
+  required_discipline:
+    - "Prefer coherent algorithmic changes over isolated constant tuning."
+    - "Inside tools/OpenROAD/src/dpl_evolve, add or refactor files and interfaces when the mechanism needs it."
+    - "Keep edits outside dpl_evolve out of scope unless Teacher explicitly asks for a broader experiment."
+    - "If the mechanism needs a large refactor, do it and document why the interfaces, data structures, and complexity are controlled."
+    - "Record touched stages, shared state, complexity, and validation evidence in the knowledge card."
 gates:
   build:
     required: true
@@ -75,7 +110,7 @@ gates:
     required_top_level_keys:
       - manifest
       - legalization
-      - hpwl_proxy
+      - hpwl
       - displacement
       - legality
   runtime_guard:
@@ -89,11 +124,11 @@ gates:
     goal: "Primary objective for current track; strict acceptance policy comes from problem.yaml."
 edit_policy:
   tier_0:
-    description: "Small guards, stage budgets, telemetry-only changes, and narrow rollback conditions."
+    description: "Small guards, stage budgets, telemetry-only changes, and narrow in-algorithm failure handling."
   tier_1:
     description: "Candidate generation, assignment cost, stage scheduling, no-overflow refinement, and repair trigger logic."
   tier_2:
     description: "Add helpers or broader stage infrastructure only when the task explicitly needs a new interface."
 notes:
-  - "Codex must prefer bounded algorithmic mechanisms with explicit rationale tied to one stage."
+  - "Codex must prefer bounded algorithmic mechanisms with explicit rationale tied to the legalize/improve/mirror flow."
   - "Every accepted patch should map to one packet, one case objective, and one teacher/student review record."

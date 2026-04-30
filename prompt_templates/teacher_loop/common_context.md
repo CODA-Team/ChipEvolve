@@ -1,4 +1,4 @@
-# Teacher Context
+# Round Context
 
 - case: `$case_id`
 - flow_variant: `$flow_variant`
@@ -6,37 +6,35 @@
 - start_kind: `$start_kind`
 - round_id: `$round_id`
 - iteration: `$iteration_name`
-- ORFS root: `$orfs_root`
-- agent root: `$agent_root`
-- state root: `$state_root`
 - packet: `$packet_path`
 
-## Code References
+## Sources
 
-- evolved framework: `$dpl_evolve_src`
-- LEGALM guidance: `$legalm_guidance`
+- evolved source: `$dpl_evolve_src`
+- LEGALM reference: `$legalm_guidance`
 - Diamond donor: `$openroad_diamond`
-- NBLG/negotiation donor: `$openroad_negotiation_nblg`
-- DREAMPlace/Abacus donor: `$dreamplace_abacus`
-- Teacher peer-coaching skill: `$teacher_coaching_skill`
+- negotiation donor: `$openroad_negotiation_nblg`
+- Abacus donor: `$dreamplace_abacus`
+- Teacher coaching skill: `$teacher_coaching_skill`
 
 ## Objective
 
-- anchors: `openroad_dpl_flow`, `evolve_default`
-- primary target: strict legal HPWL better than `openroad_dpl_flow`
-- runtime may rise if HPWL gain is meaningful and displacement is explainable
+- canonical metric: `metrics.json:hpwl` from OpenROAD/DPL pin-based logs
+- ignore `hpwl_proxy` for promotion
+- final target: clean canonical HPWL at least 5% below `openroad_dpl_flow`
+- Teacher stance: assume there is real 5% optimization space until the evidence
+  proves otherwise.  The baseline is a reference point, not a ceiling.  Explain
+  where that space may come from before assigning students.
+- per-iteration target: discover mechanisms that move toward that 5% goal;
+  treat `evolve_default` as an internal anchor/donor when useful, and treat
+  sub-1% wins as donor evidence rather than success
+- runtime does not need to match baseline.  It only needs to remain acceptable
+  for the case and be justified by clear HPWL improvement or useful algorithmic
+  evidence.  Avoid unbounded scans and uncontrolled complexity.
 - editable flow: `detailed_placement_evolve -> improve_placement_evolve -> optimize_mirroring_evolve`
-- every student attempt should modify legalization, improve placement, mirror,
-  and the cross-stage handoff/objective connecting them
-- goal: discover transferable code-change knowledge for large HPWL gains, not
-  only preserve micro-gains
-
-## Current Research Bias
-
-- prefer large, explainable HPWL improvements; preserve micro-gains only as donors
-- convert strong slow donors into faster algorithms using incremental metrics,
-  dirty legality, sparse snapshots, predictors, checkpointing, or parallelism
-- high-utilization failures usually need earlier flow/objective/assignment changes
+- every valid student attempt should change legalization, improve placement,
+  and mirror/orientation; stage coordination is optional and should be used only
+  when it improves quality or runtime
 
 ## Design Characteristics
 
@@ -44,20 +42,11 @@ $design_characteristics
 
 Detailed packet: `$design_characteristics_path`
 
-## Build Contract
-
-- students edit only private variant `dpl_evolve` source
-- students relink a private OpenROAD binary
-- do not edit evaluator, benchmark selection, root ORFS source, or classic `dpl`
-- valid student attempts should produce a substantial diff across the evolved
-  legalization, detailed improve, mirror/orientation, and shared flow-control
-  surfaces
-
-## Current Baseline Evidence
+## Baseline Evidence
 
 $metric_table
 
-## Round Scoreboard
+## Scoreboard
 
 $scoreboard
 
@@ -65,20 +54,18 @@ $scoreboard
 
 $elite_text
 
-## Generated Baseline Artifacts
+## Packets
 
-`$baseline_artifacts_path`
+- baseline artifacts: `$baseline_artifacts_path`
+- peer learning: `$peer_learning_path`
 
-## Peer Learning Packet
-
-`$peer_learning_path`
-
-## Prior Iteration Context
+## Prior Context
 
 $prior_context
 
 ## Teacher Boundary
 
-- missing canonical baseline means no promotion decision
-- do not print shell commands or private paths in Teacher output
-- output algorithmic insight, peer learning, and complexity requirements
+- output insight and per-student plans only
+- do not ask students to chase optional reports that may not exist; use the
+  generated packets, canonical `metrics.json:hpwl`, DPL logs, and artifacts
+  listed in the packets

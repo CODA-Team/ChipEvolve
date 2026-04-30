@@ -104,7 +104,7 @@ mkdir -p "${MATRIX_ROOT}"
 rm -rf "${ROW_STATUS_DIR}"
 mkdir -p "${ROW_STATUS_DIR}"
 : > "${MATRIX_LOG}"
-RESULTS_HEADER="case	core_utilization	flow_variant	baseline_tag	candidate_tag	status	exit_code	hpwl_after_micron	avg_displacement_micron	max_displacement_micron	runtime_seconds	candidate_metrics"
+RESULTS_HEADER="case	core_utilization	flow_variant	baseline_tag	candidate_tag	status	exit_code	hpwl_after_micron	hpwl_delta_percent	avg_displacement_micron	max_displacement_micron	runtime_seconds	candidate_metrics"
 printf "%s\n" "${RESULTS_HEADER}" > "${RESULTS_TSV}"
 
 log() {
@@ -175,28 +175,58 @@ from pathlib import Path
 
 path = Path(sys.argv[1])
 log_path = Path(sys.argv[2]) if len(sys.argv) > 2 and sys.argv[2] else None
-values = ["", "", "", ""]
+values = ["", "", "", "", ""]
 if path.is_file():
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-        hpwl = data.get("hpwl_proxy", {})
+        hpwl = data.get("hpwl")
+        if not isinstance(hpwl, dict) or hpwl.get("source") == "cell_bbox_proxy":
+            hpwl = data.get("hpwl_openroad_log")
+        if not isinstance(hpwl, dict):
+            hpwl = {}
         disp = data.get("displacement", {})
+        hpwl_delta_percent = hpwl.get("delta_percent", "")
+        if not hpwl_delta_percent:
+            try:
+                before_value = float(hpwl.get("before_micron", ""))
+                delta_value = float(hpwl.get("delta_micron", ""))
+                if before_value != 0.0:
+                    hpwl_delta_percent = str(delta_value / before_value * 100.0)
+            except (TypeError, ValueError):
+                pass
         values = [
             hpwl.get("after_micron", ""),
+            hpwl_delta_percent,
             disp.get("average_displacement_micron", ""),
             disp.get("max_displacement_micron", ""),
             data.get("runtime_seconds", ""),
         ]
     except Exception:
         pass
-if values == ["", "", "", ""] and log_path and log_path.is_file():
+if not values[0] and log_path and log_path.is_file():
     text = log_path.read_text(encoding="utf-8", errors="replace")
 
     def last(pattern: str) -> str:
         matches = re.findall(pattern, text, flags=re.MULTILINE)
         return matches[-1] if matches else ""
 
-    hpwl = last(r"legalized HPWL\s+([0-9.+-eE]+)\s+u")
+    hpwl = (
+        last(r"^\[INFO DPL-0022\]\s+HPWL after\s+([0-9.+-eE]+)\s+u")
+        or last(r"^Final HPWL\s+([0-9.+-eE]+)\s+u")
+        or last(r"^legalized HPWL\s+([0-9.+-eE]+)\s+u")
+    )
+    before = (
+        last(r"^original HPWL\s+([0-9.+-eE]+)\s+u")
+        or last(r"^Original HPWL\s+([0-9.+-eE]+)\s+u")
+    )
+    hpwl_delta_percent = ""
+    try:
+        before_value = float(before)
+        after_value = float(hpwl)
+        if before_value != 0.0:
+            hpwl_delta_percent = str((after_value - before_value) / before_value * 100.0)
+    except (TypeError, ValueError):
+        pass
     avg = last(r"average displacement\s+([0-9.+-eE]+)\s+u")
     maxd = last(r"max displacement\s+([0-9.+-eE]+)\s+u")
     elapsed = last(r"Elapsed time:\s+([0-9:.]+)\[h:\]min:sec")
@@ -209,7 +239,7 @@ if values == ["", "", "", ""] and log_path and log_path.is_file():
             runtime = str(parts[0] * 60 + parts[1])
         elif len(parts) == 1:
             runtime = str(parts[0])
-    values = [hpwl, avg, maxd, runtime]
+    values = [hpwl, values[1] or hpwl_delta_percent, values[2] or avg, values[3] or maxd, values[4] or runtime]
 print("\t".join("" if value is None else str(value) for value in values))
 PY
 }

@@ -12,7 +12,6 @@ from typing import Any
 from runtime_paths import clean_subprocess_env
 from scripts.teacher_loop.common import (
     AGENT_ROOT,
-    STRATEGY_BRIEFS,
     ChildRound,
     MetricSummary,
     iter_name,
@@ -21,6 +20,7 @@ from scripts.teacher_loop.common import (
 )
 from scripts.teacher_loop.evidence import (
     baseline_artifact_block,
+    candidate_artifacts,
     child_artifact_status_block,
     design_characteristics_block,
     discover_round_candidate_metrics,
@@ -28,6 +28,13 @@ from scripts.teacher_loop.evidence import (
     metric_table,
     operation_artifact_block,
     parse_candidate_tag,
+)
+
+
+NOISY_CONTEXT_MARKERS = (
+    "[" + "trun" + "cated]",
+    "[" + "excerpt " + "trun" + "cated]",
+    "<" + "br>",
 )
 
 
@@ -39,7 +46,7 @@ def read_text_excerpt(path: Path, *, max_chars: int = 6000) -> str:
         return f"Empty: `{path}`"
     if len(text) <= max_chars:
         return text
-    return text[:max_chars].rstrip() + "\n\n[excerpt truncated]"
+    return f"Long content is not embedded. Use this source only when needed: `{path}`"
 
 
 def previous_teacher_review_excerpt(
@@ -48,39 +55,162 @@ def previous_teacher_review_excerpt(
     if iteration <= 1:
         return "No previous Teacher review exists yet."
     review_op = f"{round_id}_{iter_name(iteration - 1)}_teacher_review"
-    return read_text_excerpt(
-        runtime.operations_dir / review_op / "codex_last_message.txt",
-        max_chars=max_chars,
-    )
+    review_path = runtime.operations_dir / review_op / "codex_last_message.txt"
+    if not review_path.exists():
+        return f"Missing: `{review_path}`"
+    text = review_path.read_text(encoding="utf-8", errors="replace").strip()
+    if not text:
+        return f"Empty: `{review_path}`"
+    if len(text) <= max_chars:
+        return text
+    return focused_message_excerpt(text, max_chars=min(max_chars, 1200))
+
+
+def compact_inline_text(text: str, *, max_chars: int = 220) -> str:
+    """Return one prompt-safe line without noisy truncation markers."""
+    cleaned = text.replace("|", "/")
+    for marker in NOISY_CONTEXT_MARKERS:
+        cleaned = cleaned.replace(marker, " ")
+    cleaned = " ".join(cleaned.split())
+    if len(cleaned) <= max_chars:
+        return cleaned
+    clipped = cleaned[: max_chars - 3].rstrip()
+    for sep in (". ", "; ", ", ", " "):
+        idx = clipped.rfind(sep)
+        if idx >= max_chars // 2:
+            clipped = clipped[: idx + (1 if sep == " " else 1)].rstrip()
+            break
+    return clipped.rstrip(".,;:") + "..."
+
+
+def markdown_section_excerpt(text: str, heading: str, *, max_chars: int = 220) -> str:
+    """Extract a short section body from a student knowledge card."""
+    wanted = heading.strip().lower()
+    in_section = False
+    lines: list[str] = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if line.startswith("#"):
+            title = line.lstrip("#").strip().lower().rstrip(":")
+            if in_section and title != wanted:
+                break
+            in_section = title == wanted
+            continue
+        if in_section and line:
+            lines.append(line.lstrip("- ").strip())
+        if in_section and len(" ".join(lines)) >= max_chars:
+            break
+    return compact_inline_text(" ".join(lines), max_chars=max_chars) if lines else ""
+
+
+def labeled_line_excerpt(
+    text: str, labels: tuple[str, ...], *, max_chars: int = 220
+) -> str:
+    """Extract a compact labeled line from a student final message."""
+    normalized_labels = tuple(label.lower().rstrip(":") for label in labels)
+    for raw in text.splitlines():
+        line = raw.strip().lstrip("- ").strip()
+        if not line:
+            continue
+        low = line.lower()
+        for label in normalized_labels:
+            if low.startswith(label + ":"):
+                return compact_inline_text(
+                    line.split(":", 1)[1].strip(), max_chars=max_chars
+                )
+    for raw in text.splitlines():
+        line = raw.strip()
+        if line:
+            return compact_inline_text(line, max_chars=max_chars)
+    return "No concise report found."
 
 
 def focused_message_excerpt(text: str, *, max_chars: int = 900) -> str:
-    keep: list[str] = []
-    keywords = (
-        "mechanism",
-        "HPWL",
-        "runtime",
-        "avg",
-        "max",
-        "delta",
-        "borrow",
-        "next",
-        "validity",
-        "complexity",
-        "metrics",
+    """Compatibility helper for execution.py with compact, non-redundant output."""
+    per_field = max(160, max_chars // 4)
+    fields = [
+        (
+            "mechanism",
+            labeled_line_excerpt(
+                text,
+                ("Mechanism", "core idea", "Implemented", "Touched files"),
+                max_chars=per_field,
+            ),
+        ),
+        (
+            "result",
+            labeled_line_excerpt(
+                text,
+                ("Result", "Final canonical metrics", "metrics"),
+                max_chars=per_field,
+            ),
+        ),
+        (
+            "next",
+            labeled_line_excerpt(
+                text,
+                ("Next experiment", "Next uncertainty", "Next step"),
+                max_chars=per_field,
+            ),
+        ),
+    ]
+    useful = [
+        f"{label}: {value}"
+        for label, value in fields
+        if value and value != "No concise report found."
+    ]
+    if useful:
+        return "\n".join(useful)
+    return compact_inline_text(text, max_chars=max_chars)
+
+
+def peer_mechanism_summary(
+    *,
+    runtime: Any,
+    round_dir: Path,
+    round_id: str,
+    case_id: str,
+    summary: MetricSummary,
+) -> tuple[str, str, str]:
+    """Summarize one peer in bounded text for student prompts.
+
+    Full source/diff/card paths stay in peer_learning.md.  Student prompts only
+    need enough evidence to decide what to inspect.
+    """
+    artifacts = candidate_artifacts(
+        runtime=runtime,
+        round_dir=round_dir,
+        round_id=round_id,
+        case_id=case_id,
+        candidate=summary,
     )
-    for raw in text.splitlines():
-        line = raw.strip()
-        if not line:
-            continue
-        if any(keyword.lower() in line.lower() for keyword in keywords):
-            keep.append(line)
-        if len("\n".join(keep)) >= max_chars:
-            break
-    excerpt = "\n".join(keep) if keep else text.strip()
-    if len(excerpt) <= max_chars:
-        return excerpt
-    return excerpt[:max_chars].rstrip() + "\n[truncated]"
+    text = ""
+    if artifacts and artifacts.knowledge_card.exists():
+        text = artifacts.knowledge_card.read_text(encoding="utf-8", errors="replace")
+        mechanism = markdown_section_excerpt(text, "Mechanism")
+        lesson = markdown_section_excerpt(text, "Causal lesson")
+        next_step = markdown_section_excerpt(text, "Next experiment")
+        if mechanism or lesson or next_step:
+            return (
+                mechanism or "See knowledge card for mechanism.",
+                lesson or "No causal lesson recorded.",
+                next_step or "No next experiment recorded.",
+            )
+    if artifacts and artifacts.last_message.exists():
+        text = artifacts.last_message.read_text(encoding="utf-8", errors="replace")
+    mechanism = labeled_line_excerpt(
+        text,
+        ("Mechanism", "core idea", "Implemented", "Touched files"),
+    )
+    lesson = labeled_line_excerpt(
+        text,
+        ("Causal lesson", "Next uncertainty", "Next step", "Result"),
+    )
+    next_step = labeled_line_excerpt(
+        text,
+        ("Next experiment", "Next uncertainty", "Next step"),
+    )
+    return mechanism, lesson, next_step
 
 
 def peer_briefing(
@@ -104,7 +234,7 @@ def peer_briefing(
         flow_variant=flow_variant,
         round_id=round_id,
     ):
-        iter_part, student_id, _strategy = parse_candidate_tag(
+        iter_part, student_id, _route_label = parse_candidate_tag(
             round_id, case_id, summary.tag
         )
         if iter_part == previous and student_id:
@@ -117,45 +247,53 @@ def peer_briefing(
             "your own source/log inspection; do not assume a peer mechanism is validated."
         )
 
+    best_student = min(
+        metrics_by_student,
+        key=lambda student: (
+            metrics_by_student[student].hpwl_after
+            if metrics_by_student[student].hpwl_after is not None
+            else float("inf")
+        ),
+    )
     lines = [
         f"Previous iteration: `{previous}`",
         "",
-        "| student | hpwl_after | runtime_s | avg_disp | max_disp | violations | reported mechanism / next clue |",
-        "|---|---:|---:|---:|---:|---|---|",
+        "Peer evidence is only a pointer. Do not copy long peer reports into "
+        "your reasoning. If you inspect a peer packet, source backup, or diff, "
+        "first write your own 2-3 line summary of what worked before borrowing it.",
+        "",
+        f"Best previous clean peer by HPWL: `{best_student}`.",
     ]
     for student_id in sorted(metrics_by_student):
         summary = metrics_by_student[student_id]
-        exact_message = (
-            runtime.operations_dir
-            / f"{round_id}_{previous}_{student_id}"
-            / "codex_last_message.txt"
-        )
-        op_matches = sorted(
-            runtime.operations_dir.glob(
-                f"{round_id}_{previous}_{student_id}_*/codex_last_message.txt"
-            )
-        )
-        if exact_message.exists():
-            op_matches.insert(0, exact_message)
-        msg = (
-            focused_message_excerpt(op_matches[0].read_text(encoding="utf-8", errors="replace"))
-            if op_matches
-            else "No last_message found."
+        mechanism, lesson, next_step = peer_mechanism_summary(
+            runtime=runtime,
+            round_dir=round_dir,
+            round_id=round_id,
+            case_id=case_id,
+            summary=summary,
         )
         label = "you" if student_id == current_student else "peer"
+        hpwl = "" if summary.hpwl_after is None else f"{summary.hpwl_after:.3f}"
+        runtime_s = (
+            "" if summary.runtime_seconds is None else f"{summary.runtime_seconds:.3f}s"
+        )
+        avg_disp = "" if summary.avg_disp is None else f"{summary.avg_disp:.4f}"
+        max_disp = "" if summary.max_disp is None else f"{summary.max_disp:.4f}"
+        violations = summary.violations or "clean"
         lines.append(
-            "| {student} ({label}) | {hpwl} | {runtime_s} | {avg_disp} | "
-            "{max_disp} | {violations} | {msg} |".format(
+            "- {student} ({label}): HPWL `{hpwl}`, runtime `{runtime_s}`, "
+            "avg/max disp `{avg_disp}/{max_disp}`, legality `{violations}`; "
+            "mechanism `{mechanism}`; next `{next_step}`".format(
                 student=student_id,
                 label=label,
-                hpwl="" if summary.hpwl_after is None else f"{summary.hpwl_after:.3f}",
-                runtime_s=""
-                if summary.runtime_seconds is None
-                else f"{summary.runtime_seconds:.3f}",
-                avg_disp="" if summary.avg_disp is None else f"{summary.avg_disp:.4f}",
-                max_disp="" if summary.max_disp is None else f"{summary.max_disp:.4f}",
-                violations=summary.violations or "clean",
-                msg=msg.replace("|", "\\|").replace("\n", "<br>"),
+                hpwl=hpwl,
+                runtime_s=runtime_s,
+                avg_disp=avg_disp,
+                max_disp=max_disp,
+                violations=violations,
+                mechanism=mechanism,
+                next_step=next_step,
             )
         )
     return "\n".join(lines)
@@ -194,10 +332,10 @@ def prior_iteration_context(
         "",
         "## Previous Child Artifacts",
     ]
-    for idx, strategy in enumerate(strategies, start=1):
+    for idx, route_label in enumerate(strategies, start=1):
         student_id = f"student_{idx:02d}"
         child_op = f"{round_id}_{iter_name(previous)}_{student_id}"
-        blocks.append(f"### {student_id}: {strategy}")
+        blocks.append(f"### {student_id} (route label: {route_label})")
         blocks.append(operation_artifact_block(runtime, child_op))
         blocks.append(
             f"- lineage: `{round_dir / 'students' / student_id / 'lineage.json'}`"
@@ -326,15 +464,27 @@ def teacher_prompt(
     children: int,
     iteration: int,
 ) -> str:
-    strategy_lines = "\n".join(
-        f"- `{name}`: {STRATEGY_BRIEFS.get(name, 'Custom bounded mechanism.')}"
-        for name in strategies
+    student_roster = "\n".join(
+        f"- `student_{idx:02d}`" for idx in range(1, children + 1)
+    )
+    route_lines = "\n".join(
+        f"- `student_{idx:02d}`: Teacher assigns this route after reading "
+        "context, source references, peer evidence, and metrics."
+        for idx, _name in enumerate(strategies, start=1)
     )
     return render_prompt_template(
         "teacher_plan.md",
         context_path=context_path,
         iteration_name=iter_name(iteration),
-        strategy_lines=strategy_lines,
+        route_lines=route_lines,
+        student_roster=student_roster,
+        teacher_rules=render_prompt_template("teacher_rules.md"),
+        teacher_plan_output=render_prompt_template(
+            "teacher_plan_output.md",
+            student_insight_packet_format=render_prompt_template(
+                "student_insight_packet_format.md"
+            ),
+        ),
         children=children,
     )
 
@@ -346,15 +496,27 @@ def compact_teacher_prompt(
     children: int,
     iteration: int,
 ) -> str:
-    strategy_lines = "\n".join(
-        f"- `{idx:02d}` `{name}`: {STRATEGY_BRIEFS.get(name, 'Custom bounded mechanism.')}"
-        for idx, name in enumerate(strategies, start=1)
+    student_roster = "\n".join(
+        f"- `student_{idx:02d}`" for idx in range(1, children + 1)
+    )
+    route_lines = "\n".join(
+        f"- `student_{idx:02d}`: Teacher assigns this route after reading "
+        "context, source references, peer evidence, and metrics."
+        for idx, _name in enumerate(strategies, start=1)
     )
     return render_prompt_template(
         "teacher_plan_compact.md",
         context_path=context_path,
         iteration_name=iter_name(iteration),
-        strategy_lines=strategy_lines,
+        route_lines=route_lines,
+        student_roster=student_roster,
+        teacher_rules=render_prompt_template("teacher_rules.md"),
+        teacher_plan_output=render_prompt_template(
+            "teacher_plan_output.md",
+            student_insight_packet_format=render_prompt_template(
+                "student_insight_packet_format.md"
+            ),
+        ),
         children=children,
     )
 
@@ -368,6 +530,13 @@ def teacher_review_prompt(
         "teacher_review.md",
         context_path=context_path,
         review_packet_path=review_packet_path,
+        teacher_review_rules=render_prompt_template("teacher_review_rules.md"),
+        teacher_review_output=render_prompt_template(
+            "teacher_review_output.md",
+            student_insight_packet_format=render_prompt_template(
+                "student_insight_packet_format.md"
+            ),
+        ),
     )
 
 
@@ -380,6 +549,13 @@ def compact_teacher_review_prompt(
         "teacher_review_compact.md",
         context_path=context_path,
         review_packet_path=review_packet_path,
+        teacher_review_rules=render_prompt_template("teacher_review_rules.md"),
+        teacher_review_output=render_prompt_template(
+            "teacher_review_output.md",
+            student_insight_packet_format=render_prompt_template(
+                "student_insight_packet_format.md"
+            ),
+        ),
     )
 
 
@@ -440,7 +616,7 @@ def write_child_workspace_packet(
     flow_variant: str,
     threads: int,
     start_kind: str,
-    strategy: str,
+    route_label: str,
     child_id: int,
     iteration: int,
     student_id: str,
@@ -484,7 +660,7 @@ commands.  Do not ask Teacher to rewrite this content.
 
 - child_id: `{child_id}`
 - student_id: `{student_id}`
-- exploration_seed: `{strategy}`
+- route_label: `{route_label}`
 - start_kind: `{start_kind}`
 - iteration: `{iter_name(iteration)}`
 - case: `{case_id}`
@@ -521,6 +697,9 @@ Before your final answer, complete these checks.  If any check fails, report
 the exact blocker and do not call the candidate successful.
 
 - source edited only under `private_dpl_evolve_source`
+- public Tcl/SWIG-wrapped class layout, especially `Opendp`, was not changed
+  for ordinary algorithm state; if changed, Tcl startup was smoke-tested before
+  full evaluation
 - private binary exists at `private_binary`
 - evaluation completed and wrote:
   `{expected_metrics_path(runtime=runtime, case_id=case_id, flow_variant=flow_variant, run_tag=run_tag)}`
@@ -530,6 +709,46 @@ the exact blocker and do not call the candidate successful.
   `{paths.knowledge_card}`
 - final answer includes metrics path, HPWL/runtime/displacement delta, diff path,
   knowledge card path, and algorithmic validity/complexity assessment
+
+## Per-Iteration Execution Budget
+
+- This packet is for one outer Teacher/Student iteration.
+- Required source surface: modify legalization, improve placement, and
+  mirror/orientation. Stage coordination is optional and should be used only
+  when it improves quality or runtime.
+- Work through the assigned mechanism concretely: plan related edits A/B/C for
+  legalization, improve placement, and mirror/orientation; implement all three;
+  build and evaluate; inspect canonical
+  `metrics.json:hpwl` plus the relevant OpenROAD log; revise the algorithm when
+  the result is weak or illegal; rebuild and re-evaluate; keep the best clean
+  candidate.
+- Revisions must change the algorithmic mechanism or its commit/selection
+  logic, not only retune constants. Stop when the best clean candidate is
+  clearly recorded, the mechanism is exhausted, or the blocker is concrete
+  enough for Teacher to act on.
+- After a clean `metrics.json` exists, read only the metrics needed for the
+  final report. Do not inspect evaluator/helper scripts, `post_metrics` files,
+  or log tails unless the command failed or metrics are missing.
+- If relink appears stale, use the fresh build-dir command below with an
+  absolute build directory under `variant_root`.  Do not delete, rename, or move
+  build artifacts.
+- Trust generated helper commands. Do not read `run_baseline.sh`,
+  `build_openroad_variant_relink.py`, evaluator code, or wrapper scripts unless
+  that exact helper returned nonzero and the error text is insufficient.
+- Do not invent relative build directories such as `build_iter03c`; every
+  build directory must be an absolute path under `variant_root`.
+- Do not dump full context, full event logs, or generic memory registries by
+  default. Use targeted `rg`/small excerpts when extra evidence is needed.
+- Teacher should have distilled the useful knowledge for this turn. Open memory
+  files only when a concrete source decision needs extra evidence.
+- Before the first source edit, keep exploration bounded: use `rg` first and at
+  most a few small `nl -ba ... | sed -n` windows around exact symbols. Keep
+  each window small enough to understand the patch site; do not page through
+  hundreds of lines, whole source files, donor trees, event logs, or memory
+  registries. If more source reading is unavoidable, state why in the final
+  report.
+- Do not run `strings`, `ldd`, `readelf`, or other binary-introspection commands
+  unless the binary fails to start or the relink result is demonstrably stale.
 
 ## Prepare
 
@@ -555,6 +774,28 @@ mkdir -p {shlex.quote(str(paths.artifact_dir))}
   --dpl-src {shlex.quote(str(paths.dpl_src))} \\
   --threads {threads}
 ```
+
+## Fresh Build-Dir If Relink Looks Stale
+
+Use this instead of deleting, renaming, or moving build artifacts. Use it at
+most once in this student turn.  Keep `FRESH_BUILD_DIR` exactly under
+`variant_root`; do not replace it with a relative path.
+
+```bash
+FRESH_BUILD_DIR={shlex.quote(str(paths.variant_root / "build_fresh"))}
+{shlex.quote(str(runtime.agent_root / "scripts" / "configure_openroad_variant_relink.sh"))} \\
+  --variant-root {shlex.quote(str(paths.variant_root))} \\
+  --build-dir "$FRESH_BUILD_DIR" \\
+  --dpl-src {shlex.quote(str(paths.dpl_src))}
+
+{shlex.quote(str(runtime.agent_root / "scripts" / "build_openroad_variant_relink.sh"))} \\
+  --variant-root {shlex.quote(str(paths.variant_root))} \\
+  --build-dir "$FRESH_BUILD_DIR" \\
+  --dpl-src {shlex.quote(str(paths.dpl_src))} \\
+  --threads {threads}
+```
+
+Do not manually `rm`, `mv`, archive, or overwrite CMake build products.
 
 ## Evaluate
 
@@ -597,6 +838,8 @@ Required sections:
 - Do not edit evaluator, baseline Tcl, benchmark selection, root ORFS source,
   or classic `tools/OpenROAD/src/dpl`.
 - Do not claim success through default-equivalent or no-op behavior.
+- Prefer new helper files or `.cpp` implementation-local state over public
+  wrapped-header layout changes for algorithm caches/handoff state.
 """,
         encoding="utf-8",
     )
@@ -619,12 +862,18 @@ def write_review_artifacts_packet(
         "`artifact_status=invalid` as non-promotable even if the child message "
         "sounds confident.",
         "",
+        "Fast path: this packet already includes the validity gate, canonical "
+        "metrics, artifact sizes, and exact evidence paths.  Read it once; for "
+        "valid students, prefer the knowledge card for mechanism/lesson and "
+        "avoid opening last messages, stderr, events, or diffs unless a field "
+        "is missing or the mechanism is unclear.",
+        "",
     ]
     for child in child_rounds:
         chunks.extend(
             [
                 f"## {child.student_id}",
-                f"- exploration_seed: `{child.strategy}`",
+                f"- route_label: `{child.route_label}`",
                 f"- operation_id: `{child.operation_id}`",
                 f"- operation_dir: `{child.operation_dir}`",
                 f"- run_tag: `{child.run_tag}`",
@@ -665,7 +914,7 @@ def child_prompt(
     case_id: str,
     flow_variant: str,
     threads: int,
-    strategy: str,
+    route_label: str,
     child_id: int,
     iteration: int,
     student_id: str,
@@ -676,7 +925,6 @@ def child_prompt(
     stable_workspace: bool = False,
     elite_seed_source: Path | None = None,
 ) -> str:
-    brief = STRATEGY_BRIEFS.get(strategy, "Custom bounded mechanism.")
     elite_note = ""
     if elite_seed_source is not None:
         elite_note = f"""
@@ -695,15 +943,15 @@ elite code path, then make the next case-specific improvement on top of it.
         context_path=context_path,
         child_id=child_id,
         student_id=student_id,
-        strategy=strategy,
+        route_label=route_label,
         iteration_name=iter_name(iteration),
-        strategy_brief=brief,
         workspace_packet_path=workspace_packet_path,
         peer_learning_path=peer_learning_path,
         teacher_plan_last_message=runtime.operations_dir
         / teacher_operation_id
         / "codex_last_message.txt",
         elite_note=elite_note,
+        student_rules=render_prompt_template("student_rules.md"),
     )
 
 
@@ -717,7 +965,7 @@ def compact_child_prompt(
     case_id: str,
     flow_variant: str,
     threads: int,
-    strategy: str,
+    route_label: str,
     child_id: int,
     iteration: int,
     student_id: str,
@@ -754,7 +1002,7 @@ source, then make the next aggressive improvement on top of that code.
         "child_followup.md",
         context_path=context_path,
         student_id=student_id,
-        strategy=strategy,
+        route_label=route_label,
         iteration_name=iter_name(iteration),
         teacher_plan_last_message=runtime.operations_dir
         / teacher_operation_id
@@ -767,6 +1015,7 @@ source, then make the next aggressive improvement on top of that code.
         run_tag=run_tag,
         elite_note=elite_note,
         peer_context=peer_context,
+        student_rules=render_prompt_template("student_rules.md"),
     )
 
 
@@ -799,8 +1048,11 @@ def write_round_readme(
             metrics=metrics,
         ),
         "",
-        "## Student Exploration Seeds",
-        *[f"- `{name}`: {STRATEGY_BRIEFS.get(name, 'Custom bounded mechanism.')}" for name in strategies],
+        "## Student Route Labels",
+        *[
+            f"- `{name}`: Teacher-assigned route label for bookkeeping."
+            for name in strategies
+        ],
         "",
         "## Launch Commands",
         "```bash",
@@ -818,7 +1070,36 @@ PROMPT_FORBIDDEN_TERMS = (
     "historical",
     "global synthesis",
     "execute only",
+    *NOISY_CONTEXT_MARKERS,
+    "reported mechanism / next clue",
+    "one coherent algorithmic change",
 )
+
+
+def agent_prompt_warnings(
+    text: str, *, max_agent_prompt_bytes: int = 12000
+) -> list[str]:
+    """Return warnings for text that will be sent directly to an agent."""
+    warnings: list[str] = []
+    if len(text.encode("utf-8")) > max_agent_prompt_bytes:
+        warnings.append(f"agent prompt exceeds {max_agent_prompt_bytes} bytes")
+    for term in PROMPT_FORBIDDEN_TERMS:
+        if term in text:
+            warnings.append(f"agent prompt contains `{term}`")
+    if text.count("/home/") > 35:
+        warnings.append("agent prompt has many absolute paths")
+    seen: dict[str, int] = {}
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("|") or len(line) < 24:
+            continue
+        seen[line] = seen.get(line, 0) + 1
+    repeated_lines = [line for line, count in seen.items() if count > 2]
+    if repeated_lines:
+        warnings.append(
+            "agent prompt repeats lines: " + "; ".join(repeated_lines[:3])
+        )
+    return warnings
 
 
 def prompt_audit(
@@ -840,26 +1121,10 @@ def prompt_audit(
         is_agent_prompt = "/prompts/" in f"/{rel.as_posix()}"
         file_warnings: list[str] = []
         if is_agent_prompt:
-            if len(text.encode("utf-8")) > max_agent_prompt_bytes:
-                file_warnings.append(
-                    f"agent prompt exceeds {max_agent_prompt_bytes} bytes"
+            file_warnings.extend(
+                agent_prompt_warnings(
+                    text, max_agent_prompt_bytes=max_agent_prompt_bytes
                 )
-            for term in PROMPT_FORBIDDEN_TERMS:
-                if term in text:
-                    file_warnings.append(f"agent prompt contains `{term}`")
-            if text.count("/home/") > 35:
-                file_warnings.append("agent prompt has many absolute paths")
-        repeated_lines = []
-        seen: dict[str, int] = {}
-        for raw in text.splitlines():
-            line = raw.strip()
-            if not line or line.startswith("|") or len(line) < 24:
-                continue
-            seen[line] = seen.get(line, 0) + 1
-        repeated_lines = [line for line, count in seen.items() if count > 2]
-        if is_agent_prompt and repeated_lines:
-            file_warnings.append(
-                "agent prompt repeats lines: " + "; ".join(repeated_lines[:3])
             )
         warnings += len(file_warnings)
         rows.append(

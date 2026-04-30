@@ -1,6 +1,6 @@
 # Paper References
 
-This directory is the stable place for papers used by the family-design notes.
+This directory is the stable place for papers used by the DPL-Evolve notes.
 It separates committed references from local-only PDF cache files.
 
 ## Committed Reference
@@ -39,7 +39,7 @@ Do not commit the resulting cache.
 - NBLG: negotiation-based legalization mechanism reference.
 - LEGALM / LEGALM 2.0: ALM-style legalization and partition/refinement
   mechanism reference.
-- DREAMPlace: GPU/global-placement and external comparator reference.
+- DREAMPlace: GPU/global-placement and row-assignment/Abacus donor reference.
 - Abacus: row/cluster legalization and minimal-displacement donor reference.
 
 See `paper_sources.yaml` for source links, fetch policy, and notes.

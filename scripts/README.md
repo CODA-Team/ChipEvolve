@@ -71,6 +71,10 @@ Prompt text for the Teacher/child loop lives in
 variables and writes generated packets; avoid burying long prompt prose inside
 `optimize_case_with_codex.py`.
 
+Result tables and Teacher packets should use `metrics.json:hpwl` as canonical
+HPWL. That field is parsed from OpenROAD/DPL pin-based log reports. The legacy
+bbox `hpwl_proxy` field is diagnostic only.
+
 ### References And Local Research
 
 | Script | Purpose | Called by | Stage |
@@ -89,7 +93,7 @@ variables and writes generated packets; avoid burying long prompt prose inside
 | `baseline/detail_place_evolve.tcl` | OpenROAD Tcl driver for `detailed_placement_evolve`, `improve_placement_evolve`, `optimize_mirroring_evolve`. | `run_baseline.sh`. | Evolved legalization command. |
 | `baseline/report_legalized_metrics.tcl` | Run `check_placement` or `check_placement_evolve`, placement parasitics, and ORFS `report_metrics` on the legalized ODB. | `run_baseline.sh`. | Post-legalization metrics. |
 | `baseline/dpl_evolve_helpers.tcl` | Shared Tcl option parsing, path normalization, HPWL proxy, snapshots, and JSON helpers. | Baseline Tcl drivers. | Tcl helper library. |
-| `baseline/collect_metrics.py` | Normalize run summaries, HPWL proxy, displacement, strict check result, and ORFS metrics into `metrics.json`. | `run_baseline.sh`. | Metrics normalization. |
+| `baseline/collect_metrics.py` | Normalize run summaries, OpenROAD/DPL pin-based HPWL, legacy HPWL proxy, displacement, strict check result, and ORFS metrics into `metrics.json`. | `run_baseline.sh`. | Metrics normalization. |
 | `baseline/flow_paths.py` | Python helper for resolving paths relative to `FLOW_HOME`. | Baseline Python scripts. | Baseline helper library. |
 | `baseline/gen_orfs_metadata.py` | Normalize placement-only ORFS report metrics into a stable JSON. | Manual/debug baseline workflows. | Metrics helper. |
 
@@ -124,8 +128,8 @@ $DPL_EVOLVE_STATE_ROOT/seed_sources/diamond_dpl_evolve
 $DPL_EVOLVE_STATE_ROOT/seed_sources/framework_dpl_evolve
 ```
 
-Use `--start-kind diamond` for direct/default DPL-code evolution and
-`--start-kind framework` for the constrained top-framework evolution line.
+Use `--start-kind framework` for normal evolution.  Use `--start-kind diamond`
+only as an explicit contrast or ablation against the framework start point.
 
 The default evolved command remains `detailed_placement_evolve`.  Student
 experiments use private `dpl_evolve` source trees and the lightweight variant
@@ -235,7 +239,7 @@ Watch a running round in the terminal:
 
 ```bash
 "$DPL_EVOLVE_AGENT_ROOT/scripts/watch_teacher_round.py" \
-  jpeg_teacher_open_explore_4x5_gpt54_xhigh \
+  <round_id> \
   --watch
 ```
 
@@ -243,7 +247,7 @@ Serve a tiny local dashboard:
 
 ```bash
 "$DPL_EVOLVE_AGENT_ROOT/scripts/watch_teacher_round.py" \
-  jpeg_teacher_open_explore_4x5_gpt54_xhigh \
+  <round_id> \
   --serve --host 127.0.0.1 --port 8765
 ```
 

@@ -28,6 +28,10 @@ Then it writes isolated outputs under:
 dpl_evolve_baseline/<run_tag>/
 ```
 
+The primary HPWL result is `metrics.json:hpwl`, parsed from OpenROAD/DPL
+pin-based log output.  `hpwl_proxy` is a legacy bbox diagnostic and should not
+be used for baseline comparison.
+
 ## Common Commands
 
 Run the full canonical suite:

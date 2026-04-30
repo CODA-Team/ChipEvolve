@@ -24,8 +24,11 @@ At the flow level, ORFS `detail_place.tcl` is **not a pure legalizer stage**. It
 - `estimate_parasitics -placement`
 
 Therefore:
-- Strict legalizer claims must exclude DPO and mirroring.
-- System claims can include them later.
+- Legalizer-stage claims should be labeled separately from full-flow claims.
+- Current repo promotion decisions use the complete configured flow, including
+  detailed placement, improve placement, and mirroring.
+- HPWL promotion uses `metrics.json:hpwl`, parsed from OpenROAD/DPL pin-based
+  log reports.  Local or bbox HPWL proxies are diagnostics only.
 
 ## High-value surfaces
 

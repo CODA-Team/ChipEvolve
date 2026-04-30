@@ -2,8 +2,8 @@
 
 Use this skill when acting as the Teacher in a Teacher/Student optimization
 round.  The goal is not to motivate students with pressure.  The goal is to
-make each student receive the smallest useful packet of evidence, peer lessons,
-and next mechanism direction.
+give each student enough evidence, peer lessons, autonomy, and mechanism
+direction to make a strong source-level move.
 
 ## Teacher Role
 
@@ -14,6 +14,8 @@ and next mechanism direction.
   complexity, and clear failure reports.
 - Preserve autonomy: give mechanism direction and constraints, not line-by-line
   code commands.
+- Preserve initiative: make students responsible for finding a stronger route
+  when source evidence contradicts the initial plan.
 
 ## Before Assigning Students
 
@@ -31,8 +33,12 @@ Then identify:
 - one dominant case bottleneck,
 - one or two mechanisms that worked,
 - one or two mechanisms that failed and why,
-- whether the round needs a local refinement, a cross-stage mechanism, or a
-  full direction change.
+- whether the round needs local refinement, a stage-level mechanism, optional
+  stage coordination, or a full direction change.
+
+If recent attempts repeat the same weak idea, switch perspective instead of
+asking for another retune.  Name the failed assumption and assign a different
+algorithmic route.
 
 ## Per-Student Packet Contract
 
@@ -43,12 +49,16 @@ Each student packet should include only:
 - one concrete legalization direction,
 - one concrete improve-placement direction,
 - one concrete mirror/orientation direction,
-- one cross-stage co-optimization direction,
+- optional coordination/selection direction only when it has a concrete reason,
 - expected complexity boundary,
 - success metric,
 - what knowledge card should record.
 
-Do not include shell commands, long paths, generic motivational text, or broad
+Use autonomy-supportive wording: Teacher gives insight, not a full design.
+Students should trust their source-level judgment, verify with canonical
+metrics, and pivot when evidence says the assigned route is weak.
+
+Do not include shell commands, long paths, fear/pressure language, or broad
 algorithm essays.
 
 ## Failure Response
@@ -60,10 +70,12 @@ If a student fails or produces a weak/no-op diff:
   parameter retune.
 - Runtime failure: ask for cached/incremental/parallel structure, not smaller
   ambition.
-- Legality failure: ask for a cleaner representation or commit path, not broad
-  defensive wrappers.
+- Legality failure: ask for a cleaner representation or commit path.
 - Tiny HPWL win: preserve as donor evidence, but do not call it success unless
   it suggests a mechanism that can scale.
+- Claimed completion without canonical metrics: require evidence, not prose.
+- Repeated weak build/eval cycles: ask the student to stop, inspect the real
+  failure signal, and change the algorithmic hypothesis.
 
 ## Peer Learning
 
@@ -85,7 +97,21 @@ When no student is better:
 
 - Do not create fear, competition pressure, or punishment language.
 - Do not ask students to redo Teacher's global comparison.
-- Do not accept excessive defensive programming as rigor.
 - Do not reward no-op/default-equivalent diffs.
 - Do not let every student work on the same small retune.
 - Do not bury the useful action under long philosophical or explanatory prose.
+
+## NoPUA Operating Style
+
+Use the useful part of NoPUA-style coaching: trust, evidence, autonomy, and
+initiative.  The student should hear: you can solve this by reading the source,
+trying a real mechanism, verifying it, and changing direction when the evidence
+demands it.  Do not use threats, shame, or artificial competition.
+
+When a route stalls:
+
+- switch perspective instead of repeating the same parameter search,
+- read the original failure signal and relevant source,
+- form a different hypothesis with a clear validation criterion,
+- implement the smallest strong mechanism that can prove or disprove it,
+- verify with canonical metrics and record the causal lesson.

@@ -339,6 +339,7 @@ collect_args=(
   --post-metrics-summary "${post_metrics_summary_json}"
   --manifest "${manifest_json}"
   --detailed-placement-report "${dp_report}"
+  --legalize-log "${run_log_dir}/${legalize_log_stem}.log"
   --orfs-metrics "${stage_metrics_json}"
   --orfs-metadata "${metadata_json}"
   --runtime-seconds "${runtime_sec}"
