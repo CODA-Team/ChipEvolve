@@ -15,6 +15,8 @@ from scripts.teacher_loop.common import ChildRound, iter_name
 from scripts.teacher_loop.evidence import load_json, seed_private_source_from_elite
 from scripts.teacher_loop.prompts import focused_message_excerpt, read_text_excerpt
 
+MAX_CHILD_TEACHER_INSIGHT_CHARS = 3600
+
 
 def operation_thread_id(runtime: Any, operation_id: str) -> str | None:
     summary = load_json(runtime.operations_dir / operation_id / "codex_usage_summary.json")
@@ -292,7 +294,61 @@ def teacher_insight_for_student(
     if global_excerpt:
         parts.extend([global_excerpt, ""])
     parts.append(student_section)
-    return "\n".join(parts).strip()
+    return compact_teacher_child_insight(
+        "\n".join(parts).strip(), max_chars=MAX_CHILD_TEACHER_INSIGHT_CHARS
+    )
+
+
+def compact_teacher_child_insight(text: str, *, max_chars: int) -> str:
+    """Keep a child's assigned Teacher plan useful while bounding prompt size."""
+    if len(text) <= max_chars:
+        return text
+
+    keep_prefixes = (
+        "Design read:",
+        "Global diagnosis:",
+        "### student_",
+        "- core idea:",
+        "- 5% opportunity:",
+        "- HPWL source mechanism:",
+        "- evidence:",
+        "- plan chain:",
+        "A legalization:",
+        "B improve placement:",
+        "C mirror/orientation:",
+        "D optional coordination:",
+        "- function/state insertion points:",
+        "- efficiency:",
+        "- success target:",
+        "- record:",
+    )
+    kept: list[str] = []
+    for raw in text.splitlines():
+        line = " ".join(raw.strip().split())
+        if not line:
+            continue
+        if any(line.startswith(prefix) for prefix in keep_prefixes):
+            if line.startswith("- function/state insertion points:") and len(line) > 520:
+                line = line[:517].rstrip(" ,") + "..."
+            elif len(line) > 700:
+                line = line[:697].rstrip(" ,") + "..."
+            kept.append(line)
+
+    if not kept:
+        return focused_message_excerpt(text, max_chars=max_chars)
+
+    compact = "\n".join(kept)
+    if len(compact) <= max_chars:
+        return compact
+
+    budgeted: list[str] = []
+    used = 0
+    for line in kept:
+        if used + len(line) + 1 > max_chars:
+            break
+        budgeted.append(line)
+        used += len(line) + 1
+    return "\n".join(budgeted).strip()
 
 
 def inline_teacher_plan_for_children(
