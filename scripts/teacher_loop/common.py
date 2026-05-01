@@ -33,6 +33,15 @@ class MetricSummary:
     max_disp: float | None
     violations: str
     hpwl_delta_percent: float | None = None
+    hpwl_global: float | None = None
+    hpwl_legalized: float | None = None
+    hpwl_after_improve: float | None = None
+    hpwl_stage_delta_legalization: float | None = None
+    hpwl_stage_delta_improve: float | None = None
+    hpwl_stage_delta_final: float | None = None
+    hpwl_stage_delta_legalization_percent: float | None = None
+    hpwl_stage_delta_improve_percent: float | None = None
+    hpwl_stage_delta_final_percent: float | None = None
 
 
 @dataclass(frozen=True)

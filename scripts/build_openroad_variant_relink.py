@@ -345,6 +345,26 @@ def run_link_recipe(link_txt: Path, *, cwd: Path) -> None:
         run_shell(command, cwd=cwd)
 
 
+def remove_stale_archives(*, dpl_build_dir: Path) -> None:
+    """Drop variant archives before replaying CMake's `ar qc` recipes.
+
+    The relinker may be run repeatedly in the same private build tree.  CMake's
+    static-library recipes use quick-append archive commands, so leaving an old
+    archive in place can preserve stale members before the newly compiled object
+    with the same basename.  The linker then resolves the first member and the
+    evaluated binary silently runs old DPL code.
+    """
+    for name in (
+        "libdpl_evolve_lib.a",
+        "libdpl_evolve_framework_lib.a",
+        "dpl_evolve.a",
+        "_dpl_evolve_py.a",
+    ):
+        archive = dpl_build_dir / name
+        if archive.exists():
+            archive.unlink()
+
+
 def infer_archive_tool_from_recipe(link_txt: Path, tool_kind: str) -> str | None:
     """Return the archive tool used by the common-core CMake recipe.
 
@@ -447,6 +467,10 @@ def relink_openroad(
         (
             "dpl_evolve/libdpl_evolve_lib.a",
             str(variant_build / "src" / "dpl_evolve" / "libdpl_evolve_lib.a"),
+        ),
+        (
+            "dpl_evolve/libdpl_evolve_framework_lib.a",
+            str(variant_build / "src" / "dpl_evolve" / "libdpl_evolve_framework_lib.a"),
         ),
         (
             "dpl_evolve/_dpl_evolve_py.a",
@@ -603,8 +627,19 @@ def main() -> None:
 
     dpl_build_dir = build_dir / "src" / "dpl_evolve"
     dpl_lib_link = core_build / "src" / "dpl_evolve" / "CMakeFiles" / "dpl_evolve_lib.dir" / "link.txt"
+    framework_lib_link = (
+        core_build
+        / "src"
+        / "dpl_evolve"
+        / "CMakeFiles"
+        / "dpl_evolve_framework_lib.dir"
+        / "link.txt"
+    )
+    remove_stale_archives(dpl_build_dir=dpl_build_dir)
     run_link_recipe(dpl_lib_link, cwd=dpl_build_dir)
     append_extra_dpl_lib_objects(core_link_txt=dpl_lib_link, variant_dpl_build=dpl_build_dir)
+    if framework_lib_link.is_file():
+        run_link_recipe(framework_lib_link, cwd=dpl_build_dir)
     run_link_recipe(core_build / "src" / "dpl_evolve" / "CMakeFiles" / "dpl_evolve.dir" / "link.txt", cwd=dpl_build_dir)
     py_link = core_build / "src" / "dpl_evolve" / "CMakeFiles" / "dpl_evolve_py.dir" / "link.txt"
     if py_link.is_file():

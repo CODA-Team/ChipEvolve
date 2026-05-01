@@ -19,6 +19,15 @@ FIELDS = [
     "exit_code",
     "hpwl_after_micron",
     "hpwl_delta_percent",
+    "hpwl_global_micron",
+    "hpwl_legalized_micron",
+    "hpwl_after_improve_micron",
+    "hpwl_delta_legalization_micron",
+    "hpwl_delta_improve_micron",
+    "hpwl_delta_final_micron",
+    "hpwl_delta_legalization_percent",
+    "hpwl_delta_improve_percent",
+    "hpwl_delta_final_percent",
     "avg_displacement_micron",
     "max_displacement_micron",
     "runtime_seconds",
@@ -64,9 +73,61 @@ def parse_runtime(text: str) -> str:
     return ""
 
 
-def metric_summary(path: str) -> tuple[str, str, str, str, str, bool]:
+def _float_or_none(value: Any) -> float | None:
+    if value in (None, ""):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def stage_summary(
+    data: dict[str, Any], hpwl: dict[str, Any], log_path: Path | None
+) -> list[str]:
+    stages = data.get("hpwl_stages") if isinstance(data, dict) else {}
+    if not isinstance(stages, dict):
+        stages = {}
+    hpwlg = _float_or_none(stages.get("global_micron")) or _float_or_none(
+        hpwl.get("before_micron")
+    )
+    legalized = _float_or_none(stages.get("legalized_micron"))
+    improved = _float_or_none(stages.get("after_improve_micron"))
+    final = _float_or_none(stages.get("final_micron")) or _float_or_none(
+        hpwl.get("after_micron")
+    )
+    if log_path is not None and log_path.is_file():
+        text = log_path.read_text(encoding="utf-8", errors="replace")
+
+        def first(pattern: str) -> float | None:
+            match = re.search(pattern, text, flags=re.MULTILINE)
+            return _float_or_none(match.group(1)) if match else None
+
+        def last(pattern: str) -> float | None:
+            matches = re.findall(pattern, text, flags=re.MULTILINE)
+            return _float_or_none(matches[-1]) if matches else None
+
+        hpwlg = hpwlg or first(r"^original HPWL\s+([0-9.+-eE]+)\s+u")
+        hpwlg = hpwlg or first(r"^Original HPWL\s+([0-9.+-eE]+)\s+u")
+        legalized = legalized or last(r"^legalized HPWL\s+([0-9.+-eE]+)\s+u")
+        improved = improved or last(r"^Final HPWL\s+([0-9.+-eE]+)\s+u")
+        final = final or last(r"^\[INFO DPL-0022\]\s+HPWL after\s+([0-9.+-eE]+)\s+u")
+    d_lg = None if hpwlg is None or legalized is None else legalized - hpwlg
+    d_ip = None if legalized is None or improved is None else improved - legalized
+    d_final = None if hpwlg is None or final is None else final - hpwlg
+
+    def pct(delta: float | None) -> float | None:
+        if delta is None or hpwlg in (None, 0.0):
+            return None
+        return delta / hpwlg * 100.0
+
+    values = [hpwlg, legalized, improved, d_lg, d_ip, d_final, pct(d_lg), pct(d_ip), pct(d_final)]
+    return ["" if value is None else str(value) for value in values]
+
+
+def metric_summary(path: str) -> tuple[str, str, list[str], str, str, str, bool]:
     if not path:
-        return "", "", "", "", "", False
+        return "", "", [""] * 9, "", "", "", False
     metrics_path = Path(path)
     if not metrics_path.is_file():
         log_path = legalize_log_path(metrics_path)
@@ -93,14 +154,16 @@ def metric_summary(path: str) -> tuple[str, str, str, str, str, bool]:
         except (TypeError, ValueError):
             pass
     if not hpwl_after:
-        log_hpwl, log_delta_percent, _, _, _, _ = log_summary(
+        log_hpwl, log_delta_percent, _, _, _, _, _ = log_summary(
             legalize_log_path(metrics_path)
         )
         hpwl_after = log_hpwl
         hpwl_delta_percent = hpwl_delta_percent or log_delta_percent
+    stage_values = stage_summary(data, hpwl, legalize_log_path(metrics_path))
     return (
         hpwl_after,
         hpwl_delta_percent,
+        stage_values,
         str(disp.get("average_displacement_micron", "") or ""),
         str(disp.get("max_displacement_micron", "") or ""),
         str(data.get("runtime_seconds", "") or ""),
@@ -108,9 +171,9 @@ def metric_summary(path: str) -> tuple[str, str, str, str, str, bool]:
     )
 
 
-def log_summary(path: Path | None) -> tuple[str, str, str, str, str, bool]:
+def log_summary(path: Path | None) -> tuple[str, str, list[str], str, str, str, bool]:
     if path is None or not path.is_file():
-        return "", "", "", "", "", False
+        return "", "", [""] * 9, "", "", "", False
     text = path.read_text(encoding="utf-8", errors="replace")
 
     def last(pattern: str) -> str:
@@ -137,7 +200,8 @@ def log_summary(path: Path | None) -> tuple[str, str, str, str, str, bool]:
     avg = last(r"average displacement\s+([0-9.+-eE]+)\s+u")
     maxd = last(r"max displacement\s+([0-9.+-eE]+)\s+u")
     runtime = parse_runtime(text)
-    return hpwl, delta_percent, avg, maxd, runtime, any((hpwl, avg, maxd, runtime))
+    stages = stage_summary({}, {"before_micron": before, "after_micron": hpwl}, path)
+    return hpwl, delta_percent, stages, avg, maxd, runtime, any((hpwl, avg, maxd, runtime))
 
 
 def normalize(path: Path) -> None:
@@ -149,7 +213,7 @@ def normalize(path: Path) -> None:
     normalized: list[dict[str, str]] = []
     for row in rows:
         metrics_path = row.get("candidate_metrics", "")
-        hpwl, hpwl_delta_percent, avg_disp, max_disp, runtime, has_metrics = metric_summary(metrics_path)
+        hpwl, hpwl_delta_percent, stage_values, avg_disp, max_disp, runtime, has_metrics = metric_summary(metrics_path)
         hpwl = row.get("hpwl_after_micron") or hpwl
         hpwl_delta_percent = row.get("hpwl_delta_percent") or hpwl_delta_percent
         avg_disp = row.get("avg_displacement_micron") or avg_disp
@@ -168,6 +232,15 @@ def normalize(path: Path) -> None:
                 "exit_code": exit_code,
                 "hpwl_after_micron": hpwl,
                 "hpwl_delta_percent": hpwl_delta_percent,
+                "hpwl_global_micron": row.get("hpwl_global_micron") or stage_values[0],
+                "hpwl_legalized_micron": row.get("hpwl_legalized_micron") or stage_values[1],
+                "hpwl_after_improve_micron": row.get("hpwl_after_improve_micron") or stage_values[2],
+                "hpwl_delta_legalization_micron": row.get("hpwl_delta_legalization_micron") or stage_values[3],
+                "hpwl_delta_improve_micron": row.get("hpwl_delta_improve_micron") or stage_values[4],
+                "hpwl_delta_final_micron": row.get("hpwl_delta_final_micron") or stage_values[5],
+                "hpwl_delta_legalization_percent": row.get("hpwl_delta_legalization_percent") or stage_values[6],
+                "hpwl_delta_improve_percent": row.get("hpwl_delta_improve_percent") or stage_values[7],
+                "hpwl_delta_final_percent": row.get("hpwl_delta_final_percent") or stage_values[8],
                 "avg_displacement_micron": avg_disp,
                 "max_displacement_micron": max_disp,
                 "runtime_seconds": runtime,

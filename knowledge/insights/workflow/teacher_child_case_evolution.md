@@ -159,6 +159,28 @@ explicitly marks it as the protected exploration branch for a different
 objective such as runtime or displacement.  Stage-local proxy wins are not
 promotion evidence by themselves.
 
+The runtime gate is part of promotion.  Compare against the canonical
+`openroad_dpl_flow` runtime for the same case, utilization, flow variant, and
+thread count:
+
+- `runtime <= 4.0x baseline`: eligible for promotion if HPWL and legality pass,
+- `runtime > 4.0x baseline`: not promotable, even when final HPWL is strong,
+- `runtime > 4.0x baseline` with clear stage evidence: donor only; Teacher must
+  assign a bounded rewrite rather than continue the slow implementation,
+- `runtime > 4.0x baseline` without clear stage evidence: failure, not donor.
+
+Teacher should call out bad execution patterns explicitly when reviewing a
+child:
+
+- claimed mechanisms with zero accepted candidates or inactive telemetry,
+- repeated random tails or endpoint stacks that buy HPWL only with excessive
+  runtime,
+- stale binaries whose logs do not contain the new mechanism,
+- continuing a stage-negative path after stage-wise evidence says the source of
+  improvement is in another stage,
+- spending the round on build/archive workarounds instead of using the
+  supported private variant build path.
+
 ## Elite Preservation Rule
 
 The loop must never lose the best known code path for a case:

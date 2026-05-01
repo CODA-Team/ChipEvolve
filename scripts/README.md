@@ -222,10 +222,21 @@ candidate so far and pre-seeds `student_01` from that source backup.  This
 keeps one protected elite-continuation branch alive while the other students
 continue, cross-learn, or pivot.
 
-Launched Teacher/Student sessions use the normal Codex session store.  The
-orchestrator does not override `CODEX_HOME`, so sessions are recorded under
-the user's default Codex home, usually `~/.codex`.  Each Teacher/Student
-workspace stores only its identity and last thread id:
+Launched Teacher/Student sessions prefer the normal Codex session store,
+usually `~/.codex`.  `scripts/run_codex_exec.py` now checks that the selected
+store is writable before starting Codex.  If the normal store is read-only
+inside an execution sandbox, the wrapper falls back to:
+
+```text
+.dpl_evolve_state/codex_home
+```
+
+The chosen store and reason are recorded in `codex_invocation.json`,
+`codex_usage_summary.json`, and each worker's session state.  Later runs reuse
+the recorded store for that worker, so session resume remains consistent even
+when fallback was needed.
+
+Each Teacher/Student workspace stores its identity and last thread id:
 
 ```text
 .dpl_evolve_state/teacher_rounds/<round>/teacher_workspace/.codex_session_state.json

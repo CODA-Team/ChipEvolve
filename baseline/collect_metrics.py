@@ -183,6 +183,64 @@ def parse_legalize_log_hpwl(path: str | None) -> dict[str, Any]:
     return result
 
 
+def parse_legalize_log_hpwl_stages(path: str | None) -> dict[str, Any]:
+    """Extract stage-wise HPWL from the DPL legalize log.
+
+    The stage names match the evolved flow checkpoints used in Teacher/Student
+    reports:
+    - global: input placement before legalization.
+    - legalized: after detailed placement legalization.
+    - after_improve: after improve_placement.
+    - final: after optimize_mirroring.
+    """
+    if not path:
+        return {}
+    log_path = resolve_flow_path(path)
+    if not log_path.exists():
+        return {}
+    text = log_path.read_text(encoding="utf-8", errors="replace")
+
+    hpwl_global = _first_float(r"^original HPWL\s+([0-9.+-eE]+)\s+u", text)
+    if hpwl_global is None:
+        hpwl_global = _first_float(r"^Original HPWL\s+([0-9.+-eE]+)\s+u", text)
+    hpwl_legalized = _last_float(r"^legalized HPWL\s+([0-9.+-eE]+)\s+u", text)
+    hpwl_after_improve = _last_float(r"^Final HPWL\s+([0-9.+-eE]+)\s+u", text)
+    hpwl_final = _last_float(
+        r"^\[INFO DPL-0022\]\s+HPWL after\s+([0-9.+-eE]+)\s+u", text
+    )
+    if hpwl_final is None:
+        hpwl_final = hpwl_after_improve if hpwl_after_improve is not None else hpwl_legalized
+
+    if hpwl_global is None and hpwl_legalized is None and hpwl_after_improve is None and hpwl_final is None:
+        return {}
+
+    result: dict[str, Any] = {"source": "openroad_dpl_log", "log": str(log_path)}
+    if hpwl_global is not None:
+        result["global_micron"] = hpwl_global
+    if hpwl_legalized is not None:
+        result["legalized_micron"] = hpwl_legalized
+    if hpwl_after_improve is not None:
+        result["after_improve_micron"] = hpwl_after_improve
+    if hpwl_final is not None:
+        result["final_micron"] = hpwl_final
+    if hpwl_global is not None:
+        if hpwl_legalized is not None:
+            result["delta_legalization_micron"] = hpwl_legalized - hpwl_global
+        if hpwl_after_improve is not None and hpwl_legalized is not None:
+            result["delta_improve_micron"] = hpwl_after_improve - hpwl_legalized
+        if hpwl_final is not None:
+            result["delta_final_micron"] = hpwl_final - hpwl_global
+        if hpwl_global != 0.0:
+            for delta_key, percent_key in (
+                ("delta_legalization_micron", "delta_legalization_percent"),
+                ("delta_improve_micron", "delta_improve_percent"),
+                ("delta_final_micron", "delta_final_percent"),
+            ):
+                if delta_key in result:
+                    result[percent_key] = result[delta_key] / hpwl_global * 100.0
+    return result
+
+
 def add_delta_ratio(metric: dict[str, Any], *, before_key: str, after_key: str) -> None:
     before = metric.get(before_key)
     after = metric.get(after_key)
@@ -319,6 +377,24 @@ def main() -> None:
                     )
         payload["hpwl_openroad_log"] = hpwl_openroad_log
         payload["hpwl"] = hpwl_openroad_log
+
+    hpwl_stages = parse_legalize_log_hpwl_stages(args.legalize_log)
+    if hpwl_stages:
+        if dbu_per_micron:
+            for key in (
+                "global_micron",
+                "legalized_micron",
+                "after_improve_micron",
+                "final_micron",
+                "delta_legalization_micron",
+                "delta_improve_micron",
+                "delta_final_micron",
+            ):
+                if key in hpwl_stages:
+                    hpwl_stages[key.replace("_micron", "_dbu")] = int(
+                        round(float(hpwl_stages[key]) * dbu_per_micron)
+                    )
+        payload["hpwl_stages"] = hpwl_stages
 
     payload["timing_metrics"] = select_metrics(
         merged_stage_metrics,

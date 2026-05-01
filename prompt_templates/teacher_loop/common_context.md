@@ -12,7 +12,7 @@
 
 - evolved source: `$dpl_evolve_src`
 - LEGALM reference: `$legalm_guidance`
-- Diamond donor: `$openroad_diamond`
+- Diamond reference baseline: `$openroad_diamond`
 - negotiation donor: `$openroad_negotiation_nblg`
 - Abacus donor: `$dreamplace_abacus`
 - Teacher coaching skill: `$teacher_coaching_skill`
@@ -21,20 +21,37 @@
 
 - canonical metric: `metrics.json:hpwl` from OpenROAD/DPL pin-based logs
 - ignore `hpwl_proxy` for promotion
-- final target: clean canonical HPWL at least 5% below `openroad_dpl_flow`
-- Teacher stance: assume there is real 5% optimization space until the evidence
-  proves otherwise.  The baseline is a reference point, not a ceiling.  Explain
-  where that space may come from before assigning students.
-- per-iteration target: discover mechanisms that move toward that 5% goal;
+- research belief: clean canonical HPWL at least 5% below `openroad_dpl_flow`
+  is achievable, but 5% is not a hard gate and not a ceiling
+- Teacher stance: assume there is real optimization space at and beyond 5%
+  until the evidence proves otherwise. Explain where that space may come from
+  before assigning students.
+- per-iteration target: discover mechanisms that move toward or beyond that 5%
+  research target;
   treat `evolve_default` as an internal anchor/donor when useful, and treat
   sub-1% wins as donor evidence rather than success
-- runtime does not need to match baseline.  It only needs to remain acceptable
-  for the case and be justified by clear HPWL improvement or useful algorithmic
-  evidence.  Avoid unbounded scans and uncontrolled complexity.
+- runtime does not need to match baseline, but student evaluations are killed
+  at ${student_runtime_multiplier}x the canonical `openroad_dpl_flow` baseline runtime.  Avoid unbounded
+  scans and uncontrolled complexity.
+- high-performance requirement: do not pursue tiny incremental wins through
+  endpoint stacking, repeated random tails, or broad rescans.  Prefer bounded
+  structural mechanisms that can plausibly reach or exceed the 5% research
+  target.
+- runtime budget is a resource to allocate, not a baseline-matching target.
+  If legalization and mirror/orientation are cheap, spend the remaining
+  timeout budget on one deeper bounded improve-placement mechanism with a clear
+  HPWL source, cache plan, and stop condition.
 - editable flow: `detailed_placement_evolve -> improve_placement_evolve -> optimize_mirroring_evolve`
 - every valid student attempt should change legalization, improve placement,
-  and mirror/orientation; stage coordination is optional and should be used only
-  when it improves quality or runtime
+  and mirror/orientation
+- final HPWL depends on the interaction of these stages.  Useful changes should
+  create, consume, and preserve stage handoff state rather than betting all
+  quality on one isolated stage.
+- do not copy Diamond as the legal-state producer and do not buy quality by
+  rerunning unchanged improve placement.  Improve placement itself is an
+  editable research stage: change its candidate generation, objective,
+  acceptance policy, local state, or handoff consumers when that is the best
+  way to recover HPWL.
 
 ## Design Characteristics
 

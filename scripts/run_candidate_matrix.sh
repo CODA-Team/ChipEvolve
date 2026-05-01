@@ -104,7 +104,7 @@ mkdir -p "${MATRIX_ROOT}"
 rm -rf "${ROW_STATUS_DIR}"
 mkdir -p "${ROW_STATUS_DIR}"
 : > "${MATRIX_LOG}"
-RESULTS_HEADER="case	core_utilization	flow_variant	baseline_tag	candidate_tag	status	exit_code	hpwl_after_micron	hpwl_delta_percent	avg_displacement_micron	max_displacement_micron	runtime_seconds	candidate_metrics"
+RESULTS_HEADER="case	core_utilization	flow_variant	baseline_tag	candidate_tag	status	exit_code	hpwl_after_micron	hpwl_delta_percent	hpwl_global_micron	hpwl_legalized_micron	hpwl_after_improve_micron	hpwl_delta_legalization_micron	hpwl_delta_improve_micron	hpwl_delta_final_micron	hpwl_delta_legalization_percent	hpwl_delta_improve_percent	hpwl_delta_final_percent	avg_displacement_micron	max_displacement_micron	runtime_seconds	candidate_metrics"
 printf "%s\n" "${RESULTS_HEADER}" > "${RESULTS_TSV}"
 
 log() {
@@ -175,7 +175,45 @@ from pathlib import Path
 
 path = Path(sys.argv[1])
 log_path = Path(sys.argv[2]) if len(sys.argv) > 2 and sys.argv[2] else None
-values = ["", "", "", "", ""]
+values = [""] * 14
+def as_float(value):
+    try:
+        if value in (None, ""):
+            return None
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+def stage_values(data, hpwl, log_path):
+    stages = data.get("hpwl_stages") if isinstance(data, dict) else {}
+    if not isinstance(stages, dict):
+        stages = {}
+    hpwlg = as_float(stages.get("global_micron")) or as_float(hpwl.get("before_micron"))
+    legalized = as_float(stages.get("legalized_micron"))
+    improved = as_float(stages.get("after_improve_micron"))
+    final = as_float(stages.get("final_micron")) or as_float(hpwl.get("after_micron"))
+    if log_path and log_path.is_file():
+        text = log_path.read_text(encoding="utf-8", errors="replace")
+        def first(pattern):
+            m = re.search(pattern, text, flags=re.MULTILINE)
+            return as_float(m.group(1)) if m else None
+        def last(pattern):
+            m = re.findall(pattern, text, flags=re.MULTILINE)
+            return as_float(m[-1]) if m else None
+        hpwlg = hpwlg or first(r"^original HPWL\s+([0-9.+-eE]+)\s+u") or first(r"^Original HPWL\s+([0-9.+-eE]+)\s+u")
+        legalized = legalized or last(r"^legalized HPWL\s+([0-9.+-eE]+)\s+u")
+        improved = improved or last(r"^Final HPWL\s+([0-9.+-eE]+)\s+u")
+        final = final or last(r"^\[INFO DPL-0022\]\s+HPWL after\s+([0-9.+-eE]+)\s+u")
+    d_lg = None if hpwlg is None or legalized is None else legalized - hpwlg
+    d_ip = None if legalized is None or improved is None else improved - legalized
+    d_final = None if hpwlg is None or final is None else final - hpwlg
+    def pct(delta):
+        return None if delta is None or hpwlg in (None, 0.0) else delta / hpwlg * 100.0
+    return [hpwlg, legalized, improved, d_lg, d_ip, d_final, pct(d_lg), pct(d_ip), pct(d_final)]
+
+def stringify(items):
+    return ["" if item is None else str(item) for item in items]
+
 if path.is_file():
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -194,9 +232,11 @@ if path.is_file():
                     hpwl_delta_percent = str(delta_value / before_value * 100.0)
             except (TypeError, ValueError):
                 pass
+        stages = stage_values(data, hpwl, log_path)
         values = [
             hpwl.get("after_micron", ""),
             hpwl_delta_percent,
+            *stringify(stages),
             disp.get("average_displacement_micron", ""),
             disp.get("max_displacement_micron", ""),
             data.get("runtime_seconds", ""),
@@ -239,7 +279,8 @@ if not values[0] and log_path and log_path.is_file():
             runtime = str(parts[0] * 60 + parts[1])
         elif len(parts) == 1:
             runtime = str(parts[0])
-    values = [hpwl, values[1] or hpwl_delta_percent, values[2] or avg, values[3] or maxd, values[4] or runtime]
+    stages = stage_values({}, {"before_micron": before, "after_micron": hpwl}, log_path)
+    values = [hpwl, values[1] or hpwl_delta_percent, *stringify(stages), values[11] or avg, values[12] or maxd, values[13] or runtime]
 print("\t".join("" if value is None else str(value) for value in values))
 PY
 }

@@ -320,6 +320,7 @@ def compact_teacher_child_insight(text: str, *, max_chars: int) -> str:
         "- function/state insertion points:",
         "- efficiency:",
         "- success target:",
+        "- low-ROI cutoff:",
         "- record:",
     )
     kept: list[str] = []

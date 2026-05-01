@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -45,9 +46,44 @@ def load_prompt(args: Any) -> str:
     raise SystemExit("Provide --prompt, --prompt-file, or pipe prompt text on stdin.")
 
 
+def operation_can_be_retried(op_dir: Path) -> bool:
+    """Return true for pre-agent startup failures that are safe to archive.
+
+    Once Codex has produced a thread id or agent message, reusing the same
+    operation id would mix real experiment evidence.  Startup failures before a
+    thread exists are different: they are usually environment/session-store
+    problems and should not make the whole round unrestartable.
+    """
+    summary = load_json_file(op_dir / "codex_usage_summary.json")
+    if not summary:
+        return False
+    if int(summary.get("returncode", 0) or 0) == 0:
+        return False
+    if summary.get("thread_id"):
+        return False
+    if int(summary.get("agent_message_count", 0) or 0) > 0:
+        return False
+    return True
+
+
+def archive_retryable_operation_dir(op_dir: Path) -> Path:
+    stamp = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+    archive = op_dir.with_name(f"{op_dir.name}.failed_{stamp}")
+    suffix = 1
+    while archive.exists():
+        suffix += 1
+        archive = op_dir.with_name(f"{op_dir.name}.failed_{stamp}_{suffix}")
+    shutil.move(str(op_dir), str(archive))
+    return archive
+
+
 def ensure_operation_dir(operations_dir: Path, operation_id: str) -> Path:
     op_dir = operations_dir / operation_id
     if op_dir.exists():
+        if operation_can_be_retried(op_dir):
+            archive_retryable_operation_dir(op_dir)
+            op_dir.mkdir(parents=True, exist_ok=False)
+            return op_dir
         raise SystemExit(
             f"Operation directory already exists for '{operation_id}': {op_dir}\n"
             "Use a fresh operation id to avoid mixing old and new Codex artifacts."
@@ -71,8 +107,48 @@ def write_json_file(path: Path, data: dict[str, Any]) -> None:
     path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
-def default_codex_home() -> Path:
-    return Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")).resolve()
+def path_is_writable_dir(path: Path) -> bool:
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+        probe = path / ".dpl_evolve_write_probe"
+        probe.write_text("ok\n", encoding="utf-8")
+        probe.unlink(missing_ok=True)
+        return True
+    except OSError:
+        return False
+
+
+def default_codex_home(runtime: Any, session_state: Path | None) -> tuple[Path, str]:
+    state = load_json_file(session_state)
+    recorded_home = str(state.get("session_store_home") or "").strip()
+    explicit = os.environ.get("CODEX_HOME")
+    home = Path(explicit).expanduser().resolve() if explicit else (Path.home() / ".codex").resolve()
+
+    # Prefer the real Codex home when it is writable.  Older sandboxed runs may
+    # have recorded a repo-local fallback store; that fallback has session files
+    # but not the user's Codex auth, so reusing it makes future API calls fail.
+    if path_is_writable_dir(home) and recorded_home:
+        recorded_path = Path(recorded_home).expanduser().resolve()
+        fallback_root = (runtime.state_root / "codex_home").resolve()
+        if recorded_path != home and fallback_root in [recorded_path, *recorded_path.parents]:
+            return home, "env" if explicit else "default_home"
+
+    if recorded_home:
+        recorded_path = Path(recorded_home).expanduser().resolve()
+        if path_is_writable_dir(recorded_path):
+            return recorded_path, "session_state"
+
+    if path_is_writable_dir(home):
+        return home, "env" if explicit else "default_home"
+
+    fallback = runtime.state_root / "codex_home"
+    fallback.mkdir(parents=True, exist_ok=True)
+    if not path_is_writable_dir(fallback):
+        raise SystemExit(
+            "No writable Codex session store found. Tried "
+            f"{home} and fallback {fallback}."
+        )
+    return fallback.resolve(), f"fallback_unwritable:{home}"
 
 
 def session_exists(codex_home: Path | None, thread_id: str | None) -> bool:
@@ -197,7 +273,9 @@ def main(argv: list[str] | None = None) -> int:
     root = args.cwd.resolve() if args.cwd else default_exec_root(runtime)
     op_dir = ensure_operation_dir(runtime.operations_dir, args.operation_id)
     prompt_text = load_prompt(args)
-    session_store_home = default_codex_home()
+    session_store_home, session_store_reason = default_codex_home(
+        runtime, args.session_state
+    )
     auto_resume_session_id, auto_resume_reason = state_resume_thread_id(
         args, session_store_home
     )
@@ -235,6 +313,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.session_env_file is None
         else str(args.session_env_file),
         "session_store_home": str(session_store_home),
+        "session_store_reason": session_store_reason,
         "skip_git_repo_check": args.skip_git_repo_check,
         "config": args.config,
         "add_dir": args.add_dir,
@@ -253,6 +332,7 @@ def main(argv: list[str] | None = None) -> int:
         "w", encoding="utf-8"
     ) as stderr_fh:
         env = clean_subprocess_env()
+        env["CODEX_HOME"] = str(session_store_home)
         proc = subprocess.Popen(
             command,
             cwd=str(root),
@@ -287,6 +367,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.session_env_file is not None:
         summary["session_env_file"] = str(args.session_env_file)
     summary["session_store_home"] = str(session_store_home)
+    summary["session_store_reason"] = session_store_reason
     summary["auto_resume_session_id"] = auto_resume_session_id
     summary["auto_resume_reason"] = auto_resume_reason
     summary["local_session_recorded"] = session_exists(
@@ -333,6 +414,7 @@ def main(argv: list[str] | None = None) -> int:
             {
                 "identity": args.session_identity,
                 "session_store_home": str(session_store_home),
+                "session_store_reason": session_store_reason,
                 "session_env_file": None
                 if args.session_env_file is None
                 else str(args.session_env_file),

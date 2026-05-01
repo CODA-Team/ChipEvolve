@@ -65,6 +65,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--threads", type=int, default=10)
     parser.add_argument("--max-parallel", type=int, default=2)
+    parser.add_argument(
+        "--student-runtime-multiplier",
+        type=float,
+        default=4.0,
+        help=(
+            "Hard timeout multiplier for each student evaluation, relative to "
+            "the canonical openroad_dpl_flow baseline runtime."
+        ),
+    )
     parser.add_argument("--model")
     parser.add_argument(
         "--reasoning-effort",

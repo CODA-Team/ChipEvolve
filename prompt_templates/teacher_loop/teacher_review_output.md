@@ -1,8 +1,9 @@
 ## Output Format
 
 - compact result table
+- stage-wise attribution table
 - best lineages
-- donor/avoid list
+- final donors, stage donors, and negative evidence
 - efficiency bottlenecks
 - matrix candidates to freeze, if any
 - knowledge cards to preserve

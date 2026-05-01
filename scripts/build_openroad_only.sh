@@ -291,9 +291,17 @@ case "${INSTALL_MODE}" in
       echo "[ERROR] Built OpenROAD binary missing: ${BUILD_DIR}/bin/openroad" >&2
       exit 1
     fi
-    cp -p "${BUILD_DIR}/bin/openroad" "${INSTALL_BIN}"
+    # Do not copy directly over a running OpenROAD executable: Linux can return
+    # ETXTBSY when another experiment is using the shared seed binary.  Install
+    # via same-directory rename so active processes keep their old inode and new
+    # launches see the refreshed binary.
+    tmp_openroad="${INSTALL_BIN}.tmp.$$"
+    cp -p "${BUILD_DIR}/bin/openroad" "${tmp_openroad}"
+    mv -f "${tmp_openroad}" "${INSTALL_BIN}"
     if [[ -x "${BUILD_DIR}/src/sta/sta" ]]; then
-      cp -p "${BUILD_DIR}/src/sta/sta" "${INSTALL_ROOT}/bin/sta"
+      tmp_sta="${INSTALL_ROOT}/bin/sta.tmp.$$"
+      cp -p "${BUILD_DIR}/src/sta/sta" "${tmp_sta}"
+      mv -f "${tmp_sta}" "${INSTALL_ROOT}/bin/sta"
     fi
     ;;
   cmake)

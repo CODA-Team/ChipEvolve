@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import math
 import shlex
 import subprocess
 import sys
@@ -28,6 +29,9 @@ from scripts.teacher_loop.evidence import (
     metric_table,
     operation_artifact_block,
     parse_candidate_tag,
+    stage_donor_signal,
+    strongest_baseline_anchor,
+    summarize_metrics,
 )
 
 
@@ -81,6 +85,12 @@ def compact_inline_text(text: str, *, max_chars: int = 220) -> str:
             clipped = clipped[: idx + (1 if sep == " " else 1)].rstrip()
             break
     return clipped.rstrip(".,;:") + "..."
+
+
+def format_multiplier(value: float) -> str:
+    if float(value).is_integer():
+        return str(int(value))
+    return f"{value:g}"
 
 
 def markdown_section_excerpt(text: str, heading: str, *, max_chars: int = 220) -> str:
@@ -192,9 +202,9 @@ def peer_mechanism_summary(
         next_step = markdown_section_excerpt(text, "Next experiment")
         if mechanism or lesson or next_step:
             return (
-                mechanism or "See knowledge card for mechanism.",
-                lesson or "No causal lesson recorded.",
-                next_step or "No next experiment recorded.",
+                mechanism,
+                lesson,
+                next_step,
             )
     if artifacts and artifacts.last_message.exists():
         text = artifacts.last_message.read_text(encoding="utf-8", errors="replace")
@@ -221,12 +231,25 @@ def peer_briefing(
     flow_variant: str,
     iteration: int,
     current_student: str,
+    student_runtime_multiplier: float = 4.0,
 ) -> str:
     if iteration <= 1:
         return "No prior peer results yet."
 
     round_id = round_dir.name
     previous = iter_name(iteration - 1)
+    baseline_metrics: dict[str, MetricSummary | None] = {}
+    for line in ("openroad_dpl_flow", "evolve_default"):
+        run_tag = f"{round_id}_baseline_probe_{line}"
+        baseline_metrics[line] = summarize_metrics(
+            expected_metrics_path(
+                runtime=runtime,
+                case_id=case_id,
+                flow_variant=flow_variant,
+                run_tag=run_tag,
+            )
+        )
+    _baseline_label, baseline = strongest_baseline_anchor(baseline_metrics)
     metrics_by_student: dict[str, MetricSummary] = {}
     for summary in discover_round_candidate_metrics(
         orfs_root=runtime.orfs_root,
@@ -281,10 +304,38 @@ def peer_briefing(
         avg_disp = "" if summary.avg_disp is None else f"{summary.avg_disp:.4f}"
         max_disp = "" if summary.max_disp is None else f"{summary.max_disp:.4f}"
         violations = summary.violations or "clean"
+        stage_pct = " / ".join(
+            [
+                "lg:"
+                + (
+                    ""
+                    if summary.hpwl_stage_delta_legalization_percent is None
+                    else f"{summary.hpwl_stage_delta_legalization_percent:.2f}%"
+                ),
+                "ip:"
+                + (
+                    ""
+                    if summary.hpwl_stage_delta_improve_percent is None
+                    else f"{summary.hpwl_stage_delta_improve_percent:.2f}%"
+                ),
+                "final:"
+                + (
+                    ""
+                    if summary.hpwl_stage_delta_final_percent is None
+                    else f"{summary.hpwl_stage_delta_final_percent:.2f}%"
+                ),
+            ]
+        )
+        details = []
+        if mechanism:
+            details.append(f"mechanism `{mechanism}`")
+        if next_step:
+            details.append(f"next `{next_step}`")
+        suffix = "; " + "; ".join(details) if details else ""
         lines.append(
             "- {student} ({label}): HPWL `{hpwl}`, runtime `{runtime_s}`, "
             "avg/max disp `{avg_disp}/{max_disp}`, legality `{violations}`; "
-            "mechanism `{mechanism}`; next `{next_step}`".format(
+            "stage `{stage_pct}`, signal `{signal}`{suffix}".format(
                 student=student_id,
                 label=label,
                 hpwl=hpwl,
@@ -292,8 +343,13 @@ def peer_briefing(
                 avg_disp=avg_disp,
                 max_disp=max_disp,
                 violations=violations,
-                mechanism=mechanism,
-                next_step=next_step,
+                stage_pct=stage_pct,
+                signal=stage_donor_signal(
+                    summary,
+                    baseline,
+                    budget_multiplier=student_runtime_multiplier,
+                ),
+                suffix=suffix,
             )
         )
     return "\n".join(lines)
@@ -406,6 +462,7 @@ def common_context(
     prior_context: str,
     scoreboard: str,
     elite_seed_source: Path | None,
+    student_runtime_multiplier: float,
 ) -> str:
     elite_text = (
         "No elite source seed is available yet."
@@ -454,6 +511,7 @@ def common_context(
         baseline_artifacts_path=baseline_artifacts_path,
         peer_learning_path=peer_learning_path,
         prior_context=prior_context,
+        student_runtime_multiplier=format_multiplier(student_runtime_multiplier),
     )
 
 
@@ -463,6 +521,7 @@ def teacher_prompt(
     strategies: list[str],
     children: int,
     iteration: int,
+    student_runtime_multiplier: float,
 ) -> str:
     student_roster = "\n".join(
         f"- `student_{idx:02d}`" for idx in range(1, children + 1)
@@ -478,7 +537,10 @@ def teacher_prompt(
         iteration_name=iter_name(iteration),
         route_lines=route_lines,
         student_roster=student_roster,
-        teacher_rules=render_prompt_template("teacher_rules.md"),
+        teacher_rules=render_prompt_template(
+            "teacher_rules.md",
+            student_runtime_multiplier=format_multiplier(student_runtime_multiplier),
+        ),
         teacher_plan_output=render_prompt_template(
             "teacher_plan_output.md",
             student_insight_packet_format=render_prompt_template(
@@ -495,6 +557,7 @@ def compact_teacher_prompt(
     strategies: list[str],
     children: int,
     iteration: int,
+    student_runtime_multiplier: float,
 ) -> str:
     student_roster = "\n".join(
         f"- `student_{idx:02d}`" for idx in range(1, children + 1)
@@ -510,7 +573,10 @@ def compact_teacher_prompt(
         iteration_name=iter_name(iteration),
         route_lines=route_lines,
         student_roster=student_roster,
-        teacher_rules=render_prompt_template("teacher_rules.md"),
+        teacher_rules=render_prompt_template(
+            "teacher_rules.md",
+            student_runtime_multiplier=format_multiplier(student_runtime_multiplier),
+        ),
         teacher_plan_output=render_prompt_template(
             "teacher_plan_output.md",
             student_insight_packet_format=render_prompt_template(
@@ -525,12 +591,16 @@ def teacher_review_prompt(
     *,
     context_path: Path,
     review_packet_path: Path,
+    student_runtime_multiplier: float,
 ) -> str:
     return render_prompt_template(
         "teacher_review.md",
         context_path=context_path,
         review_packet_path=review_packet_path,
-        teacher_review_rules=render_prompt_template("teacher_review_rules.md"),
+        teacher_review_rules=render_prompt_template(
+            "teacher_review_rules.md",
+            student_runtime_multiplier=format_multiplier(student_runtime_multiplier),
+        ),
         teacher_review_output=render_prompt_template(
             "teacher_review_output.md",
             student_insight_packet_format=render_prompt_template(
@@ -544,12 +614,16 @@ def compact_teacher_review_prompt(
     *,
     context_path: Path,
     review_packet_path: Path,
+    student_runtime_multiplier: float,
 ) -> str:
     return render_prompt_template(
         "teacher_review_compact.md",
         context_path=context_path,
         review_packet_path=review_packet_path,
-        teacher_review_rules=render_prompt_template("teacher_review_rules.md"),
+        teacher_review_rules=render_prompt_template(
+            "teacher_review_rules.md",
+            student_runtime_multiplier=format_multiplier(student_runtime_multiplier),
+        ),
         teacher_review_output=render_prompt_template(
             "teacher_review_output.md",
             student_insight_packet_format=render_prompt_template(
@@ -572,6 +646,40 @@ def start_kind_source(runtime: Any, start_kind: str) -> Path:
 def validate_start_kind_seed(runtime: Any, start_kind: str) -> tuple[bool, Path]:
     source = start_kind_source(runtime, start_kind)
     return (source / "CMakeLists.txt").is_file(), source
+
+
+def child_evaluation_timeout(
+    *,
+    runtime: Any,
+    case_id: str,
+    flow_variant: str,
+    round_id: str,
+    runtime_multiplier: float,
+) -> tuple[int | None, str]:
+    """Return the hard student evaluation timeout from canonical baseline runtime."""
+    baseline_tag = f"{round_id}_baseline_probe_openroad_dpl_flow"
+    baseline_path = expected_metrics_path(
+        runtime=runtime,
+        case_id=case_id,
+        flow_variant=flow_variant,
+        run_tag=baseline_tag,
+    )
+    baseline = summarize_metrics(baseline_path)
+    runtime_s = baseline.runtime_seconds if baseline is not None else None
+    if runtime_s is None or runtime_s <= 0:
+        return (
+            None,
+            "Unavailable: canonical openroad_dpl_flow baseline runtime is missing. "
+            f"Run baseline preflight first. Expected metrics: `{baseline_path}`",
+        )
+    multiplier_label = format_multiplier(runtime_multiplier)
+    timeout_s = max(1, int(math.ceil(runtime_s * runtime_multiplier)))
+    return (
+        timeout_s,
+        "Hard timeout: "
+        f"`{timeout_s}s` = {multiplier_label}x canonical openroad_dpl_flow baseline runtime "
+        f"`{runtime_s:.3f}s`. Timeout-killed runs are non-promotable.",
+    )
 
 
 def child_parent_source(
@@ -624,6 +732,7 @@ def write_child_workspace_packet(
     stable_workspace: bool,
     elite_seed_source: Path | None,
     peer_learning_path: Path,
+    student_runtime_multiplier: float,
 ) -> Path:
     paths = student_workspace_paths(
         round_dir=round_dir,
@@ -648,6 +757,20 @@ def write_child_workspace_packet(
         if use_seed_override
         else ""
     )
+    timeout_seconds, timeout_note = child_evaluation_timeout(
+        runtime=runtime,
+        case_id=case_id,
+        flow_variant=flow_variant,
+        round_id=round_dir.name,
+        runtime_multiplier=student_runtime_multiplier,
+    )
+    run_baseline_cmd = shlex.quote(str(AGENT_ROOT / "baseline" / "run_baseline.sh"))
+    if timeout_seconds is None:
+        evaluate_command_head = run_baseline_cmd
+    else:
+        evaluate_command_head = (
+            f"timeout --kill-after=30s {timeout_seconds}s \\\n  {run_baseline_cmd}"
+        )
     lineage_path = round_dir / "students" / student_id / "lineage.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
@@ -707,34 +830,63 @@ the exact blocker and do not call the candidate successful.
   `{paths.implementation_diff}`
 - knowledge card exists and is non-empty:
   `{paths.knowledge_card}`
-- final answer includes metrics path, HPWL/runtime/displacement delta, diff path,
-  knowledge card path, and algorithmic validity/complexity assessment
+- final answer includes metrics path, stage-wise HPWL deltas
+  (`HPWLg`, `delta HPWLlg`, `delta HPWLip`, `delta HPWL final`,
+  `HPWL final`), runtime/displacement delta, diff path, knowledge card path,
+  and algorithmic validity/complexity assessment
+
+## Evaluation Timeout
+
+- {timeout_note}
+- If evaluation times out, stop that implementation path, report it as failed
+  runtime evidence, and do not rerun the same mechanism.
 
 ## Per-Iteration Execution Budget
 
 - This packet is for one outer Teacher/Student iteration.
 - Required source surface: modify legalization, improve placement, and
-  mirror/orientation. Stage coordination is optional and should be used only
-  when it improves quality or runtime.
+  mirror/orientation.
+- Do not copy Diamond baseline code as the solution, wrap Diamond with small
+  gates, or keep Diamond as the real legal-state producer.  Diamond may be read
+  only for legality/data-structure/metric reference.
+- Do not buy HPWL by simply running improve placement more times, repeating
+  random tails, or stacking endpoints.  Distill any such clue into one bounded
+  mechanism.  It is encouraged to spend available timeout budget on a deeper
+  bounded improve-placement algorithm when the source change modifies
+  candidates, objective, acceptance, local state, or handoff consumption.
 - Work through the assigned mechanism concretely: plan related edits A/B/C for
   legalization, improve placement, and mirror/orientation; implement all three;
+  add at least one legalization/improve co-optimization link where
+  improve-placement scoring, candidate choice, local HPWL deltas, residual-net
+  priorities, or orientation handoff affects legal-state generation;
+  make the improve-placement edit concrete in `Optdp` or detailed-improvement
+  support code rather than only changing an endpoint script;
   build and evaluate; inspect canonical
-  `metrics.json:hpwl` plus the relevant OpenROAD log; revise the algorithm when
-  the result is weak or illegal; rebuild and re-evaluate; keep the best clean
-  candidate.
+  `metrics.json:hpwl`, `metrics.json:hpwl_stages` when present, plus the
+  relevant OpenROAD log; revise the algorithm when the result is weak or
+  illegal; rebuild and re-evaluate; keep the best clean candidate.
 - Revisions must change the algorithmic mechanism or its commit/selection
   logic, not only retune constants. Stop when the best clean candidate is
   clearly recorded, the mechanism is exhausted, or the blocker is concrete
   enough for Teacher to act on.
+- Keep the implementation high-performance.  Do not extend slow endpoint
+  families, repeated random tails, or unbounded scans for a small HPWL delta.
+  If the mechanism is not plausibly making material progress toward the 5%
+  research target, pivot to a bounded structural change.  For `Optdp`, prefer
+  touched-net/local-box caches, compact candidate queues, and deterministic
+  move/swap/window ordering over full rescans.  Keep the best bounded clean
+  candidate.
 - After a clean `metrics.json` exists, read only the metrics needed for the
   final report. Do not inspect evaluator/helper scripts, `post_metrics` files,
   or log tails unless the command failed or metrics are missing.
-- If relink appears stale, use the fresh build-dir command below with an
-  absolute build directory under `variant_root`.  Do not delete, rename, or move
-  build artifacts.
+- Build/evaluation infrastructure is not your research target. Use only the
+  generated commands in this packet. Do not inspect `link.txt`, reconstruct
+  relink commands, or manually run `ar`, `ranlib`, `nm`, `strings`, `ldd`,
+  `readelf`, or equivalent binary/link debugging. If a generated helper fails,
+  fix the source issue or report the helper error as the blocker.
 - Trust generated helper commands. Do not read `run_baseline.sh`,
-  `build_openroad_variant_relink.py`, evaluator code, or wrapper scripts unless
-  that exact helper returned nonzero and the error text is insufficient.
+  `build_openroad_variant_relink.py`, evaluator code, wrapper scripts, CMake
+  link files, or object/archive contents.
 - Do not invent relative build directories such as `build_iter03c`; every
   build directory must be an absolute path under `variant_root`.
 - Do not dump full context, full event logs, or generic memory registries by
@@ -747,8 +899,9 @@ the exact blocker and do not call the candidate successful.
   hundreds of lines, whole source files, donor trees, event logs, or memory
   registries. If more source reading is unavoidable, state why in the final
   report.
-- Do not run `strings`, `ldd`, `readelf`, or other binary-introspection commands
-  unless the binary fails to start or the relink result is demonstrably stale.
+- If a patch does not apply, inspect only the nearby current source around the
+  intended function/state, then re-apply a smaller patch. Do not turn patch
+  recovery into build-system or relink investigation.
 
 ## Prepare
 
@@ -775,11 +928,12 @@ mkdir -p {shlex.quote(str(paths.artifact_dir))}
   --threads {threads}
 ```
 
-## Fresh Build-Dir If Relink Looks Stale
+## Generated Fresh Build-Dir Command
 
-Use this instead of deleting, renaming, or moving build artifacts. Use it at
-most once in this student turn.  Keep `FRESH_BUILD_DIR` exactly under
-`variant_root`; do not replace it with a relative path.
+Use this only if the normal generated build command returns nonzero or the
+normal generated build demonstrably leaves `private_binary` missing. Run the
+block exactly as written. Do not inspect CMake link files, object files, or
+archives, and do not handcraft a relink command.
 
 ```bash
 FRESH_BUILD_DIR={shlex.quote(str(paths.variant_root / "build_fresh"))}
@@ -795,12 +949,13 @@ FRESH_BUILD_DIR={shlex.quote(str(paths.variant_root / "build_fresh"))}
   --threads {threads}
 ```
 
-Do not manually `rm`, `mv`, archive, or overwrite CMake build products.
+Do not manually `rm`, `mv`, archive, inspect, or overwrite CMake build
+products.
 
 ## Evaluate
 
 ```bash
-{shlex.quote(str(AGENT_ROOT / "baseline" / "run_baseline.sh"))} \\
+{evaluate_command_head} \\
   --line evolve_default \\
   --case {shlex.quote(case_id)} \\
   --flow-variant {shlex.quote(flow_variant)} \\
@@ -829,7 +984,8 @@ Required sections:
 - `Hypothesis`: the major flow or algorithm idea you tried.
 - `Mechanism`: where it changes `detailed_placement_evolve`,
   `improve_placement_evolve`, or `optimize_mirroring_evolve`.
-- `Result`: HPWL/runtime/displacement/legality versus baseline.
+- `Result`: stage-wise HPWL deltas, final HPWL/runtime/displacement/legality
+  versus baseline.
 - `Causal lesson`: what future students should borrow or avoid.
 - `Next experiment`: the next aggressive test, not a tiny parameter tweak.
 
@@ -924,6 +1080,7 @@ def child_prompt(
     compact: bool = False,
     stable_workspace: bool = False,
     elite_seed_source: Path | None = None,
+    student_runtime_multiplier: float = 4.0,
 ) -> str:
     elite_note = ""
     if elite_seed_source is not None:
@@ -951,7 +1108,10 @@ elite code path, then make the next case-specific improvement on top of it.
         / teacher_operation_id
         / "codex_last_message.txt",
         elite_note=elite_note,
-        student_rules=render_prompt_template("student_rules.md"),
+        student_rules=render_prompt_template(
+            "student_rules.md",
+            student_runtime_multiplier=format_multiplier(student_runtime_multiplier),
+        ),
     )
 
 
@@ -974,6 +1134,7 @@ def compact_child_prompt(
     peer_learning_path: Path,
     stable_workspace: bool = False,
     elite_seed_source: Path | None = None,
+    student_runtime_multiplier: float = 4.0,
 ) -> str:
     elite_note = ""
     if elite_seed_source is not None:
@@ -996,6 +1157,7 @@ source, then make the next aggressive improvement on top of that code.
         flow_variant=flow_variant,
         iteration=iteration,
         current_student=student_id,
+        student_runtime_multiplier=student_runtime_multiplier,
     )
 
     return render_prompt_template(
@@ -1015,7 +1177,10 @@ source, then make the next aggressive improvement on top of that code.
         run_tag=run_tag,
         elite_note=elite_note,
         peer_context=peer_context,
-        student_rules=render_prompt_template("student_rules.md"),
+        student_rules=render_prompt_template(
+            "student_rules.md",
+            student_runtime_multiplier=format_multiplier(student_runtime_multiplier),
+        ),
     )
 
 

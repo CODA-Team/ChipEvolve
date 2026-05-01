@@ -134,6 +134,8 @@ def main(argv: list[str] | None = None) -> int:
     teacher_reasoning_effort = args.teacher_reasoning_effort or args.reasoning_effort
     student_model = args.student_model or args.model
     student_reasoning_effort = args.student_reasoning_effort or args.reasoning_effort
+    if args.student_runtime_multiplier <= 0:
+        raise SystemExit("--student-runtime-multiplier must be positive.")
     round_id = args.round_id or default_round_id(args.case)
     round_dir = runtime.state_root / "teacher_rounds" / round_id
     round_dir.mkdir(parents=True, exist_ok=True)
@@ -155,6 +157,7 @@ def main(argv: list[str] | None = None) -> int:
         children=len(route_labels),
         dry_run=dry_run,
         launch=args.launch,
+        student_runtime_multiplier=args.student_runtime_multiplier,
     )
 
     all_commands: list[list[str]] = []
@@ -346,6 +349,7 @@ def main(argv: list[str] | None = None) -> int:
             round_id=round_id,
             iteration=iteration,
             metrics=metrics,
+            student_runtime_multiplier=args.student_runtime_multiplier,
         )
         elite_candidate = (
             best_round_candidate(
@@ -382,6 +386,7 @@ def main(argv: list[str] | None = None) -> int:
             prior_context=prior_context,
             scoreboard=scoreboard,
             elite_seed_source=elite_source,
+            student_runtime_multiplier=args.student_runtime_multiplier,
         )
         full_context_path = write_iteration_context(
             iteration_dir=iteration_dir,
@@ -398,6 +403,7 @@ def main(argv: list[str] | None = None) -> int:
                     strategies=route_labels,
                     children=len(route_labels),
                     iteration=iteration,
+                    student_runtime_multiplier=args.student_runtime_multiplier,
                 )
                 if compact_followup_prompts
                 else teacher_prompt(
@@ -405,6 +411,7 @@ def main(argv: list[str] | None = None) -> int:
                     strategies=route_labels,
                     children=len(route_labels),
                     iteration=iteration,
+                    student_runtime_multiplier=args.student_runtime_multiplier,
                 )
             ),
             encoding="utf-8",
@@ -461,6 +468,7 @@ def main(argv: list[str] | None = None) -> int:
                     stable_workspace=True,
                     elite_seed_source=elite_seed_source,
                     peer_learning_path=peer_learning_path,
+                    student_runtime_multiplier=args.student_runtime_multiplier,
                 )
                 prompt_path.write_text(
                     (
@@ -482,6 +490,7 @@ def main(argv: list[str] | None = None) -> int:
                             peer_learning_path=peer_learning_path,
                             stable_workspace=True,
                             elite_seed_source=elite_seed_source,
+                            student_runtime_multiplier=args.student_runtime_multiplier,
                         )
                         if compact_followup_prompts
                         else child_prompt(
@@ -503,6 +512,7 @@ def main(argv: list[str] | None = None) -> int:
                             compact=compact_followup_prompts,
                             stable_workspace=True,
                             elite_seed_source=elite_seed_source,
+                            student_runtime_multiplier=args.student_runtime_multiplier,
                         )
                     ),
                     encoding="utf-8",
@@ -598,11 +608,13 @@ def main(argv: list[str] | None = None) -> int:
                     compact_teacher_review_prompt(
                         context_path=full_context_path,
                         review_packet_path=review_packet_path,
+                        student_runtime_multiplier=args.student_runtime_multiplier,
                     )
                     if compact_followup_prompts
                     else teacher_review_prompt(
                         context_path=full_context_path,
                         review_packet_path=review_packet_path,
+                        student_runtime_multiplier=args.student_runtime_multiplier,
                     )
                 ),
                 encoding="utf-8",
@@ -849,6 +861,7 @@ def main(argv: list[str] | None = None) -> int:
                 "student_model": student_model,
                 "student_reasoning_effort": student_reasoning_effort,
                 "resume_sessions": args.resume_sessions,
+                "student_runtime_multiplier": args.student_runtime_multiplier,
                 "compact_after_first": True,
                 "stable_student_workspaces": True,
                 "child_cwd": str(child_cwd),

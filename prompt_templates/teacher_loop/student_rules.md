@@ -6,27 +6,92 @@
 - Edit only your private `dpl_evolve` source.
 - Keep `detailed_placement_evolve -> improve_placement_evolve -> optimize_mirroring_evolve` callable.
 - Modify all three evolved stages: legalization, improve placement, and mirror/orientation.
+- Do not use Diamond, a Diamond-equivalent selector, or a plain Diamond anchor
+  as the initial legalizer for this attempt.  Diamond may be used only as a
+  metric baseline or reference check.  Your legal placement must be generated
+  by the evolved legalization mechanism before improve placement and mirror run.
+- Do not copy Diamond baseline code as the solution, and do not wrap Diamond
+  with small gates to claim an evolved legalizer.  Reading Diamond for legality,
+  data structures, or metrics is allowed; the legal-state producer must change.
 - Implement Teacher's HPWL source mechanism as the primary route, but trust source-level evidence. If the source contradicts the plan or reveals a stronger route, adjust and report why.
 - You may change algorithms, objectives, candidate generation, data structures, flow order inside evolved commands, and stage handoff.
 - Optimize canonical `metrics.json:hpwl`; `hpwl_proxy` is debug-only.
-- Final research target is clean canonical HPWL at least 5% below `openroad_dpl_flow`. Treat sub-1% wins as donor evidence, not success.
+- Report stage-wise HPWL from `metrics.json:hpwl_stages` when present, or from
+  the OpenROAD/DPL legalize log: `HPWLg`, `delta HPWLlg`,
+  `delta HPWLip`, `delta HPWL final`, and `HPWL final`.
+- Treat 5% HPWL reduction as a credible research target, not a hard gate and
+  not a ceiling.  Believe it is achievable, design mechanisms that can reach or
+  exceed it, and keep useful below-5% mechanisms as donor evidence when they
+  clearly improve a stage.
 
 ## Required Execution
 
 - Use the workspace packet for exact prepare/build/evaluate/diff/knowledge commands.
+- Treat build/evaluation as generated infrastructure. Run the packet commands
+  exactly; do not reconstruct relink commands, inspect `link.txt`, or manually
+  call `ar`, `ranlib`, `nm`, `strings`, `ldd`, `readelf`, or equivalent binary
+  archaeology. If a generated helper fails, fix your source change or report the
+  helper error as the blocker.
 - Plan A/B/C: legalization, improve placement, mirror/orientation. Implement all three before judging the idea.
+- Build at least one explicit legalization/improve co-optimization link: move
+  improve-placement scoring, candidate choice, local HPWL deltas, residual-net
+  priorities, or orientation handoff into the legal-state generation path.
+- Also make improve placement a real algorithmic edit, not only a script
+  string or telemetry change. Valid improve-placement work changes candidate
+  generation, ordering, local HPWL objective, acceptance/rollback policy,
+  touched-region cache, or how legalization handoff state is consumed.
+- Go deep enough in `Optdp`/detailed improvement to affect final HPWL. Prefer
+  source changes around candidate queues, affected-net HPWL delta computation,
+  move/swap/window evaluation, acceptance policy, local legality checks, and
+  handoff-state consumers over superficial endpoint-script changes.
+- Treat final HPWL as a product of stage co-optimization. Legalization,
+  improve placement, and mirror/orientation should pass useful state to each
+  other; do not bet the whole attempt on only one stage.
 - Build and evaluate; inspect canonical `metrics.json:hpwl` and the relevant OpenROAD log.
 - If the result is weak or illegal, revise the algorithm or commit/selection logic, rebuild/evaluate, and keep the best clean candidate.
 - Revisions must change the mechanism, not only constants.
+- Default evaluation loop: initial build/eval, one targeted mechanism revision,
+  then keep the best clean candidate. A third canonical eval is only justified
+  by a named mechanism change, a build/link correction, or a legality fix.
+- Control runtime explicitly: cap endpoints and candidate lists, reuse cached
+  touched data, log enough counters to explain cost, and remove duplicate
+  endpoints before adding more expensive search.
+- Do not chase small HPWL deltas with a slow or unbounded implementation. If an
+  expensive path is not plausibly on track for material progress toward the 5%
+  research target, replace the mechanism instead of extending the run.
+- Do not improve HPWL by simply running an unchanged improve-placement flow
+  more times, repeating random tails, or stacking endpoints. It is encouraged
+  to spend available runtime on one new bounded improve-placement algorithm
+  when it has a named HPWL source, candidate cap, cache plan, and stop
+  condition.
+- The generated evaluation command has a hard timeout at ${student_runtime_multiplier}x the canonical
+  `openroad_dpl_flow` baseline runtime. If that timeout kills the run, stop
+  that implementation path, report it as non-promotable, and do not rerun the
+  same mechanism.
 - Keep exploration bounded: use `rg` first and small source excerpts around exact symbols. Do not read whole donor trees, event logs, or memory registries by default.
 - Trust generated helper commands. Do not inspect evaluator/build wrapper internals unless the exact helper returned nonzero and its error text is insufficient.
+- If a patch does not apply, inspect only the nearby current source around the
+  intended function/state, then re-apply a smaller patch. Do not turn patch
+  recovery into build-system or relink investigation.
 
 ## Implementation Standard
 
 - Aggressive case-focused change; no default-equivalent behavior.
 - Bounded candidates, cached touched data, controlled complexity.
 - No avoidable hot-loop `O(n^2)`, full-grid scans, or full-net recomputation inside candidate loops.
-- Runtime may exceed baseline when the HPWL gain or algorithmic evidence justifies it.
+- For `Optdp` work, precompute touched nets or local boxes, cache repeated
+  HPWL deltas, keep candidate queues compact, and make the cost of each extra
+  candidate explicit in telemetry.
+- Runtime may exceed baseline only inside the generated ${student_runtime_multiplier}x timeout when the
+  HPWL gain or algorithmic evidence justifies it.
+- Runtime savings from cheap legalization or mirror work should be reallocated
+  to the strongest bounded improve-placement mechanism before declaring the
+  attempt finished.
+- Low-ROI runtime growth is a failed implementation path, not a donor. Prefer a
+  simpler bounded algorithm with a clear HPWL source over endpoint stacking.
+- Runtime must stay explainable. If a run becomes several times slower than
+  baseline, the final report must identify the exact pass or endpoint causing
+  it and what should be pruned or parallelized next.
 - Avoid public Tcl/SWIG ABI changes, especially `Opendp`, unless essential and smoke-tested.
 - No case-name hardcoding.
 
@@ -34,4 +99,6 @@
 
 Include a compact table with rows: legalization, improve placement, mirror/orientation, optional coordination. For each row, name the exact function/state changed and behavior change.
 
-Also report touched files, mechanism, canonical HPWL/runtime/displacement delta, legality, metrics path, diff path, knowledge card path, and next uncertainty.
+Also report touched files, mechanism, stage-wise HPWL deltas,
+canonical HPWL/runtime/displacement delta, legality, metrics path, diff path,
+knowledge card path, and next uncertainty.

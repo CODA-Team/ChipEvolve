@@ -1,0 +1,513 @@
+#!/usr/bin/env python3
+"""Report canonical stage-wise DPL metrics for one or more teacher rounds.
+
+The headline HPWL values come from the normalized `metrics.json` files written
+by the evaluator.  Those files use OpenROAD/DPL log HPWL (`hpwl_stages` and
+`hpwl`) rather than the auxiliary bbox proxy.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+
+DEFAULT_ORFS_ROOT = Path(__file__).resolve().parents[2] / "OpenROAD-flow-scripts"
+DEFAULT_STATE_ROOT = Path(__file__).resolve().parents[1] / ".dpl_evolve_state"
+
+
+@dataclass
+class StageRow:
+    round_id: str
+    result: str
+    evidence_path: Path
+    evidence_kind: str
+    hpwlg: float | None
+    hpwl_legalized: float | None
+    hpwl_after_improve: float | None
+    hpwl_final: float | None
+    delta_legalization_percent: float | None
+    delta_improve_percent: float | None
+    delta_final_percent: float | None
+    runtime_seconds: float | None
+    avg_displacement_micron: float | None
+    max_displacement_micron: float | None
+    legality: str
+
+
+CANONICAL_BASELINES = (
+    "baseline_probe_openroad_dpl_flow",
+    "baseline_probe_evolve_default",
+)
+
+
+def is_expected_result_suffix(suffix: str) -> bool:
+    if suffix in CANONICAL_BASELINES:
+        return True
+    return re.match(r"^iter_\d+_student_\d+_", suffix) is not None
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Print stage-wise HPWL/runtime/displacement metrics for DPL evolution rounds."
+    )
+    parser.add_argument("--round-id", action="append", required=True)
+    parser.add_argument("--orfs-root", type=Path, default=DEFAULT_ORFS_ROOT)
+    parser.add_argument("--state-root", type=Path, default=DEFAULT_STATE_ROOT)
+    parser.add_argument(
+        "--format",
+        choices=("markdown", "tsv", "json"),
+        default="markdown",
+        help="Output format. Default: markdown.",
+    )
+    parser.add_argument(
+        "--include-path",
+        action="store_true",
+        help="Include metrics.json path in markdown/tsv output.",
+    )
+    parser.add_argument(
+        "--show-missing",
+        action="store_true",
+        help="Also report round status when no metrics have landed yet.",
+    )
+    parser.add_argument(
+        "--expected-iterations",
+        type=int,
+        help="Show missing rows through this many iterations for each round.",
+    )
+    parser.add_argument(
+        "--children",
+        type=int,
+        help="Show this many student slots when expanding expected rows.",
+    )
+    parser.add_argument(
+        "--no-expected",
+        action="store_true",
+        help="Only show rows with metrics/log evidence; do not add missing expected rows.",
+    )
+    return parser.parse_args()
+
+
+def as_float(value: Any) -> float | None:
+    if value in (None, ""):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def fmt(value: float | None, digits: int = 1, suffix: str = "") -> str:
+    if value is None:
+        return ""
+    return f"{value:.{digits}f}{suffix}"
+
+
+def result_sort_key(result: str) -> tuple[int, int, int, str]:
+    if result.startswith("baseline_probe_openroad"):
+        return (0, 0, 0, result)
+    if result.startswith("baseline_probe_evolve"):
+        return (0, 1, 0, result)
+    match = re.search(r"iter_(\d+)_student_(\d+)", result)
+    if match:
+        return (1, int(match.group(1)), int(match.group(2)), result)
+    return (2, 0, 0, result)
+
+
+def strip_round_prefix(round_id: str, run_tag: str) -> str:
+    prefix = f"{round_id}_"
+    if run_tag.startswith(prefix):
+        return run_tag[len(prefix) :]
+    return run_tag
+
+
+def run_tag_matches_round(round_id: str, run_tag: str) -> bool:
+    prefix = f"{round_id}_"
+    if not run_tag.startswith(prefix):
+        return False
+    return is_expected_result_suffix(run_tag[len(prefix) :])
+
+
+def discover_metrics(orfs_root: Path, round_id: str) -> list[Path]:
+    report_root = orfs_root / "flow" / "reports"
+    if not report_root.exists():
+        return []
+    pattern = f"{round_id}_*/metrics.json"
+    return sorted(
+        path
+        for path in report_root.glob(f"**/dpl_evolve_baseline/{pattern}")
+        if run_tag_matches_round(round_id, path.parent.name)
+    )
+
+
+def discover_logs(orfs_root: Path, round_id: str) -> list[Path]:
+    log_root = orfs_root / "flow" / "logs"
+    if not log_root.exists():
+        return []
+    pattern = f"{round_id}_*/dpl_evolve_{round_id}_*_legalize.log"
+    return sorted(
+        path
+        for path in log_root.glob(f"**/dpl_evolve_baseline/{pattern}")
+        if run_tag_matches_round(round_id, path.parent.name)
+    )
+
+
+def load_row(round_id: str, metrics_path: Path) -> StageRow | None:
+    try:
+        data = json.loads(metrics_path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    stages = data.get("hpwl_stages")
+    if not isinstance(stages, dict):
+        stages = {}
+    hpwl = data.get("hpwl")
+    if not isinstance(hpwl, dict):
+        hpwl = {}
+    disp = data.get("displacement")
+    if not isinstance(disp, dict):
+        disp = {}
+    legality = data.get("legality")
+    if not isinstance(legality, dict):
+        legality = {}
+
+    hpwlg = as_float(stages.get("global_micron")) or as_float(hpwl.get("before_micron"))
+    final = as_float(stages.get("final_micron")) or as_float(hpwl.get("after_micron"))
+    violations = str(legality.get("placement_violations", ""))
+    legal_status = "clean" if violations.strip() == "" else violations
+
+    return StageRow(
+        round_id=round_id,
+        result=strip_round_prefix(round_id, metrics_path.parent.name),
+        evidence_path=metrics_path,
+        evidence_kind="metrics",
+        hpwlg=hpwlg,
+        hpwl_legalized=as_float(stages.get("legalized_micron")),
+        hpwl_after_improve=as_float(stages.get("after_improve_micron")),
+        hpwl_final=final,
+        delta_legalization_percent=as_float(stages.get("delta_legalization_percent")),
+        delta_improve_percent=as_float(stages.get("delta_improve_percent")),
+        delta_final_percent=as_float(stages.get("delta_final_percent"))
+        or as_float(hpwl.get("delta_percent")),
+        runtime_seconds=as_float(data.get("runtime_seconds")),
+        avg_displacement_micron=as_float(disp.get("average_displacement_micron")),
+        max_displacement_micron=as_float(disp.get("max_displacement_micron")),
+        legality=legal_status,
+    )
+
+
+def last_float(pattern: str, text: str) -> float | None:
+    values = re.findall(pattern, text, flags=re.MULTILINE)
+    if not values:
+        return None
+    return as_float(values[-1])
+
+
+def first_float(pattern: str, text: str) -> float | None:
+    match = re.search(pattern, text, flags=re.MULTILINE)
+    return as_float(match.group(1)) if match else None
+
+
+def load_log_row(round_id: str, log_path: Path) -> StageRow | None:
+    try:
+        text = log_path.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        return None
+    hpwlg = first_float(r"^original HPWL\s+([0-9.+-eE]+)\s+u", text)
+    if hpwlg is None:
+        hpwlg = first_float(r"^Original HPWL\s+([0-9.+-eE]+)\s+u", text)
+    legalized = last_float(r"^legalized HPWL\s+([0-9.+-eE]+)\s+u", text)
+    improved = last_float(r"^Final HPWL\s+([0-9.+-eE]+)\s+u", text)
+    final = last_float(r"^\[INFO DPL-0022\]\s+HPWL after\s+([0-9.+-eE]+)\s+u", text)
+    if final is None:
+        final = improved if improved is not None else legalized
+    if hpwlg is None and legalized is None and improved is None and final is None:
+        return None
+
+    def delta_pct(value: float | None, base: float | None) -> float | None:
+        if value is None or base in (None, 0.0):
+            return None
+        return (value - base) / base * 100.0
+
+    elapsed = last_float(r"Elapsed time:\s+([0-9.]+)\[h:\]min:sec", text)
+    avg_disp = last_float(r"average displacement\s+([0-9.+-eE]+)\s+u", text)
+    max_disp = last_float(r"max displacement\s+([0-9.+-eE]+)\s+u", text)
+    run_tag = log_path.parent.name
+    legality = "partial_log"
+    if "Found 0 overlaps" in text and "Found 0 row alignment" in text:
+        legality = "clean_or_partial"
+    return StageRow(
+        round_id=round_id,
+        result=strip_round_prefix(round_id, run_tag),
+        evidence_path=log_path,
+        evidence_kind="log",
+        hpwlg=hpwlg,
+        hpwl_legalized=legalized,
+        hpwl_after_improve=improved,
+        hpwl_final=final,
+        delta_legalization_percent=delta_pct(legalized, hpwlg),
+        delta_improve_percent=delta_pct(improved, legalized),
+        delta_final_percent=delta_pct(final, hpwlg),
+        runtime_seconds=elapsed,
+        avg_displacement_micron=avg_disp,
+        max_displacement_micron=max_disp,
+        legality=legality,
+    )
+
+
+def round_status(state_root: Path, round_id: str) -> str:
+    round_dir = state_root / "teacher_rounds" / round_id
+    if not round_dir.exists():
+        return "round_dir_missing"
+    round_log = round_dir / "round.log"
+    if not round_log.exists():
+        return "round_log_missing"
+    lines = round_log.read_text(encoding="utf-8", errors="replace").splitlines()
+    return lines[-1] if lines else "round_log_empty"
+
+
+def round_dir(state_root: Path, round_id: str) -> Path:
+    return state_root / "teacher_rounds" / round_id
+
+
+def round_case_id(state_root: Path, round_id: str) -> str:
+    manifest = round_dir(state_root, round_id) / "manifest.json"
+    if manifest.is_file():
+        try:
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+            case_id = data.get("case")
+            if isinstance(case_id, str) and case_id:
+                return case_id
+        except Exception:
+            pass
+    events = round_dir(state_root, round_id) / "events.jsonl"
+    if events.is_file():
+        for line in events.read_text(encoding="utf-8", errors="replace").splitlines():
+            try:
+                event = json.loads(line)
+            except Exception:
+                continue
+            case_id = (event.get("fields") or {}).get("case")
+            if isinstance(case_id, str) and case_id:
+                return case_id
+    return ""
+
+
+def discovered_iteration_count(state_root: Path, round_id: str) -> int:
+    count = 0
+    for path in round_dir(state_root, round_id).glob("iter_*"):
+        match = re.fullmatch(r"iter_(\d+)", path.name)
+        if match and path.is_dir():
+            count = max(count, int(match.group(1)))
+    return count
+
+
+def discovered_child_count(state_root: Path, round_id: str) -> int:
+    count = 0
+    for path in (round_dir(state_root, round_id) / "students").glob("student_*"):
+        match = re.fullmatch(r"student_(\d+)", path.name)
+        if match and path.is_dir():
+            count = max(count, int(match.group(1)))
+    return count
+
+
+def missing_row(round_id: str, result: str) -> StageRow:
+    return StageRow(
+        round_id=round_id,
+        result=result,
+        evidence_path=Path(""),
+        evidence_kind="missing",
+        hpwlg=None,
+        hpwl_legalized=None,
+        hpwl_after_improve=None,
+        hpwl_final=None,
+        delta_legalization_percent=None,
+        delta_improve_percent=None,
+        delta_final_percent=None,
+        runtime_seconds=None,
+        avg_displacement_micron=None,
+        max_displacement_micron=None,
+        legality="missing",
+    )
+
+
+def add_expected_rows(
+    *,
+    rows: list[StageRow],
+    state_root: Path,
+    round_id: str,
+    expected_iterations: int | None,
+    children: int | None,
+) -> list[StageRow]:
+    present = {row.result for row in rows}
+    expanded = list(rows)
+    for baseline in CANONICAL_BASELINES:
+        if baseline not in present:
+            expanded.append(missing_row(round_id, baseline))
+
+    iteration_count = expected_iterations or discovered_iteration_count(state_root, round_id)
+    child_count = children or discovered_child_count(state_root, round_id)
+    case_id = round_case_id(state_root, round_id)
+    if iteration_count <= 0 or child_count <= 0 or not case_id:
+        return expanded
+    for iteration in range(1, iteration_count + 1):
+        for child in range(1, child_count + 1):
+            result = f"iter_{iteration:02d}_student_{child:02d}_{case_id}"
+            if result not in present:
+                expanded.append(missing_row(round_id, result))
+    return expanded
+
+
+def print_markdown(rows_by_round: dict[str, list[StageRow]], *, include_path: bool) -> None:
+    base_columns = [
+        "round",
+        "result",
+        "HPWLg",
+        "HPWLlg",
+        "dLG%",
+        "HPWLimprove",
+        "dIP%",
+        "HPWL final",
+        "dFinal%",
+        "runtime_s",
+        "avg_disp",
+        "max_disp",
+        "legality",
+        "source",
+    ]
+    columns = base_columns + (["metrics"] if include_path else [])
+    print("| " + " | ".join(columns) + " |")
+    print("|" + "|".join(["---"] * len(columns)) + "|")
+    for round_id, rows in rows_by_round.items():
+        for row in sorted(rows, key=lambda item: result_sort_key(item.result)):
+            values = [
+                round_id,
+                row.result,
+                fmt(row.hpwlg),
+                fmt(row.hpwl_legalized),
+                fmt(row.delta_legalization_percent, 2, "%"),
+                fmt(row.hpwl_after_improve),
+                fmt(row.delta_improve_percent, 2, "%"),
+                fmt(row.hpwl_final),
+                fmt(row.delta_final_percent, 2, "%"),
+                fmt(row.runtime_seconds, 3),
+                fmt(row.avg_displacement_micron, 3),
+                fmt(row.max_displacement_micron, 3),
+                row.legality,
+                row.evidence_kind,
+            ]
+            if include_path:
+                values.append(str(row.evidence_path))
+            print("| " + " | ".join(values) + " |")
+
+
+def print_tsv(rows_by_round: dict[str, list[StageRow]], *, include_path: bool) -> None:
+    fields = [
+        "round",
+        "result",
+        "hpwl_global_micron",
+        "hpwl_legalized_micron",
+        "delta_legalization_percent",
+        "hpwl_after_improve_micron",
+        "delta_improve_percent",
+        "hpwl_final_micron",
+        "delta_final_percent",
+        "runtime_seconds",
+        "avg_displacement_micron",
+        "max_displacement_micron",
+        "legality",
+        "source",
+    ]
+    if include_path:
+        fields.append("metrics_path")
+    print("\t".join(fields))
+    for round_id, rows in rows_by_round.items():
+        for row in sorted(rows, key=lambda item: result_sort_key(item.result)):
+            values = [
+                round_id,
+                row.result,
+                fmt(row.hpwlg),
+                fmt(row.hpwl_legalized),
+                fmt(row.delta_legalization_percent, 6),
+                fmt(row.hpwl_after_improve),
+                fmt(row.delta_improve_percent, 6),
+                fmt(row.hpwl_final),
+                fmt(row.delta_final_percent, 6),
+                fmt(row.runtime_seconds, 6),
+                fmt(row.avg_displacement_micron, 6),
+                fmt(row.max_displacement_micron, 6),
+                row.legality,
+                row.evidence_kind,
+            ]
+            if include_path:
+                values.append(str(row.evidence_path))
+            print("\t".join(values))
+
+
+def main() -> int:
+    args = parse_args()
+    rows_by_round: dict[str, list[StageRow]] = {}
+    for round_id in args.round_id:
+        rows: list[StageRow] = []
+        seen_run_tags: set[str] = set()
+        for metrics_path in discover_metrics(args.orfs_root, round_id):
+            row = load_row(round_id, metrics_path)
+            if row is not None:
+                rows.append(row)
+                seen_run_tags.add(metrics_path.parent.name)
+        for log_path in discover_logs(args.orfs_root, round_id):
+            if log_path.parent.name in seen_run_tags:
+                continue
+            row = load_log_row(round_id, log_path)
+            if row is not None:
+                rows.append(row)
+        if not args.no_expected:
+            rows = add_expected_rows(
+                rows=rows,
+                state_root=args.state_root,
+                round_id=round_id,
+                expected_iterations=args.expected_iterations,
+                children=args.children,
+            )
+        rows_by_round[round_id] = rows
+
+    if args.format == "json":
+        payload = {
+            round_id: [
+                {
+                    "result": row.result,
+                    "evidence_path": str(row.evidence_path),
+                    "evidence_kind": row.evidence_kind,
+                    "hpwl_global_micron": row.hpwlg,
+                    "hpwl_legalized_micron": row.hpwl_legalized,
+                    "delta_legalization_percent": row.delta_legalization_percent,
+                    "hpwl_after_improve_micron": row.hpwl_after_improve,
+                    "delta_improve_percent": row.delta_improve_percent,
+                    "hpwl_final_micron": row.hpwl_final,
+                    "delta_final_percent": row.delta_final_percent,
+                    "runtime_seconds": row.runtime_seconds,
+                    "avg_displacement_micron": row.avg_displacement_micron,
+                    "max_displacement_micron": row.max_displacement_micron,
+                    "legality": row.legality,
+                }
+                for row in sorted(rows, key=lambda item: result_sort_key(item.result))
+            ]
+            for round_id, rows in rows_by_round.items()
+        }
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    elif args.format == "tsv":
+        print_tsv(rows_by_round, include_path=args.include_path)
+    else:
+        print_markdown(rows_by_round, include_path=args.include_path)
+
+    if args.show_missing:
+        for round_id, rows in rows_by_round.items():
+            if not rows:
+                print(f"\nNo metrics found for {round_id}. Status: {round_status(args.state_root, round_id)}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -29,6 +29,7 @@ Current compact algorithm cards:
 - `insights/legalm/legalm_paper_cost_tuning.md`
 - `insights/legalm/legalm_large_case_runtime.md`
 - `algorithm_cards/openroad_dpl.md`
+- `algorithm_cards/gpu_dpo_lsmc.md`
 - `algorithm_cards/nblg.md`
 - `algorithm_cards/legalm2.md`
 - `algorithm_cards/dreamplace_abacus.md`

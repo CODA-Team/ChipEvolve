@@ -53,6 +53,19 @@ Do not treat "faster but same HPWL" as the main success criterion.  The goal is
 to test whether aggressive case-specific algorithm changes beat the canonical
 flow without changing the evaluator.
 
+## Five-Percent Target Semantics
+
+The 5% HPWL reduction line is a research belief, not a hard validity gate and
+not a ceiling.  Teacher and Student agents should assume this scale of
+improvement is possible until canonical evidence says otherwise, and should
+seek mechanisms that can reach or exceed it.
+
+Candidates below 5% can still be useful when they provide clean stage-donor
+evidence, especially if they improve legalization, improve placement, or
+mirror/orientation in a way another student can combine or compress.  They
+should not be reported as final success unless the broader loop explains why
+the 5% hypothesis has been falsified for that design and flow variant.
+
 ## Evolution Calibration
 
 Medium-large discovery rounds showed that a candidate can beat the canonical
@@ -67,3 +80,50 @@ Policy: preserve the best-so-far strict artifact as an elite parent.  Let one
 student continue it each iteration, while other students explore larger
 changes.  Promote candidates only on final strict evaluator results, using
 stage metrics for explanation rather than proof.
+
+## Runtime Gate And Bad Execution Patterns
+
+The discovery loop should allow runtime to increase when the mechanism is
+meaningfully better, but runtime cannot be unbounded.  Use the canonical
+baseline full-flow runtime for the same case, utilization, flow variant, and
+thread count as the anchor.
+
+Policy:
+
+- a candidate's evaluator runtime must be at most `4.0x` the canonical
+  baseline runtime,
+- a candidate above `4.0x` baseline runtime is a failure for promotion even if
+  final HPWL is good,
+- an over-budget candidate may remain a donor only when its stage telemetry and
+  code diff show a concrete mechanism that another student can reimplement
+  with bounded complexity,
+- Teacher must report `runtime_s`, `runtime_vs_baseline`, final HPWL, and
+  stage-wise HPWL before assigning follow-up work,
+- Student must design candidate counts, endpoint counts, random tails, and
+  exact-HPWL checks so the expected complexity is bounded before running the
+  evaluator.
+
+Negative patterns observed in evolution rounds:
+
+- endpoint stacking or repeated random-improve tails that approach the target
+  only by spending tens of times the baseline runtime,
+- claiming a stage mechanism was implemented while the runtime log shows zero
+  accepted work, zero candidates, or an inactive pass,
+- continuing a lineage that Teacher identified as stage-negative, such as
+  changing a legal-site choice after stage evidence showed the improvement
+  should move to downstream improve or mirror,
+- relying on stale relinked binaries or logs that do not contain the new
+  mechanism's telemetry,
+- spending the round on archive/link workarounds instead of producing a clean
+  build through the supported variant build path,
+- adding broad defensive checks, rollbacks, or telemetry that do not create an
+  HPWL source mechanism and still increase runtime.
+
+Required Teacher action:
+
+- preserve the best over-budget candidate as a donor only if it explains a
+  real HPWL source,
+- assign at least one next-round student to compress that donor into a bounded
+  implementation,
+- do not let a slower donor replace the elite parent until it satisfies the
+  `4.0x` runtime gate and strict legality gate.

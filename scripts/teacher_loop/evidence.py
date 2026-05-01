@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shlex
 import shutil
 import subprocess
@@ -56,11 +57,90 @@ def hpwl_delta_percent(hpwl: dict[str, Any]) -> float | None:
     return float(delta) / before_value * 100.0
 
 
+def _float_or_none(value: Any) -> float | None:
+    if value is None or value == "":
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _last_float(pattern: str, text: str) -> float | None:
+    matches = re.findall(pattern, text, flags=re.MULTILINE)
+    return _float_or_none(matches[-1]) if matches else None
+
+
+def _first_float(pattern: str, text: str) -> float | None:
+    match = re.search(pattern, text, flags=re.MULTILINE)
+    return _float_or_none(match.group(1)) if match else None
+
+
+def hpwl_stage_metrics(metrics_path: Path, data: dict[str, Any], hpwl: dict[str, Any]) -> dict[str, float | None]:
+    """Return stage-wise HPWL, backfilled from the DPL log for older metrics."""
+    stages = data.get("hpwl_stages")
+    if not isinstance(stages, dict):
+        stages = {}
+
+    hpwl_global = _float_or_none(stages.get("global_micron"))
+    hpwl_legalized = _float_or_none(stages.get("legalized_micron"))
+    hpwl_after_improve = _float_or_none(stages.get("after_improve_micron"))
+    hpwl_final = _float_or_none(stages.get("final_micron"))
+
+    log_value = stages.get("log") or hpwl.get("log")
+    log_path = Path(str(log_value)) if log_value else None
+    if log_path is not None and not log_path.is_absolute():
+        log_path = metrics_path.parent / log_path
+    if log_path is not None and log_path.is_file():
+        text = log_path.read_text(encoding="utf-8", errors="replace")
+        hpwl_global = hpwl_global or _first_float(r"^original HPWL\s+([0-9.+-eE]+)\s+u", text)
+        hpwl_global = hpwl_global or _first_float(r"^Original HPWL\s+([0-9.+-eE]+)\s+u", text)
+        hpwl_legalized = hpwl_legalized or _last_float(r"^legalized HPWL\s+([0-9.+-eE]+)\s+u", text)
+        hpwl_after_improve = hpwl_after_improve or _last_float(r"^Final HPWL\s+([0-9.+-eE]+)\s+u", text)
+        hpwl_final = hpwl_final or _last_float(
+            r"^\[INFO DPL-0022\]\s+HPWL after\s+([0-9.+-eE]+)\s+u", text
+        )
+
+    hpwl_global = hpwl_global if hpwl_global is not None else _float_or_none(hpwl.get("before_micron"))
+    hpwl_final = hpwl_final if hpwl_final is not None else _float_or_none(hpwl.get("after_micron"))
+
+    delta_legalization = (
+        None if hpwl_global is None or hpwl_legalized is None else hpwl_legalized - hpwl_global
+    )
+    delta_improve = (
+        None
+        if hpwl_legalized is None or hpwl_after_improve is None
+        else hpwl_after_improve - hpwl_legalized
+    )
+    delta_final = (
+        None if hpwl_global is None or hpwl_final is None else hpwl_final - hpwl_global
+    )
+
+    def pct(delta: float | None) -> float | None:
+        if delta is None or hpwl_global in (None, 0):
+            return None
+        return delta / hpwl_global * 100.0
+
+    return {
+        "global": hpwl_global,
+        "legalized": hpwl_legalized,
+        "after_improve": hpwl_after_improve,
+        "final": hpwl_final,
+        "delta_legalization": delta_legalization,
+        "delta_improve": delta_improve,
+        "delta_final": delta_final,
+        "delta_legalization_percent": pct(delta_legalization),
+        "delta_improve_percent": pct(delta_improve),
+        "delta_final_percent": pct(delta_final),
+    }
+
+
 def summarize_metrics(metrics_path: Path) -> MetricSummary | None:
     data = load_json(metrics_path)
     if not data:
         return None
     hpwl = canonical_hpwl(data)
+    stages = hpwl_stage_metrics(metrics_path, data, hpwl)
     disp = data.get("displacement", {})
     legal = data.get("legality", {})
     legalization = data.get("legalization", {})
@@ -78,6 +158,15 @@ def summarize_metrics(metrics_path: Path) -> MetricSummary | None:
         max_disp=disp.get("max_displacement_micron"),
         violations=str(legal.get("placement_violations", "")),
         hpwl_delta_percent=hpwl_delta_percent(hpwl),
+        hpwl_global=stages["global"],
+        hpwl_legalized=stages["legalized"],
+        hpwl_after_improve=stages["after_improve"],
+        hpwl_stage_delta_legalization=stages["delta_legalization"],
+        hpwl_stage_delta_improve=stages["delta_improve"],
+        hpwl_stage_delta_final=stages["delta_final"],
+        hpwl_stage_delta_legalization_percent=stages["delta_legalization_percent"],
+        hpwl_stage_delta_improve_percent=stages["delta_improve_percent"],
+        hpwl_stage_delta_final_percent=stages["delta_final_percent"],
     )
 
 
@@ -252,6 +341,95 @@ def candidate_beats_baseline(
     )
 
 
+def runtime_ratio(
+    summary: MetricSummary,
+    baseline: MetricSummary | None,
+) -> float | None:
+    if (
+        baseline is None
+        or baseline.runtime_seconds in (None, 0)
+        or summary.runtime_seconds is None
+    ):
+        return None
+    return float(summary.runtime_seconds) / float(baseline.runtime_seconds)
+
+
+def efficiency_signal(
+    summary: MetricSummary,
+    baseline: MetricSummary | None,
+    *,
+    budget_multiplier: float = 4.0,
+) -> str:
+    ratio = runtime_ratio(summary, baseline)
+    if ratio is None:
+        return "efficiency unknown"
+    if ratio <= 1.5:
+        return f"efficient ({ratio:.2f}x baseline)"
+    if ratio <= budget_multiplier:
+        return f"bounded ({ratio:.2f}x baseline)"
+    return f"inefficient ({ratio:.2f}x baseline; not an effective donor)"
+
+
+def stage_donor_signal(
+    candidate: MetricSummary,
+    baseline: MetricSummary | None,
+    *,
+    budget_multiplier: float = 4.0,
+) -> str:
+    """Classify candidate evidence without reducing it to final HPWL only.
+
+    A strong HPWL result that needs much more than the student evaluation
+    budget is quality evidence, not an effective donor.  This prevents endpoint
+    stacking or many-round random replay from being promoted as an elite route.
+    """
+    if baseline is None or not is_clean_placement(candidate):
+        return "unclassified"
+
+    ratio = runtime_ratio(candidate, baseline)
+    inefficient = ratio is not None and ratio > budget_multiplier
+
+    if candidate_beats_baseline(candidate, baseline):
+        if inefficient:
+            return (
+                "quality-only final signal; inefficient runtime "
+                f"{ratio:.2f}x baseline, not an effective donor"
+            )
+        return "final donor"
+
+    signals: list[str] = []
+    if (
+        baseline.hpwl_stage_delta_legalization is not None
+        and candidate.hpwl_stage_delta_legalization is not None
+    ):
+        gain = baseline.hpwl_stage_delta_legalization - candidate.hpwl_stage_delta_legalization
+        if gain > 0:
+            signals.append(f"legalization stage donor: {gain:.1f} HPWL less damage")
+    if (
+        baseline.hpwl_stage_delta_improve is not None
+        and candidate.hpwl_stage_delta_improve is not None
+    ):
+        gain = baseline.hpwl_stage_delta_improve - candidate.hpwl_stage_delta_improve
+        if gain > 0:
+            signals.append(f"improve stage donor: {gain:.1f} HPWL more recovery")
+    if (
+        baseline.hpwl_stage_delta_final is not None
+        and candidate.hpwl_stage_delta_final is not None
+    ):
+        gain = baseline.hpwl_stage_delta_final - candidate.hpwl_stage_delta_final
+        if gain > 0:
+            signals.append(f"final-stage donor: {gain:.1f} HPWL lower final delta")
+
+    if signals:
+        signal = "; ".join(signals)
+        if inefficient:
+            return (
+                "quality-only stage signal; inefficient runtime "
+                f"{ratio:.2f}x baseline, not an effective donor: {signal}"
+            )
+        return signal
+    return "negative evidence"
+
+
 def strongest_baseline_anchor(
     metrics: dict[str, MetricSummary | None],
 ) -> tuple[str | None, MetricSummary | None]:
@@ -305,8 +483,8 @@ def round_scoreboard(
     baseline_hpwl = baseline.hpwl_after if baseline else None
     target_hpwl = five_percent_target_hpwl(baseline)
     lines = [
-        "| iter | student | route_label | hpwl_after | hpwl_delta_pct | delta_vs_strongest | beats_strongest | gap_to_5pct_target | runtime_s | avg_disp | max_disp | violations | metrics |",
-        "|---|---|---|---:|---:|---:|---|---:|---:|---:|---:|---|---|",
+        "| iter | student | route_label | HPWLg | dHPWLlg% | dHPWLip% | dHPWLfinal% | HPWL final | delta_vs_strongest | beats_strongest | gap_to_5pct_target | runtime_s | avg_disp | max_disp | violations | metrics |",
+        "|---|---|---|---:|---:|---:|---:|---:|---:|---|---:|---:|---:|---:|---|---|",
     ]
     best: MetricSummary | None = None
     best_beating: MetricSummary | None = None
@@ -347,15 +525,22 @@ def round_scoreboard(
             else summary.hpwl_after - target_hpwl
         )
         lines.append(
-            "| {iter_part} | {student_id} | {route_label} | {hpwl} | {hpwl_delta_pct} | {delta} | "
+            "| {iter_part} | {student_id} | {route_label} | {hpwlg} | {d_lg_pct} | {d_ip_pct} | {d_final_pct} | {hpwl} | {delta} | "
             "{beats} | {target_gap} | {runtime_s} | {avg_disp} | {max_disp} | {violations} | `{metrics_path}` |".format(
                 iter_part=iter_part or "?",
                 student_id=student_id or "?",
                 route_label=route_label or summary.tag,
+                hpwlg="" if summary.hpwl_global is None else f"{summary.hpwl_global:.3f}",
+                d_lg_pct=""
+                if summary.hpwl_stage_delta_legalization_percent is None
+                else f"{summary.hpwl_stage_delta_legalization_percent:.2f}%",
+                d_ip_pct=""
+                if summary.hpwl_stage_delta_improve_percent is None
+                else f"{summary.hpwl_stage_delta_improve_percent:.2f}%",
+                d_final_pct=""
+                if summary.hpwl_stage_delta_final_percent is None
+                else f"{summary.hpwl_stage_delta_final_percent:.2f}%",
                 hpwl="" if summary.hpwl_after is None else f"{summary.hpwl_after:.3f}",
-                hpwl_delta_pct=""
-                if summary.hpwl_delta_percent is None
-                else f"{summary.hpwl_delta_percent:.4f}%",
                 delta="" if delta is None else f"{delta:.3f}",
                 beats="yes" if candidate_beats_baseline(summary, baseline) else "no",
                 target_gap="" if target_gap is None else f"{target_gap:.3f}",
@@ -465,6 +650,7 @@ def peer_candidate_row(
     case_id: str,
     candidate: MetricSummary,
     baseline: MetricSummary | None,
+    budget_multiplier: float = 4.0,
 ) -> list[str]:
     artifacts = candidate_artifacts(
         runtime=runtime,
@@ -489,11 +675,14 @@ def peer_candidate_row(
     beats = "yes" if candidate_beats_baseline(candidate, baseline) else "no"
     summary = (
         f"- `{iter_part or '?'}` / `{student_id or '?'}` / "
-        f"`{route_label or candidate.tag}`: HPWL `{candidate.hpwl_after}`, "
-        f"run_delta `{candidate.hpwl_delta_percent}%`, "
+        f"`{route_label or candidate.tag}`: HPWLg `{candidate.hpwl_global}`, "
+        f"dHPWL lg/ip/final `{_fmt_stage_pct(candidate)}`, "
+        f"HPWL final `{candidate.hpwl_after}`, "
         f"delta_vs_baseline `{delta}`, runtime `{candidate.runtime_seconds}`, "
+        f"efficiency `{efficiency_signal(candidate, baseline, budget_multiplier=budget_multiplier)}`, "
         f"avg/max disp `{candidate.avg_disp}/{candidate.max_disp}`, "
-        f"legality `{candidate.violations or 'clean'}`, beats `{beats}`"
+        f"legality `{candidate.violations or 'clean'}`, beats `{beats}`, "
+        f"stage_signal `{stage_donor_signal(candidate, baseline, budget_multiplier=budget_multiplier)}`"
     )
     pointers = (
         f"  - inspect only if useful: metrics `{candidate.metrics_path}`; "
@@ -513,6 +702,7 @@ def write_peer_learning_packet(
     round_id: str,
     iteration: int,
     metrics: dict[str, MetricSummary | None],
+    student_runtime_multiplier: float = 4.0,
 ) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     baseline_label, baseline = strongest_baseline_anchor(metrics)
@@ -542,8 +732,9 @@ def write_peer_learning_packet(
         "",
         "Use it to borrow mechanisms and source from validated peer candidates. "
         "A clean candidate that beats the strongest baseline is useful donor "
-        "evidence; the final research target remains 5% below that strongest "
-        "baseline.",
+        "evidence only when its runtime and complexity are controlled. Treat "
+        "5% below the strongest baseline as a credible research target, not a "
+        "hard gate; below-5% stage donors can still be useful when efficient.",
         "",
         "## Baseline Anchor",
     ]
@@ -553,6 +744,11 @@ def write_peer_learning_packet(
         chunks.extend(
             [
                 f"- strongest_baseline: `{baseline_label}`",
+                f"- HPWLg: `{baseline.hpwl_global}`",
+                f"- delta_HPWL_legalization: `{baseline.hpwl_stage_delta_legalization}`",
+                f"- delta_HPWL_improve: `{baseline.hpwl_stage_delta_improve}`",
+                f"- delta_HPWL_final: `{baseline.hpwl_stage_delta_final}`",
+                f"- stage_delta_pct_lg_ip_final: `{_fmt_stage_pct(baseline)}`",
                 f"- hpwl_after: `{baseline.hpwl_after}`",
                 f"- five_percent_target_hpwl: `{target_hpwl}`",
                 f"- runtime_seconds: `{baseline.runtime_seconds}`",
@@ -580,6 +776,7 @@ def write_peer_learning_packet(
                     case_id=case_id,
                     candidate=candidate,
                     baseline=baseline,
+                    budget_multiplier=student_runtime_multiplier,
                 )
             )
 
@@ -596,6 +793,7 @@ def write_peer_learning_packet(
                     case_id=case_id,
                     candidate=candidate,
                     baseline=baseline,
+                    budget_multiplier=student_runtime_multiplier,
                 )
             )
 
@@ -604,10 +802,12 @@ def write_peer_learning_packet(
             "",
             "## Use Policy",
             "- Teacher should compare code and metrics before assigning a borrow/merge direction.",
+            f"- Teacher must separate effective donors from quality-only signals.  A candidate that wins mainly by repeated random/end-point replay or exceeds the {student_runtime_multiplier:g}x runtime budget is not an effective donor until the mechanism is reimplemented with bounded complexity.",
+            "- Teacher must separate final donors from stage donors.  If a candidate improves one stage but loses later, preserve a repair route for the later-stage handoff.",
             "- Student may inspect peer code when it directly supports the chosen implementation change.",
             "- If a student opens peer code or diff, first summarize the peer idea in 2-3 lines, then decide what to borrow.",
             "- Prefer learning a mechanism over blind wholesale replacement.",
-            "- A clean strongest-baseline-beating candidate may seed an elite continuation branch.",
+            "- A clean strongest-baseline-beating candidate may seed an elite continuation branch only when its efficiency signal is bounded or better.",
             "- Sub-1% wins over `evolve_default` are donor evidence, not success.",
         ]
     )
@@ -747,24 +947,30 @@ def ensure_baseline_suite(
 
 def metric_table(metrics: dict[str, MetricSummary | None]) -> str:
     lines = [
-        "| line | tag | hpwl_after | hpwl_delta | hpwl_delta_pct | runtime_s | avg_disp | max_disp | violations |",
-        "|---|---|---:|---:|---:|---:|---:|---:|---|",
+        "| line | tag | HPWLg | delta HPWLlg | delta HPWLip | delta HPWL final | HPWL final | runtime_s | avg_disp | max_disp | violations |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|",
     ]
     for name in CANONICAL_LINES:
         summary = metrics.get(name)
         if summary is None:
-            lines.append(f"| {name} | missing |  |  |  |  |  |  |  |")
+            lines.append(f"| {name} | missing |  |  |  |  |  |  |  |  |  |")
             continue
         lines.append(
-            "| {name} | {tag} | {hpwl_after} | {hpwl_delta} | {hpwl_delta_pct} | {runtime} | "
+            "| {name} | {tag} | {hpwlg} | {d_lg} | {d_ip} | {d_final} | {hpwl_after} | {runtime} | "
             "{avg_disp} | {max_disp} | {violations} |".format(
                 name=name,
                 tag=summary.tag,
+                hpwlg="" if summary.hpwl_global is None else f"{summary.hpwl_global:.3f}",
+                d_lg=""
+                if summary.hpwl_stage_delta_legalization is None
+                else f"{summary.hpwl_stage_delta_legalization:.3f}",
+                d_ip=""
+                if summary.hpwl_stage_delta_improve is None
+                else f"{summary.hpwl_stage_delta_improve:.3f}",
+                d_final=""
+                if summary.hpwl_stage_delta_final is None
+                else f"{summary.hpwl_stage_delta_final:.3f}",
                 hpwl_after="" if summary.hpwl_after is None else f"{summary.hpwl_after:.3f}",
-                hpwl_delta="" if summary.hpwl_delta is None else f"{summary.hpwl_delta:.3f}",
-                hpwl_delta_pct=""
-                if summary.hpwl_delta_percent is None
-                else f"{summary.hpwl_delta_percent:.4f}%",
                 runtime=""
                 if summary.runtime_seconds is None
                 else f"{summary.runtime_seconds:.3f}",
@@ -783,6 +989,17 @@ def _fmt_float(value: Any, digits: int = 3, suffix: str = "") -> str:
         return f"{float(value):.{digits}f}{suffix}"
     except (TypeError, ValueError):
         return str(value)
+
+
+def _fmt_stage_pct(summary: MetricSummary) -> str:
+    parts = []
+    for label, value in (
+        ("lg", summary.hpwl_stage_delta_legalization_percent),
+        ("ip", summary.hpwl_stage_delta_improve_percent),
+        ("final", summary.hpwl_stage_delta_final_percent),
+    ):
+        parts.append(f"{label}:{_fmt_float(value, 2, '%')}")
+    return " / ".join(parts)
 
 
 def design_characteristics_block(
@@ -845,24 +1062,24 @@ def design_characteristics_block(
             "HPWL values below use OpenROAD/DPL pin-based log HPWL only. "
             "`hpwl_proxy` is debug-only and is never a promotion metric.",
             "",
-            "| line | hpwl_before | hpwl_after | hpwl_delta | hpwl_delta_pct | runtime_s | violations |",
-            "|---|---:|---:|---:|---:|---:|---|",
+            "| line | HPWLg | delta HPWLlg | delta HPWLip | delta HPWL final | HPWL final | stage_delta_pct | runtime_s | violations |",
+            "|---|---:|---:|---:|---:|---:|---:|---:|---|",
         ]
     )
     for line in CANONICAL_LINES:
         summary = metrics.get(line)
         if summary is None:
-            lines.append(f"| {line} | missing |  |  |  |  |  |")
+            lines.append(f"| {line} | missing |  |  |  |  |  |  |  |")
             continue
-        data = load_json(summary.metrics_path) or {}
-        hpwl = canonical_hpwl(data)
         lines.append(
-            "| {line} | {before} | {after} | {delta} | {delta_pct} | {runtime} | {violations} |".format(
+            "| {line} | {hpwlg} | {d_lg} | {d_ip} | {d_final} | {after} | {stage_pct} | {runtime} | {violations} |".format(
                 line=line,
-                before=_fmt_float(hpwl.get("before_micron"), 3),
+                hpwlg=_fmt_float(summary.hpwl_global, 3),
+                d_lg=_fmt_float(summary.hpwl_stage_delta_legalization, 3),
+                d_ip=_fmt_float(summary.hpwl_stage_delta_improve, 3),
+                d_final=_fmt_float(summary.hpwl_stage_delta_final, 3),
                 after=_fmt_float(summary.hpwl_after, 3),
-                delta=_fmt_float(summary.hpwl_delta, 3),
-                delta_pct=_fmt_float(summary.hpwl_delta_percent, 4, "%"),
+                stage_pct=_fmt_stage_pct(summary),
                 runtime=_fmt_float(summary.runtime_seconds, 3),
                 violations=summary.violations or "clean",
             )
@@ -915,6 +1132,12 @@ def baseline_artifact_block(
         blocks.extend(
             [
                 f"- run_tag: `{tag}`",
+                f"- HPWLg: `{summary.hpwl_global}`",
+                f"- delta_HPWL_legalization: `{summary.hpwl_stage_delta_legalization}`",
+                f"- delta_HPWL_improve: `{summary.hpwl_stage_delta_improve}`",
+                f"- delta_HPWL_final: `{summary.hpwl_stage_delta_final}`",
+                f"- stage_delta_pct_lg_ip_final: `{_fmt_stage_pct(summary)}`",
+                f"- HPWL_final: `{summary.hpwl_after}`",
                 f"- metrics_json: `{summary.metrics_path}`",
                 f"- report_dir: `{report_dir}`",
                 f"- result_dir: `{result_dir}`",
@@ -1066,6 +1289,11 @@ def child_artifact_status_block(
     if metric_summary is not None:
         metric_lines = [
             "- metrics_summary:",
+            f"  - HPWLg: `{metric_summary.hpwl_global}`",
+            f"  - delta_HPWL_legalization: `{metric_summary.hpwl_stage_delta_legalization}`",
+            f"  - delta_HPWL_improve: `{metric_summary.hpwl_stage_delta_improve}`",
+            f"  - delta_HPWL_final: `{metric_summary.hpwl_stage_delta_final}`",
+            f"  - stage_delta_pct_lg_ip_final: `{_fmt_stage_pct(metric_summary)}`",
             f"  - hpwl_after: `{metric_summary.hpwl_after}`",
             f"  - hpwl_delta: `{metric_summary.hpwl_delta}`",
             f"  - runtime_seconds: `{metric_summary.runtime_seconds}`",
@@ -1119,6 +1347,13 @@ def write_child_artifact_status_json(
         status["knowledge_card"] = str(status["knowledge_card"])
         if metric_summary is not None:
             status["metrics_summary"] = {
+                "HPWLg": metric_summary.hpwl_global,
+                "delta_HPWL_legalization": metric_summary.hpwl_stage_delta_legalization,
+                "delta_HPWL_improve": metric_summary.hpwl_stage_delta_improve,
+                "delta_HPWL_final": metric_summary.hpwl_stage_delta_final,
+                "delta_HPWL_legalization_percent": metric_summary.hpwl_stage_delta_legalization_percent,
+                "delta_HPWL_improve_percent": metric_summary.hpwl_stage_delta_improve_percent,
+                "delta_HPWL_final_percent": metric_summary.hpwl_stage_delta_final_percent,
                 "hpwl_after": metric_summary.hpwl_after,
                 "hpwl_delta": metric_summary.hpwl_delta,
                 "runtime_seconds": metric_summary.runtime_seconds,

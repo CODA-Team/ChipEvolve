@@ -17,6 +17,7 @@ import argparse
 import csv
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -273,9 +274,87 @@ def hpwl_delta_percent(hpwl: Dict[str, Any]) -> float | None:
     return float(delta) / before_value * 100.0
 
 
+def _float_or_none(value: Any) -> float | None:
+    if value is None or value == "":
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _last_float(pattern: str, text: str) -> float | None:
+    matches = re.findall(pattern, text, flags=re.MULTILINE)
+    return _float_or_none(matches[-1]) if matches else None
+
+
+def _first_float(pattern: str, text: str) -> float | None:
+    match = re.search(pattern, text, flags=re.MULTILINE)
+    return _float_or_none(match.group(1)) if match else None
+
+
+def hpwl_stage_summary(metrics: Dict[str, Any], metrics_path: Path | None = None) -> Dict[str, Any]:
+    hpwl = canonical_hpwl(metrics)
+    stages = metrics.get("hpwl_stages")
+    if not isinstance(stages, dict):
+        stages = {}
+
+    hpwl_global = _float_or_none(stages.get("global_micron"))
+    hpwl_legalized = _float_or_none(stages.get("legalized_micron"))
+    hpwl_after_improve = _float_or_none(stages.get("after_improve_micron"))
+    hpwl_final = _float_or_none(stages.get("final_micron"))
+
+    log_value = stages.get("log") or hpwl.get("log")
+    log_path = Path(str(log_value)) if log_value else None
+    if log_path is not None and not log_path.is_absolute() and metrics_path is not None:
+        log_path = metrics_path.parent / log_path
+    if log_path is not None and log_path.is_file():
+        text = log_path.read_text(encoding="utf-8", errors="replace")
+        hpwl_global = hpwl_global or _first_float(r"^original HPWL\s+([0-9.+-eE]+)\s+u", text)
+        hpwl_global = hpwl_global or _first_float(r"^Original HPWL\s+([0-9.+-eE]+)\s+u", text)
+        hpwl_legalized = hpwl_legalized or _last_float(r"^legalized HPWL\s+([0-9.+-eE]+)\s+u", text)
+        hpwl_after_improve = hpwl_after_improve or _last_float(r"^Final HPWL\s+([0-9.+-eE]+)\s+u", text)
+        hpwl_final = hpwl_final or _last_float(
+            r"^\[INFO DPL-0022\]\s+HPWL after\s+([0-9.+-eE]+)\s+u", text
+        )
+
+    hpwl_global = hpwl_global if hpwl_global is not None else _float_or_none(hpwl.get("before_micron"))
+    hpwl_final = hpwl_final if hpwl_final is not None else _float_or_none(hpwl.get("after_micron"))
+    delta_legalization = (
+        None if hpwl_global is None or hpwl_legalized is None else hpwl_legalized - hpwl_global
+    )
+    delta_improve = (
+        None
+        if hpwl_legalized is None or hpwl_after_improve is None
+        else hpwl_after_improve - hpwl_legalized
+    )
+    delta_final = (
+        None if hpwl_global is None or hpwl_final is None else hpwl_final - hpwl_global
+    )
+
+    def pct(delta: float | None) -> float | None:
+        if delta is None or hpwl_global in (None, 0):
+            return None
+        return delta / hpwl_global * 100.0
+
+    return {
+        "HPWLg": hpwl_global,
+        "HPWL_legalized": hpwl_legalized,
+        "HPWL_after_improve": hpwl_after_improve,
+        "HPWL_final": hpwl_final,
+        "delta_HPWL_legalization": delta_legalization,
+        "delta_HPWL_improve": delta_improve,
+        "delta_HPWL_final": delta_final,
+        "delta_HPWL_legalization_percent": pct(delta_legalization),
+        "delta_HPWL_improve_percent": pct(delta_improve),
+        "delta_HPWL_final_percent": pct(delta_final),
+    }
+
+
 def summarize_metrics(
     metrics: Dict[str, Any],
     *,
+    metrics_path: Path | None = None,
     baseline_label: str | None = None,
     baseline_hpwl_after_micron: float | None = None,
     baseline_metrics_path: Path | None = None,
@@ -283,6 +362,7 @@ def summarize_metrics(
     manifest = metrics.get("manifest", {})
     legalization = metrics.get("legalization", {})
     hpwl = canonical_hpwl(metrics)
+    stage_hpwl = hpwl_stage_summary(metrics, metrics_path)
     engine = manifest.get("engine")
     legalizer_mode = legalization.get("legalizer_mode")
     confirmed_paths = {
@@ -310,6 +390,7 @@ def summarize_metrics(
         "hpwl_after_micron": hpwl_after,
         "hpwl_delta_micron": hpwl.get("delta_micron"),
         "hpwl_delta_percent": hpwl_delta_percent(hpwl),
+        "hpwl_stages": stage_hpwl,
         "runtime_seconds": metrics.get("runtime_seconds"),
         "setup_ws": metrics.get("timing_metrics", {}).get("setup_ws"),
         "setup_tns": metrics.get("timing_metrics", {}).get("setup_tns"),
@@ -612,6 +693,7 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
                     if metrics_data is None
                     else summarize_metrics(
                         metrics_data,
+                        metrics_path=metrics_path,
                         baseline_label=baseline_label,
                         baseline_hpwl_after_micron=baseline_hpwl,
                         baseline_metrics_path=baseline_path,
@@ -639,6 +721,7 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
         result["metrics_path"] = str(metrics_path)
         result["summary"] = summarize_metrics(
             metrics,
+            metrics_path=metrics_path,
             baseline_label=baseline_label,
             baseline_hpwl_after_micron=baseline_hpwl,
             baseline_metrics_path=baseline_path,

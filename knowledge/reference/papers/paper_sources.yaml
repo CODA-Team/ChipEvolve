@@ -59,6 +59,18 @@ papers:
     notes:
       - "Fetch to local cache for reading; do not commit unless redistribution policy is checked."
 
+  - id: gpu_dpo_lsmc_2026
+    title: "LSMC Meets GPU Acceleration: Scalable and High-Quality Multi-Row Detailed Placement"
+    role: "Detailed-placement optimization donor for MIS/global-swap/reorder kernels and LSMC large-step escape."
+    source_url: "https://vlsicad.ucsd.edu/Publications/Conferences/425/c425.pdf"
+    local_cache_name: "UCSD_c425_Detailed_Placement_Optimization.pdf"
+    git_policy: "do_not_commit_pdf_until_license_checked"
+    fetch_policy: "local_cache_ok"
+    notes:
+      - "GPU-DPO is built on OpenROAD detailed-placement concepts and targets high-utilization, multi-row detailed placement."
+      - "Paper-reported defaults include reorder window size 3, MIS problem size 64, LSMC kick ratio 0.10, and early-exit failure tolerance 5."
+      - "Primary idea to borrow for CPU/Optdp evolution: large-step perturbation followed by strong descent, not repeated unchanged random tails."
+
   - id: abacus_2008
     title: "Abacus: Fast Legalization of Standard Cell Circuits with Minimal Movement"
     role: "Row/cluster legalization donor reference."
