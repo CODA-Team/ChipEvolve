@@ -209,10 +209,7 @@ def discover_case_metrics(
     )
     summaries = [item for path in candidates if (item := summarize_metrics(path))]
 
-    by_line: dict[str, MetricSummary | None] = {
-        "openroad_dpl_flow": None,
-        "evolve_default": None,
-    }
+    by_line: dict[str, MetricSummary | None] = {line: None for line in CANONICAL_LINES}
     for summary in summaries:
         for line in CANONICAL_LINES:
             if is_canonical_baseline_summary(summary, line):

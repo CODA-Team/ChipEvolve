@@ -12,11 +12,14 @@
   message, or legality failed
 - compare only canonical `metrics.json:hpwl`, runtime, avg/max displacement
 - ignore bbox/proxy wins
-- clean canonical HPWL 5% below `openroad_dpl_flow` is a credible research
-  target, not a hard gate and not a ceiling
+- clean canonical HPWL 5% below the strongest clean canonical line is a
+  credible research target, not a hard gate and not a ceiling
 - keep the at-least-5% search belief unless canonical evidence shows the
   algorithmic space is exhausted
 - sub-1% HPWL gains over `evolve_default` are donor evidence, not success
+- repeated best HPWL, repeated donor code, or tiny improvements are plateau
+  evidence.  Treat a plateau as a signal to search for a different large HPWL
+  source, not as a reason to keep tuning the same local repair path.
 
 ## Review Focus
 
@@ -31,6 +34,9 @@
   from excessive random/end-point replay is a quality-only signal, not an
   effective donor, until a bounded implementation proves similar gain.
 - identify reusable donor code and why it works or fails
+- identify whether the round discovered a new HPWL source or only retuned an
+  existing donor.  A donor retune can be kept as a guardrail, but the next
+  packets must not all be donor retunes.
 - diagnose complexity: full rescans, endpoint explosion, repeated validation,
   unbounded loops, poor cache lifetime
 - diagnose execution waste separately from algorithm value
@@ -45,14 +51,15 @@
 - mark expensive incremental-only routes as non-promotable. Do not ask students
   to continue a path that only adds runtime for marginal HPWL; redirect them to
   a bounded structural mechanism.
+- mark tiny safety/metadata/tie-break/veto changes as non-promotable when they
+  do not expose a larger HPWL source.  Preserve the evidence, but redirect at
+  least one student to a stronger hypothesis rather than another small variant.
 - treat avg/max displacement as diagnostics, not hard success caps
 - next plans must cover legalization, improve placement, and mirror/orientation
-- next plans must not use Diamond, a Diamond-equivalent selector, or a plain
-  Diamond anchor as the initial legalizer; keep Diamond only as the comparison
-  baseline or optional reference check
-- classify Diamond-copy, Diamond-wrapper, or Diamond-as-real-producer routes as
-  negative evidence even if downstream improve placement makes the final HPWL
-  look better
+- next plans may use Diamond/openroad_dpl_flow, openroad_dpl_negotiation, or
+  evolve_default as the start-point evidence. If a Diamond-derived route wins or
+  fails, review the exact reused behavior, the evolved source changes, and the
+  stage where it helped or hurt.
 - classify wins from repeated unchanged improve-placement runs, random tails,
   or endpoint stacking as runtime-buying evidence, not effective donors, until
   the idea is distilled into one bounded mechanism. Do not penalize a slower
@@ -78,15 +85,27 @@
   placement, C mirror/orientation, and D optional coordination/selection when
   useful
 - every next student packet must include one explicit `HPWL source mechanism`
+- every next student packet must include a `breakthrough hypothesis`: why this
+  route could attack a materially larger remaining HPWL gap than the current
+  donor plateau
 - next plans should keep students free to pivot across algorithm, objective,
   flow order, candidate generation, data structures, and hybrids when evidence
   shows the current direction cannot plausibly make material progress toward
   the 5% research target
+- when a plateau is detected, at least half of the next packets should be
+  source-discovery or stage-co-optimization routes rather than narrow repairs
+  of the current final donor, unless there is clear evidence that the repair is
+  itself the large HPWL source.
 - for every next plan, explain the large HPWL opportunity: what HPWL loss source the
   student should attack, why it can be large enough to matter, and what metric
   evidence would prove or disprove the idea
 - for every next plan, include a runtime-control expectation: maximum endpoint
   family size, candidate cap or touched-region bound, and when to stop rerunning
   because the mechanism has already been tested
+- for every next plan that needs broader search, state whether parallel
+  candidate evaluation, OpenMP, thread-local caches, or deterministic reductions
+  are appropriate.  Encourage parallelism for independent scoring/probing loops
+  when it improves useful search depth without changing the algorithm into an
+  unbounded runtime trade.
 - if a route stalls, ask for a genuinely different hypothesis, not another
   constant-only retune

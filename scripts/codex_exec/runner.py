@@ -227,6 +227,12 @@ def build_command(
             "-o",
             str(last_message_path),
         ]
+        # `codex exec resume` does not expose `--sandbox`; without this, a
+        # resumed worker falls back to the user config and can hit the local
+        # bubblewrap `--perms` incompatibility even when the first turn used
+        # `--sandbox danger-full-access`.
+        if args.sandbox == "danger-full-access":
+            cmd.append("--dangerously-bypass-approvals-and-sandbox")
         if args.model:
             cmd.extend(["--model", args.model])
         if args.skip_git_repo_check:

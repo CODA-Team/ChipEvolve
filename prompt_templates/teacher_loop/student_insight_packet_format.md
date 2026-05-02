@@ -3,6 +3,7 @@
 - core idea:
 - large HPWL opportunity:
 - HPWL source mechanism:
+- breakthrough hypothesis:
 - stage donor being repaired:
 - evidence:
 - plan chain:
@@ -12,6 +13,7 @@
   D optional coordination:
 - function/state insertion points:
 - efficiency:
+- parallel/search implementation:
 - runtime-control:
 - low-ROI cutoff:
 - success target:

@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,11 @@ from typing import Any
 
 DEFAULT_ORFS_ROOT = Path(__file__).resolve().parents[2] / "OpenROAD-flow-scripts"
 DEFAULT_STATE_ROOT = Path(__file__).resolve().parents[1] / ".dpl_evolve_state"
+SCRIPT_ROOT = Path(__file__).resolve().parent
+if str(SCRIPT_ROOT) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_ROOT))
+
+from case_registry import get_case  # noqa: E402
 
 
 @dataclass
@@ -40,7 +46,13 @@ class StageRow:
 
 CANONICAL_BASELINES = (
     "baseline_probe_openroad_dpl_flow",
+    "baseline_probe_openroad_dpl_negotiation",
     "baseline_probe_evolve_default",
+)
+CANONICAL_LINES = (
+    "openroad_dpl_flow",
+    "openroad_dpl_negotiation",
+    "evolve_default",
 )
 
 
@@ -107,10 +119,12 @@ def fmt(value: float | None, digits: int = 1, suffix: str = "") -> str:
 
 
 def result_sort_key(result: str) -> tuple[int, int, int, str]:
-    if result.startswith("baseline_probe_openroad"):
+    if result.startswith("baseline_probe_openroad_dpl_flow"):
         return (0, 0, 0, result)
-    if result.startswith("baseline_probe_evolve"):
+    if result.startswith("baseline_probe_openroad_dpl_negotiation"):
         return (0, 1, 0, result)
+    if result.startswith("baseline_probe_evolve"):
+        return (0, 2, 0, result)
     match = re.search(r"iter_(\d+)_student_(\d+)", result)
     if match:
         return (1, int(match.group(1)), int(match.group(2)), result)
@@ -295,6 +309,81 @@ def round_case_id(state_root: Path, round_id: str) -> str:
     return ""
 
 
+def round_event_field(state_root: Path, round_id: str, field: str) -> str:
+    events = round_dir(state_root, round_id) / "events.jsonl"
+    if not events.is_file():
+        return ""
+    for line in events.read_text(encoding="utf-8", errors="replace").splitlines():
+        try:
+            event = json.loads(line)
+        except Exception:
+            continue
+        value = (event.get("fields") or {}).get(field)
+        if isinstance(value, str) and value:
+            return value
+    return ""
+
+
+def round_flow_variant(state_root: Path, round_id: str) -> str:
+    return round_event_field(state_root, round_id, "flow_variant")
+
+
+def metrics_line(metrics_path: Path) -> str:
+    try:
+        data = json.loads(metrics_path.read_text(encoding="utf-8"))
+    except Exception:
+        return ""
+    manifest = data.get("manifest")
+    if isinstance(manifest, dict):
+        line = manifest.get("line")
+        if isinstance(line, str):
+            return line
+    return ""
+
+
+def discover_reused_baseline_metrics(
+    *, orfs_root: Path, state_root: Path, round_id: str
+) -> dict[str, Path]:
+    """Find canonical baseline rows reused from an older baseline preflight.
+
+    Rounds launched with --reuse-baseline-preflight may only write the current
+    round's openroad_dpl_flow probe.  Teacher still compares against the latest
+    canonical baseline rows for all three lines, so the report should surface
+    those rows instead of printing misleading "missing" placeholders.
+    """
+    case_id = round_case_id(state_root, round_id)
+    flow_variant = round_flow_variant(state_root, round_id)
+    if not case_id or not flow_variant:
+        return {}
+    try:
+        case = get_case(case_id)
+    except SystemExit:
+        return {}
+    report_root = (
+        orfs_root
+        / "flow"
+        / "reports"
+        / case.platform
+        / case.design
+        / flow_variant
+        / "dpl_evolve_baseline"
+    )
+    if not report_root.exists():
+        return {}
+    by_line: dict[str, Path] = {}
+    candidates = sorted(
+        report_root.glob("*/metrics.json"), key=lambda path: path.stat().st_mtime
+    )
+    for metrics_path in candidates:
+        run_tag = metrics_path.parent.name
+        if "_student_" in run_tag or "_iter_" in run_tag:
+            continue
+        line = metrics_line(metrics_path)
+        if line in CANONICAL_LINES:
+            by_line[line] = metrics_path
+    return by_line
+
+
 def discovered_iteration_count(state_root: Path, round_id: str) -> int:
     count = 0
     for path in round_dir(state_root, round_id).glob("iter_*"):
@@ -456,6 +545,29 @@ def main() -> int:
             row = load_row(round_id, metrics_path)
             if row is not None:
                 rows.append(row)
+                seen_run_tags.add(metrics_path.parent.name)
+        present_results = {row.result for row in rows}
+        reused_baselines = discover_reused_baseline_metrics(
+            orfs_root=args.orfs_root,
+            state_root=args.state_root,
+            round_id=round_id,
+        )
+        for line, result in (
+            ("openroad_dpl_flow", "baseline_probe_openroad_dpl_flow"),
+            ("openroad_dpl_negotiation", "baseline_probe_openroad_dpl_negotiation"),
+            ("evolve_default", "baseline_probe_evolve_default"),
+        ):
+            if result in present_results:
+                continue
+            metrics_path = reused_baselines.get(line)
+            if metrics_path is None:
+                continue
+            row = load_row(round_id, metrics_path)
+            if row is not None:
+                row.result = result
+                row.evidence_kind = "metrics_reused"
+                rows.append(row)
+                present_results.add(result)
                 seen_run_tags.add(metrics_path.parent.name)
         for log_path in discover_logs(args.orfs_root, round_id):
             if log_path.parent.name in seen_run_tags:

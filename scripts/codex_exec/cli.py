@@ -18,7 +18,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--prompt-file", type=Path)
     parser.add_argument("--model")
     parser.add_argument("--profile")
-    parser.add_argument("--sandbox", default="workspace-write")
+    parser.add_argument(
+        "--sandbox",
+        default="danger-full-access",
+        help=(
+            "Sandbox mode passed to codex exec. Use danger-full-access by "
+            "default for this local experiment harness; workspace-write uses "
+            "bubblewrap and can fail before shell startup on older bwrap builds."
+        ),
+    )
     parser.add_argument("--skip-git-repo-check", action="store_true")
     parser.add_argument("--color", default="never")
     parser.add_argument(

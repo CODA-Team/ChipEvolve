@@ -1,24 +1,30 @@
 # Teacher Rules
 
 - Use `metrics.json:hpwl`; ignore proxy metrics.
-- Treat clean HPWL 5% below `openroad_dpl_flow` as a credible research target,
-  not a hard gate and not a ceiling.  Ask for routes that can reach or exceed
-  5% when their mechanism and runtime remain controlled.
-- Use `evolve_default` as an internal anchor and donor source when useful, but
-  do not let it replace the Diamond/openroad_dpl_flow target definition.
-- Do not assign Diamond, Diamond-equivalent selection, or a plain Diamond
-  anchor as the initial legalizer.  Diamond/openroad_dpl_flow is only a
-  comparison baseline and optional measurement reference.  The legalization
-  route itself must start from an evolved mechanism such as global differential
-  guidance, ALM/BGD-style placement, row-flow/cluster legalization,
-  negotiation-aware projection, or a hybrid of these.
-- Do not ask students to copy Diamond baseline code, wrap Diamond with a few
-  gates, or preserve Diamond as the real legal-state producer.  Students may
-  inspect Diamond only for legality checks, data structures, and measurement
-  references.
+- Treat clean HPWL 5% below the strongest clean canonical line as a credible
+  research target, not a hard gate and not a ceiling.  Ask for routes that can
+  reach or exceed 5% when their mechanism and runtime remain controlled.
+- Show the three canonical lines together before assigning routes:
+  `openroad_dpl_flow`, `openroad_dpl_negotiation`, and `evolve_default`.
+  Treat all three as legitimate evidence and donor/start-point choices. A
+  student may start from or hybridize Diamond, negotiation, or evolved code when
+  that is the strongest hypothesis for the case.
+- When assigning a route that uses Diamond/openroad_dpl_flow, make the expected
+  source-level exploration explicit: what behavior should be reused, what
+  should change, and how legalization/improve/mirror will be evaluated.
 - Before assigning students, state the likely source of the large HPWL
   opportunity from design evidence, prior results, source inspection, and
   project knowledge.
+- Do not let a small winning donor define the whole search.  When the best
+  lineage repeats, plateaus, or wins only by a tiny delta, keep it as a
+  regression guard but assign routes that look for a different large HPWL loss
+  source.  Examples of valid source searches include a new legal-state
+  objective, a different recoverable frontier, a stronger improve-placement
+  candidate generator, better legalization-to-improve coupling, or a new
+  mirror/orientation preservation mechanism.
+- Every round should include at least one breakthrough route whose goal is not
+  to tune the current donor, but to explain and attack a larger remaining HPWL
+  gap.  If all routes are donor repairs, the Teacher has been too conservative.
 - Do stage-wise attribution before choosing routes.  Separate final HPWL donors
   from stage donors: a candidate can be valuable if it improves legalization,
   improve placement, or mirror/orientation even when its final HPWL is weak.
@@ -32,10 +38,16 @@
 - Give each student a distinct aggressive route with one explicit `HPWL source
   mechanism`, a falsifiable metric outcome, and a reason it can reduce HPWL at
   the source.
+- For each student, require a short source-level diagnosis before coding:
+  which stage creates the remaining HPWL loss, which active function/state can
+  change that loss at the source, and why the route can be materially larger
+  than a constant retune or local donor repair.
 - Each route must cover legalization, improve placement, and
   mirror/orientation. Each stage needs its own plausible HPWL improvement path.
 - Provide a concise `plan chain`: A legalization, B improve placement, C
-  mirror/orientation, and D optional coordination/selection when useful.
+  mirror/orientation, and D optional coordination/selection when useful. The
+  chain should identify which canonical line(s) are the intended starting
+  evidence or donor for each stage.
 - Prefer plans where improve-placement knowledge is embedded into legalization:
   local HPWL deltas, residual-net queues, row/segment conflict prices, and
   orientation handoff should influence the legal state before the standalone
@@ -70,6 +82,12 @@
   reuse local HPWL deltas, maintain compact candidate queues, avoid full-net or
   full-cell rescans in inner loops, and use deterministic bounded search before
   considering any stochastic tail.
+- Encourage parallel high-performance exploration when the search is naturally
+  independent.  Students may use OpenMP or existing thread utilities for
+  candidate scoring, local HPWL delta batches, row/window probes, or feasibility
+  filters when they use thread-local scratch data and deterministic reduction.
+  Parallelism should increase the useful bounded search depth or scoring
+  accuracy, not hide an unbounded algorithm.
 - Runtime may be slower than baseline only when the HPWL gain or algorithmic
   evidence justifies it and the path can finish inside the student packet's
   ${student_runtime_multiplier}x
@@ -82,6 +100,9 @@
   useful only if its complexity is controlled and its mechanism can plausibly
   make material progress toward the 5% research target; otherwise assign a
   faster, more structural hypothesis.
+- If the prior review says a path is "safe", "metadata only", "tie-break",
+  "veto", or "small donor", do not keep assigning cosmetic variants of that
+  path unless it is explicitly connected to a new large HPWL source.
 - For each route, give a runtime-control plan: endpoint count, candidate cap,
   cache/reuse point, and the metric signal that justifies one more rerun.
   Time can buy quality, but repeated full evaluations without a named mechanism

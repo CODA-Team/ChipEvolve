@@ -17,13 +17,15 @@ Usage: run_baseline_suite.sh [options]
 
 Runs the canonical strict comparison bundle:
   1. openroad_dpl_flow
-  2. evolve_default
+  2. openroad_dpl_negotiation
+  3. evolve_default
 
 Options:
   --case ID                 Case id under problems/. Default: gcd_nangate45.
   --design-config PATH      Internal/debug override. Prefer --case.
   --flow-variant NAME       FLOW_VARIANT shared by all runs.
   --threads N               NUM_CORES passed to each run.
+  --jobs N                  Number of baseline lines to run concurrently. Default: 3.
   --input-stage NAME        Input placement stage. Default: 3_4_place_resized.
   --tag-prefix NAME         Prefix added to every run tag.
   --openroad-binary PATH    Optional explicit OpenROAD binary.
@@ -82,6 +84,7 @@ design_config=""
 case_id=""
 flow_variant=""
 threads=""
+jobs="3"
 input_stage="3_4_place_resized"
 tag_prefix=""
 openroad_binary=""
@@ -92,6 +95,7 @@ while [[ $# -gt 0 ]]; do
     --case) case_id="$2"; shift 2 ;;
     --flow-variant) flow_variant="$2"; shift 2 ;;
     --threads) threads="$2"; shift 2 ;;
+    --jobs) jobs="$2"; shift 2 ;;
     --input-stage) input_stage="$2"; shift 2 ;;
     --tag-prefix) tag_prefix="$2"; shift 2 ;;
     --openroad-binary) openroad_binary="$2"; shift 2 ;;
@@ -122,6 +126,10 @@ make_base=(make -C "${FLOW_HOME}" --no-print-directory DESIGN_CONFIG="${design_c
 if [[ -n "${threads}" ]]; then
   make_base+=(NUM_CORES="${threads}")
 fi
+if ! [[ "${jobs}" =~ ^[0-9]+$ ]] || [[ "${jobs}" -lt 1 ]]; then
+  echo "--jobs must be a positive integer, got: ${jobs}" >&2
+  exit 1
+fi
 
 print_make_var() {
   local var="$1"
@@ -129,13 +137,19 @@ print_make_var() {
 }
 
 reports_dir="$(normalize_flow_relpath "$(print_make_var REPORTS_DIR)")"
+results_dir="$(normalize_flow_relpath "$(print_make_var RESULTS_DIR)")"
 report_root="${reports_dir}/dpl_evolve_baseline"
 suite_summary_tsv="$(flow_abs "${report_root}/suite_runs.tsv")"
 mkdir -p "$(dirname "${suite_summary_tsv}")"
 
-cat > "${suite_summary_tsv}" <<'EOF'
-line_id	run_tag	metrics_json
-EOF
+input_snapshot_rel="${results_dir}/${input_stage}.odb"
+input_snapshot_abs="$(flow_abs "${input_snapshot_rel}")"
+if [[ -f "${input_snapshot_abs}" ]]; then
+  echo "Using existing input snapshot ${input_snapshot_rel} for ${flow_variant}."
+else
+  echo "Preparing input snapshot ${input_stage} for ${flow_variant} before parallel baseline runs..."
+  "${make_base[@]}" "${input_stage}"
+fi
 
 common_args=(
   --design-config "${design_config}"
@@ -161,20 +175,63 @@ run_case() {
   echo "==> Running ${line_id}"
   echo "    $(shell_join "${cmd[@]}")"
   "${cmd[@]}"
-
-  local metrics_json
-  metrics_json="$(flow_abs "${report_root}/${run_tag}/metrics.json")"
-  printf '%s\t%s\t%s\n' "${line_id}" "${run_tag}" "${metrics_json}" >> "${suite_summary_tsv}"
 }
 
-run_case "openroad_dpl_flow" "${tag_prefix}openroad_dpl_flow" \
-  "${SCRIPT_DIR}/run_openroad_dpl_flow.sh"
+write_suite_summary() {
+  cat > "${suite_summary_tsv}" <<'EOF'
+line_id	run_tag	metrics_json
+EOF
+  local metrics_json
+  local i
+  for i in "${!suite_line_ids[@]}"; do
+    metrics_json="$(flow_abs "${report_root}/${suite_run_tags[$i]}/metrics.json")"
+    printf '%s\t%s\t%s\n' "${suite_line_ids[$i]}" "${suite_run_tags[$i]}" "${metrics_json}" >> "${suite_summary_tsv}"
+  done
+}
 
-run_case "evolve_default" "${tag_prefix}evolve_default" \
+suite_line_ids=(
+  "openroad_dpl_flow"
+  "openroad_dpl_negotiation"
+  "evolve_default"
+)
+suite_run_tags=(
+  "${tag_prefix}openroad_dpl_flow"
+  "${tag_prefix}openroad_dpl_negotiation"
+  "${tag_prefix}evolve_default"
+)
+suite_runners=(
+  "${SCRIPT_DIR}/run_openroad_dpl_flow.sh"
+  "${SCRIPT_DIR}/run_openroad_dpl_negotiation.sh"
   "${SCRIPT_DIR}/run_evolve_default.sh"
+)
+
+failure=0
+if [[ "${jobs}" -le 1 ]]; then
+  for i in "${!suite_line_ids[@]}"; do
+    run_case "${suite_line_ids[$i]}" "${suite_run_tags[$i]}" "${suite_runners[$i]}" || failure=1
+  done
+else
+  active=0
+  for i in "${!suite_line_ids[@]}"; do
+    run_case "${suite_line_ids[$i]}" "${suite_run_tags[$i]}" "${suite_runners[$i]}" &
+    active=$((active + 1))
+    if [[ "${active}" -ge "${jobs}" ]]; then
+      wait -n || failure=1
+      active=$((active - 1))
+    fi
+  done
+  while [[ "${active}" -gt 0 ]]; do
+    wait -n || failure=1
+    active=$((active - 1))
+  done
+fi
+
+write_suite_summary
 
 echo
 echo "Suite complete."
 echo "  flow_variant: ${flow_variant}"
 echo "  summary_tsv: ${suite_summary_tsv}"
 cat "${suite_summary_tsv}"
+
+exit "${failure}"

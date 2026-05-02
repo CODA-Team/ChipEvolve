@@ -41,6 +41,15 @@ NOISY_CONTEXT_MARKERS = (
     "<" + "br>",
 )
 
+INFRASTRUCTURE_REVIEW_MARKERS = (
+    "bwrap: Unknown option --perms",
+    "could not read `teacher_review_artifacts.md`",
+    "could not read teacher_review_artifacts.md",
+    "Blocked before review",
+    "Blocked: the local command tool is failing",
+    "every shell command is failing",
+)
+
 
 def read_text_excerpt(path: Path, *, max_chars: int = 6000) -> str:
     if not path.exists():
@@ -65,6 +74,12 @@ def previous_teacher_review_excerpt(
     text = review_path.read_text(encoding="utf-8", errors="replace").strip()
     if not text:
         return f"Empty: `{review_path}`"
+    if any(marker in text for marker in INFRASTRUCTURE_REVIEW_MARKERS):
+        return (
+            "Previous Teacher review omitted because it only recorded an "
+            "infrastructure/tooling failure. Use the previous child metrics, "
+            "source backups, and peer packet for evidence instead."
+        )
     if len(text) <= max_chars:
         return text
     return focused_message_excerpt(text, max_chars=min(max_chars, 1200))
@@ -846,9 +861,10 @@ the exact blocker and do not call the candidate successful.
 - This packet is for one outer Teacher/Student iteration.
 - Required source surface: modify legalization, improve placement, and
   mirror/orientation.
-- Do not copy Diamond baseline code as the solution, wrap Diamond with small
-  gates, or keep Diamond as the real legal-state producer.  Diamond may be read
-  only for legality/data-structure/metric reference.
+- You may use any canonical baseline line as a source donor or start-point
+  hypothesis, including Diamond/openroad_dpl_flow. The evaluation still runs
+  through the evolved commands, so report which line influenced the source
+  changes and how the evolved behavior differs.
 - Do not buy HPWL by simply running improve placement more times, repeating
   random tails, or stacking endpoints.  Distill any such clue into one bounded
   mechanism.  It is encouraged to spend available timeout budget on a deeper

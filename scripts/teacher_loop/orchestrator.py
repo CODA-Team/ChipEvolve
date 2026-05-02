@@ -37,6 +37,7 @@ from scripts.teacher_loop.common import (
 
 from scripts.teacher_loop.evidence import (
     baseline_suite_complete,
+    child_artifact_status,
     discover_case_metrics,
     ensure_baseline_suite,
     round_scoreboard,
@@ -283,6 +284,15 @@ def main(argv: list[str] | None = None) -> int:
         prompt_dir = iteration_dir / "prompts"
         packet_dir = iteration_dir / "packet"
         prompt_dir.mkdir(parents=True, exist_ok=True)
+        packet_dir.mkdir(parents=True, exist_ok=True)
+        for stale_packet in (
+            "teacher_review_artifacts.md",
+            "child_artifact_status.md",
+            "operation_status.json",
+        ):
+            stale_path = packet_dir / stale_packet
+            if stale_path.exists():
+                stale_path.unlink()
         logger.event(
             "iteration",
             "generate_start",
@@ -798,6 +808,37 @@ def main(argv: list[str] | None = None) -> int:
                     flow_variant=args.flow_variant,
                     child_rounds=child_rounds,
                 )
+                artifact_statuses = [
+                    child_artifact_status(
+                        runtime=runtime,
+                        case_id=args.case,
+                        flow_variant=args.flow_variant,
+                        child=child,
+                    )
+                    for child in child_rounds
+                ]
+                valid_children = [
+                    child.student_id
+                    for child, status in zip(child_rounds, artifact_statuses)
+                    if status.get("status") == "valid"
+                ]
+                if not valid_children and child_rounds:
+                    problem_text = "; ".join(
+                        f"{child.student_id}: {','.join(status.get('problems') or [])}"
+                        for child, status in zip(child_rounds, artifact_statuses)
+                    )
+                    print(
+                        "[optimize_case] error: all child artifacts are invalid; "
+                        f"stopping before Teacher review. {problem_text}",
+                        file=sys.stderr,
+                    )
+                    logger.event(
+                        "student",
+                        "all_artifacts_invalid",
+                        iteration=iter_name(iteration),
+                        problems=problem_text,
+                    )
+                    return 3
                 write_review_artifacts_packet(
                     path=packet_dir / "teacher_review_artifacts.md",
                     runtime=runtime,

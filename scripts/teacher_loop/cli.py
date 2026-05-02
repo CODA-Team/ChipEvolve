@@ -109,7 +109,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument("--profile")
-    parser.add_argument("--sandbox", default="workspace-write")
+    parser.add_argument(
+        "--sandbox",
+        default="danger-full-access",
+        help=(
+            "Sandbox mode passed to codex exec. The default bypasses Codex's "
+            "bubblewrap sandbox because older bwrap builds on this machine do "
+            "not support the options required by workspace-write."
+        ),
+    )
     parser.add_argument(
         "--child-cwd",
         type=Path,

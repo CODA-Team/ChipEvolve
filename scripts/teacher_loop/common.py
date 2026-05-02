@@ -16,6 +16,7 @@ START_KINDS = ("framework", "diamond", "prepared")
 
 CANONICAL_LINES = (
     "openroad_dpl_flow",
+    "openroad_dpl_negotiation",
     "evolve_default",
 )
 

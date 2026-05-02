@@ -21,15 +21,21 @@
 
 - canonical metric: `metrics.json:hpwl` from OpenROAD/DPL pin-based logs
 - ignore `hpwl_proxy` for promotion
-- research belief: clean canonical HPWL at least 5% below `openroad_dpl_flow`
-  is achievable, but 5% is not a hard gate and not a ceiling
+- research belief: clean canonical HPWL at least 5% below the strongest clean
+  canonical line is achievable, but 5% is not a hard gate and not a ceiling
 - Teacher stance: assume there is real optimization space at and beyond 5%
   until the evidence proves otherwise. Explain where that space may come from
   before assigning students.
+- plateau stance: when the best result repeats or only improves by a tiny
+  amount, do not overfit the next round to that donor's local repair knobs.
+  Keep the donor as a guardrail, but deliberately search for a new large HPWL
+  source in the stage interaction, objective, candidate generator, or data
+  structure.
 - per-iteration target: discover mechanisms that move toward or beyond that 5%
   research target;
-  treat `evolve_default` as an internal anchor/donor when useful, and treat
-  sub-1% wins as donor evidence rather than success
+  compare `openroad_dpl_flow`, `openroad_dpl_negotiation`, and
+  `evolve_default` together, and treat sub-1% wins as donor evidence rather
+  than success
 - runtime does not need to match baseline, but student evaluations are killed
   at ${student_runtime_multiplier}x the canonical `openroad_dpl_flow` baseline runtime.  Avoid unbounded
   scans and uncontrolled complexity.
@@ -41,17 +47,22 @@
   If legalization and mirror/orientation are cheap, spend the remaining
   timeout budget on one deeper bounded improve-placement mechanism with a clear
   HPWL source, cache plan, and stop condition.
+- high-performance exploration may use parallel candidate evaluation, OpenMP,
+  thread-local scratch buffers, and deterministic reductions when the work is
+  independent and the result remains reproducible. Spend threads on deeper
+  bounded search or more accurate local HPWL scoring, not on repeated unchanged
+  endpoint runs.
 - editable flow: `detailed_placement_evolve -> improve_placement_evolve -> optimize_mirroring_evolve`
 - every valid student attempt should change legalization, improve placement,
   and mirror/orientation
 - final HPWL depends on the interaction of these stages.  Useful changes should
   create, consume, and preserve stage handoff state rather than betting all
   quality on one isolated stage.
-- do not copy Diamond as the legal-state producer and do not buy quality by
-  rerunning unchanged improve placement.  Improve placement itself is an
-  editable research stage: change its candidate generation, objective,
-  acceptance policy, local state, or handoff consumers when that is the best
-  way to recover HPWL.
+- Diamond/openroad_dpl_flow, negotiation, and evolve_default are all valid
+  donor/start-point evidence. Students may explore any of them, but should
+  explain the source behavior they reuse or change. Do not buy quality by
+  rerunning unchanged improve placement; improve placement itself is an
+  editable research stage.
 
 ## Design Characteristics
 

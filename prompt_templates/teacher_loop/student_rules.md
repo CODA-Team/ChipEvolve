@@ -6,15 +6,18 @@
 - Edit only your private `dpl_evolve` source.
 - Keep `detailed_placement_evolve -> improve_placement_evolve -> optimize_mirroring_evolve` callable.
 - Modify all three evolved stages: legalization, improve placement, and mirror/orientation.
-- Do not use Diamond, a Diamond-equivalent selector, or a plain Diamond anchor
-  as the initial legalizer for this attempt.  Diamond may be used only as a
-  metric baseline or reference check.  Your legal placement must be generated
-  by the evolved legalization mechanism before improve placement and mirror run.
-- Do not copy Diamond baseline code as the solution, and do not wrap Diamond
-  with small gates to claim an evolved legalizer.  Reading Diamond for legality,
-  data structures, or metrics is allowed; the legal-state producer must change.
+- The three canonical lines are all usable evidence and donor/start-point
+  choices: `openroad_dpl_flow`, `openroad_dpl_negotiation`, and
+  `evolve_default`. You may explore the Diamond line, the negotiation line, the
+  evolved line, or a hybrid of them. If you borrow from Diamond, state exactly
+  what source-level behavior you reused or changed and why it helps this case.
 - Implement Teacher's HPWL source mechanism as the primary route, but trust source-level evidence. If the source contradicts the plan or reveals a stronger route, adjust and report why.
 - You may change algorithms, objectives, candidate generation, data structures, flow order inside evolved commands, and stage handoff.
+- Before coding, do a focused source-level diagnosis of the remaining HPWL
+  gap.  Identify the active function/state where the gap can be changed at the
+  source, not only the donor knob you were given.  If the assigned route looks
+  like another tiny donor retune, strengthen it into a larger source mechanism
+  and report the reasoning.
 - Optimize canonical `metrics.json:hpwl`; `hpwl_proxy` is debug-only.
 - Report stage-wise HPWL from `metrics.json:hpwl_stages` when present, or from
   the OpenROAD/DPL legalize log: `HPWLg`, `delta HPWLlg`,
@@ -33,6 +36,11 @@
   archaeology. If a generated helper fails, fix your source change or report the
   helper error as the blocker.
 - Plan A/B/C: legalization, improve placement, mirror/orientation. Implement all three before judging the idea.
+- Your implementation should be capable of discovering a large improvement, not
+  only preserving a small donor.  Treat existing donors as evidence and
+  regression guards, but search for larger mechanisms in objectives,
+  frontier/candidate generation, stage handoff, local HPWL scoring, or
+  co-optimization flow.
 - Build at least one explicit legalization/improve co-optimization link: move
   improve-placement scoring, candidate choice, local HPWL deltas, residual-net
   priorities, or orientation handoff into the legal-state generation path.
@@ -56,6 +64,11 @@
 - Control runtime explicitly: cap endpoints and candidate lists, reuse cached
   touched data, log enough counters to explain cost, and remove duplicate
   endpoints before adding more expensive search.
+- Use high-performance parallel exploration when it is natural.  OpenMP,
+  thread-local scratch buffers, parallel candidate scoring, and deterministic
+  reductions are encouraged for independent row/window/candidate/local-HPWL
+  probes.  Parallelism should let you evaluate a stronger bounded mechanism
+  within the timeout; it must not mask an unbounded or duplicate search.
 - Do not chase small HPWL deltas with a slow or unbounded implementation. If an
   expensive path is not plausibly on track for material progress toward the 5%
   research target, replace the mechanism instead of extending the run.
@@ -79,6 +92,9 @@
 - Aggressive case-focused change; no default-equivalent behavior.
 - Bounded candidates, cached touched data, controlled complexity.
 - No avoidable hot-loop `O(n^2)`, full-grid scans, or full-net recomputation inside candidate loops.
+- Prefer data structures that make deeper search cheap: compact dirty-edge
+  queues, per-net other-pin boxes, row/segment candidate caches, local legality
+  caches, and thread-local score buffers merged by deterministic reduction.
 - For `Optdp` work, precompute touched nets or local boxes, cache repeated
   HPWL deltas, keep candidate queues compact, and make the cost of each extra
   candidate explicit in telemetry.

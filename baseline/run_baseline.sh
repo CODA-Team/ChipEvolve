@@ -18,6 +18,7 @@ Usage: run_baseline.sh --line NAME [options]
 
 Canonical strict-only lines:
   openroad_dpl_flow          OpenROAD detailed_placement, improve_placement, optimize_mirroring.
+  openroad_dpl_negotiation   OpenROAD detailed_placement -use_negotiation, improve_placement, optimize_mirroring.
   evolve_default             detailed_placement_evolve, improve_placement_evolve, optimize_mirroring_evolve.
 
 Options:
@@ -98,7 +99,7 @@ if [[ -z "${line}" ]]; then
 fi
 
 case "${line}" in
-  openroad_dpl_flow|evolve_default) ;;
+  openroad_dpl_flow|openroad_dpl_negotiation|evolve_default) ;;
   *)
     echo "Unsupported canonical line: ${line}" >&2
     usage >&2
@@ -197,6 +198,13 @@ case "${line}" in
     command_set="classic"
     legalizer_mode="openroad_dpl_flow"
     detail_tcl="${SCRIPT_DIR}/detail_place_openroad.tcl"
+    check_cmd="check_placement"
+    ;;
+  openroad_dpl_negotiation)
+    manifest_engine="openroad_dpl_negotiation"
+    command_set="classic_negotiation"
+    legalizer_mode="openroad_dpl_negotiation"
+    detail_tcl="${SCRIPT_DIR}/detail_place_openroad_negotiation.tcl"
     check_cmd="check_placement"
     ;;
   evolve_default)
