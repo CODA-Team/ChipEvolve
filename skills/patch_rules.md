@@ -17,7 +17,6 @@ explicitly expands the scope.
   `tools/OpenROAD/src/dpl_evolve/src/optimization/` and
   `tools/OpenROAD/src/dpl_evolve/src/objective/`
 - `tools/OpenROAD/src/dpl_evolve/src/Optdp.cpp`
-- `tools/OpenROAD/src/dpl_evolve/src/OptMirror.cpp`
 - existing `tools/OpenROAD/src/dpl_evolve/src/Place.cpp` or
   `NegotiationLegalizer*` files only when borrowing a specific donor mechanism.
 
@@ -38,8 +37,8 @@ explicitly asks for old family-flow evidence.
 ## Patch Style
 
 - Change one coherent mechanism at a time.  For Teacher/Student rounds, that
-  mechanism may span legalization, improve placement, mirroring, and their
-  shared objective/handoff.
+  mechanism may span legalization/detailed placement, improve placement, and
+  their shared objective/handoff.
 - Keep `detailed_placement_evolve` as the primary evolved placement command.
 - Keep evaluator, scoring, and ORFS flow scripts locked.
 - If a Tcl option is added, update both the Tcl wrapper and C++ receiver.

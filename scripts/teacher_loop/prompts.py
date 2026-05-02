@@ -859,8 +859,8 @@ the exact blocker and do not call the candidate successful.
 ## Per-Iteration Execution Budget
 
 - This packet is for one outer Teacher/Student iteration.
-- Required source surface: modify legalization, improve placement, and
-  mirror/orientation.
+- Required source surface: modify legalization/detailed placement and improve
+  placement.
 - You may use any canonical baseline line as a source donor or start-point
   hypothesis, including Diamond/openroad_dpl_flow. The evaluation still runs
   through the evolved commands, so report which line influenced the source
@@ -870,14 +870,13 @@ the exact blocker and do not call the candidate successful.
   mechanism.  It is encouraged to spend available timeout budget on a deeper
   bounded improve-placement algorithm when the source change modifies
   candidates, objective, acceptance, local state, or handoff consumption.
-- Work through the assigned mechanism concretely: plan related edits A/B/C for
-  legalization, improve placement, and mirror/orientation; implement all three;
-  add at least one legalization/improve co-optimization link where
-  improve-placement scoring, candidate choice, local HPWL deltas, residual-net
-  priorities, or orientation handoff affects legal-state generation;
-  make the improve-placement edit concrete in `Optdp` or detailed-improvement
-  support code rather than only changing an endpoint script;
-  build and evaluate; inspect canonical
+- Work through the assigned mechanism concretely: plan related edits A/B for
+  legalization/detailed placement and improve placement; implement both; add at
+  least one legalization/improve co-optimization link where improve-placement
+  scoring, candidate choice, local HPWL deltas, residual-net priorities, or
+  handoff state affects legal-state generation; make the improve-placement edit
+  concrete in `Optdp` or detailed-improvement support code rather than only
+  changing an endpoint script; build and evaluate; inspect canonical
   `metrics.json:hpwl`, `metrics.json:hpwl_stages` when present, plus the
   relevant OpenROAD log; revise the algorithm when the result is weak or
   illegal; rebuild and re-evaluate; keep the best clean candidate.
@@ -998,8 +997,10 @@ Write this file before your final answer:
 Required sections:
 
 - `Hypothesis`: the major flow or algorithm idea you tried.
-- `Mechanism`: where it changes `detailed_placement_evolve`,
-  `improve_placement_evolve`, or `optimize_mirroring_evolve`.
+- `Mechanism`: where it changes `detailed_placement_evolve` and/or
+  `improve_placement_evolve`.  If downstream `optimize_mirroring_evolve`
+  changes the final HPWL, describe it only as evaluation evidence, not as a
+  modified mechanism.
 - `Result`: stage-wise HPWL deltas, final HPWL/runtime/displacement/legality
   versus baseline.
 - `Causal lesson`: what future students should borrow or avoid.

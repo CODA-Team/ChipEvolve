@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Build a compact packet for DPL-Evolve full-flow framework edits.
+"""Build a compact packet for DPL-Evolve legalize/improve framework edits.
 
 `detailed_placement_evolve` is the stable legalize entrypoint, followed by the
-evolved improve-placement and mirror/orientation steps.  Agents should evolve a
-coherent legalize/improve/mirror mechanism in private `dpl_evolve` source while
-using archived algorithms only as donors.
+evolved improve-placement step. Agents should evolve a coherent
+legalize/improve mechanism in private `dpl_evolve` source while using archived
+algorithms only as donors. Downstream optimize-mirroring may remain in
+evaluation, but it is not part of the active patch surface.
 """
 from __future__ import annotations
 
@@ -33,7 +34,6 @@ FRAMEWORK_SURFACE = {
     "header_files": [
         "adapters/science_codeevolve/patch_surface.yaml",
         "tools/OpenROAD/src/dpl_evolve/include/dpl_evolve/Opendp.h",
-        "tools/OpenROAD/src/dpl_evolve/include/dpl_evolve/OptMirror.h",
         "tools/OpenROAD/src/dpl_evolve/src/EvolveLegalizer.h",
         "tools/OpenROAD/src/dpl_evolve/src/EvolveContext.h",
         "tools/OpenROAD/src/dpl_evolve/src/EvolveTelemetry.h",
@@ -42,18 +42,17 @@ FRAMEWORK_SURFACE = {
         "tools/OpenROAD/src/dpl_evolve/src/optimization/detailed_manager.h",
         "tools/OpenROAD/src/dpl_evolve/src/objective/detailed_hpwl.h",
     ],
-    "symbol": "dpl_evolve legalize/improve/mirror flow",
+    "symbol": "dpl_evolve legalize/improve flow",
     "allowed_patch_modes": [
         "stage_ordering",
         "stage_guarding",
         "cross_stage_cooptimization",
         "shared_objective_handoff",
-        "legalize_improve_mirror_coordination",
+        "legalize_improve_coordination",
         "relaxed_guidance_stage",
         "assignment_donor_stage",
         "full_legalization_stage",
         "detailed_improvement_flow",
-        "mirror_or_orientation_flow",
         "objective_redesign",
         "bounded_candidate_generation",
         "bounded_polish_stage",
@@ -185,7 +184,7 @@ def packet_markdown(packet: dict[str, Any]) -> str:
         "",
         "## Direction",
         "- Keep `detailed_placement_evolve` as the primary evolved placement command.",
-        "- Patch private `dpl_evolve` source across legalize, improve placement, mirror/orientation, and their handoff.",
+        "- Patch private `dpl_evolve` source across legalization/detailed placement, improve placement, and their handoff.",
         "- Use reference algorithms as donors, then implement a clean, high-performance mechanism in `dpl_evolve`.",
         "- Treat the stage flow as a scaffold; implementation details must be justified by canonical evaluator evidence.",
         "",
@@ -266,7 +265,6 @@ def build_packet(problem_dir: Path, out_dir: Path) -> dict[str, Any]:
             "knowledge/CONTEXT_AUDIT.md",
             FRAMEWORK_SURFACE["file"],
             "tools/OpenROAD/src/dpl_evolve/src/Optdp.cpp",
-            "tools/OpenROAD/src/dpl_evolve/src/OptMirror.cpp",
             "tools/OpenROAD/src/dpl_evolve/src/LegalmGuidance.cpp",
             "tools/OpenROAD/src/dpl_evolve/src/LegalmFullLegalization.cpp",
             "tools/OpenROAD/src/dpl_evolve/src/LegalmRowAssignment.cpp",
@@ -276,8 +274,8 @@ def build_packet(problem_dir: Path, out_dir: Path) -> dict[str, Any]:
         ],
         "allowed_actions": [
             "Edit only `tools/OpenROAD/src/dpl_evolve` in a prepared private variant source.",
-            "Implement coherent full-flow changes across legalization, improve placement, mirror/orientation, and their shared handoff.",
-            "Use reference algorithms to implement bounded legalize, improve, and mirror mechanisms; avoid one-stage-only attempts.",
+            "Implement coherent flow changes across legalization/detailed placement, improve placement, and their shared handoff.",
+            "Use reference algorithms to implement bounded legalize and improve mechanisms; avoid one-stage-only attempts.",
             "Add or refine `EvolveTelemetry` counters that explain stage behavior.",
         ],
         "forbidden_actions": [
@@ -297,7 +295,7 @@ def build_packet(problem_dir: Path, out_dir: Path) -> dict[str, Any]:
         "required_final_note": [
             "Touched files and stage owner.",
             "Mechanism implemented and reference donor used.",
-            "Legalization change, improve-placement change, mirror/orientation change, and any shared handoff used between them.",
+            "Legalization/detailed-placement change, improve-placement change, and any shared handoff used between them.",
             "Build command and private binary path.",
             "AES/JPEG result paths when available.",
             "Telemetry snippet, expected complexity, and remaining failure mode.",

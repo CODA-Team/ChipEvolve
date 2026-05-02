@@ -25,8 +25,7 @@
 
 - identify the real mechanism, not the claimed mechanism
 - compare students against baseline and peers
-- perform stage-wise attribution: legalization, improve placement, final mirror
-  contribution, runtime, and which stage caused the gain or loss
+- perform stage-wise attribution: legalization, improve placement, downstream final-pass contribution, runtime, and which active stage caused the gain or loss
 - classify reusable evidence as `final donor`, `stage donor`, or `negative
   evidence`; do not let the final HPWL winner hide a weaker-final candidate
   whose earlier stage clearly improved
@@ -55,7 +54,7 @@
   do not expose a larger HPWL source.  Preserve the evidence, but redirect at
   least one student to a stronger hypothesis rather than another small variant.
 - treat avg/max displacement as diagnostics, not hard success caps
-- next plans must cover legalization, improve placement, and mirror/orientation
+- next plans must cover legalization/detailed placement and improve placement
 - next plans may use Diamond/openroad_dpl_flow, openroad_dpl_negotiation, or
   evolve_default as the start-point evidence. If a Diamond-derived route wins or
   fails, review the exact reused behavior, the evolved source changes, and the
@@ -77,13 +76,10 @@
   loss is dominated by poor after-improve recovery. The plan should distinguish
   real `Optdp` algorithm changes from script/telemetry-only changes.
 - judge co-optimization explicitly: did legalization expose recoverable local
-  choices, did improve placement exploit them efficiently, and did
-  mirror/orientation preserve or improve the result.
+  choices, and did improve placement exploit them efficiently.
 - next plans must include at least one `stage donor repair route` when any
   student improved a stage but lost the benefit in a later stage
-- next plans must include an ordered `plan chain`: A legalization, B improve
-  placement, C mirror/orientation, and D optional coordination/selection when
-  useful
+- next plans must include an ordered `plan chain`: A legalization/detailed placement, B improve placement, and C optional coordination/selection when useful
 - every next student packet must include one explicit `HPWL source mechanism`
 - every next student packet must include a `breakthrough hypothesis`: why this
   route could attack a materially larger remaining HPWL gap than the current

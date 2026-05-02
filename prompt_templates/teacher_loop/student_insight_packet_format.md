@@ -7,10 +7,9 @@
 - stage donor being repaired:
 - evidence:
 - plan chain:
-  A legalization:
+  A legalization/detailed placement:
   B improve placement:
-  C mirror/orientation:
-  D optional coordination:
+  C optional coordination:
 - function/state insertion points:
 - efficiency:
 - parallel/search implementation:

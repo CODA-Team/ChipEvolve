@@ -5,7 +5,8 @@
 - Execute the assigned Teacher packet. Do not redo Teacher's global review.
 - Edit only your private `dpl_evolve` source.
 - Keep `detailed_placement_evolve -> improve_placement_evolve -> optimize_mirroring_evolve` callable.
-- Modify all three evolved stages: legalization, improve placement, and mirror/orientation.
+- Modify only the active patch surface for this track: legalization/detailed placement and improve placement.
+- Do not edit downstream optimize-mirroring code unless the task explicitly reopens that scope; current evidence says its HPWL headroom is too small for this evolution loop.
 - The three canonical lines are all usable evidence and donor/start-point
   choices: `openroad_dpl_flow`, `openroad_dpl_negotiation`, and
   `evolve_default`. You may explore the Diamond line, the negotiation line, the
@@ -35,15 +36,15 @@
   call `ar`, `ranlib`, `nm`, `strings`, `ldd`, `readelf`, or equivalent binary
   archaeology. If a generated helper fails, fix your source change or report the
   helper error as the blocker.
-- Plan A/B/C: legalization, improve placement, mirror/orientation. Implement all three before judging the idea.
+- Plan A/B: legalization/detailed placement and improve placement. Implement both before judging the idea.
 - Your implementation should be capable of discovering a large improvement, not
   only preserving a small donor.  Treat existing donors as evidence and
   regression guards, but search for larger mechanisms in objectives,
   frontier/candidate generation, stage handoff, local HPWL scoring, or
   co-optimization flow.
 - Build at least one explicit legalization/improve co-optimization link: move
-  improve-placement scoring, candidate choice, local HPWL deltas, residual-net
-  priorities, or orientation handoff into the legal-state generation path.
+  improve-placement scoring, candidate choice, local HPWL deltas, or
+  residual-net priorities into the legal-state generation path.
 - Also make improve placement a real algorithmic edit, not only a script
   string or telemetry change. Valid improve-placement work changes candidate
   generation, ordering, local HPWL objective, acceptance/rollback policy,
@@ -52,9 +53,9 @@
   source changes around candidate queues, affected-net HPWL delta computation,
   move/swap/window evaluation, acceptance policy, local legality checks, and
   handoff-state consumers over superficial endpoint-script changes.
-- Treat final HPWL as a product of stage co-optimization. Legalization,
-  improve placement, and mirror/orientation should pass useful state to each
-  other; do not bet the whole attempt on only one stage.
+- Treat final HPWL as a product of legalization/improve co-optimization.
+  Legalization and improve placement should pass useful state to each other;
+  do not bet the whole attempt on only one stage.
 - Build and evaluate; inspect canonical `metrics.json:hpwl` and the relevant OpenROAD log.
 - If the result is weak or illegal, revise the algorithm or commit/selection logic, rebuild/evaluate, and keep the best clean candidate.
 - Revisions must change the mechanism, not only constants.
@@ -100,9 +101,9 @@
   candidate explicit in telemetry.
 - Runtime may exceed baseline only inside the generated ${student_runtime_multiplier}x timeout when the
   HPWL gain or algorithmic evidence justifies it.
-- Runtime savings from cheap legalization or mirror work should be reallocated
-  to the strongest bounded improve-placement mechanism before declaring the
-  attempt finished.
+- Runtime savings from cheap legalization work should be reallocated to the
+  strongest bounded improve-placement mechanism before declaring the attempt
+  finished.
 - Low-ROI runtime growth is a failed implementation path, not a donor. Prefer a
   simpler bounded algorithm with a clear HPWL source over endpoint stacking.
 - Runtime must stay explainable. If a run becomes several times slower than
@@ -113,7 +114,7 @@
 
 ## Final Report
 
-Include a compact table with rows: legalization, improve placement, mirror/orientation, optional coordination. For each row, name the exact function/state changed and behavior change.
+Include a compact table with rows: legalization/detailed placement, improve placement, optional coordination. For each row, name the exact function/state changed and behavior change.
 
 Also report touched files, mechanism, stage-wise HPWL deltas,
 canonical HPWL/runtime/displacement delta, legality, metrics path, diff path,

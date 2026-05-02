@@ -19,7 +19,7 @@ Default for loop-driven Codex turns:
 
 - read `patch_rules.md`
 - implement one coherent mechanism on the assigned private `dpl_evolve` source
-- touch legalization, improve placement, mirror/orientation, or their shared
+- touch legalization/detailed placement, improve placement, or their shared
   objective/handoff as directed by Teacher
 - let the orchestrator-owned packet decide whether this worker should build
   and evaluate

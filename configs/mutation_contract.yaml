@@ -47,7 +47,6 @@ allowed_patch_surfaces:
       - candidate_generation
       - commit_policy
       - legalize_output_consumption
-      - mirror_input_preparation
       - cross_stage_handoff
   - file: tools/OpenROAD/src/dpl_evolve/src/optimization/detailed.cxx
     rationale: "Detailed-improvement optimizer internals."
@@ -56,19 +55,6 @@ allowed_patch_surfaces:
       - touched_metric_cache
       - bounded_polish_mechanism
       - high_performance_data_structure
-  - file: tools/OpenROAD/src/dpl_evolve/src/optimization/detailed_orient.cxx
-    rationale: "Mirror/orientation optimization implementation."
-    allowed_modes:
-      - mirror_flow_mechanism
-      - orientation_hpwl_delta
-      - improve_output_consumption
-      - legalize_reference_consumption
-      - cross_stage_handoff
-  - file: tools/OpenROAD/src/dpl_evolve/src/optimization/detailed_orient.h
-    rationale: "Mirror/orientation optimization declarations."
-    allowed_modes:
-      - mirror_flow_api
-      - cross_stage_state
 forbidden_paths:
   - baseline
   - scripts
@@ -130,5 +116,5 @@ edit_policy:
   tier_2:
     description: "Add helpers or broader stage infrastructure only when the task explicitly needs a new interface."
 notes:
-  - "Codex must prefer bounded algorithmic mechanisms with explicit rationale tied to the legalize/improve/mirror flow."
+  - "Codex must prefer bounded algorithmic mechanisms with explicit rationale tied to the legalize/improve flow."
   - "Every accepted patch should map to one packet, one case objective, and one teacher/student review record."

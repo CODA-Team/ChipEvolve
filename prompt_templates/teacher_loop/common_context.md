@@ -44,20 +44,23 @@
   structural mechanisms that can plausibly reach or exceed the 5% research
   target.
 - runtime budget is a resource to allocate, not a baseline-matching target.
-  If legalization and mirror/orientation are cheap, spend the remaining
-  timeout budget on one deeper bounded improve-placement mechanism with a clear
-  HPWL source, cache plan, and stop condition.
+  If legalization is cheap, spend the remaining timeout budget on one deeper
+  bounded improve-placement mechanism with a clear HPWL source, cache plan,
+  and stop condition.
 - high-performance exploration may use parallel candidate evaluation, OpenMP,
   thread-local scratch buffers, and deterministic reductions when the work is
   independent and the result remains reproducible. Spend threads on deeper
   bounded search or more accurate local HPWL scoring, not on repeated unchanged
   endpoint runs.
-- editable flow: `detailed_placement_evolve -> improve_placement_evolve -> optimize_mirroring_evolve`
-- every valid student attempt should change legalization, improve placement,
-  and mirror/orientation
-- final HPWL depends on the interaction of these stages.  Useful changes should
-  create, consume, and preserve stage handoff state rather than betting all
-  quality on one isolated stage.
+- callable flow: `detailed_placement_evolve -> improve_placement_evolve -> optimize_mirroring_evolve`
+- editable patch surface for this track: `detailed_placement_evolve` and
+  `improve_placement_evolve` only
+- optimize mirroring remains a downstream evaluation pass, but current evidence
+  shows too little headroom to make it a Student patch target.  Do not assign
+  downstream optimize-mirroring edits unless a future task explicitly reopens that scope.
+- final HPWL depends mainly on legalization/improve-placement interaction for
+  this track. Useful changes should create and consume stage handoff state
+  rather than betting all quality on one isolated stage.
 - Diamond/openroad_dpl_flow, negotiation, and evolve_default are all valid
   donor/start-point evidence. Students may explore any of them, but should
   explain the source behavior they reuse or change. Do not buy quality by

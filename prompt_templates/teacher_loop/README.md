@@ -19,9 +19,9 @@ Rules:
   `student_insight_packet_format.md`. Do not duplicate these blocks across
   templates.
 - Teacher prompts should assign concrete per-student plans requiring source-level
-  work on legalization, improve placement, and mirror/orientation. Student
-  prompts should enforce those stage responsibilities and execution discipline
-  through `student_rules.md`.
+  work on legalization/detailed placement and improve placement. Student
+  prompts should keep optimize mirroring callable for evaluation but outside
+  the active patch surface unless a future task explicitly reopens it.
 - Prompts should favor controllable algorithm complexity, bounded candidates,
   cached touched data, and direct HPWL mechanisms.
 - Keep the NoPUA-style coaching signal in `skills/teacher_peer_coaching.md`:

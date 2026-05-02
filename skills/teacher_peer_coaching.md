@@ -46,9 +46,8 @@ Each student packet should include only:
 
 - current diagnosis,
 - peer or donor mechanism to borrow or avoid,
-- one concrete legalization direction,
+- one concrete legalization/detailed-placement direction,
 - one concrete improve-placement direction,
-- one concrete mirror/orientation direction,
 - optional coordination/selection direction only when it has a concrete reason,
 - expected complexity boundary,
 - success metric,

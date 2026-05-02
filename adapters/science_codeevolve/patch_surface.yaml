@@ -16,7 +16,7 @@ surfaces:
       - stage_guarding
       - cross_stage_cooptimization
       - shared_objective_handoff
-      - legalize_improve_mirror_coordination
+      - legalize_improve_coordination
       - aggressive_case_mechanism
       - telemetry_only
     risk: "medium"
@@ -58,7 +58,7 @@ surfaces:
       - interval_probe
       - cluster_or_abacus_like_assignment
       - improve_seed_generation
-      - mirror_aware_row_choice
+      - hpwl_aware_row_choice
       - high_performance_data_structure
     risk: "medium-high"
 
@@ -100,7 +100,7 @@ surfaces:
       - repair_handoff
       - failure_clear_policy
       - negotiation_or_nblg_donor
-      - improve_or_mirror_seed_handoff
+      - improve_seed_handoff
       - telemetry_only
     risk: "medium"
 
@@ -167,7 +167,7 @@ surfaces:
       - improve_runtime_control
       - hpwl_polish_mechanism
       - legalize_output_consumption
-      - mirror_seed_preparation
+      - improve_seed_preparation
       - cross_stage_cooptimization
     risk: "medium-high"
 
@@ -179,7 +179,7 @@ surfaces:
       - hpwl_polish_mechanism
       - high_performance_data_structure
       - legalize_output_consumption
-      - mirror_seed_preparation
+      - improve_seed_preparation
     risk: "medium-high"
 
   - file: "tools/OpenROAD/src/dpl_evolve/src/optimization/detailed.h"
@@ -253,24 +253,6 @@ surfaces:
       - detailed_improvement_flow
       - api_extension
     risk: "medium-high"
-
-  - file: "tools/OpenROAD/src/dpl_evolve/src/optimization/detailed_orient.cxx"
-    symbol: "dpl_evolve orientation optimizer"
-    signature: "orientation detailed-improve implementation"
-    allowed_patch_modes:
-      - detailed_improvement_flow
-      - mirror_or_orientation_flow
-      - hpwl_polish_mechanism
-    risk: "medium"
-
-  - file: "tools/OpenROAD/src/dpl_evolve/src/optimization/detailed_orient.h"
-    symbol: "dpl_evolve orientation optimizer"
-    signature: "orientation detailed-improve declarations"
-    allowed_patch_modes:
-      - detailed_improvement_flow
-      - mirror_or_orientation_flow
-      - api_extension
-    risk: "medium"
 
   - file: "tools/OpenROAD/src/dpl_evolve/src/optimization/detailed_random.cxx"
     symbol: "dpl_evolve random/priority optimizer"
@@ -390,28 +372,6 @@ surfaces:
       - api_extension
     risk: "medium"
 
-  - file: "tools/OpenROAD/src/dpl_evolve/src/OptMirror.cpp"
-    symbol: "dpl_evolve::Opendp::optimizeMirroring"
-    signature: "void Opendp::optimizeMirroring()"
-    allowed_patch_modes:
-      - mirror_flow_mechanism
-      - orientation_hpwl_delta
-      - flow_ordering
-      - sparse_checkpoint
-      - improve_output_consumption
-      - legalize_reference_consumption
-      - cross_stage_cooptimization
-      - telemetry_support
-    risk: "medium-high"
-
-  - file: "tools/OpenROAD/src/dpl_evolve/include/dpl_evolve/OptMirror.h"
-    symbol: "dpl_evolve mirror optimizer API"
-    signature: "mirror/orientation declarations"
-    allowed_patch_modes:
-      - mirror_flow_mechanism
-      - api_extension
-    risk: "medium"
-
   - file: "tools/OpenROAD/src/dpl_evolve/src/PlacementDRC.cpp"
     symbol: "dpl_evolve::PlacementDRC"
     signature: "candidate-local DRC helpers"
@@ -458,6 +418,6 @@ policy:
     - "benchmark or snapshot selection"
 
 notes:
-  - "Students are expected to make coherent changes across LEGALM/legalization, detailed-improvement internals, mirror/orientation flow, and their shared top-level handoff when Teacher requests a full-flow attempt."
+  - "Students are expected to make coherent changes across LEGALM/legalization, detailed-improvement internals, and their shared top-level handoff when Teacher requests a full-flow attempt."
   - "Do not hide HPWL or flow-level experiments inside a paper-fidelity claim; label them as objective or flow redesign."
   - "Use private variant source plus lightweight relink for normal student algorithm experiments."

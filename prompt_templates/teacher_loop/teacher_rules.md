@@ -11,7 +11,7 @@
   that is the strongest hypothesis for the case.
 - When assigning a route that uses Diamond/openroad_dpl_flow, make the expected
   source-level exploration explicit: what behavior should be reused, what
-  should change, and how legalization/improve/mirror will be evaluated.
+  should change, and how legalization/improve placement will be evaluated.
 - Before assigning students, state the likely source of the large HPWL
   opportunity from design evidence, prior results, source inspection, and
   project knowledge.
@@ -20,14 +20,13 @@
   regression guard but assign routes that look for a different large HPWL loss
   source.  Examples of valid source searches include a new legal-state
   objective, a different recoverable frontier, a stronger improve-placement
-  candidate generator, better legalization-to-improve coupling, or a new
-  mirror/orientation preservation mechanism.
+  candidate generator, or better legalization-to-improve coupling.
 - Every round should include at least one breakthrough route whose goal is not
   to tune the current donor, but to explain and attack a larger remaining HPWL
   gap.  If all routes are donor repairs, the Teacher has been too conservative.
 - Do stage-wise attribution before choosing routes.  Separate final HPWL donors
-  from stage donors: a candidate can be valuable if it improves legalization,
-  improve placement, or mirror/orientation even when its final HPWL is weak.
+  from stage donors: a candidate can be valuable if it improves legalization or
+  improve placement even when its final HPWL is weak.
 - Separate quality signals from effective donors.  A candidate with good HPWL
   but excessive runtime is only a mechanism clue until the idea is made bounded
   and efficient.
@@ -42,16 +41,16 @@
   which stage creates the remaining HPWL loss, which active function/state can
   change that loss at the source, and why the route can be materially larger
   than a constant retune or local donor repair.
-- Each route must cover legalization, improve placement, and
-  mirror/orientation. Each stage needs its own plausible HPWL improvement path.
-- Provide a concise `plan chain`: A legalization, B improve placement, C
-  mirror/orientation, and D optional coordination/selection when useful. The
-  chain should identify which canonical line(s) are the intended starting
-  evidence or donor for each stage.
+- Each route must cover legalization/detailed placement and improve placement.
+  Each stage needs its own plausible HPWL improvement path.
+- Provide a concise `plan chain`: A legalization/detailed placement, B improve
+  placement, and C optional coordination/selection when useful. The chain
+  should identify which canonical line(s) are the intended starting evidence or
+  donor for each active stage.
 - Prefer plans where improve-placement knowledge is embedded into legalization:
-  local HPWL deltas, residual-net queues, row/segment conflict prices, and
-  orientation handoff should influence the legal state before the standalone
-  improve-placement endpoint runs.
+  local HPWL deltas, residual-net queues, and row/segment conflict prices
+  should influence the legal state before the standalone improve-placement
+  endpoint runs.
 - Do not let that preference collapse all work into legalization. At least one
   active route should be improve-placement-primary when the scoreboard shows
   good legal HPWL but poor after-improve recovery. In that route, B must change
@@ -65,8 +64,8 @@
   state to modify.
 - Final HPWL is usually dominated by stage interaction, not a single stage.
   Each route should explain how legalization creates a state that improve
-  placement can exploit, how improve placement preserves or amplifies that
-  state, and how mirror/orientation avoids undoing it.
+  placement can exploit and how improve placement preserves or amplifies that
+  state.
 - Provide function/state-level insertion points: key functions, key state
   objects, expected producer/consumer hooks, or exact `rg` symbols. Avoid broad
   file lists and broad context archaeology.
@@ -109,8 +108,7 @@
   change are not useful evidence.
 - State what evidence should convince the student to revise or pivot if the
   first result is weak. Do not include execution-procedure details.
-- Require the student's final report to prove all three evolved stages changed
-  with function-level evidence.
+- Require the student's final report to prove both active patch-surface stages changed with function-level evidence.
 - Treat sub-1% HPWL gains over `evolve_default` as donor evidence, not success.
 - Use autonomy-supportive NoPUA-style coaching: give evidence, trust the
   student's source-level judgment, ask for verification, and encourage a

@@ -103,7 +103,6 @@ Preferred target surface for framework work:
   `tools/OpenROAD/src/dpl_evolve/src/optimization/` and
   `tools/OpenROAD/src/dpl_evolve/src/objective/`
 - `tools/OpenROAD/src/dpl_evolve/src/Optdp.cpp`
-- `tools/OpenROAD/src/dpl_evolve/src/OptMirror.cpp`
 - existing donor files under `tools/OpenROAD/src/dpl_evolve/src/` when a stage
   intentionally borrows diamond, negotiation, or DRC logic.
 
