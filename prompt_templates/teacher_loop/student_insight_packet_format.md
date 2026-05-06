@@ -2,9 +2,11 @@
 - route type:
 - route action:
 - start/donor family:
+- continuation parent:
 - HPWL source mechanism:
 - why this can beat a small donor:
 - evidence:
+- active workbench repair, if any:
 - step-by-step execution chain:
 - plan A legalization/detailed placement:
 - plan B improve placement:

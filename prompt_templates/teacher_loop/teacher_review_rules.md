@@ -37,13 +37,23 @@
   search, or `aggressive` larger timeout-safe bounded search.  Decide whether
   runtime growth was useful search, fixable implementation cost, or wasted
   repetition.
-- classify reusable evidence as `final donor`, `stage donor`, or `negative
-  evidence`; do not let the final HPWL winner hide a weaker-final candidate
-  whose earlier stage clearly improved
+- classify reusable evidence as `final donor`, `stage donor`, `active
+  mechanism workbench`, `non-executed route`, or `negative evidence`; do not
+  let the final HPWL winner hide a weaker-final candidate whose earlier stage
+  clearly improved
+- separate `active mechanism workbench` from ordinary negative evidence.  If a
+  route has nonzero counters, bounded runtime, clean legality, and either
+  stage-local HPWL gain or a plausible final-loss explanation, preserve it as a
+  workbench route and assign a repair step instead of discarding it after one
+  weak final result.
 - classify donor efficiency separately from donor quality.  A large HPWL gain
   from excessive random/end-point replay is a quality-only signal, not an
   effective donor, until a bounded implementation proves similar gain.
 - identify reusable donor code and why it works or fails
+- identify any workbench commit/source state that should be continued even when
+  the final promoted source restored the best donor.  The next packet should
+  name what must be repaired: liveness, objective, acceptance, persistence,
+  handoff, final-safe survival scoring, or runtime implementation.
 - identify whether the round discovered a new HPWL source or only retuned an
   existing donor.  A donor retune can be kept as a guardrail, but the next
   packets must not all be donor retunes.
@@ -100,6 +110,11 @@
   choices, and did improve placement exploit them efficiently.
 - next plans must include at least one `stage donor repair route` when any
   student improved a stage but lost the benefit in a later stage
+- next plans must include at least one `active workbench repair route` when a
+  bounded mechanism executed with nonzero counters but lost final HPWL through
+  a diagnosable downstream erase, acceptance mismatch, or handoff failure.
+  Continue that mechanism for at least one focused repair round before treating
+  it as exhausted.
 - next plans must include an ordered `plan chain`: A legalization/detailed placement, B improve placement, and C optional coordination/selection when useful
 - every next student packet must include one explicit `HPWL source mechanism`
 - every next student packet must state why its `HPWL source mechanism` can

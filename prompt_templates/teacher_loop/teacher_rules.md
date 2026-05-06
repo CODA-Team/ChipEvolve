@@ -74,6 +74,16 @@
   improved but the next stage failed to use it.  For that route, keep the useful
   stage mechanism and assign the student to repair the handoff/co-optimization
   instead of discarding the line.
+- Preserve active-but-not-final mechanisms as workbench routes.  If a student
+  produced nonzero counters, clean legality, controlled runtime, and a credible
+  stage-local gain, do not collapse the next round back to the current final
+  donor immediately.  Ask one student to continue from that workbench state and
+  repair the exact reason the gain did not survive to final HPWL.
+- Distinguish three continuation parents:
+  `final donor` for regression-safe promoted code, `stage donor` for a useful
+  stage result, and `mechanism workbench` for an active route whose final HPWL
+  has not won yet.  Use the parent that matches the assigned route; do not
+  force every continuation to start from the final donor.
 - When legal HPWL improves but after-improve/final HPWL is weak, the repair
   route must keep the legal-stage donor and change the improve-placement
   consumer.  When final HPWL improves while legal HPWL is unchanged, the next
@@ -196,10 +206,14 @@
   windows, batched exact affected-net scoring, parallel frontier scoring,
   multi-cell row/segment transactions, or a stronger legalizer-to-improve
   handoff.  The metric proof must include both final HPWL and stage-wise HPWL.
-- State what evidence should convince the student to revise or pivot if the
-  first result is weak. Do not include execution-procedure details, build
-  commands, evaluator commands, or git commands; those are generated in the
-  Student workspace packet.
+- State what evidence should convince the student to revise, continue, or pivot
+  if the first result is weak. A weak final result with active counters should
+  usually trigger a targeted repair of objective, acceptance, persistence,
+  handoff, or final-safe survival scoring; a zero-counter route should trigger
+  liveness repair; only after those focused checks should the route be marked
+  exhausted. Do not include execution-procedure details, build commands,
+  evaluator commands, or git commands; those are generated in the Student
+  workspace packet.
 - Give the Student a step-by-step work chain, not just an idea name:
   source diagnosis, legalizer-stage patch, improve-placement patch,
   build/evaluate, inspect stage-wise metrics/log counters, revise by keeping,

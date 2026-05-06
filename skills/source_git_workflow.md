@@ -34,6 +34,9 @@ Use this when a Student edits its private `dpl_evolve` source workspace.
 7. Before final answer, make the source tree match the best clean canonical
    evaluation from this task. If a later revision worsened HPWL, restore the
    best clean commit before running `commit_source_script`.
+   If the worsened revision was an active mechanism workbench with nonzero
+   counters or useful stage-local gain, keep its commit hash and report it as a
+   workbench checkpoint so Teacher can continue repairing it later.
 8. Run `commit_source_script`.
 9. Run `write_diff_script` after the final commit.
 
@@ -51,6 +54,8 @@ Report:
 
 - source branch,
 - final commit hash,
+- active mechanism workbench commit hash if the final source restored a better
+  donor,
 - dirty status after commit,
 - implementation diff path,
 - any reason the Student could not commit.

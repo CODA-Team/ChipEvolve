@@ -4,9 +4,11 @@
 - stage-wise attribution table
 - runtime-tier attribution table
 - best lineages
-- final donors, stage donors, and negative evidence
+- final donors, stage donors, active mechanism workbenches, non-executed routes,
+  and negative evidence
 - efficiency bottlenecks
 - under-exploration or over-spend diagnosis
+- workbench repair routes to continue
 - matrix candidates to freeze, if any
 - knowledge cards to preserve
 

@@ -65,6 +65,12 @@
   worsens metrics, restore the best clean source commit before running the
   commit/diff/report helpers. Do not claim an earlier best result while leaving
   a worse final source tree.
+- If a larger mechanism executes with nonzero counters but loses final HPWL,
+  do not erase the evidence mentally.  You may restore the best clean source
+  for the final recorded candidate, but also keep a local git checkpoint for
+  the active mechanism workbench and describe the exact repair it needs:
+  liveness, objective, acceptance, persistence, handoff, final-safe survival
+  scoring, or runtime implementation.
 - Your implementation should be capable of discovering a large improvement, not
   only preserving a small donor.  Treat existing donors as evidence and
   regression guards, but search for larger mechanisms in objectives,
@@ -97,6 +103,11 @@
   unchanged endpoints multiple times.
 - Build and evaluate; inspect canonical `metrics.json:hpwl` and the relevant OpenROAD log.
 - If the result is weak or illegal, revise the algorithm or commit/selection logic, rebuild/evaluate, and keep the best clean candidate.
+- A weak final result is not automatically a failed idea.  If counters show the
+  mechanism actually ran and improved an earlier stage or local exact score,
+  spend the next revision on why the gain was erased downstream.  Only classify
+  the mechanism as exhausted after a focused repair attempt also fails or shows
+  the stage-local gain was not real.
 - Revisions must change the mechanism, not only constants.
 - Evaluation loop is mechanism-driven, not count-limited.  Continue
   plan -> implement -> build/evaluate -> inspect metrics/logs -> revise while

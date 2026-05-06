@@ -433,9 +433,11 @@ def compact_teacher_child_insight(text: str, *, max_chars: int) -> str:
         "- route type:",
         "- route action:",
         "- start/donor family:",
+        "- continuation parent:",
         "- HPWL source mechanism:",
         "- why this can beat a small donor:",
         "- evidence:",
+        "- active workbench repair, if any:",
         "- step-by-step execution chain:",
         "- plan chain:",
         "- plan A legalization/detailed placement:",
@@ -500,7 +502,12 @@ def assigned_start_kind_from_insight(text: str) -> str | None:
         "otherwise",
         "unless",
     )
-    field_prefixes = ("route action:", "start/donor family:", "runtime tier:")
+    field_prefixes = (
+        "route action:",
+        "start/donor family:",
+        "continuation parent:",
+        "runtime tier:",
+    )
     primary_patterns = (
         rf"\buse the prepared start branch\s*`?({allowed})`?",
         rf"\bstart from\s*`?({allowed})`?",
