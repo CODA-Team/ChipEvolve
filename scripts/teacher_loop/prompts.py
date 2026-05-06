@@ -13,8 +13,10 @@ from typing import Any
 from runtime_paths import clean_subprocess_env
 from scripts.teacher_loop.common import (
     AGENT_ROOT,
+    CANONICAL_LINES,
     ChildRound,
     MetricSummary,
+    StudentWorkspace,
     iter_name,
     render_prompt_template,
     student_workspace_paths,
@@ -22,6 +24,8 @@ from scripts.teacher_loop.common import (
 from scripts.teacher_loop.evidence import (
     baseline_artifact_block,
     candidate_artifacts,
+    candidate_artifact_problems,
+    candidate_artifact_status_text,
     child_artifact_status_block,
     design_characteristics_block,
     discover_round_candidate_metrics,
@@ -78,7 +82,7 @@ def previous_teacher_review_excerpt(
         return (
             "Previous Teacher review omitted because it only recorded an "
             "infrastructure/tooling failure. Use the previous child metrics, "
-            "source backups, and peer packet for evidence instead."
+            "source commits, and peer packet for evidence instead."
         )
     if len(text) <= max_chars:
         return text
@@ -254,7 +258,7 @@ def peer_briefing(
     round_id = round_dir.name
     previous = iter_name(iteration - 1)
     baseline_metrics: dict[str, MetricSummary | None] = {}
-    for line in ("openroad_dpl_flow", "evolve_default"):
+    for line in CANONICAL_LINES:
         run_tag = f"{round_id}_baseline_probe_{line}"
         baseline_metrics[line] = summarize_metrics(
             expected_metrics_path(
@@ -266,6 +270,7 @@ def peer_briefing(
         )
     _baseline_label, baseline = strongest_baseline_anchor(baseline_metrics)
     metrics_by_student: dict[str, MetricSummary] = {}
+    invalid_rows: list[tuple[str, MetricSummary, list[str]]] = []
     for summary in discover_round_candidate_metrics(
         orfs_root=runtime.orfs_root,
         case_id=case_id,
@@ -276,13 +281,30 @@ def peer_briefing(
             round_id, case_id, summary.tag
         )
         if iter_part == previous and student_id:
+            problems = candidate_artifact_problems(
+                runtime=runtime,
+                round_dir=round_dir,
+                round_id=round_id,
+                case_id=case_id,
+                candidate=summary,
+            )
+            if problems:
+                invalid_rows.append((student_id, summary, problems))
+                continue
             metrics_by_student[student_id] = summary
 
     if not metrics_by_student:
+        invalid_note = ""
+        if invalid_rows:
+            invalid_note = "\n\nInvalid prior metric rows were found but are non-promotable: " + "; ".join(
+                f"{student_id}={candidate_artifact_status_text(problems)}"
+                for student_id, _summary, problems in invalid_rows[:4]
+            )
         return (
             f"Previous iteration: `{previous}`\n\n"
             "No valid prior peer metrics were found. Use Teacher insight and "
             "your own source/log inspection; do not assume a peer mechanism is validated."
+            f"{invalid_note}"
         )
 
     best_student = min(
@@ -296,21 +318,13 @@ def peer_briefing(
     lines = [
         f"Previous iteration: `{previous}`",
         "",
-        "Peer evidence is only a pointer. Do not copy long peer reports into "
-        "your reasoning. If you inspect a peer packet, source backup, or diff, "
-        "first write your own 2-3 line summary of what worked before borrowing it.",
+        "Peer evidence below is artifact-gated. Use peer packet/source paths "
+        "only when Teacher names a concrete donor; summarize it briefly before borrowing.",
         "",
-        f"Best previous clean peer by HPWL: `{best_student}`.",
+        f"Best previous valid clean peer by HPWL: `{best_student}`.",
     ]
     for student_id in sorted(metrics_by_student):
         summary = metrics_by_student[student_id]
-        mechanism, lesson, next_step = peer_mechanism_summary(
-            runtime=runtime,
-            round_dir=round_dir,
-            round_id=round_id,
-            case_id=case_id,
-            summary=summary,
-        )
         label = "you" if student_id == current_student else "peer"
         hpwl = "" if summary.hpwl_after is None else f"{summary.hpwl_after:.3f}"
         runtime_s = (
@@ -337,20 +351,14 @@ def peer_briefing(
                 + (
                     ""
                     if summary.hpwl_stage_delta_final_percent is None
-                    else f"{summary.hpwl_stage_delta_final_percent:.2f}%"
+                else f"{summary.hpwl_stage_delta_final_percent:.2f}%"
                 ),
             ]
         )
-        details = []
-        if mechanism:
-            details.append(f"mechanism `{mechanism}`")
-        if next_step:
-            details.append(f"next `{next_step}`")
-        suffix = "; " + "; ".join(details) if details else ""
         lines.append(
             "- {student} ({label}): HPWL `{hpwl}`, runtime `{runtime_s}`, "
             "avg/max disp `{avg_disp}/{max_disp}`, legality `{violations}`; "
-            "stage `{stage_pct}`, signal `{signal}`{suffix}".format(
+            "stage `{stage_pct}`, signal `{signal}`".format(
                 student=student_id,
                 label=label,
                 hpwl=hpwl,
@@ -364,7 +372,15 @@ def peer_briefing(
                     baseline,
                     budget_multiplier=student_runtime_multiplier,
                 ),
-                suffix=suffix,
+            )
+        )
+    if invalid_rows:
+        lines.append("")
+        lines.append(
+            "Invalid prior metric rows are diagnostic only, not donor/elite seeds: "
+            + "; ".join(
+                f"{student_id}={candidate_artifact_status_text(problems)}"
+                for student_id, _summary, problems in invalid_rows[:4]
             )
         )
     return "\n".join(lines)
@@ -517,6 +533,23 @@ def common_context(
         / "family_variants"
         / "openroad_negotiation_nblg",
         dreamplace_abacus=runtime.agent_root / "family_variants" / "dreamplace_abacus",
+        evolved_legalizers_readme=runtime.agent_root
+        / "patches"
+        / "evolved_legalizers"
+        / "README.md",
+        evolved_legalizers_manifest=runtime.agent_root
+        / "patches"
+        / "evolved_legalizers"
+        / "generation_manifest.tsv",
+        evolved_legalizers_validation=runtime.agent_root
+        / "patches"
+        / "evolved_legalizers"
+        / "validation.tsv",
+        dense_legalizer_routing_insight=runtime.agent_root
+        / "knowledge"
+        / "insights"
+        / "case_evolution"
+        / "dense_evolved_legalizer_routing.md",
         teacher_coaching_skill=runtime.agent_root
         / "skills"
         / "teacher_peer_coaching.md",
@@ -653,6 +686,12 @@ def start_kind_source(runtime: Any, start_kind: str) -> Path:
         return runtime.state_root / "seed_sources" / "framework_dpl_evolve"
     if start_kind == "diamond":
         return runtime.state_root / "seed_sources" / "diamond_dpl_evolve"
+    if start_kind == "evolved_diamond":
+        return runtime.state_root / "seed_sources" / "evolved_diamond_dpl_evolve"
+    if start_kind == "evolved_legalm":
+        return runtime.state_root / "seed_sources" / "evolved_legalm_dpl_evolve"
+    if start_kind == "evolved_negotiation":
+        return runtime.state_root / "seed_sources" / "evolved_negotiation_dpl_evolve"
     if start_kind == "prepared":
         return runtime.orfs_root / "tools" / "OpenROAD" / "src" / "dpl_evolve"
     raise ValueError(f"unsupported start_kind: {start_kind}")
@@ -670,30 +709,47 @@ def child_evaluation_timeout(
     flow_variant: str,
     round_id: str,
     runtime_multiplier: float,
+    baseline_metrics: dict[str, MetricSummary | None] | None = None,
 ) -> tuple[int | None, str]:
-    """Return the hard student evaluation timeout from canonical baseline runtime."""
+    """Return the hard DPL flow timeout from canonical reported runtime."""
+    summary = None
+    if baseline_metrics is not None:
+        summary = baseline_metrics.get("openroad_dpl_flow")
+    runtime_s = summary.runtime_seconds if summary is not None else None
+    if runtime_s is not None and runtime_s > 0:
+        baseline_path = summary.metrics_path
+    else:
+        baseline_path = None
+
     baseline_tag = f"{round_id}_baseline_probe_openroad_dpl_flow"
-    baseline_path = expected_metrics_path(
+    fallback_path = expected_metrics_path(
         runtime=runtime,
         case_id=case_id,
         flow_variant=flow_variant,
         run_tag=baseline_tag,
     )
-    baseline = summarize_metrics(baseline_path)
-    runtime_s = baseline.runtime_seconds if baseline is not None else None
+    if runtime_s is None or runtime_s <= 0:
+        baseline = summarize_metrics(fallback_path)
+        runtime_s = baseline.runtime_seconds if baseline is not None else None
+        baseline_path = fallback_path
     if runtime_s is None or runtime_s <= 0:
         return (
             None,
-            "Unavailable: canonical openroad_dpl_flow baseline runtime is missing. "
-            f"Run baseline preflight first. Expected metrics: `{baseline_path}`",
+            "Unavailable: canonical openroad_dpl_flow reported runtime is missing. "
+            f"Run baseline preflight first. Expected metrics: `{fallback_path}`",
         )
     multiplier_label = format_multiplier(runtime_multiplier)
     timeout_s = max(1, int(math.ceil(runtime_s * runtime_multiplier)))
     return (
         timeout_s,
-        "Hard timeout: "
-        f"`{timeout_s}s` = {multiplier_label}x canonical openroad_dpl_flow baseline runtime "
-        f"`{runtime_s:.3f}s`. Timeout-killed runs are non-promotable.",
+        "DPL flow timeout: "
+        f"`{timeout_s}s` = {multiplier_label}x canonical openroad_dpl_flow reported runtime "
+        f"`{runtime_s:.3f}s` from `metrics.json:runtime_seconds` at `{baseline_path}`. "
+        "The timeout is applied only to the OpenROAD legalize/improve/mirror flow run; "
+        "post-run metrics/evaluator collection is not timeout-wrapped, so timeout failures "
+        "should still write metrics.json failure evidence when possible.  Runtime below the "
+        "limit is acceptable when it buys cached, capped, explainable HPWL-source search; "
+        "DPL-flow-timeout runs are non-promotable.",
     )
 
 
@@ -715,8 +771,8 @@ def child_parent_source(
                 round_dir
                 / "students"
                 / student_id
-                / "source_backups"
-                / iter_name(iteration - 1)
+                / "workspace"
+                / "variant"
                 / "dpl_evolve"
             )
         return student_workspace_paths(
@@ -726,6 +782,674 @@ def child_parent_source(
             stable_workspace=stable_workspace,
         ).dpl_src
     return start_kind_source(runtime, start_kind)
+
+
+def write_executable_script(path: Path, text: str) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    path.chmod(0o755)
+    return path
+
+
+def write_student_workspace_scripts(
+    *,
+    runtime: Any,
+    paths: StudentWorkspace,
+    case_id: str,
+    flow_variant: str,
+    threads: int,
+    start_kind: str,
+    run_tag: str,
+    parent_src: Path,
+    use_seed_override: bool,
+    timeout_seconds: int | None,
+) -> dict[str, Path]:
+    """Write fixed helper scripts into the Student workspace.
+
+    The Student should spend context on source behavior, not on reconstructing
+    relink/evaluator/git boilerplate.  These scripts are intentionally verbose
+    in names and short in logic so failures are easy to report.
+    """
+    script_dir = paths.student_workspace / "scripts" / paths.source_branch.split("/")[-1]
+    metrics_path = expected_metrics_path(
+        runtime=runtime,
+        case_id=case_id,
+        flow_variant=flow_variant,
+        run_tag=run_tag,
+    )
+    seed_lines = (
+        '  --seed-src "$PARENT_SRC" \\\n'
+        '  --force \\\n'
+        if use_seed_override
+        else ""
+    )
+    legalize_timeout_arg = (
+        f'  --legalize-timeout-seconds {timeout_seconds} \\\n'
+        if timeout_seconds is not None
+        else ""
+    )
+
+    common_vars = f"""AGENT_ROOT={shlex.quote(str(runtime.agent_root))}
+ORFS_ROOT={shlex.quote(str(runtime.orfs_root))}
+VARIANT_ROOT={shlex.quote(str(paths.variant_root))}
+DPL_SRC={shlex.quote(str(paths.dpl_src))}
+PRIVATE_BINARY={shlex.quote(str(paths.private_binary))}
+ARTIFACT_DIR={shlex.quote(str(paths.artifact_dir))}
+SOURCE_BRANCH={shlex.quote(paths.source_branch)}
+SOURCE_BASE_RECORD={shlex.quote(str(paths.source_base_record))}
+SOURCE_COMMIT_RECORD={shlex.quote(str(paths.source_commit_record))}
+IMPLEMENTATION_DIFF={shlex.quote(str(paths.implementation_diff))}
+KNOWLEDGE_CARD={shlex.quote(str(paths.knowledge_card))}
+THREADS={shlex.quote(str(threads))}
+CASE_ID={shlex.quote(case_id)}
+FLOW_VARIANT={shlex.quote(flow_variant)}
+RUN_TAG={shlex.quote(run_tag)}
+START_KIND={shlex.quote(start_kind)}
+PARENT_SRC={shlex.quote(str(parent_src))}
+METRICS_PATH={shlex.quote(str(metrics_path))}
+
+ensure_dpl_git_repo() {{
+  local top
+  top="$(git -C "$DPL_SRC" rev-parse --show-toplevel 2>/dev/null || true)"
+  top="$(realpath -m "$top")"
+  if [[ "$top" != "$(realpath -m "$DPL_SRC")" ]]; then
+    echo "[ERROR] private source is not an independent git repo: $DPL_SRC top=$top" >&2
+    exit 2
+  fi
+}}
+"""
+
+    scripts = {
+        "prepare": script_dir / "00_prepare_source.sh",
+        "switch_start_branch": script_dir / "04_switch_start_branch.sh",
+        "source_context": script_dir / "05_source_context.sh",
+        "apply_evolved_patch": script_dir / "06_apply_evolved_legalizer_patch.sh",
+        "build": script_dir / "10_build_variant.sh",
+        "fresh_build": script_dir / "11_build_variant_fresh.sh",
+        "evaluate": script_dir / "20_evaluate_candidate.sh",
+        "commit": script_dir / "30_commit_source.sh",
+        "diff": script_dir / "40_write_diff.sh",
+        "knowledge_template": script_dir / "50_seed_knowledge_card.sh",
+        "after_edit": script_dir / "run_after_edit.sh",
+    }
+
+    write_executable_script(
+        scripts["prepare"],
+        f"""#!/usr/bin/env bash
+	set -euo pipefail
+{common_vars}
+mkdir -p "$VARIANT_ROOT" "$ARTIFACT_DIR"
+"$AGENT_ROOT/scripts/create_variant_start.sh" \\
+  --orfs-root "$ORFS_ROOT" \\
+  --variant-root "$VARIANT_ROOT" \\
+  --start-kind "$START_KIND" \\
+  --dpl-src "$DPL_SRC" \\
+{seed_lines}  --git-branch "$SOURCE_BRANCH"
+ensure_dpl_git_repo
+current_branch="$(git -C "$DPL_SRC" branch --show-current)"
+if [[ "$current_branch" != "$SOURCE_BRANCH" ]]; then
+  echo "[ERROR] expected source branch $SOURCE_BRANCH, got $current_branch" >&2
+  exit 2
+fi
+
+seed_for_kind() {{
+  case "$1" in
+    framework)
+      printf '%s\\n' "$AGENT_ROOT/.dpl_evolve_state/seed_sources/framework_dpl_evolve"
+      ;;
+    evolved_diamond)
+      printf '%s\\n' "$AGENT_ROOT/.dpl_evolve_state/seed_sources/evolved_diamond_dpl_evolve"
+      ;;
+    evolved_legalm)
+      printf '%s\\n' "$AGENT_ROOT/.dpl_evolve_state/seed_sources/evolved_legalm_dpl_evolve"
+      ;;
+    evolved_negotiation)
+      printf '%s\\n' "$AGENT_ROOT/.dpl_evolve_state/seed_sources/evolved_negotiation_dpl_evolve"
+      ;;
+    *)
+      return 2
+      ;;
+  esac
+}}
+
+materialize_start_branch() {{
+  local kind="$1"
+  local branch="start/$kind"
+  local seed
+  local tmp_branch
+  seed="$(seed_for_kind "$kind")"
+  if [[ ! -f "$seed/CMakeLists.txt" ]]; then
+    echo "[WARN] cannot prepare $branch; missing seed: $seed" >&2
+    return 0
+  fi
+  tmp_branch="__dpl_evolve_seed_${{kind}}_$$"
+  git -C "$DPL_SRC" switch --orphan "$tmp_branch" >/dev/null
+  git -C "$DPL_SRC" rm -r --cached . >/dev/null 2>&1 || true
+  find "$DPL_SRC" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {{}} +
+  rsync -a --delete --exclude='.git' "$seed/" "$DPL_SRC/"
+  git -C "$DPL_SRC" add -A
+  git -C "$DPL_SRC" commit -m "Seed $branch source" >/dev/null
+  git -C "$DPL_SRC" branch -M "$branch"
+  echo "[INFO] prepared_start_branch=$branch commit=$(git -C "$DPL_SRC" rev-parse HEAD)"
+}}
+
+prepare_start_branches() {{
+  if [[ -n "$(git -C "$DPL_SRC" status --short)" ]]; then
+    echo "[WARN] private source is dirty; skip start branch materialization" >&2
+    return 0
+  fi
+  local return_branch
+  return_branch="$(git -C "$DPL_SRC" branch --show-current)"
+  if [[ "$return_branch" != "$SOURCE_BRANCH" ]]; then
+    echo "[WARN] current branch is $return_branch, expected $SOURCE_BRANCH; skip start branch materialization" >&2
+    return 0
+  fi
+  for kind in framework evolved_diamond evolved_legalm evolved_negotiation; do
+    materialize_start_branch "$kind"
+  done
+  git -C "$DPL_SRC" switch "$SOURCE_BRANCH" >/dev/null
+  echo "[INFO] available_start_branches:"
+  git -C "$DPL_SRC" for-each-ref --format='[INFO]   %(refname:short) %(objectname:short)' refs/heads/start/
+}}
+
+prepare_start_branches
+git -C "$DPL_SRC" rev-parse HEAD > "$SOURCE_BASE_RECORD"
+echo "[INFO] source=$DPL_SRC"
+echo "[INFO] branch=$current_branch"
+echo "[INFO] base_commit=$(cat "$SOURCE_BASE_RECORD")"
+		""",
+    )
+
+    write_executable_script(
+        scripts["switch_start_branch"],
+        f"""#!/usr/bin/env bash
+set -euo pipefail
+{common_vars}
+ensure_dpl_git_repo
+
+kind=""
+usage() {{
+  cat >&2 <<'USAGE'
+Usage:
+  04_switch_start_branch.sh --kind framework|evolved_diamond|evolved_legalm|evolved_negotiation
+
+Reset the iteration source branch to one prepared local start branch. Run this
+after 00_prepare_source.sh and before source edits when Teacher assigns a
+different start point for this Student.
+USAGE
+}}
+
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    --kind)
+      kind="$2"
+      shift 2
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "[ERROR] unknown argument: $1" >&2
+      usage
+      exit 2
+      ;;
+  esac
+done
+
+case "$kind" in
+  framework|evolved_diamond|evolved_legalm|evolved_negotiation)
+    branch="start/$kind"
+    ;;
+  *)
+    echo "[ERROR] expected --kind framework|evolved_diamond|evolved_legalm|evolved_negotiation" >&2
+    usage
+    exit 2
+    ;;
+esac
+
+if [[ -n "$(git -C "$DPL_SRC" status --short)" ]]; then
+  echo "[ERROR] private source has uncommitted changes; switch start branch only before edits." >&2
+  git -C "$DPL_SRC" status --short >&2
+  exit 2
+fi
+if ! git -C "$DPL_SRC" show-ref --verify --quiet "refs/heads/$branch"; then
+  echo "[ERROR] missing prepared start branch $branch; run 00_prepare_source.sh first." >&2
+  echo "[INFO] existing start branches:" >&2
+  git -C "$DPL_SRC" for-each-ref --format='  %(refname:short)' refs/heads/start/ >&2 || true
+  exit 2
+fi
+
+git -C "$DPL_SRC" switch -C "$SOURCE_BRANCH" "$branch" >/dev/null
+git -C "$DPL_SRC" rev-parse HEAD > "$SOURCE_BASE_RECORD"
+python3 - "$ARTIFACT_DIR/start_branch.json" "$kind" "$branch" "$(git -C "$DPL_SRC" rev-parse HEAD)" <<'PY'
+import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+path.parent.mkdir(parents=True, exist_ok=True)
+payload = {{
+    "active_start_kind": sys.argv[2],
+    "active_start_branch": sys.argv[3],
+    "active_start_commit": sys.argv[4],
+}}
+path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\\n", encoding="utf-8")
+PY
+echo "[INFO] switched source_branch=$SOURCE_BRANCH from $branch"
+echo "[INFO] base_commit=$(cat "$SOURCE_BASE_RECORD")"
+""",
+    )
+
+    write_executable_script(
+        scripts["source_context"],
+        f"""#!/usr/bin/env bash
+set -euo pipefail
+{common_vars}
+ensure_dpl_git_repo
+cd "$DPL_SRC"
+
+usage() {{
+  cat >&2 <<'USAGE'
+Usage:
+  05_source_context.sh <module-relative-file> [symbol-or-text]
+
+Examples:
+  05_source_context.sh src/Optdp.cpp improvePlacement
+  05_source_context.sh src/optimization/detailed_manager.h DetailedMgr
+
+This script only prints current local source context for patch anchoring.
+Edit with apply_patch after reading the current excerpt.
+USAGE
+}}
+
+if [[ "$#" -lt 1 ]]; then
+  usage
+  exit 2
+fi
+
+file="$1"
+shift || true
+
+if [[ ! -f "$file" ]]; then
+  echo "[ERROR] source file not found under private_dpl_evolve_source: $file" >&2
+  echo "[INFO] close module-relative matches:" >&2
+  rg --files | rg --fixed-strings -- "$file" >&2 || true
+  base="$(basename "$file")"
+  if [[ "$base" != "$file" ]]; then
+    rg --files | rg --fixed-strings -- "$base" >&2 || true
+  fi
+  exit 2
+fi
+
+echo "[INFO] source=$DPL_SRC"
+echo "[INFO] file=$file"
+
+if [[ "$#" -lt 1 ]]; then
+  echo "[INFO] no symbol provided; listing likely declarations/functions"
+  rg -n '^[[:space:]]*(class|struct|enum|namespace|[A-Za-z_][A-Za-z_0-9:<>~*&[:space:]]+[[:space:]]+[A-Za-z_~][A-Za-z_0-9:~]*[[:space:]]*\\(|[A-Za-z_][A-Za-z_0-9:~]*::[A-Za-z_~][A-Za-z_0-9:~]*[[:space:]]*\\()' "$file" | head -120 || true
+  exit 0
+fi
+
+symbol="$1"
+echo "[INFO] symbol=$symbol"
+match_lines="$(rg -n --fixed-strings -- "$symbol" "$file" || true)"
+if [[ -z "$match_lines" ]]; then
+  match_lines="$(rg -n -- "$symbol" "$file" || true)"
+fi
+
+if [[ -z "$match_lines" ]]; then
+  echo "[WARN] symbol/text not found in $file: $symbol" >&2
+  echo "[INFO] likely declarations/functions:" >&2
+  rg -n '^[[:space:]]*(class|struct|enum|namespace|[A-Za-z_][A-Za-z_0-9:<>~*&[:space:]]+[[:space:]]+[A-Za-z_~][A-Za-z_0-9:~]*[[:space:]]*\\(|[A-Za-z_][A-Za-z_0-9:~]*::[A-Za-z_~][A-Za-z_0-9:~]*[[:space:]]*\\()' "$file" | head -120 >&2 || true
+  exit 1
+fi
+
+echo "$match_lines" | head -20
+first_line="$(printf '%s\\n' "$match_lines" | head -1 | cut -d: -f1)"
+if [[ "$first_line" =~ ^[0-9]+$ ]]; then
+  start=$(( first_line > 35 ? first_line - 35 : 1 ))
+  end=$(( first_line + 100 ))
+  echo "[INFO] excerpt lines $start..$end"
+  nl -ba "$file" | sed -n "${{start}},${{end}}p"
+else
+  echo "[WARN] could not compute excerpt line for $symbol" >&2
+fi
+	""",
+    )
+
+    write_executable_script(
+        scripts["apply_evolved_patch"],
+        f"""#!/usr/bin/env bash
+set -euo pipefail
+{common_vars}
+ensure_dpl_git_repo
+
+line=""
+check_only=0
+usage() {{
+  cat >&2 <<'USAGE'
+Usage:
+  06_apply_evolved_legalizer_patch.sh --line diamond|legalm|negotiation [--check-only]
+
+Apply or check exactly one evolved legalizer framework-delta patch against the
+private dpl_evolve source. Use this only when Teacher assigns patch application
+instead of starting directly from an evolved_* seed.
+USAGE
+}}
+
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    --line)
+      line="$2"
+      shift 2
+      ;;
+    --check-only)
+      check_only=1
+      shift
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "[ERROR] unknown argument: $1" >&2
+      usage
+      exit 2
+      ;;
+  esac
+done
+
+case "$line" in
+  diamond)
+    patch="$AGENT_ROOT/patches/evolved_legalizers/openroad_dpl_evolve_diamond_iter30_framework_delta.patch"
+    ;;
+  legalm)
+    patch="$AGENT_ROOT/patches/evolved_legalizers/openroad_dpl_evolve_legalm_iter30_framework_delta.patch"
+    ;;
+  negotiation)
+    patch="$AGENT_ROOT/patches/evolved_legalizers/openroad_dpl_evolve_negotiation_iter30_framework_delta.patch"
+    ;;
+  *)
+    echo "[ERROR] expected --line diamond|legalm|negotiation" >&2
+    usage
+    exit 2
+    ;;
+esac
+
+if [[ "$START_KIND" == evolved_* ]]; then
+  echo "[ERROR] START_KIND=$START_KIND is already an evolved seed." >&2
+  echo "[ERROR] Do not stack an evolved framework-delta patch on an evolved seed." >&2
+  exit 2
+fi
+if [[ -f "$DPL_SRC/.dpl_evolve_seed_manifest.json" ]]; then
+  echo "[ERROR] private source already comes from an evolved seed manifest." >&2
+  echo "[ERROR] Do not stack an evolved framework-delta patch on this source." >&2
+  cat "$DPL_SRC/.dpl_evolve_seed_manifest.json" >&2 || true
+  exit 2
+fi
+if [[ ! -f "$patch" ]]; then
+  echo "[ERROR] missing evolved legalizer framework-delta patch: $patch" >&2
+  exit 2
+fi
+if [[ -n "$(git -C "$DPL_SRC" status --short)" ]]; then
+  echo "[ERROR] private source has uncommitted changes; commit/stash before applying donor patch." >&2
+  git -C "$DPL_SRC" status --short >&2
+  exit 2
+fi
+
+if ! git -C "$DPL_SRC" apply --whitespace=nowarn --check -p3 "$patch"; then
+  echo "[ERROR] evolved patch does not apply to current private source: $patch" >&2
+  echo "[ERROR] Use it as review evidence or start a fresh route from the matching evolved_* seed." >&2
+  exit 1
+fi
+if [[ "$check_only" -eq 1 ]]; then
+  echo "[INFO] evolved patch check OK: line=$line patch=$patch"
+  exit 0
+fi
+git -C "$DPL_SRC" apply --whitespace=nowarn -p3 "$patch"
+git -C "$DPL_SRC" add -A
+git -C "$DPL_SRC" commit -m "Apply evolved legalizer $line framework delta"
+echo "[INFO] evolved patch applied and committed: line=$line"
+echo "[INFO] source_commit=$(git -C "$DPL_SRC" rev-parse HEAD)"
+""",
+    )
+
+    write_executable_script(
+        scripts["build"],
+        f"""#!/usr/bin/env bash
+	set -euo pipefail
+{common_vars}
+ensure_dpl_git_repo
+"$AGENT_ROOT/scripts/configure_openroad_variant_relink.sh" \\
+  --variant-root "$VARIANT_ROOT" \\
+  --dpl-src "$DPL_SRC"
+"$AGENT_ROOT/scripts/build_openroad_variant_relink.sh" \\
+  --variant-root "$VARIANT_ROOT" \\
+  --dpl-src "$DPL_SRC" \\
+  --threads "$THREADS"
+test -x "$PRIVATE_BINARY"
+echo "[INFO] private_binary=$PRIVATE_BINARY"
+""",
+    )
+
+    write_executable_script(
+        scripts["fresh_build"],
+        f"""#!/usr/bin/env bash
+set -euo pipefail
+{common_vars}
+ensure_dpl_git_repo
+FRESH_BUILD_DIR="$VARIANT_ROOT/build_fresh"
+"$AGENT_ROOT/scripts/configure_openroad_variant_relink.sh" \\
+  --variant-root "$VARIANT_ROOT" \\
+  --build-dir "$FRESH_BUILD_DIR" \\
+  --dpl-src "$DPL_SRC"
+"$AGENT_ROOT/scripts/build_openroad_variant_relink.sh" \\
+  --variant-root "$VARIANT_ROOT" \\
+  --build-dir "$FRESH_BUILD_DIR" \\
+  --dpl-src "$DPL_SRC" \\
+  --threads "$THREADS"
+test -x "$PRIVATE_BINARY"
+echo "[INFO] private_binary=$PRIVATE_BINARY"
+""",
+    )
+
+    write_executable_script(
+        scripts["evaluate"],
+        f"""#!/usr/bin/env bash
+set -euo pipefail
+{common_vars}
+RUN_BASELINE="$AGENT_ROOT/baseline/run_baseline.sh"
+mkdir -p "$ARTIFACT_DIR"
+set +e
+"$RUN_BASELINE" \\
+  --line evolve_default \\
+  --case "$CASE_ID" \\
+  --flow-variant "$FLOW_VARIANT" \\
+  --threads "$THREADS" \\
+  --openroad-binary "$PRIVATE_BINARY" \\
+{legalize_timeout_arg}\
+  --run-tag "$RUN_TAG"
+status=$?
+set -e
+echo "$status" > "$ARTIFACT_DIR/evaluate_exit_status.txt"
+if [[ "$status" -ne 0 ]]; then
+  ATTEMPT_STATUS="$status" ATTEMPT_METRICS="$METRICS_PATH" ATTEMPT_TAG="$RUN_TAG" python3 - "$ARTIFACT_DIR/failed_attempts.jsonl" <<'PY'
+import json
+import os
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+path.parent.mkdir(parents=True, exist_ok=True)
+metrics_path = Path(os.environ["ATTEMPT_METRICS"])
+payload = {{
+    "run_tag": os.environ["ATTEMPT_TAG"],
+    "exit_status": int(os.environ["ATTEMPT_STATUS"]),
+    "metrics_path": str(metrics_path),
+    "metrics_exists": metrics_path.exists(),
+}}
+if metrics_path.exists():
+    try:
+        metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+        payload["status"] = metrics.get("status")
+        payload["failure"] = metrics.get("failure")
+        payload["runtime_seconds"] = metrics.get("runtime_seconds")
+    except Exception as exc:
+        payload["metrics_parse_error"] = str(exc)
+with path.open("a", encoding="utf-8") as fh:
+    fh.write(json.dumps(payload, sort_keys=True) + "\\n")
+PY
+  echo "[ERROR] DPL flow/evaluation wrapper returned status $status" >&2
+  exit "$status"
+fi
+if [[ ! -f "$METRICS_PATH" ]]; then
+  echo "[ERROR] evaluator succeeded but metrics.json is missing: $METRICS_PATH" >&2
+  exit 2
+fi
+echo "[INFO] metrics=$METRICS_PATH"
+""",
+    )
+
+    write_executable_script(
+        scripts["commit"],
+        f"""#!/usr/bin/env bash
+set -euo pipefail
+{common_vars}
+ensure_dpl_git_repo
+git -C "$DPL_SRC" status --short
+git -C "$DPL_SRC" add -A
+if ! git -C "$DPL_SRC" diff --cached --quiet; then
+  git -C "$DPL_SRC" commit -m {shlex.quote(f"{paths.source_branch} source update")}
+fi
+commit="$(git -C "$DPL_SRC" rev-parse HEAD)"
+dirty="$(git -C "$DPL_SRC" status --short)"
+SOURCE_COMMIT="$commit" DIRTY_STATUS="$dirty" python3 - "$SOURCE_COMMIT_RECORD" "$SOURCE_BRANCH" <<'PY'
+import json
+import os
+import sys
+
+path, branch = sys.argv[1], sys.argv[2]
+payload = {{
+    "source_commit": os.environ["SOURCE_COMMIT"],
+    "source_branch": branch,
+    "dirty_after_commit": bool(os.environ.get("DIRTY_STATUS", "")),
+    "dirty_status": os.environ.get("DIRTY_STATUS", ""),
+}}
+with open(path, "w", encoding="utf-8") as fh:
+    json.dump(payload, fh, indent=2, sort_keys=True)
+    fh.write("\\n")
+PY
+echo "[INFO] source_commit=$commit"
+if [[ -n "$dirty" ]]; then
+  echo "[WARN] source repo still dirty after commit:" >&2
+  printf '%s\\n' "$dirty" >&2
+fi
+""",
+    )
+
+    write_executable_script(
+        scripts["diff"],
+        f"""#!/usr/bin/env bash
+set -euo pipefail
+{common_vars}
+ensure_dpl_git_repo
+mkdir -p "$ARTIFACT_DIR"
+if [[ -s "$SOURCE_BASE_RECORD" ]]; then
+  SOURCE_BASE_COMMIT="$(head -n 1 "$SOURCE_BASE_RECORD")"
+else
+  SOURCE_BASE_COMMIT="$(git -C "$DPL_SRC" rev-list --max-parents=0 HEAD | tail -n 1)"
+fi
+git -C "$DPL_SRC" diff --no-ext-diff "$SOURCE_BASE_COMMIT"..HEAD \\
+  > "$IMPLEMENTATION_DIFF" || true
+if [[ ! -s "$IMPLEMENTATION_DIFF" ]]; then
+  git -C "$DPL_SRC" diff --no-ext-diff "$SOURCE_BASE_COMMIT" \\
+    > "$IMPLEMENTATION_DIFF" || true
+fi
+if [[ ! -s "$IMPLEMENTATION_DIFF" ]]; then
+  echo "[WARN] implementation diff is empty: $IMPLEMENTATION_DIFF" >&2
+else
+  echo "[INFO] implementation_diff=$IMPLEMENTATION_DIFF"
+fi
+""",
+    )
+
+    write_executable_script(
+        scripts["knowledge_template"],
+        f"""#!/usr/bin/env bash
+set -euo pipefail
+{common_vars}
+mkdir -p "$ARTIFACT_DIR"
+if [[ -f "$KNOWLEDGE_CARD" ]]; then
+  echo "[INFO] knowledge card already exists: $KNOWLEDGE_CARD"
+  exit 0
+fi
+cat > "$KNOWLEDGE_CARD" <<'EOF'
+# Knowledge Card
+
+## Hypothesis
+
+## Mechanism
+
+## Result
+
+## Causal lesson
+
+## Next experiment
+EOF
+echo "[INFO] knowledge_card=$KNOWLEDGE_CARD"
+""",
+    )
+
+    write_executable_script(
+        scripts["after_edit"],
+        """#!/usr/bin/env bash
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$SCRIPT_DIR/10_build_variant.sh"
+"$SCRIPT_DIR/20_evaluate_candidate.sh"
+"$SCRIPT_DIR/30_commit_source.sh"
+"$SCRIPT_DIR/40_write_diff.sh"
+"$SCRIPT_DIR/50_seed_knowledge_card.sh"
+""",
+    )
+
+    readme = script_dir / "README.md"
+    readme.write_text(
+        "\n".join(
+            [
+                "# Generated Student Command Scripts",
+                "",
+                "These scripts are generated by the Teacher/Student orchestrator.",
+                "Use them instead of reconstructing build, evaluator, git, or diff commands.",
+                "",
+                "Recommended flow:",
+                "",
+                "1. `00_prepare_source.sh` once before editing.",
+                "2. If Teacher assigns a prepared start point, run",
+                "   `04_switch_start_branch.sh --kind <framework|evolved_...>` before edits.",
+                "3. Use `05_source_context.sh <src/...> [symbol]` when you need",
+                "   current local source context for an apply_patch anchor.",
+                "4. Use `06_apply_evolved_legalizer_patch.sh --check-only` only",
+                "   when Teacher explicitly assigns an evolved framework-delta patch.",
+                "5. Edit only the packet `private_dpl_evolve_source` with apply_patch.",
+                "6. `10_build_variant.sh` after code changes.",
+                "7. `20_evaluate_candidate.sh` for canonical metrics.",
+                "8. `30_commit_source.sh` before the final answer.",
+                "9. `40_write_diff.sh` to write the implementation diff.",
+                "10. `50_seed_knowledge_card.sh` if the knowledge card does not exist yet.",
+                "",
+                "Use `11_build_variant_fresh.sh` only when the normal generated build",
+                "script fails or leaves the private binary missing.",
+                "",
+                "`run_after_edit.sh` runs build, evaluation, commit, diff, and knowledge",
+                "template creation after source edits are already complete.",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return scripts
 
 
 def write_child_workspace_packet(
@@ -748,6 +1472,7 @@ def write_child_workspace_packet(
     elite_seed_source: Path | None,
     peer_learning_path: Path,
     student_runtime_multiplier: float,
+    baseline_metrics: dict[str, MetricSummary | None] | None = None,
 ) -> Path:
     paths = student_workspace_paths(
         round_dir=round_dir,
@@ -767,25 +1492,26 @@ def write_child_workspace_packet(
     use_seed_override = elite_seed_source is not None or (
         iteration > 1 and not stable_workspace
     )
-    seed_args = (
-        f" \\\n  --seed-src {shlex.quote(str(parent_src))} \\\n  --force"
-        if use_seed_override
-        else ""
-    )
     timeout_seconds, timeout_note = child_evaluation_timeout(
         runtime=runtime,
         case_id=case_id,
         flow_variant=flow_variant,
         round_id=round_dir.name,
         runtime_multiplier=student_runtime_multiplier,
+        baseline_metrics=baseline_metrics,
     )
-    run_baseline_cmd = shlex.quote(str(AGENT_ROOT / "baseline" / "run_baseline.sh"))
-    if timeout_seconds is None:
-        evaluate_command_head = run_baseline_cmd
-    else:
-        evaluate_command_head = (
-            f"timeout --kill-after=30s {timeout_seconds}s \\\n  {run_baseline_cmd}"
-        )
+    script_paths = write_student_workspace_scripts(
+        runtime=runtime,
+        paths=paths,
+        case_id=case_id,
+        flow_variant=flow_variant,
+        threads=threads,
+        start_kind=start_kind,
+        run_tag=run_tag,
+        parent_src=parent_src,
+        use_seed_override=use_seed_override,
+        timeout_seconds=timeout_seconds,
+    )
     lineage_path = round_dir / "students" / student_id / "lineage.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
@@ -799,7 +1525,7 @@ commands.  Do not ask Teacher to rewrite this content.
 - child_id: `{child_id}`
 - student_id: `{student_id}`
 - route_label: `{route_label}`
-- start_kind: `{start_kind}`
+- round_default_start_kind: `{start_kind}`
 - iteration: `{iter_name(iteration)}`
 - case: `{case_id}`
 - flow_variant: `{flow_variant}`
@@ -807,27 +1533,88 @@ commands.  Do not ask Teacher to rewrite this content.
 - run_tag: `{run_tag}`
 - parent_source: `{parent_src}`
 
+## Start-Point / Patch Catalog Notes
+
+- `round_default_start_kind` is only the default source seed used before Teacher
+  assigns a route. If the top of your Student prompt includes an immediate
+  start action from Teacher, follow that action first.
+- If `start_kind` is `evolved_diamond`, `evolved_legalm`, or
+  `evolved_negotiation`, your private source is already seeded from the
+  corresponding materialized evolved legalizer source under
+  `.dpl_evolve_state/seed_sources/`. Do not manually re-apply the OpenROAD-root
+  patch to your private source.
+- `prepare_source_script` also prepares local git start branches inside your
+  private source repo:
+  `start/framework`, `start/evolved_diamond`, `start/evolved_legalm`, and
+  `start/evolved_negotiation`. If Teacher assigns one of these start points,
+  run `switch_start_branch_script --kind <kind>` before edits. The script resets
+  your iteration branch `{paths.source_branch}` to that start point while keeping
+  your final work on the normal iteration branch.
+- Evolved legalizer patches are still useful as review/donor evidence. The
+  `*_framework_delta.patch` files are deltas from prepared base+framework
+  OpenROAD to the evolved legalizer line. The `*_from_clean.patch` files apply
+  only to the clean OpenROAD anchor recorded in `metadata/anchors.json`.
+- `evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` are prior
+  iter30 route-specific donor starts with measured wins on some archetypes. Use
+  the matching evolved start when Teacher assigns it, or use the catalog to
+  borrow a specific mechanism when your source-level diagnosis supports that
+  route.
+
 ## Paths
 
+- agent_root: `{runtime.agent_root}`
+- optional_reference_index: `{runtime.agent_root / "family_variants" / "REFERENCE_INDEX.yaml"}`
+- optional_legalm_reference: `{runtime.agent_root / "family_variants" / "legalm_guidance" / "README.md"}`
+- optional_diamond_reference: `{runtime.agent_root / "family_variants" / "openroad_diamond" / "README.md"}`
+- optional_negotiation_reference: `{runtime.agent_root / "family_variants" / "openroad_negotiation_nblg" / "README.md"}`
+- optional_evolved_legalizer_catalog: `{runtime.agent_root / "patches" / "evolved_legalizers" / "README.md"}`
+- optional_evolved_legalizer_manifest: `{runtime.agent_root / "patches" / "evolved_legalizers" / "generation_manifest.tsv"}`
+- optional_evolved_legalizer_validation: `{runtime.agent_root / "patches" / "evolved_legalizers" / "validation.tsv"}`
+- optional_evolved_diamond_framework_delta: `{runtime.agent_root / "patches" / "evolved_legalizers" / "openroad_dpl_evolve_diamond_iter30_framework_delta.patch"}`
+- optional_evolved_legalm_framework_delta: `{runtime.agent_root / "patches" / "evolved_legalizers" / "openroad_dpl_evolve_legalm_iter30_framework_delta.patch"}`
+- optional_evolved_negotiation_framework_delta: `{runtime.agent_root / "patches" / "evolved_legalizers" / "openroad_dpl_evolve_negotiation_iter30_framework_delta.patch"}`
 - lineage: `{lineage_path}`
 - student_workspace: `{paths.student_workspace}`
 - variant_root: `{paths.variant_root}`
 - private_dpl_evolve_source: `{paths.dpl_src}`
+- source_layout: `private_dpl_evolve_source` is the `dpl_evolve` module root;
+  use `src/...`, `src/optimization/...`, and `src/objective/...` inside it.
+  Do not append `tools/OpenROAD/src/dpl_evolve/` under this private source.
+- source_src_dir: `{paths.dpl_src / "src"}`
+- source_optimization_dir: `{paths.dpl_src / "src" / "optimization"}`
+- source_objective_dir: `{paths.dpl_src / "src" / "objective"}`
+- source_branch: `{paths.source_branch}`
 - private_binary: `{paths.private_binary}`
 - artifact_dir: `{paths.artifact_dir}`
+- failed_attempts: `{paths.artifact_dir / "failed_attempts.jsonl"}`
 - implementation_diff: `{paths.implementation_diff}`
 - knowledge_card: `{paths.knowledge_card}`
-- source_backup_after_iteration: `{paths.source_backup}`
+- source_repo: `{paths.dpl_src}`
+- source_base_commit: `{paths.source_base_record}`
+- source_commit_record: `{paths.source_commit_record}`
 - codex_session_state: `{paths.session_state}`
 - codex_identity_env: `{paths.session_env_file}`
+- command_script_dir: `{paths.student_workspace / "scripts"}`
+- prepare_source_script: `{script_paths["prepare"]}`
+- switch_start_branch_script: `{script_paths["switch_start_branch"]}`
+- source_context_script: `{script_paths["source_context"]}`
+- apply_evolved_legalizer_patch_script: `{script_paths["apply_evolved_patch"]}`
+- build_variant_script: `{script_paths["build"]}`
+- fresh_build_script: `{script_paths["fresh_build"]}`
+- evaluate_candidate_script: `{script_paths["evaluate"]}`
+- commit_source_script: `{script_paths["commit"]}`
+- write_diff_script: `{script_paths["diff"]}`
+- seed_knowledge_card_script: `{script_paths["knowledge_template"]}`
+- after_edit_script: `{script_paths["after_edit"]}`
 - peer_learning_packet: `{peer_learning_path}`
 - teacher_plan_prompt: `{teacher_prompt_path}`
 - teacher_plan_operation: `{teacher_operation_id}`
 - teacher_plan_last_message:
   `{runtime.operations_dir / teacher_operation_id / "codex_last_message.txt"}`
 
-Note: `source_backup_after_iteration` is created by the launched orchestrator
-after the child finishes. The packet-only manual path does not create it.
+Note: `source_commit_record` is written by the launched orchestrator after the
+child finishes and records the committed source revision for this iteration.
+The packet script path also writes a lightweight record for your own report.
 
 ## Mandatory Completion Gate
 
@@ -835,6 +1622,12 @@ Before your final answer, complete these checks.  If any check fails, report
 the exact blocker and do not call the candidate successful.
 
 - source edited only under `private_dpl_evolve_source`
+- `private_dpl_evolve_source` remains a local git repo and current branch is
+  `{paths.source_branch}`
+- commit your final source state before the final answer.  Use a concise commit
+  message such as `{student_id} {iter_name(iteration)} mechanism`.  The
+  orchestrator will create a fallback commit only if you leave uncommitted
+  source changes.
 - public Tcl/SWIG-wrapped class layout, especially `Opendp`, was not changed
   for ordinary algorithm state; if changed, Tcl startup was smoke-tested before
   full evaluation
@@ -848,145 +1641,120 @@ the exact blocker and do not call the candidate successful.
 - final answer includes metrics path, stage-wise HPWL deltas
   (`HPWLg`, `delta HPWLlg`, `delta HPWLip`, `delta HPWL final`,
   `HPWL final`), runtime/displacement delta, diff path, knowledge card path,
-  and algorithmic validity/complexity assessment
+  source commit, key counters/logs, and algorithmic validity/complexity
+  assessment
+- if a primary mechanism counter is zero, label that route as non-executed or
+  negative evidence instead of claiming the mechanism ran
 
 ## Evaluation Timeout
 
 - {timeout_note}
 - If evaluation times out, stop that implementation path, report it as failed
-  runtime evidence, and do not rerun the same mechanism.
+  runtime evidence, and do not rerun the same mechanism.  If evaluation
+  finishes well below the timeout with only a tiny HPWL gain, consider whether
+  the assigned route was under-explored and whether a bounded wider search,
+  exact scorer, batch transaction, or parallel candidate pass should be tested
+  before finalizing.
 
-## Per-Iteration Execution Budget
+## Required Skills
+
+Read only these absolute repo-local skill paths for ordinary Student source
+edits. Do not infer a `packet/skills/` directory and do not search for skills
+relative to this packet:
+
+- `{runtime.agent_root / "skills" / "patch_rules.md"}`
+- `{runtime.agent_root / "skills" / "source_git_workflow.md"}`
+- `{runtime.agent_root / "skills" / "build_openroad.md"}`
+- `{runtime.agent_root / "skills" / "evaluate_run.md"}`
+- `{runtime.agent_root / "skills" / "trace_logging.md"}` when the mechanism
+  needs counters/logs.
+
+Use orchestration/debug skills only if the generated helper fails and its error
+is insufficient.
+
+## Per-Iteration Execution Contract
 
 - This packet is for one outer Teacher/Student iteration.
-- Required source surface: modify legalization/detailed placement and improve
-  placement.
-- You may use any canonical baseline line as a source donor or start-point
-  hypothesis, including Diamond/openroad_dpl_flow. The evaluation still runs
-  through the evolved commands, so report which line influenced the source
-  changes and how the evolved behavior differs.
-- Do not buy HPWL by simply running improve placement more times, repeating
-  random tails, or stacking endpoints.  Distill any such clue into one bounded
-  mechanism.  It is encouraged to spend available timeout budget on a deeper
-  bounded improve-placement algorithm when the source change modifies
-  candidates, objective, acceptance, local state, or handoff consumption.
-- Work through the assigned mechanism concretely: plan related edits A/B for
-  legalization/detailed placement and improve placement; implement both; add at
-  least one legalization/improve co-optimization link where improve-placement
-  scoring, candidate choice, local HPWL deltas, residual-net priorities, or
-  handoff state affects legal-state generation; make the improve-placement edit
-  concrete in `Optdp` or detailed-improvement support code rather than only
-  changing an endpoint script; build and evaluate; inspect canonical
-  `metrics.json:hpwl`, `metrics.json:hpwl_stages` when present, plus the
-  relevant OpenROAD log; revise the algorithm when the result is weak or
-  illegal; rebuild and re-evaluate; keep the best clean candidate.
-- Revisions must change the algorithmic mechanism or its commit/selection
-  logic, not only retune constants. Stop when the best clean candidate is
-  clearly recorded, the mechanism is exhausted, or the blocker is concrete
-  enough for Teacher to act on.
-- Keep the implementation high-performance.  Do not extend slow endpoint
-  families, repeated random tails, or unbounded scans for a small HPWL delta.
-  If the mechanism is not plausibly making material progress toward the 5%
-  research target, pivot to a bounded structural change.  For `Optdp`, prefer
-  touched-net/local-box caches, compact candidate queues, and deterministic
-  move/swap/window ordering over full rescans.  Keep the best bounded clean
-  candidate.
-- After a clean `metrics.json` exists, read only the metrics needed for the
-  final report. Do not inspect evaluator/helper scripts, `post_metrics` files,
-  or log tails unless the command failed or metrics are missing.
-- Build/evaluation infrastructure is not your research target. Use only the
-  generated commands in this packet. Do not inspect `link.txt`, reconstruct
-  relink commands, or manually run `ar`, `ranlib`, `nm`, `strings`, `ldd`,
-  `readelf`, or equivalent binary/link debugging. If a generated helper fails,
-  fix the source issue or report the helper error as the blocker.
-- Trust generated helper commands. Do not read `run_baseline.sh`,
-  `build_openroad_variant_relink.py`, evaluator code, wrapper scripts, CMake
-  link files, or object/archive contents.
-- Do not invent relative build directories such as `build_iter03c`; every
-  build directory must be an absolute path under `variant_root`.
-- Do not dump full context, full event logs, or generic memory registries by
-  default. Use targeted `rg`/small excerpts when extra evidence is needed.
-- Teacher should have distilled the useful knowledge for this turn. Open memory
-  files only when a concrete source decision needs extra evidence.
-- Before the first source edit, keep exploration bounded: use `rg` first and at
-  most a few small `nl -ba ... | sed -n` windows around exact symbols. Keep
-  each window small enough to understand the patch site; do not page through
-  hundreds of lines, whole source files, donor trees, event logs, or memory
-  registries. If more source reading is unavoidable, state why in the final
+- Implement the assigned A/B plan: legalization/detailed placement and improve
+  placement. Keep `optimize_mirroring_evolve` callable for evaluation.
+- Build at least one legalization/improve co-optimization link.
+- Use generated scripts below for prepare/build/evaluate/diff/knowledge.
+- If Teacher assigns `framework`, `evolved_diamond`, `evolved_legalm`, or
+  `evolved_negotiation` as this route's start point, use
+  `switch_start_branch_script --kind <kind>` immediately after source
+  preparation and before edits. Do not emulate this by manually copying source
+  trees or applying OpenROAD-root patches.
+- Use `source_context_script` before nontrivial patches when you need current
+  local source anchors. For donor-derived hunks or any edit based on Teacher
+  prose rather than currently visible source text, this is mandatory. It only
+  prints context; source edits still use `apply_patch`.
+- If Teacher assigns patch application from an evolved legalizer family, use
+  `apply_evolved_legalizer_patch_script --line diamond|legalm|negotiation
+  --check-only` first, then apply exactly one compatible line with the same
+  script. Do not manually run `git apply` on OpenROAD-root patch files.
+- Keep runtime bounded by the generated DPL flow timeout. The threshold is
+  computed from canonical `metrics.json:runtime_seconds`, but the timeout is
+  applied only to the OpenROAD legalize/improve/mirror flow. Metrics/evaluator
+  collection is not timeout-wrapped.
+- Treat runtime as a usable search budget, not only a failure condition.  If
+  Teacher assigned an explore/aggressive route, spend that budget on a bounded
+  mechanism that can materially change stage-wise or final HPWL; do not shrink
+  the implementation back to a baseline-runtime retune unless source evidence
+  proves the larger search is exhausted.
+- After metrics exist, read only the canonical metrics/log data needed for the
   report.
-- If a patch does not apply, inspect only the nearby current source around the
-  intended function/state, then re-apply a smaller patch. Do not turn patch
-  recovery into build-system or relink investigation.
 
-## Prepare
+## Generated Scripts
 
-```bash
-mkdir -p {shlex.quote(str(paths.variant_root))}
-{shlex.quote(str(runtime.agent_root / "scripts" / "create_variant_start.sh"))} \\
-  --orfs-root {shlex.quote(str(runtime.orfs_root))} \\
-  --variant-root {shlex.quote(str(paths.variant_root))} \\
-  --start-kind {shlex.quote(start_kind)} \\
-  --dpl-src {shlex.quote(str(paths.dpl_src))}{seed_args}
-mkdir -p {shlex.quote(str(paths.artifact_dir))}
-```
+The fixed command scripts are already generated in your workspace. Use these
+scripts instead of reconstructing shell commands or studying CMake/relink
+internals.
 
-## Build
+- prepare source before editing: `{script_paths["prepare"]}`
+- switch to a prepared local start branch when Teacher assigns one:
+  `{script_paths["switch_start_branch"]}`
+- print current source context for patch anchors: `{script_paths["source_context"]}`
+- apply/check one evolved legalizer framework-delta patch when Teacher assigns
+  that path: `{script_paths["apply_evolved_patch"]}`
+- build after source edits: `{script_paths["build"]}`
+- evaluate canonical metrics: `{script_paths["evaluate"]}`
+- commit final source: `{script_paths["commit"]}`
+- write implementation diff: `{script_paths["diff"]}`
+- seed knowledge-card template if needed: `{script_paths["knowledge_template"]}`
+- optional after-edit bundle: `{script_paths["after_edit"]}`
+- optional fresh build fallback only if normal build fails:
+  `{script_paths["fresh_build"]}`
 
-```bash
-{shlex.quote(str(runtime.agent_root / "scripts" / "configure_openroad_variant_relink.sh"))} \\
-  --variant-root {shlex.quote(str(paths.variant_root))} \\
-  --dpl-src {shlex.quote(str(paths.dpl_src))}
+Execution order:
 
-{shlex.quote(str(runtime.agent_root / "scripts" / "build_openroad_variant_relink.sh"))} \\
-  --variant-root {shlex.quote(str(paths.variant_root))} \\
-  --dpl-src {shlex.quote(str(paths.dpl_src))} \\
-  --threads {threads}
-```
+1. Run `prepare_source_script`.
+2. If Teacher assigns a prepared start point (`framework`, `evolved_diamond`,
+   `evolved_legalm`, or `evolved_negotiation`), run
+   `switch_start_branch_script --kind <kind>` before edits.
+3. Use `source_context_script <src/...> [symbol]` for patch anchors, then edit
+   only `private_dpl_evolve_source` with `apply_patch`.
+4. If Teacher explicitly assigns an evolved patch application route, run
+   `apply_evolved_legalizer_patch_script --line <line> --check-only`, then
+   apply the same line with that script before your own mechanism edits.
+5. Run `build_variant_script`.
+6. Run `evaluate_candidate_script`.
+7. If the result is weak/illegal and time remains, revise the mechanism and
+   rerun build/evaluate.
+8. Run `commit_source_script`.
+9. Run `write_diff_script`.
+10. Write or complete `knowledge_card`.
 
-## Generated Fresh Build-Dir Command
+Use `after_edit_script` only after source edits are complete; it runs build,
+evaluate, commit, diff, and knowledge-card template creation in sequence.
 
-Use this only if the normal generated build command returns nonzero or the
-normal generated build demonstrably leaves `private_binary` missing. Run the
-block exactly as written. Do not inspect CMake link files, object files, or
-archives, and do not handcraft a relink command.
+Do not manually remove, move, archive, inspect, or overwrite CMake build
+products. If a generated script fails, report that script path and its error
+first; inspect lower-level build artifacts only when the script error proves
+that is necessary.
 
-```bash
-FRESH_BUILD_DIR={shlex.quote(str(paths.variant_root / "build_fresh"))}
-{shlex.quote(str(runtime.agent_root / "scripts" / "configure_openroad_variant_relink.sh"))} \\
-  --variant-root {shlex.quote(str(paths.variant_root))} \\
-  --build-dir "$FRESH_BUILD_DIR" \\
-  --dpl-src {shlex.quote(str(paths.dpl_src))}
-
-{shlex.quote(str(runtime.agent_root / "scripts" / "build_openroad_variant_relink.sh"))} \\
-  --variant-root {shlex.quote(str(paths.variant_root))} \\
-  --build-dir "$FRESH_BUILD_DIR" \\
-  --dpl-src {shlex.quote(str(paths.dpl_src))} \\
-  --threads {threads}
-```
-
-Do not manually `rm`, `mv`, archive, inspect, or overwrite CMake build
-products.
-
-## Evaluate
-
-```bash
-{evaluate_command_head} \\
-  --line evolve_default \\
-  --case {shlex.quote(case_id)} \\
-  --flow-variant {shlex.quote(flow_variant)} \\
-  --threads {threads} \\
-  --openroad-binary {shlex.quote(str(paths.private_binary))} \\
-  --run-tag {shlex.quote(run_tag)}
-```
-
-## Diff
-
-```bash
-diff -ruN \\
-  {shlex.quote(str(parent_src))} \\
-  {shlex.quote(str(paths.dpl_src))} \\
-  > {shlex.quote(str(paths.implementation_diff))} || true
-```
+The launched orchestrator also records or verifies the final commit in
+`source_commit_record` after your session exits. Do not copy source trees for
+lineage; the git commit is the lineage artifact.
 
 ## Knowledge Card
 
@@ -1009,7 +1777,13 @@ Required sections:
 ## Locked Surfaces
 
 - Do not edit evaluator, baseline Tcl, benchmark selection, root ORFS source,
-  or classic `tools/OpenROAD/src/dpl`.
+  workspace helper scripts, generated command scripts, or classic
+  `tools/OpenROAD/src/dpl`.
+- This lock does not forbid source-level algorithm changes inside
+  `private_dpl_evolve_source`. You may change internal
+  `improve_placement_evolve` flow, endpoint order, pass gating, candidate
+  scoring, parameterization, and legalization/improve handoff state when the
+  change is bounded and proven by canonical stage metrics/runtime.
 - Do not claim success through default-equivalent or no-op behavior.
 - Prefer new helper files or `.cpp` implementation-local state over public
   wrapped-header layout changes for algorithm caches/handoff state.
@@ -1058,10 +1832,14 @@ def write_review_artifacts_packet(
                 f"- events_large_do_not_read_by_default: `{child.events_jsonl}`",
                 f"- student_workspace: `{child.student_workspace}`",
                 f"- private_dpl_src: `{child.dpl_src}`",
+                f"- source_branch: `{child.source_branch}`",
                 f"- private_binary: `{child.private_binary}`",
+                f"- failed_attempts: `{child.implementation_diff.parent / 'failed_attempts.jsonl'}`",
                 f"- implementation_diff: `{child.implementation_diff}`",
                 f"- knowledge_card: `{child.knowledge_card}`",
-                f"- source_backup_after_iteration: `{child.source_backup}`",
+                f"- source_base_commit: `{child.source_base_record}`",
+                f"- source_repo: `{child.dpl_src}`",
+                f"- source_commit_record: `{child.source_commit_record}`",
                 f"- codex_session_state: `{child.session_state}`",
                 f"- codex_identity_env: `{child.session_env_file}`",
                 child_artifact_status_block(
@@ -1105,11 +1883,11 @@ def child_prompt(
 ## Elite Seed Assignment
 
 This student is the protected best-so-far continuation branch for this
-iteration.  The orchestrator will pre-seed your private source from:
+iteration. The orchestrator will pre-seed your private source from:
 
 `{elite_seed_source}`
 
-Your task is not to continue your weaker prior workspace.  Start from this
+Your task is not to continue your weaker prior workspace. Start from this
 elite code path, then make the next case-specific improvement on top of it.
 """
     return render_prompt_template(
@@ -1159,12 +1937,12 @@ def compact_child_prompt(
 ## Elite Seed Assignment
 
 This student is the protected best-so-far continuation branch for this
-iteration.  The orchestrator will pre-seed the private source from:
+iteration. The orchestrator will pre-seed the private source from:
 
 `{elite_seed_source}`
 
 Do not treat your prior private workspace as the parent for this iteration
-unless Teacher explicitly says to compare against it.  Start from the elite
+unless Teacher explicitly says to compare against it. Start from the elite
 source, then make the next aggressive improvement on top of that code.
 """
     peer_context = peer_briefing(

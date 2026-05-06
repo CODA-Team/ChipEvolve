@@ -3,46 +3,114 @@
 ## Principle
 
 Codex edits only the bounded `dpl_evolve` framework surface unless a task
-explicitly expands the scope.
+explicitly expands the scope.  The current Teacher/Student loop optimizes two
+active responsibilities: legalization/detailed placement and improve
+placement.  `optimize_mirroring_evolve` must remain callable but is not an
+active optimization target in this track.
 
 ## Preferred Surfaces
 
-- `tools/OpenROAD/src/dpl_evolve/src/EvolveLegalizer.cpp`
-- `tools/OpenROAD/src/dpl_evolve/src/EvolveLegalizer.h`
-- `tools/OpenROAD/src/dpl_evolve/src/EvolveContext.h`
-- `tools/OpenROAD/src/dpl_evolve/src/EvolveTelemetry.h`
-- `tools/OpenROAD/src/dpl_evolve/src/StudentAlgorithm.cpp`
-- LEGALM-stage files under `tools/OpenROAD/src/dpl_evolve/src/Legalm*.{h,cpp}`
+In Student rounds, `private_dpl_evolve_source` is already the `dpl_evolve`
+module root. Do not append `tools/OpenROAD/src/dpl_evolve` under it. Use these
+module-relative paths:
+
+- `src/EvolveLegalizer.cpp`
+- `src/EvolveLegalizer.h`
+- `src/EvolveContext.h`
+- `src/EvolveTelemetry.h`
+- `src/StudentAlgorithm.cpp`
+- LEGALM-stage files under `src/Legalm*.{h,cpp}`
 - detailed-improvement and objective files under
-  `tools/OpenROAD/src/dpl_evolve/src/optimization/` and
-  `tools/OpenROAD/src/dpl_evolve/src/objective/`
-- `tools/OpenROAD/src/dpl_evolve/src/Optdp.cpp`
-- existing `tools/OpenROAD/src/dpl_evolve/src/Place.cpp` or
+  `src/optimization/` and `src/objective/`
+- `src/Optdp.cpp`
+- existing `src/Place.cpp` or
   `NegotiationLegalizer*` files only when borrowing a specific donor mechanism.
 
 Do not edit classic `tools/OpenROAD/src/dpl/`.
 
 ## Reference Inputs
 
-Read compact references before patching:
+Reference inputs are optional and must be opened only through absolute paths
+provided by the workspace packet or Teacher plan.  `private_dpl_evolve_source`
+is a source-only git repo and does not contain `family_variants/`.
 
-- `family_variants/REFERENCE_INDEX.yaml`
-- one donor under `family_variants/`
-- `family_variants/openroad_negotiation_nblg/mechanism_deltas/`
-  only if assigned to negotiation-history mechanisms
+If donor evidence is needed, use repo-root references such as:
 
+- `<agent_root>/family_variants/REFERENCE_INDEX.yaml`
+- `<agent_root>/family_variants/legalm_guidance/README.md`
+- `<agent_root>/family_variants/openroad_diamond/README.md`
+- `<agent_root>/family_variants/openroad_negotiation_nblg/README.md`
+- `<agent_root>/family_variants/openroad_negotiation_nblg/mechanism_deltas/`
+  only when assigned to negotiation-history mechanisms.
+- `<agent_root>/patches/evolved_legalizers/README.md`
+- `<agent_root>/patches/evolved_legalizers/generation_manifest.tsv`
+- `<agent_root>/patches/evolved_legalizers/validation.tsv`
+- `<agent_root>/patches/evolved_legalizers/openroad_dpl_evolve_*_iter30_framework_delta.patch`
+
+If an absolute donor path is missing, skip it and continue from Teacher-named
+source symbols. Do not search for donor files relative to the private source
+repo.
 Do not broad-read external archives or ignored local backups unless the task
 explicitly asks for old family-flow evidence.
+Do not open `~/.codex/memories`, rollout summaries, checkpoint event logs, or
+old transcripts during ordinary Student source edits. The generated Teacher
+packet and repo-local knowledge files are the evidence boundary.
 
 ## Patch Style
 
-- Change one coherent mechanism at a time.  For Teacher/Student rounds, that
-  mechanism may span legalization/detailed placement, improve placement, and
-  their shared objective/handoff.
+- Change one coherent route/mechanism at a time.  For Teacher/Student rounds,
+  that route may include multiple related code changes spanning
+  legalization/detailed placement, improve placement, and their shared
+  objective/handoff.
+- Start from Teacher-named exact symbols and inspect only nearby code before
+  patching. Avoid full-file reads, full-tree archaeology, and donor-source
+  sweeps unless exact-symbol lookup fails.
+- Use `apply_patch` for source edits. Do not rewrite source files with Python,
+  heredocs, `sed -i`, `perl -pi`, or broad formatter-driven edits.
+- Patch only current file contents from the private source tree. Before each
+  nontrivial patch, confirm the module-relative file with `rg --files`, locate
+  the exact function/state with targeted `rg -n`, and inspect a small nearby
+  line-numbered excerpt.
+- Do not patch against remembered snippets, Teacher-plan prose, donor examples,
+  old checkpoints, or another student's workspace. Those are evidence, not
+  current patch anchors.
+- Keep hunk anchors narrow and unique. Prefer one function body, one state
+  declaration, one include list, or one build-list edit per hunk. Large
+  mechanisms should be decomposed into several verified small patches.
+- After a successful patch, verify the changed symbol with targeted `rg -n` or a
+  small excerpt, then run `git diff --check` before building.
+- If `apply_patch` fails, do not retry the same stale hunk. Re-open the current
+  local source around the intended function/state, reduce the edit to the
+  smallest semantic insertion or replacement, and apply a fresh patch based only
+  on the refreshed text.
+- For donor-derived edits or Teacher-prose-derived hunks, run the generated
+  source-context helper first and patch against current local source text only.
+  Never reuse donor line numbers or old hunk context as the patch anchor.
+- Run the generated source-preparation script before code inspection. After
+  reading the workspace packet, required skills, and nearby Teacher-named
+  symbols, patch a coherent mechanism and move to generated build/evaluate
+  scripts. Do not spend the iteration on broad source exploration.
+- If Teacher assigns a prepared start point (`framework`, `evolved_diamond`,
+  `evolved_legalm`, or `evolved_negotiation`), use the generated
+  `switch_start_branch_script` immediately after source preparation and before
+  edits. Do not copy seed directories or manually apply OpenROAD-root patches to
+  emulate a start-point switch.
+- If Teacher assigns an evolved patch application rather than an evolved
+  start-kind, use the generated `apply_evolved_legalizer_patch_script`.
+  First run it with `--check-only`, then apply exactly one line
+  (`diamond`, `legalm`, or `negotiation`). Do not manually run `git apply` on
+  OpenROAD-root patches inside the private source tree.
 - Keep `detailed_placement_evolve` as the primary evolved placement command.
-- Keep evaluator, scoring, and ORFS flow scripts locked.
+- Keep external evaluator, baseline Tcl, ORFS flow, workspace helper, and
+  benchmark-selection scripts locked. Inside `private_dpl_evolve_source`, it is
+  valid to change the source-level implementation of `improve_placement_evolve`,
+  including internal endpoint order, pass gating, candidate scoring,
+  parameterization, and legalization/improve handoff state, when runtime remains
+  bounded and canonical stage metrics prove the effect.
 - If a Tcl option is added, update both the Tcl wrapper and C++ receiver.
 - Add telemetry when a new stage or repair operator executes.
+- Add lightweight counters/logs for the mechanism when they help Teacher check
+  whether the logic actually executed.
 
 ## Required Patch Note
 
@@ -53,6 +121,7 @@ For each patch, record:
 - expected HPWL/runtime/displacement/legality effect,
 - expected failure mode,
 - repair or failure-handling policy inside the algorithm.
+- key counters/logs that prove the mechanism ran.
 
 ## Forbidden Behaviors
 

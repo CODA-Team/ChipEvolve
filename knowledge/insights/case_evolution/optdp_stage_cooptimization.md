@@ -3,7 +3,8 @@
 This card summarizes reusable evidence from two image-compression placement
 evolution runs at different utilization levels.  The exact case names are not
 the lesson; the transferable lesson is that final HPWL depends on how
-legalization, detailed improvement, and mirroring exchange useful local state.
+legalization and detailed improvement exchange useful local state while keeping
+the downstream mirror/evaluation pass callable.
 
 ## Headline
 
@@ -13,7 +14,8 @@ mechanisms that:
 - make legalization emit a bounded, meaningful local frontier,
 - make `Optdp` consume that frontier with HPWL-aware candidate generation,
 - keep exact legality and exact `DetailedHPWL` acceptance as the final guard,
-- let mirroring consume the same selected cells without reopening bad net boxes.
+- preserve downstream evaluation observability without turning mirror into the
+  default optimization target.
 
 Legal-stage HPWL improvement alone is not enough.  A legalizer can produce a
 clean, low-displacement placement with better legal HPWL and still lose final
@@ -111,11 +113,11 @@ Mechanism:
 - reserve local legal intervals around high-pressure or overflow areas,
 - compact within reserved segments,
 - prioritize auction/reservation-touched cells in later legalization stages,
-- optionally pass focus state to improve and mirror.
+- optionally pass focus state to improve placement.
 
 Why it helped:
 
-- produced the strongest legal-stage HPWL signal in the high-utilization run,
+- produced the best legal-stage HPWL signal in the high-utilization run,
 - reduced row escapes and kept displacement low,
 - showed that local legal order and interval reservation matter.
 
@@ -137,13 +139,13 @@ Mechanism:
 - legalization records tagged high-pressure/micro-seed instances,
 - `Optdp` generates capped same-row or near-row candidates around those tags,
 - candidates use exact `DetailedHPWL::delta`,
-- accepted micro moves/swaps update tag state for mirroring.
+- accepted micro moves/swaps update tag state for downstream consumers.
 
 Why it is useful:
 
 - it proved nonzero exact-gain local moves exist,
 - it gives a concrete bridge from legalizer intent to detailed improvement and
-  mirror candidate ordering.
+  downstream evaluation state.
 
 Limitation:
 
@@ -154,7 +156,8 @@ Future use:
 
 - make the tagged micro-pass replace or substantially prune the low-ROI random
   tail when it accepts enough moves,
-- send accepted tagged instances directly into mirror ordering.
+- send accepted tagged instances directly into the improve-placement consumer
+  or another explicitly reopened downstream stage.
 
 ## Harmful Or Non-Promotable Mechanisms
 
@@ -177,9 +180,9 @@ blindly pull cells toward donor anchors.
 
 ### Passive Tags Without A Strong Consumer
 
-Recording legalizer tags is not enough.  If tags only bias a normal endpoint or
-mirror ordering weakly, the generic detailed-improvement path dominates and the
-mechanism has little final effect.
+Recording legalizer tags is not enough.  If tags only weakly bias a normal
+endpoint or downstream ordering, the generic detailed-improvement path
+dominates and the mechanism has little final effect.
 
 ### Exact Micro-Pass Plus Full Random Tail
 
@@ -278,11 +281,11 @@ Primary source handles:
 - `src/optimization/detailed_reorder.cxx`: `run`, `reorder`, `cost`
 - `src/Optdp.cpp`: `Opendp::improvePlacement`
 
-### Co-Optimization With Mirror And Runtime Control
+### Co-Optimization And Runtime Control
 
-- Candidate scoring should optionally evaluate legal orientation / mirror
-  choices while scoring move targets, so mirroring is not only a disconnected
-  final polish step.
+- Candidate scoring should focus on legalizer-to-improve-placement handoff:
+  move targets, local order, orientation if already represented in the detailed
+  placement state, and exact affected-net deltas.
 - Stage allocation should use stage-wise attribution: legal HPWL, after-improve
   HPWL, final HPWL, runtime, accepted moves, and touched-net scoring cost.
 - Runtime should be spent on bounded exact-scored mechanisms and reusable
@@ -321,7 +324,7 @@ When reviewing a round:
 - require at least one route to repair `Optdp` directly when after-improve
   recovery is the failing stage,
 - ask for exact function/state insertion points in `Optdp`, `DetailedHPWL`,
-  detailed candidate queues, or mirror candidate ordering,
+  detailed candidate queues, or legalization-to-improve handoff state,
 - separate "quality signal" from "efficient donor"; slow random-tail gains are
   only clues until bounded.
 
@@ -387,8 +390,9 @@ Observed ceiling after this pass:
   maintenance fixes, but they do not create the 5% class improvement alone.
 - The next upper-bound test should implement the useful portfolio behavior as
   bounded source logic: one stronger descent controller, reusable local HPWL
-  cache, exact-scored GS/VS/Reorder candidate sets, and a controlled handoff to
-  mirror.  Do not claim the prior portfolio by expanding `dtParams.script`.
+  cache, exact-scored GS/VS/Reorder candidate sets, and a controlled handoff
+  from legalization into improve placement.  Do not claim the prior portfolio
+  by expanding `dtParams.script`.
 
 ## Evidence Pointers And Round Hygiene
 

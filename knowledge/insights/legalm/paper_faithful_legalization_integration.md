@@ -105,8 +105,11 @@ paper-faithful reference implementation.
 
 ## Integration Policy Notes
 
-- Diamond is currently the strongest strict baseline, so it can remain the
-  final bridge while the staged algorithm matures.
+- The canonical OpenROAD DPL / Diamond-style flow remains the strict comparison
+  anchor and can remain a controlled final bridge while the staged algorithm
+  matures.  Do not describe it as the universal strongest parent; evolved
+  legalizer seeds and case-specific elites may be better starts for a given
+  Teacher/Student round.
 - If diamond runs after guidance, the report must state how much was done by
   guidance and how much was resolved by diamond.
 - Negotiation/NBLG is a repair donor, not a LEGALM paper stage.  If it runs

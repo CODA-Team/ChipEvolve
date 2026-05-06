@@ -21,7 +21,10 @@ enabled case core_utilization flow_variant round_id start_kind notes
 - `core_utilization`: integer value, `default`, or `-`.
 - `flow_variant`: stable ORFS placement snapshot name.
 - `round_id`: stable Teacher/Student output directory name.
-- `start_kind`: `diamond`, `framework`, or `prepared`.
+- `start_kind`: `framework`, `diamond`,
+  `evolved_diamond`, `evolved_legalm`, `evolved_negotiation`, or `prepared`.
+  `evolved_*` rows use materialized seed sources created from
+  `patches/evolved_legalizers/*_framework_delta.patch`.
 - `notes`: short human intent for this experiment point.
 
 ## Recommended Pattern
@@ -38,14 +41,14 @@ editing this shared runner.  The runner should stay generic.
 
 ## Fixed-Candidate Matrix
 
-When one student produces a promising source backup, test that exact code
+When one student produces a promising source commit, test that exact code
 across the whole plan before promoting it:
 
 ```bash
-"$DPL_EVOLVE_AGENT_ROOT/scripts/run_candidate_matrix.sh" \
-  --matrix-id my_candidate_matrix \
-  --candidate-src "$DPL_EVOLVE_STATE_ROOT/teacher_rounds/<round>/students/student_XX/source_backups/iter_YY/dpl_evolve" \
-  --candidate-label student_XX_iter_YY \
+"$DPL_EVOLVE_AGENT_ROOT/scripts/run_round_candidate_matrices.sh" \
+  --round-id <round> \
+  --student student_XX \
+  --iteration iter_YY \
   --plan "$DPL_EVOLVE_AGENT_ROOT/configs/experiment_plans/flow_knowledge_core_util.tsv"
 ```
 
@@ -67,8 +70,8 @@ Default behavior:
 2. Evolve only `jpeg_nangate45` at `CORE_UTILIZATION=60`.
 3. Use `framework` as the student start point.
 4. Run 4 students for 12 iterations.
-5. Freeze every generated `source_backup`.
-6. Run every fixed candidate on all 9 plan rows.
+5. Commit every generated student source revision.
+6. Export each fixed candidate revision and run it on all 9 plan rows.
 
 If all 48 candidates are produced, this yields `48 x 9 = 432` candidate-case
 measurements.

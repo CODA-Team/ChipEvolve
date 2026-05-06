@@ -10,8 +10,9 @@ Default reading order:
 3. `EVIDENCE_POLICY.md`
 4. `../baseline/canonical_lines.yaml`
 5. `../family_variants/REFERENCE_INDEX.yaml`
-6. one relevant file under `algorithm_cards/`
-7. paper PDFs and source notes under `reference/` only if needed
+6. `../patches/evolved_legalizers/README.md` when choosing a donor/start seed
+7. one relevant file under `algorithm_cards/`
+8. paper PDFs and source notes under `reference/` only if needed
 
 Current compact algorithm cards:
 
@@ -43,3 +44,11 @@ Knowledge cards are not all equal. Use `EVIDENCE_POLICY.md` to distinguish
 hard contracts from measured observations, working hypotheses, and reference
 donors.  Use `insights/README.md` to pick only the insight cards relevant to
 the current task.
+
+The evolved legalizer patch catalog is part of the active donor inventory.
+`evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` are prior
+iter30 donor seeds with measured wins on some design archetypes, not universal
+defaults.  Their patch files state the required apply base, and
+`prepare_workspace.sh` can materialize them as start kinds for Teacher/Student
+rounds. Teacher should still validate the chosen seed against the current
+case's stage-wise evidence.

@@ -281,12 +281,145 @@ def candidate_artifacts(
         operation_id=operation_id,
         operation_dir=operation_dir,
         last_message=operation_dir / "codex_last_message.txt",
-        source_backup=student_root / "source_backups" / iter_part / "dpl_evolve",
+        source_repo=student_root / "workspace" / "variant" / "dpl_evolve",
+        source_ref=source_ref_for_iteration(
+            student_root=student_root,
+            iter_part=iter_part,
+        ),
         implementation_diff=student_root
         / iter_part
         / "artifacts"
         / "implementation.diff",
         knowledge_card=student_root / iter_part / "artifacts" / "knowledge_card.md",
+    )
+
+
+def _candidate_private_binary(round_dir: Path, artifacts: CandidateArtifacts) -> Path:
+    stable_binary = (
+        round_dir
+        / "students"
+        / artifacts.student_id
+        / "workspace"
+        / "variant"
+        / "install"
+        / "OpenROAD"
+        / "bin"
+        / "openroad"
+    )
+    if stable_binary.exists():
+        return stable_binary
+    return (
+        round_dir
+        / "students"
+        / artifacts.student_id
+        / artifacts.iter_part
+        / "variant"
+        / "install"
+        / "OpenROAD"
+        / "bin"
+        / "openroad"
+    )
+
+
+def candidate_artifact_problems(
+    *,
+    runtime: Any,
+    round_dir: Path,
+    round_id: str,
+    case_id: str,
+    candidate: MetricSummary,
+) -> list[str]:
+    """Return non-promotable artifact problems for a student metric row.
+
+    Metrics alone are not enough to seed the next iteration.  A promotable
+    donor must have a successful Codex operation and source/knowledge artifacts
+    that explain and reproduce the measured result.
+    """
+    artifacts = candidate_artifacts(
+        runtime=runtime,
+        round_dir=round_dir,
+        round_id=round_id,
+        case_id=case_id,
+        candidate=candidate,
+    )
+    if artifacts is None:
+        return ["missing_candidate_artifacts"]
+
+    usage_path = artifacts.operation_dir / "codex_usage_summary.json"
+    usage = load_json(usage_path) or {}
+    returncode = usage.get("returncode")
+    agent_message_count = int(usage.get("agent_message_count", 0) or 0)
+    last_message_size = (
+        artifacts.last_message.stat().st_size if artifacts.last_message.exists() else 0
+    )
+    diff_size = (
+        artifacts.implementation_diff.stat().st_size
+        if artifacts.implementation_diff.exists()
+        else 0
+    )
+    knowledge_size = (
+        artifacts.knowledge_card.stat().st_size
+        if artifacts.knowledge_card.exists()
+        else 0
+    )
+    private_binary = _candidate_private_binary(round_dir, artifacts)
+
+    problems: list[str] = []
+    if not usage_path.exists():
+        problems.append("missing_usage_summary")
+    elif returncode != 0:
+        problems.append(f"codex_returncode_{returncode}")
+    if agent_message_count <= 0:
+        problems.append("no_agent_message")
+    if last_message_size <= 0:
+        problems.append("empty_last_message")
+    if not private_binary.exists():
+        problems.append("missing_private_binary")
+    if not artifacts.source_repo.exists():
+        problems.append("missing_source_repo")
+    if not artifacts.source_ref:
+        problems.append("missing_source_ref")
+    elif artifacts.source_repo.exists() and not git_ref_exists(
+        artifacts.source_repo, artifacts.source_ref
+    ):
+        problems.append("missing_source_object")
+    if not artifacts.implementation_diff.exists():
+        problems.append("missing_implementation_diff")
+    elif diff_size <= 0:
+        problems.append("empty_implementation_diff")
+    if not artifacts.knowledge_card.exists():
+        problems.append("missing_knowledge_card")
+    elif knowledge_size <= 0:
+        problems.append("empty_knowledge_card")
+    if not candidate.metrics_path.exists():
+        problems.append("missing_metrics_json")
+    if not is_clean_placement(candidate):
+        problems.append("placement_not_clean")
+    if candidate.hpwl_after is None:
+        problems.append("missing_hpwl_after")
+    return problems
+
+
+def candidate_artifact_status_text(problems: list[str]) -> str:
+    if not problems:
+        return "valid"
+    return "invalid:" + ",".join(problems[:4])
+
+
+def is_promotable_candidate(
+    *,
+    runtime: Any,
+    round_dir: Path,
+    round_id: str,
+    case_id: str,
+    candidate: MetricSummary,
+) -> bool:
+    return not candidate_artifact_problems(
+        runtime=runtime,
+        round_dir=round_dir,
+        round_id=round_id,
+        case_id=case_id,
+        candidate=candidate,
     )
 
 
@@ -480,8 +613,8 @@ def round_scoreboard(
     baseline_hpwl = baseline.hpwl_after if baseline else None
     target_hpwl = five_percent_target_hpwl(baseline)
     lines = [
-        "| iter | student | route_label | HPWLg | dHPWLlg% | dHPWLip% | dHPWLfinal% | HPWL final | delta_vs_strongest | beats_strongest | gap_to_5pct_target | runtime_s | avg_disp | max_disp | violations | metrics |",
-        "|---|---|---|---:|---:|---:|---:|---:|---:|---|---:|---:|---:|---:|---|---|",
+        "| iter | student | route_label | artifact_gate | HPWLg | dHPWLlg% | dHPWLip% | dHPWLfinal% | HPWL final | delta_vs_best_line | beats_best_line | gap_to_5pct_target | runtime_s | avg_disp | max_disp | violations | metrics |",
+        "|---|---|---|---|---:|---:|---:|---:|---:|---:|---|---:|---:|---:|---:|---|---|",
     ]
     best: MetricSummary | None = None
     best_beating: MetricSummary | None = None
@@ -489,7 +622,15 @@ def round_scoreboard(
         iter_part, student_id, route_label = parse_candidate_tag(
             round_id, case_id, summary.tag
         )
-        if (
+        artifact_problems = candidate_artifact_problems(
+            runtime=runtime,
+            round_dir=runtime.state_root / "teacher_rounds" / round_id,
+            round_id=round_id,
+            case_id=case_id,
+            candidate=summary,
+        )
+        promotable = not artifact_problems
+        if promotable and (
             best is None
             or (
                 is_clean_placement(summary)
@@ -502,7 +643,7 @@ def round_scoreboard(
             )
         ):
             best = summary
-        if candidate_beats_baseline(summary, baseline) and (
+        if promotable and candidate_beats_baseline(summary, baseline) and (
             best_beating is None
             or best_beating.hpwl_after is None
             or (
@@ -522,11 +663,12 @@ def round_scoreboard(
             else summary.hpwl_after - target_hpwl
         )
         lines.append(
-            "| {iter_part} | {student_id} | {route_label} | {hpwlg} | {d_lg_pct} | {d_ip_pct} | {d_final_pct} | {hpwl} | {delta} | "
+            "| {iter_part} | {student_id} | {route_label} | {artifact_gate} | {hpwlg} | {d_lg_pct} | {d_ip_pct} | {d_final_pct} | {hpwl} | {delta} | "
             "{beats} | {target_gap} | {runtime_s} | {avg_disp} | {max_disp} | {violations} | `{metrics_path}` |".format(
                 iter_part=iter_part or "?",
                 student_id=student_id or "?",
                 route_label=route_label or summary.tag,
+                artifact_gate=candidate_artifact_status_text(artifact_problems),
                 hpwlg="" if summary.hpwl_global is None else f"{summary.hpwl_global:.3f}",
                 d_lg_pct=""
                 if summary.hpwl_stage_delta_legalization_percent is None
@@ -539,7 +681,7 @@ def round_scoreboard(
                 else f"{summary.hpwl_stage_delta_final_percent:.2f}%",
                 hpwl="" if summary.hpwl_after is None else f"{summary.hpwl_after:.3f}",
                 delta="" if delta is None else f"{delta:.3f}",
-                beats="yes" if candidate_beats_baseline(summary, baseline) else "no",
+                beats="yes" if promotable and candidate_beats_baseline(summary, baseline) else "no",
                 target_gap="" if target_gap is None else f"{target_gap:.3f}",
                 runtime_s=""
                 if summary.runtime_seconds is None
@@ -563,13 +705,13 @@ def round_scoreboard(
         lines.extend(
             [
                 "",
-                "Best clean candidate so far: "
+                "Best valid clean candidate so far: "
                 f"`{best_iter or '?'}` / `{best_student or '?'}` / "
                 f"`{best_route_label or best.tag}` with HPWL `{best.hpwl_after:.3f}`"
                 + (
                     ""
                     if best_delta is None
-                    else f" (`{best_delta:.3f}` vs {baseline_label or 'strongest baseline'})."
+                    else f" (`{best_delta:.3f}` vs {baseline_label or 'best clean canonical line'})."
                 ),
             ]
         )
@@ -578,13 +720,13 @@ def round_scoreboard(
             round_id, case_id, best_beating.tag
         )
         lines.append(
-            "Best strongest-baseline-beating candidate: "
+            "Best best-canonical-line-beating candidate: "
             f"`{beat_iter or '?'}` / `{beat_student or '?'}` / "
             f"`{beat_route_label or best_beating.tag}`."
         )
     else:
         lines.append(
-            "No prior student candidate beats the strongest clean baseline "
+            "No prior valid student candidate beats the best clean canonical line "
             f"(`{baseline_label or 'unknown'}`) yet."
         )
     if target_hpwl is not None:
@@ -605,6 +747,7 @@ def best_round_candidate(
     before_iteration: int | None = None,
 ) -> MetricSummary | None:
     best: MetricSummary | None = None
+    best_iter = -1
     for summary in discover_round_candidate_metrics(
         orfs_root=runtime.orfs_root,
         case_id=case_id,
@@ -614,20 +757,61 @@ def best_round_candidate(
     ):
         if not is_clean_placement(summary) or summary.hpwl_after is None:
             continue
+        if not is_promotable_candidate(
+            runtime=runtime,
+            round_dir=runtime.state_root / "teacher_rounds" / round_id,
+            round_id=round_id,
+            case_id=case_id,
+            candidate=summary,
+        ):
+            continue
         if require_baseline_beat and not candidate_beats_baseline(summary, baseline):
             continue
-        if best is None or best.hpwl_after is None or summary.hpwl_after < best.hpwl_after:
+        iter_part, _student_id, _route_label = parse_candidate_tag(
+            round_id, case_id, summary.tag
+        )
+        iter_number = candidate_iteration_number(iter_part) or -1
+        if (
+            best is None
+            or best.hpwl_after is None
+            or summary.hpwl_after < best.hpwl_after
+            or (summary.hpwl_after == best.hpwl_after and iter_number > best_iter)
+        ):
             best = summary
+            best_iter = iter_number
     return best
 
 
-def source_backup_for_candidate(
+def source_ref_for_iteration(*, student_root: Path, iter_part: str) -> str | None:
+    data = load_json(student_root / "lineage.json") or {}
+    for item in data.get("iterations", []):
+        if item.get("iteration") == iter_part:
+            value = item.get("source_commit")
+            return str(value) if value else None
+    record = student_root / iter_part / "artifacts" / "source_commit.json"
+    payload = load_json(record) or {}
+    value = payload.get("source_commit")
+    return str(value) if value else None
+
+
+def git_ref_exists(source_repo: Path, source_ref: str) -> bool:
+    result = subprocess.run(
+        ["git", "-C", str(source_repo), "cat-file", "-e", f"{source_ref}^{{tree}}"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        text=False,
+        env=clean_subprocess_env(),
+    )
+    return result.returncode == 0
+
+
+def source_repo_ref_for_candidate(
     *,
     round_dir: Path,
     round_id: str,
     case_id: str,
     candidate: MetricSummary | None,
-) -> Path | None:
+) -> tuple[Path, str] | None:
     if candidate is None:
         return None
     iter_part, student_id, _route_label = parse_candidate_tag(
@@ -635,8 +819,49 @@ def source_backup_for_candidate(
     )
     if not iter_part or not student_id:
         return None
-    source = round_dir / "students" / student_id / "source_backups" / iter_part / "dpl_evolve"
-    return source if source.exists() else None
+    student_root = round_dir / "students" / student_id
+    source_repo = student_root / "workspace" / "variant" / "dpl_evolve"
+    source_ref = source_ref_for_iteration(student_root=student_root, iter_part=iter_part)
+    if source_repo.exists() and source_ref and git_ref_exists(source_repo, source_ref):
+        return source_repo, source_ref
+    return None
+
+
+def materialize_source_ref(*, source_repo: Path, source_ref: str, target_dir: Path) -> Path:
+    """Export one source revision to a plain directory for seeding/evaluation."""
+    if target_dir.exists():
+        shutil.rmtree(target_dir)
+    target_dir.mkdir(parents=True, exist_ok=True)
+    producer = subprocess.Popen(
+        ["git", "-C", str(source_repo), "archive", "--format=tar", source_ref],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=False,
+        env=clean_subprocess_env(),
+    )
+    assert producer.stdout is not None
+    consumer = subprocess.run(
+        ["tar", "-x", "-C", str(target_dir)],
+        stdin=producer.stdout,
+        stderr=subprocess.PIPE,
+        text=False,
+        env=clean_subprocess_env(),
+    )
+    producer.stdout.close()
+    _stdout, producer_stderr = producer.communicate()
+    if producer.returncode != 0:
+        raise RuntimeError(
+            "git archive failed for "
+            f"{source_repo}@{source_ref}: {producer_stderr.decode(errors='replace')}"
+        )
+    if consumer.returncode != 0:
+        raise RuntimeError(
+            "tar extraction failed for "
+            f"{target_dir}: {consumer.stderr.decode(errors='replace')}"
+        )
+    if not (target_dir / "CMakeLists.txt").is_file():
+        raise RuntimeError(f"materialized source lacks CMakeLists.txt: {target_dir}")
+    return target_dir
 
 
 def peer_candidate_row(
@@ -659,7 +884,15 @@ def peer_candidate_row(
     iter_part, student_id, route_label = parse_candidate_tag(
         round_id, case_id, candidate.tag
     )
-    source_backup = artifacts.source_backup if artifacts else None
+    artifact_problems = candidate_artifact_problems(
+        runtime=runtime,
+        round_dir=round_dir,
+        round_id=round_id,
+        case_id=case_id,
+        candidate=candidate,
+    )
+    source_repo = artifacts.source_repo if artifacts else None
+    source_ref = artifacts.source_ref if artifacts else None
     implementation_diff = artifacts.implementation_diff if artifacts else None
     knowledge_card = artifacts.knowledge_card if artifacts else None
     delta = (
@@ -679,11 +912,13 @@ def peer_candidate_row(
         f"efficiency `{efficiency_signal(candidate, baseline, budget_multiplier=budget_multiplier)}`, "
         f"avg/max disp `{candidate.avg_disp}/{candidate.max_disp}`, "
         f"legality `{candidate.violations or 'clean'}`, beats `{beats}`, "
+        f"artifact_gate `{candidate_artifact_status_text(artifact_problems)}`, "
         f"stage_signal `{stage_donor_signal(candidate, baseline, budget_multiplier=budget_multiplier)}`"
     )
     pointers = (
         f"  - inspect only if useful: metrics `{candidate.metrics_path}`; "
-        f"source `{source_backup or ''}`; diff `{implementation_diff or ''}`; "
+        f"source_repo `{source_repo or ''}` source_ref `{source_ref or ''}`; "
+        f"diff `{implementation_diff or ''}`; "
         f"knowledge `{knowledge_card or ''}`"
     )
     return [summary, pointers]
@@ -711,10 +946,32 @@ def write_peer_learning_packet(
         round_id=round_id,
         before_iteration=iteration,
     )
-    clean_candidates = [
+    clean_candidates_all = [
         item
         for item in candidates
         if is_clean_placement(item) and item.hpwl_after is not None
+    ]
+    invalid_clean_candidates = [
+        item
+        for item in clean_candidates_all
+        if candidate_artifact_problems(
+            runtime=runtime,
+            round_dir=round_dir,
+            round_id=round_id,
+            case_id=case_id,
+            candidate=item,
+        )
+    ]
+    clean_candidates = [
+        item
+        for item in clean_candidates_all
+        if not candidate_artifact_problems(
+            runtime=runtime,
+            round_dir=round_dir,
+            round_id=round_id,
+            case_id=case_id,
+            candidate=item,
+        )
     ]
     clean_candidates.sort(key=lambda item: item.hpwl_after or float("inf"))
     beating_candidates = [
@@ -727,20 +984,23 @@ def write_peer_learning_packet(
         "This file is generated by the orchestrator.  It is the code-learning "
         "index for the next Teacher/Student step.",
         "",
-        "Use it to borrow mechanisms and source from validated peer candidates. "
-        "A clean candidate that beats the strongest baseline is useful donor "
-        "evidence only when its runtime and complexity are controlled. Treat "
-        "5% below the strongest baseline as a credible research target, not a "
+        "Use it to borrow mechanisms and source from valid peer candidates. "
+        "A candidate is valid only when the Codex operation, source commit, "
+        "diff, knowledge card, private binary, metrics, and legality all pass "
+        "the artifact gate.  A valid clean candidate that beats the best clean "
+        "canonical line is useful donor evidence only when its runtime and "
+        "complexity are controlled. Treat "
+        "5% below the best clean canonical line as a credible research target, not a "
         "hard gate; below-5% stage donors can still be useful when efficient.",
         "",
         "## Baseline Anchor",
     ]
     if baseline is None:
-        chunks.append("- strongest clean baseline: missing")
+        chunks.append("- best clean canonical line: missing")
     else:
         chunks.extend(
             [
-                f"- strongest_baseline: `{baseline_label}`",
+                f"- best_clean_canonical_line: `{baseline_label}`",
                 f"- HPWLg: `{baseline.hpwl_global}`",
                 f"- delta_HPWL_legalization: `{baseline.hpwl_stage_delta_legalization}`",
                 f"- delta_HPWL_improve: `{baseline.hpwl_stage_delta_improve}`",
@@ -756,12 +1016,12 @@ def write_peer_learning_packet(
             ]
         )
 
-    chunks.extend(["", "## Best Strongest-Baseline-Beating Candidates"])
+    chunks.extend(["", "## Best Best-Canonical-Line-Beating Candidates"])
     if not beating_candidates:
         chunks.append(
-            "No prior clean student candidate beats the strongest baseline yet. "
-            "Students may still inspect the best clean candidate as a clue, "
-            "but it is not an elite seed."
+            "No prior valid clean student candidate beats the best clean "
+            "canonical line yet. Students may still inspect the best valid "
+            "clean candidate as a clue, but it is not an elite seed."
         )
     else:
         for candidate in beating_candidates[:3]:
@@ -779,7 +1039,7 @@ def write_peer_learning_packet(
 
     chunks.extend(["", "## Best Clean Candidates"])
     if not clean_candidates:
-        chunks.append("No prior clean student candidate metrics are available.")
+        chunks.append("No prior valid clean student candidate metrics are available.")
     else:
         for candidate in clean_candidates[:3]:
             chunks.extend(
@@ -794,17 +1054,38 @@ def write_peer_learning_packet(
                 )
             )
 
+    if invalid_clean_candidates:
+        chunks.extend(["", "## Invalid Metric Rows"])
+        for candidate in invalid_clean_candidates[:5]:
+            iter_part, student_id, route_label = parse_candidate_tag(
+                round_id, case_id, candidate.tag
+            )
+            problems = candidate_artifact_problems(
+                runtime=runtime,
+                round_dir=round_dir,
+                round_id=round_id,
+                case_id=case_id,
+                candidate=candidate,
+            )
+            chunks.append(
+                f"- `{iter_part or '?'}` / `{student_id or '?'}` / "
+                f"`{route_label or candidate.tag}`: non-promotable despite "
+                f"metrics; artifact_gate `{candidate_artifact_status_text(problems)}`; "
+                f"metrics `{candidate.metrics_path}`"
+            )
+
     chunks.extend(
         [
             "",
             "## Use Policy",
             "- Teacher should compare code and metrics before assigning a borrow/merge direction.",
+            "- Invalid metric rows are diagnostic only. Do not call them clean elites, do not seed from them, and do not ask a Student to inherit their source.",
             f"- Teacher must separate effective donors from quality-only signals.  A candidate that wins mainly by repeated random/end-point replay or exceeds the {student_runtime_multiplier:g}x runtime budget is not an effective donor until the mechanism is reimplemented with bounded complexity.",
             "- Teacher must separate final donors from stage donors.  If a candidate improves one stage but loses later, preserve a repair route for the later-stage handoff.",
             "- Student may inspect peer code when it directly supports the chosen implementation change.",
             "- If a student opens peer code or diff, first summarize the peer idea in 2-3 lines, then decide what to borrow.",
             "- Prefer learning a mechanism over blind wholesale replacement.",
-            "- A clean strongest-baseline-beating candidate may seed an elite continuation branch only when its efficiency signal is bounded or better.",
+            "- A clean best-canonical-line-beating candidate may seed an elite continuation branch only when its efficiency signal is bounded or better.",
             "- Sub-1% wins over `evolve_default` are donor evidence, not success.",
         ]
     )
@@ -1047,7 +1328,7 @@ def design_characteristics_block(
             maxd=_fmt_float(disp.get("max_displacement_micron"), 4),
             moved=disp.get("moved_instance_count", ""),
         ),
-        "- strongest baseline: `{label}`, five_percent_target_hpwl={target}".format(
+        "- best clean canonical line: `{label}`, five_percent_target_hpwl={target}".format(
             label=anchor_label or "",
             target=_fmt_float(target_hpwl, 3),
         ),

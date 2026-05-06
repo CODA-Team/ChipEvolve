@@ -6,13 +6,13 @@ source [file join [file dirname [info script]] dpl_evolve_helpers.tcl]
 set options [dpl_evolve_baseline::parse_options $argv [dict create \
   input-odb "3_4_place_resized.odb" \
   input-sdc "2_floorplan.sdc" \
-  run-dir [file join $::env(RESULTS_DIR) dpl_evolve_baseline openroad_dpl_flow] \
-  report-dir [file join $::env(REPORTS_DIR) dpl_evolve_baseline openroad_dpl_flow] \
-  before-snapshot [file join $::env(RESULTS_DIR) dpl_evolve_baseline openroad_dpl_flow before.tsv] \
-  after-snapshot [file join $::env(RESULTS_DIR) dpl_evolve_baseline openroad_dpl_flow after.tsv] \
-  output-odb [file join $::env(RESULTS_DIR) dpl_evolve_baseline openroad_dpl_flow legalized.odb] \
-  summary-json [file join $::env(REPORTS_DIR) dpl_evolve_baseline openroad_dpl_flow legalize_summary.json] \
-  dp-report [file join $::env(REPORTS_DIR) dpl_evolve_baseline openroad_dpl_flow detailed_placement_report.json] \
+  run-dir [file join $::env(RESULTS_DIR) dpl_evolve_baseline openroad_dpl_negotiation] \
+  report-dir [file join $::env(REPORTS_DIR) dpl_evolve_baseline openroad_dpl_negotiation] \
+  before-snapshot [file join $::env(RESULTS_DIR) dpl_evolve_baseline openroad_dpl_negotiation before.tsv] \
+  after-snapshot [file join $::env(RESULTS_DIR) dpl_evolve_baseline openroad_dpl_negotiation after.tsv] \
+  output-odb [file join $::env(RESULTS_DIR) dpl_evolve_baseline openroad_dpl_negotiation legalized.odb] \
+  summary-json [file join $::env(REPORTS_DIR) dpl_evolve_baseline openroad_dpl_negotiation legalize_summary.json] \
+  dp-report [file join $::env(REPORTS_DIR) dpl_evolve_baseline openroad_dpl_negotiation detailed_placement_report.json] \
   track "strict"]]
 
 set input_odb [dpl_evolve_baseline::option_value $options input-odb]

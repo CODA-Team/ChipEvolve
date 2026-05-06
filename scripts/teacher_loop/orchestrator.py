@@ -40,8 +40,9 @@ from scripts.teacher_loop.evidence import (
     child_artifact_status,
     discover_case_metrics,
     ensure_baseline_suite,
+    materialize_source_ref,
     round_scoreboard,
-    source_backup_for_candidate,
+    source_repo_ref_for_candidate,
     best_round_candidate,
     strongest_baseline_anchor,
     write_baseline_artifacts_packet,
@@ -52,8 +53,8 @@ from scripts.teacher_loop.evidence import (
 
 from scripts.teacher_loop.execution import (
     append_lineage,
-    backup_child_sources,
     build_codex_exec_command,
+    commit_child_sources,
     inline_teacher_plan_for_children,
     resumable_thread_id,
     run_commands,
@@ -272,6 +273,9 @@ def main(argv: list[str] | None = None) -> int:
             openroad_hpwl=None
             if baseline_metrics.get("openroad_dpl_flow") is None
             else baseline_metrics["openroad_dpl_flow"].hpwl_after,
+            negotiation_hpwl=None
+            if baseline_metrics.get("openroad_dpl_negotiation") is None
+            else baseline_metrics["openroad_dpl_negotiation"].hpwl_after,
             evolve_command_hpwl=None
             if baseline_metrics.get("evolve_default") is None
             else baseline_metrics["evolve_default"].hpwl_after,
@@ -374,12 +378,24 @@ def main(argv: list[str] | None = None) -> int:
             if iteration > 1
             else None
         )
-        elite_source = source_backup_for_candidate(
+        elite_source_info = source_repo_ref_for_candidate(
             round_dir=round_dir,
             round_id=round_id,
             case_id=args.case,
             candidate=elite_candidate,
         )
+        if elite_source_info is None:
+            elite_source = None
+        else:
+            elite_repo, elite_ref = elite_source_info
+            elite_source = materialize_source_ref(
+                source_repo=elite_repo,
+                source_ref=elite_ref,
+                target_dir=round_dir
+                / "materialized_sources"
+                / f"{iter_name(iteration)}_elite"
+                / "dpl_evolve",
+            )
         context = common_context(
             case_id=args.case,
             flow_variant=args.flow_variant,
@@ -479,6 +495,7 @@ def main(argv: list[str] | None = None) -> int:
                     elite_seed_source=elite_seed_source,
                     peer_learning_path=peer_learning_path,
                     student_runtime_multiplier=args.student_runtime_multiplier,
+                    baseline_metrics=metrics,
                 )
                 prompt_path.write_text(
                     (
@@ -568,7 +585,9 @@ def main(argv: list[str] | None = None) -> int:
                     private_binary=paths.private_binary,
                     implementation_diff=paths.implementation_diff,
                     knowledge_card=paths.knowledge_card,
-                    source_backup=paths.source_backup,
+                    source_branch=paths.source_branch,
+                    source_base_record=paths.source_base_record,
+                    source_commit_record=paths.source_commit_record,
                     session_state=paths.session_state,
                     session_env_file=paths.session_env_file,
                     elite_seed_source=elite_seed_source,
@@ -678,7 +697,10 @@ def main(argv: list[str] | None = None) -> int:
                         "workspace_packet": str(child.workspace_packet),
                         "student_workspace": str(child.student_workspace),
                         "private_dpl_src": str(child.dpl_src),
-                        "source_backup": str(child.source_backup),
+                        "source_branch": child.source_branch,
+                        "source_repo": str(child.dpl_src),
+                        "source_base_record": str(child.source_base_record),
+                        "source_commit_record": str(child.source_commit_record),
                         "elite_seed_source": None
                         if child.elite_seed_source is None
                         else str(child.elite_seed_source),
@@ -767,6 +789,20 @@ def main(argv: list[str] | None = None) -> int:
                     )
                     if args.fail_on_prompt_audit:
                         return 2
+                audit_json, audit_md, audit_warnings = prompt_audit(
+                    round_dir=round_dir,
+                    max_agent_prompt_bytes=args.prompt_audit_max_agent_bytes,
+                )
+                logger.event(
+                    "audit",
+                    "child_prompt_prelaunch_audit",
+                    iteration=iter_name(iteration),
+                    json=audit_json,
+                    markdown=audit_md,
+                    warnings=audit_warnings,
+                )
+                if audit_warnings and args.fail_on_prompt_audit:
+                    return 2
             if child_commands:
                 logger.event(
                     "student",
@@ -800,7 +836,11 @@ def main(argv: list[str] | None = None) -> int:
                         iteration=iter_name(iteration),
                         count=len(child_commands),
                     )
-                backup_child_sources(child_rounds)
+                commit_child_sources(
+                    child_rounds=child_rounds,
+                    round_dir=round_dir,
+                    iteration=iteration,
+                )
                 write_child_artifact_status_json(
                     path=packet_dir / "child_artifact_status.json",
                     runtime=runtime,

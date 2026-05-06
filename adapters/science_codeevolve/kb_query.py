@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Build a compact packet for DPL-Evolve legalize/improve framework edits.
+"""Build a compact packet for DPL-Evolve legalize/improve source edits.
 
 `detailed_placement_evolve` is the stable legalize entrypoint, followed by the
 evolved improve-placement step. Agents should evolve a coherent
 legalize/improve mechanism in private `dpl_evolve` source while using archived
-algorithms only as donors. Downstream optimize-mirroring may remain in
+algorithms only as donors. The private source seed is selected by the
+orchestrator (`framework`, `diamond`, `evolved_diamond`,
+`evolved_legalm`, `evolved_negotiation`, or `prepared`), so this packet must
+stay seed-neutral. Downstream optimize-mirroring may remain in
 evaluation, but it is not part of the active patch surface.
 """
 from __future__ import annotations
@@ -29,7 +32,7 @@ except ModuleNotFoundError:  # Keep packet generation usable in minimal envs.
     yaml = None
 
 
-FRAMEWORK_SURFACE = {
+LEGALIZE_IMPROVE_SURFACE = {
     "file": "tools/OpenROAD/src/dpl_evolve/src/StudentAlgorithm.cpp",
     "header_files": [
         "adapters/science_codeevolve/patch_surface.yaml",
@@ -67,6 +70,10 @@ REFERENCE_FILES = [
     "knowledge/CONTEXT_AUDIT.md",
     "knowledge/EVIDENCE_POLICY.md",
     "knowledge/insights/workflow/metric_contract.md",
+    "knowledge/insights/case_evolution/dense_evolved_legalizer_routing.md",
+    "patches/evolved_legalizers/README.md",
+    "patches/evolved_legalizers/generation_manifest.tsv",
+    "patches/evolved_legalizers/validation.tsv",
     "family_variants/REFERENCE_INDEX.yaml",
     "family_variants/README.md",
     "family_variants/openroad_diamond/README.md",
@@ -181,12 +188,15 @@ def packet_markdown(packet: dict[str, Any]) -> str:
         f"- track: {packet['problem']['evaluation_track']}",
         f"- primary objective: {packet['problem']['objective']['primary']}",
         f"- selected surface: {surface['symbol']} in {surface['file']}",
+        "- seed policy: use the Student workspace packet for the actual "
+        "`start_kind` and parent source; this packet is seed-neutral",
         "",
         "## Direction",
         "- Keep `detailed_placement_evolve` as the primary evolved placement command.",
         "- Patch private `dpl_evolve` source across legalization/detailed placement, improve placement, and their handoff.",
         "- Use reference algorithms as donors, then implement a clean, high-performance mechanism in `dpl_evolve`.",
         "- Treat the stage flow as a scaffold; implementation details must be justified by canonical evaluator evidence.",
+        "- Treat `patches/evolved_legalizers/` as active donor/start-point evidence: `evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` are prior iter30 donor starts with measured wins on some archetypes, not universal defaults.",
         "",
         "## Selected Patch Surface",
         f"- file: {surface['file']}",
@@ -248,10 +258,10 @@ def build_packet(problem_dir: Path, out_dir: Path) -> dict[str, Any]:
     reference_index = maybe_load_yaml(AGENT_ROOT / "family_variants" / "REFERENCE_INDEX.yaml")
     packet = {
         "schema_version": 2,
-        "packet_type": "constrained_framework_patch",
+        "packet_type": "dpl_evolve_legalize_improve_patch",
         "problem": problem,
         "reference_index": reference_index,
-        "selected_patch_surface": FRAMEWORK_SURFACE,
+        "selected_patch_surface": LEGALIZE_IMPROVE_SURFACE,
         "reference_files": REFERENCE_FILES,
         "evidence_cards": cards,
         "last_failures_to_avoid": failures,
@@ -262,8 +272,12 @@ def build_packet(problem_dir: Path, out_dir: Path) -> dict[str, Any]:
             "adapters/science_codeevolve/patch_surface.yaml",
             "knowledge/EVIDENCE_POLICY.md",
             "knowledge/insights/workflow/metric_contract.md",
+            "knowledge/insights/case_evolution/dense_evolved_legalizer_routing.md",
             "knowledge/CONTEXT_AUDIT.md",
-            FRAMEWORK_SURFACE["file"],
+            "patches/evolved_legalizers/README.md",
+            "patches/evolved_legalizers/generation_manifest.tsv",
+            "patches/evolved_legalizers/validation.tsv",
+            LEGALIZE_IMPROVE_SURFACE["file"],
             "tools/OpenROAD/src/dpl_evolve/src/Optdp.cpp",
             "tools/OpenROAD/src/dpl_evolve/src/LegalmGuidance.cpp",
             "tools/OpenROAD/src/dpl_evolve/src/LegalmFullLegalization.cpp",
@@ -276,6 +290,7 @@ def build_packet(problem_dir: Path, out_dir: Path) -> dict[str, Any]:
             "Edit only `tools/OpenROAD/src/dpl_evolve` in a prepared private variant source.",
             "Implement coherent flow changes across legalization/detailed placement, improve placement, and their shared handoff.",
             "Use reference algorithms to implement bounded legalize and improve mechanisms; avoid one-stage-only attempts.",
+            "Use materialized evolved start-kind seeds when assigned; do not manually apply OpenROAD-root evolved patches inside a private source tree.",
             "Add or refine `EvolveTelemetry` counters that explain stage behavior.",
         ],
         "forbidden_actions": [

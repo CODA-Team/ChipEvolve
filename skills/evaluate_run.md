@@ -1,9 +1,20 @@
 # Skill: evaluate_run
 
-Use this when you are responsible for running or reading evaluator output.
-Loop-driven patching agents normally should not run evaluation themselves.
+Use this when you are responsible for running or reading evaluator output. In
+Teacher/Student rounds, Students should normally run `evaluate_candidate_script`
+from the workspace packet.
 
-## Guarded Evaluator
+## Preferred Student Evaluation Path
+
+Run the generated `evaluate_candidate_script`. It already selects the private
+OpenROAD binary, case, flow variant, run tag, thread count, and DPL-flow
+timeout.
+Do not reconstruct the evaluator command unless that generated script itself
+fails and its error is insufficient.
+Treat that script as the Student-facing evaluator interface; spend analysis on
+canonical metrics and logs, not on wrapper mechanics.
+
+## Manual Fallback For Maintainers
 
 ```bash
 python3 "$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py" \
@@ -43,12 +54,32 @@ Compare these first:
 
 - legality
 - HPWL delta from `metrics.json:hpwl`
+- stage HPWL from `metrics.json:hpwl_stages`
 - displacement
-- runtime
+- runtime from `metrics.json:runtime_seconds`
 - memory, when recorded
 
 `metrics.json:hpwl` is the canonical OpenROAD/DPL pin-based log HPWL.  The
 legacy `hpwl_proxy` field is a cell-bbox diagnostic only.
+
+`runtime_seconds` is the reported wall runtime for the full DPL evolve
+evaluation flow, including legalize-driver overhead such as read/write ODB.
+The Student timeout threshold is derived from this value, but the timeout is
+applied only to the OpenROAD legalize/improve/mirror flow run. Post-run
+metrics/evaluator collection is not timeout-wrapped. Do not describe
+`runtime_seconds` as pure algorithm-internal time.
+
+Classify runtime before judging a result:
+
+- `fast`: near the canonical baseline; useful for donor preservation.
+- `explore`: moderate extra runtime spent on a bounded stronger search.
+- `aggressive`: larger but timeout-safe runtime spent on a mechanism that could
+  materially change final HPWL.
+
+Runtime growth is not automatically bad.  Reject wasted repetition, duplicate
+endpoints, random tails, and broad rescans.  Preserve or promote extra runtime
+when counters show cached/capped/parallel HPWL-source search that improves
+stage-wise or final HPWL.
 
 ## Strict Track Rule
 
@@ -73,3 +104,9 @@ Reject if:
 - legality fails
 - `metrics.json` is missing or malformed
 - runtime/displacement regresses without a clear offsetting gain
+- the OpenROAD DPL flow exceeds the generated timeout; timeout failures are
+  non-promotable, but their `metrics.json` failure record is still useful
+  evidence when present
+- the generated timeout applies to the OpenROAD legalize/improve/mirror flow
+  only. Metrics/evaluator collection should still run after a flow timeout and
+  write failure evidence when possible.

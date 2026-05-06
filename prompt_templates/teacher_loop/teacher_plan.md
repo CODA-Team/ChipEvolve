@@ -2,9 +2,10 @@
 
 Context: `$context_path`
 
-Read the context, design characteristics, baseline evidence, peer packet, source
-references, and coaching skill. Inspect relevant source files before assigning
-routes. Produce only concise planning text.
+Read the context first, then the coaching skill if needed. Treat source and
+reference paths as targeted search handles, not required reading. Use only small
+`rg`/excerpt checks around concrete symbols you plan to name. Produce concise
+per-student plans; do not include build/eval procedure.
 
 ## Student Slots
 

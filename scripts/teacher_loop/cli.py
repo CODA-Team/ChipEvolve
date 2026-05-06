@@ -23,11 +23,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--start-kind",
         choices=START_KINDS,
-        default="framework",
+        default="evolved_legalm",
         help=(
             "Initial dpl_evolve source seed for student variants. "
             "`framework` starts from the constrained top-level framework; "
             "`diamond` starts from the clean dpl_evolve/base implementation; "
+            "`evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` "
+            "start from the materialized iter30 evolved legalizer patch seeds. "
+            "`evolved_legalm` is the default current LEGALM/global-differential "
+            "seed; "
             "`prepared` copies the current prepared ORFS dpl_evolve source."
         ),
     )
@@ -70,8 +74,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=float,
         default=4.0,
         help=(
-            "Hard timeout multiplier for each student evaluation, relative to "
-            "the canonical openroad_dpl_flow baseline runtime."
+            "Hard timeout multiplier for each student OpenROAD "
+            "legalize/improve/mirror flow run, relative to the canonical "
+            "openroad_dpl_flow metrics.json:runtime_seconds. Post-run metrics "
+            "collection is not timeout-wrapped."
         ),
     )
     parser.add_argument("--model")
@@ -148,8 +154,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--prompt-audit-max-agent-bytes",
         type=int,
-        default=12000,
-        help="Warn when an agent-facing prompt is larger than this many bytes.",
+        default=20000,
+        help=(
+            "Warn when an agent-facing prompt is larger than this many bytes. "
+            "This is a context-hygiene guard, not an instruction to remove "
+            "useful task constraints."
+        ),
     )
     parser.add_argument(
         "--fail-on-prompt-audit",

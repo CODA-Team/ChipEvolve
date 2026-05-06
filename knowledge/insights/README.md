@@ -11,9 +11,10 @@ should act on it.
 2. `workflow/cross_case_experiment_design.md`
 3. `workflow/metric_contract.md`
 4. `case_evolution/cross_case_transfer_matrix.md`
-5. `case_evolution/optdp_stage_cooptimization.md`
-6. `case_evolution/micro_gain_trap_and_elite_donors.md`
-7. Relevant LEGALM card under `legalm/` only when changing legalization.
+5. `case_evolution/dense_evolved_legalizer_routing.md`
+6. `case_evolution/optdp_stage_cooptimization.md`
+7. `case_evolution/micro_gain_trap_and_elite_donors.md`
+8. Relevant LEGALM card under `legalm/` only when changing legalization.
 
 ## Workflow
 
@@ -28,14 +29,17 @@ should act on it.
 
 - `case_evolution/cross_case_transfer_matrix.md`: fixed-source transfer matrix
   synthesis across utilization classes, design scales, and technology settings.
+- `case_evolution/dense_evolved_legalizer_routing.md`: dense-case evidence for
+  using `evolved_legalm` as a strong legalizer prior, plus Teacher policy for
+  first-round diversification and later route switching/hybridization.
 - `case_evolution/optdp_stage_cooptimization.md`: useful and harmful
-  mechanisms from image-compression evolution runs, focused on legalization /
-  `Optdp` / mirror co-optimization.
+  mechanisms from image-compression evolution runs, focused on legalization,
+  `Optdp`, and their source-level handoff.
 - `case_evolution/micro_gain_trap_and_elite_donors.md`: why tiny HPWL wins are
   donors, not proof of a strategic algorithmic improvement.
 - `case_evolution/full_flow_timeout_and_target_selection.md`: full-flow timeout
-  discovery-target selection, bad execution patterns, and the `4.0x` baseline
-  runtime promotion gate.
+  discovery-target selection, bad execution patterns, and the configured
+  baseline-runtime promotion gate.
 
 ## LEGALM Notes
 

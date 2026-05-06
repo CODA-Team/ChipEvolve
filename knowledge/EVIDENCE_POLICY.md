@@ -48,7 +48,8 @@ not treat every note as a rule.
   result tables.
 - External handoff experiments, such as importing an outside DEF and running
   only `optimize_mirroring`, are valid diagnostics but are not the same class
-  as a complete `openroad_dpl_flow` or `evolve_default` run.
+  as a complete canonical run: `openroad_dpl_flow`,
+  `openroad_dpl_negotiation`, or `evolve_default`.
 
 ## Parent Selection Policy
 

@@ -15,7 +15,7 @@ ITERATIONS="12"
 MAX_PARALLEL="4"
 BASELINE_PARALLEL="9"
 MATRIX_ROW_PARALLEL="6"
-START_KIND="framework"
+START_KIND="evolved_legalm"
 TEACHER_MODEL="gpt-5.5"
 TEACHER_REASONING_EFFORT="xhigh"
 STUDENT_MODEL="gpt-5.4"
@@ -35,7 +35,7 @@ One-click knowledge pipeline:
 
   1. Run the full cross-case baseline matrix.
   2. Evolve only jpeg_nangate45 at CORE_UTILIZATION=60 with 4 students x 12 iterations.
-  3. Freeze every generated student source backup and test it on every plan row.
+  3. Commit every generated student source revision and test it on every plan row.
 
 With a complete 4x12 round and the default 9-row plan, the final validation
 stage yields 48 x 9 candidate-case results.
@@ -50,7 +50,10 @@ Options:
   --max-parallel N             Parallel students inside one round. Default: 4.
   --baseline-parallel N        Parallel baseline matrix rows. Default: 9.
   --matrix-row-parallel N      Parallel rows per fixed-candidate matrix. Default: 6.
-  --start-kind KIND            diamond, framework, or prepared. Default: framework.
+  --start-kind KIND            framework, diamond,
+                               evolved_diamond, evolved_legalm,
+                               evolved_negotiation, or prepared.
+                               Default: evolved_legalm.
   --teacher-model NAME         Default: gpt-5.5.
   --teacher-reasoning-effort E Default: xhigh.
   --student-model NAME         Default: gpt-5.4.

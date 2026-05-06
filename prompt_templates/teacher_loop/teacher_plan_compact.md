@@ -2,9 +2,10 @@
 
 Context: `$context_path`
 
-Read context, peer results, source references, and coaching skill. Inspect
-relevant source files before assigning routes. Output only next student
-directions.
+Read context, peer results, and the coaching skill if needed. Treat source and
+reference paths as targeted search handles, not required reading. Use only small
+`rg`/excerpt checks around concrete symbols you plan to name. Output only next
+student directions, not build/eval procedure.
 
 ## Student Slots
 

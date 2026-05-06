@@ -3,10 +3,12 @@
 This directory runs the strict legalization-only baselines used by
 `dpl_evolve_agent`.
 
-The harness intentionally has exactly two canonical lines:
+The harness intentionally has exactly three canonical lines:
 
 - `openroad_dpl_flow`: OpenROAD `detailed_placement`, `improve_placement`,
   and `optimize_mirroring`.
+- `openroad_dpl_negotiation`: OpenROAD `detailed_placement -use_negotiation`,
+  `improve_placement`, and `optimize_mirroring`.
 - `evolve_default`: clean `detailed_placement_evolve`,
   `improve_placement_evolve`, and `optimize_mirroring_evolve`.
 
@@ -68,8 +70,9 @@ Run `detailed_placement_evolve` with a private relinked OpenROAD binary:
 
 - `run_baseline.sh`: strict-only internal dispatcher.
 - `run_openroad_dpl_flow.sh`: OpenROAD DPL flow canonical wrapper.
+- `run_openroad_dpl_negotiation.sh`: OpenROAD negotiation canonical wrapper.
 - `run_evolve_default.sh`: evolve default canonical wrapper.
-- `run_baseline_suite.sh`: two-line strict comparison suite.
+- `run_baseline_suite.sh`: three-line strict comparison suite.
 - `detail_place_openroad.tcl`: fixed OpenROAD DPL flow Tcl driver.
 - `detail_place_evolve.tcl`: fixed `detailed_placement_evolve` Tcl driver.
 - `collect_metrics.py`: metrics normalization.

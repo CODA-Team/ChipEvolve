@@ -26,7 +26,7 @@ Read:
 - previous round scoreboard,
 - peer learning packet,
 - review artifact packet when available,
-- strongest and weakest implementation diffs when they explain behavior.
+- best and weakest implementation diffs when they explain behavior.
 
 Then identify:
 
@@ -35,6 +35,9 @@ Then identify:
 - one or two mechanisms that failed and why,
 - whether the round needs local refinement, a stage-level mechanism, optional
   stage coordination, or a full direction change.
+- whether the round is under-exploring: repeated near-baseline runtime and
+  sub-1% HPWL gains usually mean students are preserving donors instead of
+  spending available budget on a larger bounded search.
 
 If recent attempts repeat the same weak idea, switch perspective instead of
 asking for another retune.  Name the failed assumption and assign a different
@@ -46,10 +49,13 @@ Each student packet should include only:
 
 - current diagnosis,
 - peer or donor mechanism to borrow or avoid,
-- one concrete legalization/detailed-placement direction,
-- one concrete improve-placement direction,
-- optional coordination/selection direction only when it has a concrete reason,
+- `plan A legalization/detailed placement`,
+- `plan B improve placement`,
+- `plan C co-optimization/handoff` when it has a concrete reason,
+- exact function/state handles for both active responsibilities when known,
+- skill list the Student should use,
 - expected complexity boundary,
+- intended runtime tier and what extra quality work that tier buys,
 - success metric,
 - what knowledge card should record.
 
@@ -57,8 +63,23 @@ Use autonomy-supportive wording: Teacher gives insight, not a full design.
 Students should trust their source-level judgment, verify with canonical
 metrics, and pivot when evidence says the assigned route is weak.
 
-Do not include shell commands, long paths, fear/pressure language, or broad
-algorithm essays.
+Do not include shell commands, build/evaluator/git procedures, long paths,
+fear/pressure language, or broad algorithm essays. The Student workspace packet
+already provides exact command scripts.
+
+## Required Student Skills
+
+For ordinary Student implementation packets, point students to these skills:
+
+- `skills/patch_rules.md` for active source surface and patch hygiene,
+- `skills/source_git_workflow.md` for branch/commit/source lineage,
+- `skills/build_openroad.md` for generated incremental build commands,
+- `skills/evaluate_run.md` for canonical metrics and timeout/runtime meaning,
+- `skills/trace_logging.md` when a mechanism needs counters or logs.
+
+Do not attach unrelated skills.  Use `run_codex_exec.md`, `run_single_baseline.md`,
+`run_baseline_suite.md`, or `replay_debug.md` only for orchestration/debugging
+tasks, not for normal Student source edits.
 
 ## Failure Response
 
@@ -69,6 +90,9 @@ If a student fails or produces a weak/no-op diff:
   parameter retune.
 - Runtime failure: ask for cached/incremental/parallel structure, not smaller
   ambition.
+- Near-baseline runtime plus tiny HPWL gain: ask one student to spend
+  explore/aggressive budget on a bounded larger mechanism, not another cheap
+  retune.
 - Legality failure: ask for a cleaner representation or commit path.
 - Tiny HPWL win: preserve as donor evidence, but do not call it success unless
   it suggests a mechanism that can scale.

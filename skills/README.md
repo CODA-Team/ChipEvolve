@@ -4,9 +4,15 @@ Repo-local operating notes for `dpl_evolve_agent`.
 
 Read only the skill needed for the current action:
 
-- `patch_rules.md`: bounded patch surfaces and forbidden reads.
-- `build_openroad.md`: common-core plus variant-relink build.
-- `evaluate_run.md`: guarded evaluator and result interpretation.
+- `patch_rules.md`: Student active patch surfaces, donor boundaries, and patch
+  protocol.
+- `source_git_workflow.md`: Student local git branch/commit workflow.
+- `build_openroad.md`: Student generated build-script usage and manual build
+  fallback only when a script fails.
+- `evaluate_run.md`: Student generated evaluator-script usage and canonical
+  result interpretation.
+- `trace_logging.md`: Student lightweight counters and logs for mechanism
+  verification.
 - `../knowledge/insights/workflow/metric_contract.md`: canonical HPWL and
   report interpretation contract.
 - `run_single_baseline.md`: manual one-line baseline/evolve runs.
@@ -15,11 +21,27 @@ Read only the skill needed for the current action:
 - `teacher_peer_coaching.md`: Teacher-side peer-learning and feedback protocol
   for multi-student optimization rounds.
 
-Default for loop-driven Codex turns:
+Default Student skills for source-edit workers:
 
 - read `patch_rules.md`
-- implement one coherent mechanism on the assigned private `dpl_evolve` source
+- read `source_git_workflow.md` when editing a Student workspace
+- run the generated workspace packet scripts for source prepare, build,
+  evaluation, commit, and diff
+- read `build_openroad.md` and `evaluate_run.md` only when a generated script
+  fails or when interpreting metrics
+- read `trace_logging.md` when adding a new mechanism whose execution needs
+  counters
+- implement one coherent route/mechanism on the assigned private `dpl_evolve`
+  source
 - touch legalization/detailed placement, improve placement, or their shared
   objective/handoff as directed by Teacher
 - let the orchestrator-owned packet decide whether this worker should build
   and evaluate
+
+Default Teacher skills for planning/review workers:
+
+- read `teacher_peer_coaching.md`
+- use context packets, canonical metrics, stage-wise attribution, peer learning,
+  and knowledge cards
+- assign Student skills explicitly; do not attach build/debug/run skills unless
+  the Student task is specifically an infrastructure repair

@@ -15,4 +15,6 @@ DREAMPlace Abacus is not the target plane. It is:
 ## Do not
 - transplant its Python/PyTorch stack into `src/dpl_evolve/` in early phases
 - use it as a reason to broaden patch surfaces in OpenROAD
-- treat it as part of the default baseline suite
+- treat it as part of the default canonical baseline suite.  The default suite is
+  `openroad_dpl_flow`, `openroad_dpl_negotiation`, and `evolve_default`;
+  DREAMPlace/Abacus remains an external donor/reference only.

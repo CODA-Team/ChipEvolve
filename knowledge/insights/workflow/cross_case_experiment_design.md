@@ -14,12 +14,14 @@ matrix to separate three questions:
 
 1. Define a TSV plan under `configs/experiment_plans/`.
 2. Generate or reuse placement snapshots for every matrix row.
-3. Refresh `openroad_dpl_flow` and `evolve_default` baselines for every row.
+3. Refresh `openroad_dpl_flow`, `openroad_dpl_negotiation`, and
+   `evolve_default` baselines for every row.
 4. Run Teacher/Student loops on one discovery line to produce candidate source
    snapshots.
-5. Freeze each promising `source_backup`.
-6. Run `scripts/run_candidate_matrix.sh` so the same code is tested unchanged
-   on every matrix row.
+5. Freeze each promising student source commit.
+6. Run `scripts/run_round_candidate_matrices.sh` or an exported source commit
+   through `scripts/run_candidate_matrix.sh` so the same code is tested
+   unchanged on every matrix row.
 7. Compare `metrics.json`, `implementation.diff`, and each student's
    `knowledge_card.md`.
 
@@ -44,7 +46,7 @@ when they reveal a mechanism, but use the outer matrix to decide whether the
 mechanism is worth turning into a stronger patch.
 
 The key control is fixed-source validation.  If a student improves only after
-rewriting for each target, that is search evidence.  If the same source backup
+rewriting for each target, that is search evidence.  If the same source commit
 improves multiple density classes and design families without edits, that is
 algorithm knowledge.
 

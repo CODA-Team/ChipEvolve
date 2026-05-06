@@ -37,6 +37,7 @@ from runtime_paths import (
     reexec_with_module,
     resolve_runtime_paths,
 )
+from scripts.teacher_loop.common import CANONICAL_LINES
 
 load_local_env_sh(AGENT_ROOT)
 try:
@@ -154,7 +155,7 @@ def line_command(
         "--openroad-binary",
         str(openroad_binary),
     ]
-    if line in {"openroad_dpl_flow", "evolve_default"}:
+    if line in CANONICAL_LINES:
         return base
     raise ValueError(f"Unsupported line: {line}")
 
@@ -231,7 +232,7 @@ def canonical_run_tag(metrics: Dict[str, Any], metrics_path: Path) -> str:
     return str(manifest.get("run_tag", metrics_path.parent.name))
 
 
-def discover_strongest_baseline(
+def discover_best_clean_canonical_line(
     report_dir: Path,
 ) -> tuple[str | None, float | None, Path | None]:
     best_label: str | None = None
@@ -240,7 +241,7 @@ def discover_strongest_baseline(
     for metrics_path in sorted(report_dir.glob("*/metrics.json")):
         metrics = load_metrics(metrics_path)
         line = canonical_line(metrics)
-        if line not in {"openroad_dpl_flow", "evolve_default"}:
+        if line not in CANONICAL_LINES:
             continue
         tag = canonical_run_tag(metrics, metrics_path)
         if (
@@ -367,6 +368,7 @@ def summarize_metrics(
     legalizer_mode = legalization.get("legalizer_mode")
     confirmed_paths = {
         "openroad_dpl_flow": "openroad_dpl_flow",
+        "openroad_dpl_negotiation": "openroad_dpl_negotiation",
         "evolve_default": "evolve_default",
     }
     engine_path_confirmed = confirmed_paths.get(str(legalizer_mode))
@@ -714,7 +716,7 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
 
         metrics_path = metrics_path_for_run(report_root(root, problem, flow_variant), result["run_tag"])
         metrics = load_metrics(metrics_path)
-        baseline_label, baseline_hpwl, baseline_path = discover_strongest_baseline(
+        baseline_label, baseline_hpwl, baseline_path = discover_best_clean_canonical_line(
             report_root(root, problem, flow_variant)
         )
         result["status"] = "ok"
@@ -759,8 +761,7 @@ def main() -> None:
     ap.add_argument(
         "--line",
         choices=[
-            "openroad_dpl_flow",
-            "evolve_default",
+            *CANONICAL_LINES,
         ],
         default="evolve_default",
     )

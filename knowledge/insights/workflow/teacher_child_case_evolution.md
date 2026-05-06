@@ -39,22 +39,28 @@ Child Agent:
 ## Multi-Iteration Loop
 
 1. The orchestrator refreshes the canonical baseline suite for the case:
-   `openroad_dpl_flow` and `evolve_default`.
+   `openroad_dpl_flow`, `openroad_dpl_negotiation`, and `evolve_default`.
 2. Teacher reads the current packet, the baseline metrics table, and the
    explicit report/log/result paths for those baseline rows.
 3. Teacher starts children with non-overlapping hypotheses:
-   - legalization/global guidance and row/segment assignment,
-   - detailed-improvement objective and candidate generation,
-   - mirror/orientation acceptance and ordering,
-   - cross-stage objective/cache/flow-order co-optimization,
-   - runtime/data-structure efficiency.
+   - an `evolved_legalm` dense-prior route when design evidence shows high
+     utilization, standard-cell density, or large global-to-legal HPWL
+     disturbance,
+   - an `evolved_diamond` or Diamond-local route for local greedy closure,
+     row/macro structure, or large-case local legality pressure,
+   - an `evolved_negotiation` route for residual conflicts or overlap patterns,
+   - a hybrid or improve-placement-primary route when final HPWL depends on
+     after-legal recovery.
 4. Each child starts from:
    - the current `tools/OpenROAD/src/dpl_evolve/src` framework,
    - `family_variants/legalm_guidance`,
    - one relevant donor such as OpenROAD DPL, NBLG, LEGALM, or
      DREAMPlace/Abacus,
    - Teacher's case-specific top-level framework guidance.
-5. Each child implements one idea and runs the strict evaluator.
+5. Each child implements one assigned route and runs the strict evaluator.  A
+   route can include multiple coordinated code changes across legalization,
+   improve placement, and their handoff when that is needed to test the
+   mechanism.
 6. Teacher reads every child's `codex_last_message`, operation summary,
    reported metrics, changed source code, and relevant logs.
 7. Teacher compares every child against both the case baseline and the
@@ -68,6 +74,9 @@ Child Agent:
    another child's good mechanism, or run a deliberately aggressive ablation.
 10. Losing lineages are not frozen forever, but they must change strategy or
    borrow from a stronger parent instead of blindly continuing the same patch.
+    From iteration 2 onward, Teacher should explicitly choose for each student:
+    continue the original route, switch to another evolved legalizer family, or
+    hybridize two families in a staged source-level flow.
 11. Repeat until the case beats the OpenROAD DPL flow anchor on strict HPWL
    while preserving legality, runtime, and displacement guards.
 
@@ -83,7 +92,7 @@ small pieces of evidence that drive the next decision:
 - current Teacher plan excerpt for each child after Teacher finishes,
 - this student's previous metrics/result trend when available.
 
-Paths to logs, diffs, and source backups are still required, but they are not a
+Paths to logs, diffs, source repos, and source commit records are still required, but they are not a
 substitute for an actionable summary.  If the next prompt only says "read these
 paths" and contains no HPWL/runtime/displacement numbers or no Teacher feedback
 text, the loop is not communicating enough.
@@ -161,13 +170,18 @@ promotion evidence by themselves.
 
 The runtime gate is part of promotion.  Compare against the canonical
 `openroad_dpl_flow` runtime for the same case, utilization, flow variant, and
-thread count:
+thread count.  The multiplier is the current experiment's configured
+full-flow evaluator-wall budget, such as the generated
+`student_runtime_multiplier`; do not hard-code an old value into Teacher
+reviews:
 
-- `runtime <= 4.0x baseline`: eligible for promotion if HPWL and legality pass,
-- `runtime > 4.0x baseline`: not promotable, even when final HPWL is strong,
-- `runtime > 4.0x baseline` with clear stage evidence: donor only; Teacher must
+- `runtime <= configured_multiplier * baseline`: eligible for promotion if
+  HPWL and legality pass,
+- `runtime > configured_multiplier * baseline`: not promotable, even when
+  final HPWL is strong,
+- over-budget runtime with clear stage evidence: donor only; Teacher must
   assign a bounded rewrite rather than continue the slow implementation,
-- `runtime > 4.0x baseline` without clear stage evidence: failure, not donor.
+- over-budget runtime without clear stage evidence: failure, not donor.
 
 Teacher should call out bad execution patterns explicitly when reviewing a
 child:

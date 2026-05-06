@@ -27,7 +27,8 @@ learned by Teacher/Student search.
 
 Options:
   --matrix-id NAME       Stable output id under .dpl_evolve_state/candidate_matrices/.
-  --candidate-src PATH   dpl_evolve source tree to test, e.g. a student source_backup.
+  --candidate-src PATH   Fixed dpl_evolve source tree to test, e.g. an exported
+                         student source commit.
   --candidate-label NAME Short run-tag label. Default: candidate.
   --plan PATH            TSV plan. Default: configs/experiment_plans/flow_knowledge_core_util.tsv.
   --threads N            OpenROAD threads. Default: 10.

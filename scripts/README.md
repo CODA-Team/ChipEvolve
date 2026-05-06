@@ -31,7 +31,7 @@ part of the default workflow.
 | `scripts/configure_openroad_core.sh` | Write common-core `core_env.sh` with build/install/binary paths. | Human/Teacher before common-core build. | Common-core configure. |
 | `scripts/build_openroad_core.sh` | Choose the common-core root and delegate the actual OpenROAD build. | Human/Teacher before variants. | Common-core build. |
 | `scripts/build_openroad_only.sh` | Single OpenROAD configure/build/install implementation.  Also used by evaluator `openroad_only` mode. | `build_openroad_core.sh`, evaluator, advanced manual builds. | Common-core or explicit OpenROAD build. |
-| `scripts/create_variant_start.sh` | Copy a `dpl_evolve` seed into one private variant source tree. `--start-kind framework` starts from the constrained top framework; `--start-kind diamond` starts from the direct DPL/evolve base; `--start-kind prepared` copies the current ORFS tree; `--seed-src` can start from an elite source backup. Preserves existing source unless `--force` is passed. | Human/Teacher/child agents. | Variant initialize. |
+| `scripts/create_variant_start.sh` | Copy a `dpl_evolve` seed into one private variant source tree, initialize it as a local git repo, and optionally switch to the generated per-iteration branch. `--start-kind framework` starts from the constrained top framework; `--start-kind diamond` starts from the direct DPL/evolve base; `--start-kind evolved_diamond`, `evolved_legalm`, or `evolved_negotiation` starts from materialized iter30 evolved legalizer seeds; `--start-kind prepared` copies the current ORFS tree; `--seed-src` can start from an exported elite source commit. Preserves existing source unless `--force` is passed. | Human/Teacher/child agents. | Variant initialize. |
 | `scripts/configure_openroad_variant_relink.sh` | Write `variant_env.sh` for a private candidate `dpl_evolve` source. | Human/Teacher/child agents. | Variant configure. |
 | `scripts/build_openroad_variant_relink.sh` | Thin shell wrapper around the Python relinker. | Human/Teacher/child agents. | Variant build. |
 | `scripts/build_openroad_variant_relink.py` | Recompile variant-owned `dpl_evolve` objects and relink a private OpenROAD binary from common-core link recipes. | `build_openroad_variant_relink.sh`. | Fast variant build. |
@@ -42,10 +42,10 @@ part of the default workflow.
 | --- | --- | --- | --- |
 | `scripts/run_place_batch.sh` | Produce reusable `3_4_place_resized.odb` snapshots for selected cases. | Human/Teacher before baseline/evolve gates. | Input snapshot generation. |
 | `scripts/run_aggressive_flow_knowledge_experiments.sh` | One-click large experiment driver: build core, create placement snapshots, refresh canonical baselines, then sequentially launch Teacher/Student loops from a TSV plan such as `configs/experiment_plans/flow_knowledge_core_util.tsv`. | Human/Teacher. | Batch knowledge collection. |
-| `scripts/run_candidate_matrix.sh` | Build one fixed candidate `dpl_evolve` source once, then evaluate that identical code across every enabled row in a TSV plan. | Human/Teacher after a promising student source backup exists. | Cross-case candidate validation. |
-| `scripts/run_round_candidate_matrices.sh` | Enumerate all `students/*/source_backups/iter_*/dpl_evolve` candidates from one Teacher round and run `run_candidate_matrix.sh` for each. | Human/Teacher after a completed round. | 4xN candidate validation. |
+| `scripts/run_candidate_matrix.sh` | Build one fixed candidate `dpl_evolve` source once, then evaluate that identical code across every enabled row in a TSV plan. | Human/Teacher after a promising exported student source commit exists. | Cross-case candidate validation. |
+| `scripts/run_round_candidate_matrices.sh` | Enumerate committed student source revisions from one Teacher round, export each revision, and run `run_candidate_matrix.sh` for each. | Human/Teacher after a completed round. | 4xN candidate validation. |
 | `scripts/run_jpeg_util60_discovery_then_matrix.sh` | Full pipeline: full baseline matrix, JPEG util60 4x12 framework-start evolution, then fixed-source matrix validation for every generated program. | Human/Teacher. | Main knowledge experiment. |
-| `scripts/run_canonical_line.sh` | Dispatch one canonical line: `openroad_dpl_flow` or `evolve_default`. | Humans, evaluator, Teacher loop. | Single run. |
+| `scripts/run_canonical_line.sh` | Dispatch one canonical line: `openroad_dpl_flow`, `openroad_dpl_negotiation`, or `evolve_default`. | Humans, evaluator, Teacher loop. | Single run. |
 | `scripts/compare_runs.py` | Compare two evaluator or metrics JSON files using stable metrics. | Human/Teacher review. | Result analysis. |
 
 ### Teacher/Child Optimization
@@ -59,8 +59,8 @@ part of the default workflow.
 `scripts/teacher_loop/` contains the Python implementation modules:
 `orchestrator.py` for the top-level loop, `common.py` for shared data,
 `evidence.py` for metrics and artifact validity, `prompts.py` for generated
-prompt/packet material, and `execution.py` for Codex command execution and
-source snapshots.
+prompt/packet material and per-Student command scripts, and `execution.py` for
+Codex command execution and source commits.
 
 `scripts/codex_exec/` contains the low-level Codex recorder implementation:
 `cli.py` for options, `runner.py` for the execution flow, and `artifacts.py`
@@ -70,6 +70,15 @@ Prompt text for the Teacher/child loop lives in
 `prompt_templates/teacher_loop/`.  Python orchestration fills template
 variables and writes generated packets; avoid burying long prompt prose inside
 `optimize_case_with_codex.py`.
+
+Student workspace packets point to iteration-specific generated scripts such as
+`scripts/iter_XX/00_prepare_source.sh`,
+`scripts/iter_XX/10_build_variant.sh`,
+`scripts/iter_XX/20_evaluate_candidate.sh`,
+`scripts/iter_XX/30_commit_source.sh`, and
+`scripts/iter_XX/40_write_diff.sh` under each Student workspace. Students
+should run those scripts instead of reconstructing relink, evaluator, git, or
+diff commands from memory.
 
 Result tables and Teacher packets should use `metrics.json:hpwl` as canonical
 HPWL. That field is parsed from OpenROAD/DPL pin-based log reports. The legacy
@@ -86,8 +95,9 @@ bbox `hpwl_proxy` field is diagnostic only.
 | Script | Purpose | Called by | Stage |
 | --- | --- | --- | --- |
 | `baseline/run_baseline.sh` | Strict canonical-line dispatcher. | `run_canonical_line.sh`, line wrappers, evaluator. | Baseline/evolve run. |
-| `baseline/run_baseline_suite.sh` | Run the two canonical comparison lines as one suite. | Human/Teacher. | Baseline suite. |
+| `baseline/run_baseline_suite.sh` | Run the three canonical comparison lines as one suite. | Human/Teacher. | Baseline suite. |
 | `baseline/run_openroad_dpl_flow.sh` | Convenience wrapper for `openroad_dpl_flow`. | Human/Teacher. | Baseline line. |
+| `baseline/run_openroad_dpl_negotiation.sh` | Convenience wrapper for `openroad_dpl_negotiation`. | Human/Teacher. | Baseline line. |
 | `baseline/run_evolve_default.sh` | Convenience wrapper for `evolve_default`. | Human/Teacher/child validation. | Evolve line. |
 | `baseline/detail_place_openroad.tcl` | OpenROAD Tcl driver for `detailed_placement`, `improve_placement`, `optimize_mirroring`. | `run_baseline.sh`. | Legalization command. |
 | `baseline/detail_place_evolve.tcl` | OpenROAD Tcl driver for `detailed_placement_evolve`, `improve_placement_evolve`, `optimize_mirroring_evolve`. | `run_baseline.sh`. | Evolved legalization command. |
@@ -120,16 +130,25 @@ Teacher/child case-optimization loop.
 3. Create a candidate `dpl_evolve` source under `DPL_EVOLVE_STATE_ROOT`, relink,
    and run a canonical line with an explicit binary.
 
-`prepare_workspace.sh` writes two seed snapshots when the patch sequence is
+`prepare_workspace.sh` writes seed snapshots when the patch sequence is
 available from a clean anchor:
 
 ```text
 $DPL_EVOLVE_STATE_ROOT/seed_sources/diamond_dpl_evolve
 $DPL_EVOLVE_STATE_ROOT/seed_sources/framework_dpl_evolve
+$DPL_EVOLVE_STATE_ROOT/seed_sources/evolved_diamond_dpl_evolve
+$DPL_EVOLVE_STATE_ROOT/seed_sources/evolved_legalm_dpl_evolve
+$DPL_EVOLVE_STATE_ROOT/seed_sources/evolved_negotiation_dpl_evolve
 ```
 
-Use `--start-kind framework` for normal evolution.  Use `--start-kind diamond`
-only as an explicit contrast or ablation against the framework start point.
+Use the orchestrator default `--start-kind evolved_legalm` for the current
+LEGALM/global-differential source line. Use `--start-kind framework` when a
+round should explicitly restart from the constrained clean framework. Use
+`--start-kind diamond` only as an explicit contrast or ablation against the
+framework start point. Use `--start-kind evolved_diamond`,
+`--start-kind evolved_legalm`, or `--start-kind evolved_negotiation` when the
+Teacher wants a prior iter30 evolved legalizer donor as the actual start point
+for the current case.
 
 The default evolved command remains `detailed_placement_evolve`.  Student
 experiments use private `dpl_evolve` source trees and the lightweight variant
@@ -191,10 +210,13 @@ keeps editing one stable active source workspace by default:
 .dpl_evolve_state/teacher_rounds/<round>/students/student_XX/workspace/variant/dpl_evolve
 ```
 
-After every iteration, the orchestrator snapshots that source tree to:
+That source directory is a local git repository. Each launched iteration uses a
+fixed branch such as `agent/student_01/iter_03`; the student should commit its
+final source state. The orchestrator creates a fallback commit only when source
+changes remain uncommitted, then records the revision at:
 
 ```text
-.dpl_evolve_state/teacher_rounds/<round>/students/student_XX/source_backups/iter_XX/dpl_evolve
+.dpl_evolve_state/teacher_rounds/<round>/students/student_XX/iter_XX/artifacts/source_commit.json
 ```
 
 Per-iteration diffs, build logs, and eval logs still live under
@@ -214,11 +236,11 @@ The top-level orchestrator writes human-readable progress to:
 ```
 
 Those files are the quickest way to verify whether baseline preflight,
-prompt generation, Teacher launch, Student launch, source backup, review, and
+prompt generation, Teacher launch, Student launch, source commit, review, and
 prompt audit phases were reached.
 
 For iteration 2 and later, the orchestrator also finds the best clean strict
-candidate so far and pre-seeds `student_01` from that source backup.  This
+candidate so far and pre-seeds `student_01` from that exported source commit.  This
 keeps one protected elite-continuation branch alive while the other students
 continue, cross-learn, or pivot.
 

@@ -1,19 +1,18 @@
 ### student_XX
 - route type:
-- core idea:
-- large HPWL opportunity:
+- route action:
+- start/donor family:
 - HPWL source mechanism:
-- breakthrough hypothesis:
-- stage donor being repaired:
+- why this can beat a small donor:
 - evidence:
-- plan chain:
-  A legalization/detailed placement:
-  B improve placement:
-  C optional coordination:
+- step-by-step execution chain:
+- plan A legalization/detailed placement:
+- plan B improve placement:
+- plan C co-optimization/handoff:
+- pivot condition:
 - function/state insertion points:
-- efficiency:
-- parallel/search implementation:
-- runtime-control:
-- low-ROI cutoff:
-- success target:
+- skills to use:
+- efficiency/bounded-search:
+- runtime tier:
+- runtime-budget use:
 - record:

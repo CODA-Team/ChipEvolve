@@ -31,6 +31,16 @@ Patch status is tracked in:
   Applies the `flow/Makefile` runner hook needed by the control plane so the
   strict baseline wrappers can pass `RUN_OPENROAD_ARGS` and `RUN_SCRIPT_ARGS`
   through the shared ORFS `run` target.
+- `evolved_legalizers/`
+  Preserves the final evolved legalizer variants from the legalization-only
+  evolve runs.  The `*_from_clean.patch` files apply directly to the recorded
+  clean OpenROAD anchor and include the base, framework, and one evolved
+  legalizer line.  The `*_framework_delta.patch` files apply after
+  `openroad_dpl_evolve_base.patch` and `openroad_dpl_evolve_framework.patch`
+  and are intended for review or porting.  These patches are also active
+  Teacher/Student donor evidence: `prepare_workspace.sh` materializes
+  `evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` seed sources
+  from the framework deltas when the patch files are present.
 The exact supported base commits are recorded in:
 
 - `metadata/anchors.json`

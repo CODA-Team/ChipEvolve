@@ -5,13 +5,90 @@ scope:
   control_plane_root: dpl_evolve_agent
   artifact_plane_root: flow
 allowed_patch_surfaces:
-  - file: tools/OpenROAD/src/dpl_evolve/src/DifferentialGuidance.cpp
-    rationale: "Current high-performance LEGALM-style guidance, assignment, repair, and polish implementation."
+  - file: tools/OpenROAD/src/dpl_evolve/CMakeLists.txt
+    rationale: "dpl_evolve build surface; update when a coherent mechanism needs new source files."
+    allowed_modes:
+      - source_list_update
+      - helper_extraction
+      - framework_scaffold
+  - file: tools/OpenROAD/src/dpl_evolve/src/StudentAlgorithm.cpp
+    rationale: "Student-owned top-level source flow for legalization/improve co-optimization."
+    allowed_modes:
+      - top_level_flow
+      - stage_ordering
+      - stage_guarding
+      - cross_stage_cooptimization
+      - shared_objective_handoff
+      - legalize_improve_coordination
+      - aggressive_case_mechanism
+      - telemetry_only
+  - file: tools/OpenROAD/src/dpl_evolve/src/LegalmGuidance.cpp
+    rationale: "Current LEGALM-style relaxed guidance and ALM/BGD implementation."
     allowed_modes:
       - relaxed_guidance_stage
       - alm_bgd_stage
-      - row_assignment_stage
-      - no_overflow_refinement
+      - objective_design
+      - net_or_size_aware_scoring
+      - legalize_improve_handoff
+      - shared_touched_net_cache
+      - partitioning
+      - local_optimum_escape
+      - high_performance_data_structure
+      - openmp_parallelism
+      - telemetry_only
+  - file: tools/OpenROAD/src/dpl_evolve/src/LegalmFullLegalization.cpp
+    rationale: "LEGALM-style self-legal closure and lambda-infinity/no-overflow refinement."
+    allowed_modes:
+      - stage3_no_overflow_refinement
+      - lambda_infinity_bgd
+      - row_assignment
+      - local_polish
+      - high_performance_data_structure
+      - telemetry_only
+  - file: tools/OpenROAD/src/dpl_evolve/src/LegalmRowAssignment.cpp
+    rationale: "Row/segment assignment and interval probing for legalizer quality."
+    allowed_modes:
+      - row_candidate_generation
+      - interval_probe
+      - cluster_or_abacus_like_assignment
+      - improve_seed_generation
+      - hpwl_aware_row_choice
+      - high_performance_data_structure
+  - file: tools/OpenROAD/src/dpl_evolve/src/LegalmCommon.h
+    rationale: "Shared LEGALM parameters, stencil driver, and candidate cost plumbing."
+    allowed_modes:
+      - parameter_separation
+      - candidate_driver
+      - shared_data_structure
+      - cross_stage_cache
+      - shared_objective_terms
+      - telemetry_support
+  - file: tools/OpenROAD/src/dpl_evolve/src/LegalmTechPenalty.cpp
+    rationale: "Candidate-local technology/routability penalty for LEGALM Eq. 35-style scoring."
+    allowed_modes:
+      - paper_eq35_cost
+      - candidate_local_drc_cache
+      - routing_or_pin_access_proxy
+      - telemetry_only
+  - file: tools/OpenROAD/src/dpl_evolve/src/LegalmTechPenalty.h
+    rationale: "LEGALM technology penalty declarations."
+    allowed_modes:
+      - paper_eq35_cost
+      - api_extension
+      - telemetry_support
+  - file: tools/OpenROAD/src/dpl_evolve/src/EvolveNegotiationRepair.cpp
+    rationale: "Negotiation/NBLG-style repair donor and legalizer-to-improve handoff support."
+    allowed_modes:
+      - repair_handoff
+      - failure_clear_policy
+      - negotiation_or_nblg_donor
+      - improve_seed_handoff
+      - telemetry_only
+  - file: tools/OpenROAD/src/dpl_evolve/src/DifferentialGuidance.cpp
+    rationale: "Legacy/generic target-storage helpers; not the primary LEGALM implementation."
+    allowed_modes:
+      - target_storage
+      - stage_handoff
       - runtime_pruning
       - telemetry_only
       - helper_extraction
@@ -55,6 +132,30 @@ allowed_patch_surfaces:
       - touched_metric_cache
       - bounded_polish_mechanism
       - high_performance_data_structure
+  - file: tools/OpenROAD/src/dpl_evolve/src/optimization/detailed*.{h,cxx}
+    rationale: "Detailed-improvement kernels such as GS/VS/MIS/reorder/random and candidate managers."
+    allowed_modes:
+      - detailed_improvement_flow
+      - bounded_candidate_generation
+      - hpwl_polish_mechanism
+      - high_performance_data_structure
+      - legalize_output_consumption
+      - improve_seed_preparation
+      - commit_logic
+      - touched_net_cache_handoff
+  - file: tools/OpenROAD/src/dpl_evolve/src/objective/detailed*.{h,cxx}
+    rationale: "Detailed-placement objective functions and local HPWL/displacement/ABU scoring."
+    allowed_modes:
+      - local_hpwl_delta
+      - objective_design
+      - touched_metric_cache
+      - high_performance_data_structure
+  - file: tools/OpenROAD/src/dpl_evolve/src/PlacementDRC*.{h,cpp}
+    rationale: "Candidate-local legality/DRC helpers used by evolved legalization and improve-placement scoring."
+    allowed_modes:
+      - candidate_local_drc_cache
+      - legality_screen
+      - telemetry_support
 forbidden_paths:
   - baseline
   - scripts
@@ -101,7 +202,8 @@ gates:
       - legality
   runtime_guard:
     required: true
-    regression_threshold_pct: 25
+    threshold_source: "current experiment student_runtime_multiplier / configured full-flow evaluator timeout"
+    policy: "Runtime growth is acceptable when it buys bounded, instrumented HPWL-source search; over-budget candidates are non-promotable unless kept only as donor evidence."
   displacement_guard:
     required: true
     soft_regression_threshold_pct: 10
@@ -110,7 +212,7 @@ gates:
     goal: "Primary objective for current track; strict acceptance policy comes from problem.yaml."
 edit_policy:
   tier_0:
-    description: "Small guards, stage budgets, telemetry-only changes, and narrow in-algorithm failure handling."
+    description: "Support edits such as logs, counters, narrow failure handling, or stage budget plumbing. Not promotable as the HPWL source mechanism by itself."
   tier_1:
     description: "Candidate generation, assignment cost, stage scheduling, no-overflow refinement, and repair trigger logic."
   tier_2:

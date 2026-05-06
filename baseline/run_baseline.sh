@@ -30,6 +30,10 @@ Options:
   --run-tag NAME             Stable tag under dpl_evolve_baseline/.
   --threads N                NUM_CORES passed to ORFS/OpenROAD.
   --openroad-binary PATH     Explicit OpenROAD binary override.
+  --legalize-timeout-seconds N
+                             Optional timeout applied only to the OpenROAD
+                             legalize/improve/mirror flow run. Metrics
+                             collection is not timeout-wrapped.
   --help                     Show this message.
 
 This dispatcher intentionally has no flow track and no engine switch.  The
@@ -45,6 +49,7 @@ flow_variant=""
 run_tag=""
 threads=""
 openroad_binary=""
+legalize_timeout_seconds=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -78,6 +83,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --openroad-binary)
       openroad_binary="$2"
+      shift 2
+      ;;
+    --legalize-timeout-seconds)
+      legalize_timeout_seconds="$2"
       shift 2
       ;;
     --help|-h)
@@ -256,7 +265,8 @@ cat > "$(flow_abs "${manifest_json}")" <<EOF
   "flow_home": "${FLOW_HOME}",
   "results_dir": "${results_dir}",
   "reports_dir": "${reports_dir}",
-  "log_dir": "${log_dir}"
+  "log_dir": "${log_dir}",
+  "legalize_timeout_seconds": ${legalize_timeout_seconds:-null}
 }
 EOF
 
@@ -312,12 +322,29 @@ write_tcl_driver "$(flow_abs "${strict_driver}")" "$(flow_abs "${detail_tcl}")" 
   track "strict"
 
 start_ns="$(date +%s%N)"
-"${legalize_make_base[@]}" \
+legalize_cmd=(
+  "${legalize_make_base[@]}"
   run \
   RUN_SCRIPT="$(flow_abs "${strict_driver}")" \
   RUN_LOG_NAME_STEM="${legalize_log_stem}"
+)
+set +e
+if [[ -n "${legalize_timeout_seconds}" ]]; then
+  timeout --kill-after=30s "${legalize_timeout_seconds}s" "${legalize_cmd[@]}"
+  legalize_status=$?
+else
+  "${legalize_cmd[@]}"
+  legalize_status=$?
+fi
+set -e
 end_ns="$(date +%s%N)"
 runtime_sec="$(awk "BEGIN {printf \"%.3f\", (${end_ns} - ${start_ns}) / 1000000000}")"
+legalize_failure_reason=""
+if [[ "${legalize_status}" -eq 124 || "${legalize_status}" -eq 137 ]]; then
+  legalize_failure_reason="flow_timeout"
+elif [[ "${legalize_status}" -ne 0 ]]; then
+  legalize_failure_reason="flow_failed"
+fi
 
 metrics_driver="${run_objects_dir}/${run_tag}_metrics_driver.tcl"
 write_tcl_driver "$(flow_abs "${metrics_driver}")" "$(flow_abs "${SCRIPT_DIR}/report_legalized_metrics.tcl")" \
@@ -329,16 +356,36 @@ write_tcl_driver "$(flow_abs "${metrics_driver}")" "$(flow_abs "${SCRIPT_DIR}/re
   metrics-json "${stage_metrics_json}" \
   track "strict" \
   legalizer "${legalizer_mode}"
-metrics_openroad_args="$(shell_join -metrics "$(flow_abs "${stage_metrics_json}")")"
-"${metrics_make_base[@]}" \
-  run \
-  RUN_SCRIPT="$(flow_abs "${metrics_driver}")" \
-  RUN_LOG_NAME_STEM="3_5_place_dp" \
-  RUN_OPENROAD_ARGS="${metrics_openroad_args}"
+if [[ "${legalize_status}" -eq 0 ]]; then
+  metrics_openroad_args="$(shell_join -metrics "$(flow_abs "${stage_metrics_json}")")"
+  "${metrics_make_base[@]}" \
+    run \
+    RUN_SCRIPT="$(flow_abs "${metrics_driver}")" \
+    RUN_LOG_NAME_STEM="3_5_place_dp" \
+    RUN_OPENROAD_ARGS="${metrics_openroad_args}"
 
-FLOW_HOME="${FLOW_HOME}" python3 "${SCRIPT_DIR}/gen_orfs_metadata.py" \
-  --orfs-metrics "${stage_metrics_json}" \
-  --output "${metadata_json}"
+  FLOW_HOME="${FLOW_HOME}" python3 "${SCRIPT_DIR}/gen_orfs_metadata.py" \
+    --orfs-metrics "${stage_metrics_json}" \
+    --output "${metadata_json}"
+else
+  echo "[WARN] Legalize flow failed with status ${legalize_status}; collecting failure metrics without running post-legalization evaluator." >&2
+  failure_json="$(flow_abs "${report_dir}/legalize_failure.json")"
+  FLOW_HOME="${FLOW_HOME}" python3 - "${failure_json}" "${legalize_status}" "${legalize_failure_reason}" "${legalize_timeout_seconds:-}" "${run_log_dir}/${legalize_log_stem}.log" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+payload = {
+    "status": sys.argv[3],
+    "legalize_exit_status": int(sys.argv[2]),
+    "legalize_timeout_seconds": int(sys.argv[4]) if sys.argv[4] else None,
+    "legalize_log": sys.argv[5],
+}
+path.parent.mkdir(parents=True, exist_ok=True)
+path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+PY
+fi
 
 collect_args=(
   --before "${before_snapshot}"
@@ -351,9 +398,21 @@ collect_args=(
   --orfs-metrics "${stage_metrics_json}"
   --orfs-metadata "${metadata_json}"
   --runtime-seconds "${runtime_sec}"
+  --run-status "$([[ "${legalize_status}" -eq 0 ]] && printf ok || printf '%s' "${legalize_failure_reason}")"
+  --legalize-exit-status "${legalize_status}"
+  --legalize-timeout-seconds "${legalize_timeout_seconds:-0}"
   --output "${metrics_json}"
 )
 FLOW_HOME="${FLOW_HOME}" python3 "${SCRIPT_DIR}/collect_metrics.py" "${collect_args[@]}"
+
+if [[ "${legalize_status}" -ne 0 ]]; then
+  echo "[ERROR] Strict baseline flow failed." >&2
+  echo "  line: ${line}" >&2
+  echo "  reason: ${legalize_failure_reason}" >&2
+  echo "  status: ${legalize_status}" >&2
+  echo "  metrics: ${metrics_json}" >&2
+  exit "${legalize_status}"
+fi
 
 echo "Strict baseline complete."
 echo "  line: ${line}"

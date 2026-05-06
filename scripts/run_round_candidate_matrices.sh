@@ -22,9 +22,9 @@ usage() {
   cat <<'EOF'
 Usage: run_round_candidate_matrices.sh --round-id NAME [options]
 
-Enumerate all student source backups from one Teacher/Student round and run a
-fixed-source candidate matrix for each.  This is the "4 students x 12
-iterations -> test every generated program on every case" path.
+Enumerate all committed student source revisions from one Teacher/Student round
+and run a fixed-source candidate matrix for each.  This is the "4 students x
+12 iterations -> test every generated program on every case" path.
 
 Options:
   --round-id NAME          Teacher round id under .dpl_evolve_state/teacher_rounds/.
@@ -119,6 +119,7 @@ log "round_dir=${ROUND_DIR}"
 log "plan=${PLAN_FILE}"
 log "matrix_prefix=${MATRIX_PREFIX}"
 log "matrix_row_parallel=${MATRIX_ROW_PARALLEL}"
+MATERIALIZED_ROOT="${BATCH_ROOT}/materialized_sources"
 
 enabled_plan_rows() {
   awk -F '\t' '
@@ -166,12 +167,19 @@ failed=0
 skipped_complete=0
 skipped_failed=0
 expected_rows="$(enabled_plan_rows)"
-while IFS= read -r cmake_file; do
-  candidate_src="${cmake_file%/CMakeLists.txt}"
-  rel="${candidate_src#${ROUND_DIR}/students/}"
-  student="${rel%%/*}"
-  iter_part="${rel#*/source_backups/}"
-  iter_part="${iter_part%%/*}"
+export_args=(
+  python3 "${SCRIPT_DIR}/export_round_candidate_sources.py"
+  --round-dir "${ROUND_DIR}"
+  --output-root "${MATERIALIZED_ROOT}"
+)
+if [[ -n "${STUDENT_FILTER}" ]]; then
+  export_args+=(--student "${STUDENT_FILTER}")
+fi
+if [[ -n "${ITERATION_FILTER}" ]]; then
+  export_args+=(--iteration "${ITERATION_FILTER}")
+fi
+while IFS=$'\t' read -r student iter_part source_repo source_ref candidate_src; do
+  [[ "${student}" == "student" ]] && continue
 
   if [[ -n "${STUDENT_FILTER}" && "${student}" != "${STUDENT_FILTER}" ]]; then
     continue
@@ -242,9 +250,7 @@ while IFS= read -r cmake_file; do
       "FAIL" "${exit_code}" >> "${CANDIDATES_TSV}"
   fi
 done < <(
-  find "${ROUND_DIR}/students" \
-    -path '*/source_backups/iter_*/dpl_evolve/CMakeLists.txt' \
-    -type f | sort
+  "${export_args[@]}"
 )
 
 log "done candidates=${count} passed=${passed} failed=${failed} skipped_complete=${skipped_complete} skipped_failed=${skipped_failed} manifest=${CANDIDATES_TSV}"

@@ -2,9 +2,11 @@
 
 - compact result table
 - stage-wise attribution table
+- runtime-tier attribution table
 - best lineages
 - final donors, stage donors, and negative evidence
 - efficiency bottlenecks
+- under-exploration or over-spend diagnosis
 - matrix candidates to freeze, if any
 - knowledge cards to preserve
 

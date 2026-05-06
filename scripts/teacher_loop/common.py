@@ -12,7 +12,14 @@ from typing import Any
 AGENT_ROOT = Path(__file__).resolve().parents[2]
 PROMPT_TEMPLATE_DIR = AGENT_ROOT / "prompt_templates" / "teacher_loop"
 
-START_KINDS = ("framework", "diamond", "prepared")
+START_KINDS = (
+    "framework",
+    "diamond",
+    "evolved_diamond",
+    "evolved_legalm",
+    "evolved_negotiation",
+    "prepared",
+)
 
 CANONICAL_LINES = (
     "openroad_dpl_flow",
@@ -54,7 +61,8 @@ class CandidateArtifacts:
     operation_id: str
     operation_dir: Path
     last_message: Path
-    source_backup: Path
+    source_repo: Path
+    source_ref: str | None
     implementation_diff: Path
     knowledge_card: Path
 
@@ -78,7 +86,9 @@ class ChildRound:
     private_binary: Path
     implementation_diff: Path
     knowledge_card: Path
-    source_backup: Path
+    source_branch: str
+    source_base_record: Path
+    source_commit_record: Path
     session_state: Path
     session_env_file: Path
     elite_seed_source: Path | None = None
@@ -94,7 +104,9 @@ class StudentWorkspace:
     artifact_dir: Path
     implementation_diff: Path
     knowledge_card: Path
-    source_backup: Path
+    source_branch: str
+    source_base_record: Path
+    source_commit_record: Path
     session_state: Path
     session_env_file: Path
 
@@ -148,7 +160,9 @@ def student_workspace_paths(
         artifact_dir=artifact_dir,
         implementation_diff=artifact_dir / "implementation.diff",
         knowledge_card=artifact_dir / "knowledge_card.md",
-        source_backup=student_root / "source_backups" / iter_name(iteration) / "dpl_evolve",
+        source_branch=f"agent/{student_id}/{iter_name(iteration)}",
+        source_base_record=artifact_dir / "source_base_commit.txt",
+        source_commit_record=artifact_dir / "source_commit.json",
         session_state=student_workspace / ".codex_session_state.json",
         session_env_file=student_workspace / ".codex_identity.env",
     )

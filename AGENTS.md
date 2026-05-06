@@ -89,7 +89,14 @@ When an outer loop invokes a coding agent, the loop owns:
 - evaluator execution,
 - scoring and accept/reject.
 
-The coding agent owns one bounded source patch, then stops.
+The coding agent owns one bounded route/mechanism for the iteration.  That
+route may require coordinated source changes in legalization/detailed
+placement, improve placement, and their shared handoff.  The agent should
+plan, implement, build/evaluate, inspect canonical metrics/logs, revise when
+the mechanism has a concrete next fix, and leave the best clean evaluated
+source commit.  It should stop only when additional work would repeat the same
+mechanism without new evidence, when legality/build blocks are clearly reported,
+or when the route becomes non-promotable under the configured runtime budget.
 
 Preferred target surface for framework work:
 

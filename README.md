@@ -147,7 +147,7 @@ python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py" \
   --case ibex_nangate45 \
   --flow-variant "$FLOW_VARIANT" \
   --round-id ibex_framework_2x2_$(date +%Y%m%d_%H%M%S) \
-  --start-kind framework \
+  --start-kind evolved_legalm \
   --children 2 \
   --iterations 2 \
   --max-parallel 2 \
@@ -252,7 +252,7 @@ Generate a reviewable round without calling Codex:
 python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py" \
   --case jpeg_nangate45 \
   --flow-variant <FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB> \
-  --start-kind framework \
+  --start-kind evolved_legalm \
   --children 4 \
   --iterations 2 \
   --dry-run \
@@ -266,7 +266,7 @@ python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py" \
   --case jpeg_nangate45 \
   --flow-variant <FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB> \
   --round-id jpeg_test_2x2 \
-  --start-kind framework \
+  --start-kind evolved_legalm \
   --children 2 \
   --iterations 2 \
   --max-parallel 2 \
@@ -332,10 +332,13 @@ The editable private source tree is:
 $DPL_EVOLVE_STATE_ROOT/teacher_rounds/<round_id>/students/student_XX/workspace/variant/dpl_evolve
 ```
 
-After every launched iteration, the orchestrator snapshots that source to:
+The editable private source tree is a local git repository. Each student should
+commit its final source state on the fixed per-iteration branch, and the
+orchestrator creates a fallback commit only if the student leaves source
+changes uncommitted. The committed revision is recorded at:
 
 ```text
-$DPL_EVOLVE_STATE_ROOT/teacher_rounds/<round_id>/students/student_XX/source_backups/iter_XX/dpl_evolve
+$DPL_EVOLVE_STATE_ROOT/teacher_rounds/<round_id>/students/student_XX/iter_XX/artifacts/source_commit.json
 ```
 
 Per-iteration build/eval logs and diffs stay in:
@@ -363,10 +366,23 @@ resource limit for parallel Student implementation/evaluation.
 `--start-kind` chooses the initial private source seed for each student:
 
 ```text
-framework  constrained top-level dpl_evolve framework; normal default
-diamond    direct/default DPL-style evolve seed; useful as a contrast line
-prepared   copy the current ORFS dpl_evolve source; useful for local debug only
+framework             constrained top-level dpl_evolve framework; clean framework restart
+diamond               direct/default DPL-style evolve seed; useful as a contrast line
+evolved_diamond       prior iter30 Diamond/local-greedy evolved donor seed
+evolved_legalm        current default; prior iter30 LEGALM/global-differential evolved donor seed
+evolved_negotiation   prior iter30 NBLG/negotiation evolved donor seed
+prepared              copy the current ORFS dpl_evolve source; useful for local debug only
 ```
+
+`evolved_legalm` is the CLI default because it starts from the current
+LEGALM/global-differential evolved source line. Use `framework` when a round
+should explicitly restart from the constrained clean framework.
+
+The evolved seeds are materialized by `scripts/prepare_workspace.sh` from
+`patches/evolved_legalizers/*_framework_delta.patch`.  The standalone
+`*_from_clean.patch` files in that directory are for clean OpenROAD checkouts at
+the recorded anchor; they are not meant to be manually applied inside a Student
+private source tree.
 
 ### Where More Details Live
 

@@ -5,6 +5,7 @@ Manual one-line runner notes. Prefer `evaluator.py` for agent-managed runs.
 ## Lines
 
 - `openroad_dpl_flow`
+- `openroad_dpl_negotiation`
 - `evolve_default`
 
 ## Preferred Manual Wrapper

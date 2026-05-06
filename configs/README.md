@@ -12,7 +12,7 @@ This directory stores reusable control-plane configuration presets.
 - `codex_design_specific.yaml`
   Larger-budget preset for design-level iteration.
 - `mutation_contract.yaml`
-  Patch-scope and safety contract for bounded evolution work.
+  Patch-scope and mechanism contract for bounded evolution work.
 - `run_manifest.template.yaml`
   Template for structured run metadata.
 - `openroad_variant_example.yaml`

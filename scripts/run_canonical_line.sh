@@ -10,6 +10,7 @@ Usage: run_canonical_line.sh --line NAME [options]
 
 Canonical lines:
   openroad_dpl_flow
+  openroad_dpl_negotiation
   evolve_default
 
 Options:
@@ -60,6 +61,9 @@ fi
 case "${line}" in
   openroad_dpl_flow)
     exec "${BASELINE_DIR}/run_openroad_dpl_flow.sh" "${pass_through[@]}"
+    ;;
+  openroad_dpl_negotiation)
+    exec "${BASELINE_DIR}/run_openroad_dpl_negotiation.sh" "${pass_through[@]}"
     ;;
   evolve_default)
     exec "${BASELINE_DIR}/run_evolve_default.sh" "${pass_through[@]}"

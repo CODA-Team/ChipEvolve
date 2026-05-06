@@ -1,9 +1,9 @@
-"""Codex operation execution, lineage, resume, and source snapshots."""
+"""Codex operation execution, lineage, resume, and source versioning."""
 from __future__ import annotations
 
 import json
+import re
 import shlex
-import shutil
 import subprocess
 import sys
 import time
@@ -162,6 +162,26 @@ def append_lineage(
     lineage_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
+def update_lineage_iteration(
+    *,
+    round_dir: Path,
+    student_id: str,
+    iteration: int,
+    updates: dict[str, Any],
+) -> None:
+    student_dir = round_dir / "students" / student_id
+    lineage_path = student_dir / "lineage.json"
+    data = load_json(lineage_path) or {}
+    target = iter_name(iteration)
+    for item in data.get("iterations", []):
+        if item.get("iteration") == target:
+            item.update(updates)
+            break
+    else:
+        data.setdefault("iterations", []).append({"iteration": target, **updates})
+    lineage_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+
 def run_commands(
     commands: list[list[str]],
     *,
@@ -194,38 +214,139 @@ def run_commands(
     return 1 if failures else 0
 
 
-def backup_child_sources(child_rounds: list[ChildRound]) -> None:
-    """Snapshot each child's current source after its iteration.
+def _git(
+    repo: Path,
+    *args: str,
+    check: bool = True,
+    capture: bool = False,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", "-C", str(repo), *args],
+        check=check,
+        text=True,
+        stdout=subprocess.PIPE if capture else None,
+        stderr=subprocess.PIPE if capture else None,
+        env=clean_subprocess_env(),
+    )
 
-    The active workspace may be stable across iterations, so the immutable
-    review anchor is this source backup plus the per-iteration diff artifact.
+
+def ensure_child_source_repo(source: Path) -> str | None:
+    """Ensure `source` is a local git repo and return its HEAD commit."""
+    if not source.exists():
+        return None
+    if not (source / ".git").exists():
+        subprocess.run(
+            ["git", "init", str(source)],
+            check=True,
+            text=True,
+            env=clean_subprocess_env(),
+        )
+    top = _git(source, "rev-parse", "--show-toplevel", capture=True).stdout.strip()
+    if Path(top).resolve() != source.resolve():
+        raise RuntimeError(
+            f"child source is not an independent git repo: {source} top={top}"
+        )
+    _git(source, "config", "user.email", "dpl-evolve-agent@example.invalid")
+    _git(source, "config", "user.name", "dpl-evolve-agent")
+    if not _git(source, "rev-parse", "--verify", "HEAD", check=False).returncode == 0:
+        _git(source, "add", "-A")
+        if _git(source, "diff", "--cached", "--quiet", check=False).returncode != 0:
+            _git(source, "commit", "-m", "Initialize dpl_evolve workspace")
+    head = _git(source, "rev-parse", "HEAD", capture=True)
+    return head.stdout.strip()
+
+
+def current_branch(source: Path) -> str:
+    branch = _git(source, "branch", "--show-current", capture=True, check=False)
+    return branch.stdout.strip() if branch.returncode == 0 else ""
+
+
+def commit_child_sources(
+    *,
+    child_rounds: list[ChildRound],
+    round_dir: Path,
+    iteration: int,
+) -> None:
+    """Commit each child's current source after its iteration.
+
+    The stable workspace is the durable source repo.  Per-iteration lineage
+    stores the source commit, replacing the old copied-source tree.
     """
     for child in child_rounds:
         if not child.dpl_src.exists():
             print(
-                "[optimize_case] warning: cannot backup missing child source "
+                "[optimize_case] warning: cannot commit missing child source "
                 f"for {child.student_id}: {child.dpl_src}",
                 file=sys.stderr,
             )
             continue
-        backup = child.source_backup
-        if backup.exists():
-            shutil.rmtree(backup)
-        backup.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(
-            child.dpl_src,
-            backup,
-            ignore=shutil.ignore_patterns(
-                "__pycache__",
-                "*.pyc",
-                "*.o",
-                "*.a",
-                "*.so",
-                "CMakeFiles",
-                "cmake_install.cmake",
-            ),
+        ensure_child_source_repo(child.dpl_src)
+        _git(child.dpl_src, "add", "-A")
+        changed = _git(child.dpl_src, "diff", "--cached", "--quiet", check=False).returncode != 0
+        if changed:
+            _git(
+                child.dpl_src,
+                "commit",
+                "-m",
+                f"{child.student_id} {child.run_tag} source",
+            )
+            commit_source = "orchestrator_fallback"
+        else:
+            commit_source = "student_or_no_change"
+        commit = _git(child.dpl_src, "rev-parse", "HEAD", capture=True).stdout.strip()
+        status = _git(child.dpl_src, "status", "--short", capture=True).stdout
+        dirty = bool(status.strip())
+        base_commit = (
+            child.source_base_record.read_text(encoding="utf-8").strip()
+            if child.source_base_record.exists()
+            else ""
         )
-        print(f"[optimize_case] backed up {child.student_id} source: {backup}")
+        if base_commit:
+            diff = _git(
+                child.dpl_src,
+                "diff",
+                "--no-ext-diff",
+                f"{base_commit}..{commit}",
+                capture=True,
+                check=False,
+            )
+            child.implementation_diff.parent.mkdir(parents=True, exist_ok=True)
+            child.implementation_diff.write_text(diff.stdout, encoding="utf-8")
+        record = {
+            "student_id": child.student_id,
+            "route_label": child.route_label,
+            "operation_id": child.operation_id,
+            "run_tag": child.run_tag,
+            "source_repo": str(child.dpl_src),
+            "source_branch": current_branch(child.dpl_src),
+            "source_base_commit": base_commit or None,
+            "source_commit": commit,
+            "fallback_commit_created": changed,
+            "commit_source": commit_source,
+            "dirty_after_commit": dirty,
+        }
+        child.source_commit_record.parent.mkdir(parents=True, exist_ok=True)
+        child.source_commit_record.write_text(
+            json.dumps(record, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        update_lineage_iteration(
+            round_dir=round_dir,
+            student_id=child.student_id,
+            iteration=iteration,
+            updates={
+                "source_repo": str(child.dpl_src),
+                "source_branch": current_branch(child.dpl_src),
+                "source_commit": commit,
+                "source_commit_record": str(child.source_commit_record),
+                "fallback_commit_created": changed,
+                "source_dirty_after_commit": dirty,
+            },
+        )
+        print(
+            "[optimize_case] committed "
+            f"{child.student_id} source: {commit} repo={child.dpl_src}"
+        )
 
 
 def teacher_insight_for_student(
@@ -307,21 +428,29 @@ def compact_teacher_child_insight(text: str, *, max_chars: int) -> str:
     keep_prefixes = (
         "Design read:",
         "Global diagnosis:",
+        "Runtime/search stance:",
         "### student_",
-        "- core idea:",
-        "- large HPWL opportunity:",
+        "- route type:",
+        "- route action:",
+        "- start/donor family:",
         "- HPWL source mechanism:",
-        "- breakthrough hypothesis:",
+        "- why this can beat a small donor:",
         "- evidence:",
+        "- step-by-step execution chain:",
         "- plan chain:",
+        "- plan A legalization/detailed placement:",
+        "- plan B improve placement:",
+        "- plan C co-optimization/handoff:",
         "A legalization:",
         "B improve placement:",
         "C optional coordination/selection:",
+        "- pivot condition:",
         "- function/state insertion points:",
-        "- efficiency:",
-        "- parallel/search implementation:",
-        "- runtime-control:",
-        "- success target:",
+        "- skills to use:",
+        "- efficiency/runtime-control:",
+        "- efficiency/bounded-search:",
+        "- runtime tier:",
+        "- runtime-budget use:",
         "- low-ROI cutoff:",
         "- record:",
     )
@@ -354,6 +483,47 @@ def compact_teacher_child_insight(text: str, *, max_chars: int) -> str:
     return "\n".join(budgeted).strip()
 
 
+def assigned_start_kind_from_insight(text: str) -> str | None:
+    """Extract an explicit primary prepared start-branch kind from Teacher.
+
+    Teacher may mention evolved start branches as stage-donor evidence or as a
+    non-primary fallback.  Only the primary route assignment should become an
+    unconditional Student prompt switch.
+    """
+    allowed = "framework|evolved_diamond|evolved_legalm|evolved_negotiation"
+    fallback_markers = (
+        "if ",
+        "fallback",
+        "clean reset",
+        "reset is needed",
+        "needed, use",
+        "otherwise",
+        "unless",
+    )
+    field_prefixes = ("route action:", "start/donor family:", "runtime tier:")
+    primary_patterns = (
+        rf"\buse the prepared start branch\s*`?({allowed})`?",
+        rf"\bstart from\s*`?({allowed})`?",
+        rf"\buse\s*`?({allowed})`?\s+as (?:the )?(?:prepared )?start",
+    )
+
+    for raw_line in text.splitlines():
+        line = " ".join(raw_line.strip().split())
+        if not line:
+            continue
+        line = re.sub(r"^\s*[-*]\s+", "", line)
+        line_lower = line.lower()
+        if not any(line_lower.startswith(prefix) for prefix in field_prefixes):
+            continue
+        if any(marker in line_lower for marker in fallback_markers):
+            continue
+        for pattern in primary_patterns:
+            match = re.search(pattern, line, flags=re.IGNORECASE)
+            if match:
+                return match.group(1)
+    return None
+
+
 def inline_teacher_plan_for_children(
     *, child_rounds: list[ChildRound], teacher_last_message: Path
 ) -> None:
@@ -370,20 +540,43 @@ def inline_teacher_plan_for_children(
         teacher_text = teacher_last_message.read_text(
             encoding="utf-8", errors="replace"
         ).strip()
+    begin_marker = "<!-- TEACHER_ASSIGNMENT_BEGIN -->"
+    end_marker = "<!-- TEACHER_ASSIGNMENT_END -->"
     marker = "## Current Teacher Insight Packet"
     for child in child_rounds:
         if not child.prompt_path.exists():
             continue
         assigned = teacher_insight_for_student(teacher_text, child.student_id)
+        assigned_start_kind = assigned_start_kind_from_insight(assigned)
+        start_action = (
+            "After opening the workspace packet, run `prepare_source_script`. Do "
+            "not run `switch_start_branch_script` unless Teacher's primary route "
+            "explicitly says to use a prepared start branch. If Teacher only "
+            "assigns continuation from an elite/final-donor source, keep the "
+            "pre-seeded/materialized elite source."
+        )
+        if assigned_start_kind:
+            start_action = (
+                "After opening the workspace packet, run `prepare_source_script`, "
+                f"then run `switch_start_branch_script --kind {assigned_start_kind}` "
+                "before inspecting or editing source."
+            )
         section = (
-            f"\n\n{marker}\n\n"
-            "Use this assigned packet. Do not redo Teacher review.\n\n"
+            f"{begin_marker}\n"
+            f"{marker}\n\n"
+            "This is your authoritative Teacher assignment for this iteration. "
+            "Execute it before using the workspace packet's round-default "
+            "`start_kind` as a fallback.\n\n"
+            f"Immediate start action: {start_action}\n\n"
             f"{assigned}\n"
+            f"{end_marker}\n\n"
         )
         prompt_text = child.prompt_path.read_text(encoding="utf-8", errors="replace")
-        if marker in prompt_text:
-            prompt_text = prompt_text.split(marker, 1)[0].rstrip()
-        child.prompt_path.write_text(prompt_text + section, encoding="utf-8")
+        if begin_marker in prompt_text and end_marker in prompt_text:
+            before, remainder = prompt_text.split(begin_marker, 1)
+            _, after = remainder.split(end_marker, 1)
+            prompt_text = (before + after.lstrip()).lstrip()
+        child.prompt_path.write_text(section + prompt_text, encoding="utf-8")
 
 
 def seed_elite_children(child_rounds: list[ChildRound]) -> None:

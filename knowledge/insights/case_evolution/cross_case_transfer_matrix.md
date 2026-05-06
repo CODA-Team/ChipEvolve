@@ -16,7 +16,7 @@ table that relied on bbox HPWL proxy must be re-read through canonical
 
 ## Result Pattern
 
-The strongest donor lineage beat most validation rows with about one percent
+The best cross-case donor lineage beat most validation rows with about one percent
 mean HPWL improvement.  Its mechanism family combined:
 
 - global-spreading style anchoring,
@@ -71,7 +71,7 @@ Teacher should pass students:
 
 Students should still make larger algorithmic changes when stuck:
 
-- alter legalize / improve / mirror flow order,
+- alter legalize / improve flow order and source-level handoff,
 - move HPWL-aware scoring earlier,
 - use net-aware or size-aware assignment,
 - replace full scans with touched-net or dirty-row metrics,

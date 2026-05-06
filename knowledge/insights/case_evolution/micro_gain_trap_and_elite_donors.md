@@ -48,7 +48,8 @@ Teacher should:
 - report the gain honestly as small,
 - stop assigning more quota or threshold tuning after gains flatten,
 - keep at least one student on larger algorithmic changes such as flow order,
-  net-aware objectives, row assignment, compaction, repair, or mirroring,
+  net-aware objectives, row assignment, compaction, repair, or
+  legalization/improve-placement handoff,
 - require evidence that a change affects the intended stage rather than merely
   riding the elite path.
 

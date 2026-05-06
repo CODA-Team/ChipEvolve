@@ -10,7 +10,8 @@ The durable experiment boundary is:
 - keep classic OpenROAD DPL and evaluator logic unchanged,
 - edit only private `tools/OpenROAD/src/dpl_evolve` variant sources,
 - relink private OpenROAD binaries,
-- compare against `openroad_dpl_flow`,
+- compare against the canonical baseline suite (`openroad_dpl_flow`,
+  `openroad_dpl_negotiation`, and `evolve_default`),
 - store runtime artifacts under ignored state/report/result directories.
 
 ## Large-Case Timeout Observation
@@ -42,7 +43,8 @@ The main discovery case should be:
 
 Before each Teacher/Student round:
 
-- refresh `openroad_dpl_flow` and `evolve_default`,
+- refresh `openroad_dpl_flow`, `openroad_dpl_negotiation`, and
+  `evolve_default`,
 - require strict legality and independent metrics,
 - allow moderate runtime increase if HPWL meaningfully improves,
 - report both legalizer-stage and final post-improve HPWL when available,
@@ -61,8 +63,8 @@ improvement is possible until canonical evidence says otherwise, and should
 seek mechanisms that can reach or exceed it.
 
 Candidates below 5% can still be useful when they provide clean stage-donor
-evidence, especially if they improve legalization, improve placement, or
-mirror/orientation in a way another student can combine or compress.  They
+evidence, especially if they improve legalization, improve placement, or the
+handoff between them in a way another student can combine or compress.  They
 should not be reported as final success unless the broader loop explains why
 the 5% hypothesis has been falsified for that design and flow variant.
 
@@ -90,10 +92,11 @@ thread count as the anchor.
 
 Policy:
 
-- a candidate's evaluator runtime must be at most `4.0x` the canonical
-  baseline runtime,
-- a candidate above `4.0x` baseline runtime is a failure for promotion even if
-  final HPWL is good,
+- a candidate's evaluator runtime must stay within the current experiment's
+  configured full-flow runtime multiplier, using the same wall-runtime metric
+  as the baseline row,
+- a candidate above the configured multiplier is a failure for promotion even
+  if final HPWL is good,
 - an over-budget candidate may remain a donor only when its stage telemetry and
   code diff show a concrete mechanism that another student can reimplement
   with bounded complexity,
@@ -111,7 +114,8 @@ Negative patterns observed in evolution rounds:
   accepted work, zero candidates, or an inactive pass,
 - continuing a lineage that Teacher identified as stage-negative, such as
   changing a legal-site choice after stage evidence showed the improvement
-  should move to downstream improve or mirror,
+  should move to downstream improve placement or the legalization/improve
+  handoff,
 - relying on stale relinked binaries or logs that do not contain the new
   mechanism's telemetry,
 - spending the round on archive/link workarounds instead of producing a clean
@@ -126,4 +130,4 @@ Required Teacher action:
 - assign at least one next-round student to compress that donor into a bounded
   implementation,
 - do not let a slower donor replace the elite parent until it satisfies the
-  `4.0x` runtime gate and strict legality gate.
+  configured runtime gate and strict legality gate.

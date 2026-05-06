@@ -25,7 +25,10 @@ def load_json(path: str | None) -> dict[str, Any]:
 
 def load_snapshot(path: str) -> dict[str, dict[str, str]]:
     rows: dict[str, dict[str, str]] = {}
-    with resolve_flow_path(path).open("r", encoding="utf-8") as fh:
+    snapshot_path = resolve_flow_path(path)
+    if not snapshot_path.exists():
+        return rows
+    with snapshot_path.open("r", encoding="utf-8") as fh:
         reader = csv.DictReader(fh, delimiter="\t")
         for row in reader:
             rows[row["inst"]] = row
@@ -275,6 +278,23 @@ def main() -> None:
         help="Placement-only normalized metadata.json derived from 3_5_place_dp.json.",
     )
     parser.add_argument("--runtime-seconds", type=float, help="Wall-clock runtime for the run.")
+    parser.add_argument(
+        "--run-status",
+        default="ok",
+        help="Overall strict flow status: ok, flow_timeout, flow_failed, etc.",
+    )
+    parser.add_argument(
+        "--legalize-exit-status",
+        type=int,
+        default=0,
+        help="Exit status from the legalize/improve/mirror OpenROAD flow.",
+    )
+    parser.add_argument(
+        "--legalize-timeout-seconds",
+        type=int,
+        default=0,
+        help="Timeout applied only to the legalize/improve/mirror flow, if any.",
+    )
     parser.add_argument("--output", required=True, help="Output JSON path.")
     args = parser.parse_args()
 
@@ -310,10 +330,19 @@ def main() -> None:
 
     payload: dict[str, Any] = {
         "manifest": manifest,
+        "status": args.run_status,
+        "legalize_exit_status": args.legalize_exit_status,
+        "legalize_timeout_seconds": args.legalize_timeout_seconds or None,
         "runtime_seconds": args.runtime_seconds,
         "dbu_per_micron": dbu_per_micron,
         "displacement": displacement,
     }
+    if args.run_status != "ok":
+        payload["failure"] = {
+            "status": args.run_status,
+            "legalize_exit_status": args.legalize_exit_status,
+            "legalize_timeout_seconds": args.legalize_timeout_seconds or None,
+        }
 
     legalization = select_present(
         run_summary,
@@ -332,6 +361,12 @@ def main() -> None:
     )
     if legalization:
         payload["legalization"] = legalization
+    elif args.run_status != "ok":
+        payload["legalization"] = {
+            "status": args.run_status,
+            "legalize_exit_status": args.legalize_exit_status,
+            "legalizer_mode": manifest.get("engine"),
+        }
 
     metrics_stage = {
         "elapsed_seconds": merged_stage_metrics.get("detailedplace__elapsed_seconds"),
