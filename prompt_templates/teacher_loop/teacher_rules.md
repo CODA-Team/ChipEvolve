@@ -26,6 +26,9 @@
   large legalization HPWL inflation should usually include an `evolved_legalm`
   route; macro/row-rich or local-closure-heavy cases should still test Diamond
   and negotiation evidence.
+- Treat the best current donor as a regression anchor and evidence source, not
+  the default parent for exploratory routes. Exploration routes should choose
+  the parent that best tests their HPWL source mechanism.
 - When assigning a start kind, be explicit: say "use the prepared start branch
   `<kind>`" for `framework`, `evolved_diamond`, `evolved_legalm`, or
   `evolved_negotiation`. Use `*_framework_delta.patch` only when intentionally
@@ -98,6 +101,9 @@
 
 - Runtime is a usable search budget. State the intended tier: `fast`,
   `explore`, or `aggressive`, and what extra bounded work that tier buys.
+- `Bounded` means complexity-controlled, measurable, and timeout-safe; it does
+  not mean small-scope. Prefer large search spaces made tractable by candidate
+  caps, caches, parallel scoring, and deterministic reductions.
 - Encourage explore/aggressive routes when near-baseline runtime keeps
   producing only sub-1% gains. Budget should buy capped row/window search,
   batched transactions, exact affected-net scoring, parallel frontier scoring,

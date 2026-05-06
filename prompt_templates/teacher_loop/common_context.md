@@ -56,6 +56,9 @@ function/state insertion points. Do not require broad donor-tree reading.
   mechanisms: deeper legalizer scoring, broader capped candidates, donor
   hybridization, parallel candidate evaluation, or better legalizer/improve
   handoff
+- `bounded` means complexity-controlled and measurable, not small-scope; use
+  caps, caches, thread-local scoring, and deterministic reductions to make
+  larger searches practical
 - runtime tiers: `fast` preserves a donor, `explore` spends moderate extra
   time on bounded search, and `aggressive` spends larger timeout-safe budget on
   a mechanism that could materially change final HPWL

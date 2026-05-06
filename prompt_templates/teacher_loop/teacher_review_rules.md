@@ -29,6 +29,10 @@
 - classify reusable evidence as `final donor`, `stage donor`, `active mechanism
   workbench`, `non-executed route`, `negative evidence`, or `quality-only but
   inefficient clue`
+- convert `quality-only but inefficient clue` into a rewrite-for-efficiency
+  route when HPWL or stage-wise evidence is strong: cache touched data, cap the
+  frontier, parallelize independent scoring, or replace repeated endpoints with
+  one bounded mechanism
 - preserve a stage donor when it improves one stage but loses downstream;
   assign a handoff/consumer repair instead of discarding it
 - preserve an active workbench for one focused repair when counters are
