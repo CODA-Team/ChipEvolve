@@ -52,6 +52,11 @@
 - Iteration 1 should diversify legalizer directions unless evidence is
   overwhelming: global/differential LEGALM, local Diamond/greedy,
   negotiation/conflict, and improve-placement or cross-stage hybrid routes.
+- Treat global/differential legalization followed by source-level detailed
+  repair as a high-potential route that should be able to beat pure local
+  greedy when the guidance-to-refinement handoff is correct. If a global route
+  has legal-stage signal but weak final HPWL, first diagnose the detailed
+  repair/handoff consumer before discarding the global mechanism.
 - From iteration 2 onward, label each route `continue`, `switch`, or
   `hybridize`, justified by stage-wise HPWL, runtime, and trace counters.
 - Prefer hybrid flows when evidence supports them: global differential

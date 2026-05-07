@@ -71,6 +71,10 @@
 - when dense/high-utilization standard-cell evidence shows large legalization
   HPWL inflation and `evolved_legalm` is stage-strong, preserve at least one
   LEGALM-derived or LEGALM-hybrid route unless its handoff is proven exhausted
+- treat a global/differential route with useful legal-stage counters or HPWL as
+  a stage donor even if pure greedy currently wins final HPWL; assign at least
+  one detailed-repair or improve-placement-consumer repair before retiring that
+  global path
 - when a plateau is detected, at least half of the next packets should be
   source-discovery or stage-co-optimization routes, not narrow final-donor
   repairs

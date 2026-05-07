@@ -8,6 +8,10 @@ for source handles, patch names, metrics, and log signals.
 
 - The important property is a connected path from global/differential guidance
   to the committed legal refined solution.
+- Teacher should treat global guidance plus detailed/local refinement as a
+  high-potential route that can beat pure local greedy when the handoff is
+  correct. A weak final HPWL result is usually a reason to inspect refinement
+  and improve-placement consumption before abandoning the global route.
 - If the current code converts guidance into isolated greedy interval polish,
   assign repair to the guidance-to-refinement connection.
 - Expose residual or frontier state to improve placement when legal-stage wins

@@ -54,6 +54,11 @@ function/state insertion points. Do not require broad donor-tree reading.
   `delta HPWL final`, and final HPWL when available
 - research belief: clean canonical HPWL at least 5% below the best clean line is
   achievable; 5% is not a hard gate and not a ceiling
+- algorithmic prior: global/differential guidance followed by source-level
+  detailed repair should be able to outperform pure greedy legalization when
+  the handoff and refinement are implemented correctly; weak final HPWL should
+  trigger handoff/improve-placement diagnosis, not immediate abandonment of the
+  global route
 - per-round stance: preserve best donors as guardrails, but assign at least one
   route that can attack a larger HPWL source when wins are tiny or plateaued
 - callable flow: `detailed_placement_evolve -> improve_placement_evolve ->
