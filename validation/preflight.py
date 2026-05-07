@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Preflight diff-scope validation for evolved dpl_evolve source patches.
 
-The active workflow lets a student change legalization, improve placement, and
-mirror/orientation code together inside a private `src/dpl_evolve` tree.  The
-preflight gate should therefore protect the control plane and classic OpenROAD
-`dpl` implementation, not force an obsolete single-file patch model.
+The active workflow lets a student change legalization/detailed placement,
+improve-placement internals, and their handoff inside a private `src/dpl_evolve`
+tree. Downstream optimize-mirroring must remain callable for evaluation, but it
+is not an active mutation target. The preflight gate protects the control plane
+and classic OpenROAD `dpl` implementation, not a stale single-file patch model.
 """
 from __future__ import annotations
 
@@ -111,7 +112,7 @@ def allows_dpl_evolve_tree(packet: dict[str, Any]) -> bool:
     if packet_type in {"constrained_framework_patch", "full_flow_framework_patch"}:
         return True
     symbol = str((packet.get("selected_patch_surface") or {}).get("symbol") or "")
-    return "legalize/improve/mirror" in symbol or "full-flow" in symbol
+    return "legalize/improve" in symbol or "full-flow" in symbol
 
 
 def _is_forbidden(path: str) -> bool:

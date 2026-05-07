@@ -5,6 +5,9 @@
 - Prefer each student's `knowledge_card` for mechanism and lesson.
 - Treat repeated artifact reads or post-clean reruns without a mechanism change
   as execution inefficiency and mention it briefly.
+- Prefer Student-provided log/efficiency diagnosis when present. If it is
+  missing, infer the minimum needed from `metrics.json`, DPL log counters, and
+  artifact state; mark missing diagnosis as a reporting gap for that route.
 
 ## Validity Gate
 
@@ -26,6 +29,13 @@
   negative evidence even when inherited code produced acceptable final metrics
 - perform stage-wise attribution across legalization, improve placement,
   downstream final-pass contribution, runtime, and active trace counters
+- compare each route against its selected LEGO-lite stage skills when present:
+  source handles touched, expected transition, done criteria, and required log
+  signals
+- identify implementation/runtime failure modes separately from algorithmic
+  failure: zero counters, timeout, stale source/binary/metrics, low accept
+  rate, legality rejection, fallback domination, duplicate endpoints, broad
+  rescans, or missing cache/parallelism
 - classify reusable evidence as `final donor`, `stage donor`, `active mechanism
   workbench`, `non-executed route`, `negative evidence`, or `quality-only but
   inefficient clue`
@@ -75,6 +85,13 @@
 - broader-search plans must state endpoint family size, candidate cap or
   touched-region bound, cache/reuse point, runtime tier, and whether OpenMP,
   thread-local caches, or deterministic reductions are appropriate
+- next plans should include the log signals the Student must inspect after
+  evaluation: expected active counters, accept/reject ratio, pass runtime,
+  timeout/failure mode, and whether source/binary/metrics remain aligned after
+  any revert or checkpoint restore
+- next plans should name selected skill ids only when they clarify the route.
+  Skill cards are reusable mechanism contracts, not a fixed menu that limits
+  source-level judgment.
 - if a route stalls, ask for a genuinely different hypothesis rather than
   another constant-only retune
 - keep next packets concise: source mechanism, plan chain, exact function/state

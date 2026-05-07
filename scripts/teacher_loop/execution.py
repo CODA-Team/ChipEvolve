@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-import re
 import shlex
 import subprocess
 import sys
@@ -11,7 +10,11 @@ from pathlib import Path
 from typing import Any
 
 from runtime_paths import clean_subprocess_env
-from scripts.teacher_loop.common import ChildRound, iter_name
+from scripts.teacher_loop.common import (
+    ChildRound,
+    assigned_start_kind_from_insight,
+    iter_name,
+)
 from scripts.teacher_loop.evidence import load_json, seed_private_source_from_elite
 from scripts.teacher_loop.prompts import focused_message_excerpt, read_text_excerpt
 
@@ -485,52 +488,6 @@ def compact_teacher_child_insight(text: str, *, max_chars: int) -> str:
     return "\n".join(budgeted).strip()
 
 
-def assigned_start_kind_from_insight(text: str) -> str | None:
-    """Extract an explicit primary prepared start-branch kind from Teacher.
-
-    Teacher may mention evolved start branches as stage-donor evidence or as a
-    non-primary fallback.  Only the primary route assignment should become an
-    unconditional Student prompt switch.
-    """
-    allowed = "framework|evolved_diamond|evolved_legalm|evolved_negotiation"
-    fallback_markers = (
-        "if ",
-        "fallback",
-        "clean reset",
-        "reset is needed",
-        "needed, use",
-        "otherwise",
-        "unless",
-    )
-    field_prefixes = (
-        "route action:",
-        "start/donor family:",
-        "continuation parent:",
-        "runtime tier:",
-    )
-    primary_patterns = (
-        rf"\buse the prepared start branch\s*`?({allowed})`?",
-        rf"\bstart from\s*`?({allowed})`?",
-        rf"\buse\s*`?({allowed})`?\s+as (?:the )?(?:prepared )?start",
-    )
-
-    for raw_line in text.splitlines():
-        line = " ".join(raw_line.strip().split())
-        if not line:
-            continue
-        line = re.sub(r"^\s*[-*]\s+", "", line)
-        line_lower = line.lower()
-        if not any(line_lower.startswith(prefix) for prefix in field_prefixes):
-            continue
-        if any(marker in line_lower for marker in fallback_markers):
-            continue
-        for pattern in primary_patterns:
-            match = re.search(pattern, line, flags=re.IGNORECASE)
-            if match:
-                return match.group(1)
-    return None
-
-
 def inline_teacher_plan_for_children(
     *, child_rounds: list[ChildRound], teacher_last_message: Path
 ) -> None:
@@ -560,21 +517,25 @@ def inline_teacher_plan_for_children(
             "not run `switch_start_branch_script` unless Teacher's primary route "
             "explicitly says to use a prepared start branch. If Teacher only "
             "assigns continuation from an elite/final-donor source, keep the "
-            "pre-seeded/materialized elite source."
+            "pre-seeded/materialized elite source. Then inspect source and refine "
+            "the mechanism before coding."
         )
         if assigned_start_kind:
             start_action = (
                 "After opening the workspace packet, run `prepare_source_script`, "
                 f"then run `switch_start_branch_script --kind {assigned_start_kind}` "
-                "before inspecting or editing source."
+                "before editing source. Then inspect source and refine the "
+                "mechanism before coding."
             )
         section = (
             f"{begin_marker}\n"
             f"{marker}\n\n"
-            "This is your authoritative Teacher assignment for this iteration. "
-            "Execute it before using the workspace packet's round-default "
-            "`start_kind` as a fallback.\n\n"
-            f"Immediate start action: {start_action}\n\n"
+            "This is your authoritative Teacher assignment and primary "
+            "research hypothesis for this iteration. Use it before the "
+            "workspace packet's round-default `start_kind`, then combine it "
+            "with focused source inspection and metrics/log evidence rather "
+            "than blindly executing Teacher prose.\n\n"
+            f"Initial workspace setup: {start_action}\n\n"
             f"{assigned}\n"
             f"{end_marker}\n\n"
         )

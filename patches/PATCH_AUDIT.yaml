@@ -105,3 +105,49 @@ evolved_legalizer_patches:
       Diamond / local-greedy line.
     apply_target: prepared OpenROAD after base and framework patches
     verification: git_apply_check_ok
+
+evolved_dpo_patches:
+  - path: patches/evolved_dpo/src_dpo_neg014_hybrid_quality.patch
+    status: active_improve_placement_donor
+    source_tag: neg014_hybrid_quality
+    meaning: >
+      Source-root DPO/improve-placement quality-ceiling donor.  Apply inside a
+      private dpl_evolve source tree or use a prepared local
+      start/<legalizer>_dpo_neg014 branch.
+    apply_target: private dpl_evolve source root after framework or evolved legalizer seed
+    verification: git_apply_check_ok_with_whitespace_warnings
+
+  - path: patches/evolved_dpo/src_dpo_neg015_staged_runtime.patch
+    status: active_improve_placement_donor
+    source_tag: neg015_staged_runtime
+    meaning: >
+      Source-root staged-fallback runtime donor for DPO/improve placement.
+    apply_target: private dpl_evolve source root after framework or evolved legalizer seed
+    verification: git_apply_check_ok_with_whitespace_warnings
+
+  - path: patches/evolved_dpo/src_dpo_neg017b_algo1_src_cache_runtime.patch
+    status: active_improve_placement_donor
+    source_tag: neg017b_algo1_src_cache_runtime
+    meaning: >
+      Recommended source-root DPO donor balancing final HPWL quality and
+      runtime through cached source-edge Algorithm-1 scoring.
+    apply_target: private dpl_evolve source root after framework or evolved legalizer seed
+    verification: git_apply_check_ok_with_whitespace_warnings
+
+  - path: patches/evolved_dpo/src_dpo_neg014_to_neg015_runtime_delta.patch
+    status: active_review_delta
+    source_tag: neg014_to_neg015_runtime_delta
+    meaning: >
+      Source-root review delta from the quality donor toward the staged-runtime
+      donor. Use as mechanism evidence or for an intentional runtime repair.
+    apply_target: private dpl_evolve source root after src_dpo_neg014_hybrid_quality.patch
+    verification: git_apply_check_ok_with_whitespace_warnings
+
+  - path: patches/evolved_dpo/src_dpo_neg015_to_neg017b_algo1_cache_delta.patch
+    status: active_review_delta
+    source_tag: neg015_to_neg017b_algo1_cache_delta
+    meaning: >
+      Source-root review delta that adds cached/parallel Algorithm-1 scoring on
+      top of the staged-runtime donor.
+    apply_target: private dpl_evolve source root after src_dpo_neg015_staged_runtime.patch
+    verification: git_apply_check_ok_with_whitespace_warnings

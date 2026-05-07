@@ -11,9 +11,16 @@
   donor/start-point choices.
 - Before assigning students, state the likely large HPWL source using design
   evidence, prior results, targeted source checks, and project knowledge.
+- Use the LEGO-lite skill index when a route needs a reusable mechanism. Query
+  by stage and bottleneck, then select only the relevant skill ids; do not dump
+  skill notes into every Student prompt.
 - Do stage-wise attribution before choosing routes. Separate final HPWL donors
   from legalization-stage donors, improve-placement donors, runtime-only
   quality signals, non-executed mechanisms, and negative evidence.
+- Use Student log/efficiency diagnoses as first-class evidence: DPL counters,
+  timeout/failure cause, zero-counter mechanisms, stale binary/source mismatch,
+  acceptance bottlenecks, legality rejects, fallback domination, broad rescans,
+  and duplicated endpoint work should change the next route.
 - If the best lineage repeats, plateaus, or wins by a tiny delta, keep it as a
   regression guard but assign at least one route to a different large HPWL
   source: objective, legal frontier, candidate generator, transaction, exact
@@ -30,9 +37,14 @@
   the default parent for exploratory routes. Exploration routes should choose
   the parent that best tests their HPWL source mechanism.
 - When assigning a start kind, be explicit: say "use the prepared start branch
-  `<kind>`" for `framework`, `evolved_diamond`, `evolved_legalm`, or
-  `evolved_negotiation`. Use `*_framework_delta.patch` only when intentionally
-  stacking that donor delta on the current framework source.
+  `<kind>`" for `framework`, `diamond`, `evolved_diamond`, `evolved_legalm`,
+  or `evolved_negotiation`. Use `*_framework_delta.patch` only when
+  intentionally stacking that donor delta on the current framework source.
+- When assigning a clean DPO donor start, prefer explicit prepared branch names
+  such as `evolved_legalm_dpo_neg017b` or `evolved_diamond_dpo_neg014` instead
+  of asking the Student to manually apply a patch. Use direct DPO patch
+  application only for intentional continuation/hybridization from an existing
+  source state.
 - For `route action: continue` from an elite/final donor, continue the
   pre-seeded/materialized elite source. Do not name an `evolved_*` clean-reset
   fallback unless the route is an explicit switch, hybridization, or stage-donor
@@ -51,6 +63,10 @@
 - Give each student one explicit `HPWL source mechanism`, a falsifiable metric
   outcome, and a reason it can attack a materially larger gap than donor
   polishing.
+- Name selected stage skills when useful: one for legalization, one for improve
+  placement, and one handoff/diagnosis skill when that is the route's active
+  uncertainty. Include the expected state transition and done criteria for each
+  selected skill.
 - Every route must cover both active responsibilities: A
   legalization/detailed placement and B improve placement. Each stage needs its
   own plausible HPWL path.
@@ -113,6 +129,11 @@
   hot-loop full rescans or avoidable `O(n^2)`.
 - Encourage OpenMP or existing thread utilities for independent scoring/probing
   loops with thread-local scratch data and deterministic reduction.
+- When assigning broader search, also assign what log evidence should prove it
+  is efficient: candidate cap, accepted/attempted ratio, reject reasons,
+  touched-net/cache reuse, parallel scoring count, and elapsed pass/runtime
+  signal. A quality clue with poor runtime should become a rewrite-for-efficiency
+  route, not be discarded automatically.
 - Do not promote wins from unchanged repeated improve-placement runs, random
   tails, duplicate passes, endpoint stacking, or uninstrumented broad rescans.
   Distill any quality signal into one bounded mechanism.
@@ -130,8 +151,15 @@
   legalizer patch, improve-placement patch, build/evaluate, inspect stage
   metrics/log counters, revise the weak stage, then keep the best clean
   candidate.
+- Ask the Student to prove each selected skill with function/state-level source
+  evidence, stage-wise metrics, and the skill's log signals. If the source
+  evidence contradicts a selected skill, the Student should pivot and report the
+  better mechanism.
 - Require the final report to prove both active stages changed with
   function-level evidence and stage-wise metrics.
+- Require the final report/knowledge card to include log-derived diagnosis:
+  key DPL counter lines, runtime bottleneck classification, implementation
+  error evidence if any, and the exact repair that should guide the next plan.
 - Keep packets executable: one HPWL source, one plan chain, exact
   function/state handles, runtime tier, and metric proof.
 - Use autonomy-supportive NoPUA-style coaching: give evidence, trust the

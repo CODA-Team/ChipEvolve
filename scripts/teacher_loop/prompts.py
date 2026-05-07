@@ -4,6 +4,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import math
+import re
 import shlex
 import subprocess
 import sys
@@ -17,6 +18,7 @@ from scripts.teacher_loop.common import (
     ChildRound,
     MetricSummary,
     StudentWorkspace,
+    assigned_start_kind_from_insight,
     iter_name,
     render_prompt_template,
     student_workspace_paths,
@@ -545,11 +547,36 @@ def common_context(
         / "patches"
         / "evolved_legalizers"
         / "validation.tsv",
+        evolved_dpo_readme=runtime.agent_root
+        / "patches"
+        / "evolved_dpo"
+        / "README.md",
+        evolved_dpo_manifest=runtime.agent_root
+        / "patches"
+        / "evolved_dpo"
+        / "generation_manifest.tsv",
+        evolved_dpo_validation=runtime.agent_root
+        / "patches"
+        / "evolved_dpo"
+        / "validation.tsv",
         dense_legalizer_routing_insight=runtime.agent_root
         / "knowledge"
         / "insights"
         / "case_evolution"
         / "dense_evolved_legalizer_routing.md",
+        dpo_runtime_quality_insight=runtime.agent_root
+        / "knowledge"
+        / "insights"
+        / "dpo"
+        / "dpo_runtime_quality_frontier.md",
+        dpo_cross_legalizer_insight=runtime.agent_root
+        / "knowledge"
+        / "insights"
+        / "dpo"
+        / "cross_legalizer_dpo_donors.md",
+        skill_index=runtime.agent_root / "knowledge" / "index" / "skill_cards.jsonl",
+        skill_query_script=runtime.agent_root / "scripts" / "query_knowledge.py",
+        skill_cards_dir=runtime.agent_root / "knowledge" / "skills",
         teacher_coaching_skill=runtime.agent_root
         / "skills"
         / "teacher_peer_coaching.md",
@@ -864,6 +891,8 @@ ensure_dpl_git_repo() {{
         "switch_start_branch": script_dir / "04_switch_start_branch.sh",
         "source_context": script_dir / "05_source_context.sh",
         "apply_evolved_patch": script_dir / "06_apply_evolved_legalizer_patch.sh",
+        "apply_evolved_dpo_patch": script_dir / "07_apply_evolved_dpo_patch.sh",
+        "query_knowledge": script_dir / "08_query_knowledge.sh",
         "build": script_dir / "10_build_variant.sh",
         "fresh_build": script_dir / "11_build_variant_fresh.sh",
         "evaluate": script_dir / "20_evaluate_candidate.sh",
@@ -896,6 +925,9 @@ seed_for_kind() {{
   case "$1" in
     framework)
       printf '%s\\n' "$AGENT_ROOT/.dpl_evolve_state/seed_sources/framework_dpl_evolve"
+      ;;
+    diamond)
+      printf '%s\\n' "$AGENT_ROOT/.dpl_evolve_state/seed_sources/diamond_dpl_evolve"
       ;;
     evolved_diamond)
       printf '%s\\n' "$AGENT_ROOT/.dpl_evolve_state/seed_sources/evolved_diamond_dpl_evolve"
@@ -933,6 +965,51 @@ materialize_start_branch() {{
   echo "[INFO] prepared_start_branch=$branch commit=$(git -C "$DPL_SRC" rev-parse HEAD)"
 }}
 
+dpo_patch_for_donor() {{
+  case "$1" in
+    neg017b)
+      printf '%s\\n' "$AGENT_ROOT/patches/evolved_dpo/src_dpo_neg017b_algo1_src_cache_runtime.patch"
+      ;;
+    neg014)
+      printf '%s\\n' "$AGENT_ROOT/patches/evolved_dpo/src_dpo_neg014_hybrid_quality.patch"
+      ;;
+    neg015)
+      printf '%s\\n' "$AGENT_ROOT/patches/evolved_dpo/src_dpo_neg015_staged_runtime.patch"
+      ;;
+    *)
+      return 2
+      ;;
+  esac
+}}
+
+materialize_dpo_branch() {{
+  local kind="$1"
+  local donor="$2"
+  local base_branch="start/$kind"
+  local branch="start/${{kind}}_dpo_${{donor}}"
+  local patch
+  if ! git -C "$DPL_SRC" show-ref --verify --quiet "refs/heads/$base_branch"; then
+    echo "[WARN] cannot prepare $branch; missing base branch $base_branch" >&2
+    return 0
+  fi
+  patch="$(dpo_patch_for_donor "$donor")"
+  if [[ ! -f "$patch" ]]; then
+    echo "[WARN] cannot prepare $branch; missing DPO patch: $patch" >&2
+    return 0
+  fi
+  git -C "$DPL_SRC" switch --detach "$base_branch" >/dev/null
+  if ! git -C "$DPL_SRC" apply --whitespace=nowarn --check "$patch"; then
+    echo "[WARN] cannot prepare $branch; DPO patch does not apply: $patch" >&2
+    git -C "$DPL_SRC" switch "$SOURCE_BRANCH" >/dev/null
+    return 0
+  fi
+  git -C "$DPL_SRC" apply --whitespace=nowarn "$patch"
+  git -C "$DPL_SRC" add -A
+  git -C "$DPL_SRC" commit -m "Seed $branch source" >/dev/null
+  git -C "$DPL_SRC" branch -f "$branch" HEAD >/dev/null
+  echo "[INFO] prepared_start_branch=$branch commit=$(git -C "$DPL_SRC" rev-parse HEAD)"
+}}
+
 prepare_start_branches() {{
   if [[ -n "$(git -C "$DPL_SRC" status --short)" ]]; then
     echo "[WARN] private source is dirty; skip start branch materialization" >&2
@@ -944,8 +1021,13 @@ prepare_start_branches() {{
     echo "[WARN] current branch is $return_branch, expected $SOURCE_BRANCH; skip start branch materialization" >&2
     return 0
   fi
-  for kind in framework evolved_diamond evolved_legalm evolved_negotiation; do
+  for kind in framework diamond evolved_diamond evolved_legalm evolved_negotiation; do
     materialize_start_branch "$kind"
+  done
+  for kind in framework diamond evolved_diamond evolved_legalm evolved_negotiation; do
+    for donor in neg017b neg014 neg015; do
+      materialize_dpo_branch "$kind" "$donor"
+    done
   done
   git -C "$DPL_SRC" switch "$SOURCE_BRANCH" >/dev/null
   echo "[INFO] available_start_branches:"
@@ -971,11 +1053,17 @@ kind=""
 usage() {{
   cat >&2 <<'USAGE'
 Usage:
-  04_switch_start_branch.sh --kind framework|evolved_diamond|evolved_legalm|evolved_negotiation
+  04_switch_start_branch.sh --kind <prepared-start-kind>
 
-Reset the iteration source branch to one prepared local start branch. Run this
-after 00_prepare_source.sh and before source edits when Teacher assigns a
-different start point for this Student.
+Reset the iteration source branch to one prepared local start branch. Examples:
+  framework
+  diamond
+  evolved_legalm
+  evolved_legalm_dpo_neg017b
+  evolved_diamond_dpo_neg014
+
+Run this after 00_prepare_source.sh and before source edits when Teacher
+assigns a different start point for this Student.
 USAGE
 }}
 
@@ -997,16 +1085,12 @@ while [[ "$#" -gt 0 ]]; do
   esac
 done
 
-case "$kind" in
-  framework|evolved_diamond|evolved_legalm|evolved_negotiation)
-    branch="start/$kind"
-    ;;
-  *)
-    echo "[ERROR] expected --kind framework|evolved_diamond|evolved_legalm|evolved_negotiation" >&2
-    usage
-    exit 2
-    ;;
-esac
+if [[ -z "$kind" || "$kind" == */* ]]; then
+  echo "[ERROR] expected --kind to be one prepared start branch suffix without '/'" >&2
+  usage
+  exit 2
+fi
+branch="start/$kind"
 
 if [[ -n "$(git -C "$DPL_SRC" status --short)" ]]; then
   echo "[ERROR] private source has uncommitted changes; switch start branch only before edits." >&2
@@ -1177,11 +1261,6 @@ case "$line" in
     ;;
 esac
 
-if [[ "$START_KIND" == evolved_* ]]; then
-  echo "[ERROR] START_KIND=$START_KIND is already an evolved seed." >&2
-  echo "[ERROR] Do not stack an evolved framework-delta patch on an evolved seed." >&2
-  exit 2
-fi
 if [[ -f "$DPL_SRC/.dpl_evolve_seed_manifest.json" ]]; then
   echo "[ERROR] private source already comes from an evolved seed manifest." >&2
   echo "[ERROR] Do not stack an evolved framework-delta patch on this source." >&2
@@ -1216,9 +1295,127 @@ echo "[INFO] source_commit=$(git -C "$DPL_SRC" rev-parse HEAD)"
     )
 
     write_executable_script(
+        scripts["apply_evolved_dpo_patch"],
+        f"""#!/usr/bin/env bash
+set -euo pipefail
+{common_vars}
+ensure_dpl_git_repo
+
+donor=""
+check_only=0
+usage() {{
+  cat >&2 <<'USAGE'
+Usage:
+  07_apply_evolved_dpo_patch.sh --donor neg017b|neg014|neg015 [--check-only]
+  07_apply_evolved_dpo_patch.sh --donor neg014_to_neg015|neg015_to_neg017b [--check-only]
+
+Apply or check exactly one evolved DPO/improve-placement source-root patch
+against the private dpl_evolve source. These patches are designed to stack on
+the selected legalizer seed. Run --check-only first.
+USAGE
+}}
+
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    --donor|--mechanism)
+      donor="$2"
+      shift 2
+      ;;
+    --check-only)
+      check_only=1
+      shift
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "[ERROR] unknown argument: $1" >&2
+      usage
+      exit 2
+      ;;
+  esac
+done
+
+case "$donor" in
+  neg017b|recommended|runtime_quality)
+    mechanism="neg017b_algo1_src_cache_runtime"
+    patch="$AGENT_ROOT/patches/evolved_dpo/src_dpo_neg017b_algo1_src_cache_runtime.patch"
+    ;;
+  neg014|quality|quality_ceiling)
+    mechanism="neg014_hybrid_quality"
+    patch="$AGENT_ROOT/patches/evolved_dpo/src_dpo_neg014_hybrid_quality.patch"
+    ;;
+  neg015|staged_runtime)
+    mechanism="neg015_staged_runtime"
+    patch="$AGENT_ROOT/patches/evolved_dpo/src_dpo_neg015_staged_runtime.patch"
+    ;;
+  neg014_to_neg015)
+    mechanism="neg014_to_neg015_runtime_delta"
+    patch="$AGENT_ROOT/patches/evolved_dpo/src_dpo_neg014_to_neg015_runtime_delta.patch"
+    ;;
+  neg015_to_neg017b)
+    mechanism="neg015_to_neg017b_algo1_cache_delta"
+    patch="$AGENT_ROOT/patches/evolved_dpo/src_dpo_neg015_to_neg017b_algo1_cache_delta.patch"
+    ;;
+  *)
+    echo "[ERROR] expected --donor neg017b|neg014|neg015|neg014_to_neg015|neg015_to_neg017b" >&2
+    usage
+    exit 2
+    ;;
+esac
+
+if [[ ! -f "$patch" ]]; then
+  echo "[ERROR] missing evolved DPO patch: $patch" >&2
+  exit 2
+fi
+if [[ "$check_only" -eq 0 && -n "$(git -C "$DPL_SRC" status --short)" ]]; then
+  echo "[ERROR] private source has uncommitted changes; commit/stash before applying a DPO donor patch." >&2
+  git -C "$DPL_SRC" status --short >&2
+  exit 2
+fi
+
+already_present=0
+if ! git -C "$DPL_SRC" apply --whitespace=nowarn --check "$patch" >/dev/null 2>&1; then
+  if git -C "$DPL_SRC" apply --whitespace=nowarn --reverse --check "$patch" >/dev/null 2>&1; then
+    already_present=1
+  else
+    echo "[ERROR] evolved DPO patch does not apply to current private source: $patch" >&2
+    echo "[ERROR] Check the donor apply base in patches/evolved_dpo/README.md or use it as review evidence." >&2
+    git -C "$DPL_SRC" apply --whitespace=nowarn --check "$patch" >&2 || true
+    exit 1
+  fi
+fi
+if [[ "$already_present" -eq 1 ]]; then
+  echo "[INFO] evolved DPO patch already present: mechanism=$mechanism patch=$patch"
+  echo "[INFO] This is expected on prepared start branches such as start/<legalizer>_dpo_<donor>."
+  exit 0
+fi
+if [[ "$check_only" -eq 1 ]]; then
+  echo "[INFO] evolved DPO patch check OK: mechanism=$mechanism patch=$patch"
+  exit 0
+fi
+git -C "$DPL_SRC" apply --whitespace=nowarn "$patch"
+git -C "$DPL_SRC" add -A
+git -C "$DPL_SRC" commit -m "Apply evolved DPO donor $mechanism"
+echo "[INFO] evolved DPO patch applied and committed: mechanism=$mechanism"
+echo "[INFO] source_commit=$(git -C "$DPL_SRC" rev-parse HEAD)"
+""",
+    )
+
+    write_executable_script(
+        scripts["query_knowledge"],
+        f"""#!/usr/bin/env bash
+set -euo pipefail
+{common_vars}
+exec python3 "$AGENT_ROOT/scripts/query_knowledge.py" "$@"
+""",
+    )
+
+    write_executable_script(
         scripts["build"],
         f"""#!/usr/bin/env bash
-	set -euo pipefail
+        set -euo pipefail
 {common_vars}
 ensure_dpl_git_repo
 "$AGENT_ROOT/scripts/configure_openroad_variant_relink.sh" \\
@@ -1427,17 +1624,21 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
                 "",
                 "1. `00_prepare_source.sh` once before editing.",
                 "2. If Teacher assigns a prepared start point, run",
-                "   `04_switch_start_branch.sh --kind <framework|evolved_...>` before edits.",
+                "   `04_switch_start_branch.sh --kind <framework|diamond|evolved_...|evolved_..._dpo_...>` before edits.",
                 "3. Use `05_source_context.sh <src/...> [symbol]` when you need",
                 "   current local source context for an apply_patch anchor.",
                 "4. Use `06_apply_evolved_legalizer_patch.sh --check-only` only",
                 "   when Teacher explicitly assigns an evolved framework-delta patch.",
-                "5. Edit only the packet `private_dpl_evolve_source` with apply_patch.",
-                "6. `10_build_variant.sh` after code changes.",
-                "7. `20_evaluate_candidate.sh` for canonical metrics.",
-                "8. `30_commit_source.sh` before the final answer.",
-                "9. `40_write_diff.sh` to write the implementation diff.",
-                "10. `50_seed_knowledge_card.sh` if the knowledge card does not exist yet.",
+                "5. Use `07_apply_evolved_dpo_patch.sh --check-only` only when",
+                "   Teacher explicitly assigns a DPO donor patch on the current source.",
+                "6. Use `08_query_knowledge.sh --stage <stage> --q <text>` when",
+                "   Teacher names a skill id or you need one concise mechanism card.",
+                "7. Edit only the packet `private_dpl_evolve_source` with apply_patch.",
+                "8. `10_build_variant.sh` after code changes.",
+                "9. `20_evaluate_candidate.sh` for canonical metrics.",
+                "10. `30_commit_source.sh` before the final answer.",
+                "11. `40_write_diff.sh` to write the implementation diff.",
+                "12. `50_seed_knowledge_card.sh` if the knowledge card does not exist yet.",
                 "",
                 "Use `11_build_variant_fresh.sh` only when the normal generated build",
                 "script fails or leaves the private binary missing.",
@@ -1536,8 +1737,9 @@ commands.  Do not ask Teacher to rewrite this content.
 ## Start-Point / Patch Catalog Notes
 
 - `round_default_start_kind` is only the default source seed used before Teacher
-  assigns a route. If the top of your Student prompt includes an immediate
-  start action from Teacher, follow that action first.
+  assigns a route. If the top of your Student prompt includes `Initial
+  workspace setup`, follow that setup first, then do the required source-level
+  diagnosis before editing.
 - If `start_kind` is `evolved_diamond`, `evolved_legalm`, or
   `evolved_negotiation`, your private source is already seeded from the
   corresponding materialized evolved legalizer source under
@@ -1545,11 +1747,15 @@ commands.  Do not ask Teacher to rewrite this content.
   patch to your private source.
 - `prepare_source_script` also prepares local git start branches inside your
   private source repo:
-  `start/framework`, `start/evolved_diamond`, `start/evolved_legalm`, and
-  `start/evolved_negotiation`. If Teacher assigns one of these start points,
-  run `switch_start_branch_script --kind <kind>` before edits. The script resets
-  your iteration branch `{paths.source_branch}` to that start point while keeping
-  your final work on the normal iteration branch.
+  `start/framework`, `start/diamond`, `start/evolved_diamond`,
+  `start/evolved_legalm`, and `start/evolved_negotiation`. It also prepares
+  DPO donor combination branches when the patch applies, for example
+  `start/evolved_legalm_dpo_neg017b`, `start/evolved_legalm_dpo_neg014`,
+  `start/evolved_diamond_dpo_neg017b`, `start/diamond_dpo_neg017b`, and
+  `start/framework_dpo_neg017b`. If Teacher assigns one of these start points,
+  run `switch_start_branch_script --kind <branch-suffix>` before edits. The
+  script resets your iteration branch `{paths.source_branch}` to that start
+  point while keeping your final work on the normal iteration branch.
 - Evolved legalizer patches are still useful as review/donor evidence. The
   `*_framework_delta.patch` files are deltas from prepared base+framework
   OpenROAD to the evolved legalizer line. The `*_from_clean.patch` files apply
@@ -1559,6 +1765,14 @@ commands.  Do not ask Teacher to rewrite this content.
   the matching evolved start when Teacher assigns it, or use the catalog to
   borrow a specific mechanism when your source-level diagnosis supports that
   route.
+- Evolved DPO patches are improve-placement donor patches for the private
+  source root. Prefer a prepared `start/<legalizer>_dpo_<donor>` branch when
+  Teacher assigns a clean DPO-donor start. Use
+  `apply_evolved_dpo_patch_script --donor neg017b --check-only` before applying
+  the recommended runtime-quality donor, or `--donor neg014` for the
+  quality-ceiling donor, only when Teacher assigns donor application to the
+  current source. These patches can stack on a legalizer seed; do not hand-write
+  `git apply`.
 
 ## Paths
 
@@ -1573,6 +1787,17 @@ commands.  Do not ask Teacher to rewrite this content.
 - optional_evolved_diamond_framework_delta: `{runtime.agent_root / "patches" / "evolved_legalizers" / "openroad_dpl_evolve_diamond_iter30_framework_delta.patch"}`
 - optional_evolved_legalm_framework_delta: `{runtime.agent_root / "patches" / "evolved_legalizers" / "openroad_dpl_evolve_legalm_iter30_framework_delta.patch"}`
 - optional_evolved_negotiation_framework_delta: `{runtime.agent_root / "patches" / "evolved_legalizers" / "openroad_dpl_evolve_negotiation_iter30_framework_delta.patch"}`
+- optional_evolved_dpo_catalog: `{runtime.agent_root / "patches" / "evolved_dpo" / "README.md"}`
+- optional_evolved_dpo_manifest: `{runtime.agent_root / "patches" / "evolved_dpo" / "generation_manifest.tsv"}`
+- optional_evolved_dpo_validation: `{runtime.agent_root / "patches" / "evolved_dpo" / "validation.tsv"}`
+- optional_evolved_dpo_recommended_patch: `{runtime.agent_root / "patches" / "evolved_dpo" / "src_dpo_neg017b_algo1_src_cache_runtime.patch"}`
+- optional_evolved_dpo_quality_patch: `{runtime.agent_root / "patches" / "evolved_dpo" / "src_dpo_neg014_hybrid_quality.patch"}`
+- optional_dpo_runtime_quality_insight: `{runtime.agent_root / "knowledge" / "insights" / "dpo" / "dpo_runtime_quality_frontier.md"}`
+- optional_dpo_cross_legalizer_insight: `{runtime.agent_root / "knowledge" / "insights" / "dpo" / "cross_legalizer_dpo_donors.md"}`
+- skill_index: `{runtime.agent_root / "knowledge" / "index" / "skill_cards.jsonl"}`
+- skill_cards_dir: `{runtime.agent_root / "knowledge" / "skills"}`
+- skill_query_script: `{runtime.agent_root / "scripts" / "query_knowledge.py"}`
+- generated_skill_query_helper: `{script_paths["query_knowledge"]}`
 - lineage: `{lineage_path}`
 - student_workspace: `{paths.student_workspace}`
 - variant_root: `{paths.variant_root}`
@@ -1599,6 +1824,7 @@ commands.  Do not ask Teacher to rewrite this content.
 - switch_start_branch_script: `{script_paths["switch_start_branch"]}`
 - source_context_script: `{script_paths["source_context"]}`
 - apply_evolved_legalizer_patch_script: `{script_paths["apply_evolved_patch"]}`
+- apply_evolved_dpo_patch_script: `{script_paths["apply_evolved_dpo_patch"]}`
 - build_variant_script: `{script_paths["build"]}`
 - fresh_build_script: `{script_paths["fresh_build"]}`
 - evaluate_candidate_script: `{script_paths["evaluate"]}`
@@ -1675,15 +1901,19 @@ is insufficient.
 ## Per-Iteration Execution Contract
 
 - This packet is for one outer Teacher/Student iteration.
-- Implement the assigned A/B plan: legalization/detailed placement and improve
-  placement. Keep `optimize_mirroring_evolve` callable for evaluation.
+- Use the assigned A/B plan as the default source-level hypothesis:
+  legalization/detailed placement and improve placement. Validate it against
+  current source and metrics before coding, and refine it if source evidence
+  shows a better mechanism. Keep `optimize_mirroring_evolve` callable for
+  evaluation.
 - Build at least one legalization/improve co-optimization link.
 - Use generated scripts below for prepare/build/evaluate/diff/knowledge.
-- If Teacher assigns `framework`, `evolved_diamond`, `evolved_legalm`, or
-  `evolved_negotiation` as this route's start point, use
-  `switch_start_branch_script --kind <kind>` immediately after source
+- If Teacher assigns `framework`, `diamond`, `evolved_diamond`,
+  `evolved_legalm`, `evolved_negotiation`, or a prepared
+  `<legalizer>_dpo_<donor>` start as this route's start point, use
+  `switch_start_branch_script --kind <branch-suffix>` immediately after source
   preparation and before edits. Do not emulate this by manually copying source
-  trees or applying OpenROAD-root patches.
+  trees or applying patch files.
 - Use `source_context_script` before nontrivial patches when you need current
   local source anchors. For donor-derived hunks or any edit based on Teacher
   prose rather than currently visible source text, this is mandatory. It only
@@ -1692,6 +1922,16 @@ is insufficient.
   `apply_evolved_legalizer_patch_script --line diamond|legalm|negotiation
   --check-only` first, then apply exactly one compatible line with the same
   script. Do not manually run `git apply` on OpenROAD-root patch files.
+- If Teacher assigns an evolved DPO donor on the current source, use
+  `apply_evolved_dpo_patch_script --donor neg017b|neg014|neg015 --check-only`
+  first, then apply exactly one compatible donor with the same script. These
+  are source-root improve-placement patches; do not manually run `git apply`.
+- If Teacher names a LEGO-lite skill id, query it with
+  `generated_skill_query_helper --q <skill-id> --show-full` or use
+  `--stage legalization|improve_placement|handoff --q <bottleneck>`.
+  Treat the card as a mechanism contract: source handles, done criteria,
+  metrics, and log signals. It guides but does not replace current source
+  inspection.
 - Keep runtime bounded by the generated DPL flow timeout. The threshold is
   computed from canonical `metrics.json:runtime_seconds`, but the timeout is
   applied only to the OpenROAD legalize/improve/mirror flow. Metrics/evaluator
@@ -1716,6 +1956,10 @@ internals.
 - print current source context for patch anchors: `{script_paths["source_context"]}`
 - apply/check one evolved legalizer framework-delta patch when Teacher assigns
   that path: `{script_paths["apply_evolved_patch"]}`
+- apply/check one evolved DPO source-root patch when Teacher assigns that path:
+  `{script_paths["apply_evolved_dpo_patch"]}`
+- query concise LEGO-lite mechanism skills:
+  `{script_paths["query_knowledge"]}`
 - build after source edits: `{script_paths["build"]}`
 - evaluate canonical metrics: `{script_paths["evaluate"]}`
 - commit final source: `{script_paths["commit"]}`
@@ -1728,21 +1972,29 @@ internals.
 Execution order:
 
 1. Run `prepare_source_script`.
-2. If Teacher assigns a prepared start point (`framework`, `evolved_diamond`,
-   `evolved_legalm`, or `evolved_negotiation`), run
-   `switch_start_branch_script --kind <kind>` before edits.
-3. Use `source_context_script <src/...> [symbol]` for patch anchors, then edit
-   only `private_dpl_evolve_source` with `apply_patch`.
+2. If Teacher assigns a prepared start point (`framework`, `diamond`,
+   `evolved_diamond`, `evolved_legalm`, `evolved_negotiation`, or a prepared
+   `<legalizer>_dpo_<donor>` branch), run `switch_start_branch_script --kind
+   <branch-suffix>` before edits.
+3. Use `source_context_script <src/...> [symbol]` for patch anchors, confirm
+   your source-level mechanism, then edit only `private_dpl_evolve_source` with
+   `apply_patch`.
 4. If Teacher explicitly assigns an evolved patch application route, run
    `apply_evolved_legalizer_patch_script --line <line> --check-only`, then
    apply the same line with that script before your own mechanism edits.
-5. Run `build_variant_script`.
-6. Run `evaluate_candidate_script`.
-7. If the result is weak/illegal and time remains, revise the mechanism and
+5. If Teacher explicitly assigns an evolved DPO donor route, run
+   `apply_evolved_dpo_patch_script --donor <donor> --check-only`, then apply
+   the same donor with that script before evolving the improve-placement
+   mechanism.
+6. If Teacher assigns or implies a skill id, query the skill index and keep only
+   the relevant skill note in context.
+7. Run `build_variant_script`.
+8. Run `evaluate_candidate_script`.
+9. If the result is weak/illegal and time remains, revise the mechanism and
    rerun build/evaluate.
-8. Run `commit_source_script`.
-9. Run `write_diff_script`.
-10. Write or complete `knowledge_card`.
+10. Run `commit_source_script`.
+11. Run `write_diff_script`.
+12. Write or complete `knowledge_card`.
 
 Use `after_edit_script` only after source edits are complete; it runs build,
 evaluate, commit, diff, and knowledge-card template creation in sequence.
@@ -1773,6 +2025,15 @@ Required sections:
   versus baseline.
 - `Causal lesson`: what future students should borrow or avoid.
 - `Next experiment`: the next aggressive test, not a tiny parameter tweak.
+
+Also include a compact stage transition table with columns:
+
+- `stage`
+- `selected skill`
+- `touched function/state`
+- `expected behavior`
+- `metric/log evidence`
+- `done/fail reason`
 
 ## Locked Surfaces
 
@@ -2058,6 +2319,25 @@ def agent_prompt_warnings(
     if repeated_lines:
         warnings.append(
             "agent prompt repeats lines: " + "; ".join(repeated_lines[:3])
+        )
+    assignment_start = assigned_start_kind_from_insight(text)
+    immediate_start = None
+    for raw_line in text.splitlines():
+        if raw_line.startswith("Initial workspace setup:"):
+            immediate_match = re.search(
+                r"switch_start_branch_script --kind\s+([A-Za-z0-9_]+)",
+                raw_line,
+            )
+            immediate_start = immediate_match.group(1) if immediate_match else None
+            break
+    if assignment_start and immediate_start != assignment_start:
+        warnings.append(
+            "Teacher assigned start branch "
+            f"`{assignment_start}` but immediate action uses `{immediate_start or 'none'}`"
+        )
+    if immediate_start and not assignment_start:
+        warnings.append(
+            "immediate action switches start branch but Teacher assignment has no primary prepared start"
         )
     return warnings
 

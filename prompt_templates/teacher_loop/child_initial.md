@@ -11,8 +11,10 @@ prompt, then open the workspace packet for commands. Only open context, peer
 packet, or Teacher output with targeted `rg`/small excerpts when a concrete
 code decision requires it.
 
-Follow the assigned Teacher packet in `Teacher output`. Do not copy broad
-context into your working memory.
+Use the assigned Teacher packet in `Teacher output` as the primary hypothesis,
+then combine it with focused source inspection before coding. Do not copy broad
+context into your working memory, and do not blindly execute Teacher prose when
+the current source proves a better mechanism.
 
 $elite_note
 

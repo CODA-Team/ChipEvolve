@@ -16,7 +16,6 @@ objective:
 patch_surface:
   - tools/OpenROAD/src/dpl_evolve/CMakeLists.txt
   - tools/OpenROAD/src/dpl_evolve/include/dpl_evolve/Opendp.h
-  - tools/OpenROAD/src/dpl_evolve/include/dpl_evolve/OptMirror.h
   - tools/OpenROAD/src/dpl_evolve/src/DifferentialGuidance.cpp
   - tools/OpenROAD/src/dpl_evolve/src/EvolveContext.h
   - tools/OpenROAD/src/dpl_evolve/src/EvolveLegalizer.cpp
@@ -31,7 +30,6 @@ patch_surface:
   - tools/OpenROAD/src/dpl_evolve/src/Opendp.cpp
   - tools/OpenROAD/src/dpl_evolve/src/Opendp.i
   - tools/OpenROAD/src/dpl_evolve/src/Opendp.tcl
-  - tools/OpenROAD/src/dpl_evolve/src/OptMirror.cpp
   - tools/OpenROAD/src/dpl_evolve/src/Optdp.cpp
   - tools/OpenROAD/src/dpl_evolve/src/PlacementDRC.cpp
   - tools/OpenROAD/src/dpl_evolve/src/PlacementDRC.h

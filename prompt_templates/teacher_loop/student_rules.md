@@ -2,7 +2,9 @@
 
 ## Mission
 
-- Execute the assigned Teacher packet; do not redo Teacher's global review.
+- Use the assigned Teacher packet as the primary research hypothesis; do not
+  redo Teacher's global review, but do validate the route against current
+  source and metrics before coding.
 - Edit only your private `dpl_evolve` source and keep
   `detailed_placement_evolve -> improve_placement_evolve ->
   optimize_mirroring_evolve` callable.
@@ -14,9 +16,10 @@
 - Treat 5% HPWL reduction as a credible research target, not a hard gate and
   not a ceiling. Build mechanisms that can move the source of HPWL loss, not
   only preserve a small donor.
-- Implement the assigned route as the primary plan, but trust source-level
-  evidence. If current source shows a stronger route or contradicts the plan,
-  adjust the mechanism and report the reason.
+- Implement the assigned route as the default plan, not a blind script. Combine
+  Teacher's stage plan with your own source-level diagnosis; if current source
+  shows a stronger route or contradicts the plan, adjust the mechanism and
+  report the reason.
 - Canonical lines `openroad_dpl_flow`, `openroad_dpl_negotiation`, and
   `evolve_default` are all usable evidence and donor/start choices. If you
   borrow from Diamond, negotiation, or evolved starts, state what source-level
@@ -33,9 +36,18 @@
 - Before coding, do a focused source-level diagnosis: remaining HPWL loss,
   active function/state where it can be changed, and why the route is larger
   than a constant retune or local repair.
-- Follow the Teacher chain: source diagnosis, legalization patch,
-  improve-placement patch, build/evaluate, inspect stage metrics/log counters,
-  revise the weak stage, then keep the best clean candidate.
+- If Teacher names LEGO-lite skill ids, query the generated skill helper or
+  `scripts/query_knowledge.py` and keep only the relevant skill note. Use its
+  source handles, metrics, log signals, and done criteria as the mechanism
+  contract, but still inspect current local source before patching.
+- Use the Teacher chain as the execution outline: source diagnosis,
+  legalization patch, improve-placement patch, build/evaluate, inspect stage
+  metrics/log counters, revise the weak stage, then keep the best clean
+  candidate. Refine the outline when code evidence shows a better mechanism.
+- After each evaluation, inspect the canonical `metrics.json` and the DPL log
+  referenced by the metrics/log path. Diagnose mechanism liveness, stage that
+  lost HPWL, runtime growth, timeout/failure reason, zero or implausible
+  counters, stale-binary/source mismatch, and hot-loop/full-rescan symptoms.
 - Plan and implement both A legalization/detailed placement and B improve
   placement before judging the idea. Build at least one co-optimization link:
   local HPWL deltas, residual-net priorities, candidate choice, conflict price,
@@ -46,6 +58,9 @@
 - Use local git checkpoints for your workspace. The final committed source,
   `metrics.json`, `implementation.diff`, and knowledge card must correspond to
   the best clean evaluated code state.
+- If you restore, revert, or switch the final source after an evaluation,
+  rebuild and rerun the evaluator so the retained source commit, binary,
+  `metrics.json`, diff, and final report all describe the same code.
 - If a larger mechanism runs with nonzero counters but loses final HPWL, keep a
   workbench checkpoint and report the exact repair needed: liveness, objective,
   acceptance, persistence, handoff, final-safe survival scoring, or runtime
@@ -89,6 +104,10 @@
 - Add or reuse lightweight counters/logs that prove the primary mechanism ran.
   If key counters are zero, report the route as non-executed even if inherited
   code produced the final metrics.
+- Log diagnosis must separate algorithmic failure from implementation cost:
+  candidate generation too broad, acceptance too strict, legality rejects,
+  fallback domination, duplicate endpoint work, full-cell/full-net rescans,
+  poor cache reuse, missing parallelism, or source/binary/metrics mismatch.
 - No case-name hardcoding. Avoid public Tcl/SWIG ABI changes unless essential
   and smoke-tested.
 
@@ -117,6 +136,13 @@
 - Include a compact table with rows: legalization/detailed placement, improve
   placement, and optional coordination. For each row, name exact
   function/state changes and behavior changes.
+- Include a stage transition table with columns: `stage`, `selected skill`,
+  `touched function/state`, `expected behavior`, `metric/log evidence`, and
+  `done/fail reason`.
 - Report touched files, mechanism, stage-wise HPWL deltas, canonical
   HPWL/runtime/displacement delta, legality, metrics path, diff path, knowledge
   card path, active counters, best clean commit, and next uncertainty.
+- Include a `Log/efficiency diagnosis` paragraph: DPL log path or key line
+  handles, dominant counters, runtime bottleneck classification, evidence of
+  wrong or non-executed implementation, and the specific next repair Teacher
+  should assign.

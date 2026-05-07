@@ -218,6 +218,10 @@ def build_command(
     last_message_path: Path,
     effective_resume_session_id: str | None,
 ) -> list[str]:
+    # Teacher/Student prompts are generated as self-contained packets. Disable
+    # Codex memory injection so child workers use curated repo-local knowledge,
+    # not unrelated global rollout memories.
+    memory_disable_args = ["--disable", "memories"]
     if effective_resume_session_id or args.resume_session_id or args.resume_last:
         cmd = [
             "codex",
@@ -226,6 +230,7 @@ def build_command(
             "--json",
             "-o",
             str(last_message_path),
+            *memory_disable_args,
         ]
         # `codex exec resume` does not expose `--sandbox`; without this, a
         # resumed worker falls back to the user config and can hit the local
@@ -254,6 +259,7 @@ def build_command(
         str(root),
         "-o",
         str(last_message_path),
+        *memory_disable_args,
     ]
     if args.model:
         cmd.extend(["--model", args.model])

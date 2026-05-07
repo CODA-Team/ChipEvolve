@@ -1,0 +1,2880 @@
+diff --git a/src/Optdp.cpp b/src/Optdp.cpp
+index 54e9518..84b82f5 100644
+--- a/src/Optdp.cpp
++++ b/src/Optdp.cpp
+@@ -1,7 +1,24 @@
+ // SPDX-License-Identifier: BSD-3-Clause
+ // Copyright (c) 2021-2025, The OpenROAD Authors
+ 
++#include <algorithm>
++#include <array>
++#include <chrono>
++#include <cstdlib>
+ #include <cstdint>
++#include <limits>
++#include <map>
++#include <set>
++#include <string>
++#include <thread>
++#include <unordered_map>
++#include <unordered_set>
++#include <utility>
++#include <vector>
++
++#ifdef _OPENMP
++#include <omp.h>
++#endif
+ 
+ #include "dpl_evolve/Opendp.h"
+ #include "odb/util.h"
+@@ -9,9 +26,17 @@
+ 
+ // My stuff.
+ #include "graphics/DplObserver.h"
++#include "infrastructure/Objects.h"
++#include "infrastructure/architecture.h"
++#include "infrastructure/detailed_segment.h"
++#include "infrastructure/network.h"
+ #include "legalize_shift.h"
+ #include "optimization/detailed.h"
+ #include "optimization/detailed_manager.h"
++#include "optimization/detailed_orient.h"
++#include "optimization/detailed_random.h"
++#include "util/journal.h"
++#include "util/utility.h"
+ 
+ namespace dpl_evolve {
+ namespace {
+@@ -45,6 +70,2733 @@ void reportHPWL(utl::Logger* logger,
+                  hpwl_delta_y * 100.0);
+   logger->report("");
+ }
++
++double computeStdcellUtilization(Architecture* arch, Network* network)
++{
++  if (arch == nullptr || network == nullptr) {
++    return 0.0;
++  }
++
++  double placeable_area = 0.0;
++  for (const auto* row : arch->getRows()) {
++    if (row == nullptr) {
++      continue;
++    }
++    placeable_area += static_cast<double>(row->getNumSites())
++                      * static_cast<double>(row->getSiteSpacing().v)
++                      * static_cast<double>(row->getHeight().v);
++  }
++  if (placeable_area <= 0.0) {
++    return 0.0;
++  }
++
++  double stdcell_area = 0.0;
++  for (const auto& node_ptr : network->getNodes()) {
++    Node* node = node_ptr.get();
++    if (node == nullptr || node->getType() != Node::Type::CELL) {
++      continue;
++    }
++    if (!node->isStdCell() || node->isFixed()) {
++      continue;
++    }
++    stdcell_area += static_cast<double>(node->getWidth().v)
++                    * static_cast<double>(node->getHeight().v);
++  }
++  return stdcell_area / placeable_area;
++}
++
++struct LsmcPlacementSnapshot
++{
++  struct CellState
++  {
++    Node* node = nullptr;
++    DbuX left{0};
++    DbuY bottom{0};
++    odb::dbOrientType orient{odb::dbOrientType::R0};
++    bool placed = false;
++    std::vector<int> segment_ids;
++  };
++
++  std::vector<CellState> cells;
++  double hpwl = 0.0;
++};
++
++double currentHpwl(Network* network)
++{
++  uint64_t hpwl_x = 0;
++  uint64_t hpwl_y = 0;
++  return static_cast<double>(Utility::hpwl(network, hpwl_x, hpwl_y));
++}
++
++LsmcPlacementSnapshot capturePlacement(DetailedMgr& mgr, Network* network)
++{
++  LsmcPlacementSnapshot snapshot;
++  snapshot.cells.reserve(network->getNumNodes());
++  for (const auto& node_ptr : network->getNodes()) {
++    Node* node = node_ptr.get();
++    if (node == nullptr || node->isFixed() || !node->isPlaced()
++        || node->getType() != Node::CELL) {
++      continue;
++    }
++
++    LsmcPlacementSnapshot::CellState state;
++    state.node = node;
++    state.left = node->getLeft();
++    state.bottom = node->getBottom();
++    state.orient = node->getOrient();
++    state.placed = node->isPlaced();
++    for (const DetailedSeg* seg : mgr.getReverseCellToSegs(node->getId())) {
++      if (seg != nullptr) {
++        state.segment_ids.push_back(seg->getSegId());
++      }
++    }
++    snapshot.cells.push_back(std::move(state));
++  }
++  snapshot.hpwl = currentHpwl(network);
++  return snapshot;
++}
++
++void restorePlacement(DetailedMgr& mgr, const LsmcPlacementSnapshot& snapshot)
++{
++  mgr.rejectMove();
++  for (const auto& state : snapshot.cells) {
++    if (state.node != nullptr && state.node->isPlaced()) {
++      mgr.eraseFromGrid(state.node);
++    }
++  }
++
++  mgr.removeAllCellsFromSegments();
++  for (const auto& state : snapshot.cells) {
++    Node* node = state.node;
++    if (node == nullptr) {
++      continue;
++    }
++    node->setLeft(state.left);
++    node->setBottom(state.bottom);
++    node->setPlaced(state.placed);
++    if (!state.placed) {
++      continue;
++    }
++    mgr.paintInGrid(node);
++    node->adjustCurrOrient(state.orient);
++    for (const int seg_id : state.segment_ids) {
++      if (seg_id >= 0 && seg_id < mgr.getNumSegments()) {
++        mgr.addCellToSegment(node, seg_id);
++      }
++    }
++  }
++  mgr.resortSegments();
++}
++
++// Hybrid 014 paper mechanism data:
++//   Algorithm 1: median optimal-region kick source/partner selection.
++//   Algorithm 2: targeted local-DP repair around displaced rows.
++//   Algorithm 3: full-HPWL transaction accept/rollback.
++struct LsmcKickAnchor
++{
++  Node* node = nullptr;
++  int row = -1;
++  DbuX x{0};
++};
++
++struct LsmcKickTrace
++{
++  std::vector<Node*> nodes;
++  std::vector<LsmcKickAnchor> anchors;
++  std::set<int> rows;
++  std::unordered_set<int> node_ids;
++  uint64_t kick_region_attempts = 0;
++  uint64_t kick_regions = 0;
++  uint64_t kick_region_rejects = 0;
++  uint64_t kick_region_candidates = 0;
++  uint64_t kick_region_incident_edges = 0;
++  double kick_region_x_span = 0.0;
++  double kick_region_y_span = 0.0;
++  uint64_t kick_candidates = 0;
++  uint64_t kick_dryrun_src_batches = 0;
++  uint64_t kick_dryrun_scored = 0;
++  uint64_t kick_dryrun_affected_edges = 0;
++  uint64_t kick_dryrun_cache_hits = 0;
++  uint64_t kick_dryrun_cache_misses = 0;
++  uint64_t kick_exact_scored = 0;
++  uint64_t kick_topk_kept = 0;
++  uint64_t kick_topk_pruned = 0;
++  uint64_t kick_reject_hpwl = 0;
++  uint64_t kick_reject_legal = 0;
++  uint64_t affected_edges = 0;
++  double kick_exact_gain = 0.0;
++  double kick_dryrun_runtime_ms = 0.0;
++  double kick_dryrun_cached_runtime_ms = 0.0;
++  double kick_topk_runtime_ms = 0.0;
++
++  void clear()
++  {
++    nodes.clear();
++    anchors.clear();
++    rows.clear();
++    node_ids.clear();
++    kick_region_attempts = 0;
++    kick_regions = 0;
++    kick_region_rejects = 0;
++    kick_region_candidates = 0;
++    kick_region_incident_edges = 0;
++    kick_region_x_span = 0.0;
++    kick_region_y_span = 0.0;
++    kick_candidates = 0;
++    kick_dryrun_src_batches = 0;
++    kick_dryrun_scored = 0;
++    kick_dryrun_affected_edges = 0;
++    kick_dryrun_cache_hits = 0;
++    kick_dryrun_cache_misses = 0;
++    kick_exact_scored = 0;
++    kick_topk_kept = 0;
++    kick_topk_pruned = 0;
++    kick_reject_hpwl = 0;
++    kick_reject_legal = 0;
++    affected_edges = 0;
++    kick_exact_gain = 0.0;
++    kick_dryrun_runtime_ms = 0.0;
++    kick_dryrun_cached_runtime_ms = 0.0;
++    kick_topk_runtime_ms = 0.0;
++  }
++};
++
++int clampRow(Architecture* arch, const int row)
++{
++  if (arch == nullptr || arch->getNumRows() <= 0) {
++    return -1;
++  }
++  return std::clamp(row, 0, arch->getNumRows() - 1);
++}
++
++int rowForY(Architecture* arch, const DbuY y)
++{
++  if (arch == nullptr) {
++    return -1;
++  }
++  return clampRow(arch, arch->find_closest_row(y));
++}
++
++DbuX nodeCenterXAt(const Node* node, const DbuX left)
++{
++  return DbuX{left.v + node->getWidth().v / 2};
++}
++
++DbuY nodeCenterYAt(const Node* node, const DbuY bottom)
++{
++  return DbuY{bottom.v + node->getHeight().v / 2};
++}
++
++void addKickAnchor(Architecture* arch,
++                   LsmcKickTrace& trace,
++                   Node* node,
++                   const DbuX left,
++                   const DbuY bottom)
++{
++  if (node == nullptr) {
++    return;
++  }
++  const int row = rowForY(arch, bottom);
++  if (row < 0) {
++    return;
++  }
++  if (trace.node_ids.insert(node->getId()).second) {
++    trace.nodes.push_back(node);
++  }
++  trace.rows.insert(row);
++  trace.anchors.push_back({node, row, nodeCenterXAt(node, left)});
++}
++
++struct LocalDpStats
++{
++  uint64_t kicked_rows = 0;
++  uint64_t kicked_nodes = 0;
++  uint64_t kick_anchors = 0;
++  uint64_t windows_considered = 0;
++  uint64_t windows_built = 0;
++  uint64_t windows_skipped = 0;
++  uint64_t dp_cells = 0;
++  uint64_t dp_sites = 0;
++  uint64_t dp_states = 0;
++  uint64_t dp_transitions = 0;
++  uint64_t dp_pruned_states = 0;
++  uint64_t dp_parallel_layers = 0;
++  uint64_t dp_parallel_states = 0;
++  uint64_t dryrun_scored = 0;
++  uint64_t exact_scored = 0;
++  uint64_t accepted_windows = 0;
++  uint64_t rejected_no_dp = 0;
++  uint64_t rejected_no_exact_gain = 0;
++  uint64_t rejected_legal = 0;
++  uint64_t cache_edges = 0;
++  uint64_t cache_hits = 0;
++  uint64_t cache_misses = 0;
++  double exact_gain = 0.0;
++  double runtime_ms = 0.0;
++  double dp_parallel_runtime_ms = 0.0;
++};
++
++struct LsmcFallbackDescentStats
++{
++  bool called = false;
++  bool fallback_triggered = false;
++  bool fallback_skipped = false;
++  bool cheap_called = false;
++  bool full_called = false;
++  bool reverse_called = false;
++  double full_hpwl_before = 0.0;
++  double full_hpwl_after = 0.0;
++  double full_hpwl_gain = 0.0;
++  double cheap_gain = 0.0;
++  double full_gain = 0.0;
++  double reverse_gain = 0.0;
++  double cheap_runtime_ms = 0.0;
++  double full_runtime_ms = 0.0;
++  double reverse_runtime_ms = 0.0;
++  double target_gain = 0.0;
++  double runtime_ms = 0.0;
++  std::string script;
++  std::string skip_reason;
++};
++
++struct LsmcFallbackStageStats
++{
++  double hpwl_before = 0.0;
++  double hpwl_after = 0.0;
++  double gain = 0.0;
++  double runtime_ms = 0.0;
++};
++
++struct LocalDpCellState
++{
++  Node* node = nullptr;
++  DbuX left{0};
++  DbuY bottom{0};
++  odb::dbOrientType orient{odb::dbOrientType::R0};
++  bool placed = false;
++  std::vector<int> segment_ids;
++};
++
++struct LocalDpRowScope
++{
++  int row = -1;
++  int seg = -1;
++  Node* left_external = nullptr;
++  Node* right_external = nullptr;
++  DbuX left_limit{0};
++  DbuX right_limit{0};
++  std::vector<Node*> cells;
++};
++
++struct LocalDpSite
++{
++  int row = -1;
++  int seg = -1;
++  DbuX x{0};
++  DbuY y{0};
++  Node* left_external = nullptr;
++  Node* right_external = nullptr;
++  DbuX right_limit{0};
++};
++
++struct LocalDpAssignment
++{
++  Node* node = nullptr;
++  int row = -1;
++  int seg = -1;
++  DbuX x{0};
++  DbuY y{0};
++};
++
++struct JournalMoveState
++{
++  Node* node = nullptr;
++  DbuX orig_left{0};
++  DbuY orig_bottom{0};
++  DbuX new_left{0};
++  DbuY new_bottom{0};
++};
++
++struct RuntimeCellState
++{
++  Node* node = nullptr;
++  DbuX left{0};
++  DbuY bottom{0};
++  odb::dbOrientType orient{odb::dbOrientType::R0};
++};
++
++struct Algo1OptimalRegion
++{
++  DbuX xmin{0};
++  DbuX xmax{0};
++  DbuY ymin{0};
++  DbuY ymax{0};
++  DbuX center_x{0};
++  DbuY center_y{0};
++  int incident_edges = 0;
++};
++
++struct Algo1SwapCandidate
++{
++  Node* dst = nullptr;
++  int dst_seg = -1;
++  int center_distance = 0;
++  double dry_gain = -std::numeric_limits<double>::max();
++};
++
++struct Algo1CachedPin
++{
++  const Node* node = nullptr;
++  DbuX offset_x{0};
++  DbuY offset_y{0};
++};
++
++struct Algo1CachedEdge
++{
++  const Edge* edge = nullptr;
++  std::vector<Algo1CachedPin> pins;
++  std::vector<int> src_pin_indices;
++  DbuX src_outside_xmin{0};
++  DbuX src_outside_xmax{0};
++  DbuY src_outside_ymin{0};
++  DbuY src_outside_ymax{0};
++  bool has_src_outside_pin = false;
++  double current_hpwl = 0.0;
++};
++
++struct Algo1DryRunBatchCache
++{
++  const Node* src = nullptr;
++  std::vector<Algo1CachedEdge> src_edges;
++  std::unordered_map<int, int> src_edge_index_by_id;
++  uint64_t cache_hits = 0;
++  uint64_t cache_misses = 0;
++  uint64_t affected_edges = 0;
++};
++
++struct Algo1DryRunScoreStats
++{
++  uint64_t cache_hits = 0;
++  uint64_t cache_misses = 0;
++  uint64_t affected_edges = 0;
++};
++
++struct Algo1DryRunThreadScratch
++{
++  std::vector<unsigned char> dst_on_src_edge;
++  std::vector<int> dst_only_edge_ids;
++  std::vector<const Edge*> dst_only_edges;
++};
++
++constexpr int kMaxLocalDpCells = 9;
++using LocalDpChoice = std::array<int, kMaxLocalDpCells>;
++
++struct LocalDpCachedPin
++{
++  const Pin* pin = nullptr;
++  int cell_index = -1;
++};
++
++struct LocalDpCachedEdge
++{
++  const Edge* edge = nullptr;
++  std::vector<LocalDpCachedPin> inside_pins;
++  DbuX outside_xmin{0};
++  DbuX outside_xmax{0};
++  DbuY outside_ymin{0};
++  DbuY outside_ymax{0};
++  bool has_outside_pin = false;
++};
++
++struct LocalDpCostCache
++{
++  std::vector<Node*> cells;
++  std::unordered_map<int, int> cell_index_by_id;
++  std::vector<LocalDpCachedEdge> edges;
++};
++
++int floorDiv(const int a, const int b)
++{
++  int q = a / b;
++  const int r = a % b;
++  if (r != 0 && ((r > 0) != (b > 0))) {
++    --q;
++  }
++  return q;
++}
++
++int ceilDiv(const int a, const int b)
++{
++  return -floorDiv(-a, b);
++}
++
++DbuX alignSiteCeil(const Architecture::Row* row, const DbuX x)
++{
++  const int spacing = row->getSiteSpacing().v;
++  const int site = ceilDiv(x.v - row->getLeft().v, spacing);
++  return DbuX{row->getLeft().v + site * spacing};
++}
++
++bool movableSingleHeightCell(Architecture* arch, const Node* node)
++{
++  return node != nullptr && node->getType() == Node::CELL && node->isPlaced()
++         && !node->isFixed() && !node->isTerminal()
++         && arch->isSingleHeightCell(node);
++}
++
++int boundedThreadCount()
++{
++#ifdef _OPENMP
++  return std::max(1, std::min(8, omp_get_max_threads()));
++#else
++  const unsigned hw_threads = std::thread::hardware_concurrency();
++  return std::max(1,
++                  std::min(8,
++                           hw_threads == 0 ? 1 : static_cast<int>(hw_threads)));
++#endif
++}
++
++DbuX medianDbuX(std::vector<DbuX>& values)
++{
++  std::sort(values.begin(), values.end());
++  const int n = static_cast<int>(values.size());
++  return DbuX{(values[(n - 1) / 2].v + values[n / 2].v) / 2};
++}
++
++DbuY medianDbuY(std::vector<DbuY>& values)
++{
++  std::sort(values.begin(), values.end());
++  const int n = static_cast<int>(values.size());
++  return DbuY{(values[(n - 1) / 2].v + values[n / 2].v) / 2};
++}
++
++bool computeAlgo1OptimalRegion(Node* src, Algo1OptimalRegion& region)
++{
++  if (src == nullptr) {
++    return false;
++  }
++
++  std::vector<DbuX> xmin_edges;
++  std::vector<DbuX> xmax_edges;
++  std::vector<DbuY> ymin_edges;
++  std::vector<DbuY> ymax_edges;
++  xmin_edges.reserve(src->getNumPins());
++  xmax_edges.reserve(src->getNumPins());
++  ymin_edges.reserve(src->getNumPins());
++  ymax_edges.reserve(src->getNumPins());
++  int incident_edges = 0;
++  std::unordered_set<int> seen_edges;
++  for (int pi = 0; pi < src->getNumPins(); ++pi) {
++    const Edge* edge = src->getPins()[pi]->getEdge();
++    if (edge == nullptr || edge->getNumPins() <= 1
++        || !seen_edges.insert(edge->getId()).second) {
++      continue;
++    }
++
++    bool has_other_pin = false;
++    DbuX xmin = std::numeric_limits<DbuX>::max();
++    DbuX xmax = std::numeric_limits<DbuX>::min();
++    DbuY ymin = std::numeric_limits<DbuY>::max();
++    DbuY ymax = std::numeric_limits<DbuY>::min();
++    for (int pj = 0; pj < edge->getNumPins(); ++pj) {
++      const Pin* pin = edge->getPins()[pj];
++      const Node* node = pin->getNode();
++      if (node == src) {
++        continue;
++      }
++      const DbuX x = node->getCenterX() + pin->getOffsetX();
++      const DbuY y = node->getCenterY() + pin->getOffsetY();
++      xmin = std::min(xmin, x);
++      xmax = std::max(xmax, x);
++      ymin = std::min(ymin, y);
++      ymax = std::max(ymax, y);
++      has_other_pin = true;
++    }
++    if (!has_other_pin) {
++      continue;
++    }
++    xmin_edges.push_back(xmin);
++    xmax_edges.push_back(xmax);
++    ymin_edges.push_back(ymin);
++    ymax_edges.push_back(ymax);
++    ++incident_edges;
++  }
++
++  if (xmin_edges.empty() || xmax_edges.empty() || ymin_edges.empty()
++      || ymax_edges.empty()) {
++    return false;
++  }
++  region.xmin = medianDbuX(xmin_edges);
++  region.xmax = medianDbuX(xmax_edges);
++  region.ymin = medianDbuY(ymin_edges);
++  region.ymax = medianDbuY(ymax_edges);
++  if (region.xmax < region.xmin) {
++    std::swap(region.xmin, region.xmax);
++  }
++  if (region.ymax < region.ymin) {
++    std::swap(region.ymin, region.ymax);
++  }
++  region.center_x = DbuX{(region.xmin.v + region.xmax.v) / 2};
++  region.center_y = DbuY{(region.ymin.v + region.ymax.v) / 2};
++  region.incident_edges = incident_edges;
++  return true;
++}
++
++double averageKickRegionXSpan(const LsmcKickTrace& trace)
++{
++  return trace.kick_regions > 0
++             ? trace.kick_region_x_span
++                   / static_cast<double>(trace.kick_regions)
++             : 0.0;
++}
++
++double averageKickRegionYSpan(const LsmcKickTrace& trace)
++{
++  return trace.kick_regions > 0
++             ? trace.kick_region_y_span
++                   / static_cast<double>(trace.kick_regions)
++             : 0.0;
++}
++
++bool journalMovesBothCells(const Journal& journal,
++                           const Node* first,
++                           const Node* second)
++{
++  bool saw_first = false;
++  bool saw_second = false;
++  for (const auto& action_ptr : journal) {
++    if (action_ptr->typeId() != JournalActionTypeEnum::MOVE_CELL) {
++      continue;
++    }
++    const auto* move = dynamic_cast<const MoveCellAction*>(action_ptr.get());
++    if (move == nullptr) {
++      continue;
++    }
++    saw_first = saw_first || move->getNode() == first;
++    saw_second = saw_second || move->getNode() == second;
++  }
++  return saw_first && saw_second;
++}
++
++std::vector<JournalMoveState> collectJournalMoves(const Journal& journal)
++{
++  std::vector<JournalMoveState> moves;
++  moves.reserve(journal.size());
++  for (const auto& action_ptr : journal) {
++    if (action_ptr->typeId() != JournalActionTypeEnum::MOVE_CELL) {
++      continue;
++    }
++    const auto* move = dynamic_cast<const MoveCellAction*>(action_ptr.get());
++    if (move == nullptr) {
++      continue;
++    }
++    moves.push_back({move->getNode(),
++                     move->getOrigLeft(),
++                     move->getOrigBottom(),
++                     move->getNewLeft(),
++                     move->getNewBottom()});
++  }
++  return moves;
++}
++
++double edgeSetHpwl(const std::set<Edge*>& edges)
++{
++  double cost = 0.0;
++  for (const Edge* edge : edges) {
++    if (edge == nullptr || edge->getNumPins() <= 1) {
++      continue;
++    }
++    DbuX xmin = std::numeric_limits<DbuX>::max();
++    DbuX xmax = std::numeric_limits<DbuX>::min();
++    DbuY ymin = std::numeric_limits<DbuY>::max();
++    DbuY ymax = std::numeric_limits<DbuY>::min();
++    for (int pi = 0; pi < edge->getNumPins(); ++pi) {
++      const Pin* pin = edge->getPins()[pi];
++      const Node* node = pin->getNode();
++      const DbuX x = node->getCenterX() + pin->getOffsetX();
++      const DbuY y = node->getCenterY() + pin->getOffsetY();
++      xmin = std::min(xmin, x);
++      xmax = std::max(xmax, x);
++      ymin = std::min(ymin, y);
++      ymax = std::max(ymax, y);
++    }
++    cost += static_cast<double>((xmax - xmin).v + (ymax - ymin).v);
++  }
++  return cost;
++}
++
++std::vector<const Edge*> collectTwoCellEdges(const Node* src, const Node* dst)
++{
++  std::vector<const Edge*> edges;
++  std::unordered_set<int> seen;
++  for (const Node* node : {src, dst}) {
++    if (node == nullptr) {
++      continue;
++    }
++    for (int pi = 0; pi < node->getNumPins(); ++pi) {
++      const Edge* edge = node->getPins()[pi]->getEdge();
++      if (edge == nullptr || edge->getNumPins() <= 1) {
++        continue;
++      }
++      if (seen.insert(edge->getId()).second) {
++        edges.push_back(edge);
++      }
++    }
++  }
++  return edges;
++}
++
++double edgeHpwlWithTwoCellsAt(const Edge* edge,
++                              const Node* a,
++                              const DbuX a_left,
++                              const DbuY a_bottom,
++                              const Node* b,
++                              const DbuX b_left,
++                              const DbuY b_bottom)
++{
++  DbuX xmin = std::numeric_limits<DbuX>::max();
++  DbuX xmax = std::numeric_limits<DbuX>::min();
++  DbuY ymin = std::numeric_limits<DbuY>::max();
++  DbuY ymax = std::numeric_limits<DbuY>::min();
++  for (int pi = 0; pi < edge->getNumPins(); ++pi) {
++    const Pin* pin = edge->getPins()[pi];
++    const Node* node = pin->getNode();
++    DbuX center_x = node->getCenterX();
++    DbuY center_y = node->getCenterY();
++    if (node == a) {
++      center_x = nodeCenterXAt(node, a_left);
++      center_y = nodeCenterYAt(node, a_bottom);
++    } else if (node == b) {
++      center_x = nodeCenterXAt(node, b_left);
++      center_y = nodeCenterYAt(node, b_bottom);
++    }
++    const DbuX x = center_x + pin->getOffsetX();
++    const DbuY y = center_y + pin->getOffsetY();
++    xmin = std::min(xmin, x);
++    xmax = std::max(xmax, x);
++    ymin = std::min(ymin, y);
++    ymax = std::max(ymax, y);
++  }
++  return static_cast<double>((xmax - xmin).v + (ymax - ymin).v);
++}
++
++double edgeHpwlCurrent(const Edge* edge)
++{
++  DbuX xmin = std::numeric_limits<DbuX>::max();
++  DbuX xmax = std::numeric_limits<DbuX>::min();
++  DbuY ymin = std::numeric_limits<DbuY>::max();
++  DbuY ymax = std::numeric_limits<DbuY>::min();
++  for (int pi = 0; pi < edge->getNumPins(); ++pi) {
++    const Pin* pin = edge->getPins()[pi];
++    const Node* node = pin->getNode();
++    const DbuX x = node->getCenterX() + pin->getOffsetX();
++    const DbuY y = node->getCenterY() + pin->getOffsetY();
++    xmin = std::min(xmin, x);
++    xmax = std::max(xmax, x);
++    ymin = std::min(ymin, y);
++    ymax = std::max(ymax, y);
++  }
++  return static_cast<double>((xmax - xmin).v + (ymax - ymin).v);
++}
++
++Algo1CachedEdge buildAlgo1CachedEdge(const Edge* edge, const Node* src)
++{
++  Algo1CachedEdge cached;
++  cached.edge = edge;
++  if (edge == nullptr || edge->getNumPins() <= 1) {
++    return cached;
++  }
++  cached.pins.reserve(edge->getNumPins());
++
++  DbuX current_xmin = std::numeric_limits<DbuX>::max();
++  DbuX current_xmax = std::numeric_limits<DbuX>::min();
++  DbuY current_ymin = std::numeric_limits<DbuY>::max();
++  DbuY current_ymax = std::numeric_limits<DbuY>::min();
++
++  DbuX src_outside_xmin = std::numeric_limits<DbuX>::max();
++  DbuX src_outside_xmax = std::numeric_limits<DbuX>::min();
++  DbuY src_outside_ymin = std::numeric_limits<DbuY>::max();
++  DbuY src_outside_ymax = std::numeric_limits<DbuY>::min();
++
++  for (int pi = 0; pi < edge->getNumPins(); ++pi) {
++    const Pin* pin = edge->getPins()[pi];
++    const Node* node = pin->getNode();
++    cached.pins.push_back({node, pin->getOffsetX(), pin->getOffsetY()});
++    const DbuX x = node->getCenterX() + pin->getOffsetX();
++    const DbuY y = node->getCenterY() + pin->getOffsetY();
++    current_xmin = std::min(current_xmin, x);
++    current_xmax = std::max(current_xmax, x);
++    current_ymin = std::min(current_ymin, y);
++    current_ymax = std::max(current_ymax, y);
++    if (node == src) {
++      cached.src_pin_indices.push_back(pi);
++    } else {
++      cached.has_src_outside_pin = true;
++      src_outside_xmin = std::min(src_outside_xmin, x);
++      src_outside_xmax = std::max(src_outside_xmax, x);
++      src_outside_ymin = std::min(src_outside_ymin, y);
++      src_outside_ymax = std::max(src_outside_ymax, y);
++    }
++  }
++
++  cached.current_hpwl = static_cast<double>(
++      (current_xmax - current_xmin).v + (current_ymax - current_ymin).v);
++  if (cached.has_src_outside_pin) {
++    cached.src_outside_xmin = src_outside_xmin;
++    cached.src_outside_xmax = src_outside_xmax;
++    cached.src_outside_ymin = src_outside_ymin;
++    cached.src_outside_ymax = src_outside_ymax;
++  }
++  return cached;
++}
++
++void prepareAlgo1DryRunBatchCache(const Node* src,
++                                  Algo1DryRunBatchCache& cache)
++{
++  cache = Algo1DryRunBatchCache{};
++  cache.src = src;
++  if (src == nullptr) {
++    return;
++  }
++
++  cache.src_edge_index_by_id.reserve(src->getNumPins());
++  for (int pi = 0; pi < src->getNumPins(); ++pi) {
++    const Edge* edge = src->getPins()[pi]->getEdge();
++    if (edge == nullptr || edge->getNumPins() <= 1) {
++      continue;
++    }
++    const int edge_id = edge->getId();
++    if (cache.src_edge_index_by_id.find(edge_id)
++        != cache.src_edge_index_by_id.end()) {
++      continue;
++    }
++    const int edge_index = static_cast<int>(cache.src_edges.size());
++    cache.src_edge_index_by_id[edge_id] = edge_index;
++    cache.src_edges.push_back(buildAlgo1CachedEdge(edge, src));
++    ++cache.cache_misses;
++  }
++}
++
++double cachedEdgeHpwlAfterAlgo1Swap(const Algo1CachedEdge& edge,
++                                    const Node* src,
++                                    const Node* dst,
++                                    const bool dst_on_edge)
++{
++  DbuX xmin = std::numeric_limits<DbuX>::max();
++  DbuX xmax = std::numeric_limits<DbuX>::min();
++  DbuY ymin = std::numeric_limits<DbuY>::max();
++  DbuY ymax = std::numeric_limits<DbuY>::min();
++
++  const DbuX src_center_x_after = nodeCenterXAt(src, dst->getLeft());
++  const DbuY src_center_y_after = nodeCenterYAt(src, dst->getBottom());
++  if (!dst_on_edge && edge.has_src_outside_pin) {
++    xmin = edge.src_outside_xmin;
++    xmax = edge.src_outside_xmax;
++    ymin = edge.src_outside_ymin;
++    ymax = edge.src_outside_ymax;
++    for (const int pin_index : edge.src_pin_indices) {
++      const Algo1CachedPin& pin = edge.pins[pin_index];
++      const DbuX x = src_center_x_after + pin.offset_x;
++      const DbuY y = src_center_y_after + pin.offset_y;
++      xmin = std::min(xmin, x);
++      xmax = std::max(xmax, x);
++      ymin = std::min(ymin, y);
++      ymax = std::max(ymax, y);
++    }
++    return static_cast<double>((xmax - xmin).v + (ymax - ymin).v);
++  }
++
++  const DbuX dst_center_x_after = nodeCenterXAt(dst, src->getLeft());
++  const DbuY dst_center_y_after = nodeCenterYAt(dst, src->getBottom());
++  for (const Algo1CachedPin& pin : edge.pins) {
++    DbuX center_x = pin.node->getCenterX();
++    DbuY center_y = pin.node->getCenterY();
++    if (pin.node == src) {
++      center_x = src_center_x_after;
++      center_y = src_center_y_after;
++    } else if (pin.node == dst) {
++      center_x = dst_center_x_after;
++      center_y = dst_center_y_after;
++    }
++    const DbuX x = center_x + pin.offset_x;
++    const DbuY y = center_y + pin.offset_y;
++    xmin = std::min(xmin, x);
++    xmax = std::max(xmax, x);
++    ymin = std::min(ymin, y);
++    ymax = std::max(ymax, y);
++  }
++  return static_cast<double>((xmax - xmin).v + (ymax - ymin).v);
++}
++
++double dryRunSwapGainCached(const Node* src,
++                            const Algo1SwapCandidate& candidate,
++                            const Algo1DryRunBatchCache& cache,
++                            Algo1DryRunScoreStats& stats,
++                            Algo1DryRunThreadScratch& scratch)
++{
++  double before = 0.0;
++  double after = 0.0;
++  const Node* dst = candidate.dst;
++  if (src == nullptr || dst == nullptr) {
++    return -std::numeric_limits<double>::max();
++  }
++  scratch.dst_on_src_edge.assign(cache.src_edges.size(), 0);
++  scratch.dst_only_edge_ids.clear();
++  scratch.dst_only_edges.clear();
++
++  for (int pi = 0; pi < dst->getNumPins(); ++pi) {
++    const Edge* edge = dst->getPins()[pi]->getEdge();
++    if (edge == nullptr || edge->getNumPins() <= 1) {
++      continue;
++    }
++    const int edge_id = edge->getId();
++    const auto src_edge_it = cache.src_edge_index_by_id.find(edge_id);
++    if (src_edge_it != cache.src_edge_index_by_id.end()) {
++      scratch.dst_on_src_edge[src_edge_it->second] = 1;
++      continue;
++    }
++    if (std::find(scratch.dst_only_edge_ids.begin(),
++                  scratch.dst_only_edge_ids.end(),
++                  edge_id)
++        == scratch.dst_only_edge_ids.end()) {
++      scratch.dst_only_edge_ids.push_back(edge_id);
++      scratch.dst_only_edges.push_back(edge);
++    }
++  }
++
++  for (int i = 0; i < static_cast<int>(cache.src_edges.size()); ++i) {
++    const Algo1CachedEdge& edge = cache.src_edges[i];
++    before += edge.current_hpwl;
++    after += cachedEdgeHpwlAfterAlgo1Swap(edge,
++                                          src,
++                                          dst,
++                                          scratch.dst_on_src_edge[i] != 0);
++    ++stats.affected_edges;
++    ++stats.cache_hits;
++  }
++
++  for (const Edge* edge : scratch.dst_only_edges) {
++    before += edgeHpwlCurrent(edge);
++    after += edgeHpwlWithTwoCellsAt(edge,
++                                    src,
++                                    dst->getLeft(),
++                                    dst->getBottom(),
++                                    dst,
++                                    src->getLeft(),
++                                    src->getBottom());
++    ++stats.affected_edges;
++    ++stats.cache_misses;
++  }
++  return before - after;
++}
++
++[[maybe_unused]] double dryRunSwapGain(const Node* src, const Node* dst)
++{
++  double before = 0.0;
++  double after = 0.0;
++  const std::vector<const Edge*> edges = collectTwoCellEdges(src, dst);
++  for (const Edge* edge : edges) {
++    before += edgeHpwlCurrent(edge);
++    after += edgeHpwlWithTwoCellsAt(edge,
++                                    src,
++                                    dst->getLeft(),
++                                    dst->getBottom(),
++                                    dst,
++                                    src->getLeft(),
++                                    src->getBottom());
++  }
++  return before - after;
++}
++
++double journalExactGainWithOriginalOrient(
++    const Journal& journal,
++    const std::unordered_map<int, odb::dbOrientType>& original_orient)
++{
++  const std::vector<JournalMoveState> moves = collectJournalMoves(journal);
++  const double after = edgeSetHpwl(journal.getAffectedEdges());
++
++  std::vector<RuntimeCellState> runtime_states;
++  runtime_states.reserve(moves.size());
++  for (const JournalMoveState& move : moves) {
++    Node* node = move.node;
++    runtime_states.push_back(
++        {node, node->getLeft(), node->getBottom(), node->getOrient()});
++    node->setLeft(move.orig_left);
++    node->setBottom(move.orig_bottom);
++    const auto orient_it = original_orient.find(node->getId());
++    if (orient_it != original_orient.end()) {
++      node->adjustCurrOrient(orient_it->second);
++    }
++  }
++
++  const double before = edgeSetHpwl(journal.getAffectedEdges());
++  for (const RuntimeCellState& state : runtime_states) {
++    state.node->setLeft(state.left);
++    state.node->setBottom(state.bottom);
++    state.node->adjustCurrOrient(state.orient);
++  }
++  return before - after;
++}
++
++LocalDpCostCache prepareLocalDpCostCache(const std::vector<Node*>& cells,
++                                         LocalDpStats& stats)
++{
++  constexpr int kSkipNetsLargerThanThis = 100;
++  LocalDpCostCache cache;
++  cache.cells = cells;
++  cache.cell_index_by_id.reserve(cells.size() * 2);
++  for (int i = 0; i < static_cast<int>(cells.size()); ++i) {
++    cache.cell_index_by_id[cells[i]->getId()] = i;
++  }
++
++  std::unordered_set<int> seen_edges;
++  for (const Node* node : cells) {
++    for (int pi = 0; pi < node->getNumPins(); ++pi) {
++      const Edge* edge = node->getPins()[pi]->getEdge();
++      if (edge == nullptr || edge->getNumPins() <= 1
++          || edge->getNumPins() >= kSkipNetsLargerThanThis) {
++        continue;
++      }
++      if (!seen_edges.insert(edge->getId()).second) {
++        ++stats.cache_hits;
++        continue;
++      }
++
++      ++stats.cache_misses;
++      LocalDpCachedEdge cached;
++      cached.edge = edge;
++      for (int pj = 0; pj < edge->getNumPins(); ++pj) {
++        const Pin* pin = edge->getPins()[pj];
++        const Node* pin_node = pin->getNode();
++        const auto it = cache.cell_index_by_id.find(pin_node->getId());
++        if (it != cache.cell_index_by_id.end()) {
++          cached.inside_pins.push_back({pin, it->second});
++          continue;
++        }
++
++        const DbuX x = pin_node->getCenterX() + pin->getOffsetX();
++        const DbuY y = pin_node->getCenterY() + pin->getOffsetY();
++        if (!cached.has_outside_pin) {
++          cached.outside_xmin = x;
++          cached.outside_xmax = x;
++          cached.outside_ymin = y;
++          cached.outside_ymax = y;
++          cached.has_outside_pin = true;
++        } else {
++          cached.outside_xmin = std::min(cached.outside_xmin, x);
++          cached.outside_xmax = std::max(cached.outside_xmax, x);
++          cached.outside_ymin = std::min(cached.outside_ymin, y);
++          cached.outside_ymax = std::max(cached.outside_ymax, y);
++        }
++      }
++      cache.edges.push_back(std::move(cached));
++    }
++  }
++  stats.cache_edges += cache.edges.size();
++  return cache;
++}
++
++double localDpCostWithChoice(const LocalDpCostCache& cache,
++                             const std::vector<LocalDpSite>& sites,
++                             const LocalDpChoice& choice,
++                             const int assigned_count)
++{
++  double cost = 0.0;
++  for (const LocalDpCachedEdge& cached : cache.edges) {
++    bool initialized = false;
++    DbuX xmin{0};
++    DbuX xmax{0};
++    DbuY ymin{0};
++    DbuY ymax{0};
++    if (cached.has_outside_pin) {
++      xmin = cached.outside_xmin;
++      xmax = cached.outside_xmax;
++      ymin = cached.outside_ymin;
++      ymax = cached.outside_ymax;
++      initialized = true;
++    }
++
++    for (const LocalDpCachedPin& cached_pin : cached.inside_pins) {
++      const Pin* pin = cached_pin.pin;
++      const int cell_index = cached_pin.cell_index;
++      const Node* node = cache.cells[cell_index];
++      DbuX x = node->getCenterX() + pin->getOffsetX();
++      DbuY y = node->getCenterY() + pin->getOffsetY();
++      if (cell_index < assigned_count && choice[cell_index] >= 0) {
++        const LocalDpSite& site = sites[choice[cell_index]];
++        x = nodeCenterXAt(node, site.x) + pin->getOffsetX();
++        y = nodeCenterYAt(node, site.y) + pin->getOffsetY();
++      }
++      if (!initialized) {
++        xmin = x;
++        xmax = x;
++        ymin = y;
++        ymax = y;
++        initialized = true;
++      } else {
++        xmin = std::min(xmin, x);
++        xmax = std::max(xmax, x);
++        ymin = std::min(ymin, y);
++        ymax = std::max(ymax, y);
++      }
++    }
++    if (initialized) {
++      cost += static_cast<double>((xmax - xmin).v + (ymax - ymin).v);
++    }
++  }
++  return cost;
++}
++
++std::vector<LocalDpCellState> captureSelectedCells(
++    DetailedMgr& mgr,
++    const std::vector<Node*>& cells)
++{
++  std::vector<LocalDpCellState> states;
++  states.reserve(cells.size());
++  for (Node* node : cells) {
++    LocalDpCellState state;
++    state.node = node;
++    state.left = node->getLeft();
++    state.bottom = node->getBottom();
++    state.orient = node->getOrient();
++    state.placed = node->isPlaced();
++    for (const DetailedSeg* seg : mgr.getReverseCellToSegs(node->getId())) {
++      if (seg != nullptr) {
++        state.segment_ids.push_back(seg->getSegId());
++      }
++    }
++    states.push_back(std::move(state));
++  }
++  return states;
++}
++
++void removeSelectedFromCurrentSegments(DetailedMgr& mgr,
++                                       const std::vector<Node*>& cells)
++{
++  for (Node* node : cells) {
++    if (node == nullptr || !node->isPlaced()) {
++      continue;
++    }
++    mgr.eraseFromGrid(node);
++    std::vector<int> current_segments;
++    for (const DetailedSeg* seg : mgr.getReverseCellToSegs(node->getId())) {
++      if (seg != nullptr) {
++        current_segments.push_back(seg->getSegId());
++      }
++    }
++    for (const int seg_id : current_segments) {
++      mgr.removeCellFromSegment(node, seg_id);
++    }
++  }
++}
++
++void restoreSelectedCells(DetailedMgr& mgr,
++                          const std::vector<LocalDpCellState>& states)
++{
++  std::vector<Node*> nodes;
++  nodes.reserve(states.size());
++  for (const LocalDpCellState& state : states) {
++    if (state.node != nullptr) {
++      nodes.push_back(state.node);
++    }
++  }
++  removeSelectedFromCurrentSegments(mgr, nodes);
++  for (const LocalDpCellState& state : states) {
++    Node* node = state.node;
++    if (node == nullptr) {
++      continue;
++    }
++    node->setLeft(state.left);
++    node->setBottom(state.bottom);
++    node->setPlaced(state.placed);
++    if (!state.placed) {
++      continue;
++    }
++    mgr.paintInGrid(node);
++    node->adjustCurrOrient(state.orient);
++    for (const int seg_id : state.segment_ids) {
++      mgr.addCellToSegment(node, seg_id);
++    }
++  }
++  mgr.resortSegments();
++}
++
++bool applyLocalDpAssignment(DetailedMgr& mgr,
++                            Architecture* arch,
++                            Network* network,
++                            const std::vector<LocalDpAssignment>& assignment)
++{
++  std::vector<Node*> cells;
++  cells.reserve(assignment.size());
++  for (const LocalDpAssignment& item : assignment) {
++    cells.push_back(item.node);
++  }
++  removeSelectedFromCurrentSegments(mgr, cells);
++
++  DetailedOrient orienter(arch, network);
++  for (const LocalDpAssignment& item : assignment) {
++    Node* node = item.node;
++    node->setLeft(item.x);
++    node->setBottom(item.y);
++    node->setPlaced(true);
++    orienter.orientSingleHeightCellForRow(node, item.row);
++    mgr.paintInGrid(node);
++    mgr.addCellToSegment(node, item.seg);
++  }
++  mgr.resortSegments();
++  for (const LocalDpAssignment& item : assignment) {
++    if (mgr.hasPlacementViolation(item.node)) {
++      return false;
++    }
++  }
++  return true;
++}
++
++bool closeRowRightLegal(Architecture* arch,
++                        const Node* cell,
++                        const LocalDpSite& site)
++{
++  if (site.right_external == nullptr) {
++    return site.x + cell->getWidth() <= site.right_limit;
++  }
++  return site.x + cell->getWidth()
++         + DbuX{arch->getCellSpacing(cell, site.right_external)}
++         <= site.right_external->getLeft();
++}
++
++bool firstInRowLeftLegal(Architecture* arch,
++                         const Node* cell,
++                         const LocalDpSite& site)
++{
++  if (site.left_external == nullptr) {
++    return site.x >= arch->getRow(site.row)->getLeft();
++  }
++  return site.left_external->getRight()
++             + DbuX{arch->getCellSpacing(site.left_external, cell)}
++         <= site.x;
++}
++
++bool transitionLegal(Architecture* arch,
++                     const Node* prev_cell,
++                     const LocalDpSite& prev_site,
++                     const Node* cell,
++                     const LocalDpSite& site)
++{
++  if (prev_site.row == site.row) {
++    return prev_site.x + prev_cell->getWidth()
++               + DbuX{arch->getCellSpacing(prev_cell, cell)}
++           <= site.x;
++  }
++  return closeRowRightLegal(arch, prev_cell, prev_site)
++         && firstInRowLeftLegal(arch, cell, site);
++}
++
++bool siteCanHostCell(DetailedMgr& mgr,
++                     Architecture* arch,
++                     const Node* cell,
++                     const LocalDpSite& site)
++{
++  if (cell == nullptr || site.seg < 0 || site.row < 0) {
++    return false;
++  }
++  const DetailedSeg* seg = mgr.getSegment(site.seg);
++  if (cell->getGroupId() != seg->getRegId()) {
++    return false;
++  }
++  if (site.x < seg->getMinX() || site.x + cell->getWidth() > seg->getMaxX()) {
++    return false;
++  }
++  const DbuX dx{std::abs((site.x - cell->getOrigLeft()).v)};
++  const DbuY dy{std::abs((site.y - cell->getOrigBottom()).v)};
++  if (dx > mgr.getMaxDisplacementX() || dy > mgr.getMaxDisplacementY()) {
++    return false;
++  }
++  return arch->isSingleHeightCell(cell);
++}
++
++bool buildLocalDpWindow(DetailedMgr& mgr,
++                        Architecture* arch,
++                        const LsmcKickAnchor& anchor,
++                        const bool high_recovery_opportunity,
++                        std::vector<LocalDpRowScope>& scopes,
++                        std::vector<Node*>& cells,
++                        std::vector<LocalDpSite>& sites)
++{
++  scopes.clear();
++  cells.clear();
++  sites.clear();
++  if (anchor.row < 0 || arch->getNumRows() <= 0) {
++    return false;
++  }
++
++  const int row_radius = 1;  // Paper default m=3, clipped to 2 at boundaries.
++  const int per_row_cells = high_recovery_opportunity ? 3 : 2;
++  const int site_radius = high_recovery_opportunity ? 36 : 28;
++  const DbuX site_width = arch->getRow(0)->getSiteSpacing();
++
++  for (int row = std::max(0, anchor.row - row_radius);
++       row <= std::min(arch->getNumRows() - 1, anchor.row + row_radius);
++       ++row) {
++    int seg_id = -1;
++    for (DetailedSeg* seg : mgr.getSegsInRow(row)) {
++      if (anchor.x >= seg->getMinX() && anchor.x <= seg->getMaxX()) {
++        seg_id = seg->getSegId();
++        break;
++      }
++    }
++    if (seg_id < 0) {
++      continue;
++    }
++    mgr.sortCellsInSeg(seg_id);
++    const std::vector<Node*>& row_cells = mgr.getCellsInSeg(seg_id);
++    if (row_cells.empty()) {
++      continue;
++    }
++
++    int nearest = -1;
++    int nearest_dist = std::numeric_limits<int>::max();
++    for (int i = 0; i < static_cast<int>(row_cells.size()); ++i) {
++      if (!movableSingleHeightCell(arch, row_cells[i])) {
++        continue;
++      }
++      const int dist = std::abs((row_cells[i]->getCenterX() - anchor.x).v);
++      if (dist < nearest_dist) {
++        nearest_dist = dist;
++        nearest = i;
++      }
++    }
++    if (nearest < 0) {
++      continue;
++    }
++
++    int left = nearest;
++    int right = nearest;
++    while (right - left + 1 < per_row_cells) {
++      const bool can_left = left > 0 && movableSingleHeightCell(arch, row_cells[left - 1]);
++      const bool can_right = right + 1 < static_cast<int>(row_cells.size())
++                             && movableSingleHeightCell(arch, row_cells[right + 1]);
++      if (!can_left && !can_right) {
++        break;
++      }
++      if (!can_left) {
++        ++right;
++      } else if (!can_right) {
++        --left;
++      } else {
++        const int left_dist
++            = std::abs((row_cells[left - 1]->getCenterX() - anchor.x).v);
++        const int right_dist
++            = std::abs((row_cells[right + 1]->getCenterX() - anchor.x).v);
++        if (left_dist <= right_dist) {
++          --left;
++        } else {
++          ++right;
++        }
++      }
++    }
++
++    LocalDpRowScope scope;
++    scope.row = row;
++    scope.seg = seg_id;
++    scope.left_external = left > 0 ? row_cells[left - 1] : nullptr;
++    scope.right_external = right + 1 < static_cast<int>(row_cells.size())
++                               ? row_cells[right + 1]
++                               : nullptr;
++    DetailedSeg* seg = mgr.getSegment(seg_id);
++    scope.left_limit = seg->getMinX();
++    scope.right_limit = seg->getMaxX();
++    if (scope.left_external != nullptr) {
++      scope.left_limit = std::max(scope.left_limit,
++                                  scope.left_external->getRight());
++    }
++    if (scope.right_external != nullptr) {
++      scope.right_limit = std::min(scope.right_limit,
++                                   scope.right_external->getLeft());
++    }
++
++    DbuX xmin = row_cells[left]->getLeft();
++    DbuX xmax = row_cells[right]->getRight();
++    const DbuX radius{site_radius * site_width.v};
++    scope.left_limit = std::max(scope.left_limit, xmin - radius);
++    scope.right_limit = std::min(scope.right_limit, xmax + radius);
++    if (scope.right_limit <= scope.left_limit) {
++      continue;
++    }
++
++    for (int i = left; i <= right; ++i) {
++      scope.cells.push_back(row_cells[i]);
++      cells.push_back(row_cells[i]);
++    }
++    scopes.push_back(scope);
++  }
++
++  std::sort(cells.begin(), cells.end(), [](const Node* lhs, const Node* rhs) {
++    if (lhs->getRight() != rhs->getRight()) {
++      return lhs->getRight() < rhs->getRight();
++    }
++    if (lhs->getBottom() != rhs->getBottom()) {
++      return lhs->getBottom() < rhs->getBottom();
++    }
++    return lhs->getId() < rhs->getId();
++  });
++  cells.erase(std::unique(cells.begin(), cells.end()), cells.end());
++  if (cells.size() < 2 || cells.size() > 9) {
++    return false;
++  }
++
++  for (const LocalDpRowScope& scope : scopes) {
++    const Architecture::Row* row = arch->getRow(scope.row);
++    DbuX x = alignSiteCeil(row, scope.left_limit);
++    int emitted = 0;
++    while (x < scope.right_limit && emitted < 64) {
++      LocalDpSite site;
++      site.row = scope.row;
++      site.seg = scope.seg;
++      site.x = x;
++      site.y = row->getBottom();
++      site.left_external = scope.left_external;
++      site.right_external = scope.right_external;
++      site.right_limit = scope.right_limit;
++      sites.push_back(site);
++      x += row->getSiteSpacing();
++      ++emitted;
++    }
++  }
++  std::sort(sites.begin(), sites.end(), [](const LocalDpSite& lhs,
++                                           const LocalDpSite& rhs) {
++    if (lhs.row != rhs.row) {
++      return lhs.row < rhs.row;
++    }
++    if (lhs.x != rhs.x) {
++      return lhs.x < rhs.x;
++    }
++    return lhs.seg < rhs.seg;
++  });
++  return sites.size() >= cells.size();
++}
++
++struct LocalDpStateResult
++{
++  double cost = std::numeric_limits<double>::max() / 4.0;
++  LocalDpChoice choice{};
++  uint64_t transitions = 0;
++  uint64_t pruned = 0;
++  uint64_t exact = 0;
++  bool reachable = false;
++};
++
++bool runLocalDpWindow(DetailedMgr& mgr,
++                      Architecture* arch,
++                      Network* network,
++                      const LsmcKickAnchor& anchor,
++                      const bool high_recovery_opportunity,
++                      LocalDpStats& stats)
++{
++  ++stats.windows_considered;
++  std::vector<LocalDpRowScope> scopes;
++  std::vector<Node*> cells;
++  std::vector<LocalDpSite> sites;
++  if (!buildLocalDpWindow(
++          mgr, arch, anchor, high_recovery_opportunity, scopes, cells, sites)) {
++    ++stats.windows_skipped;
++    return false;
++  }
++  ++stats.windows_built;
++  stats.dp_cells += cells.size();
++  stats.dp_sites += sites.size();
++
++  const LocalDpCostCache cost_cache = prepareLocalDpCostCache(cells, stats);
++  if (cost_cache.edges.empty()) {
++    ++stats.rejected_no_dp;
++    return false;
++  }
++  LocalDpChoice empty_choice;
++  empty_choice.fill(-1);
++  const double exact_before
++      = localDpCostWithChoice(cost_cache, sites, empty_choice, 0);
++
++  const int n = static_cast<int>(cells.size());
++  const int m = static_cast<int>(sites.size());
++  constexpr double kInf = std::numeric_limits<double>::max() / 4.0;
++  std::vector<std::vector<double>> dp(n, std::vector<double>(m, kInf));
++  std::vector<std::vector<LocalDpChoice>> choices(
++      n, std::vector<LocalDpChoice>(m, empty_choice));
++
++  std::vector<std::vector<bool>> legal_site(n, std::vector<bool>(m, false));
++  for (int i = 0; i < n; ++i) {
++    for (int j = 0; j < m; ++j) {
++      if (!siteCanHostCell(mgr, arch, cells[i], sites[j])) {
++        ++stats.dp_pruned_states;
++        continue;
++      }
++      legal_site[i][j] = true;
++      ++stats.dryrun_scored;
++    }
++  }
++
++  for (int j = 0; j < m; ++j) {
++    if (!legal_site[0][j] || !firstInRowLeftLegal(arch, cells[0], sites[j])) {
++      ++stats.dp_pruned_states;
++      continue;
++    }
++    LocalDpChoice choice = empty_choice;
++    choice[0] = j;
++    dp[0][j] = localDpCostWithChoice(cost_cache, sites, choice, 1);
++    choices[0][j] = choice;
++    ++stats.exact_scored;
++    ++stats.dp_states;
++  }
++
++  for (int i = 1; i < n; ++i) {
++    const auto layer_start = std::chrono::steady_clock::now();
++    std::vector<LocalDpStateResult> layer_results(m);
++#ifdef _OPENMP
++    const int worker_count = boundedThreadCount();
++#pragma omp parallel for num_threads(worker_count) schedule(static)
++#endif
++    for (int j = 0; j < m; ++j) {
++      LocalDpStateResult result;
++      result.choice = empty_choice;
++      if (!legal_site[i][j]) {
++        layer_results[j] = result;
++        continue;
++      }
++      for (int l = 0; l < j; ++l) {
++        ++result.transitions;
++        if (dp[i - 1][l] >= kInf) {
++          continue;
++        }
++        if (!transitionLegal(arch, cells[i - 1], sites[l], cells[i], sites[j])) {
++          ++result.pruned;
++          continue;
++        }
++        LocalDpChoice trial_choice = choices[i - 1][l];
++        trial_choice[i] = j;
++        const double trial
++            = localDpCostWithChoice(cost_cache, sites, trial_choice, i + 1);
++        ++result.exact;
++        if (trial < result.cost) {
++          result.cost = trial;
++          result.choice = trial_choice;
++        }
++      }
++      result.reachable = result.cost < kInf;
++      layer_results[j] = result;
++    }
++    stats.dp_parallel_runtime_ms
++        += std::chrono::duration<double, std::milli>(
++               std::chrono::steady_clock::now() - layer_start)
++               .count();
++    ++stats.dp_parallel_layers;
++    stats.dp_parallel_states += m;
++    for (int j = 0; j < m; ++j) {
++      const LocalDpStateResult& result = layer_results[j];
++      stats.dp_transitions += result.transitions;
++      stats.dp_pruned_states += result.pruned;
++      stats.exact_scored += result.exact;
++      if (result.reachable) {
++        dp[i][j] = result.cost;
++        choices[i][j] = result.choice;
++        ++stats.dp_states;
++      }
++    }
++  }
++
++  std::vector<std::pair<double, int>> final_states;
++  final_states.reserve(m);
++  for (int j = 0; j < m; ++j) {
++    if (dp[n - 1][j] < kInf
++        && closeRowRightLegal(arch, cells[n - 1], sites[j])) {
++      final_states.push_back({dp[n - 1][j], j});
++    }
++  }
++  if (final_states.empty()) {
++    ++stats.rejected_no_dp;
++    return false;
++  }
++  std::sort(final_states.begin(), final_states.end());
++
++  const std::vector<LocalDpCellState> snapshot = captureSelectedCells(mgr, cells);
++  const int max_backtracks = std::min<int>(8, final_states.size());
++  for (int candidate = 0; candidate < max_backtracks; ++candidate) {
++    const int best_j = final_states[candidate].second;
++    const LocalDpChoice& site_choice = choices[n - 1][best_j];
++    std::vector<LocalDpAssignment> assignment;
++    assignment.reserve(cells.size());
++    for (int i = 0; i < n; ++i) {
++      const LocalDpSite& site = sites[site_choice[i]];
++      assignment.push_back({cells[i], site.row, site.seg, site.x, site.y});
++    }
++
++    if (!applyLocalDpAssignment(mgr, arch, network, assignment)) {
++      restoreSelectedCells(mgr, snapshot);
++      ++stats.rejected_legal;
++      continue;
++    }
++
++    const double exact_after = localDpCostWithChoice(
++        cost_cache, sites, site_choice, static_cast<int>(cells.size()));
++    const double exact_gain = exact_before - exact_after;
++    if (exact_gain > 0.0) {
++      ++stats.accepted_windows;
++      stats.exact_gain += exact_gain;
++      return true;
++    }
++    restoreSelectedCells(mgr, snapshot);
++  }
++
++  ++stats.rejected_no_exact_gain;
++  return false;
++}
++
++LocalDpStats runAlgo2LocalDpDescent(DetailedMgr& mgr,
++                                    Architecture* arch,
++                                    Network* network,
++                                    const LsmcKickTrace& kick_trace,
++                                    const bool high_recovery_opportunity,
++                                    const int max_windows_override = -1)
++{
++  LocalDpStats stats;
++  stats.kicked_rows = kick_trace.rows.size();
++  stats.kicked_nodes = kick_trace.nodes.size();
++  stats.kick_anchors = kick_trace.anchors.size();
++  const auto start = std::chrono::steady_clock::now();
++  if (kick_trace.anchors.empty()) {
++    return stats;
++  }
++
++  const int max_windows = max_windows_override > 0
++                              ? max_windows_override
++                              : (high_recovery_opportunity ? 128 : 96);
++  const DbuX site_width = arch->getRow(0)->getSiteSpacing();
++  std::set<std::pair<int, int>> seen_windows;
++  int windows = 0;
++  for (const LsmcKickAnchor& anchor : kick_trace.anchors) {
++    if (windows >= max_windows) {
++      break;
++    }
++    const int x_bin = site_width.v > 0 ? anchor.x.v / (site_width.v * 12) : 0;
++    const std::pair<int, int> key{anchor.row, x_bin};
++    if (!seen_windows.insert(key).second) {
++      ++stats.cache_hits;
++      continue;
++    }
++    if (runLocalDpWindow(
++            mgr, arch, network, anchor, high_recovery_opportunity, stats)) {
++      mgr.resortSegments();
++    }
++    ++windows;
++  }
++
++  stats.runtime_ms
++      = std::chrono::duration<double, std::milli>(
++            std::chrono::steady_clock::now() - start)
++            .count();
++  return stats;
++}
++
++LsmcKickTrace buildAlgo2SeedTrace(DetailedMgr& mgr,
++                                  Architecture* arch,
++                                  const bool high_recovery_opportunity)
++{
++  LsmcKickTrace trace;
++  const int max_anchors = high_recovery_opportunity ? 768 : 512;
++  const int row_stride = high_recovery_opportunity ? 1 : 2;
++  for (int row = 0; row < arch->getNumRows()
++                    && static_cast<int>(trace.anchors.size()) < max_anchors;
++       row += row_stride) {
++    for (DetailedSeg* seg : mgr.getSegsInRow(row)) {
++      if (static_cast<int>(trace.anchors.size()) >= max_anchors) {
++        break;
++      }
++      const int seg_id = seg->getSegId();
++      mgr.sortCellsInSeg(seg_id);
++      const std::vector<Node*>& cells = mgr.getCellsInSeg(seg_id);
++      if (cells.size() < 4) {
++        continue;
++      }
++      const int samples = high_recovery_opportunity ? 3 : 2;
++      for (int sample = 1; sample <= samples; ++sample) {
++        const int idx = (sample * static_cast<int>(cells.size()))
++                        / (samples + 1);
++        Node* node = cells[std::clamp(idx, 0, static_cast<int>(cells.size()) - 1)];
++        if (!movableSingleHeightCell(arch, node)) {
++          continue;
++        }
++        addKickAnchor(arch, trace, node, node->getLeft(), node->getBottom());
++        if (static_cast<int>(trace.anchors.size()) >= max_anchors) {
++          break;
++        }
++      }
++    }
++  }
++  return trace;
++}
++
++std::string buildLsmcCheapFallbackScript(const char* descent_tol)
++{
++  std::string descent_script;
++  descent_script += fmt::format("gs -p 1 -t {};", descent_tol);
++  descent_script += fmt::format("vs -p 1 -t {};", descent_tol);
++  return descent_script;
++}
++
++std::string buildLsmcReorderFallbackScript(const int reorder_window,
++                                           const char* descent_tol,
++                                           const bool reverse)
++{
++  return fmt::format("ro -w {} -p 1 -t {}{};",
++                     reorder_window,
++                     descent_tol,
++                     reverse ? " -reverse" : "");
++}
++
++LsmcFallbackStageStats runLsmcFallbackStage(DetailedMgr& mgr,
++                                            Network* network,
++                                            const std::string& script)
++{
++  LsmcFallbackStageStats stats;
++  if (script.empty()) {
++    return stats;
++  }
++  stats.hpwl_before = currentHpwl(network);
++  const auto start = std::chrono::steady_clock::now();
++
++  DetailedParams descent_params;
++  descent_params.script = script;
++  Detailed descent(descent_params);
++  descent.improve(mgr);
++
++  stats.hpwl_after = currentHpwl(network);
++  stats.gain = stats.hpwl_before - stats.hpwl_after;
++  stats.runtime_ms
++      = std::chrono::duration<double, std::milli>(
++            std::chrono::steady_clock::now() - start)
++            .count();
++  return stats;
++}
++
++bool lsmcTransactionMeetsFallbackTarget(const double before_hpwl,
++                                        const double current_hpwl,
++                                        const double target_gain)
++{
++  return before_hpwl - current_hpwl >= target_gain;
++}
++
++double lsmcFallbackTargetGain(const int iter,
++                              const int legal_kicks,
++                              const bool high_recovery_opportunity)
++{
++  if (legal_kicks <= 0) {
++    return std::numeric_limits<double>::max();
++  }
++  const double base_gain = high_recovery_opportunity ? 260000.0 : 1800000.0;
++  const double per_kick_gain = high_recovery_opportunity ? 700.0 : 12000.0;
++  const double decay = std::max(0.45, 1.0 - 0.08 * static_cast<double>(iter - 1));
++  return decay * (base_gain + per_kick_gain * static_cast<double>(legal_kicks));
++}
++
++LsmcFallbackDescentStats runStagedLsmcFallbackDescent(
++    DetailedMgr& mgr,
++    Network* network,
++    const int reorder_window,
++    const char* descent_tol,
++    const bool high_recovery_opportunity,
++    const int iter,
++    const int legal_kicks,
++    const double before_hpwl,
++    const double after_dp_hpwl)
++{
++  LsmcFallbackDescentStats stats;
++  stats.fallback_triggered = true;
++  stats.target_gain
++      = lsmcFallbackTargetGain(iter, legal_kicks, high_recovery_opportunity);
++  stats.full_hpwl_before = after_dp_hpwl;
++
++  if (lsmcTransactionMeetsFallbackTarget(
++          before_hpwl, after_dp_hpwl, stats.target_gain)) {
++    stats.fallback_skipped = true;
++    stats.skip_reason = "target_already_met_after_algo2";
++    stats.full_hpwl_after = after_dp_hpwl;
++    return stats;
++  }
++
++  const std::string cheap_script = buildLsmcCheapFallbackScript(descent_tol);
++  const LsmcFallbackStageStats cheap_stats
++      = runLsmcFallbackStage(mgr, network, cheap_script);
++  stats.called = true;
++  stats.cheap_called = true;
++  stats.script += cheap_script;
++  stats.cheap_gain = cheap_stats.gain;
++  stats.cheap_runtime_ms = cheap_stats.runtime_ms;
++  stats.runtime_ms += cheap_stats.runtime_ms;
++
++  double current_hpwl = cheap_stats.hpwl_after;
++  if (lsmcTransactionMeetsFallbackTarget(
++          before_hpwl, current_hpwl, stats.target_gain)) {
++    stats.full_hpwl_after = current_hpwl;
++    stats.full_hpwl_gain = stats.full_hpwl_before - stats.full_hpwl_after;
++    return stats;
++  }
++
++  const std::string reorder_script
++      = buildLsmcReorderFallbackScript(reorder_window, descent_tol, false);
++  const LsmcFallbackStageStats reorder_stats
++      = runLsmcFallbackStage(mgr, network, reorder_script);
++  stats.full_called = true;
++  stats.script += reorder_script;
++  stats.full_gain = reorder_stats.gain;
++  stats.full_runtime_ms = reorder_stats.runtime_ms;
++  stats.runtime_ms += reorder_stats.runtime_ms;
++
++  current_hpwl = reorder_stats.hpwl_after;
++  if (high_recovery_opportunity
++      && !lsmcTransactionMeetsFallbackTarget(
++          before_hpwl, current_hpwl, stats.target_gain)) {
++    const std::string reverse_script
++        = buildLsmcReorderFallbackScript(reorder_window, descent_tol, true);
++    const LsmcFallbackStageStats reverse_stats
++        = runLsmcFallbackStage(mgr, network, reverse_script);
++    stats.reverse_called = true;
++    stats.script += reverse_script;
++    stats.reverse_gain = reverse_stats.gain;
++    stats.reverse_runtime_ms = reverse_stats.runtime_ms;
++    stats.runtime_ms += reverse_stats.runtime_ms;
++    current_hpwl = reverse_stats.hpwl_after;
++  }
++
++  stats.full_hpwl_after = current_hpwl;
++  stats.full_hpwl_gain = stats.full_hpwl_before - stats.full_hpwl_after;
++  return stats;
++}
++
++bool generateAlgo1RegionKickSwap(DetailedMgr& mgr,
++                                  Architecture* arch,
++                                  std::vector<Node*>& candidates,
++                                  const bool high_recovery_opportunity,
++                                  LsmcKickTrace& kick_trace)
++{
++  if (arch == nullptr || candidates.empty()) {
++    return false;
++  }
++
++  const DbuX site_width = arch->getRow(0)->getSiteSpacing();
++  constexpr int kCandidateTries = 8;
++  constexpr int kNeighborCellsPerSegment = 18;
++  constexpr int kMaxExactCandidates = 12;
++  const DbuX region_padding{site_width.v
++                            * (high_recovery_opportunity ? 96 : 64)};
++  const DbuX max_swap_distance{site_width.v * 1024};  // About 200um on NG45.
++  const int row_radius = high_recovery_opportunity ? 4 : 3;
++#ifdef _OPENMP
++  const int worker_count = boundedThreadCount();
++#endif
++
++  for (int attempt = 0; attempt < kCandidateTries; ++attempt) {
++    Node* src = candidates[mgr.getRandom(candidates.size())];
++    if (!movableSingleHeightCell(arch, src)) {
++      continue;
++    }
++    const std::vector<DetailedSeg*>& src_segs
++        = mgr.getReverseCellToSegs(src->getId());
++    if (src_segs.size() != 1) {
++      continue;
++    }
++    const int src_seg = src_segs[0]->getSegId();
++
++    Algo1OptimalRegion region;
++    ++kick_trace.kick_region_attempts;
++    if (!computeAlgo1OptimalRegion(src, region)) {
++      ++kick_trace.kick_region_rejects;
++      continue;
++    }
++    ++kick_trace.kick_regions;
++    kick_trace.kick_region_incident_edges += region.incident_edges;
++    kick_trace.kick_region_x_span
++        += static_cast<double>(std::max(0, (region.xmax - region.xmin).v));
++    kick_trace.kick_region_y_span
++        += static_cast<double>(std::max(0, (region.ymax - region.ymin).v));
++
++    const int target_row = rowForY(arch, region.center_y);
++    if (target_row < 0) {
++      ++kick_trace.kick_region_rejects;
++      continue;
++    }
++
++    std::vector<Algo1SwapCandidate> swap_candidates;
++    std::unordered_set<int> seen_dst;
++    for (int row = std::max(0, target_row - row_radius);
++         row <= std::min(arch->getNumRows() - 1, target_row + row_radius);
++         ++row) {
++      for (DetailedSeg* seg : mgr.getSegsInRow(row)) {
++        if (seg == nullptr || src->getGroupId() != seg->getRegId()) {
++          continue;
++        }
++        const DbuX target_x = std::clamp(region.center_x,
++                                         seg->getMinX(),
++                                         seg->getMaxX());
++        if (std::abs((target_x - src->getCenterX()).v)
++            > max_swap_distance.v) {
++          continue;
++        }
++        mgr.sortCellsInSeg(seg->getSegId());
++        const std::vector<Node*>& row_cells = mgr.getCellsInSeg(seg->getSegId());
++        if (row_cells.empty()) {
++          continue;
++        }
++        const auto lb = std::lower_bound(row_cells.begin(),
++                                         row_cells.end(),
++                                         target_x,
++                                         [](const Node* node, const DbuX x) {
++                                           return node->getCenterX() < x;
++                                         });
++        int nearest = static_cast<int>(lb - row_cells.begin());
++        if (nearest >= static_cast<int>(row_cells.size())) {
++          nearest = static_cast<int>(row_cells.size()) - 1;
++        }
++        const int lo = std::max(0, nearest - kNeighborCellsPerSegment);
++        const int hi = std::min(static_cast<int>(row_cells.size()) - 1,
++                                nearest + kNeighborCellsPerSegment);
++        for (int i = lo; i <= hi; ++i) {
++          Node* dst = row_cells[i];
++          if (dst == src || !movableSingleHeightCell(arch, dst)) {
++            continue;
++          }
++          if (!seen_dst.insert(dst->getId()).second) {
++            continue;
++          }
++          if (dst->getCenterX() < region.xmin - region_padding
++              || dst->getCenterX() > region.xmax + region_padding) {
++            continue;
++          }
++          if (std::abs((dst->getCenterX() - src->getCenterX()).v)
++              > max_swap_distance.v) {
++            continue;
++          }
++          Algo1SwapCandidate candidate;
++          candidate.dst = dst;
++          candidate.dst_seg = seg->getSegId();
++          candidate.center_distance
++              = std::abs((dst->getCenterX() - region.center_x).v)
++                + std::abs((dst->getCenterY() - region.center_y).v);
++          swap_candidates.push_back(candidate);
++        }
++      }
++    }
++
++    if (swap_candidates.empty()) {
++      ++kick_trace.kick_region_rejects;
++      continue;
++    }
++    kick_trace.kick_region_candidates += swap_candidates.size();
++    kick_trace.kick_candidates += swap_candidates.size();
++
++    const auto dryrun_start = std::chrono::steady_clock::now();
++    Algo1DryRunBatchCache dry_cache;
++    prepareAlgo1DryRunBatchCache(src, dry_cache);
++    uint64_t dryrun_affected_edges = 0;
++    uint64_t dryrun_cache_hits = dry_cache.cache_hits;
++    uint64_t dryrun_cache_misses = dry_cache.cache_misses;
++#ifdef _OPENMP
++#pragma omp parallel num_threads(worker_count)
++    {
++      Algo1DryRunThreadScratch scratch;
++      Algo1DryRunScoreStats local_stats;
++#pragma omp for schedule(static)
++      for (int i = 0; i < static_cast<int>(swap_candidates.size()); ++i) {
++        swap_candidates[i].dry_gain = dryRunSwapGainCached(
++            src, swap_candidates[i], dry_cache, local_stats, scratch);
++      }
++#pragma omp atomic
++      dryrun_affected_edges += local_stats.affected_edges;
++#pragma omp atomic
++      dryrun_cache_hits += local_stats.cache_hits;
++#pragma omp atomic
++      dryrun_cache_misses += local_stats.cache_misses;
++    }
++#else
++    Algo1DryRunThreadScratch scratch;
++    Algo1DryRunScoreStats local_stats;
++    for (int i = 0; i < static_cast<int>(swap_candidates.size()); ++i) {
++      swap_candidates[i].dry_gain = dryRunSwapGainCached(
++          src, swap_candidates[i], dry_cache, local_stats, scratch);
++    }
++    dryrun_affected_edges += local_stats.affected_edges;
++    dryrun_cache_hits += local_stats.cache_hits;
++    dryrun_cache_misses += local_stats.cache_misses;
++#endif
++    const double dryrun_runtime_ms
++        = std::chrono::duration<double, std::milli>(
++              std::chrono::steady_clock::now() - dryrun_start)
++              .count();
++    kick_trace.kick_dryrun_runtime_ms += dryrun_runtime_ms;
++    kick_trace.kick_dryrun_cached_runtime_ms += dryrun_runtime_ms;
++    ++kick_trace.kick_dryrun_src_batches;
++    kick_trace.kick_dryrun_scored += swap_candidates.size();
++    kick_trace.kick_dryrun_affected_edges += dryrun_affected_edges;
++    kick_trace.kick_dryrun_cache_hits += dryrun_cache_hits;
++    kick_trace.kick_dryrun_cache_misses += dryrun_cache_misses;
++
++    const int exact_limit = std::min<int>(kMaxExactCandidates,
++                                          swap_candidates.size());
++    const auto topk_start = std::chrono::steady_clock::now();
++    const auto candidate_less = [](const Algo1SwapCandidate& lhs,
++                                   const Algo1SwapCandidate& rhs) {
++      if (lhs.dry_gain != rhs.dry_gain) {
++        return lhs.dry_gain > rhs.dry_gain;
++      }
++      if (lhs.center_distance != rhs.center_distance) {
++        return lhs.center_distance < rhs.center_distance;
++      }
++      return lhs.dst->getId() < rhs.dst->getId();
++    };
++    std::partial_sort(swap_candidates.begin(),
++                      swap_candidates.begin() + exact_limit,
++                      swap_candidates.end(),
++                      candidate_less);
++    kick_trace.kick_topk_runtime_ms
++        += std::chrono::duration<double, std::milli>(
++               std::chrono::steady_clock::now() - topk_start)
++               .count();
++    kick_trace.kick_topk_kept += exact_limit;
++    kick_trace.kick_topk_pruned += swap_candidates.size() - exact_limit;
++    for (int ci = 0; ci < exact_limit; ++ci) {
++      const Algo1SwapCandidate& candidate = swap_candidates[ci];
++      Node* dst = candidate.dst;
++      if (candidate.dry_gain < 0.0) {
++        ++kick_trace.kick_reject_hpwl;
++        continue;
++      }
++      std::unordered_map<int, odb::dbOrientType> original_orient;
++      original_orient.reserve(2);
++      original_orient[src->getId()] = src->getOrient();
++      original_orient[dst->getId()] = dst->getOrient();
++      ++kick_trace.kick_exact_scored;
++      if (mgr.trySwap(src,
++                      src->getLeft(),
++                      src->getBottom(),
++                      src_seg,
++                      dst->getLeft(),
++                      dst->getBottom(),
++                      candidate.dst_seg)) {
++        if (!journalMovesBothCells(mgr.getJournal(), src, dst)) {
++          ++kick_trace.kick_reject_legal;
++          mgr.rejectMove();
++          continue;
++        }
++        const double gain
++            = journalExactGainWithOriginalOrient(mgr.getJournal(),
++                                                 original_orient);
++        if (gain < 0.0) {
++          ++kick_trace.kick_reject_hpwl;
++          mgr.rejectMove();
++          continue;
++        }
++        kick_trace.kick_exact_gain += gain;
++        return true;
++      } else {
++        ++kick_trace.kick_reject_legal;
++      }
++    }
++    ++kick_trace.kick_region_rejects;
++  }
++  return false;
++}
++
++int applyLegalRandomKicks(DetailedMgr& mgr,
++                          Architecture* arch,
++                          const bool high_recovery_opportunity,
++                          const int kick_target,
++                          const int max_attempts,
++                          int& attempts,
++                          LsmcKickTrace& kick_trace)
++{
++  attempts = 0;
++  kick_trace.clear();
++  int legal_kicks = 0;
++  if (kick_target <= 0 || max_attempts <= 0) {
++    return legal_kicks;
++  }
++
++  std::vector<Node*> candidates = mgr.getSingleHeightCells();
++  if (candidates.empty()) {
++    return legal_kicks;
++  }
++
++  while (legal_kicks < kick_target && attempts < max_attempts) {
++    ++attempts;
++    if (generateAlgo1RegionKickSwap(
++            mgr, arch, candidates, high_recovery_opportunity, kick_trace)) {
++      kick_trace.affected_edges += mgr.getJournal().getAffectedEdges().size();
++      for (const auto& action_ptr : mgr.getJournal()) {
++        if (action_ptr->typeId() != JournalActionTypeEnum::MOVE_CELL) {
++          continue;
++        }
++        const auto* move = dynamic_cast<const MoveCellAction*>(action_ptr.get());
++        if (move == nullptr) {
++          continue;
++        }
++        addKickAnchor(arch,
++                      kick_trace,
++                      move->getNode(),
++                      move->getOrigLeft(),
++                      move->getOrigBottom());
++        addKickAnchor(arch,
++                      kick_trace,
++                      move->getNode(),
++                      move->getNewLeft(),
++                      move->getNewBottom());
++      }
++      // LSMC kicks intentionally perturb the local optimum; acceptance is
++      // decided only after the following descent reaches a new local optimum.
++      mgr.acceptMove();
++      ++legal_kicks;
++    } else {
++      mgr.rejectMove();
++    }
++  }
++  mgr.resortSegments();
++  return legal_kicks;
++}
++
++void runLsmcBooster(DetailedMgr& mgr,
++                    Architecture* arch,
++                    Network* network,
++                    const int reorder_window,
++                    const char* descent_tol,
++                    const bool high_recovery_opportunity,
++                    utl::Logger* logger)
++{
++  if (logger == nullptr || arch == nullptr || network == nullptr) {
++    return;
++  }
++
++  constexpr int kMaxIterations = 5;
++  constexpr int kFailureTolerance = 5;
++  constexpr double kPaperKickRatio = 0.10;
++  const int movable_count
++      = static_cast<int>(mgr.getSingleHeightCells().size());
++  if (movable_count <= 0) {
++    return;
++  }
++
++  const int paper_kick_target = std::max(
++      1, static_cast<int>(kPaperKickRatio * static_cast<double>(movable_count)));
++  // Keep the LSMC003 broad perturbation budget, but score the kicks with the
++  // paper Algorithm-1 optimal-region source/partner selection.
++  const int cpu_kick_cap = high_recovery_opportunity ? 512 : 192;
++  const int base_kick_target = high_recovery_opportunity ? 32 : 24;
++  const int thread_count = boundedThreadCount();
++
++  LsmcPlacementSnapshot best_snapshot = capturePlacement(mgr, network);
++  const double seed_before_hpwl = best_snapshot.hpwl;
++  LsmcKickTrace seed_trace
++      = buildAlgo2SeedTrace(mgr, arch, high_recovery_opportunity);
++  LocalDpStats seed_stats
++      = runAlgo2LocalDpDescent(mgr,
++                               arch,
++                               network,
++                               seed_trace,
++                               high_recovery_opportunity,
++                               high_recovery_opportunity ? 192 : 128);
++  const double seed_after_hpwl = currentHpwl(network);
++  const double seed_gain = seed_before_hpwl - seed_after_hpwl;
++  const char* seed_decision = "accepted";
++  if (seed_gain > 0.0) {
++    best_snapshot = capturePlacement(mgr, network);
++  } else {
++    restorePlacement(mgr, best_snapshot);
++    seed_decision = "rolled_back_no_gain";
++  }
++  logger->info(utl::DPL,
++               1234,
++               "Algo2 seed local-DP descent: seed_rows {}, seed_nodes {}, "
++               "seed_anchors {}, dp_windows considered/built/skipped {}/{}/{}, "
++               "dp_cells {}, dp_sites {}, dp_states {}, dp_transitions {}, "
++               "dp_pruned {}, dryrun_scored {}, exact_scored {}, "
++               "dp_parallel_layers {}, dp_parallel_states {}, "
++               "dp_parallel_runtime {:.3f} ms, "
++               "accepted_windows {}, rejects no_dp/exact/legal {}/{}/{}, "
++               "exact_gain {:.1f}, full_hpwl_before {:.1f}, full_hpwl_after "
++               "{:.1f}, full_gain {:.1f}, decision {}, cache_edges {}, cache "
++               "hits/misses {}/{}, runtime {:.3f} ms, thread_count {}.",
++               seed_stats.kicked_rows,
++               seed_stats.kicked_nodes,
++               seed_stats.kick_anchors,
++               seed_stats.windows_considered,
++               seed_stats.windows_built,
++               seed_stats.windows_skipped,
++               seed_stats.dp_cells,
++               seed_stats.dp_sites,
++               seed_stats.dp_states,
++               seed_stats.dp_transitions,
++               seed_stats.dp_pruned_states,
++               seed_stats.dryrun_scored,
++               seed_stats.exact_scored,
++               seed_stats.dp_parallel_layers,
++               seed_stats.dp_parallel_states,
++               seed_stats.dp_parallel_runtime_ms,
++               seed_stats.accepted_windows,
++               seed_stats.rejected_no_dp,
++               seed_stats.rejected_no_exact_gain,
++               seed_stats.rejected_legal,
++               seed_stats.exact_gain,
++               seed_before_hpwl,
++               seed_after_hpwl,
++               seed_gain,
++               seed_decision,
++               seed_stats.cache_edges,
++               seed_stats.cache_hits,
++               seed_stats.cache_misses,
++               seed_stats.runtime_ms,
++               thread_count);
++
++  const double initial_hpwl = best_snapshot.hpwl;
++  double best_hpwl = initial_hpwl;
++
++  const auto lsmc_start = std::chrono::steady_clock::now();
++  logger->info(utl::DPL,
++               1230,
++               "LSMC booster start: max_iterations {}, failure_tolerance {}, "
++               "kick_ratio {:.2f}, paper_kick_target {}, cpu_kick_cap {}, "
++               "base_kick_target {}, movable_cells {}, initial_hpwl {:.1f}, "
++               "thread_count {}, kick_mode "
++               "algo1_median_optimal_region_exact_gain_swap+"
++               "algo2_local_dp+conditional_lsmc003_descent.",
++               kMaxIterations,
++               kFailureTolerance,
++               kPaperKickRatio,
++               paper_kick_target,
++               cpu_kick_cap,
++               base_kick_target,
++               movable_count,
++               initial_hpwl,
++               thread_count);
++
++  int failures = 0;
++  int accepted = 0;
++  int rolled_back = 0;
++  int reject_no_legal_kick = 0;
++  int reject_no_gain = 0;
++  int total_kick_attempts = 0;
++  int total_legal_kicks = 0;
++  uint64_t total_dp_windows = 0;
++  uint64_t total_dp_accepted_windows = 0;
++  uint64_t total_dp_states = 0;
++  uint64_t total_dp_transitions = 0;
++  uint64_t total_dp_pruned = 0;
++  uint64_t total_dp_parallel_layers = 0;
++  uint64_t total_dp_parallel_states = 0;
++  double total_dp_parallel_runtime_ms = 0.0;
++  uint64_t total_dp_dryrun_scored = 0;
++  uint64_t total_dp_exact_scored = 0;
++  uint64_t total_dp_cache_edges = 0;
++  uint64_t total_dp_cache_hits = 0;
++  uint64_t total_dp_cache_misses = 0;
++  uint64_t total_kick_region_attempts = 0;
++  uint64_t total_kick_regions = 0;
++  uint64_t total_kick_region_rejects = 0;
++  uint64_t total_kick_region_candidates = 0;
++  uint64_t total_kick_region_incident_edges = 0;
++  double total_kick_region_x_span = 0.0;
++  double total_kick_region_y_span = 0.0;
++  uint64_t total_kick_candidates = 0;
++  uint64_t total_kick_dryrun_scored = 0;
++  uint64_t total_kick_dryrun_src_batches = 0;
++  uint64_t total_kick_dryrun_affected_edges = 0;
++  uint64_t total_kick_dryrun_cache_hits = 0;
++  uint64_t total_kick_dryrun_cache_misses = 0;
++  uint64_t total_kick_exact_scored = 0;
++  uint64_t total_kick_topk_kept = 0;
++  uint64_t total_kick_topk_pruned = 0;
++  uint64_t total_kick_reject_hpwl = 0;
++  uint64_t total_kick_reject_legal = 0;
++  double total_kick_exact_gain = 0.0;
++  double total_kick_dryrun_runtime_ms = 0.0;
++  double total_kick_dryrun_cached_runtime_ms = 0.0;
++  double total_kick_topk_runtime_ms = 0.0;
++  double total_dp_exact_gain = 0.0;
++  double total_dp_full_gain = 0.0;
++  uint64_t total_fallback_triggered = 0;
++  uint64_t total_fallback_skipped = 0;
++  uint64_t total_fallback_called = 0;
++  uint64_t total_cheap_fallback_called = 0;
++  uint64_t total_full_fallback_called = 0;
++  uint64_t total_reverse_fallback_called = 0;
++  double total_fallback_gain = 0.0;
++  double total_cheap_fallback_gain = 0.0;
++  double total_full_fallback_gain = 0.0;
++  double total_reverse_fallback_gain = 0.0;
++  double total_fallback_runtime_ms = 0.0;
++  double total_cheap_fallback_runtime_ms = 0.0;
++  double total_full_fallback_runtime_ms = 0.0;
++  double total_reverse_fallback_runtime_ms = 0.0;
++  double total_transaction_gain = 0.0;
++
++  for (int iter = 1; iter <= kMaxIterations; ++iter) {
++    const auto iter_start = std::chrono::steady_clock::now();
++    const double before_hpwl = best_hpwl;
++
++    const int kick_target
++        = std::min({paper_kick_target,
++                    cpu_kick_cap,
++                    base_kick_target << std::min(iter - 1, 4)});
++    const int max_kick_attempts = std::max(kick_target * 48, kick_target + 96);
++    int kick_attempts = 0;
++    LsmcKickTrace kick_trace;
++    const int legal_kicks = applyLegalRandomKicks(mgr,
++                                                  arch,
++                                                  high_recovery_opportunity,
++                                                  kick_target,
++                                                  max_kick_attempts,
++                                                  kick_attempts,
++                                                  kick_trace);
++    total_kick_attempts += kick_attempts;
++    total_legal_kicks += legal_kicks;
++
++    std::string descent_script = "algo2_local_dp";
++    LocalDpStats dp_stats;
++    double after_kick_hpwl = legal_kicks > 0 ? currentHpwl(network) : best_hpwl;
++    double after_dp_hpwl = after_kick_hpwl;
++    double algo2_full_gain = 0.0;
++    LsmcFallbackDescentStats fallback_stats;
++    if (legal_kicks > 0) {
++      dp_stats = runAlgo2LocalDpDescent(
++          mgr, arch, network, kick_trace, high_recovery_opportunity);
++      after_dp_hpwl = currentHpwl(network);
++      algo2_full_gain = after_kick_hpwl - after_dp_hpwl;
++      total_dp_windows += dp_stats.windows_built;
++      total_dp_accepted_windows += dp_stats.accepted_windows;
++      total_dp_states += dp_stats.dp_states;
++      total_dp_transitions += dp_stats.dp_transitions;
++      total_dp_pruned += dp_stats.dp_pruned_states;
++      total_dp_parallel_layers += dp_stats.dp_parallel_layers;
++      total_dp_parallel_states += dp_stats.dp_parallel_states;
++      total_dp_parallel_runtime_ms += dp_stats.dp_parallel_runtime_ms;
++      total_dp_dryrun_scored += dp_stats.dryrun_scored;
++      total_dp_exact_scored += dp_stats.exact_scored;
++      total_dp_cache_edges += dp_stats.cache_edges;
++      total_dp_cache_hits += dp_stats.cache_hits;
++      total_dp_cache_misses += dp_stats.cache_misses;
++      total_kick_region_attempts += kick_trace.kick_region_attempts;
++      total_kick_regions += kick_trace.kick_regions;
++      total_kick_region_rejects += kick_trace.kick_region_rejects;
++      total_kick_region_candidates += kick_trace.kick_region_candidates;
++      total_kick_region_incident_edges
++          += kick_trace.kick_region_incident_edges;
++      total_kick_region_x_span += kick_trace.kick_region_x_span;
++      total_kick_region_y_span += kick_trace.kick_region_y_span;
++      total_kick_candidates += kick_trace.kick_candidates;
++      total_kick_dryrun_scored += kick_trace.kick_dryrun_scored;
++      total_kick_dryrun_src_batches += kick_trace.kick_dryrun_src_batches;
++      total_kick_dryrun_affected_edges
++          += kick_trace.kick_dryrun_affected_edges;
++      total_kick_dryrun_cache_hits += kick_trace.kick_dryrun_cache_hits;
++      total_kick_dryrun_cache_misses += kick_trace.kick_dryrun_cache_misses;
++      total_kick_exact_scored += kick_trace.kick_exact_scored;
++      total_kick_topk_kept += kick_trace.kick_topk_kept;
++      total_kick_topk_pruned += kick_trace.kick_topk_pruned;
++      total_kick_reject_hpwl += kick_trace.kick_reject_hpwl;
++      total_kick_reject_legal += kick_trace.kick_reject_legal;
++      total_kick_exact_gain += kick_trace.kick_exact_gain;
++      total_kick_dryrun_runtime_ms += kick_trace.kick_dryrun_runtime_ms;
++      total_kick_dryrun_cached_runtime_ms
++          += kick_trace.kick_dryrun_cached_runtime_ms;
++      total_kick_topk_runtime_ms += kick_trace.kick_topk_runtime_ms;
++      total_dp_exact_gain += dp_stats.exact_gain;
++      total_dp_full_gain += algo2_full_gain;
++
++      const bool local_dp_zero_gain = dp_stats.exact_gain <= 0.0
++                                      && algo2_full_gain <= 0.0;
++      const bool transaction_still_worse = after_dp_hpwl >= before_hpwl;
++      if (local_dp_zero_gain || transaction_still_worse) {
++        fallback_stats = runStagedLsmcFallbackDescent(mgr,
++                                                      network,
++                                                      reorder_window,
++                                                      descent_tol,
++                                                      high_recovery_opportunity,
++                                                      iter,
++                                                      legal_kicks,
++                                                      before_hpwl,
++                                                      after_dp_hpwl);
++        if (!fallback_stats.script.empty()) {
++          descent_script += "+" + fallback_stats.script;
++        }
++        if (fallback_stats.fallback_triggered) {
++          ++total_fallback_triggered;
++        }
++        if (fallback_stats.fallback_skipped) {
++          ++total_fallback_skipped;
++        }
++        if (fallback_stats.called) {
++          ++total_fallback_called;
++        }
++        if (fallback_stats.cheap_called) {
++          ++total_cheap_fallback_called;
++        }
++        if (fallback_stats.full_called) {
++          ++total_full_fallback_called;
++        }
++        if (fallback_stats.reverse_called) {
++          ++total_reverse_fallback_called;
++        }
++        total_fallback_gain += fallback_stats.full_hpwl_gain;
++        total_cheap_fallback_gain += fallback_stats.cheap_gain;
++        total_full_fallback_gain += fallback_stats.full_gain;
++        total_reverse_fallback_gain += fallback_stats.reverse_gain;
++        total_fallback_runtime_ms += fallback_stats.runtime_ms;
++        total_cheap_fallback_runtime_ms += fallback_stats.cheap_runtime_ms;
++        total_full_fallback_runtime_ms += fallback_stats.full_runtime_ms;
++        total_reverse_fallback_runtime_ms += fallback_stats.reverse_runtime_ms;
++      }
++
++      logger->info(utl::DPL,
++                   1233,
++                   "Algo1/Algo2 hybrid LSMC repair iter {}: kicked_rows {}, "
++                   "kicked_nodes {}, kick_anchors {}, kick_region_attempts {}, "
++                   "kick_regions {}, kick_region_rejects {}, "
++                   "avg_region_edges {:.2f}, avg_region_span_dbu {:.1f}/{:.1f}, "
++                   "kick_region_candidates {}, "
++                   "kick_candidates {}, kick_dryrun_scored {}, "
++                   "kick_src_batches {}, kick_avg_aff_edges {:.2f}, "
++                   "kick_cache hits/misses {}/{}, "
++                   "kick_exact_scored {}, kick_topk_kept {}, "
++                   "kick_topk_pruned {}, kick_dryrun_runtime {:.3f} ms, "
++                   "kick_dryrun_cached_runtime {:.3f} ms, "
++                   "kick_topk_runtime {:.3f} ms, kick_reject_hpwl {}, "
++                   "kick_reject_legal {}, "
++                   "kick_affected_edges {}, algo1_kick_gain {:.1f}, "
++                   "hpwl_after_kick {:.1f}, "
++                   "dp_windows considered/built/skipped {}/{}/{}, dp_cells {}, "
++                   "dp_sites {}, dp_states {}, dp_transitions {}, "
++                   "dp_pruned {}, dp_parallel_layers {}, "
++                   "dp_parallel_states {}, dp_parallel_runtime {:.3f} ms, "
++                   "dryrun_scored {}, exact_scored {}, "
++                   "accepted_windows {}, rejects no_dp/exact/legal {}/{}/{}, "
++                   "algo2_repair_gain {:.1f}, algo2_full_gain {:.1f}, "
++                   "hpwl_after_algo2 {:.1f}, cache_edges {}, "
++                   "cache hits/misses {}/{}, runtime {:.3f} ms, "
++                   "fallback_triggered {}, fallback_skipped {}, "
++                   "fallback_skip_reason '{}', fallback_target_gain {:.1f}, "
++                   "cheap_fallback_called {}, cheap_fallback_gain {:.1f}, "
++                   "cheap_fallback_runtime {:.3f} ms, "
++                   "full_fallback_called {}, full_fallback_gain {:.1f}, "
++                   "full_fallback_runtime {:.3f} ms, "
++                   "reverse_fallback_called {}, reverse_fallback_gain {:.1f}, "
++                   "reverse_fallback_runtime {:.3f} ms, "
++                   "fallback_descent_called {}, fallback_descent_gain {:.1f}, "
++                   "fallback_descent_hpwl_before {:.1f}, "
++                   "fallback_descent_hpwl_after {:.1f}, "
++                   "fallback_descent_runtime {:.3f} ms, "
++                   "thread_count {}.",
++                   iter,
++                   dp_stats.kicked_rows,
++                   dp_stats.kicked_nodes,
++                   dp_stats.kick_anchors,
++                   kick_trace.kick_region_attempts,
++                   kick_trace.kick_regions,
++                   kick_trace.kick_region_rejects,
++                   kick_trace.kick_regions > 0
++                       ? static_cast<double>(
++                             kick_trace.kick_region_incident_edges)
++                             / static_cast<double>(kick_trace.kick_regions)
++                       : 0.0,
++                   averageKickRegionXSpan(kick_trace),
++                   averageKickRegionYSpan(kick_trace),
++                   kick_trace.kick_region_candidates,
++                   kick_trace.kick_candidates,
++                   kick_trace.kick_dryrun_scored,
++                   kick_trace.kick_dryrun_src_batches,
++                   kick_trace.kick_dryrun_scored > 0
++                       ? static_cast<double>(
++                             kick_trace.kick_dryrun_affected_edges)
++                             / static_cast<double>(kick_trace.kick_dryrun_scored)
++                       : 0.0,
++                   kick_trace.kick_dryrun_cache_hits,
++                   kick_trace.kick_dryrun_cache_misses,
++                   kick_trace.kick_exact_scored,
++                   kick_trace.kick_topk_kept,
++                   kick_trace.kick_topk_pruned,
++                   kick_trace.kick_dryrun_runtime_ms,
++                   kick_trace.kick_dryrun_cached_runtime_ms,
++                   kick_trace.kick_topk_runtime_ms,
++                   kick_trace.kick_reject_hpwl,
++                   kick_trace.kick_reject_legal,
++                   kick_trace.affected_edges,
++                   kick_trace.kick_exact_gain,
++                   after_kick_hpwl,
++                   dp_stats.windows_considered,
++                   dp_stats.windows_built,
++                   dp_stats.windows_skipped,
++                   dp_stats.dp_cells,
++                   dp_stats.dp_sites,
++                   dp_stats.dp_states,
++                   dp_stats.dp_transitions,
++                   dp_stats.dp_pruned_states,
++                   dp_stats.dp_parallel_layers,
++                   dp_stats.dp_parallel_states,
++                   dp_stats.dp_parallel_runtime_ms,
++                   dp_stats.dryrun_scored,
++                   dp_stats.exact_scored,
++                   dp_stats.accepted_windows,
++                   dp_stats.rejected_no_dp,
++                   dp_stats.rejected_no_exact_gain,
++                   dp_stats.rejected_legal,
++                   dp_stats.exact_gain,
++                   algo2_full_gain,
++                   after_dp_hpwl,
++                   dp_stats.cache_edges,
++                   dp_stats.cache_hits,
++                   dp_stats.cache_misses,
++                   dp_stats.runtime_ms,
++                   fallback_stats.fallback_triggered ? "yes" : "no",
++                   fallback_stats.fallback_skipped ? "yes" : "no",
++                   fallback_stats.skip_reason,
++                   fallback_stats.target_gain,
++                   fallback_stats.cheap_called ? "yes" : "no",
++                   fallback_stats.cheap_gain,
++                   fallback_stats.cheap_runtime_ms,
++                   fallback_stats.full_called ? "yes" : "no",
++                   fallback_stats.full_gain,
++                   fallback_stats.full_runtime_ms,
++                   fallback_stats.reverse_called ? "yes" : "no",
++                   fallback_stats.reverse_gain,
++                   fallback_stats.reverse_runtime_ms,
++                   fallback_stats.called ? "yes" : "no",
++                   fallback_stats.full_hpwl_gain,
++                   fallback_stats.full_hpwl_before,
++                   fallback_stats.full_hpwl_after,
++                   fallback_stats.runtime_ms,
++                   thread_count);
++    }
++
++    const double trial_hpwl = legal_kicks > 0 ? currentHpwl(network) : best_hpwl;
++    const double transaction_gain = best_hpwl - trial_hpwl;
++    const bool improved = legal_kicks > 0 && transaction_gain > 0.0;
++    if (legal_kicks > 0) {
++      total_transaction_gain += transaction_gain;
++    }
++    const double runtime_ms
++        = std::chrono::duration<double, std::milli>(
++              std::chrono::steady_clock::now() - iter_start)
++              .count();
++
++    const char* decision = "accepted";
++    if (improved) {
++      best_hpwl = trial_hpwl;
++      best_snapshot = capturePlacement(mgr, network);
++      failures = 0;
++      ++accepted;
++    } else {
++      if (legal_kicks == 0) {
++        ++reject_no_legal_kick;
++        decision = "rolled_back_no_legal_kick";
++      } else {
++        ++reject_no_gain;
++        decision = "rolled_back_no_gain";
++      }
++      restorePlacement(mgr, best_snapshot);
++      ++failures;
++      ++rolled_back;
++    }
++
++    logger->info(utl::DPL,
++                 1231,
++                 "LSMC iteration {}: kick_target {}, kick_attempts {}, "
++                 "legal_kicks {}, descent_script '{}', hpwl_before {:.1f}, "
++                 "hpwl_after_kick {:.1f}, hpwl_after_algo2 {:.1f}, "
++                 "hpwl_after {:.1f}, algo1_kick_gain {:.1f}, "
++                 "algo2_repair_gain {:.1f}, algo2_full_gain {:.1f}, "
++                 "fallback_triggered {}, fallback_skipped {}, "
++                 "cheap_fallback_called {}, full_fallback_called {}, "
++                 "reverse_fallback_called {}, fallback_descent_called {}, "
++                 "fallback_descent_gain {:.1f}, "
++                 "final_transaction_gain {:.1f}, decision {}, failures {}, "
++                 "runtime {:.3f} ms, thread_count {}, kicked_rows {}, "
++                 "kick_region_attempts {}, kick_regions {}, "
++                 "kick_region_candidates {}, "
++                 "kick_candidates {}, kick_dryrun_scored {}, "
++                 "kick_src_batches {}, kick_avg_aff_edges {:.2f}, "
++                 "kick_cache hits/misses {}/{}, "
++                 "kick_exact_scored {}, kick_topk_kept {}, "
++                 "kick_topk_pruned {}, kick_dryrun_runtime {:.3f} ms, "
++                 "kick_dryrun_cached_runtime {:.3f} ms, "
++                 "kick_topk_runtime {:.3f} ms, kick_reject_hpwl {}, "
++                 "kick_reject_legal {}, kick_exact_gain {:.1f}, dp_windows {}, "
++                 "dp_accepted_windows {}, dp_parallel_layers {}, "
++                 "dp_parallel_states {}, dp_parallel_runtime {:.3f} ms, "
++                 "dp_exact_gain {:.1f}.",
++                 iter,
++                 kick_target,
++                 kick_attempts,
++                 legal_kicks,
++                 descent_script,
++                 before_hpwl,
++                 after_kick_hpwl,
++                 after_dp_hpwl,
++                 trial_hpwl,
++                 kick_trace.kick_exact_gain,
++                 dp_stats.exact_gain,
++                 algo2_full_gain,
++                 fallback_stats.fallback_triggered ? "yes" : "no",
++                 fallback_stats.fallback_skipped ? "yes" : "no",
++                 fallback_stats.cheap_called ? "yes" : "no",
++                 fallback_stats.full_called ? "yes" : "no",
++                 fallback_stats.reverse_called ? "yes" : "no",
++                 fallback_stats.called ? "yes" : "no",
++                 fallback_stats.full_hpwl_gain,
++                 transaction_gain,
++                 decision,
++                 failures,
++                 runtime_ms,
++                 thread_count,
++                 dp_stats.kicked_rows,
++                 kick_trace.kick_region_attempts,
++                 kick_trace.kick_regions,
++                 kick_trace.kick_region_candidates,
++                 kick_trace.kick_candidates,
++                 kick_trace.kick_dryrun_scored,
++                 kick_trace.kick_dryrun_src_batches,
++                 kick_trace.kick_dryrun_scored > 0
++                     ? static_cast<double>(kick_trace.kick_dryrun_affected_edges)
++                           / static_cast<double>(kick_trace.kick_dryrun_scored)
++                     : 0.0,
++                 kick_trace.kick_dryrun_cache_hits,
++                 kick_trace.kick_dryrun_cache_misses,
++                 kick_trace.kick_exact_scored,
++                 kick_trace.kick_topk_kept,
++                 kick_trace.kick_topk_pruned,
++                 kick_trace.kick_dryrun_runtime_ms,
++                 kick_trace.kick_dryrun_cached_runtime_ms,
++                 kick_trace.kick_topk_runtime_ms,
++                 kick_trace.kick_reject_hpwl,
++                 kick_trace.kick_reject_legal,
++                 kick_trace.kick_exact_gain,
++                 dp_stats.windows_built,
++                 dp_stats.accepted_windows,
++                 dp_stats.dp_parallel_layers,
++                 dp_stats.dp_parallel_states,
++                 dp_stats.dp_parallel_runtime_ms,
++                 dp_stats.exact_gain);
++
++    if (failures >= kFailureTolerance) {
++      break;
++    }
++  }
++
++  const double total_runtime_ms
++      = std::chrono::duration<double, std::milli>(
++            std::chrono::steady_clock::now() - lsmc_start)
++            .count();
++  logger->info(utl::DPL,
++               1232,
++               "LSMC summary: accepted {}, rolled_back {}, "
++               "reject_no_legal_kick {}, reject_no_gain {}, "
++               "total_kick_attempts {}, total_legal_kicks {}, "
++               "best_gain {:.1f}, final_hpwl {:.1f}, runtime {:.3f} ms, "
++               "thread_count {}, dp_windows {}, dp_accepted_windows {}, "
++               "dp_states {}, dp_transitions {}, dp_pruned {}, "
++               "dp_parallel_layers {}, dp_parallel_states {}, "
++               "dp_parallel_runtime {:.3f} ms, "
++               "dp_dryrun_scored {}, dp_exact_scored {}, "
++               "kick_region_attempts {}, kick_regions {}, "
++               "kick_region_rejects {}, avg_region_edges {:.2f}, "
++               "avg_region_span_dbu {:.1f}/{:.1f}, "
++               "kick_region_candidates {}, kick_candidates {}, "
++               "kick_dryrun_scored {}, kick_exact_scored {}, "
++               "kick_src_batches {}, kick_avg_aff_edges {:.2f}, "
++               "kick_cache hits/misses {}/{}, "
++               "kick_topk_kept {}, kick_topk_pruned {}, "
++               "kick_dryrun_runtime {:.3f} ms, "
++               "kick_dryrun_cached_runtime {:.3f} ms, "
++               "kick_topk_runtime {:.3f} ms, "
++               "kick_reject_hpwl {}, kick_reject_legal {}, "
++               "kick_exact_gain {:.1f}, "
++               "dp_cache_edges {}, dp_cache_hits {}, dp_cache_misses {}, "
++               "dp_exact_gain {:.1f}, dp_full_gain {:.1f}, "
++               "fallback_triggered {}, fallback_skipped {}, "
++               "fallback_descent_called {}, cheap_fallback_called {}, "
++               "full_fallback_called {}, reverse_fallback_called {}, "
++               "fallback_descent_gain {:.1f}, cheap_fallback_gain {:.1f}, "
++               "full_fallback_gain {:.1f}, reverse_fallback_gain {:.1f}, "
++               "fallback_runtime {:.3f} ms, cheap_fallback_runtime {:.3f} ms, "
++               "full_fallback_runtime {:.3f} ms, "
++               "reverse_fallback_runtime {:.3f} ms, transaction_gain_sum {:.1f}.",
++               accepted,
++               rolled_back,
++               reject_no_legal_kick,
++               reject_no_gain,
++               total_kick_attempts,
++               total_legal_kicks,
++               initial_hpwl - best_hpwl,
++               best_hpwl,
++               total_runtime_ms,
++               thread_count,
++               total_dp_windows,
++               total_dp_accepted_windows,
++               total_dp_states,
++               total_dp_transitions,
++               total_dp_pruned,
++               total_dp_parallel_layers,
++               total_dp_parallel_states,
++               total_dp_parallel_runtime_ms,
++               total_dp_dryrun_scored,
++               total_dp_exact_scored,
++               total_kick_region_attempts,
++               total_kick_regions,
++               total_kick_region_rejects,
++               total_kick_regions > 0
++                   ? static_cast<double>(total_kick_region_incident_edges)
++                         / static_cast<double>(total_kick_regions)
++                   : 0.0,
++               total_kick_regions > 0
++                   ? total_kick_region_x_span
++                         / static_cast<double>(total_kick_regions)
++                   : 0.0,
++               total_kick_regions > 0
++                   ? total_kick_region_y_span
++                         / static_cast<double>(total_kick_regions)
++                   : 0.0,
++               total_kick_region_candidates,
++               total_kick_candidates,
++               total_kick_dryrun_scored,
++               total_kick_exact_scored,
++               total_kick_dryrun_src_batches,
++               total_kick_dryrun_scored > 0
++                   ? static_cast<double>(total_kick_dryrun_affected_edges)
++                         / static_cast<double>(total_kick_dryrun_scored)
++                   : 0.0,
++               total_kick_dryrun_cache_hits,
++               total_kick_dryrun_cache_misses,
++               total_kick_topk_kept,
++               total_kick_topk_pruned,
++               total_kick_dryrun_runtime_ms,
++               total_kick_dryrun_cached_runtime_ms,
++               total_kick_topk_runtime_ms,
++               total_kick_reject_hpwl,
++               total_kick_reject_legal,
++               total_kick_exact_gain,
++               total_dp_cache_edges,
++               total_dp_cache_hits,
++               total_dp_cache_misses,
++               total_dp_exact_gain,
++               total_dp_full_gain,
++               total_fallback_triggered,
++               total_fallback_skipped,
++               total_fallback_called,
++               total_cheap_fallback_called,
++               total_full_fallback_called,
++               total_reverse_fallback_called,
++               total_fallback_gain,
++               total_cheap_fallback_gain,
++               total_full_fallback_gain,
++               total_reverse_fallback_gain,
++               total_fallback_runtime_ms,
++               total_cheap_fallback_runtime_ms,
++               total_full_fallback_runtime_ms,
++               total_reverse_fallback_runtime_ms,
++               total_transaction_gain);
++}
+ }  // namespace
+ 
+ ////////////////////////////////////////////////////////////////
+@@ -98,18 +2850,78 @@ void Opendp::improvePlacement(const int seed,
+   // Everything done through a script string.
+ 
+   DetailedParams dtParams;
++  const double legalization_loss
++      = hpwl_before_ > 0
++            ? static_cast<double>(hpwlBefore - hpwl_before_)
++                  / static_cast<double>(hpwl_before_)
++            : 0.0;
++  const bool high_recovery_opportunity = legalization_loss >= 0.03;
++  const double stdcell_utilization
++      = computeStdcellUtilization(arch_.get(), network_.get());
++  const bool low_util_structured_tail
++      = !high_recovery_opportunity && stdcell_utilization > 0.0
++        && stdcell_utilization <= 0.80;
++  const char* descent_tol = high_recovery_opportunity ? "0.005" : "0.010";
++  const int random_passes = high_recovery_opportunity ? 5 : 3;
++  // Iter24 showed the paper-reference MIS size 64 was active, but it pushed
++  // dense JPEG into a worse downstream basin.  Keep the source trace knob, but
++  // use the legacy-safe problem size until a canonical acceptance gate exists.
++  const int mis_problem_size = 25;
++  // Iter32 showed broad dense HPWL-priority MIS shifts JPEG into a worse
++  // downstream basin. Keep the parser/trace support but do not enable it from
++  // the deployable schedule until a narrower frontier has an acceptance gate.
++  const bool dense_mis_priority = false;
++  const int reorder_window
++      = high_recovery_opportunity ? (stdcell_utilization >= 0.90 ? 5 : 4) : 3;
++  const bool post_kick_descent = high_recovery_opportunity;
++  logger_->info(utl::DPL,
++                1227,
++                "DPO recovery schedule: legalization HPWL loss {:.2f}%, "
++                "stdcell utilization {:.1f}%, stage tolerance {}, reorder "
++                "window {}, MIS problem size {}, random passes {}, "
++                "post-kick descent {}, low-util structured tail {}.",
++                legalization_loss * 100.0,
++                stdcell_utilization * 100.0,
++                descent_tol,
++                reorder_window,
++                mis_problem_size,
++                random_passes,
++                post_kick_descent ? "on" : "off",
++                low_util_structured_tail ? "on" : "off");
+   dtParams.script = "";
+   // Maximum independent set matching.
+-  dtParams.script += "mis -p 10 -t 0.005;";
++  dtParams.script
++      += fmt::format("mis -p 10 -t {} -n {}{};",
++                     descent_tol,
++                     mis_problem_size,
++                     dense_mis_priority ? " -priority hpwl" : "");
+   // Global swaps.
+-  dtParams.script += "gs -p 10 -t 0.005;";
++  dtParams.script += fmt::format("gs -p 10 -t {};", descent_tol);
+   // Vertical swaps.
+-  dtParams.script += "vs -p 10 -t 0.005;";
++  dtParams.script += fmt::format("vs -p 10 -t {};", descent_tol);
+   // Small reordering.
+-  dtParams.script += "ro -p 10 -t 0.005;";
++  dtParams.script
++      += fmt::format("ro -w {} -p 10 -t {};", reorder_window, descent_tol);
+   // Random moves and swaps with hpwl as a cost function.  Use
+   // random moves and hpwl objective right now.
+-  dtParams.script += "default -p 5 -f 20 -gen rng -obj hpwl -cost (hpwl);";
++  dtParams.script += fmt::format(
++      "default -p {} -f 20 -gen rng -obj hpwl -cost (hpwl);", random_passes);
++  if (post_kick_descent) {
++    dtParams.script += fmt::format("gs -p 3 -t {};", descent_tol);
++    dtParams.script += fmt::format("vs -p 3 -t {};", descent_tol);
++    dtParams.script
++        += fmt::format("ro -w {} -p 3 -t {};", reorder_window, descent_tol);
++    dtParams.script += fmt::format(
++        "ro -w {} -p 2 -t {} -reverse;", reorder_window, descent_tol);
++  }
++  if (low_util_structured_tail) {
++    dtParams.script +=
++        "default -p 2 -f 8 -gen gs:rng -obj hpwl -cost (hpwl);";
++    dtParams.script += fmt::format("gs -p 2 -t {};", descent_tol);
++    dtParams.script += fmt::format("vs -p 2 -t {};", descent_tol);
++    dtParams.script += fmt::format(
++        "ro -w {} -p 2 -t {} -reverse;", reorder_window, descent_tol);
++  }
+ 
+   if (disallow_one_site_gaps) {
+     dtParams.script += "disallow_one_site_gaps;";
+@@ -124,6 +2936,14 @@ void Opendp::improvePlacement(const int seed,
+   Detailed dt(dtParams);
+   dt.improve(mgr);
+ 
++  runLsmcBooster(mgr,
++                 arch_.get(),
++                 network_.get(),
++                 reorder_window,
++                 descent_tol,
++                 high_recovery_opportunity,
++                 logger_);
++
+   if (debug_observer_) {
+     logger_->report("Pause after improve placement.");
+     debug_observer_->redrawAndPause();

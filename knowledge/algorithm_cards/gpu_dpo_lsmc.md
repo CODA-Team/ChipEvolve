@@ -139,4 +139,4 @@ Next CPU-DPO implementation target:
 2. build a reusable local HPWL extrema cache,
 3. score GS/VS/Reorder candidates from a bounded source frontier,
 4. serialize only exact legal commits,
-5. use mirror-aware final scoring only after after-improve HPWL is competitive.
+5. use final-stage mirror effects only as diagnosis after after-improve HPWL is competitive; do not make downstream optimize-mirroring the active patch target.

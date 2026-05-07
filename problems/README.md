@@ -13,12 +13,16 @@ A problem is the canonical control-plane handle for a case. It should answer:
 
 - one directory per case
 - one `problem.yaml` per directory
+- dense variants that reuse the same ORFS design config should set
+  `recommended_flow_variant: DENSE`; launch scripts still pass the actual
+  `--flow-variant` explicitly.
 
 Examples:
 
 - `gcd_nangate45/problem.yaml`
 - `aes_asap7/problem.yaml`
 - `ibex_nangate45/problem.yaml`
+- `aes_dense_nangate45/problem.yaml`
 
 ## Notes
 
@@ -31,8 +35,10 @@ Examples:
 - `patch_surface` lists the current framework files that agents may modify for
   this case.  It intentionally includes LEGALM/legalization, row assignment,
   repair handoff, the `detailed_placement_evolve` interface,
-  detailed-improvement internals, and mirror/orientation strategy so agents
-  are not restricted to stale top-level scaffolding.
+  detailed-improvement internals, and shared legalizer/improve handoff so
+  agents are not restricted to stale top-level scaffolding. Downstream
+  optimize-mirroring remains callable and evaluated, but is not an active
+  optimization surface.
   Detailed symbol-level policy lives in
   `../adapters/science_codeevolve/patch_surface.yaml`.
 

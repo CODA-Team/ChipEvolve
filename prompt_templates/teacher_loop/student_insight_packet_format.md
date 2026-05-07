@@ -6,6 +6,10 @@
 - HPWL source mechanism:
 - why this can beat a small donor:
 - evidence:
+- selected stage skills:
+- expected stage transitions:
+- done criteria by stage:
+- required log signals:
 - active workbench repair, if any:
 - step-by-step execution chain:
 - plan A legalization/detailed placement:

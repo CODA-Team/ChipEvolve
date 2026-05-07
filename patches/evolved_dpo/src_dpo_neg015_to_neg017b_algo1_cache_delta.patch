@@ -1,0 +1,721 @@
+diff --git a/src/Optdp.cpp b/src/Optdp.cpp
+index 965e6b5..84b82f5 100644
+--- a/src/Optdp.cpp
++++ b/src/Optdp.cpp
+@@ -213,12 +213,21 @@ struct LsmcKickTrace
+   double kick_region_x_span = 0.0;
+   double kick_region_y_span = 0.0;
+   uint64_t kick_candidates = 0;
++  uint64_t kick_dryrun_src_batches = 0;
+   uint64_t kick_dryrun_scored = 0;
++  uint64_t kick_dryrun_affected_edges = 0;
++  uint64_t kick_dryrun_cache_hits = 0;
++  uint64_t kick_dryrun_cache_misses = 0;
+   uint64_t kick_exact_scored = 0;
++  uint64_t kick_topk_kept = 0;
++  uint64_t kick_topk_pruned = 0;
+   uint64_t kick_reject_hpwl = 0;
+   uint64_t kick_reject_legal = 0;
+   uint64_t affected_edges = 0;
+   double kick_exact_gain = 0.0;
++  double kick_dryrun_runtime_ms = 0.0;
++  double kick_dryrun_cached_runtime_ms = 0.0;
++  double kick_topk_runtime_ms = 0.0;
+ 
+   void clear()
+   {
+@@ -234,12 +243,21 @@ struct LsmcKickTrace
+     kick_region_x_span = 0.0;
+     kick_region_y_span = 0.0;
+     kick_candidates = 0;
++    kick_dryrun_src_batches = 0;
+     kick_dryrun_scored = 0;
++    kick_dryrun_affected_edges = 0;
++    kick_dryrun_cache_hits = 0;
++    kick_dryrun_cache_misses = 0;
+     kick_exact_scored = 0;
++    kick_topk_kept = 0;
++    kick_topk_pruned = 0;
+     kick_reject_hpwl = 0;
+     kick_reject_legal = 0;
+     affected_edges = 0;
+     kick_exact_gain = 0.0;
++    kick_dryrun_runtime_ms = 0.0;
++    kick_dryrun_cached_runtime_ms = 0.0;
++    kick_topk_runtime_ms = 0.0;
+   }
+ };
+ 
+@@ -302,6 +320,8 @@ struct LocalDpStats
+   uint64_t dp_states = 0;
+   uint64_t dp_transitions = 0;
+   uint64_t dp_pruned_states = 0;
++  uint64_t dp_parallel_layers = 0;
++  uint64_t dp_parallel_states = 0;
+   uint64_t dryrun_scored = 0;
+   uint64_t exact_scored = 0;
+   uint64_t accepted_windows = 0;
+@@ -313,6 +333,7 @@ struct LocalDpStats
+   uint64_t cache_misses = 0;
+   double exact_gain = 0.0;
+   double runtime_ms = 0.0;
++  double dp_parallel_runtime_ms = 0.0;
+ };
+ 
+ struct LsmcFallbackDescentStats
+@@ -423,6 +444,50 @@ struct Algo1SwapCandidate
+   double dry_gain = -std::numeric_limits<double>::max();
+ };
+ 
++struct Algo1CachedPin
++{
++  const Node* node = nullptr;
++  DbuX offset_x{0};
++  DbuY offset_y{0};
++};
++
++struct Algo1CachedEdge
++{
++  const Edge* edge = nullptr;
++  std::vector<Algo1CachedPin> pins;
++  std::vector<int> src_pin_indices;
++  DbuX src_outside_xmin{0};
++  DbuX src_outside_xmax{0};
++  DbuY src_outside_ymin{0};
++  DbuY src_outside_ymax{0};
++  bool has_src_outside_pin = false;
++  double current_hpwl = 0.0;
++};
++
++struct Algo1DryRunBatchCache
++{
++  const Node* src = nullptr;
++  std::vector<Algo1CachedEdge> src_edges;
++  std::unordered_map<int, int> src_edge_index_by_id;
++  uint64_t cache_hits = 0;
++  uint64_t cache_misses = 0;
++  uint64_t affected_edges = 0;
++};
++
++struct Algo1DryRunScoreStats
++{
++  uint64_t cache_hits = 0;
++  uint64_t cache_misses = 0;
++  uint64_t affected_edges = 0;
++};
++
++struct Algo1DryRunThreadScratch
++{
++  std::vector<unsigned char> dst_on_src_edge;
++  std::vector<int> dst_only_edge_ids;
++  std::vector<const Edge*> dst_only_edges;
++};
++
+ constexpr int kMaxLocalDpCells = 9;
+ using LocalDpChoice = std::array<int, kMaxLocalDpCells>;
+ 
+@@ -734,7 +799,198 @@ double edgeHpwlCurrent(const Edge* edge)
+   return static_cast<double>((xmax - xmin).v + (ymax - ymin).v);
+ }
+ 
+-double dryRunSwapGain(const Node* src, const Node* dst)
++Algo1CachedEdge buildAlgo1CachedEdge(const Edge* edge, const Node* src)
++{
++  Algo1CachedEdge cached;
++  cached.edge = edge;
++  if (edge == nullptr || edge->getNumPins() <= 1) {
++    return cached;
++  }
++  cached.pins.reserve(edge->getNumPins());
++
++  DbuX current_xmin = std::numeric_limits<DbuX>::max();
++  DbuX current_xmax = std::numeric_limits<DbuX>::min();
++  DbuY current_ymin = std::numeric_limits<DbuY>::max();
++  DbuY current_ymax = std::numeric_limits<DbuY>::min();
++
++  DbuX src_outside_xmin = std::numeric_limits<DbuX>::max();
++  DbuX src_outside_xmax = std::numeric_limits<DbuX>::min();
++  DbuY src_outside_ymin = std::numeric_limits<DbuY>::max();
++  DbuY src_outside_ymax = std::numeric_limits<DbuY>::min();
++
++  for (int pi = 0; pi < edge->getNumPins(); ++pi) {
++    const Pin* pin = edge->getPins()[pi];
++    const Node* node = pin->getNode();
++    cached.pins.push_back({node, pin->getOffsetX(), pin->getOffsetY()});
++    const DbuX x = node->getCenterX() + pin->getOffsetX();
++    const DbuY y = node->getCenterY() + pin->getOffsetY();
++    current_xmin = std::min(current_xmin, x);
++    current_xmax = std::max(current_xmax, x);
++    current_ymin = std::min(current_ymin, y);
++    current_ymax = std::max(current_ymax, y);
++    if (node == src) {
++      cached.src_pin_indices.push_back(pi);
++    } else {
++      cached.has_src_outside_pin = true;
++      src_outside_xmin = std::min(src_outside_xmin, x);
++      src_outside_xmax = std::max(src_outside_xmax, x);
++      src_outside_ymin = std::min(src_outside_ymin, y);
++      src_outside_ymax = std::max(src_outside_ymax, y);
++    }
++  }
++
++  cached.current_hpwl = static_cast<double>(
++      (current_xmax - current_xmin).v + (current_ymax - current_ymin).v);
++  if (cached.has_src_outside_pin) {
++    cached.src_outside_xmin = src_outside_xmin;
++    cached.src_outside_xmax = src_outside_xmax;
++    cached.src_outside_ymin = src_outside_ymin;
++    cached.src_outside_ymax = src_outside_ymax;
++  }
++  return cached;
++}
++
++void prepareAlgo1DryRunBatchCache(const Node* src,
++                                  Algo1DryRunBatchCache& cache)
++{
++  cache = Algo1DryRunBatchCache{};
++  cache.src = src;
++  if (src == nullptr) {
++    return;
++  }
++
++  cache.src_edge_index_by_id.reserve(src->getNumPins());
++  for (int pi = 0; pi < src->getNumPins(); ++pi) {
++    const Edge* edge = src->getPins()[pi]->getEdge();
++    if (edge == nullptr || edge->getNumPins() <= 1) {
++      continue;
++    }
++    const int edge_id = edge->getId();
++    if (cache.src_edge_index_by_id.find(edge_id)
++        != cache.src_edge_index_by_id.end()) {
++      continue;
++    }
++    const int edge_index = static_cast<int>(cache.src_edges.size());
++    cache.src_edge_index_by_id[edge_id] = edge_index;
++    cache.src_edges.push_back(buildAlgo1CachedEdge(edge, src));
++    ++cache.cache_misses;
++  }
++}
++
++double cachedEdgeHpwlAfterAlgo1Swap(const Algo1CachedEdge& edge,
++                                    const Node* src,
++                                    const Node* dst,
++                                    const bool dst_on_edge)
++{
++  DbuX xmin = std::numeric_limits<DbuX>::max();
++  DbuX xmax = std::numeric_limits<DbuX>::min();
++  DbuY ymin = std::numeric_limits<DbuY>::max();
++  DbuY ymax = std::numeric_limits<DbuY>::min();
++
++  const DbuX src_center_x_after = nodeCenterXAt(src, dst->getLeft());
++  const DbuY src_center_y_after = nodeCenterYAt(src, dst->getBottom());
++  if (!dst_on_edge && edge.has_src_outside_pin) {
++    xmin = edge.src_outside_xmin;
++    xmax = edge.src_outside_xmax;
++    ymin = edge.src_outside_ymin;
++    ymax = edge.src_outside_ymax;
++    for (const int pin_index : edge.src_pin_indices) {
++      const Algo1CachedPin& pin = edge.pins[pin_index];
++      const DbuX x = src_center_x_after + pin.offset_x;
++      const DbuY y = src_center_y_after + pin.offset_y;
++      xmin = std::min(xmin, x);
++      xmax = std::max(xmax, x);
++      ymin = std::min(ymin, y);
++      ymax = std::max(ymax, y);
++    }
++    return static_cast<double>((xmax - xmin).v + (ymax - ymin).v);
++  }
++
++  const DbuX dst_center_x_after = nodeCenterXAt(dst, src->getLeft());
++  const DbuY dst_center_y_after = nodeCenterYAt(dst, src->getBottom());
++  for (const Algo1CachedPin& pin : edge.pins) {
++    DbuX center_x = pin.node->getCenterX();
++    DbuY center_y = pin.node->getCenterY();
++    if (pin.node == src) {
++      center_x = src_center_x_after;
++      center_y = src_center_y_after;
++    } else if (pin.node == dst) {
++      center_x = dst_center_x_after;
++      center_y = dst_center_y_after;
++    }
++    const DbuX x = center_x + pin.offset_x;
++    const DbuY y = center_y + pin.offset_y;
++    xmin = std::min(xmin, x);
++    xmax = std::max(xmax, x);
++    ymin = std::min(ymin, y);
++    ymax = std::max(ymax, y);
++  }
++  return static_cast<double>((xmax - xmin).v + (ymax - ymin).v);
++}
++
++double dryRunSwapGainCached(const Node* src,
++                            const Algo1SwapCandidate& candidate,
++                            const Algo1DryRunBatchCache& cache,
++                            Algo1DryRunScoreStats& stats,
++                            Algo1DryRunThreadScratch& scratch)
++{
++  double before = 0.0;
++  double after = 0.0;
++  const Node* dst = candidate.dst;
++  if (src == nullptr || dst == nullptr) {
++    return -std::numeric_limits<double>::max();
++  }
++  scratch.dst_on_src_edge.assign(cache.src_edges.size(), 0);
++  scratch.dst_only_edge_ids.clear();
++  scratch.dst_only_edges.clear();
++
++  for (int pi = 0; pi < dst->getNumPins(); ++pi) {
++    const Edge* edge = dst->getPins()[pi]->getEdge();
++    if (edge == nullptr || edge->getNumPins() <= 1) {
++      continue;
++    }
++    const int edge_id = edge->getId();
++    const auto src_edge_it = cache.src_edge_index_by_id.find(edge_id);
++    if (src_edge_it != cache.src_edge_index_by_id.end()) {
++      scratch.dst_on_src_edge[src_edge_it->second] = 1;
++      continue;
++    }
++    if (std::find(scratch.dst_only_edge_ids.begin(),
++                  scratch.dst_only_edge_ids.end(),
++                  edge_id)
++        == scratch.dst_only_edge_ids.end()) {
++      scratch.dst_only_edge_ids.push_back(edge_id);
++      scratch.dst_only_edges.push_back(edge);
++    }
++  }
++
++  for (int i = 0; i < static_cast<int>(cache.src_edges.size()); ++i) {
++    const Algo1CachedEdge& edge = cache.src_edges[i];
++    before += edge.current_hpwl;
++    after += cachedEdgeHpwlAfterAlgo1Swap(edge,
++                                          src,
++                                          dst,
++                                          scratch.dst_on_src_edge[i] != 0);
++    ++stats.affected_edges;
++    ++stats.cache_hits;
++  }
++
++  for (const Edge* edge : scratch.dst_only_edges) {
++    before += edgeHpwlCurrent(edge);
++    after += edgeHpwlWithTwoCellsAt(edge,
++                                    src,
++                                    dst->getLeft(),
++                                    dst->getBottom(),
++                                    dst,
++                                    src->getLeft(),
++                                    src->getBottom());
++    ++stats.affected_edges;
++    ++stats.cache_misses;
++  }
++  return before - after;
++}
++
++[[maybe_unused]] double dryRunSwapGain(const Node* src, const Node* dst)
+ {
+   double before = 0.0;
+   double after = 0.0;
+@@ -1219,6 +1475,16 @@ bool buildLocalDpWindow(DetailedMgr& mgr,
+   return sites.size() >= cells.size();
+ }
+ 
++struct LocalDpStateResult
++{
++  double cost = std::numeric_limits<double>::max() / 4.0;
++  LocalDpChoice choice{};
++  uint64_t transitions = 0;
++  uint64_t pruned = 0;
++  uint64_t exact = 0;
++  bool reachable = false;
++};
++
+ bool runLocalDpWindow(DetailedMgr& mgr,
+                       Architecture* arch,
+                       Network* network,
+@@ -1282,30 +1548,55 @@ bool runLocalDpWindow(DetailedMgr& mgr,
+   }
+ 
+   for (int i = 1; i < n; ++i) {
++    const auto layer_start = std::chrono::steady_clock::now();
++    std::vector<LocalDpStateResult> layer_results(m);
++#ifdef _OPENMP
++    const int worker_count = boundedThreadCount();
++#pragma omp parallel for num_threads(worker_count) schedule(static)
++#endif
+     for (int j = 0; j < m; ++j) {
++      LocalDpStateResult result;
++      result.choice = empty_choice;
+       if (!legal_site[i][j]) {
++        layer_results[j] = result;
+         continue;
+       }
+       for (int l = 0; l < j; ++l) {
+-        ++stats.dp_transitions;
++        ++result.transitions;
+         if (dp[i - 1][l] >= kInf) {
+           continue;
+         }
+         if (!transitionLegal(arch, cells[i - 1], sites[l], cells[i], sites[j])) {
+-          ++stats.dp_pruned_states;
++          ++result.pruned;
+           continue;
+         }
+         LocalDpChoice trial_choice = choices[i - 1][l];
+         trial_choice[i] = j;
+         const double trial
+             = localDpCostWithChoice(cost_cache, sites, trial_choice, i + 1);
+-        ++stats.exact_scored;
+-        if (trial < dp[i][j]) {
+-          dp[i][j] = trial;
+-          choices[i][j] = trial_choice;
++        ++result.exact;
++        if (trial < result.cost) {
++          result.cost = trial;
++          result.choice = trial_choice;
+         }
+       }
+-      if (dp[i][j] < kInf) {
++      result.reachable = result.cost < kInf;
++      layer_results[j] = result;
++    }
++    stats.dp_parallel_runtime_ms
++        += std::chrono::duration<double, std::milli>(
++               std::chrono::steady_clock::now() - layer_start)
++               .count();
++    ++stats.dp_parallel_layers;
++    stats.dp_parallel_states += m;
++    for (int j = 0; j < m; ++j) {
++      const LocalDpStateResult& result = layer_results[j];
++      stats.dp_transitions += result.transitions;
++      stats.dp_pruned_states += result.pruned;
++      stats.exact_scored += result.exact;
++      if (result.reachable) {
++        dp[i][j] = result.cost;
++        choices[i][j] = result.choice;
+         ++stats.dp_states;
+       }
+     }
+@@ -1700,30 +1991,75 @@ bool generateAlgo1RegionKickSwap(DetailedMgr& mgr,
+     kick_trace.kick_region_candidates += swap_candidates.size();
+     kick_trace.kick_candidates += swap_candidates.size();
+ 
++    const auto dryrun_start = std::chrono::steady_clock::now();
++    Algo1DryRunBatchCache dry_cache;
++    prepareAlgo1DryRunBatchCache(src, dry_cache);
++    uint64_t dryrun_affected_edges = 0;
++    uint64_t dryrun_cache_hits = dry_cache.cache_hits;
++    uint64_t dryrun_cache_misses = dry_cache.cache_misses;
+ #ifdef _OPENMP
+-#pragma omp parallel for num_threads(worker_count) schedule(static)
+-#endif
++#pragma omp parallel num_threads(worker_count)
++    {
++      Algo1DryRunThreadScratch scratch;
++      Algo1DryRunScoreStats local_stats;
++#pragma omp for schedule(static)
++      for (int i = 0; i < static_cast<int>(swap_candidates.size()); ++i) {
++        swap_candidates[i].dry_gain = dryRunSwapGainCached(
++            src, swap_candidates[i], dry_cache, local_stats, scratch);
++      }
++#pragma omp atomic
++      dryrun_affected_edges += local_stats.affected_edges;
++#pragma omp atomic
++      dryrun_cache_hits += local_stats.cache_hits;
++#pragma omp atomic
++      dryrun_cache_misses += local_stats.cache_misses;
++    }
++#else
++    Algo1DryRunThreadScratch scratch;
++    Algo1DryRunScoreStats local_stats;
+     for (int i = 0; i < static_cast<int>(swap_candidates.size()); ++i) {
+-      swap_candidates[i].dry_gain
+-          = dryRunSwapGain(src, swap_candidates[i].dst);
++      swap_candidates[i].dry_gain = dryRunSwapGainCached(
++          src, swap_candidates[i], dry_cache, local_stats, scratch);
+     }
++    dryrun_affected_edges += local_stats.affected_edges;
++    dryrun_cache_hits += local_stats.cache_hits;
++    dryrun_cache_misses += local_stats.cache_misses;
++#endif
++    const double dryrun_runtime_ms
++        = std::chrono::duration<double, std::milli>(
++              std::chrono::steady_clock::now() - dryrun_start)
++              .count();
++    kick_trace.kick_dryrun_runtime_ms += dryrun_runtime_ms;
++    kick_trace.kick_dryrun_cached_runtime_ms += dryrun_runtime_ms;
++    ++kick_trace.kick_dryrun_src_batches;
+     kick_trace.kick_dryrun_scored += swap_candidates.size();
+-
+-    std::sort(swap_candidates.begin(),
+-              swap_candidates.end(),
+-              [](const Algo1SwapCandidate& lhs,
+-                 const Algo1SwapCandidate& rhs) {
+-                if (lhs.dry_gain != rhs.dry_gain) {
+-                  return lhs.dry_gain > rhs.dry_gain;
+-                }
+-                if (lhs.center_distance != rhs.center_distance) {
+-                  return lhs.center_distance < rhs.center_distance;
+-                }
+-                return lhs.dst->getId() < rhs.dst->getId();
+-              });
++    kick_trace.kick_dryrun_affected_edges += dryrun_affected_edges;
++    kick_trace.kick_dryrun_cache_hits += dryrun_cache_hits;
++    kick_trace.kick_dryrun_cache_misses += dryrun_cache_misses;
+ 
+     const int exact_limit = std::min<int>(kMaxExactCandidates,
+                                           swap_candidates.size());
++    const auto topk_start = std::chrono::steady_clock::now();
++    const auto candidate_less = [](const Algo1SwapCandidate& lhs,
++                                   const Algo1SwapCandidate& rhs) {
++      if (lhs.dry_gain != rhs.dry_gain) {
++        return lhs.dry_gain > rhs.dry_gain;
++      }
++      if (lhs.center_distance != rhs.center_distance) {
++        return lhs.center_distance < rhs.center_distance;
++      }
++      return lhs.dst->getId() < rhs.dst->getId();
++    };
++    std::partial_sort(swap_candidates.begin(),
++                      swap_candidates.begin() + exact_limit,
++                      swap_candidates.end(),
++                      candidate_less);
++    kick_trace.kick_topk_runtime_ms
++        += std::chrono::duration<double, std::milli>(
++               std::chrono::steady_clock::now() - topk_start)
++               .count();
++    kick_trace.kick_topk_kept += exact_limit;
++    kick_trace.kick_topk_pruned += swap_candidates.size() - exact_limit;
+     for (int ci = 0; ci < exact_limit; ++ci) {
+       const Algo1SwapCandidate& candidate = swap_candidates[ci];
+       Node* dst = candidate.dst;
+@@ -1878,6 +2214,8 @@ void runLsmcBooster(DetailedMgr& mgr,
+                "seed_anchors {}, dp_windows considered/built/skipped {}/{}/{}, "
+                "dp_cells {}, dp_sites {}, dp_states {}, dp_transitions {}, "
+                "dp_pruned {}, dryrun_scored {}, exact_scored {}, "
++               "dp_parallel_layers {}, dp_parallel_states {}, "
++               "dp_parallel_runtime {:.3f} ms, "
+                "accepted_windows {}, rejects no_dp/exact/legal {}/{}/{}, "
+                "exact_gain {:.1f}, full_hpwl_before {:.1f}, full_hpwl_after "
+                "{:.1f}, full_gain {:.1f}, decision {}, cache_edges {}, cache "
+@@ -1895,6 +2233,9 @@ void runLsmcBooster(DetailedMgr& mgr,
+                seed_stats.dp_pruned_states,
+                seed_stats.dryrun_scored,
+                seed_stats.exact_scored,
++               seed_stats.dp_parallel_layers,
++               seed_stats.dp_parallel_states,
++               seed_stats.dp_parallel_runtime_ms,
+                seed_stats.accepted_windows,
+                seed_stats.rejected_no_dp,
+                seed_stats.rejected_no_exact_gain,
+@@ -1944,6 +2285,9 @@ void runLsmcBooster(DetailedMgr& mgr,
+   uint64_t total_dp_states = 0;
+   uint64_t total_dp_transitions = 0;
+   uint64_t total_dp_pruned = 0;
++  uint64_t total_dp_parallel_layers = 0;
++  uint64_t total_dp_parallel_states = 0;
++  double total_dp_parallel_runtime_ms = 0.0;
+   uint64_t total_dp_dryrun_scored = 0;
+   uint64_t total_dp_exact_scored = 0;
+   uint64_t total_dp_cache_edges = 0;
+@@ -1958,10 +2302,19 @@ void runLsmcBooster(DetailedMgr& mgr,
+   double total_kick_region_y_span = 0.0;
+   uint64_t total_kick_candidates = 0;
+   uint64_t total_kick_dryrun_scored = 0;
++  uint64_t total_kick_dryrun_src_batches = 0;
++  uint64_t total_kick_dryrun_affected_edges = 0;
++  uint64_t total_kick_dryrun_cache_hits = 0;
++  uint64_t total_kick_dryrun_cache_misses = 0;
+   uint64_t total_kick_exact_scored = 0;
++  uint64_t total_kick_topk_kept = 0;
++  uint64_t total_kick_topk_pruned = 0;
+   uint64_t total_kick_reject_hpwl = 0;
+   uint64_t total_kick_reject_legal = 0;
+   double total_kick_exact_gain = 0.0;
++  double total_kick_dryrun_runtime_ms = 0.0;
++  double total_kick_dryrun_cached_runtime_ms = 0.0;
++  double total_kick_topk_runtime_ms = 0.0;
+   double total_dp_exact_gain = 0.0;
+   double total_dp_full_gain = 0.0;
+   uint64_t total_fallback_triggered = 0;
+@@ -2017,6 +2370,9 @@ void runLsmcBooster(DetailedMgr& mgr,
+       total_dp_states += dp_stats.dp_states;
+       total_dp_transitions += dp_stats.dp_transitions;
+       total_dp_pruned += dp_stats.dp_pruned_states;
++      total_dp_parallel_layers += dp_stats.dp_parallel_layers;
++      total_dp_parallel_states += dp_stats.dp_parallel_states;
++      total_dp_parallel_runtime_ms += dp_stats.dp_parallel_runtime_ms;
+       total_dp_dryrun_scored += dp_stats.dryrun_scored;
+       total_dp_exact_scored += dp_stats.exact_scored;
+       total_dp_cache_edges += dp_stats.cache_edges;
+@@ -2032,10 +2388,21 @@ void runLsmcBooster(DetailedMgr& mgr,
+       total_kick_region_y_span += kick_trace.kick_region_y_span;
+       total_kick_candidates += kick_trace.kick_candidates;
+       total_kick_dryrun_scored += kick_trace.kick_dryrun_scored;
++      total_kick_dryrun_src_batches += kick_trace.kick_dryrun_src_batches;
++      total_kick_dryrun_affected_edges
++          += kick_trace.kick_dryrun_affected_edges;
++      total_kick_dryrun_cache_hits += kick_trace.kick_dryrun_cache_hits;
++      total_kick_dryrun_cache_misses += kick_trace.kick_dryrun_cache_misses;
+       total_kick_exact_scored += kick_trace.kick_exact_scored;
++      total_kick_topk_kept += kick_trace.kick_topk_kept;
++      total_kick_topk_pruned += kick_trace.kick_topk_pruned;
+       total_kick_reject_hpwl += kick_trace.kick_reject_hpwl;
+       total_kick_reject_legal += kick_trace.kick_reject_legal;
+       total_kick_exact_gain += kick_trace.kick_exact_gain;
++      total_kick_dryrun_runtime_ms += kick_trace.kick_dryrun_runtime_ms;
++      total_kick_dryrun_cached_runtime_ms
++          += kick_trace.kick_dryrun_cached_runtime_ms;
++      total_kick_topk_runtime_ms += kick_trace.kick_topk_runtime_ms;
+       total_dp_exact_gain += dp_stats.exact_gain;
+       total_dp_full_gain += algo2_full_gain;
+ 
+@@ -2091,13 +2458,20 @@ void runLsmcBooster(DetailedMgr& mgr,
+                    "avg_region_edges {:.2f}, avg_region_span_dbu {:.1f}/{:.1f}, "
+                    "kick_region_candidates {}, "
+                    "kick_candidates {}, kick_dryrun_scored {}, "
+-                   "kick_exact_scored {}, kick_reject_hpwl {}, "
++                   "kick_src_batches {}, kick_avg_aff_edges {:.2f}, "
++                   "kick_cache hits/misses {}/{}, "
++                   "kick_exact_scored {}, kick_topk_kept {}, "
++                   "kick_topk_pruned {}, kick_dryrun_runtime {:.3f} ms, "
++                   "kick_dryrun_cached_runtime {:.3f} ms, "
++                   "kick_topk_runtime {:.3f} ms, kick_reject_hpwl {}, "
+                    "kick_reject_legal {}, "
+                    "kick_affected_edges {}, algo1_kick_gain {:.1f}, "
+                    "hpwl_after_kick {:.1f}, "
+                    "dp_windows considered/built/skipped {}/{}/{}, dp_cells {}, "
+                    "dp_sites {}, dp_states {}, dp_transitions {}, "
+-                   "dp_pruned {}, dryrun_scored {}, exact_scored {}, "
++                   "dp_pruned {}, dp_parallel_layers {}, "
++                   "dp_parallel_states {}, dp_parallel_runtime {:.3f} ms, "
++                   "dryrun_scored {}, exact_scored {}, "
+                    "accepted_windows {}, rejects no_dp/exact/legal {}/{}/{}, "
+                    "algo2_repair_gain {:.1f}, algo2_full_gain {:.1f}, "
+                    "hpwl_after_algo2 {:.1f}, cache_edges {}, "
+@@ -2132,7 +2506,20 @@ void runLsmcBooster(DetailedMgr& mgr,
+                    kick_trace.kick_region_candidates,
+                    kick_trace.kick_candidates,
+                    kick_trace.kick_dryrun_scored,
++                   kick_trace.kick_dryrun_src_batches,
++                   kick_trace.kick_dryrun_scored > 0
++                       ? static_cast<double>(
++                             kick_trace.kick_dryrun_affected_edges)
++                             / static_cast<double>(kick_trace.kick_dryrun_scored)
++                       : 0.0,
++                   kick_trace.kick_dryrun_cache_hits,
++                   kick_trace.kick_dryrun_cache_misses,
+                    kick_trace.kick_exact_scored,
++                   kick_trace.kick_topk_kept,
++                   kick_trace.kick_topk_pruned,
++                   kick_trace.kick_dryrun_runtime_ms,
++                   kick_trace.kick_dryrun_cached_runtime_ms,
++                   kick_trace.kick_topk_runtime_ms,
+                    kick_trace.kick_reject_hpwl,
+                    kick_trace.kick_reject_legal,
+                    kick_trace.affected_edges,
+@@ -2146,6 +2533,9 @@ void runLsmcBooster(DetailedMgr& mgr,
+                    dp_stats.dp_states,
+                    dp_stats.dp_transitions,
+                    dp_stats.dp_pruned_states,
++                   dp_stats.dp_parallel_layers,
++                   dp_stats.dp_parallel_states,
++                   dp_stats.dp_parallel_runtime_ms,
+                    dp_stats.dryrun_scored,
+                    dp_stats.exact_scored,
+                    dp_stats.accepted_windows,
+@@ -2226,9 +2616,16 @@ void runLsmcBooster(DetailedMgr& mgr,
+                  "kick_region_attempts {}, kick_regions {}, "
+                  "kick_region_candidates {}, "
+                  "kick_candidates {}, kick_dryrun_scored {}, "
+-                 "kick_exact_scored {}, kick_reject_hpwl {}, "
++                 "kick_src_batches {}, kick_avg_aff_edges {:.2f}, "
++                 "kick_cache hits/misses {}/{}, "
++                 "kick_exact_scored {}, kick_topk_kept {}, "
++                 "kick_topk_pruned {}, kick_dryrun_runtime {:.3f} ms, "
++                 "kick_dryrun_cached_runtime {:.3f} ms, "
++                 "kick_topk_runtime {:.3f} ms, kick_reject_hpwl {}, "
+                  "kick_reject_legal {}, kick_exact_gain {:.1f}, dp_windows {}, "
+-                 "dp_accepted_windows {}, dp_exact_gain {:.1f}.",
++                 "dp_accepted_windows {}, dp_parallel_layers {}, "
++                 "dp_parallel_states {}, dp_parallel_runtime {:.3f} ms, "
++                 "dp_exact_gain {:.1f}.",
+                  iter,
+                  kick_target,
+                  kick_attempts,
+@@ -2259,12 +2656,27 @@ void runLsmcBooster(DetailedMgr& mgr,
+                  kick_trace.kick_region_candidates,
+                  kick_trace.kick_candidates,
+                  kick_trace.kick_dryrun_scored,
++                 kick_trace.kick_dryrun_src_batches,
++                 kick_trace.kick_dryrun_scored > 0
++                     ? static_cast<double>(kick_trace.kick_dryrun_affected_edges)
++                           / static_cast<double>(kick_trace.kick_dryrun_scored)
++                     : 0.0,
++                 kick_trace.kick_dryrun_cache_hits,
++                 kick_trace.kick_dryrun_cache_misses,
+                  kick_trace.kick_exact_scored,
++                 kick_trace.kick_topk_kept,
++                 kick_trace.kick_topk_pruned,
++                 kick_trace.kick_dryrun_runtime_ms,
++                 kick_trace.kick_dryrun_cached_runtime_ms,
++                 kick_trace.kick_topk_runtime_ms,
+                  kick_trace.kick_reject_hpwl,
+                  kick_trace.kick_reject_legal,
+                  kick_trace.kick_exact_gain,
+                  dp_stats.windows_built,
+                  dp_stats.accepted_windows,
++                 dp_stats.dp_parallel_layers,
++                 dp_stats.dp_parallel_states,
++                 dp_stats.dp_parallel_runtime_ms,
+                  dp_stats.exact_gain);
+ 
+     if (failures >= kFailureTolerance) {
+@@ -2284,12 +2696,20 @@ void runLsmcBooster(DetailedMgr& mgr,
+                "best_gain {:.1f}, final_hpwl {:.1f}, runtime {:.3f} ms, "
+                "thread_count {}, dp_windows {}, dp_accepted_windows {}, "
+                "dp_states {}, dp_transitions {}, dp_pruned {}, "
++               "dp_parallel_layers {}, dp_parallel_states {}, "
++               "dp_parallel_runtime {:.3f} ms, "
+                "dp_dryrun_scored {}, dp_exact_scored {}, "
+                "kick_region_attempts {}, kick_regions {}, "
+                "kick_region_rejects {}, avg_region_edges {:.2f}, "
+                "avg_region_span_dbu {:.1f}/{:.1f}, "
+                "kick_region_candidates {}, kick_candidates {}, "
+                "kick_dryrun_scored {}, kick_exact_scored {}, "
++               "kick_src_batches {}, kick_avg_aff_edges {:.2f}, "
++               "kick_cache hits/misses {}/{}, "
++               "kick_topk_kept {}, kick_topk_pruned {}, "
++               "kick_dryrun_runtime {:.3f} ms, "
++               "kick_dryrun_cached_runtime {:.3f} ms, "
++               "kick_topk_runtime {:.3f} ms, "
+                "kick_reject_hpwl {}, kick_reject_legal {}, "
+                "kick_exact_gain {:.1f}, "
+                "dp_cache_edges {}, dp_cache_hits {}, dp_cache_misses {}, "
+@@ -2317,6 +2737,9 @@ void runLsmcBooster(DetailedMgr& mgr,
+                total_dp_states,
+                total_dp_transitions,
+                total_dp_pruned,
++               total_dp_parallel_layers,
++               total_dp_parallel_states,
++               total_dp_parallel_runtime_ms,
+                total_dp_dryrun_scored,
+                total_dp_exact_scored,
+                total_kick_region_attempts,
+@@ -2338,6 +2761,18 @@ void runLsmcBooster(DetailedMgr& mgr,
+                total_kick_candidates,
+                total_kick_dryrun_scored,
+                total_kick_exact_scored,
++               total_kick_dryrun_src_batches,
++               total_kick_dryrun_scored > 0
++                   ? static_cast<double>(total_kick_dryrun_affected_edges)
++                         / static_cast<double>(total_kick_dryrun_scored)
++                   : 0.0,
++               total_kick_dryrun_cache_hits,
++               total_kick_dryrun_cache_misses,
++               total_kick_topk_kept,
++               total_kick_topk_pruned,
++               total_kick_dryrun_runtime_ms,
++               total_kick_dryrun_cached_runtime_ms,
++               total_kick_topk_runtime_ms,
+                total_kick_reject_hpwl,
+                total_kick_reject_legal,
+                total_kick_exact_gain,

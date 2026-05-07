@@ -28,5 +28,10 @@
     "jpeg_nangate45",
     "ariane133_nangate45",
     "bp_quad_nangate45"
+  ],
+  "dense": [
+    "aes_dense_nangate45",
+    "ariane133_dense_nangate45",
+    "jpeg_nangate45"
   ]
 }

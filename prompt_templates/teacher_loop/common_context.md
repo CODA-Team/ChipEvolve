@@ -19,10 +19,32 @@
 - evolved legalizer manifest: `$evolved_legalizers_manifest`
 - evolved legalizer validation: `$evolved_legalizers_validation`
 - dense evolved-legalizer routing insight: `$dense_legalizer_routing_insight`
+- evolved DPO patch catalog: `$evolved_dpo_readme`
+- evolved DPO manifest: `$evolved_dpo_manifest`
+- evolved DPO validation: `$evolved_dpo_validation`
+- DPO runtime/quality insight: `$dpo_runtime_quality_insight`
+- cross-legalizer DPO donor insight: `$dpo_cross_legalizer_insight`
+- LEGO-lite skill index: `$skill_index`
+- LEGO-lite skill query helper: `$skill_query_script`
+- LEGO-lite skill notes: `$skill_cards_dir`
 - Teacher coaching skill: `$teacher_coaching_skill`
 
 Use these paths as search handles only when they help identify concrete
 function/state insertion points. Do not require broad donor-tree reading.
+
+## LEGO-lite Skill Lookup
+
+- Use the skill index as the first-stage knowledge database. Query it before
+  assigning a route when the needed legalizer, DPO, handoff, or diagnosis
+  mechanism is not obvious from the metrics.
+- Fast command pattern:
+  `python3 $skill_query_script --stage <stage> --q "<bottleneck or mechanism>"`
+- Stage names: `case_diagnosis`, `start_selection`, `legalization`,
+  `improve_placement`, `handoff`, `build_eval_log_diagnosis`, and
+  `teacher_review`.
+- A selected skill is guidance, not a cage. Teacher should name the skill id,
+  expected stage transition, done criteria, and log signals; Student may refine
+  the mechanism when current source evidence contradicts the card.
 
 ## Objective And Boundaries
 
@@ -83,6 +105,28 @@ function/state insertion points. Do not require broad donor-tree reading.
   base/framework patches
 - Student private source trees are normally materialized seed sources; do not
   make Students manually apply OpenROAD-root patches unless that is the route
+
+## DPO / Improve-Placement Donors
+
+- evolved DPO patches under `patches/evolved_dpo/` are source-root
+  improve-placement donor patches for private `dpl_evolve` trees. They are
+  meant to stack on the selected legalizer seed, not replace the legalizer.
+- `src_dpo_neg017b_algo1_src_cache_runtime.patch` is the recommended first
+  DPO donor when both final HPWL and runtime matter. It keeps Algorithm-1
+  source-edge cached scoring and bounded runtime behavior.
+- `src_dpo_neg014_hybrid_quality.patch` is the quality-ceiling donor. It can
+  be more expensive, but it is useful when the route intentionally spends
+  bounded runtime on stronger improve-placement quality.
+- Teacher should use DPO donors when the legalizer creates a useful stage
+  donor but improve placement fails to preserve or consume it. Assign DPO work
+  as a source-level `Optdp`/`Detailed*` mechanism, not as repeated endpoint
+  execution.
+- DPO patch base matters: these are private-source-root patches. Students
+  should normally use prepared local branches such as
+  `start/evolved_legalm_dpo_neg017b` or `start/evolved_diamond_dpo_neg014`
+  when Teacher wants a clean legalizer+DPO donor start. For continuation
+  sources, Students can use the generated DPO helper from the workspace packet
+  with `--check-only` first. Do not make them hand-write `git apply` commands.
 
 ## Execution Context
 

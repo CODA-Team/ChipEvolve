@@ -17,7 +17,9 @@ $elite_note
 
 $peer_context
 
-Use the assigned Teacher packet in `Teacher output`; do not copy broad context
-or old peer reports into your working memory.
+Use the assigned Teacher packet in `Teacher output` as the primary hypothesis,
+then combine it with focused source inspection before coding. Do not copy broad
+context or old peer reports into your working memory, and do not blindly execute
+Teacher prose when the current source proves a better mechanism.
 
 $student_rules

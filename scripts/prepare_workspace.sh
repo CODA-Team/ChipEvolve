@@ -218,13 +218,20 @@ mirror_openroad_nested_submodule_urls() {
   while read -r key url; do
     [[ -n "${key}" && -n "${url}" ]] || continue
     path_key="${key%.url}.path"
-    path="$(git -C "${source_openroad}" config --get "${path_key}" 2>/dev/null || true)"
+    path="$(
+      git -C "${source_openroad}" config --get "${path_key}" 2>/dev/null \
+        || git -C "${source_openroad}" config --file .gitmodules --get "${path_key}" 2>/dev/null \
+        || true
+    )"
     if [[ -n "${path}" && -d "${source_openroad}/${path}" ]]; then
       local_url="${source_openroad}/${path}"
     else
       local_url="${url}"
     fi
     git -C "${target_openroad}" config "${key}" "${local_url}"
+    if [[ -f "${target_openroad}/.gitmodules" ]]; then
+      git -C "${target_openroad}" config --file .gitmodules "${key}" "${local_url}"
+    fi
     copied=1
   done < <(
     git -C "${source_openroad}" config --get-regexp '^submodule\..*\.url' 2>/dev/null \
@@ -394,6 +401,9 @@ if [[ "${force}" -eq 1 ]]; then
   nested_update_args+=(--force)
 fi
 git_submodule_update "${workspace_root}/tools/OpenROAD" "${nested_update_args[@]}"
+if [[ -f "${workspace_root}/tools/OpenROAD/.gitmodules" ]]; then
+  git -C "${workspace_root}/tools/OpenROAD" checkout -- .gitmodules
+fi
 
 apply_patch_if_needed "${workspace_root}" "${orfs_make_patch}" "ORFS"
 apply_patch_if_needed "${workspace_root}/tools/OpenROAD" "${openroad_patch}" "OpenROAD"

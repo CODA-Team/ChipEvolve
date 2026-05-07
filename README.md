@@ -384,6 +384,10 @@ The evolved seeds are materialized by `scripts/prepare_workspace.sh` from
 the recorded anchor; they are not meant to be manually applied inside a Student
 private source tree.
 
+Generated Student workspaces also prepare legalizer+DPO start branches when
+`patches/evolved_dpo/` donors apply. Prefer those branches or the generated
+`07_apply_evolved_dpo_patch.sh --check-only` helper over manual `git apply`.
+
 ### Where More Details Live
 
 - `AGENTS.md`: coding-agent contract and algorithm constraints.
@@ -393,6 +397,8 @@ private source tree.
 - `problems/README.md`: case registry format.
 - `knowledge/EVIDENCE_POLICY.md`: how to classify observations, hypotheses,
   and durable evidence.
+- `knowledge/index/skill_cards.jsonl` plus `scripts/query_knowledge.py`: concise stage skill lookup.
+- `patches/evolved_dpo/README.md`: improve-placement donor patch apply bases and intended use.
 - `family_variants/REFERENCE_INDEX.yaml`: compact source-code donor index.
 
 ### Repo Hygiene

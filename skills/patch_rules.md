@@ -36,6 +36,9 @@ is a source-only git repo and does not contain `family_variants/`.
 
 If donor evidence is needed, use repo-root references such as:
 
+- `<agent_root>/knowledge/index/skill_cards.jsonl`
+- `<agent_root>/knowledge/skills/`
+- `<agent_root>/scripts/query_knowledge.py`
 - `<agent_root>/family_variants/REFERENCE_INDEX.yaml`
 - `<agent_root>/family_variants/legalm_guidance/README.md`
 - `<agent_root>/family_variants/openroad_diamond/README.md`
@@ -46,15 +49,42 @@ If donor evidence is needed, use repo-root references such as:
 - `<agent_root>/patches/evolved_legalizers/generation_manifest.tsv`
 - `<agent_root>/patches/evolved_legalizers/validation.tsv`
 - `<agent_root>/patches/evolved_legalizers/openroad_dpl_evolve_*_iter30_framework_delta.patch`
+- `<agent_root>/patches/evolved_dpo/README.md`
+- `<agent_root>/patches/evolved_dpo/generation_manifest.tsv`
+- `<agent_root>/patches/evolved_dpo/validation.tsv`
+- `<agent_root>/patches/evolved_dpo/src_dpo_neg017b_algo1_src_cache_runtime.patch`
+- `<agent_root>/patches/evolved_dpo/src_dpo_neg014_hybrid_quality.patch`
 
 If an absolute donor path is missing, skip it and continue from Teacher-named
 source symbols. Do not search for donor files relative to the private source
 repo.
+Use the generated `08_query_knowledge.sh` helper when Teacher names a LEGO-lite
+skill id. Open only the matching skill note and current source handles; do not
+bulk-read all skill records.
 Do not broad-read external archives or ignored local backups unless the task
 explicitly asks for old family-flow evidence.
 Do not open `~/.codex/memories`, rollout summaries, checkpoint event logs, or
 old transcripts during ordinary Student source edits. The generated Teacher
 packet and repo-local knowledge files are the evidence boundary.
+
+## Evolved DPO Patch Use
+
+- Evolved DPO patches are source-root patches for a private `dpl_evolve`
+  source repo. They intentionally modify improve-placement code such as
+  `src/Optdp.cpp`; they do not replace the active legalizer seed.
+- Prefer generated local git start branches for clean donor starts, such as
+  `start/evolved_legalm_dpo_neg017b` or `start/evolved_diamond_dpo_neg014`.
+  Use `switch_start_branch_script --kind <legalizer>_dpo_<donor>` when Teacher
+  names one of these branches.
+- Use the generated workspace helper `07_apply_evolved_dpo_patch.sh` when
+  Teacher intentionally assigns applying a DPO donor to the current continuation
+  source. Do not hand-write `git apply` commands for these patches.
+- Default donor: `neg017b` / `src_dpo_neg017b_algo1_src_cache_runtime.patch`
+  for a runtime-quality balance.
+- Quality-ceiling donor: `neg014` / `src_dpo_neg014_hybrid_quality.patch`
+  when Teacher intentionally spends bounded runtime for stronger final HPWL.
+- Always run helper `--check-only` first. Apply exactly one DPO donor, build,
+  evaluate, and then evolve from measured stage-wise metrics.
 
 ## Patch Style
 
@@ -90,8 +120,9 @@ packet and repo-local knowledge files are the evidence boundary.
   reading the workspace packet, required skills, and nearby Teacher-named
   symbols, patch a coherent mechanism and move to generated build/evaluate
   scripts. Do not spend the iteration on broad source exploration.
-- If Teacher assigns a prepared start point (`framework`, `evolved_diamond`,
-  `evolved_legalm`, or `evolved_negotiation`), use the generated
+- If Teacher assigns a prepared start point (`framework`, `diamond`,
+  `evolved_diamond`, `evolved_legalm`, `evolved_negotiation`, or a
+  `<legalizer>_dpo_<donor>` branch suffix), use the generated
   `switch_start_branch_script` immediately after source preparation and before
   edits. Do not copy seed directories or manually apply OpenROAD-root patches to
   emulate a start-point switch.

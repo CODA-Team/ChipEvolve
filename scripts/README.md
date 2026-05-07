@@ -222,6 +222,10 @@ changes remain uncommitted, then records the revision at:
 Per-iteration diffs, build logs, and eval logs still live under
 `students/student_XX/iter_XX/artifacts`.
 
+Generated Student command packets also include `08_query_knowledge.sh`, a thin
+wrapper around `scripts/query_knowledge.py`.  Use it for LEGO-lite stage skill
+lookup instead of broad-reading the whole knowledge tree.
+
 `--prepare-workspace` is the one-flag bootstrap path for launched rounds.  It
 runs `prepare_workspace.sh --workspace-root "$ORFS_ROOT"` before baseline
 preflight, which refreshes the start-kind seed snapshots.  Use

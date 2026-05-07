@@ -49,11 +49,13 @@ Each student packet should include only:
 
 - current diagnosis,
 - peer or donor mechanism to borrow or avoid,
+- selected LEGO-lite stage skills when they clarify the mechanism,
 - `plan A legalization/detailed placement`,
 - `plan B improve placement`,
 - `plan C co-optimization/handoff` when it has a concrete reason,
 - exact function/state handles for both active responsibilities when known,
 - skill list the Student should use,
+- done criteria and log signals for the selected stage skills,
 - expected complexity boundary,
 - intended runtime tier and what extra quality work that tier buys,
 - success metric,

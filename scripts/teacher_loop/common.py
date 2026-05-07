@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from string import Template
@@ -19,6 +20,11 @@ START_KINDS = (
     "evolved_legalm",
     "evolved_negotiation",
     "prepared",
+)
+
+PREPARED_START_KIND_PATTERN = (
+    r"(?:framework|diamond|evolved_diamond|evolved_legalm|evolved_negotiation)"
+    r"(?:_dpo_(?:neg017b|neg014|neg015))?"
 )
 
 CANONICAL_LINES = (
@@ -133,6 +139,50 @@ def default_round_id(case_id: str) -> str:
 
 def iter_name(iteration: int) -> str:
     return f"iter_{iteration:02d}"
+
+
+def assigned_start_kind_from_insight(text: str) -> str | None:
+    """Extract the primary prepared start-branch kind from Teacher text.
+
+    Teacher may mention evolved starts as evidence or fallbacks.  Only an
+    explicit primary assignment should become an unconditional Student switch.
+    """
+    fallback_markers = (
+        "if ",
+        "fallback",
+        "clean reset",
+        "reset is needed",
+        "needed, use",
+        "otherwise",
+        "unless",
+    )
+    field_prefixes = (
+        "route action:",
+        "start/donor family:",
+        "continuation parent:",
+        "runtime tier:",
+    )
+    primary_patterns = (
+        rf"\buse the prepared start branch\s*`?({PREPARED_START_KIND_PATTERN})`?",
+        rf"\bstart from\s*`?({PREPARED_START_KIND_PATTERN})`?",
+        rf"\buse\s*`?({PREPARED_START_KIND_PATTERN})`?\s+as (?:the )?(?:prepared )?start",
+    )
+
+    for raw_line in text.splitlines():
+        line = " ".join(raw_line.strip().split())
+        if not line:
+            continue
+        line = re.sub(r"^\s*[-*]\s+", "", line)
+        line_lower = line.lower()
+        if not any(line_lower.startswith(prefix) for prefix in field_prefixes):
+            continue
+        if any(marker in line_lower for marker in fallback_markers):
+            continue
+        for pattern in primary_patterns:
+            match = re.search(pattern, line, flags=re.IGNORECASE)
+            if match:
+                return match.group(1)
+    return None
 
 
 def student_workspace_paths(

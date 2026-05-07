@@ -384,6 +384,37 @@ def discover_reused_baseline_metrics(
     return by_line
 
 
+def discover_packet_baseline_metrics(*, state_root: Path, round_id: str) -> dict[str, Path]:
+    """Read the baseline metrics paths frozen into this round's packets.
+
+    Reused baseline preflight rows are part of the Teacher context.  Looking up
+    the latest metrics under ORFS can drift after later experiments, so prefer
+    the metrics_json paths that were written into the round packet.
+    """
+    line_to_path: dict[str, Path] = {}
+    packet_root = round_dir(state_root, round_id)
+    for packet in sorted(packet_root.glob("iter_*/packet/baseline_artifacts.md")):
+        current_line = ""
+        try:
+            lines = packet.read_text(encoding="utf-8", errors="replace").splitlines()
+        except Exception:
+            continue
+        for raw_line in lines:
+            line = raw_line.strip()
+            section = re.fullmatch(r"###\s+([A-Za-z0-9_]+)", line)
+            if section:
+                current_line = section.group(1)
+                continue
+            if not current_line:
+                continue
+            metrics = re.fullmatch(r"-\s+metrics_json:\s+`([^`]+)`", line)
+            if metrics:
+                metrics_path = Path(metrics.group(1))
+                if metrics_path.is_file():
+                    line_to_path[current_line] = metrics_path
+    return line_to_path
+
+
 def discovered_iteration_count(state_root: Path, round_id: str) -> int:
     count = 0
     for path in round_dir(state_root, round_id).glob("iter_*"):
@@ -547,6 +578,10 @@ def main() -> int:
                 rows.append(row)
                 seen_run_tags.add(metrics_path.parent.name)
         present_results = {row.result for row in rows}
+        packet_baselines = discover_packet_baseline_metrics(
+            state_root=args.state_root,
+            round_id=round_id,
+        )
         reused_baselines = discover_reused_baseline_metrics(
             orfs_root=args.orfs_root,
             state_root=args.state_root,
@@ -559,13 +594,15 @@ def main() -> int:
         ):
             if result in present_results:
                 continue
-            metrics_path = reused_baselines.get(line)
+            metrics_path = packet_baselines.get(line) or reused_baselines.get(line)
             if metrics_path is None:
                 continue
             row = load_row(round_id, metrics_path)
             if row is not None:
                 row.result = result
-                row.evidence_kind = "metrics_reused"
+                row.evidence_kind = (
+                    "metrics_packet" if line in packet_baselines else "metrics_reused"
+                )
                 rows.append(row)
                 present_results.add(result)
                 seen_run_tags.add(metrics_path.parent.name)

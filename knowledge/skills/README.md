@@ -1,0 +1,28 @@
+# DPL-Evolve Skill Notes
+
+`knowledge/index/skill_cards.jsonl` is the canonical skill database. It keeps the
+machine-readable stage, source handles, patches, metrics, log signals, and done
+criteria used by Teacher and Student prompts.
+
+The markdown files under this directory are short notes only. They add route
+pitfalls and extra guidance that should not be duplicated in every prompt. Do
+not bulk-read this directory; query the index first and open only the matched
+note when it is useful.
+
+Use the query helper from the repo root:
+
+```bash
+python3 scripts/query_knowledge.py --stage improve_placement --q "final HPWL weak runtime controlled" --limit 3
+python3 scripts/query_knowledge.py --q dpo_neg017b_cached_runtime --show-full
+python3 scripts/query_knowledge.py --validate
+```
+
+Recommended query stages:
+
+- `case_diagnosis`
+- `start_selection`
+- `legalization`
+- `improve_placement`
+- `handoff`
+- `build_eval_log_diagnosis`
+- `teacher_review`

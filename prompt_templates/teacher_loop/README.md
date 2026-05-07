@@ -22,6 +22,10 @@ Rules:
   work on legalization/detailed placement and improve placement. Student
   prompts should keep optimize mirroring callable for evaluation but outside
   the active patch surface unless a future task explicitly reopens it.
+- LEGO-lite mechanism lookup lives in `knowledge/index/skill_cards.jsonl` and
+  `knowledge/skills/`. Teacher packets should select relevant stage skills;
+  Student reports should prove selected skills with source, metrics, and log
+  evidence.
 - Prompts should favor controllable algorithm complexity, bounded candidates,
   cached touched data, and direct HPWL mechanisms.
 - Keep the NoPUA-style coaching signal in `skills/teacher_peer_coaching.md`:

@@ -3,14 +3,13 @@
 This directory preserves the final code from the three legalization-only
 evolve tracks:
 
-- `legalm`: global differential / LEGALM-oriented line, source commit
-  `7f71b2f`, tag
-  `candidate/legalm_20iter_001_iter_30_final_target_release_probes`.
-- `negotiation`: NBLG / negotiation-oriented line, source commit `52f3b85`,
-  tags `negotiation_20iter_001_iter_29` and
-  `negotiation_20iter_001_iter_30`.
-- `diamond`: Diamond/local-greedy-oriented line, source commit `c4d758a`, tag
-  `diamond_20iter_001_iter_30`.
+- `legalm`: global differential / LEGALM-oriented line.
+- `negotiation`: NBLG / negotiation-oriented line.
+- `diamond`: Diamond/local-greedy-oriented line.
+
+Use the stable line names and patch paths below. Do not ask Agents to check
+out historical workbench commits or tags; those came from private evolve
+workspaces and are not portable release identifiers.
 
 The clean OpenROAD target is the `openroad_base_commit` in
 `../../metadata/anchors.json`, currently
@@ -18,11 +17,11 @@ The clean OpenROAD target is the `openroad_base_commit` in
 
 ## Lineage Table
 
-| line | source commit | source tag | apply to clean OpenROAD | apply to base+framework |
-| --- | --- | --- | --- | --- |
-| `legalm` | `7f71b2f` | `candidate/legalm_20iter_001_iter_30_final_target_release_probes` | `openroad_dpl_evolve_legalm_iter30_from_clean.patch` | `openroad_dpl_evolve_legalm_iter30_framework_delta.patch` |
-| `negotiation` | `52f3b85` | `negotiation_20iter_001_iter_29`, `negotiation_20iter_001_iter_30` | `openroad_dpl_evolve_negotiation_iter30_from_clean.patch` | `openroad_dpl_evolve_negotiation_iter30_framework_delta.patch` |
-| `diamond` | `c4d758a` | `diamond_20iter_001_iter_30` | `openroad_dpl_evolve_diamond_iter30_from_clean.patch` | `openroad_dpl_evolve_diamond_iter30_framework_delta.patch` |
+| line | stable start kind | apply to clean OpenROAD | apply to base+framework |
+| --- | --- | --- | --- |
+| `legalm` | `evolved_legalm` | `openroad_dpl_evolve_legalm_iter30_from_clean.patch` | `openroad_dpl_evolve_legalm_iter30_framework_delta.patch` |
+| `negotiation` | `evolved_negotiation` | `openroad_dpl_evolve_negotiation_iter30_from_clean.patch` | `openroad_dpl_evolve_negotiation_iter30_framework_delta.patch` |
+| `diamond` | `evolved_diamond` | `openroad_dpl_evolve_diamond_iter30_from_clean.patch` | `openroad_dpl_evolve_diamond_iter30_framework_delta.patch` |
 
 The table is the patch base contract.  If a patch is used outside that target
 state, conflicts or misleading partial application are expected.
@@ -77,5 +76,5 @@ git -C /path/to/OpenROAD apply /path/to/dpl_evolve_agent/patches/openroad_dpl_ev
 git -C /path/to/OpenROAD apply /path/to/dpl_evolve_agent/patches/evolved_legalizers/openroad_dpl_evolve_legalm_iter30_framework_delta.patch
 ```
 
-`generation_manifest.tsv` records source commits and patch paths.
+`generation_manifest.tsv` records stable start kinds and patch paths.
 `validation.tsv` records `git apply --check` results for both patch types.
