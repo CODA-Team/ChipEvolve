@@ -2288,7 +2288,6 @@ PROMPT_FORBIDDEN_TERMS = (
     "```bash",
     "Dispatch",
     "dispatch packet",
-    "historical",
     "global synthesis",
     "execute only",
     *NOISY_CONTEXT_MARKERS,
