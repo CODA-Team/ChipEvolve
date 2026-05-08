@@ -41,8 +41,7 @@ python3 scripts/optimize_case_with_codex.py \
   --iterations 2 \
   --skip-baseline-preflight \
   --dry-run \
-  --audit-prompts \
-  --fail-on-prompt-audit
+  --audit-prompts
 ```
 
 Audit output:

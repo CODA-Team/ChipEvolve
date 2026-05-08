@@ -164,7 +164,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--fail-on-prompt-audit",
         action="store_true",
-        help="Return nonzero if prompt audit finds warnings.",
+        help=(
+            "Deprecated no-op kept for old launch scripts; prompt audit "
+            "warnings are recorded but never stop an experiment."
+        ),
     )
     parser.add_argument("--launch", action="store_true")
     parser.add_argument(

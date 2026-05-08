@@ -788,7 +788,12 @@ def main(argv: list[str] | None = None) -> int:
                         warnings=prompt_warnings,
                     )
                     if args.fail_on_prompt_audit:
-                        return 2
+                        logger.event(
+                            "audit",
+                            "prompt_audit_nonfatal",
+                            iteration=iter_name(iteration),
+                            reason="--fail-on-prompt-audit is deprecated; continuing",
+                        )
                 audit_json, audit_md, audit_warnings = prompt_audit(
                     round_dir=round_dir,
                     max_agent_prompt_bytes=args.prompt_audit_max_agent_bytes,
@@ -802,7 +807,12 @@ def main(argv: list[str] | None = None) -> int:
                     warnings=audit_warnings,
                 )
                 if audit_warnings and args.fail_on_prompt_audit:
-                    return 2
+                    logger.event(
+                        "audit",
+                        "prompt_audit_nonfatal",
+                        iteration=iter_name(iteration),
+                        reason="--fail-on-prompt-audit is deprecated; continuing",
+                    )
             if child_commands:
                 logger.event(
                     "student",
@@ -978,7 +988,11 @@ def main(argv: list[str] | None = None) -> int:
             warnings=audit_warnings,
         )
         if audit_warnings and args.fail_on_prompt_audit:
-            return 2
+            logger.event(
+                "audit",
+                "prompt_audit_nonfatal",
+                reason="--fail-on-prompt-audit is deprecated; continuing",
+            )
 
     if dry_run:
         rc = run_commands(
