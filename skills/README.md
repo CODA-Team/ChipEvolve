@@ -11,6 +11,8 @@ Read only the skill needed for the current action:
   fallback only when a script fails.
 - `evaluate_run.md`: Student generated evaluator-script usage and canonical
   result interpretation.
+- `report_metrics.md`: Human/Teacher launch-status and stage-wise metrics
+  reporting, including active-process checks and best-donor summaries.
 - `trace_logging.md`: Student lightweight counters and logs for mechanism
   verification.
 - `../knowledge/insights/workflow/metric_contract.md`: canonical HPWL and
@@ -35,13 +37,18 @@ Default Student skills for source-edit workers:
   source
 - touch legalization/detailed placement, improve placement, or their shared
   objective/handoff as directed by Teacher
+- when Teacher assigns a pseudocode/algorithm family, read only the relevant
+  card under `../knowledge/algorithm_cards/` and translate it into a concrete
+  source-level plan before patching
 - let the orchestrator-owned packet decide whether this worker should build
   and evaluate
 
 Default Teacher skills for planning/review workers:
 
 - read `teacher_peer_coaching.md`
+- read `report_metrics.md` when asked to summarize active experiments,
+  compare donors, or prepare status tables
 - use context packets, canonical metrics, stage-wise attribution, peer learning,
-  and knowledge cards
+  knowledge cards, and the relevant algorithm/pseudocode cards
 - assign Student skills explicitly; do not attach build/debug/run skills unless
   the Student task is specifically an infrastructure repair

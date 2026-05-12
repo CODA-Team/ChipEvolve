@@ -3,39 +3,42 @@
 ## Evidence Type
 
 Measured legalization-only evidence from the prior evolved-legalizer workspaces.
-Use this as a routing prior for Teacher plans, not as a universal rule.
+Use this as a stage-level routing prior for Teacher plans, not as a final-flow
+rule.  For current full-flow promotion and case routing, read
+`case_evolution/score_based_case_strategy_routing.md` first.
 
 ## Observation
 
-On a high-utilization, standard-cell-dense image-compression snapshot,
-`evolved_legalm` was the best measured legalizer among the three iter30 evolved
-legalizer starts:
-
-- `evolved_legalm`: legal HPWL delta about `+48.78%` from global HPWL,
-  runtime about `13.0s`.
-- `evolved_diamond`: legal HPWL delta about `+50.95%`, runtime about `13.8s`.
-- `evolved_negotiation`: legal HPWL delta about `+51.73%`, runtime about
-  `12.8s`.
-- clean canonical Diamond-style legalizer was worse on this dense input, with
-  legal HPWL delta about `+55.35%`.
+On high-utilization, standard-cell-dense placements,
+`evolved_legalm` was the best measured legalization-stage donor among the three
+iter30 evolved legalizer starts.  It reduced global-to-legal HPWL disturbance
+relative to the other legalizer starts and to the clean local-greedy baseline.
 
 The mechanism evidence in the LEGALM trace was not a tiny metadata change.  The
-dense run activated high-pressure tail refinement and endpoint HPWL anchors:
-thousands of frontier attempts, many accepted interval/swap/chain moves, and
-large exact HPWL gain counters.
+run activated high-pressure tail refinement and endpoint HPWL anchors:
+frontier attempts, accepted interval/swap/chain moves, and exact HPWL gain
+counters.
 
 The same evolved legalizer ordering did not hold for all design archetypes.
-For larger macro/row-rich snapshots, the evolved Diamond/local-greedy line was
+For larger macro/row-rich placements, the evolved Diamond/local-greedy line was
 often stronger.  Treat `evolved_legalm` as a dense-standard-cell prior, not as
 the default for every case.
+
+Important calibration: this card is about legalization-stage behavior.  Later
+full-flow rescoring showed that some high-utilization dense designs can regress
+after LEGALM or NEGOTIATION even when a legal-stage metric looks better.  On
+those features, `evolved_legalm` is a diagnostic or HPWL-stage donor unless
+strict full-flow metrics prove it improves final HPWL.  Prefer the current score
+card when it names a different route such as Diamond/local-DPO repair.
 
 ## Teacher Policy
 
 Iteration 1 should intentionally diversify legalizer hypotheses:
 
-- assign at least one dense-prior route from `evolved_legalm` when the case is
-  high-utilization, standard-cell dense, or shows large legalization HPWL
-  inflation from the global placement,
+- optionally assign one diagnostic dense-prior route from `evolved_legalm` when
+  the case is high-utilization, standard-cell dense, or shows large legalization
+  HPWL inflation from the global placement, unless current full-flow evidence
+  already shows that LEGALM damages final HPWL for that case archetype,
 - assign another route from `evolved_diamond` or Diamond-local behavior when
   the case has larger row/macro structure or needs local greedy closure,
 - assign another route from `evolved_negotiation` when the case shows conflict
@@ -47,10 +50,10 @@ From iteration 2 onward, Teacher should not keep all students on the same
 initial line.  Use stage-wise attribution to decide one of three actions for
 each student:
 
-- continue the original direction if both legal HPWL and after-improve recovery
-  move in the right direction,
+- continue the original direction if legal HPWL, after-improve recovery, and
+  final strict HPWL move in the right direction,
 - switch the student to a stronger route when its original direction loses at
-  the stage it was meant to improve,
+  the stage it was meant to improve or improves a stage but damages final HPWL,
 - hybridize routes when one legalizer gives a better legal state but another
   route or improve-placement mechanism recovers final HPWL better.
 
@@ -86,9 +89,7 @@ Student room to plan the concrete patch:
    legalizer family, or hybridizing two families.
 7. Keep the best clean candidate and report the source-level evidence.
 
-## Evidence Pointers
-
-- `dpl_evolve_agent_legalm/.dpl_evolve_state/legalization_workbench/evaluations/legalm_20iter_001_iter_30/summary.tsv`
-- `dpl_evolve_agent_legalization_02/.dpl_evolve_state/legalization_workbench/evaluations/negotiation_20iter_001_iter_30/summary.tsv`
-- `dpl_evolve_agent_legalization_03/.dpl_evolve_state/legalization_workbench/evaluations/diamond_20iter_001_iter_30/summary.tsv`
-- `dpl_evolve_agent_legalm/agent_runs/legalm_20iter_001/traces/iter_30_trace.txt`
+Do not encode benchmark names or local artifact paths in Teacher prompts from
+this card.  Use it only as feature-level guidance: dense high-utilization
+designs can have a strong LEGALM legal-stage donor, but final-flow promotion
+still requires strict stage-wise evidence on the active design.

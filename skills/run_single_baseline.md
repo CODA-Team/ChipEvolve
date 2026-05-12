@@ -13,7 +13,7 @@ Manual one-line runner notes. Prefer `evaluator.py` for agent-managed runs.
 ```bash
 "$DPL_EVOLVE_AGENT_ROOT/scripts/run_canonical_line.sh" \
   --line evolve_default \
-  --case gcd_nangate45 \
+  --case <case_id> \
   --flow-variant <FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB> \
   --run-tag <RUN_TAG> \
   --threads 10
@@ -26,7 +26,7 @@ source "${DPL_EVOLVE_STATE_ROOT}/variants/<agent_id>/variant_env.sh"
 "$DPL_EVOLVE_AGENT_ROOT/scripts/run_canonical_line.sh" \
   --line evolve_default \
   --openroad-binary "${OPENROAD_BINARY}" \
-  --case gcd_nangate45 \
+  --case <case_id> \
   --flow-variant <FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB> \
   --run-tag <RUN_TAG> \
   --threads 10

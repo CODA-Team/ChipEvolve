@@ -72,12 +72,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--student-runtime-multiplier",
         type=float,
-        default=4.0,
+        default=2.0,
         help=(
             "Hard timeout multiplier for each student OpenROAD "
             "legalize/improve/mirror flow run, relative to the canonical "
             "openroad_dpl_flow metrics.json:runtime_seconds. Post-run metrics "
-            "collection is not timeout-wrapped."
+            "collection is not timeout-wrapped. Default 2.0 is a tolerant "
+            "runtime budget for bounded search, not a target to maximize."
         ),
     )
     parser.add_argument("--model")

@@ -21,7 +21,7 @@ timeouts even when legalization and placement checks have already succeeded.
 The heavy part can be final metrics and downstream improvement work rather
 than the legalizer itself.
 
-Observed pattern:
+Failure pattern:
 
 - legalizer-stage runtime was comparable to the canonical flow,
 - downstream improvement and mirroring dominated total elapsed time,

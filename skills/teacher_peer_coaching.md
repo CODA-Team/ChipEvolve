@@ -50,10 +50,16 @@ Each student packet should include only:
 - current diagnosis,
 - peer or donor mechanism to borrow or avoid,
 - selected LEGO-lite stage skills when they clarify the mechanism,
+- relevant algorithm/pseudocode card only when it provides a concrete mechanism
+  skeleton, liveness counter, or failure mode,
+- route emphasis: `legalizer-emphasis`, `DPO-emphasis`, or
+  `co-optimization-emphasis`; this is the primary HPWL source, not an exclusive
+  stage choice,
 - `plan A legalization/detailed placement`,
 - `plan B improve placement`,
 - `plan C co-optimization/handoff` when it has a concrete reason,
-- exact function/state handles for both active responsibilities when known,
+- exact function/state handles for every stage that should change, plus
+  producer/consumer diagnosis for any stage intentionally left unchanged,
 - skill list the Student should use,
 - done criteria and log signals for the selected stage skills,
 - expected complexity boundary,

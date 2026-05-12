@@ -42,7 +42,7 @@ baseline suite.
 
 ```bash
 "$DPL_EVOLVE_AGENT_ROOT/baseline/run_baseline_suite.sh" \
-  --case gcd_nangate45 \
+  --case <case_id> \
   --flow-variant <FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB> \
   --tag-prefix agent_suite \
   --threads 10

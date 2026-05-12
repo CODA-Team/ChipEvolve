@@ -42,6 +42,17 @@ class StageRow:
     avg_displacement_micron: float | None
     max_displacement_micron: float | None
     legality: str
+    score_hr: float | None = None
+    score_h: float | None = None
+    score_r: float | None = None
+    runtime_ratio: float | None = None
+
+
+SCORE_REFERENCE_RESULT = "baseline_probe_openroad_dpl_flow"
+# Runtime is a value check, not the primary objective: 2x runtime requires
+# roughly 3% HPWL_global improvement to break even.
+RUNTIME_SCORE_EXPONENT = 0.04
+RUNTIME_SCORE_MIN = 0.7
 
 
 CANONICAL_BASELINES = (
@@ -116,6 +127,42 @@ def fmt(value: float | None, digits: int = 1, suffix: str = "") -> str:
     if value is None:
         return ""
     return f"{value:.{digits}f}{suffix}"
+
+
+def annotate_hpwl_runtime_scores(rows: list[StageRow]) -> None:
+    ref = next(
+        (
+            row
+            for row in rows
+            if row.result == SCORE_REFERENCE_RESULT
+            and row.legality == "clean"
+            and row.hpwl_final not in (None, 0)
+            and row.runtime_seconds not in (None, 0)
+        ),
+        None,
+    )
+    if ref is None:
+        return
+    assert ref.hpwl_final is not None and ref.runtime_seconds is not None
+    for row in rows:
+        if (
+            row.legality != "clean"
+            or row.hpwl_final in (None, 0)
+            or row.runtime_seconds in (None, 0)
+        ):
+            continue
+        assert row.hpwl_final is not None and row.runtime_seconds is not None
+        hpwl_global = row.hpwlg if row.hpwlg not in (None, 0) else ref.hpwlg
+        if hpwl_global in (None, 0):
+            hpwl_global = ref.hpwl_final
+        if hpwl_global in (None, 0):
+            continue
+        h_raw = 1.0 + (float(row.hpwl_final) - float(ref.hpwl_final)) / float(hpwl_global)
+        r_raw = (float(row.runtime_seconds) / float(ref.runtime_seconds)) ** RUNTIME_SCORE_EXPONENT
+        row.score_h = h_raw
+        row.score_r = max(r_raw, RUNTIME_SCORE_MIN)
+        row.runtime_ratio = float(row.runtime_seconds) / float(ref.runtime_seconds)
+        row.score_hr = row.score_h * row.score_r
 
 
 def result_sort_key(result: str) -> tuple[int, int, int, str]:
@@ -484,6 +531,9 @@ def print_markdown(rows_by_round: dict[str, list[StageRow]], *, include_path: bo
     base_columns = [
         "round",
         "result",
+        "C_HR",
+        "H",
+        "R",
         "HPWLg",
         "HPWLlg",
         "dLG%",
@@ -505,6 +555,9 @@ def print_markdown(rows_by_round: dict[str, list[StageRow]], *, include_path: bo
             values = [
                 round_id,
                 row.result,
+                fmt(row.score_hr, 3),
+                fmt(row.score_h, 4),
+                fmt(row.score_r, 4),
                 fmt(row.hpwlg),
                 fmt(row.hpwl_legalized),
                 fmt(row.delta_legalization_percent, 2, "%"),
@@ -527,6 +580,9 @@ def print_tsv(rows_by_round: dict[str, list[StageRow]], *, include_path: bool) -
     fields = [
         "round",
         "result",
+        "cost_hr",
+        "score_h",
+        "score_r",
         "hpwl_global_micron",
         "hpwl_legalized_micron",
         "delta_legalization_percent",
@@ -548,6 +604,9 @@ def print_tsv(rows_by_round: dict[str, list[StageRow]], *, include_path: bool) -
             values = [
                 round_id,
                 row.result,
+                fmt(row.score_hr, 6),
+                fmt(row.score_h, 6),
+                fmt(row.score_r, 6),
                 fmt(row.hpwlg),
                 fmt(row.hpwl_legalized),
                 fmt(row.delta_legalization_percent, 6),
@@ -620,6 +679,7 @@ def main() -> int:
                 expected_iterations=args.expected_iterations,
                 children=args.children,
             )
+        annotate_hpwl_runtime_scores(rows)
         rows_by_round[round_id] = rows
 
     if args.format == "json":
@@ -629,6 +689,11 @@ def main() -> int:
                     "result": row.result,
                     "evidence_path": str(row.evidence_path),
                     "evidence_kind": row.evidence_kind,
+                    "cost_hr": row.score_hr,
+                    "score_hr": row.score_hr,
+                    "score_h": row.score_h,
+                    "score_r": row.score_r,
+                    "runtime_ratio": row.runtime_ratio,
                     "hpwl_global_micron": row.hpwlg,
                     "hpwl_legalized_micron": row.hpwl_legalized,
                     "delta_legalization_percent": row.delta_legalization_percent,

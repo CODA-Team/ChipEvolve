@@ -11,10 +11,11 @@ should act on it.
 2. `workflow/cross_case_experiment_design.md`
 3. `workflow/metric_contract.md`
 4. `case_evolution/cross_case_transfer_matrix.md`
-5. `case_evolution/dense_evolved_legalizer_routing.md`
-6. `case_evolution/optdp_stage_cooptimization.md`
-7. `case_evolution/micro_gain_trap_and_elite_donors.md`
-8. Relevant LEGALM card under `legalm/` only when changing legalization.
+5. `case_evolution/score_based_case_strategy_routing.md`
+6. `case_evolution/dense_evolved_legalizer_routing.md`
+7. `case_evolution/optdp_stage_cooptimization.md`
+8. `case_evolution/micro_gain_trap_and_elite_donors.md`
+9. Relevant LEGALM card under `legalm/` only when changing legalization.
 
 ## Workflow
 
@@ -29,12 +30,16 @@ should act on it.
 
 - `case_evolution/cross_case_transfer_matrix.md`: fixed-source transfer matrix
   synthesis across utilization classes, design scales, and technology settings.
+- `case_evolution/score_based_case_strategy_routing.md`: feature-level `C_HR`
+  routing guidance distilled from single-design evolution, fixed-source replay,
+  and multi-design legalizer-line evaluation; use it to distinguish score
+  elites from HPWL donors.
 - `case_evolution/dense_evolved_legalizer_routing.md`: dense-case evidence for
-  using `evolved_legalm` as a strong legalizer prior, plus Teacher policy for
-  first-round diversification and later route switching/hybridization.
+  using `evolved_legalm` as a stage-level legalizer prior, plus Teacher policy
+  for first-round diversification and later route switching/hybridization.  This
+  card is subordinate to current full-flow score evidence when they disagree.
 - `case_evolution/optdp_stage_cooptimization.md`: useful and harmful
-  mechanisms from image-compression evolution runs, focused on legalization,
-  `Optdp`, and their source-level handoff.
+  mechanisms for legalization, `Optdp`, and their source-level handoff.
 - `case_evolution/micro_gain_trap_and_elite_donors.md`: why tiny HPWL wins are
   donors, not proof of a strategic algorithmic improvement.
 - `case_evolution/full_flow_timeout_and_target_selection.md`: full-flow timeout

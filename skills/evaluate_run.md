@@ -18,7 +18,7 @@ canonical metrics and logs, not on wrapper mechanics.
 
 ```bash
 python3 "$DPL_EVOLVE_AGENT_ROOT/adapters/science_codeevolve/evaluator.py" \
-  --case gcd_nangate45 \
+  --case <case_id> \
   --mode single \
   --line evolve_default \
   --flow-variant <FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB> \
@@ -55,6 +55,8 @@ Compare these first:
 - legality
 - HPWL delta from `metrics.json:hpwl`
 - stage HPWL from `metrics.json:hpwl_stages`
+- `C_HR = (1 + (HPWL_sol - HPWL_ref) / HPWL_global) * max((runtime_sol / runtime_ref)^0.04, 0.7)` versus the OpenROAD DPL default-flow reference,
+  when present, to decide whether the HPWL gain is worth the runtime cost
 - displacement
 - runtime from `metrics.json:runtime_seconds`
 - memory, when recorded
@@ -76,10 +78,10 @@ Classify runtime before judging a result:
 - `aggressive`: larger but timeout-safe runtime spent on a mechanism that could
   materially change final HPWL.
 
-Runtime growth is not automatically bad.  Reject wasted repetition, duplicate
-endpoints, random tails, and broad rescans.  Preserve or promote extra runtime
-when counters show cached/capped/parallel HPWL-source search that improves
-stage-wise or final HPWL.
+Runtime growth is not automatically bad, but it raises C_HR.  Reject
+wasted repetition, duplicate endpoints, random tails, and broad rescans.
+Preserve or promote extra runtime when counters show cached/capped/parallel
+HPWL-source search that improves C_HR or creates a clearly reusable HPWL donor.
 
 ## Strict Track Rule
 
@@ -96,7 +98,8 @@ The wrapper reuses this snapshot and should not rebuild upstream placement.
 Keep only if:
 
 - legality is clean
-- HPWL/timing/runtime frontier improves or clearly moves in the right direction
+- canonical HPWL improves and C_HR shows the runtime cost is worthwhile, or
+  HPWL/stage evidence creates a clear donor that can be repaired for runtime
 - displacement remains controlled
 
 Reject if:

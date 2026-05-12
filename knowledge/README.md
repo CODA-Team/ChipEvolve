@@ -25,6 +25,7 @@ Current compact algorithm cards:
 - `insights/workflow/cross_case_experiment_design.md`
 - `insights/workflow/metric_contract.md`
 - `insights/case_evolution/cross_case_transfer_matrix.md`
+- `insights/case_evolution/score_based_case_strategy_routing.md`
 - `insights/case_evolution/micro_gain_trap_and_elite_donors.md`
 - `insights/case_evolution/full_flow_timeout_and_target_selection.md`
 - `insights/dpo/dpo_runtime_quality_frontier.md`
@@ -34,11 +35,23 @@ Current compact algorithm cards:
 - `insights/legalm/legalm_self_legal_closure.md`
 - `insights/legalm/legalm_paper_cost_tuning.md`
 - `insights/legalm/legalm_large_case_runtime.md`
-- `algorithm_cards/openroad_dpl.md`
-- `algorithm_cards/gpu_dpo_lsmc.md`
-- `algorithm_cards/nblg.md`
-- `algorithm_cards/legalm2.md`
-- `algorithm_cards/dreamplace_abacus.md`
+- `algorithm_cards/README.md`
+- `algorithm_cards/legalization/README.md`
+- `algorithm_cards/legalization/local_order_and_cluster.md`
+- `algorithm_cards/legalization/resource_allocation_and_flow.md`
+- `algorithm_cards/legalization/alm_and_exact_repair.md`
+- `algorithm_cards/legalization/constraints_and_parallelism.md`
+- `algorithm_cards/dpo_refinement/README.md`
+- `algorithm_cards/dpo_refinement/classic_hpwl_descent.md`
+- `algorithm_cards/dpo_refinement/incremental_and_timing.md`
+- `algorithm_cards/dpo_refinement/handoff_and_runtime.md`
+- `algorithm_cards/dpo_refinement/refinement_extensions.md`
+- `algorithm_cards/dpo_refinement/gpu_dpo_lsmc.md`
+- `algorithm_cards/context/README.md`
+- `algorithm_cards/context/openroad_dpl.md`
+- `algorithm_cards/context/nblg.md`
+- `algorithm_cards/context/legalm2.md`
+- `algorithm_cards/context/dreamplace_abacus.md`
 
 The previous family-tree knowledge base is not part of default tracked context.
 Do not broad-read external archives during normal framework patching.  They are
@@ -50,6 +63,11 @@ hard contracts from measured observations, working hypotheses, and reference
 donors.  Use `insights/README.md` to pick only the insight cards relevant to
 the current task.
 
+Knowledge cards should describe reusable design features, failure modes, and
+strategy guidance.  Do not put local experiment paths, result-table filenames,
+or benchmark-specific result rows in default knowledge.  Keep those in external
+experiment archives and translate only the reusable lesson back into knowledge.
+
 The evolved legalizer and evolved DPO patch catalogs are active donor inventory.
 `evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` are prior
 iter30 legalizer donor seeds with measured wins on some design archetypes, not
@@ -59,3 +77,16 @@ source-root patch bases. `prepare_workspace.sh` and generated Student helpers
 materialize start branches and DPO checks so Agents do not hand-write patch
 commands. Teacher should still validate every chosen seed/donor against the
 current case's stage-wise evidence.
+
+## Legalizer Algorithm Flow Review
+
+- `knowledge/insights/legalization/legalizer_algorithm_flow_review.md`: mandatory review card for path-pure legalizer evolution. Teacher and Student should consult it before planning LEGALM, NEGOTIATION, or DIAMOND iterations and cite the mapped paper/card idea in reports.
+
+## Paper-to-Pseudocode Cards
+
+- `algorithm_cards/legalization_paper_pseudocode.md`: compatibility index for legalization paper mechanisms.  The implementation-ready cards are split under `algorithm_cards/legalization/`.
+- `algorithm_cards/dpo_paper_pseudocode.md`: compatibility index for DPO/refinement paper mechanisms.  The implementation-ready cards are split under `algorithm_cards/dpo_refinement/`.
+- `algorithm_cards/context/`: background cards for OpenROAD DPL, LEGALM, NBLG, and DREAMPlace/Abacus references.  These are context, not direct fallback instructions.
+- `reference/papers/researched_paper_index.md`: source handles and the correction that the OpenDP-named committed reference is a fence-region-aware mixed-height legalization paper, not OpenROAD OpenDP engine documentation.
+
+Teacher should cite one of these cards when giving mechanism-level legalizer or DPO guidance. Student should copy the relevant pseudo code into its plan and state which counters prove liveness.

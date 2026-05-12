@@ -1,8 +1,8 @@
 # Optdp Stage Co-Optimization Evidence
 
-This card summarizes reusable evidence from two image-compression placement
-evolution runs at different utilization levels.  The exact case names are not
-the lesson; the transferable lesson is that final HPWL depends on how
+This card summarizes reusable evidence from dense placement evolution runs at
+different utilization levels.  The exact design ids are not the lesson; the
+transferable lesson is that final HPWL depends on how
 legalization and detailed improvement exchange useful local state while keeping
 the downstream mirror/evaluation pass callable.
 
@@ -43,12 +43,11 @@ Why it helped:
 - it improves final HPWL while preserving strict legality and good displacement,
 - exact HPWL remains the commit guard, so predictor mistakes are bounded.
 
-Observed pattern:
+Observed mechanism pattern:
 
-- clean final HPWL improved by several thousand microns versus the local
-  baseline anchor in the lower-utilization run,
-- runtime increased modestly because touched-net scoring is still expensive,
-- displacement stayed better than the canonical baseline.
+- clean final HPWL can improve when the predictor filters bad random trials,
+- runtime can increase because touched-net scoring is still expensive,
+- displacement should remain checked against the canonical baseline.
 
 Future use:
 
@@ -343,9 +342,9 @@ When editing `Optdp`:
 
 ## Source-Only Improve-Placement Closure Evidence
 
-This evidence comes from a high-density image-compression placement snapshot and
-uses canonical OpenROAD/DPL pin-based HPWL.  The case name is not the reusable
-lesson; the lesson is about the detailed-placement handoff ceiling.
+This evidence comes from high-density standard-cell placements and uses
+canonical OpenROAD/DPL pin-based HPWL.  The reusable lesson is about the
+detailed-placement handoff ceiling.
 
 ### What was source-compliant
 
@@ -359,25 +358,25 @@ lesson; the lesson is about the detailed-placement handoff ceiling.
 - A guided-random source experiment was removed from default behavior because
   it made final HPWL worse and added runtime.
 
-### Metric outcome
+### Mechanism outcome
 
 | mechanism | final HPWL behavior | runtime behavior | decision |
 |---|---:|---:|---|
-| old evolve default | weakest source baseline | fast | baseline only |
+| old evolve default | weak source baseline | fast | baseline only |
 | guided random from median region | worse than no-guided | slower | reject |
 | reorder window-5 source default | clear final gain vs evolve default | near Diamond runtime | keep as source donor |
 | tolerance honoring | additional small final gain | moderate runtime increase | keep, but not enough |
 | prior endpoint portfolio | near-Diamond final HPWL | much slower and script-driven | use as ceiling clue, not as promotion |
 
-Observed ceiling after this pass:
+Reusable ceiling after this pass:
 
-- Source-compliant changes improved final HPWL by about `3.20%` versus the old
-  evolve default on the dense snapshot.
-- The best source-compliant result was still about `3.08%` worse than Diamond
-  final HPWL.
-- A prior script-portfolio run got within about `0.85%` of Diamond, which says
-  the remaining gap is not purely LEGALM legalization quality; it is the
-  missing bounded portfolio behavior inside `improve_placement_evolve`.
+- Source-compliant changes clearly improved final HPWL versus the old evolve
+  default on dense placements.
+- The best source-compliant result still trailed the strong local-greedy
+  baseline, so legalization quality alone was not the full answer.
+- A prior script-portfolio run came closer to the strong local-greedy baseline,
+  which says the remaining gap is bounded portfolio behavior inside
+  `improve_placement_evolve`, not just LEGALM legalization quality.
 
 ### Reusable conclusions
 
@@ -394,18 +393,12 @@ Observed ceiling after this pass:
   from legalization into improve placement.  Do not claim the prior portfolio
   by expanding `dtParams.script`.
 
-## Evidence Pointers And Round Hygiene
+## Round Hygiene
 
-- Lower-utilization run: source+target touched-net predictor, extrema cache,
-  and boundary-primary/fallback source pool knowledge cards under
-  `.dpl_evolve_state/teacher_rounds/jpeg_util60_framework_3x10_gpt55_xhigh/`.
-- Higher-utilization run: segment-local reservation/compaction donor and exact
-  tagged micro-pass cards under
-  `.dpl_evolve_state/teacher_rounds/jpeg_util90_framework_4x12_gpt55_xhigh_2x/`.
-- In the current workspace snapshot there is no separate teacher-round
-  directory for the same higher-utilization `4x12_gpt55_xhigh` round without
-  the `_2x` suffix.  Treat any report rows for that shorter id as suspect
-  unless the result directory name has an exact suffix such as
-  `baseline_probe_*` or `iter_XX_student_YY_*` immediately after the round id.
-  Prefix-only matching can accidentally fold `_2x` results into the shorter
-  round id.
+- Do not encode local round directories or benchmark ids in default knowledge.
+- If several experiments share a similar name, merge them by feature class and
+  mechanism rather than by string prefix.
+- Treat source+target touched-net predictors, extrema caches, boundary-primary
+  source pools, segment-local reservation/compaction, and exact tagged
+  micro-passes as mechanism families.  Teacher should ask which feature they
+  address and whether strict stage-wise metrics prove the mechanism is live.

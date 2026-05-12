@@ -95,8 +95,8 @@ Do not turn a single-case result into a global instruction.
 
 Ignored runtime directories may exist:
 
-- `.dpl_evolve_state/`: builds, variants, experiments.
-- `knowledge/reference/papers/pdf_cache/`: optional paper PDFs for reading.
+- generated build, variant, and experiment state.
+- optional cached paper PDFs for reading.
 
 They are useful locally but should not be read by default prompt generation or
 committed as source-of-truth.

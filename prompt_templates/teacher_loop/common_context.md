@@ -12,7 +12,7 @@
 
 - evolved source: `$dpl_evolve_src`
 - LEGALM reference: `$legalm_guidance`
-- Diamond reference baseline: `$openroad_diamond`
+- OpenROAD DPL default-flow reference: `$openroad_diamond`
 - negotiation donor: `$openroad_negotiation_nblg`
 - Abacus donor: `$dreamplace_abacus`
 - evolved legalizer patch catalog: `$evolved_legalizers_readme`
@@ -27,6 +27,7 @@
 - LEGO-lite skill index: `$skill_index`
 - LEGO-lite skill query helper: `$skill_query_script`
 - LEGO-lite skill notes: `$skill_cards_dir`
+- algorithm/pseudocode cards: `$algorithm_cards_dir`
 - Teacher coaching skill: `$teacher_coaching_skill`
 
 Use these paths as search handles only when they help identify concrete
@@ -45,15 +46,28 @@ function/state insertion points. Do not require broad donor-tree reading.
 - A selected skill is guidance, not a cage. Teacher should name the skill id,
   expected stage transition, done criteria, and log signals; Student may refine
   the mechanism when current source evidence contradicts the card.
+- For mechanism inspiration, Teacher should query the skill index first and
+  then open the smallest relevant card under `$algorithm_cards_dir`, especially
+  `legalization/` for legalizer routes and `dpo_refinement/` for improve
+  placement or handoff routes. Pseudocode cards are idea contracts, not fixed
+  recipes.
 
 ## Objective And Boundaries
 
 - canonical metric: `metrics.json:hpwl` from OpenROAD/DPL pin-based logs;
   ignore `hpwl_proxy` for promotion
+- primary research target remains canonical HPWL reduction. Use
+  `C_HR = (1 + (HPWL_sol - HPWL_ref) / HPWL_global) * max((runtime_sol / runtime_ref)^0.04, 0.7)` against the OpenROAD DPL default-flow
+  (`openroad_dpl_flow`, Diamond-search) reference to judge whether the HPWL gain is worth the
+  runtime cost. Lower C_HR is better, with the reference near 1.0. Use HPWL
+  first for research direction and C_HR as the value check; preserve strong
+  HPWL-only donors as repair routes instead of discarding them.
+  The runtime exponent is intentionally light: about 2x runtime only needs
+  roughly 3% HPWL_global improvement to break even.
 - stage metrics: report `HPWLg`, `delta HPWLlg`, `delta HPWLip`,
   `delta HPWL final`, and final HPWL when available
-- research belief: clean canonical HPWL at least 5% below the best clean line is
-  achievable; 5% is not a hard gate and not a ceiling
+- research belief: clean canonical HPWL at least 5% below the OpenROAD DPL
+  default-flow reference is achievable; 5% is not a hard gate and not a ceiling
 - algorithmic prior: global/differential guidance followed by source-level
   detailed repair should be able to outperform pure greedy legalization when
   the handoff and refinement are implemented correctly; weak final HPWL should
@@ -70,6 +84,12 @@ function/state insertion points. Do not require broad donor-tree reading.
   optimize-mirroring code stays evaluation-only unless a future task reopens it
 - final HPWL is judged as legalization/improve-placement interaction; useful
   routes should create legal states that improve placement can consume
+- route emphasis can be `legalizer-emphasis`, `DPO-emphasis`, or
+  `co-optimization-emphasis`. This is not a mutually exclusive permission to
+  ignore other stages. Student should inspect legalization, improve placement,
+  and handoff together, and should improve multiple stages when the source
+  evidence supports high-quality changes. The emphasis only names the primary
+  HPWL source for the round.
 
 ## Runtime And Performance
 
@@ -79,10 +99,10 @@ function/state insertion points. Do not require broad donor-tree reading.
   `${student_runtime_multiplier}x` the canonical `openroad_dpl_flow`
   `metrics.json:runtime_seconds`; metrics/evaluator collection is not
   timeout-wrapped
-- runtime is usable budget, not a penalty. Spend it on bounded stronger
-  mechanisms: deeper legalizer scoring, broader capped candidates, donor
-  hybridization, parallel candidate evaluation, or better legalizer/improve
-  handoff
+- runtime is a usable `${student_runtime_multiplier}x`-tolerant budget and also part of C_HR. Spend it on
+  bounded stronger mechanisms: deeper legalizer scoring, broader capped
+  candidates, donor hybridization, parallel candidate evaluation, or better
+  legalizer/improve handoff. Do not waste it on repeated unchanged passes.
 - `bounded` means complexity-controlled and measurable, not small-scope; use
   caps, caches, thread-local scoring, and deterministic reductions to make
   larger searches practical
@@ -139,6 +159,9 @@ function/state insertion points. Do not require broad donor-tree reading.
   `skills/source_git_workflow.md`, `skills/build_openroad.md`,
   `skills/evaluate_run.md`, and `skills/trace_logging.md` when counters/logs
   are needed
+- algorithm cards under `$algorithm_cards_dir` provide pseudocode and liveness
+  contracts for the selected mechanism family; Students should read only the
+  relevant card after Teacher names the stage/mechanism
 - generated Student workspace scripts own prepare/build/evaluate/commit/diff
   commands; Teacher should not ask Students to reconstruct CMake, relink,
   evaluator, git, or diff commands

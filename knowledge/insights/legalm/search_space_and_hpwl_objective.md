@@ -3,11 +3,10 @@
 ## Observation
 
 Expanding the BGD candidate stencil can improve final HPWL, but only until the
-current paper-objective search saturates.  In the latest medium-density
-single-height sweep, horizontal-only expansion improved strict-flow HPWL by
-about one percent versus the diamond reference while remaining faster.  Further
-horizontal expansion produced the same final solution, and vertical expansion
-regressed quality and runtime.
+current paper-objective search saturates.  On medium-density single-height
+designs, horizontal-only expansion can expose useful moves, while excessive
+horizontal expansion can converge to the same solution and vertical expansion
+can regress quality or runtime.
 
 This is not primarily a geometric enumeration bug.  The shared
 `legalmCandidateStencil()` path enumerates the rectangular `(dx, dy)` stencil.

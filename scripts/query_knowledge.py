@@ -122,7 +122,7 @@ def format_markdown(rows: list[tuple[float, dict[str, Any]]], *, show_full: bool
                 "- metrics_to_check: " + ", ".join(f"`{x}`" for x in as_list(card.get("metrics_to_check"))),
                 "- log_signals: " + ", ".join(f"`{x}`" for x in as_list(card.get("log_signals"))),
                 "- done_criteria: " + "; ".join(as_list(card.get("done_criteria"))),
-                f"- rg: `rg -n \"{card['skill_id']}|{'|'.join(as_list(card.get('keywords'))[:3])}\" knowledge/index knowledge/skills`",
+                f"- rg: `rg -n \"{card['skill_id']}|{'|'.join(as_list(card.get('keywords'))[:3])}\" knowledge/index knowledge/skills knowledge/algorithm_cards`",
                 "",
             ]
         )

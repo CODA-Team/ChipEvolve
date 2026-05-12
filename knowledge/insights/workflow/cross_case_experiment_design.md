@@ -12,18 +12,15 @@ matrix to separate three questions:
 
 ## Preferred Pattern
 
-1. Define a TSV plan under `configs/experiment_plans/`.
-2. Generate or reuse placement snapshots for every matrix row.
+1. Define an explicit experiment plan outside default knowledge.
+2. Generate or reuse placement inputs for every matrix row.
 3. Refresh `openroad_dpl_flow`, `openroad_dpl_negotiation`, and
    `evolve_default` baselines for every row.
 4. Run Teacher/Student loops on one discovery line to produce candidate source
-   snapshots.
+   source states.
 5. Freeze each promising student source commit.
-6. Run `scripts/run_round_candidate_matrices.sh` or an exported source commit
-   through `scripts/run_candidate_matrix.sh` so the same code is tested
-   unchanged on every matrix row.
-7. Compare `metrics.json`, `implementation.diff`, and each student's
-   `knowledge_card.md`.
+6. Run the same frozen source unchanged on every matrix row.
+7. Compare canonical metrics, source diffs, and each student's mechanism report.
 
 ## Matrix Shape
 
@@ -52,6 +49,7 @@ algorithm knowledge.
 
 ## Expected Scale
 
-A 4-student by 12-iteration discovery round produces 48 fixed source trees.  A
-9-row transfer matrix gives 432 candidate-case measurements.  This scale is
-large enough to identify donor mechanisms and reject overfit changes.
+A transfer matrix should be large enough to distinguish single-design
+overfitting from robust mechanisms.  Choose enough frozen source variants and
+feature-diverse rows to expose utilization, scale, technology, macro/fence, and
+HPWL-sensitivity differences.

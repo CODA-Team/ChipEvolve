@@ -7,6 +7,10 @@ when Teacher needs the exact metrics/log checklist.
 ## Extra Guidance
 
 - Start every route decision from the stage table, not from final HPWL alone.
+- For an active launch, use `scripts/report_experiment_status.py` to combine
+  process status, best-donor summaries, and recent stage rows.  Use
+  `scripts/report_stage_metrics.py` when only one round's full per-student
+  stage table is needed.
 - Preserve a stage donor even when a later stage erases it; assign the next
   route to repair the consumer or handoff.
 - Treat runtime-only wins as evidence only if HPWL, displacement, and legality

@@ -3,7 +3,15 @@
 ## Evidence And Objective
 
 - Use `metrics.json:hpwl`; ignore proxy metrics.
-- Treat clean HPWL 5% below the best clean canonical line as a credible
+- Keep the research target as canonical HPWL reduction. Use
+  `C_HR = (1 + (HPWL_sol - HPWL_ref) / HPWL_global) * max((runtime_sol / runtime_ref)^0.04, 0.7)` versus the OpenROAD DPL default-flow
+  (`openroad_dpl_flow`, Diamond-search) reference to decide whether a HPWL gain is worth its
+  runtime and whether it should become an elite/default parent. Do not let C_HR
+  hide a strong HPWL donor; route such donors to runtime repair or handoff
+  repair.
+  The runtime exponent is intentionally light: about 2x runtime only needs
+  roughly 3% HPWL_global improvement to break even.
+- Treat clean HPWL 5% below the OpenROAD DPL default-flow reference as a credible
   research target, not a hard gate and not a ceiling. Keep useful below-5%
   mechanisms as donor evidence, but do not let sub-1% gains define success.
 - Show `openroad_dpl_flow`, `openroad_dpl_negotiation`, and `evolve_default`
@@ -14,6 +22,12 @@
 - Use the LEGO-lite skill index when a route needs a reusable mechanism. Query
   by stage and bottleneck, then select only the relevant skill ids; do not dump
   skill notes into every Student prompt.
+- When selecting a new mechanism, inspect the relevant algorithm/pseudocode
+  card after the skill query: `algorithm_cards/legalization/` for legalizer
+  mechanisms, `algorithm_cards/dpo_refinement/` for improve-placement or
+  handoff mechanisms, and `algorithm_cards/context/` only for background.
+  Use those cards to find a mechanism, pseudocode skeleton, liveness counters,
+  and failure mode; do not treat them as mandatory code.
 - Do stage-wise attribution before choosing routes. Separate final HPWL donors
   from legalization-stage donors, improve-placement donors, runtime-only
   quality signals, non-executed mechanisms, and negative evidence.
@@ -72,12 +86,17 @@
   placement, and one handoff/diagnosis skill when that is the route's active
   uncertainty. Include the expected state transition and done criteria for each
   selected skill.
-- Every route must cover both active responsibilities: A
-  legalization/detailed placement and B improve placement. Each stage needs its
-  own plausible HPWL path.
+- Every route must declare primary emphasis: `legalizer-emphasis`,
+  `DPO-emphasis`, or `co-optimization-emphasis`. This is a priority label, not
+  a one-stage-only license. Students should analyze both legalization and
+  improve placement and should patch both when there is a coherent,
+  high-quality mechanism. If the secondary stage is not patched, Teacher must
+  state why a cosmetic edit would be worse than diagnosis/handoff evidence.
 - Provide a concise plan chain: A legalization/detailed placement, B improve
-  placement, and C co-optimization/handoff. Identify the canonical line or
-  evolved family used as evidence or start for each active stage.
+  placement, and C co-optimization/handoff. Each route should include a
+  meaningful plan for A and B: either a source change, a handoff/consumer
+  change, or a concrete diagnostic proving why that stage should be preserved
+  this round.
 - For hybrid routes, describe the staged source flow: first legalizer family,
   residual/frontier handoff, second legalizer or repair family, and
   improve-placement consumer. This is internal algorithm sequencing, not
@@ -160,8 +179,10 @@
   evidence, stage-wise metrics, and the skill's log signals. If the source
   evidence contradicts a selected skill, the Student should pivot and report the
   better mechanism.
-- Require the final report to prove both active stages changed with
-  function-level evidence and stage-wise metrics.
+- Require the final report to prove every patched stage with function-level
+  evidence and stage-wise metrics. If only one stage changed, require a
+  specific explanation of how the other stage preserved, consumed, or erased
+  the gain, and what would be the next high-quality change there.
 - Require the final report/knowledge card to include log-derived diagnosis:
   key DPL counter lines, runtime bottleneck classification, implementation
   error evidence if any, and the exact repair that should guide the next plan.

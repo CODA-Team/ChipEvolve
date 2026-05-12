@@ -1,0 +1,109 @@
+# Score-Based Case Strategy Routing
+
+## Evidence Type
+
+Measured observation and Teacher routing policy.
+
+This card summarizes three experiment families that were previously reported
+separately but should be interpreted together:
+
+- single-design evolution, which shows how far a case-specific route can move,
+- fixed-source cross replay, which separates robust mechanisms from overfit
+  case tuning,
+- multi-design legalizer-line evaluation, which shows whether a legalizer family
+  still helps after the full DPL flow.
+
+Default Teacher context should use the feature-level lessons below.  Concrete
+benchmark ids, program ids, numeric tables, and file paths should stay outside
+default knowledge.
+
+`C_HR = (1 + (HPWL_sol - HPWL_ref) / HPWLg) * max((runtime_sol / runtime_ref)^0.04, 0.7)`.
+
+Lower is better.  The reference is the complete OpenROAD DPL default flow with
+Diamond search (`detailed_placement`, `improve_placement`, and
+`optimize_mirroring`) at about `1.0`.  HPWL remains the primary research
+objective, but `C_HR` decides whether the runtime cost is already worthwhile or
+whether the candidate is only a HPWL donor that needs runtime repair.
+
+## Main Result Pattern
+
+Single-design evolution can produce HPWL wins, but not every HPWL win is
+score-positive after runtime.  With exponent `0.04`, runtime is only a light
+penalty, so a candidate that still loses `C_HR` is too expensive for its current
+HPWL gain and should be treated as a donor, not a promoted parent.
+
+The same source snapshot can look strong on its discovery design and weak in a
+transfer matrix.  Treat discovery-line winners as mechanisms to distill, then
+rerun unchanged source on feature-diverse designs before writing a global rule.
+
+## Strategy By Design Feature
+
+Medium dense, mostly standard-cell designs with moderate local conflict:
+
+- Negotiation/resource-aware legalization can be a first-class route when it
+  reduces conflict without a large runtime increase.
+- LEGALM/global guidance and Diamond/local greedy can still be HPWL donors, but
+  they need runtime repair before promotion if their search expands broadly.
+
+Very high-utilization or image-compression-like dense designs with little
+whitespace and strong global-to-legal HPWL disturbance:
+
+- Do not assume a global LEGALM-style prior is the right parent just because the
+  design is dense.  Full-flow evidence can favor local-greedy/Diamond plus DPO
+  or handoff repair when global legalization creates a basin that DPO cannot
+  recover.
+- If a dense route spends much more runtime for only a small HPWL win, make the
+  next iteration a runtime-rewrite or cache/cap iteration, not another broader
+  search.
+
+Large row-rich or wrapper-like designs with many local conflicts:
+
+- Negotiation-style residual/conflict handling is promising when it remains
+  bounded and produces nonzero conflict-resolution counters.
+- LEGALM and Diamond may provide HPWL movement, but broad global searches or
+  wide local windows must be distilled before becoming score elites.
+
+Macro, cut-row, fence, or fragmented-row stress:
+
+- Prefer resource/capacity-aware routes that explicitly reason about row
+  segments, fixed obstacles, and infeasible resources.
+- Treat hband/fixed-physical-cell construction artifacts separately from
+  ordinary legalizer quality.  Do not train Teacher policy on broken cutRow
+  construction.
+
+Unknown or transfer-oriented designs:
+
+- Prefer the robust bounded donor family: mechanisms with modest HPWL gain,
+  legal completion across diverse features, and near-baseline runtime.
+- Use aggressive high-HPWL donors only when the next step explicitly rewrites
+  their candidate generation, exact-delta scoring, caches, or parallel scoring.
+- Do not promote high-runtime donors only because they are the best HPWL row;
+  first distill the mechanism into a cached/capped implementation.
+
+## Teacher Policy
+
+- Report both raw HPWL gain and `C_HR`.  A candidate with better HPWL but
+  `C_HR >= 1.0` is not a failure; it is a donor that needs either runtime
+  repair or additional HPWL source.
+- Separate three roles in every review: `score elite`, `HPWL donor`, and
+  `failed/regression path`.
+- When the best HPWL donor and best `C_HR` donor differ, assign at least one
+  route to preserve the HPWL donor mechanism and one route to rewrite it for
+  runtime.
+- If a route wins by less than about `1%` HPWL and runtime grows beyond about
+  `1.5x`, require a specific explanation of why the mechanism should be kept.
+- If a route wins `2-3%` HPWL at around `2x` runtime, preserve it as promising:
+  the current score intentionally allows that tradeoff to be near break-even.
+
+## Student Policy
+
+- Before coding, state whether the target is score-positive promotion, HPWL
+  donor extraction, or runtime repair.
+- If borrowing a high-HPWL/high-runtime donor, do not copy the broad search
+  literally.  Replace repeated full scans with affected-net scoring, cached
+  legality checks, dirty-row queues, bounded top-k candidate selection, or
+  parallel scoring.
+- For high-utilization dense designs, first prove that a LEGALM or negotiation
+  change improves strict final HPWL before investing deeply in that line.
+- For conflict-heavy dense or row-rich designs, negotiation can be a first-class
+  route when conflict counters and full-flow metrics agree.

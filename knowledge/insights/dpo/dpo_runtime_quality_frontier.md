@@ -2,8 +2,8 @@
 
 ## Evidence Type
 
-- `measured_observation`: formal three-case DPO/improve-placement runs on
-  medium dense, dense image-style, and large row-rich placement cases.
+- `measured_observation`: DPO/improve-placement runs on feature-diverse dense
+  and row-rich placement archetypes.
 - `reference_donor`: source-root patches under `patches/evolved_dpo/`.
 - `policy`: future Agents should use stable patch names and mechanism ids, not
   private workbench commit hashes.
@@ -36,13 +36,13 @@ Mechanism:
 - Score destination-only edges on the fly with thread-local scratch instead of
   pre-expanding all candidate edge references.
 
-Observed formal result versus `neg015_staged_runtime` / `neg016`:
+Feature-level behavior versus staged runtime variants:
 
 | archetype | final HPWL | runtime signal |
 |---|---|---|
-| medium dense | unchanged | modestly faster |
-| dense image-style | unchanged | modestly faster |
-| large row-rich | unchanged | modestly faster |
+| medium dense | usually comparable | modestly faster |
+| high-utilization dense | usually comparable | modestly faster |
+| large row-rich | usually comparable | modestly faster |
 
 This is a runtime-quality donor, not a new final-HPWL breakthrough.
 

@@ -1,4 +1,4 @@
-# NBLG — Human-Readable Card
+# NBLG Context Card
 
 ## Core thesis
 NBLG reformulates mixed-height legalization as a **resource allocation task over placement-site grids**. Each cell negotiates for grid resources using:

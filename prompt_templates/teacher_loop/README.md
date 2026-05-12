@@ -18,14 +18,19 @@ Rules:
   `teacher_review_output.md`. Shared per-student insight packet fields live in
   `student_insight_packet_format.md`. Do not duplicate these blocks across
   templates.
-- Teacher prompts should assign concrete per-student plans requiring source-level
-  work on legalization/detailed placement and improve placement. Student
-  prompts should keep optimize mirroring callable for evaluation but outside
-  the active patch surface unless a future task explicitly reopens it.
-- LEGO-lite mechanism lookup lives in `knowledge/index/skill_cards.jsonl` and
-  `knowledge/skills/`. Teacher packets should select relevant stage skills;
-  Student reports should prove selected skills with source, metrics, and log
-  evidence.
+- Teacher prompts should assign concrete per-student plans with route emphasis:
+  `legalizer-emphasis`, `DPO-emphasis`, or `co-optimization-emphasis`.
+  Emphasis is a priority label, not a three-way exclusive choice. Students
+  should inspect and improve legalization, improve placement, and handoff when
+  they can make high-quality mechanism changes, then validate the full
+  legalize/improve/mirror flow. Student prompts should keep optimize mirroring
+  callable for evaluation but outside the active patch surface unless a future
+  task explicitly reopens it.
+- LEGO-lite mechanism lookup lives in `knowledge/index/skill_cards.jsonl`,
+  `knowledge/skills/`, and `knowledge/algorithm_cards/`. Teacher packets should
+  select relevant stage skills and the smallest useful algorithm/pseudocode
+  card; Student reports should prove selected mechanisms with source, metrics,
+  and log evidence.
 - Prompts should favor controllable algorithm complexity, bounded candidates,
   cached touched data, and direct HPWL mechanisms.
 - Keep the NoPUA-style coaching signal in `skills/teacher_peer_coaching.md`:
@@ -36,7 +41,7 @@ Rules:
 
 ```bash
 python3 scripts/optimize_case_with_codex.py \
-  --case jpeg_nangate45 \
+  --case <case_id> \
   --children 2 \
   --iterations 2 \
   --skip-baseline-preflight \

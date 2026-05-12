@@ -1,4 +1,4 @@
-# LEGALM 2.0 — Human-Readable Card
+# LEGALM 2.0 Context Card
 
 ## Core thesis
 LEGALM 2.0 treats legalization as a staged optimization problem:

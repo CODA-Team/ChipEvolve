@@ -13,6 +13,14 @@
   explicitly reopens it.
 - External evaluator, ORFS, and workspace helper scripts are not editable.
 - Use canonical `metrics.json:hpwl`; `hpwl_proxy` is debug-only.
+- Optimize canonical HPWL first. Use the generated value cost
+  `C_HR = (1 + (HPWL_sol - HPWL_ref) / HPWL_global) * max((runtime_sol / runtime_ref)^0.04, 0.7)`,
+  where lower is better and the OpenROAD DPL default-flow reference is near
+  1.0, to judge whether the HPWL improvement is worth its runtime cost. Report
+  C_HR together with raw HPWL/runtime so Teacher can separate efficient wins from HPWL-only
+  donors that need runtime repair.
+  The runtime exponent is intentionally light: about 2x runtime only needs
+  roughly 3% HPWL_global improvement to break even.
 - Treat 5% HPWL reduction as a credible research target, not a hard gate and
   not a ceiling. Build mechanisms that can move the source of HPWL loss, not
   only preserve a small donor.
@@ -40,18 +48,30 @@
   `scripts/query_knowledge.py` and keep only the relevant skill note. Use its
   source handles, metrics, log signals, and done criteria as the mechanism
   contract, but still inspect current local source before patching.
+- If Teacher names an algorithm family or pseudocode mechanism, open only the
+  relevant card under `algorithm_cards/legalization/`,
+  `algorithm_cards/dpo_refinement/`, or `algorithm_cards/context/`. Convert the
+  pseudocode into your own source-level plan and liveness counters before
+  patching; do not paste it blindly.
 - Use the Teacher chain as the execution outline: source diagnosis,
   legalization patch, improve-placement patch, build/evaluate, inspect stage
   metrics/log counters, revise the weak stage, then keep the best clean
   candidate. Refine the outline when code evidence shows a better mechanism.
+- Required closure loop: plan the algorithm, patch source, build, run the
+  canonical full-flow evaluator, inspect metrics and logs, revise once when the
+  mechanism is live but weak, commit the best clean source state, write the
+  diff, and report the exact evidence.
 - After each evaluation, inspect the canonical `metrics.json` and the DPL log
   referenced by the metrics/log path. Diagnose mechanism liveness, stage that
   lost HPWL, runtime growth, timeout/failure reason, zero or implausible
   counters, stale-binary/source mismatch, and hot-loop/full-rescan symptoms.
-- Plan and implement both A legalization/detailed placement and B improve
-  placement before judging the idea. Build at least one co-optimization link:
-  local HPWL deltas, residual-net priorities, candidate choice, conflict price,
-  or handoff state shared between stages.
+- Follow the assigned route emphasis. `legalizer-emphasis`,
+  `DPO-emphasis`, and `co-optimization-emphasis` name the primary HPWL source,
+  not the only stage you may touch. Inspect both A legalization/detailed
+  placement and B improve placement, then patch every stage where you have a
+  coherent high-quality mechanism. If you leave a stage unchanged, explicitly
+  diagnose how it preserved, consumed, or erased the gain and what source
+  change would be worth doing next.
 - If Teacher assigns an elite/final-donor continuation, keep the
   pre-seeded/materialized elite source. Switch to an `evolved_*` start branch
   only when the primary route explicitly says to use that prepared start.
@@ -89,10 +109,13 @@
 ## Algorithm Standard
 
 - Make aggressive case-focused source changes; no default-equivalent behavior.
-- Legalization and improve placement should both change source-level behavior.
-  Valid improve-placement edits include candidate generation, ordering, local
-  HPWL objective, acceptance, endpoint policy, touched-region cache, internal
-  parameter use, and handoff-state consumption.
+- Aim to improve both legalization and improve placement when the changes are
+  real mechanisms rather than cosmetic edits. Valid improve-placement edits
+  include candidate generation, ordering, local HPWL objective, acceptance,
+  endpoint policy, touched-region cache, internal parameter use, and
+  handoff-state consumption. If the secondary stage is unchanged, report the
+  diagnostic reason and the next source-level mechanism that would make it
+  worth changing.
 - Hybrid legalizer routes are allowed when assigned or supported by source
   evidence. Implement them as source-level staged algorithms with explicit
   residual/frontier handoff; do not hybridize by rerunning unchanged endpoints.
@@ -116,7 +139,8 @@
 - The generated evaluation command applies a `${student_runtime_multiplier}x`
   timeout to the OpenROAD legalize/improve/mirror flow only; metrics/evaluator
   collection is not timeout-wrapped.
-- Runtime is a usable budget. Spend it on bounded HPWL-source mechanisms:
+- Runtime is a usable budget and part of C_HR. Spend the tolerant
+  `${student_runtime_multiplier}x` budget on bounded HPWL-source mechanisms:
   exact affected-net scoring, broader capped windows, batch transactions,
   parallel candidate evaluation, stronger donor hybridization, or stronger
   legalization-to-improve handoff.
@@ -140,8 +164,9 @@
   `touched function/state`, `expected behavior`, `metric/log evidence`, and
   `done/fail reason`.
 - Report touched files, mechanism, stage-wise HPWL deltas, canonical
-  HPWL/runtime/displacement delta, legality, metrics path, diff path, knowledge
-  card path, active counters, best clean commit, and next uncertainty.
+  HPWL/runtime/displacement delta, C_HR/H/R when available, legality, metrics
+  path, diff path, knowledge card path, active counters, best clean commit, and
+  next uncertainty.
 - Include a `Log/efficiency diagnosis` paragraph: DPL log path or key line
   handles, dominant counters, runtime bottleneck classification, evidence of
   wrong or non-executed implementation, and the specific next repair Teacher

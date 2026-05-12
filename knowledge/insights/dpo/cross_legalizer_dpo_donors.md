@@ -2,20 +2,14 @@
 
 ## Evidence Type
 
-- `measured_observation`: 36-row source-level cross-ablation on three formal
-  dense placement cases. Metrics were collected from canonical
-  `metrics.json:hpwl_stages` / OpenROAD DPL pin-based logs, not bbox proxy.
+- `measured_observation`: source-level cross-ablation on feature-diverse dense
+  placement inputs. Metrics were collected from canonical OpenROAD DPL
+  pin-based stage logs, not bbox proxy.
 - `reference_donor`: the patches under `patches/evolved_dpo/` are donor
   patches for private `dpl_evolve` source trees. They are not universal
   defaults and must be evaluated on the active case.
 - `working_hypothesis`: the best next improvement is to keep the NEG014 hybrid
   mechanism while making fallback descent more incremental or more selective.
-
-Artifacts:
-
-- Full matrix: `.dpl_evolve_state/cross_dpo_ablation/cross_stage_metrics_full.md`
-- Summary: `.dpl_evolve_state/cross_dpo_ablation/cross_summary.md`
-- Patch catalog: `patches/evolved_dpo/README.md`
 
 ## What Was Crossed
 
@@ -41,21 +35,21 @@ than accidental legalizer-specific source differences.
 
 ## Cross-Matrix Result Pattern
 
-Donor summary versus the same-legalizer base over 9 case/legalizer pairs:
+Donor summary versus the same-legalizer base:
 
-| DPO donor | mean final HPWL delta | wins | interpretation |
-|---|---:|---:|---|
-| `neg014_hybrid` | -15151.1 um | 9/9 | strongest quality donor, consistent transfer |
-| `legalm46_improve_only` | -5935.8 um | 9/9 | quality-positive but expensive and weaker |
-| `diamond40_random` | -4.4 um | 2/9 | essentially a no-op transplant |
+| DPO donor | transfer behavior | interpretation |
+|---|---|---|
+| `neg014_hybrid` | consistently quality-positive | strongest quality donor, but runtime-sensitive |
+| `legalm46_improve_only` | quality-positive but weaker | rich mechanism donor, too broad as a default |
+| `diamond40_random` | near no-op on transfer | safe micro-donor, not a final-HPWL strategy |
 
 Best pairings observed:
 
 | case archetype | best pairing | result signal |
 |---|---|---|
-| medium dense standard-cell | `diamond + neg014_hybrid` | best AES-style final HPWL |
-| high-damage dense image-style | `diamond + neg014_hybrid` | best JPEG-style final HPWL |
-| large row-rich wrapper-style | `legalm + neg014_hybrid` | best SWERV-style final HPWL |
+| medium dense standard-cell | `diamond + neg014_hybrid` | local-greedy legalizer plus strong DPO can be best |
+| high-damage dense image-style | `diamond + neg014_hybrid` | local-greedy legalizer plus strong DPO can beat global starts |
+| large row-rich wrapper-style | `legalm + neg014_hybrid` | global legalizer plus strong DPO can recover more final HPWL |
 
 Interpretation:
 
@@ -105,8 +99,8 @@ Mechanism:
 Runtime source:
 
 - The Algorithm-2 DP kernels can create very large state spaces.
-- In the large row-rich case, logs showed tens to hundreds of millions of DP
-  transitions in `DPL-1311` and `DPL-1313`.
+- On large row-rich inputs, logs showed very large DP transition counts in the
+  broad kernels.
 - Some LSMC refresh work was still single-threaded.
 
 Policy:
@@ -147,13 +141,13 @@ Mechanism change:
 - Adds fallback telemetry: triggered/skipped, cheap/full/reverse calls,
   per-stage gain/runtime, DP windows/transitions, and transaction gain.
 
-Formal three-case result versus `neg014_hybrid` in the negotiation line:
+Feature-level result versus `neg014_hybrid` in the negotiation line:
 
-| case archetype | 015 final vs 014 | 015 runtime vs 014 | interpretation |
-|---|---:|---:|---|
-| medium dense | -77.0 um | -33.3% | better and faster |
-| dense image-style | +1908.7 um | -58.0% | much faster, quality regresses |
-| large row-rich | +1127.0 um | -11.4% | faster, quality regresses mildly |
+| case archetype | 015 vs 014 quality | 015 vs 014 runtime | interpretation |
+|---|---|---|---|
+| medium dense | can improve | faster | promote if strict full flow agrees |
+| high-damage dense | can regress | much faster | quality guard is required |
+| large row-rich | can regress mildly | faster | use as runtime donor, then repair quality |
 
 Policy:
 

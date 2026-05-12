@@ -32,11 +32,13 @@ from scripts.teacher_loop.evidence import (
     design_characteristics_block,
     discover_round_candidate_metrics,
     expected_metrics_path,
+    hpwl_runtime_score,
+    hpwl_runtime_score_factors,
     metric_table,
     operation_artifact_block,
     parse_candidate_tag,
+    score_reference_anchor,
     stage_donor_signal,
-    strongest_baseline_anchor,
     summarize_metrics,
 )
 
@@ -252,7 +254,7 @@ def peer_briefing(
     flow_variant: str,
     iteration: int,
     current_student: str,
-    student_runtime_multiplier: float = 4.0,
+    student_runtime_multiplier: float = 2.0,
 ) -> str:
     if iteration <= 1:
         return "No prior peer results yet."
@@ -270,7 +272,7 @@ def peer_briefing(
                 run_tag=run_tag,
             )
         )
-    _baseline_label, baseline = strongest_baseline_anchor(baseline_metrics)
+    _baseline_label, baseline = score_reference_anchor(baseline_metrics)
     metrics_by_student: dict[str, MetricSummary] = {}
     invalid_rows: list[tuple[str, MetricSummary, list[str]]] = []
     for summary in discover_round_candidate_metrics(
@@ -309,21 +311,25 @@ def peer_briefing(
             f"{invalid_note}"
         )
 
-    best_student = min(
-        metrics_by_student,
-        key=lambda student: (
-            metrics_by_student[student].hpwl_after
-            if metrics_by_student[student].hpwl_after is not None
-            else float("inf")
-        ),
-    )
+    def peer_rank(student: str) -> tuple[float, float]:
+        summary = metrics_by_student[student]
+        hpwl_rank = (
+            -float(summary.hpwl_after)
+            if summary.hpwl_after is not None
+            else float("-inf")
+        )
+        cost = hpwl_runtime_score(summary, baseline)
+        cost_rank = -cost if cost is not None else float("-inf")
+        return hpwl_rank, cost_rank
+
+    best_student = max(metrics_by_student, key=peer_rank)
     lines = [
         f"Previous iteration: `{previous}`",
         "",
         "Peer evidence below is artifact-gated. Use peer packet/source paths "
         "only when Teacher names a concrete donor; summarize it briefly before borrowing.",
         "",
-        f"Best previous valid clean peer by HPWL: `{best_student}`.",
+        f"Best previous valid clean peer by HPWL first, then lower C_HR: `{best_student}`.",
     ]
     for student_id in sorted(metrics_by_student):
         summary = metrics_by_student[student_id]
@@ -335,6 +341,10 @@ def peer_briefing(
         avg_disp = "" if summary.avg_disp is None else f"{summary.avg_disp:.4f}"
         max_disp = "" if summary.max_disp is None else f"{summary.max_disp:.4f}"
         violations = summary.violations or "clean"
+        score_factors = hpwl_runtime_score_factors(summary, baseline)
+        score_text = "" if score_factors is None else f"{score_factors['score']:.3f}"
+        h_text = "" if score_factors is None else f"{score_factors['H']:.4f}"
+        r_text = "" if score_factors is None else f"{score_factors['R']:.4f}"
         stage_pct = " / ".join(
             [
                 "lg:"
@@ -358,11 +368,15 @@ def peer_briefing(
             ]
         )
         lines.append(
-            "- {student} ({label}): HPWL `{hpwl}`, runtime `{runtime_s}`, "
+            "- {student} ({label}): C_HR `{score}` H/R `{h}/{r}`, "
+            "HPWL `{hpwl}`, runtime `{runtime_s}`, "
             "avg/max disp `{avg_disp}/{max_disp}`, legality `{violations}`; "
             "stage `{stage_pct}`, signal `{signal}`".format(
                 student=student_id,
                 label=label,
+                score=score_text,
+                h=h_text,
+                r=r_text,
                 hpwl=hpwl,
                 runtime_s=runtime_s,
                 avg_disp=avg_disp,
@@ -577,6 +591,7 @@ def common_context(
         skill_index=runtime.agent_root / "knowledge" / "index" / "skill_cards.jsonl",
         skill_query_script=runtime.agent_root / "scripts" / "query_knowledge.py",
         skill_cards_dir=runtime.agent_root / "knowledge" / "skills",
+        algorithm_cards_dir=runtime.agent_root / "knowledge" / "algorithm_cards",
         teacher_coaching_skill=runtime.agent_root
         / "skills"
         / "teacher_peer_coaching.md",
@@ -1633,6 +1648,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
                 "   Teacher explicitly assigns a DPO donor patch on the current source.",
                 "6. Use `08_query_knowledge.sh --stage <stage> --q <text>` when",
                 "   Teacher names a skill id or you need one concise mechanism card.",
+                "   Open only the relevant algorithm/pseudocode card it points to.",
                 "7. Edit only the packet `private_dpl_evolve_source` with apply_patch.",
                 "8. `10_build_variant.sh` after code changes.",
                 "9. `20_evaluate_candidate.sh` for canonical metrics.",
@@ -1796,6 +1812,7 @@ commands.  Do not ask Teacher to rewrite this content.
 - optional_dpo_cross_legalizer_insight: `{runtime.agent_root / "knowledge" / "insights" / "dpo" / "cross_legalizer_dpo_donors.md"}`
 - skill_index: `{runtime.agent_root / "knowledge" / "index" / "skill_cards.jsonl"}`
 - skill_cards_dir: `{runtime.agent_root / "knowledge" / "skills"}`
+- algorithm_cards_dir: `{runtime.agent_root / "knowledge" / "algorithm_cards"}`
 - skill_query_script: `{runtime.agent_root / "scripts" / "query_knowledge.py"}`
 - generated_skill_query_helper: `{script_paths["query_knowledge"]}`
 - lineage: `{lineage_path}`
@@ -1866,9 +1883,9 @@ the exact blocker and do not call the candidate successful.
   `{paths.knowledge_card}`
 - final answer includes metrics path, stage-wise HPWL deltas
   (`HPWLg`, `delta HPWLlg`, `delta HPWLip`, `delta HPWL final`,
-  `HPWL final`), runtime/displacement delta, diff path, knowledge card path,
-  source commit, key counters/logs, and algorithmic validity/complexity
-  assessment
+  `HPWL final`), C_HR/H/R when available, runtime/displacement delta, diff
+  path, knowledge card path, source commit, key counters/logs, and algorithmic
+  validity/complexity assessment
 - if a primary mechanism counter is zero, label that route as non-executed or
   negative evidence instead of claiming the mechanism ran
 
@@ -1932,6 +1949,9 @@ is insufficient.
   Treat the card as a mechanism contract: source handles, done criteria,
   metrics, and log signals. It guides but does not replace current source
   inspection.
+- If the selected skill points to an algorithm/pseudocode card under
+  `algorithm_cards_dir`, open only that card and translate its pseudocode into
+  a local source plan before patching.
 - Keep runtime bounded by the generated DPL flow timeout. The threshold is
   computed from canonical `metrics.json:runtime_seconds`, but the timeout is
   applied only to the OpenROAD legalize/improve/mirror flow. Metrics/evaluator
@@ -1960,6 +1980,8 @@ internals.
   `{script_paths["apply_evolved_dpo_patch"]}`
 - query concise LEGO-lite mechanism skills:
   `{script_paths["query_knowledge"]}`
+- relevant algorithm/pseudocode cards live under:
+  `{runtime.agent_root / "knowledge" / "algorithm_cards"}`
 - build after source edits: `{script_paths["build"]}`
 - evaluate canonical metrics: `{script_paths["evaluate"]}`
 - commit final source: `{script_paths["commit"]}`
@@ -2136,7 +2158,7 @@ def child_prompt(
     compact: bool = False,
     stable_workspace: bool = False,
     elite_seed_source: Path | None = None,
-    student_runtime_multiplier: float = 4.0,
+    student_runtime_multiplier: float = 2.0,
 ) -> str:
     elite_note = ""
     if elite_seed_source is not None:
@@ -2190,7 +2212,7 @@ def compact_child_prompt(
     peer_learning_path: Path,
     stable_workspace: bool = False,
     elite_seed_source: Path | None = None,
-    student_runtime_multiplier: float = 4.0,
+    student_runtime_multiplier: float = 2.0,
 ) -> str:
     elite_note = ""
     if elite_seed_source is not None:

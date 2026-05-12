@@ -1,4 +1,4 @@
-# DREAMPlace Abacus — Human-Readable Card
+# DREAMPlace Abacus Context Card
 
 ## Role in this project
 DREAMPlace Abacus is not the target plane. It is:

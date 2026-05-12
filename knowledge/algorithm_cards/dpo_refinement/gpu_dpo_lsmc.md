@@ -1,9 +1,9 @@
-# GPU-DPO / LSMC Detailed Placement Card
+# GPU-DPO / LSMC Detailed Placement Algorithm Card
 
 Source paper:
 
-- `knowledge/reference/papers/pdf_cache/UCSD_c425_Detailed_Placement_Optimization.pdf`
-- Source URL recorded in `knowledge/reference/papers/paper_sources.yaml`
+- Source handle: `gpu_dpo_lsmc_2026` in the paper source catalog.
+- Verify exact paper text only when implementing paper-specific details.
 
 ## What Codex should remember
 
@@ -113,24 +113,23 @@ Before GPU work, try a small CPU-only LSMC prototype:
 Promote only if the improvement comes from better final HPWL under the runtime
 cap, not from repeated unchanged random tails.
 
-## Current Implementation Evidence
+## Implementation Lessons
 
-Recent source-only closure on a dense image-compression placement snapshot:
+Reusable lessons from source-only DPO evolution:
 
 - Reorder dry-run/offset traversal with window size 5 is a useful source donor;
-  it improves final HPWL versus the old evolve default without changing the
-  endpoint script.
+  it can improve final HPWL without changing the endpoint script.
 - Honoring the existing `-t 0.005` tolerance in MIS/GS/VS/reorder/random gives
-  a smaller additional gain by allowing real extra descent passes that were
-  previously blocked by a hard `0.01` floor.
+  a smaller gain by allowing real extra descent passes that were previously
+  blocked by a hard `0.01` floor.
 - A median-region guided random generator was rejected.  It consumed the random
   tail, worsened final HPWL, and added runtime.  Do not reintroduce it as a
   hidden runtime switch.
 - Full-net reorder scoring was rejected as a default.  It barely improved final
   HPWL while adding scoring work.
-- Prior endpoint-script portfolio results show a near-Diamond ceiling, but that
-  is only a donor clue.  The publishable path is to move that behavior into
-  bounded source kernels and a real descent controller, not to expand
+- Prior endpoint-script portfolio results are only donor clues.  The publishable
+  path is to move that behavior into bounded source kernels and a real descent
+  controller, not to expand
   `dtParams.script`.
 
 Next CPU-DPO implementation target:

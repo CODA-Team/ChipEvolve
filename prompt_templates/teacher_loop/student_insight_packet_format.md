@@ -1,5 +1,6 @@
 ### student_XX
 - route type:
+- route emphasis:
 - route action:
 - start/donor family:
 - continuation parent:
@@ -12,6 +13,7 @@
 - required log signals:
 - active workbench repair, if any:
 - step-by-step execution chain:
+- algorithm closure loop:
 - plan A legalization/detailed placement:
 - plan B improve placement:
 - plan C co-optimization/handoff:

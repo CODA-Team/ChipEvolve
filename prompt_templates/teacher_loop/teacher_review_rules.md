@@ -14,8 +14,13 @@
 - invalid if returncode failed, metrics missing, diff missing/empty, no agent
   message, or legality failed
 - compare only canonical `metrics.json:hpwl`, runtime, avg/max displacement,
-  and stage-wise HPWL; ignore bbox/proxy wins
-- clean canonical HPWL 5% below the best clean line is a credible research
+  stage-wise HPWL, and generated `C_HR = (1 + (HPWL_sol - HPWL_ref) / HPWL_global) * max((runtime_sol / runtime_ref)^0.04, 0.7)`; ignore
+  bbox/proxy wins
+- use C_HR versus the OpenROAD DPL default-flow reference as the value/balance check for
+  elite continuation. The research target remains HPWL; raw HPWL/stage deltas
+  decide whether a higher-cost candidate is still a useful donor or handoff
+  repair route.
+- clean canonical HPWL 5% below the OpenROAD DPL default-flow reference is a credible research
   target, not a hard gate and not a ceiling
 - sub-1% HPWL gains over `evolve_default` are donor evidence, not success
 - repeated best HPWL, repeated donor code, tiny improvements, or repeated
@@ -58,8 +63,12 @@
 
 ## Next-Plan Requirements
 
-- next plans must cover both legalization/detailed placement and improve
-  placement, with an ordered A/B/C plan chain
+- next plans must declare route emphasis: `legalizer-emphasis`,
+  `DPO-emphasis`, or `co-optimization-emphasis`, with an ordered A/B/C plan
+  chain. Emphasis is not exclusivity: students should improve both stages when
+  there is a high-quality source mechanism, and otherwise explain the
+  secondary stage as producer/consumer evidence rather than forcing no-value
+  edits.
 - every packet needs one explicit `HPWL source mechanism`, why it can attack a
   materially larger remaining gap, and metric evidence that would prove or
   disprove it

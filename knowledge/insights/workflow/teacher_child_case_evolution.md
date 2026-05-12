@@ -43,9 +43,10 @@ Child Agent:
 2. Teacher reads the current packet, the baseline metrics table, and the
    explicit report/log/result paths for those baseline rows.
 3. Teacher starts children with non-overlapping hypotheses:
-   - an `evolved_legalm` dense-prior route when design evidence shows high
-     utilization, standard-cell density, or large global-to-legal HPWL
-     disturbance,
+   - an optional `evolved_legalm` dense-prior diagnostic route when design
+     evidence shows high utilization, standard-cell density, or large
+     global-to-legal HPWL disturbance, unless current full-flow score evidence
+     says that case archetype should prefer another route,
    - an `evolved_diamond` or Diamond-local route for local greedy closure,
      row/macro structure, or large-case local legality pressure,
    - an `evolved_negotiation` route for residual conflicts or overlap patterns,
@@ -66,6 +67,8 @@ Child Agent:
 7. Teacher compares every child against both the case baseline and the
    best-so-far elite artifact.  A newer iteration is not better just because it
    is newer.
+   Stage-only wins are explanatory evidence; current full-flow score evidence
+   takes precedence when it contradicts a stage prior.
 8. Teacher rejects failures and weak evidence, labels useful failures as
    donors or negative evidence, and writes concrete continuation guidance for
    the same student ids.
@@ -108,7 +111,7 @@ repeating the global comparison and strategy review.  Teacher must compress the
 scoreboard, peer results, code-review findings, and best-so-far state into
 short per-student insight packets:
 
-- `### student_01`, `### student_02`, and so on,
+- one short section per student,
 - parent/seed to use,
 - peer mechanism to borrow or avoid,
 - likely code area or mechanism to try,
@@ -120,35 +123,12 @@ others tried and what happened, but this table is for execution context.  The
 student should use its insight packet, then decide the concrete implementation
 while editing.
 
-## Entry Script
+## Runtime Artifacts
 
-Use:
-
-```bash
-"$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py" \
-  --case <case_id_from_case_registry> \
-  --children 4 \
-  --iterations 2 \
-  --dry-run
-```
-
-Add `--launch` to actually call `codex exec` through `run_codex_exec.py`.
-
-The script writes a round directory under:
-
-```text
-$DPL_EVOLVE_STATE_ROOT/teacher_rounds/<round_id>/
-```
-
-The round directory contains:
-
-- `iter_XX/packet/current_run_packet.md`,
-- `iter_XX/prompts/teacher_plan.md`,
-- `iter_XX/prompts/student_XX_*.md`,
-- `iter_XX/prompts/teacher_review.md`,
-- `students/student_XX/lineage.json`,
-- `manifest.json`,
-- `README.md` with launch commands and baseline evidence.
+The orchestrator should keep round packets, prompts, lineage, manifests, and
+baseline evidence in its own runtime state.  Knowledge should not name local
+round paths or artifact filenames; it should only define what information must
+exist and how Teacher should use it.
 
 ## Promotion Rule
 

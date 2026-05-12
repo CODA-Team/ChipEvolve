@@ -20,6 +20,16 @@ from scripts.teacher_loop.common import (
     iter_name,
 )
 
+SCORE_REFERENCE_LINE = "openroad_dpl_flow"
+HPWL_RUNTIME_SCORE_FORMULA = (
+    "C_HR = (1 + (HPWL_sol - HPWL_ref) / HPWL_global) "
+    "* max((runtime_sol / runtime_ref)^0.04, 0.7)"
+)
+# Runtime is a value check, not the primary objective: 2x runtime requires
+# roughly 3% HPWL_global improvement to break even.
+RUNTIME_SCORE_EXPONENT = 0.04
+RUNTIME_SCORE_MIN = 0.7
+
 
 def load_json(path: Path) -> dict[str, Any] | None:
     try:
@@ -461,6 +471,17 @@ def candidate_beats_baseline(
     summary: MetricSummary,
     baseline: MetricSummary | None,
 ) -> bool:
+    hpwl_win = candidate_beats_hpwl_only(summary, baseline)
+    cost = hpwl_runtime_score(summary, baseline)
+    if cost is not None:
+        return hpwl_win and cost < 1.0
+    return hpwl_win
+
+
+def candidate_beats_hpwl_only(
+    summary: MetricSummary,
+    baseline: MetricSummary | None,
+) -> bool:
     return (
         baseline is not None
         and is_clean_placement(baseline)
@@ -484,11 +505,114 @@ def runtime_ratio(
     return float(summary.runtime_seconds) / float(baseline.runtime_seconds)
 
 
+def hpwl_runtime_score_factors(
+    summary: MetricSummary,
+    baseline: MetricSummary | None,
+) -> dict[str, float] | None:
+    """Return HPWL/runtime value-cost factors versus the default-flow reference.
+
+    The cost reference is the OpenROAD DPL default-flow line.  Other canonical
+    lines are useful donors/start points, but they should not redefine the
+    value-cost reference for the round.
+    """
+    if (
+        baseline is None
+        or not is_clean_placement(baseline)
+        or not is_clean_placement(summary)
+        or baseline.hpwl_after in (None, 0)
+        or summary.hpwl_after in (None, 0)
+        or summary.hpwl_global in (None, 0)
+        or baseline.runtime_seconds in (None, 0)
+        or summary.runtime_seconds in (None, 0)
+    ):
+        return None
+    hpwl_ref = float(baseline.hpwl_after)
+    hpwl_sol = float(summary.hpwl_after)
+    hpwl_global = float(summary.hpwl_global)
+    runtime_ref = float(baseline.runtime_seconds)
+    runtime_sol = float(summary.runtime_seconds)
+    if (
+        hpwl_ref <= 0
+        or hpwl_sol <= 0
+        or hpwl_global <= 0
+        or runtime_ref <= 0
+        or runtime_sol <= 0
+    ):
+        return None
+    h_raw = 1.0 + (hpwl_sol - hpwl_ref) / hpwl_global
+    r_raw = (runtime_sol / runtime_ref) ** RUNTIME_SCORE_EXPONENT
+    h = h_raw
+    r = max(r_raw, RUNTIME_SCORE_MIN)
+    cost = h * r
+    return {
+        "H_raw": h_raw,
+        "R_raw": r_raw,
+        "H": h,
+        "R": r,
+        "cost": cost,
+        "score": cost,
+        "hpwl_global": hpwl_global,
+        "runtime_ratio": runtime_sol / runtime_ref,
+    }
+
+
+def hpwl_runtime_score(
+    summary: MetricSummary,
+    baseline: MetricSummary | None,
+) -> float | None:
+    factors = hpwl_runtime_score_factors(summary, baseline)
+    return None if factors is None else factors["score"]
+
+
+def cost_reference_anchor(
+    metrics: dict[str, MetricSummary | None],
+) -> tuple[str | None, MetricSummary | None]:
+    """Return the fixed value-cost reference: OpenROAD DPL default flow.
+
+    If the default-flow row is missing, fall back to the best clean
+    canonical line so old partial packets remain inspectable, but generated
+    rounds should normally have the fixed reference.
+    """
+    diamond = metrics.get(SCORE_REFERENCE_LINE)
+    if (
+        diamond is not None
+        and is_clean_placement(diamond)
+        and diamond.hpwl_after is not None
+        and diamond.runtime_seconds not in (None, 0)
+    ):
+        return SCORE_REFERENCE_LINE, diamond
+    return strongest_baseline_anchor(metrics)
+
+
+def score_reference_anchor(
+    metrics: dict[str, MetricSummary | None],
+) -> tuple[str | None, MetricSummary | None]:
+    """Backward-compatible alias for the HPWL/runtime value-cost reference."""
+    return cost_reference_anchor(metrics)
+
+
+def objective_sort_value(
+    summary: MetricSummary,
+    baseline: MetricSummary | None,
+) -> tuple[float, float]:
+    if not candidate_beats_hpwl_only(summary, baseline):
+        hpwl_tiebreak = -float(summary.hpwl_after) if summary.hpwl_after is not None else float("-inf")
+        return float("-inf"), hpwl_tiebreak
+    cost = hpwl_runtime_score(summary, baseline)
+    if cost is not None:
+        # HPWL remains primary; lower cost breaks HPWL ties.
+        hpwl_tiebreak = -float(summary.hpwl_after) if summary.hpwl_after is not None else float("-inf")
+        return hpwl_tiebreak, -cost
+    if summary.hpwl_after is not None:
+        return float("-inf"), -float(summary.hpwl_after)
+    return float("-inf"), float("-inf")
+
+
 def efficiency_signal(
     summary: MetricSummary,
     baseline: MetricSummary | None,
     *,
-    budget_multiplier: float = 4.0,
+    budget_multiplier: float = 2.0,
 ) -> str:
     ratio = runtime_ratio(summary, baseline)
     if ratio is None:
@@ -504,7 +628,7 @@ def stage_donor_signal(
     candidate: MetricSummary,
     baseline: MetricSummary | None,
     *,
-    budget_multiplier: float = 4.0,
+    budget_multiplier: float = 2.0,
 ) -> str:
     """Classify candidate evidence without reducing it to final HPWL only.
 
@@ -521,10 +645,19 @@ def stage_donor_signal(
     if candidate_beats_baseline(candidate, baseline):
         if inefficient:
             return (
-                "quality-only final signal; inefficient runtime "
+                "quality-only HPWL final signal; inefficient runtime "
                 f"{ratio:.2f}x baseline, not an effective donor"
             )
-        return "final donor"
+        score = hpwl_runtime_score(candidate, baseline)
+        score_text = "" if score is None else f" C_HR={score:.3f}"
+        return f"final donor{score_text}"
+
+    score = hpwl_runtime_score(candidate, baseline)
+    if score is not None and candidate_beats_hpwl_only(candidate, baseline):
+        return (
+            f"HPWL-only donor but C_HR={score:.3f}; repair runtime/quality "
+            "before treating as an elite route"
+        )
 
     signals: list[str] = []
     if (
@@ -609,12 +742,17 @@ def round_scoreboard(
     if not candidates:
         return "No student candidate metrics have been found for this round yet."
 
-    baseline_label, baseline = strongest_baseline_anchor(metrics)
+    baseline_label, baseline = cost_reference_anchor(metrics)
     baseline_hpwl = baseline.hpwl_after if baseline else None
     target_hpwl = five_percent_target_hpwl(baseline)
     lines = [
-        "| iter | student | route_label | artifact_gate | HPWLg | dHPWLlg% | dHPWLip% | dHPWLfinal% | HPWL final | delta_vs_best_line | beats_best_line | gap_to_5pct_target | runtime_s | avg_disp | max_disp | violations | metrics |",
-        "|---|---|---|---|---:|---:|---:|---:|---:|---:|---|---:|---:|---:|---:|---|---|",
+        f"Value cost: `{HPWL_RUNTIME_SCORE_FORMULA}` versus `{baseline_label or 'missing'}`; "
+        "lower C_HR means the HPWL gain is more runtime-worthy. The research "
+        "target remains HPWL reduction; use C_HR as the runtime value check "
+        "and to identify HPWL donors that need runtime repair.",
+        "",
+        "| iter | student | route_label | artifact_gate | C_HR | H | R | HPWLg | dHPWLlg% | dHPWLip% | dHPWLfinal% | HPWL final | delta_vs_ref | cost_lt_ref | gap_to_5pct_target | runtime_s | runtime_ratio | avg_disp | max_disp | violations | metrics |",
+        "|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---:|---:|---:|---:|---:|---|---|",
     ]
     best: MetricSummary | None = None
     best_beating: MetricSummary | None = None
@@ -632,24 +770,13 @@ def round_scoreboard(
         promotable = not artifact_problems
         if promotable and (
             best is None
-            or (
-                is_clean_placement(summary)
-                and summary.hpwl_after is not None
-                and (
-                    not is_clean_placement(best)
-                    or best.hpwl_after is None
-                    or summary.hpwl_after < best.hpwl_after
-                )
-            )
+            or objective_sort_value(summary, baseline) > objective_sort_value(best, baseline)
         ):
             best = summary
         if promotable and candidate_beats_baseline(summary, baseline) and (
             best_beating is None
-            or best_beating.hpwl_after is None
-            or (
-                summary.hpwl_after is not None
-                and summary.hpwl_after < best_beating.hpwl_after
-            )
+            or objective_sort_value(summary, baseline)
+            > objective_sort_value(best_beating, baseline)
         ):
             best_beating = summary
         delta = (
@@ -662,13 +789,18 @@ def round_scoreboard(
             if target_hpwl is None or summary.hpwl_after is None
             else summary.hpwl_after - target_hpwl
         )
+        score_factors = hpwl_runtime_score_factors(summary, baseline)
+        runtime_factor = runtime_ratio(summary, baseline)
         lines.append(
-            "| {iter_part} | {student_id} | {route_label} | {artifact_gate} | {hpwlg} | {d_lg_pct} | {d_ip_pct} | {d_final_pct} | {hpwl} | {delta} | "
-            "{beats} | {target_gap} | {runtime_s} | {avg_disp} | {max_disp} | {violations} | `{metrics_path}` |".format(
+            "| {iter_part} | {student_id} | {route_label} | {artifact_gate} | {score} | {h} | {r} | {hpwlg} | {d_lg_pct} | {d_ip_pct} | {d_final_pct} | {hpwl} | {delta} | "
+            "{beats} | {target_gap} | {runtime_s} | {runtime_ratio} | {avg_disp} | {max_disp} | {violations} | `{metrics_path}` |".format(
                 iter_part=iter_part or "?",
                 student_id=student_id or "?",
                 route_label=route_label or summary.tag,
                 artifact_gate=candidate_artifact_status_text(artifact_problems),
+                score="" if score_factors is None else f"{score_factors['score']:.3f}",
+                h="" if score_factors is None else f"{score_factors['H']:.4f}",
+                r="" if score_factors is None else f"{score_factors['R']:.4f}",
                 hpwlg="" if summary.hpwl_global is None else f"{summary.hpwl_global:.3f}",
                 d_lg_pct=""
                 if summary.hpwl_stage_delta_legalization_percent is None
@@ -686,6 +818,7 @@ def round_scoreboard(
                 runtime_s=""
                 if summary.runtime_seconds is None
                 else f"{summary.runtime_seconds:.3f}",
+                runtime_ratio="" if runtime_factor is None else f"{runtime_factor:.2f}x",
                 avg_disp="" if summary.avg_disp is None else f"{summary.avg_disp:.4f}",
                 max_disp="" if summary.max_disp is None else f"{summary.max_disp:.4f}",
                 violations=summary.violations or "clean",
@@ -705,13 +838,15 @@ def round_scoreboard(
         lines.extend(
             [
                 "",
-                "Best valid clean candidate so far: "
+                "Best valid clean HPWL candidate with C_HR so far: "
                 f"`{best_iter or '?'}` / `{best_student or '?'}` / "
-                f"`{best_route_label or best.tag}` with HPWL `{best.hpwl_after:.3f}`"
+                f"`{best_route_label or best.tag}` with C_HR "
+                f"`{(hpwl_runtime_score(best, baseline) or float('nan')):.3f}` "
+                f"and HPWL `{best.hpwl_after:.3f}`"
                 + (
                     ""
                     if best_delta is None
-                    else f" (`{best_delta:.3f}` vs {baseline_label or 'best clean canonical line'})."
+                    else f" (`{best_delta:.3f}` HPWL vs {baseline_label or 'cost reference'})."
                 ),
             ]
         )
@@ -720,13 +855,13 @@ def round_scoreboard(
             round_id, case_id, best_beating.tag
         )
         lines.append(
-            "Best best-canonical-line-beating candidate: "
+            "Best C_HR-below-reference candidate: "
             f"`{beat_iter or '?'}` / `{beat_student or '?'}` / "
             f"`{beat_route_label or best_beating.tag}`."
         )
     else:
         lines.append(
-            "No prior valid student candidate beats the best clean canonical line "
+            "No prior valid student candidate has C_HR below the cost reference "
             f"(`{baseline_label or 'unknown'}`) yet."
         )
     if target_hpwl is not None:
@@ -773,9 +908,12 @@ def best_round_candidate(
         iter_number = candidate_iteration_number(iter_part) or -1
         if (
             best is None
-            or best.hpwl_after is None
-            or summary.hpwl_after < best.hpwl_after
-            or (summary.hpwl_after == best.hpwl_after and iter_number > best_iter)
+            or objective_sort_value(summary, baseline) > objective_sort_value(best, baseline)
+            or (
+                objective_sort_value(summary, baseline)
+                == objective_sort_value(best, baseline)
+                and iter_number > best_iter
+            )
         ):
             best = summary
             best_iter = iter_number
@@ -872,7 +1010,7 @@ def peer_candidate_row(
     case_id: str,
     candidate: MetricSummary,
     baseline: MetricSummary | None,
-    budget_multiplier: float = 4.0,
+    budget_multiplier: float = 2.0,
 ) -> list[str]:
     artifacts = candidate_artifacts(
         runtime=runtime,
@@ -903,15 +1041,24 @@ def peer_candidate_row(
         else candidate.hpwl_after - baseline.hpwl_after
     )
     beats = "yes" if candidate_beats_baseline(candidate, baseline) else "no"
+    score_factors = hpwl_runtime_score_factors(candidate, baseline)
+    runtime_factor = runtime_ratio(candidate, baseline)
+    score_text = "" if score_factors is None else f"{score_factors['score']:.3f}"
+    hr_text = "" if score_factors is None else f"{score_factors['H']:.4f}/{score_factors['R']:.4f}"
+    runtime_ratio_text = "" if runtime_factor is None else f"{runtime_factor:.2f}x"
     summary = (
         f"- `{iter_part or '?'}` / `{student_id or '?'}` / "
         f"`{route_label or candidate.tag}`: HPWLg `{candidate.hpwl_global}`, "
         f"dHPWL lg/ip/final `{_fmt_stage_pct(candidate)}`, "
         f"HPWL final `{candidate.hpwl_after}`, "
-        f"delta_vs_baseline `{delta}`, runtime `{candidate.runtime_seconds}`, "
+        f"delta_vs_ref `{delta}`, C_HR "
+        f"`{score_text}`, "
+        f"H/R `{hr_text}`, "
+        f"runtime `{candidate.runtime_seconds}`, runtime_ratio "
+        f"`{runtime_ratio_text}`, "
         f"efficiency `{efficiency_signal(candidate, baseline, budget_multiplier=budget_multiplier)}`, "
         f"avg/max disp `{candidate.avg_disp}/{candidate.max_disp}`, "
-        f"legality `{candidate.violations or 'clean'}`, beats `{beats}`, "
+        f"legality `{candidate.violations or 'clean'}`, cost_lt_ref `{beats}`, "
         f"artifact_gate `{candidate_artifact_status_text(artifact_problems)}`, "
         f"stage_signal `{stage_donor_signal(candidate, baseline, budget_multiplier=budget_multiplier)}`"
     )
@@ -934,10 +1081,10 @@ def write_peer_learning_packet(
     round_id: str,
     iteration: int,
     metrics: dict[str, MetricSummary | None],
-    student_runtime_multiplier: float = 4.0,
+    student_runtime_multiplier: float = 2.0,
 ) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
-    baseline_label, baseline = strongest_baseline_anchor(metrics)
+    baseline_label, baseline = cost_reference_anchor(metrics)
     target_hpwl = five_percent_target_hpwl(baseline)
     candidates = discover_round_candidate_metrics(
         orfs_root=runtime.orfs_root,
@@ -973,7 +1120,10 @@ def write_peer_learning_packet(
             candidate=item,
         )
     ]
-    clean_candidates.sort(key=lambda item: item.hpwl_after or float("inf"))
+    clean_candidates.sort(
+        key=lambda item: objective_sort_value(item, baseline),
+        reverse=True,
+    )
     beating_candidates = [
         item for item in clean_candidates if candidate_beats_baseline(item, baseline)
     ]
@@ -987,20 +1137,23 @@ def write_peer_learning_packet(
         "Use it to borrow mechanisms and source from valid peer candidates. "
         "A candidate is valid only when the Codex operation, source commit, "
         "diff, knowledge card, private binary, metrics, and legality all pass "
-        "the artifact gate.  A valid clean candidate that beats the best clean "
-        "canonical line is useful donor evidence only when its runtime and "
-        "complexity are controlled. Treat "
-        "5% below the best clean canonical line as a credible research target, not a "
+        "the artifact gate.  A valid clean candidate that beats the fixed "
+        f"`{SCORE_REFERENCE_LINE}` cost reference under `{HPWL_RUNTIME_SCORE_FORMULA}` "
+        "is useful elite evidence only when its runtime and complexity are "
+        "controlled. A HPWL-only donor can still be valuable when routed to "
+        "runtime or handoff repair. Treat "
+        "5% below the cost reference as a credible research target, not a "
         "hard gate; below-5% stage donors can still be useful when efficient.",
         "",
         "## Baseline Anchor",
     ]
     if baseline is None:
-        chunks.append("- best clean canonical line: missing")
+        chunks.append("- cost_reference_line: missing")
     else:
         chunks.extend(
             [
-                f"- best_clean_canonical_line: `{baseline_label}`",
+                f"- cost_reference_line: `{baseline_label}`",
+                f"- value_cost: `{HPWL_RUNTIME_SCORE_FORMULA}`",
                 f"- HPWLg: `{baseline.hpwl_global}`",
                 f"- delta_HPWL_legalization: `{baseline.hpwl_stage_delta_legalization}`",
                 f"- delta_HPWL_improve: `{baseline.hpwl_stage_delta_improve}`",
@@ -1016,11 +1169,11 @@ def write_peer_learning_packet(
             ]
         )
 
-    chunks.extend(["", "## Best Best-Canonical-Line-Beating Candidates"])
+    chunks.extend(["", "## Best C_HR-Below-Reference Candidates"])
     if not beating_candidates:
         chunks.append(
-            "No prior valid clean student candidate beats the best clean "
-            "canonical line yet. Students may still inspect the best valid "
+            "No prior valid clean student candidate has "
+            "C_HR below the cost reference yet. Students may still inspect the best valid "
             "clean candidate as a clue, but it is not an elite seed."
         )
     else:
@@ -1085,7 +1238,7 @@ def write_peer_learning_packet(
             "- Student may inspect peer code when it directly supports the chosen implementation change.",
             "- If a student opens peer code or diff, first summarize the peer idea in 2-3 lines, then decide what to borrow.",
             "- Prefer learning a mechanism over blind wholesale replacement.",
-            "- A clean best-canonical-line-beating candidate may seed an elite continuation branch only when its efficiency signal is bounded or better.",
+            "- A clean HPWL-winning candidate with C_HR below 1.0 may seed an elite continuation branch; HPWL-winning candidates with C_HR >= 1.0 are repair donors, not failures.",
             "- Sub-1% wins over `evolve_default` are donor evidence, not success.",
         ]
     )
@@ -1224,20 +1377,27 @@ def ensure_baseline_suite(
 
 
 def metric_table(metrics: dict[str, MetricSummary | None]) -> str:
+    score_label, score_baseline = cost_reference_anchor(metrics)
     lines = [
-        "| line | tag | HPWLg | delta HPWLlg | delta HPWLip | delta HPWL final | HPWL final | runtime_s | avg_disp | max_disp | violations |",
-        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|",
+        f"Value-cost reference: `{score_label or SCORE_REFERENCE_LINE}`; value cost `{HPWL_RUNTIME_SCORE_FORMULA}`.",
+        "",
+        "| line | tag | C_HR | H | R | HPWLg | delta HPWLlg | delta HPWLip | delta HPWL final | HPWL final | runtime_s | avg_disp | max_disp | violations |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|",
     ]
     for name in CANONICAL_LINES:
         summary = metrics.get(name)
         if summary is None:
-            lines.append(f"| {name} | missing |  |  |  |  |  |  |  |  |  |")
+            lines.append(f"| {name} | missing |  |  |  |  |  |  |  |  |  |  |  |  |")
             continue
+        score_factors = hpwl_runtime_score_factors(summary, score_baseline)
         lines.append(
-            "| {name} | {tag} | {hpwlg} | {d_lg} | {d_ip} | {d_final} | {hpwl_after} | {runtime} | "
+            "| {name} | {tag} | {score} | {h} | {r} | {hpwlg} | {d_lg} | {d_ip} | {d_final} | {hpwl_after} | {runtime} | "
             "{avg_disp} | {max_disp} | {violations} |".format(
                 name=name,
                 tag=summary.tag,
+                score="" if score_factors is None else f"{score_factors['score']:.3f}",
+                h="" if score_factors is None else f"{score_factors['H']:.4f}",
+                r="" if score_factors is None else f"{score_factors['R']:.4f}",
                 hpwlg="" if summary.hpwl_global is None else f"{summary.hpwl_global:.3f}",
                 d_lg=""
                 if summary.hpwl_stage_delta_legalization is None
@@ -1292,7 +1452,7 @@ def design_characteristics_block(
     this block gives it the concrete design/baseline facts that matter before
     asking students to modify algorithms.
     """
-    anchor_label, anchor = strongest_baseline_anchor(metrics)
+    anchor_label, anchor = cost_reference_anchor(metrics)
     target_hpwl = five_percent_target_hpwl(anchor)
     anchor_data = load_json(anchor.metrics_path) if anchor is not None else None
     design = (anchor_data or {}).get("design_metrics", {})
@@ -1328,7 +1488,7 @@ def design_characteristics_block(
             maxd=_fmt_float(disp.get("max_displacement_micron"), 4),
             moved=disp.get("moved_instance_count", ""),
         ),
-        "- best clean canonical line: `{label}`, five_percent_target_hpwl={target}".format(
+        "- C_HR cost reference: `{label}`, five_percent_target_hpwl={target}".format(
             label=anchor_label or "",
             target=_fmt_float(target_hpwl, 3),
         ),
@@ -1339,19 +1499,27 @@ def design_characteristics_block(
             "",
             "HPWL values below use OpenROAD/DPL pin-based log HPWL only. "
             "`hpwl_proxy` is debug-only and is never a promotion metric.",
+            "Primary evolve target remains canonical HPWL reduction. "
+            f"`{HPWL_RUNTIME_SCORE_FORMULA}` relative to "
+            f"`{anchor_label or SCORE_REFERENCE_LINE}` is the value/balance cost "
+            "for deciding whether the runtime cost is worth the HPWL gain.",
             "",
-            "| line | HPWLg | delta HPWLlg | delta HPWLip | delta HPWL final | HPWL final | stage_delta_pct | runtime_s | violations |",
-            "|---|---:|---:|---:|---:|---:|---:|---:|---|",
+            "| line | C_HR | H | R | HPWLg | delta HPWLlg | delta HPWLip | delta HPWL final | HPWL final | stage_delta_pct | runtime_s | violations |",
+            "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|",
         ]
     )
     for line in CANONICAL_LINES:
         summary = metrics.get(line)
         if summary is None:
-            lines.append(f"| {line} | missing |  |  |  |  |  |  |  |")
+            lines.append(f"| {line} | missing |  |  |  |  |  |  |  |  |  |  |")
             continue
+        score_factors = hpwl_runtime_score_factors(summary, anchor)
         lines.append(
-            "| {line} | {hpwlg} | {d_lg} | {d_ip} | {d_final} | {after} | {stage_pct} | {runtime} | {violations} |".format(
+            "| {line} | {score} | {h} | {r} | {hpwlg} | {d_lg} | {d_ip} | {d_final} | {after} | {stage_pct} | {runtime} | {violations} |".format(
                 line=line,
+                score="" if score_factors is None else f"{score_factors['score']:.3f}",
+                h="" if score_factors is None else f"{score_factors['H']:.4f}",
+                r="" if score_factors is None else f"{score_factors['R']:.4f}",
                 hpwlg=_fmt_float(summary.hpwl_global, 3),
                 d_lg=_fmt_float(summary.hpwl_stage_delta_legalization, 3),
                 d_ip=_fmt_float(summary.hpwl_stage_delta_improve, 3),
@@ -1396,6 +1564,14 @@ def baseline_artifact_block(
     info = get_case(case_id)
     flow_root = runtime.orfs_root / "flow"
     blocks = []
+    score_label, score_baseline = cost_reference_anchor(metrics)
+    blocks.extend(
+        [
+            f"- cost_reference_line: `{score_label or SCORE_REFERENCE_LINE}`",
+            f"- value_cost: `{HPWL_RUNTIME_SCORE_FORMULA}`",
+            "",
+        ]
+    )
     for line in CANONICAL_LINES:
         summary = metrics.get(line)
         blocks.append(f"### {line}")
@@ -1407,9 +1583,16 @@ def baseline_artifact_block(
         report_dir = flow_root / "reports" / rel_root
         log_dir = flow_root / "logs" / rel_root
         result_dir = flow_root / "results" / rel_root
+        score_factors = hpwl_runtime_score_factors(summary, score_baseline)
+        score_text = "" if score_factors is None else f"{score_factors['score']:.3f}"
+        h_text = "" if score_factors is None else f"{score_factors['H']:.6f}"
+        r_text = "" if score_factors is None else f"{score_factors['R']:.6f}"
         blocks.extend(
             [
                 f"- run_tag: `{tag}`",
+                f"- C_HR: `{score_text}`",
+                f"- C_HR_H: `{h_text}`",
+                f"- C_HR_R: `{r_text}`",
                 f"- HPWLg: `{summary.hpwl_global}`",
                 f"- delta_HPWL_legalization: `{summary.hpwl_stage_delta_legalization}`",
                 f"- delta_HPWL_improve: `{summary.hpwl_stage_delta_improve}`",
