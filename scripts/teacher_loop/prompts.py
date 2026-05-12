@@ -1152,9 +1152,11 @@ usage() {{
   cat >&2 <<'USAGE'
 Usage:
   05_source_context.sh <module-relative-file> [symbol-or-text]
+  05_source_context.sh <module-relative-file> --symbol <symbol-or-text>
 
 Examples:
   05_source_context.sh src/Optdp.cpp improvePlacement
+  05_source_context.sh src/Optdp.cpp --symbol improvePlacement
   05_source_context.sh src/optimization/detailed_manager.h DetailedMgr
 
 This script only prints current local source context for patch anchoring.
@@ -1170,6 +1172,35 @@ fi
 file="$1"
 shift || true
 
+symbol=""
+if [[ "$#" -gt 0 ]]; then
+  case "$1" in
+    --symbol|-s)
+      shift
+      if [[ "$#" -lt 1 ]]; then
+        echo "[ERROR] --symbol requires a value" >&2
+        usage
+        exit 2
+      fi
+      symbol="$1"
+      shift || true
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    --*)
+      echo "[ERROR] unknown option: $1" >&2
+      usage
+      exit 2
+      ;;
+    *)
+      symbol="$1"
+      shift || true
+      ;;
+  esac
+fi
+
 if [[ ! -f "$file" ]]; then
   echo "[ERROR] source file not found under private_dpl_evolve_source: $file" >&2
   echo "[INFO] close module-relative matches:" >&2
@@ -1184,13 +1215,12 @@ fi
 echo "[INFO] source=$DPL_SRC"
 echo "[INFO] file=$file"
 
-if [[ "$#" -lt 1 ]]; then
+if [[ -z "$symbol" ]]; then
   echo "[INFO] no symbol provided; listing likely declarations/functions"
   rg -n '^[[:space:]]*(class|struct|enum|namespace|[A-Za-z_][A-Za-z_0-9:<>~*&[:space:]]+[[:space:]]+[A-Za-z_~][A-Za-z_0-9:~]*[[:space:]]*\\(|[A-Za-z_][A-Za-z_0-9:~]*::[A-Za-z_~][A-Za-z_0-9:~]*[[:space:]]*\\()' "$file" | head -120 || true
   exit 0
 fi
 
-symbol="$1"
 echo "[INFO] symbol=$symbol"
 match_lines="$(rg -n --fixed-strings -- "$symbol" "$file" || true)"
 if [[ -z "$match_lines" ]]; then
