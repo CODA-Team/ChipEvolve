@@ -55,8 +55,10 @@ Compare these first:
 - legality
 - HPWL delta from `metrics.json:hpwl`
 - stage HPWL from `metrics.json:hpwl_stages`
-- `C_HR = (1 + (HPWL_sol - HPWL_ref) / HPWL_global) * max((runtime_sol / runtime_ref)^0.04, 0.7)` versus the OpenROAD DPL default-flow reference,
-  when present, to decide whether the HPWL gain is worth the runtime cost
+- `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_global - 2 * (sqrt(runtime_sol / runtime_ref) - 1) / (sqrt(2) - 1)`
+  versus the OpenROAD DPL default-flow reference, when present, to decide
+  whether the HPWL gain is worth the runtime. Higher `G_HR` is better and the
+  reference is 0.
 - displacement
 - runtime from `metrics.json:runtime_seconds`
 - memory, when recorded
@@ -78,10 +80,11 @@ Classify runtime before judging a result:
 - `aggressive`: larger but timeout-safe runtime spent on a mechanism that could
   materially change final HPWL.
 
-Runtime growth is not automatically bad, but it raises C_HR.  Reject
+Runtime growth is not automatically bad, but it lowers `G_HR`. Reject
 wasted repetition, duplicate endpoints, random tails, and broad rescans.
 Preserve or promote extra runtime when counters show cached/capped/parallel
-HPWL-source search that improves C_HR or creates a clearly reusable HPWL donor.
+HPWL-source search that improves `G_HR` or creates a clearly reusable HPWL
+donor.
 
 ## Strict Track Rule
 
@@ -98,7 +101,7 @@ The wrapper reuses this snapshot and should not rebuild upstream placement.
 Keep only if:
 
 - legality is clean
-- canonical HPWL improves and C_HR shows the runtime cost is worthwhile, or
+- canonical HPWL improves and `G_HR` shows the runtime is worthwhile, or
   HPWL/stage evidence creates a clear donor that can be repaired for runtime
 - displacement remains controlled
 

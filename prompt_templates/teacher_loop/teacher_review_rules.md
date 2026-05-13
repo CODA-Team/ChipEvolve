@@ -14,11 +14,14 @@
 - invalid if returncode failed, metrics missing, diff missing/empty, no agent
   message, or legality failed
 - compare only canonical `metrics.json:hpwl`, runtime, avg/max displacement,
-  stage-wise HPWL, and generated `C_HR = (1 + (HPWL_sol - HPWL_ref) / HPWL_global) * max((runtime_sol / runtime_ref)^0.04, 0.7)`; ignore
+  stage-wise HPWL, and generated
+  `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_global - 2 * (sqrt(runtime_sol / runtime_ref) - 1) / (sqrt(2) - 1)`;
+  ignore
   bbox/proxy wins
-- use C_HR versus the OpenROAD DPL default-flow reference as the value/balance check for
-  elite continuation. The research target remains HPWL; raw HPWL/stage deltas
-  decide whether a higher-cost candidate is still a useful donor or handoff
+- use `G_HR` versus the OpenROAD DPL default-flow reference as the
+  value/balance check for elite continuation. Higher `G_HR` is better and the
+  reference is 0. The research target remains HPWL; raw HPWL/stage deltas
+  decide whether a higher-runtime candidate is still a useful donor or handoff
   repair route.
 - clean canonical HPWL 5% below the OpenROAD DPL default-flow reference is a credible research
   target, not a hard gate and not a ceiling

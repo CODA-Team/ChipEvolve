@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 import os
 import re
 import subprocess
@@ -39,15 +40,15 @@ from runtime_paths import (
 )
 from scripts.teacher_loop.common import CANONICAL_LINES
 
-SCORE_REFERENCE_LINE = "openroad_dpl_flow"
-HPWL_RUNTIME_SCORE_FORMULA = (
-    "C_HR = (1 + (HPWL_sol - HPWL_ref) / HPWL_global) "
-    "* max((runtime_sol / runtime_ref)^0.04, 0.7)"
+VALUE_REFERENCE_LINE = "openroad_dpl_flow"
+HPWL_RUNTIME_GAIN_FORMULA = (
+    "G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_global "
+    "- 2 * (sqrt(runtime_sol / runtime_ref) - 1) / (sqrt(2) - 1)"
 )
 # Runtime is a value check, not the primary objective: 2x runtime requires
-# roughly 3% HPWL_global improvement to break even.
-RUNTIME_SCORE_EXPONENT = 0.04
-RUNTIME_SCORE_MIN = 0.7
+# 2 percentage points of final-HPWL improvement to break even.
+RUNTIME_PENALTY_SCALE = 2.0
+SQRT2_MINUS_ONE = math.sqrt(2.0) - 1.0
 
 load_local_env_sh(AGENT_ROOT)
 try:
@@ -272,10 +273,10 @@ def discover_best_clean_canonical_line(
     return best_label, best_hpwl, best_path
 
 
-def discover_score_reference_line(
+def discover_value_reference_line(
     report_dir: Path,
 ) -> tuple[str | None, float | None, float | None, Path | None]:
-    """Return the fixed OpenROAD default-Diamond value-cost reference if present."""
+    """Return the fixed OpenROAD default-Diamond value-gain reference if present."""
     best_fallback: tuple[str | None, float | None, float | None, Path | None] = (
         None,
         None,
@@ -300,7 +301,7 @@ def discover_score_reference_line(
         runtime_s = _float_or_none(metrics.get("runtime_seconds"))
         if after is None or runtime_s in (None, 0):
             continue
-        if line == SCORE_REFERENCE_LINE:
+        if line == VALUE_REFERENCE_LINE:
             return line, after, runtime_s, metrics_path
         if best_fallback[1] is None or after < float(best_fallback[1]):
             best_fallback = (line, after, runtime_s, metrics_path)
@@ -329,7 +330,7 @@ def _float_or_none(value: Any) -> float | None:
         return None
 
 
-def hpwl_runtime_score_summary(
+def hpwl_runtime_gain_summary(
     *,
     hpwl_after_micron: Any,
     hpwl_global_micron: Any,
@@ -352,20 +353,29 @@ def hpwl_runtime_score_summary(
     if hpwl_global in (None, 0):
         hpwl_global = float(baseline_hpwl_after_micron)
     assert hpwl_global is not None
-    h_raw = 1.0 + (hpwl_sol - float(baseline_hpwl_after_micron)) / hpwl_global
-    r_raw = (runtime_sol / float(baseline_runtime_seconds)) ** RUNTIME_SCORE_EXPONENT
-    h = h_raw
-    r = max(r_raw, RUNTIME_SCORE_MIN)
-    cost = h * r
+    runtime_ratio = runtime_sol / float(baseline_runtime_seconds)
+    hpwl_gain_percent = (
+        100.0
+        * (float(baseline_hpwl_after_micron) - hpwl_sol)
+        / hpwl_global
+    )
+    runtime_penalty = (
+        RUNTIME_PENALTY_SCALE
+        * (math.sqrt(runtime_ratio) - 1.0)
+        / SQRT2_MINUS_ONE
+    )
+    gain = hpwl_gain_percent - runtime_penalty
     return {
-        "cost": cost,
-        "score": cost,
-        "H": h,
-        "R": r,
-        "H_raw": h_raw,
-        "R_raw": r_raw,
+        "gain_hr": gain,
+        "score": gain,
+        "H": hpwl_gain_percent,
+        "R": runtime_penalty,
+        "H_raw": hpwl_gain_percent,
+        "R_raw": runtime_penalty,
+        "hpwl_gain_percent": hpwl_gain_percent,
+        "runtime_penalty_pp": runtime_penalty,
         "hpwl_global_micron": hpwl_global,
-        "runtime_ratio": runtime_sol / float(baseline_runtime_seconds),
+        "runtime_ratio": runtime_ratio,
     }
 
 
@@ -444,10 +454,10 @@ def summarize_metrics(
     baseline_label: str | None = None,
     baseline_hpwl_after_micron: float | None = None,
     baseline_metrics_path: Path | None = None,
-    score_reference_label: str | None = None,
-    score_reference_hpwl_after_micron: float | None = None,
-    score_reference_runtime_seconds: float | None = None,
-    score_reference_metrics_path: Path | None = None,
+    value_reference_label: str | None = None,
+    value_reference_hpwl_after_micron: float | None = None,
+    value_reference_runtime_seconds: float | None = None,
+    value_reference_metrics_path: Path | None = None,
 ) -> Dict[str, Any]:
     manifest = metrics.get("manifest", {})
     legalization = metrics.get("legalization", {})
@@ -491,29 +501,31 @@ def summarize_metrics(
         "avg_displacement_micron": metrics.get("displacement", {}).get("average_displacement_micron"),
         "max_displacement_micron": metrics.get("displacement", {}).get("max_displacement_micron"),
     }
-    score = hpwl_runtime_score_summary(
+    gain = hpwl_runtime_gain_summary(
         hpwl_after_micron=hpwl_after,
         hpwl_global_micron=stage_hpwl.get("HPWLg"),
         runtime_seconds=metrics.get("runtime_seconds"),
-        baseline_hpwl_after_micron=score_reference_hpwl_after_micron,
-        baseline_runtime_seconds=score_reference_runtime_seconds,
+        baseline_hpwl_after_micron=value_reference_hpwl_after_micron,
+        baseline_runtime_seconds=value_reference_runtime_seconds,
     )
-    if score is not None:
-        summary["hpwl_runtime_score"] = {
-            "formula": HPWL_RUNTIME_SCORE_FORMULA,
-            "cost": score["score"],
-            "score": score["score"],
-            "H": score["H"],
-            "R": score["R"],
-            "H_raw": score["H_raw"],
-            "R_raw": score["R_raw"],
-            "runtime_ratio": score["runtime_ratio"],
-            "reference_label": score_reference_label,
-            "reference_hpwl_after_micron": score_reference_hpwl_after_micron,
-            "reference_runtime_seconds": score_reference_runtime_seconds,
+    if gain is not None:
+        summary["hpwl_runtime_gain"] = {
+            "formula": HPWL_RUNTIME_GAIN_FORMULA,
+            "gain_hr": gain["gain_hr"],
+            "score": gain["score"],
+            "H": gain["H"],
+            "R": gain["R"],
+            "H_raw": gain["H_raw"],
+            "R_raw": gain["R_raw"],
+            "hpwl_gain_percent": gain["hpwl_gain_percent"],
+            "runtime_penalty_pp": gain["runtime_penalty_pp"],
+            "runtime_ratio": gain["runtime_ratio"],
+            "reference_label": value_reference_label,
+            "reference_hpwl_after_micron": value_reference_hpwl_after_micron,
+            "reference_runtime_seconds": value_reference_runtime_seconds,
             "reference_metrics_path": None
-            if score_reference_metrics_path is None
-            else str(score_reference_metrics_path),
+            if value_reference_metrics_path is None
+            else str(value_reference_metrics_path),
         }
     if baseline_hpwl_after_micron is not None:
         summary.update(
@@ -790,10 +802,10 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
             baseline_label: str | None = None
             baseline_hpwl: float | None = None
             baseline_path: Path | None = None
-            score_reference_label: str | None = None
-            score_reference_hpwl: float | None = None
-            score_reference_runtime: float | None = None
-            score_reference_path: Path | None = None
+            value_reference_label: str | None = None
+            value_reference_hpwl: float | None = None
+            value_reference_runtime: float | None = None
+            value_reference_path: Path | None = None
             for row, metrics_path, metrics_data in loaded_rows:
                 if metrics_data is None or not is_clean_placement(metrics_data):
                     continue
@@ -807,22 +819,22 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
                     baseline_path = metrics_path
                 runtime_value = _float_or_none(metrics_data.get("runtime_seconds"))
                 if (
-                    row["line_id"] == SCORE_REFERENCE_LINE
+                    row["line_id"] == VALUE_REFERENCE_LINE
                     and runtime_value not in (None, 0)
                 ):
-                    score_reference_label = row["line_id"]
-                    score_reference_hpwl = after_value
-                    score_reference_runtime = runtime_value
-                    score_reference_path = metrics_path
-            if score_reference_label is None:
-                score_reference_label = baseline_label
-                score_reference_hpwl = baseline_hpwl
+                    value_reference_label = row["line_id"]
+                    value_reference_hpwl = after_value
+                    value_reference_runtime = runtime_value
+                    value_reference_path = metrics_path
+            if value_reference_label is None:
+                value_reference_label = baseline_label
+                value_reference_hpwl = baseline_hpwl
                 if baseline_path is not None:
                     baseline_data = load_metrics(baseline_path)
-                    score_reference_runtime = _float_or_none(
+                    value_reference_runtime = _float_or_none(
                         baseline_data.get("runtime_seconds")
                     )
-                score_reference_path = baseline_path
+                value_reference_path = baseline_path
 
             for row, metrics_path, metrics_data in loaded_rows:
                 summary = (
@@ -834,10 +846,10 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
                         baseline_label=baseline_label,
                         baseline_hpwl_after_micron=baseline_hpwl,
                         baseline_metrics_path=baseline_path,
-                        score_reference_label=score_reference_label,
-                        score_reference_hpwl_after_micron=score_reference_hpwl,
-                        score_reference_runtime_seconds=score_reference_runtime,
-                        score_reference_metrics_path=score_reference_path,
+                        value_reference_label=value_reference_label,
+                        value_reference_hpwl_after_micron=value_reference_hpwl,
+                        value_reference_runtime_seconds=value_reference_runtime,
+                        value_reference_metrics_path=value_reference_path,
                     )
                 )
                 evaluated_rows.append(
@@ -859,11 +871,11 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
             report_root(root, problem, flow_variant)
         )
         (
-            score_reference_label,
-            score_reference_hpwl,
-            score_reference_runtime,
-            score_reference_path,
-        ) = discover_score_reference_line(report_root(root, problem, flow_variant))
+            value_reference_label,
+            value_reference_hpwl,
+            value_reference_runtime,
+            value_reference_path,
+        ) = discover_value_reference_line(report_root(root, problem, flow_variant))
         result["status"] = "ok"
         result["metrics_path"] = str(metrics_path)
         result["summary"] = summarize_metrics(
@@ -872,10 +884,10 @@ def evaluate(args: argparse.Namespace) -> Dict[str, Any]:
             baseline_label=baseline_label,
             baseline_hpwl_after_micron=baseline_hpwl,
             baseline_metrics_path=baseline_path,
-            score_reference_label=score_reference_label,
-            score_reference_hpwl_after_micron=score_reference_hpwl,
-            score_reference_runtime_seconds=score_reference_runtime,
-            score_reference_metrics_path=score_reference_path,
+            value_reference_label=value_reference_label,
+            value_reference_hpwl_after_micron=value_reference_hpwl,
+            value_reference_runtime_seconds=value_reference_runtime,
+            value_reference_metrics_path=value_reference_path,
         )
         return result
     except DirectoryLockError as exc:

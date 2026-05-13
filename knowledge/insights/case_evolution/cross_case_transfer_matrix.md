@@ -16,7 +16,7 @@ table that relied on bbox HPWL proxy must be re-read through canonical
 
 Current ranking calibration: use
 `case_evolution/score_based_case_strategy_routing.md` for the current
-HPWL-plus-runtime `C_HR` ranking.  This card preserves the older transfer
+HPWL-plus-runtime `G_HR` ranking.  This card preserves the older transfer
 mechanism lesson, not the active donor ordering.
 
 ## Result Pattern

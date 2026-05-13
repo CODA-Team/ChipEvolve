@@ -323,7 +323,7 @@ def collect_rows(
             expected_iterations=expected_iterations,
             children=children,
         )
-    stage_metrics.annotate_hpwl_runtime_scores(rows)
+    stage_metrics.annotate_hpwl_runtime_gains(rows)
     return sorted(rows, key=lambda item: stage_metrics.result_sort_key(item.result))
 
 
@@ -366,7 +366,7 @@ def best_summary(rows: list[stage_metrics.StageRow]) -> dict[str, Any]:
             hpwl_winning_candidates,
             key=lambda row: (
                 -row.hpwl_final if row.hpwl_final is not None else float("-inf"),
-                -row.score_hr if row.score_hr is not None else float("-inf"),
+                row.gain_hr if row.gain_hr is not None else float("-inf"),
             ),
         )
     else:
@@ -398,9 +398,7 @@ def best_summary(rows: list[stage_metrics.StageRow]) -> dict[str, Any]:
         "best_baseline": best_baseline,
         "best_candidate": best_candidate,
         "improvement_percent": improvement,
-        "cost_vs_baseline": None
-        if best_candidate is None or best_candidate.score_hr is None
-        else best_candidate.score_hr - 1.0,
+        "gain_hr": None if best_candidate is None else best_candidate.gain_hr,
         "latest": latest,
     }
 
@@ -418,10 +416,9 @@ def row_to_json(row: stage_metrics.StageRow | None) -> dict[str, Any] | None:
         "delta_improve_percent": row.delta_improve_percent,
         "delta_final_percent": row.delta_final_percent,
         "runtime_seconds": row.runtime_seconds,
-        "cost_hr": row.score_hr,
-        "score_hr": row.score_hr,
-        "score_h": row.score_h,
-        "score_r": row.score_r,
+        "gain_hr": row.gain_hr,
+        "hpwl_gain_percent": row.hpwl_gain_percent,
+        "runtime_penalty_pp": row.runtime_penalty_pp,
         "runtime_ratio": row.runtime_ratio,
         "avg_displacement_micron": row.avg_displacement_micron,
         "max_displacement_micron": row.max_displacement_micron,
@@ -463,10 +460,10 @@ def print_markdown(
     print("## Round Summary")
     print(
         "| case | status | round | HPWLg | best baseline | baseline final | "
-        "best evolved | C_HR | cost vs baseline | evolved final | HPWL vs baseline | runtime_s | legality | "
+        "best evolved | G_HR | evolved final | HPWL vs baseline | runtime_s | legality | "
         "attempts |"
     )
-    print("|---|---|---|---:|---|---:|---|---:|---:|---:|---:|---:|---|---:|")
+    print("|---|---|---|---:|---|---:|---|---:|---:|---:|---:|---|---:|")
     for info in rounds:
         rows = rows_by_round.get(info.round_id, [])
         summary = best_summary(rows)
@@ -483,8 +480,7 @@ def print_markdown(
                     best_baseline.result if best_baseline else "",
                     fmt(best_baseline.hpwl_final if best_baseline else None),
                     best_candidate.result if best_candidate else "",
-                    fmt(best_candidate.score_hr if best_candidate else None, 3),
-                    fmt(summary["cost_vs_baseline"], 3),
+                    fmt(best_candidate.gain_hr if best_candidate else None, 3),
                     fmt(best_candidate.hpwl_final if best_candidate else None),
                     fmt(summary["improvement_percent"], 3, "%"),
                     fmt(best_candidate.runtime_seconds if best_candidate else None, 3),
@@ -561,8 +557,7 @@ def print_tsv(
                 "best_baseline",
                 "baseline_final_micron",
                 "best_evolved",
-                "evolved_cost_hr",
-                "cost_vs_baseline",
+                "evolved_gain_hr",
                 "evolved_final_micron",
                 "improvement_vs_baseline_percent",
                 "runtime_seconds",
@@ -585,8 +580,7 @@ def print_tsv(
                     baseline.result if baseline else "",
                     fmt(baseline.hpwl_final if baseline else None),
                     evolved.result if evolved else "",
-                    fmt(evolved.score_hr if evolved else None, 6),
-                    fmt(summary["cost_vs_baseline"], 6),
+                    fmt(evolved.gain_hr if evolved else None, 6),
                     fmt(evolved.hpwl_final if evolved else None),
                     fmt(summary["improvement_percent"], 6),
                     fmt(evolved.runtime_seconds if evolved else None, 6),

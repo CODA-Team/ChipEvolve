@@ -30,7 +30,7 @@ should act on it.
 
 - `case_evolution/cross_case_transfer_matrix.md`: fixed-source transfer matrix
   synthesis across utilization classes, design scales, and technology settings.
-- `case_evolution/score_based_case_strategy_routing.md`: feature-level `C_HR`
+- `case_evolution/score_based_case_strategy_routing.md`: feature-level `G_HR`
   routing guidance distilled from single-design evolution, fixed-source replay,
   and multi-design legalizer-line evaluation; use it to distinguish score
   elites from HPWL donors.

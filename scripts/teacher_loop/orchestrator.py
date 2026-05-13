@@ -42,8 +42,8 @@ from scripts.teacher_loop.evidence import (
     ensure_baseline_suite,
     materialize_source_ref,
     round_scoreboard,
-    score_reference_anchor,
     source_repo_ref_for_candidate,
+    value_reference_anchor,
     best_round_candidate,
     write_baseline_artifacts_packet,
     write_child_artifact_status_json,
@@ -197,7 +197,7 @@ def main(argv: list[str] | None = None) -> int:
     # prepared OpenROAD commit.  Build it once at the top level immediately
     # after prepare/patch so child agents only edit and relink their private
     # dpl_evolve sources.
-    if args.launch or args.prepare_workspace:
+    if (args.launch or args.prepare_workspace) and not args.skip_core_build:
         core_configure_command = [
             str(runtime.agent_root / "scripts" / "configure_openroad_core.sh"),
         ]
@@ -231,6 +231,8 @@ def main(argv: list[str] | None = None) -> int:
                 logger.event("core", "build_failed", return_code=rc)
                 return rc
             logger.event("core", "build_done")
+    elif args.skip_core_build:
+        logger.event("core", "skipped", reason="--skip-core-build")
 
     seed_ready, seed_path = validate_start_kind_seed(runtime, args.start_kind)
     if not seed_ready:
@@ -371,7 +373,7 @@ def main(argv: list[str] | None = None) -> int:
                 case_id=args.case,
                 flow_variant=args.flow_variant,
                 round_id=round_id,
-                baseline=score_reference_anchor(metrics)[1],
+                baseline=value_reference_anchor(metrics)[1],
                 require_baseline_beat=True,
                 before_iteration=iteration,
             )

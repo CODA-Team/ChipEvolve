@@ -57,13 +57,14 @@ function/state insertion points. Do not require broad donor-tree reading.
 - canonical metric: `metrics.json:hpwl` from OpenROAD/DPL pin-based logs;
   ignore `hpwl_proxy` for promotion
 - primary research target remains canonical HPWL reduction. Use
-  `C_HR = (1 + (HPWL_sol - HPWL_ref) / HPWL_global) * max((runtime_sol / runtime_ref)^0.04, 0.7)` against the OpenROAD DPL default-flow
-  (`openroad_dpl_flow`, Diamond-search) reference to judge whether the HPWL gain is worth the
-  runtime cost. Lower C_HR is better, with the reference near 1.0. Use HPWL
-  first for research direction and C_HR as the value check; preserve strong
-  HPWL-only donors as repair routes instead of discarding them.
-  The runtime exponent is intentionally light: about 2x runtime only needs
-  roughly 3% HPWL_global improvement to break even.
+  `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_global - 2 * (sqrt(runtime_sol / runtime_ref) - 1) / (sqrt(2) - 1)`
+  against the OpenROAD DPL default-flow (`openroad_dpl_flow`, Diamond-search)
+  reference to judge whether the HPWL gain is worth the runtime. Higher
+  `G_HR` is better and the reference is 0. Use HPWL first for research
+  direction and `G_HR` as the value check; preserve strong HPWL-only donors as
+  repair routes instead of discarding them.
+  The runtime penalty is intentionally light: about 2x runtime needs roughly
+  2 percentage points of final-HPWL gain to break even.
 - stage metrics: report `HPWLg`, `delta HPWLlg`, `delta HPWLip`,
   `delta HPWL final`, and final HPWL when available
 - research belief: clean canonical HPWL at least 5% below the OpenROAD DPL
@@ -99,7 +100,8 @@ function/state insertion points. Do not require broad donor-tree reading.
   `${student_runtime_multiplier}x` the canonical `openroad_dpl_flow`
   `metrics.json:runtime_seconds`; metrics/evaluator collection is not
   timeout-wrapped
-- runtime is a usable `${student_runtime_multiplier}x`-tolerant budget and also part of C_HR. Spend it on
+- runtime is a usable `${student_runtime_multiplier}x`-tolerant budget and
+  also part of `G_HR`. Spend it on
   bounded stronger mechanisms: deeper legalizer scoring, broader capped
   candidates, donor hybridization, parallel candidate evaluation, or better
   legalizer/improve handoff. Do not waste it on repeated unchanged passes.

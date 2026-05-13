@@ -32,14 +32,14 @@ from scripts.teacher_loop.evidence import (
     design_characteristics_block,
     discover_round_candidate_metrics,
     expected_metrics_path,
-    hpwl_runtime_score,
-    hpwl_runtime_score_factors,
+    hpwl_runtime_gain,
+    hpwl_runtime_gain_factors,
     metric_table,
     operation_artifact_block,
     parse_candidate_tag,
-    score_reference_anchor,
     stage_donor_signal,
     summarize_metrics,
+    value_reference_anchor,
 )
 
 
@@ -272,7 +272,7 @@ def peer_briefing(
                 run_tag=run_tag,
             )
         )
-    _baseline_label, baseline = score_reference_anchor(baseline_metrics)
+    _baseline_label, baseline = value_reference_anchor(baseline_metrics)
     metrics_by_student: dict[str, MetricSummary] = {}
     invalid_rows: list[tuple[str, MetricSummary, list[str]]] = []
     for summary in discover_round_candidate_metrics(
@@ -318,9 +318,9 @@ def peer_briefing(
             if summary.hpwl_after is not None
             else float("-inf")
         )
-        cost = hpwl_runtime_score(summary, baseline)
-        cost_rank = -cost if cost is not None else float("-inf")
-        return hpwl_rank, cost_rank
+        gain = hpwl_runtime_gain(summary, baseline)
+        gain_rank = gain if gain is not None else float("-inf")
+        return hpwl_rank, gain_rank
 
     best_student = max(metrics_by_student, key=peer_rank)
     lines = [
@@ -329,7 +329,7 @@ def peer_briefing(
         "Peer evidence below is artifact-gated. Use peer packet/source paths "
         "only when Teacher names a concrete donor; summarize it briefly before borrowing.",
         "",
-        f"Best previous valid clean peer by HPWL first, then lower C_HR: `{best_student}`.",
+        f"Best previous valid clean peer by HPWL first, then higher G_HR: `{best_student}`.",
     ]
     for student_id in sorted(metrics_by_student):
         summary = metrics_by_student[student_id]
@@ -341,10 +341,10 @@ def peer_briefing(
         avg_disp = "" if summary.avg_disp is None else f"{summary.avg_disp:.4f}"
         max_disp = "" if summary.max_disp is None else f"{summary.max_disp:.4f}"
         violations = summary.violations or "clean"
-        score_factors = hpwl_runtime_score_factors(summary, baseline)
-        score_text = "" if score_factors is None else f"{score_factors['score']:.3f}"
-        h_text = "" if score_factors is None else f"{score_factors['H']:.4f}"
-        r_text = "" if score_factors is None else f"{score_factors['R']:.4f}"
+        gain_factors = hpwl_runtime_gain_factors(summary, baseline)
+        gain_text = "" if gain_factors is None else f"{gain_factors['score']:.3f}"
+        h_text = "" if gain_factors is None else f"{gain_factors['H']:.4f}"
+        r_text = "" if gain_factors is None else f"{gain_factors['R']:.4f}"
         stage_pct = " / ".join(
             [
                 "lg:"
@@ -368,13 +368,13 @@ def peer_briefing(
             ]
         )
         lines.append(
-            "- {student} ({label}): C_HR `{score}` H/R `{h}/{r}`, "
+            "- {student} ({label}): G_HR `{score}` HPWL_gain/runtime_penalty_pp `{h}/{r}`, "
             "HPWL `{hpwl}`, runtime `{runtime_s}`, "
             "avg/max disp `{avg_disp}/{max_disp}`, legality `{violations}`; "
             "stage `{stage_pct}`, signal `{signal}`".format(
                 student=student_id,
                 label=label,
-                score=score_text,
+                score=gain_text,
                 h=h_text,
                 r=r_text,
                 hpwl=hpwl,
@@ -1913,7 +1913,7 @@ the exact blocker and do not call the candidate successful.
   `{paths.knowledge_card}`
 - final answer includes metrics path, stage-wise HPWL deltas
   (`HPWLg`, `delta HPWLlg`, `delta HPWLip`, `delta HPWL final`,
-  `HPWL final`), C_HR/H/R when available, runtime/displacement delta, diff
+  `HPWL final`), G_HR/HPWL_gain%/runtime_penalty_pp when available, runtime/displacement delta, diff
   path, knowledge card path, source commit, key counters/logs, and algorithmic
   validity/complexity assessment
 - if a primary mechanism counter is zero, label that route as non-executed or

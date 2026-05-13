@@ -13,14 +13,14 @@
   explicitly reopens it.
 - External evaluator, ORFS, and workspace helper scripts are not editable.
 - Use canonical `metrics.json:hpwl`; `hpwl_proxy` is debug-only.
-- Optimize canonical HPWL first. Use the generated value cost
-  `C_HR = (1 + (HPWL_sol - HPWL_ref) / HPWL_global) * max((runtime_sol / runtime_ref)^0.04, 0.7)`,
-  where lower is better and the OpenROAD DPL default-flow reference is near
-  1.0, to judge whether the HPWL improvement is worth its runtime cost. Report
-  C_HR together with raw HPWL/runtime so Teacher can separate efficient wins from HPWL-only
-  donors that need runtime repair.
-  The runtime exponent is intentionally light: about 2x runtime only needs
-  roughly 3% HPWL_global improvement to break even.
+- Optimize canonical HPWL first. Use the generated value gain
+  `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_global - 2 * (sqrt(runtime_sol / runtime_ref) - 1) / (sqrt(2) - 1)`,
+  where higher is better and the OpenROAD DPL default-flow reference is 0, to
+  judge whether the HPWL improvement is worth its runtime. Report `G_HR`
+  together with raw HPWL/runtime so Teacher can separate efficient wins from
+  HPWL-only donors that need runtime repair.
+  The runtime penalty is intentionally light: about 2x runtime needs roughly
+  2 percentage points of final-HPWL gain to break even.
 - Treat 5% HPWL reduction as a credible research target, not a hard gate and
   not a ceiling. Build mechanisms that can move the source of HPWL loss, not
   only preserve a small donor.
@@ -139,7 +139,7 @@
 - The generated evaluation command applies a `${student_runtime_multiplier}x`
   timeout to the OpenROAD legalize/improve/mirror flow only; metrics/evaluator
   collection is not timeout-wrapped.
-- Runtime is a usable budget and part of C_HR. Spend the tolerant
+- Runtime is a usable budget and part of `G_HR`. Spend the tolerant
   `${student_runtime_multiplier}x` budget on bounded HPWL-source mechanisms:
   exact affected-net scoring, broader capped windows, batch transactions,
   parallel candidate evaluation, stronger donor hybridization, or stronger
@@ -164,9 +164,9 @@
   `touched function/state`, `expected behavior`, `metric/log evidence`, and
   `done/fail reason`.
 - Report touched files, mechanism, stage-wise HPWL deltas, canonical
-  HPWL/runtime/displacement delta, C_HR/H/R when available, legality, metrics
-  path, diff path, knowledge card path, active counters, best clean commit, and
-  next uncertainty.
+  HPWL/runtime/displacement delta, `G_HR`/HPWL_gain%/runtime_penalty_pp when
+  available, legality, metrics path, diff path, knowledge card path, active
+  counters, best clean commit, and next uncertainty.
 - Include a `Log/efficiency diagnosis` paragraph: DPL log path or key line
   handles, dominant counters, runtime bottleneck classification, evidence of
   wrong or non-executed implementation, and the specific next repair Teacher

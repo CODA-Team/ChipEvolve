@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 import shlex
 import shutil
@@ -20,15 +21,15 @@ from scripts.teacher_loop.common import (
     iter_name,
 )
 
-SCORE_REFERENCE_LINE = "openroad_dpl_flow"
-HPWL_RUNTIME_SCORE_FORMULA = (
-    "C_HR = (1 + (HPWL_sol - HPWL_ref) / HPWL_global) "
-    "* max((runtime_sol / runtime_ref)^0.04, 0.7)"
+VALUE_REFERENCE_LINE = "openroad_dpl_flow"
+HPWL_RUNTIME_GAIN_FORMULA = (
+    "G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_global "
+    "- 2 * (sqrt(runtime_sol / runtime_ref) - 1) / (sqrt(2) - 1)"
 )
 # Runtime is a value check, not the primary objective: 2x runtime requires
-# roughly 3% HPWL_global improvement to break even.
-RUNTIME_SCORE_EXPONENT = 0.04
-RUNTIME_SCORE_MIN = 0.7
+# 2 percentage points of final-HPWL improvement to break even.
+RUNTIME_PENALTY_SCALE = 2.0
+SQRT2_MINUS_ONE = math.sqrt(2.0) - 1.0
 
 
 def load_json(path: Path) -> dict[str, Any] | None:
@@ -472,9 +473,9 @@ def candidate_beats_baseline(
     baseline: MetricSummary | None,
 ) -> bool:
     hpwl_win = candidate_beats_hpwl_only(summary, baseline)
-    cost = hpwl_runtime_score(summary, baseline)
-    if cost is not None:
-        return hpwl_win and cost < 1.0
+    gain = hpwl_runtime_gain(summary, baseline)
+    if gain is not None:
+        return hpwl_win and gain > 0.0
     return hpwl_win
 
 
@@ -505,15 +506,15 @@ def runtime_ratio(
     return float(summary.runtime_seconds) / float(baseline.runtime_seconds)
 
 
-def hpwl_runtime_score_factors(
+def hpwl_runtime_gain_factors(
     summary: MetricSummary,
     baseline: MetricSummary | None,
 ) -> dict[str, float] | None:
-    """Return HPWL/runtime value-cost factors versus the default-flow reference.
+    """Return HPWL/runtime value-gain factors versus the default-flow reference.
 
-    The cost reference is the OpenROAD DPL default-flow line.  Other canonical
+    The value reference is the OpenROAD DPL default-flow line.  Other canonical
     lines are useful donors/start points, but they should not redefine the
-    value-cost reference for the round.
+    value reference for the round.
     """
     if (
         baseline is None
@@ -539,56 +540,55 @@ def hpwl_runtime_score_factors(
         or runtime_sol <= 0
     ):
         return None
-    h_raw = 1.0 + (hpwl_sol - hpwl_ref) / hpwl_global
-    r_raw = (runtime_sol / runtime_ref) ** RUNTIME_SCORE_EXPONENT
-    h = h_raw
-    r = max(r_raw, RUNTIME_SCORE_MIN)
-    cost = h * r
+    runtime_ratio_value = runtime_sol / runtime_ref
+    hpwl_gain_percent = 100.0 * (hpwl_ref - hpwl_sol) / hpwl_global
+    runtime_penalty = (
+        RUNTIME_PENALTY_SCALE
+        * (math.sqrt(runtime_ratio_value) - 1.0)
+        / SQRT2_MINUS_ONE
+    )
+    gain = hpwl_gain_percent - runtime_penalty
     return {
-        "H_raw": h_raw,
-        "R_raw": r_raw,
-        "H": h,
-        "R": r,
-        "cost": cost,
-        "score": cost,
+        "H_raw": hpwl_gain_percent,
+        "R_raw": runtime_penalty,
+        "H": hpwl_gain_percent,
+        "R": runtime_penalty,
+        "cost": -gain,
+        "score": gain,
+        "gain": gain,
+        "hpwl_gain_percent": hpwl_gain_percent,
+        "runtime_penalty_pp": runtime_penalty,
         "hpwl_global": hpwl_global,
-        "runtime_ratio": runtime_sol / runtime_ref,
+        "runtime_ratio": runtime_ratio_value,
     }
 
 
-def hpwl_runtime_score(
+def hpwl_runtime_gain(
     summary: MetricSummary,
     baseline: MetricSummary | None,
 ) -> float | None:
-    factors = hpwl_runtime_score_factors(summary, baseline)
+    factors = hpwl_runtime_gain_factors(summary, baseline)
     return None if factors is None else factors["score"]
 
 
-def cost_reference_anchor(
+def value_reference_anchor(
     metrics: dict[str, MetricSummary | None],
 ) -> tuple[str | None, MetricSummary | None]:
-    """Return the fixed value-cost reference: OpenROAD DPL default flow.
+    """Return the fixed value reference: OpenROAD DPL default flow.
 
     If the default-flow row is missing, fall back to the best clean
     canonical line so old partial packets remain inspectable, but generated
     rounds should normally have the fixed reference.
     """
-    diamond = metrics.get(SCORE_REFERENCE_LINE)
+    diamond = metrics.get(VALUE_REFERENCE_LINE)
     if (
         diamond is not None
         and is_clean_placement(diamond)
         and diamond.hpwl_after is not None
         and diamond.runtime_seconds not in (None, 0)
     ):
-        return SCORE_REFERENCE_LINE, diamond
+        return VALUE_REFERENCE_LINE, diamond
     return strongest_baseline_anchor(metrics)
-
-
-def score_reference_anchor(
-    metrics: dict[str, MetricSummary | None],
-) -> tuple[str | None, MetricSummary | None]:
-    """Backward-compatible alias for the HPWL/runtime value-cost reference."""
-    return cost_reference_anchor(metrics)
 
 
 def objective_sort_value(
@@ -598,11 +598,11 @@ def objective_sort_value(
     if not candidate_beats_hpwl_only(summary, baseline):
         hpwl_tiebreak = -float(summary.hpwl_after) if summary.hpwl_after is not None else float("-inf")
         return float("-inf"), hpwl_tiebreak
-    cost = hpwl_runtime_score(summary, baseline)
-    if cost is not None:
-        # HPWL remains primary; lower cost breaks HPWL ties.
+    gain = hpwl_runtime_gain(summary, baseline)
+    if gain is not None:
+        # HPWL remains primary; higher value gain breaks HPWL ties.
         hpwl_tiebreak = -float(summary.hpwl_after) if summary.hpwl_after is not None else float("-inf")
-        return hpwl_tiebreak, -cost
+        return hpwl_tiebreak, gain
     if summary.hpwl_after is not None:
         return float("-inf"), -float(summary.hpwl_after)
     return float("-inf"), float("-inf")
@@ -648,14 +648,13 @@ def stage_donor_signal(
                 "quality-only HPWL final signal; inefficient runtime "
                 f"{ratio:.2f}x baseline, not an effective donor"
             )
-        score = hpwl_runtime_score(candidate, baseline)
-        score_text = "" if score is None else f" C_HR={score:.3f}"
-        return f"final donor{score_text}"
+        gain_text = "" if gain is None else f" G_HR={gain:.3f}"
+        return f"final donor{gain_text}"
 
-    score = hpwl_runtime_score(candidate, baseline)
-    if score is not None and candidate_beats_hpwl_only(candidate, baseline):
+    gain = hpwl_runtime_gain(candidate, baseline)
+    if gain is not None and candidate_beats_hpwl_only(candidate, baseline):
         return (
-            f"HPWL-only donor but C_HR={score:.3f}; repair runtime/quality "
+            f"HPWL-only donor but G_HR={gain:.3f}; repair runtime/quality "
             "before treating as an elite route"
         )
 
@@ -742,16 +741,16 @@ def round_scoreboard(
     if not candidates:
         return "No student candidate metrics have been found for this round yet."
 
-    baseline_label, baseline = cost_reference_anchor(metrics)
+    baseline_label, baseline = value_reference_anchor(metrics)
     baseline_hpwl = baseline.hpwl_after if baseline else None
     target_hpwl = five_percent_target_hpwl(baseline)
     lines = [
-        f"Value cost: `{HPWL_RUNTIME_SCORE_FORMULA}` versus `{baseline_label or 'missing'}`; "
-        "lower C_HR means the HPWL gain is more runtime-worthy. The research "
-        "target remains HPWL reduction; use C_HR as the runtime value check "
+        f"Value gain: `{HPWL_RUNTIME_GAIN_FORMULA}` versus `{baseline_label or 'missing'}`; "
+        "higher G_HR means the HPWL gain is more runtime-worthy. The research "
+        "target remains HPWL reduction; use G_HR as the runtime value check "
         "and to identify HPWL donors that need runtime repair.",
         "",
-        "| iter | student | route_label | artifact_gate | C_HR | H | R | HPWLg | dHPWLlg% | dHPWLip% | dHPWLfinal% | HPWL final | delta_vs_ref | cost_lt_ref | gap_to_5pct_target | runtime_s | runtime_ratio | avg_disp | max_disp | violations | metrics |",
+        "| iter | student | route_label | artifact_gate | G_HR | HPWL_gain% | runtime_penalty_pp | HPWLg | dHPWLlg% | dHPWLip% | dHPWLfinal% | HPWL final | delta_vs_ref | value_gt_ref | gap_to_5pct_target | runtime_s | runtime_ratio | avg_disp | max_disp | violations | metrics |",
         "|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---:|---:|---:|---:|---:|---|---|",
     ]
     best: MetricSummary | None = None
@@ -789,7 +788,7 @@ def round_scoreboard(
             if target_hpwl is None or summary.hpwl_after is None
             else summary.hpwl_after - target_hpwl
         )
-        score_factors = hpwl_runtime_score_factors(summary, baseline)
+        gain_factors = hpwl_runtime_gain_factors(summary, baseline)
         runtime_factor = runtime_ratio(summary, baseline)
         lines.append(
             "| {iter_part} | {student_id} | {route_label} | {artifact_gate} | {score} | {h} | {r} | {hpwlg} | {d_lg_pct} | {d_ip_pct} | {d_final_pct} | {hpwl} | {delta} | "
@@ -798,9 +797,9 @@ def round_scoreboard(
                 student_id=student_id or "?",
                 route_label=route_label or summary.tag,
                 artifact_gate=candidate_artifact_status_text(artifact_problems),
-                score="" if score_factors is None else f"{score_factors['score']:.3f}",
-                h="" if score_factors is None else f"{score_factors['H']:.4f}",
-                r="" if score_factors is None else f"{score_factors['R']:.4f}",
+                score="" if gain_factors is None else f"{gain_factors['score']:.3f}",
+                h="" if gain_factors is None else f"{gain_factors['H']:.4f}",
+                r="" if gain_factors is None else f"{gain_factors['R']:.4f}",
                 hpwlg="" if summary.hpwl_global is None else f"{summary.hpwl_global:.3f}",
                 d_lg_pct=""
                 if summary.hpwl_stage_delta_legalization_percent is None
@@ -838,15 +837,15 @@ def round_scoreboard(
         lines.extend(
             [
                 "",
-                "Best valid clean HPWL candidate with C_HR so far: "
+                "Best valid clean HPWL candidate with G_HR so far: "
                 f"`{best_iter or '?'}` / `{best_student or '?'}` / "
-                f"`{best_route_label or best.tag}` with C_HR "
-                f"`{(hpwl_runtime_score(best, baseline) or float('nan')):.3f}` "
+                f"`{best_route_label or best.tag}` with G_HR "
+                f"`{(hpwl_runtime_gain(best, baseline) or float('nan')):.3f}` "
                 f"and HPWL `{best.hpwl_after:.3f}`"
                 + (
                     ""
                     if best_delta is None
-                    else f" (`{best_delta:.3f}` HPWL vs {baseline_label or 'cost reference'})."
+                    else f" (`{best_delta:.3f}` HPWL vs {baseline_label or 'value reference'})."
                 ),
             ]
         )
@@ -855,13 +854,13 @@ def round_scoreboard(
             round_id, case_id, best_beating.tag
         )
         lines.append(
-            "Best C_HR-below-reference candidate: "
+            "Best G_HR-positive candidate: "
             f"`{beat_iter or '?'}` / `{beat_student or '?'}` / "
             f"`{beat_route_label or best_beating.tag}`."
         )
     else:
         lines.append(
-            "No prior valid student candidate has C_HR below the cost reference "
+            "No prior valid student candidate has positive G_HR versus the value reference "
             f"(`{baseline_label or 'unknown'}`) yet."
         )
     if target_hpwl is not None:
@@ -1041,24 +1040,24 @@ def peer_candidate_row(
         else candidate.hpwl_after - baseline.hpwl_after
     )
     beats = "yes" if candidate_beats_baseline(candidate, baseline) else "no"
-    score_factors = hpwl_runtime_score_factors(candidate, baseline)
+    gain_factors = hpwl_runtime_gain_factors(candidate, baseline)
     runtime_factor = runtime_ratio(candidate, baseline)
-    score_text = "" if score_factors is None else f"{score_factors['score']:.3f}"
-    hr_text = "" if score_factors is None else f"{score_factors['H']:.4f}/{score_factors['R']:.4f}"
+    gain_text = "" if gain_factors is None else f"{gain_factors['score']:.3f}"
+    hr_text = "" if gain_factors is None else f"{gain_factors['H']:.4f}/{gain_factors['R']:.4f}"
     runtime_ratio_text = "" if runtime_factor is None else f"{runtime_factor:.2f}x"
     summary = (
         f"- `{iter_part or '?'}` / `{student_id or '?'}` / "
         f"`{route_label or candidate.tag}`: HPWLg `{candidate.hpwl_global}`, "
         f"dHPWL lg/ip/final `{_fmt_stage_pct(candidate)}`, "
         f"HPWL final `{candidate.hpwl_after}`, "
-        f"delta_vs_ref `{delta}`, C_HR "
-        f"`{score_text}`, "
-        f"H/R `{hr_text}`, "
+        f"delta_vs_ref `{delta}`, G_HR "
+        f"`{gain_text}`, "
+        f"HPWL_gain/runtime_penalty_pp `{hr_text}`, "
         f"runtime `{candidate.runtime_seconds}`, runtime_ratio "
         f"`{runtime_ratio_text}`, "
         f"efficiency `{efficiency_signal(candidate, baseline, budget_multiplier=budget_multiplier)}`, "
         f"avg/max disp `{candidate.avg_disp}/{candidate.max_disp}`, "
-        f"legality `{candidate.violations or 'clean'}`, cost_lt_ref `{beats}`, "
+        f"legality `{candidate.violations or 'clean'}`, value_gt_ref `{beats}`, "
         f"artifact_gate `{candidate_artifact_status_text(artifact_problems)}`, "
         f"stage_signal `{stage_donor_signal(candidate, baseline, budget_multiplier=budget_multiplier)}`"
     )
@@ -1084,7 +1083,7 @@ def write_peer_learning_packet(
     student_runtime_multiplier: float = 2.0,
 ) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
-    baseline_label, baseline = cost_reference_anchor(metrics)
+    baseline_label, baseline = value_reference_anchor(metrics)
     target_hpwl = five_percent_target_hpwl(baseline)
     candidates = discover_round_candidate_metrics(
         orfs_root=runtime.orfs_root,
@@ -1138,22 +1137,22 @@ def write_peer_learning_packet(
         "A candidate is valid only when the Codex operation, source commit, "
         "diff, knowledge card, private binary, metrics, and legality all pass "
         "the artifact gate.  A valid clean candidate that beats the fixed "
-        f"`{SCORE_REFERENCE_LINE}` cost reference under `{HPWL_RUNTIME_SCORE_FORMULA}` "
+        f"`{VALUE_REFERENCE_LINE}` value reference under `{HPWL_RUNTIME_GAIN_FORMULA}` "
         "is useful elite evidence only when its runtime and complexity are "
         "controlled. A HPWL-only donor can still be valuable when routed to "
         "runtime or handoff repair. Treat "
-        "5% below the cost reference as a credible research target, not a "
+        "5% below the value reference as a credible research target, not a "
         "hard gate; below-5% stage donors can still be useful when efficient.",
         "",
         "## Baseline Anchor",
     ]
     if baseline is None:
-        chunks.append("- cost_reference_line: missing")
+        chunks.append("- value_reference_line: missing")
     else:
         chunks.extend(
             [
-                f"- cost_reference_line: `{baseline_label}`",
-                f"- value_cost: `{HPWL_RUNTIME_SCORE_FORMULA}`",
+                f"- value_reference_line: `{baseline_label}`",
+                f"- value_gain: `{HPWL_RUNTIME_GAIN_FORMULA}`",
                 f"- HPWLg: `{baseline.hpwl_global}`",
                 f"- delta_HPWL_legalization: `{baseline.hpwl_stage_delta_legalization}`",
                 f"- delta_HPWL_improve: `{baseline.hpwl_stage_delta_improve}`",
@@ -1169,11 +1168,11 @@ def write_peer_learning_packet(
             ]
         )
 
-    chunks.extend(["", "## Best C_HR-Below-Reference Candidates"])
+    chunks.extend(["", "## Best G_HR-Positive Candidates"])
     if not beating_candidates:
         chunks.append(
             "No prior valid clean student candidate has "
-            "C_HR below the cost reference yet. Students may still inspect the best valid "
+            "positive G_HR versus the value reference yet. Students may still inspect the best valid "
             "clean candidate as a clue, but it is not an elite seed."
         )
     else:
@@ -1238,7 +1237,7 @@ def write_peer_learning_packet(
             "- Student may inspect peer code when it directly supports the chosen implementation change.",
             "- If a student opens peer code or diff, first summarize the peer idea in 2-3 lines, then decide what to borrow.",
             "- Prefer learning a mechanism over blind wholesale replacement.",
-            "- A clean HPWL-winning candidate with C_HR below 1.0 may seed an elite continuation branch; HPWL-winning candidates with C_HR >= 1.0 are repair donors, not failures.",
+            "- A clean HPWL-winning candidate with positive G_HR may seed an elite continuation branch; HPWL-winning candidates with non-positive G_HR are repair donors, not failures.",
             "- Sub-1% wins over `evolve_default` are donor evidence, not success.",
         ]
     )
@@ -1377,11 +1376,11 @@ def ensure_baseline_suite(
 
 
 def metric_table(metrics: dict[str, MetricSummary | None]) -> str:
-    score_label, score_baseline = cost_reference_anchor(metrics)
+    value_label, value_baseline = value_reference_anchor(metrics)
     lines = [
-        f"Value-cost reference: `{score_label or SCORE_REFERENCE_LINE}`; value cost `{HPWL_RUNTIME_SCORE_FORMULA}`.",
+        f"Value reference: `{value_label or VALUE_REFERENCE_LINE}`; value gain `{HPWL_RUNTIME_GAIN_FORMULA}`.",
         "",
-        "| line | tag | C_HR | H | R | HPWLg | delta HPWLlg | delta HPWLip | delta HPWL final | HPWL final | runtime_s | avg_disp | max_disp | violations |",
+        "| line | tag | G_HR | HPWL_gain% | runtime_penalty_pp | HPWLg | delta HPWLlg | delta HPWLip | delta HPWL final | HPWL final | runtime_s | avg_disp | max_disp | violations |",
         "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|",
     ]
     for name in CANONICAL_LINES:
@@ -1389,15 +1388,15 @@ def metric_table(metrics: dict[str, MetricSummary | None]) -> str:
         if summary is None:
             lines.append(f"| {name} | missing |  |  |  |  |  |  |  |  |  |  |  |  |")
             continue
-        score_factors = hpwl_runtime_score_factors(summary, score_baseline)
+        gain_factors = hpwl_runtime_gain_factors(summary, value_baseline)
         lines.append(
             "| {name} | {tag} | {score} | {h} | {r} | {hpwlg} | {d_lg} | {d_ip} | {d_final} | {hpwl_after} | {runtime} | "
             "{avg_disp} | {max_disp} | {violations} |".format(
                 name=name,
                 tag=summary.tag,
-                score="" if score_factors is None else f"{score_factors['score']:.3f}",
-                h="" if score_factors is None else f"{score_factors['H']:.4f}",
-                r="" if score_factors is None else f"{score_factors['R']:.4f}",
+                score="" if gain_factors is None else f"{gain_factors['score']:.3f}",
+                h="" if gain_factors is None else f"{gain_factors['H']:.4f}",
+                r="" if gain_factors is None else f"{gain_factors['R']:.4f}",
                 hpwlg="" if summary.hpwl_global is None else f"{summary.hpwl_global:.3f}",
                 d_lg=""
                 if summary.hpwl_stage_delta_legalization is None
@@ -1452,7 +1451,7 @@ def design_characteristics_block(
     this block gives it the concrete design/baseline facts that matter before
     asking students to modify algorithms.
     """
-    anchor_label, anchor = cost_reference_anchor(metrics)
+    anchor_label, anchor = value_reference_anchor(metrics)
     target_hpwl = five_percent_target_hpwl(anchor)
     anchor_data = load_json(anchor.metrics_path) if anchor is not None else None
     design = (anchor_data or {}).get("design_metrics", {})
@@ -1488,7 +1487,7 @@ def design_characteristics_block(
             maxd=_fmt_float(disp.get("max_displacement_micron"), 4),
             moved=disp.get("moved_instance_count", ""),
         ),
-        "- C_HR cost reference: `{label}`, five_percent_target_hpwl={target}".format(
+        "- G_HR value reference: `{label}`, five_percent_target_hpwl={target}".format(
             label=anchor_label or "",
             target=_fmt_float(target_hpwl, 3),
         ),
@@ -1500,11 +1499,11 @@ def design_characteristics_block(
             "HPWL values below use OpenROAD/DPL pin-based log HPWL only. "
             "`hpwl_proxy` is debug-only and is never a promotion metric.",
             "Primary evolve target remains canonical HPWL reduction. "
-            f"`{HPWL_RUNTIME_SCORE_FORMULA}` relative to "
-            f"`{anchor_label or SCORE_REFERENCE_LINE}` is the value/balance cost "
+            f"`{HPWL_RUNTIME_GAIN_FORMULA}` relative to "
+            f"`{anchor_label or VALUE_REFERENCE_LINE}` is the value/balance gain "
             "for deciding whether the runtime cost is worth the HPWL gain.",
             "",
-            "| line | C_HR | H | R | HPWLg | delta HPWLlg | delta HPWLip | delta HPWL final | HPWL final | stage_delta_pct | runtime_s | violations |",
+            "| line | G_HR | HPWL_gain% | runtime_penalty_pp | HPWLg | delta HPWLlg | delta HPWLip | delta HPWL final | HPWL final | stage_delta_pct | runtime_s | violations |",
             "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|",
         ]
     )
@@ -1513,13 +1512,13 @@ def design_characteristics_block(
         if summary is None:
             lines.append(f"| {line} | missing |  |  |  |  |  |  |  |  |  |  |")
             continue
-        score_factors = hpwl_runtime_score_factors(summary, anchor)
+        gain_factors = hpwl_runtime_gain_factors(summary, anchor)
         lines.append(
             "| {line} | {score} | {h} | {r} | {hpwlg} | {d_lg} | {d_ip} | {d_final} | {after} | {stage_pct} | {runtime} | {violations} |".format(
                 line=line,
-                score="" if score_factors is None else f"{score_factors['score']:.3f}",
-                h="" if score_factors is None else f"{score_factors['H']:.4f}",
-                r="" if score_factors is None else f"{score_factors['R']:.4f}",
+                score="" if gain_factors is None else f"{gain_factors['score']:.3f}",
+                h="" if gain_factors is None else f"{gain_factors['H']:.4f}",
+                r="" if gain_factors is None else f"{gain_factors['R']:.4f}",
                 hpwlg=_fmt_float(summary.hpwl_global, 3),
                 d_lg=_fmt_float(summary.hpwl_stage_delta_legalization, 3),
                 d_ip=_fmt_float(summary.hpwl_stage_delta_improve, 3),
@@ -1564,11 +1563,11 @@ def baseline_artifact_block(
     info = get_case(case_id)
     flow_root = runtime.orfs_root / "flow"
     blocks = []
-    score_label, score_baseline = cost_reference_anchor(metrics)
+    value_label, value_baseline = value_reference_anchor(metrics)
     blocks.extend(
         [
-            f"- cost_reference_line: `{score_label or SCORE_REFERENCE_LINE}`",
-            f"- value_cost: `{HPWL_RUNTIME_SCORE_FORMULA}`",
+            f"- value_reference_line: `{value_label or VALUE_REFERENCE_LINE}`",
+            f"- value_gain: `{HPWL_RUNTIME_GAIN_FORMULA}`",
             "",
         ]
     )
@@ -1583,16 +1582,16 @@ def baseline_artifact_block(
         report_dir = flow_root / "reports" / rel_root
         log_dir = flow_root / "logs" / rel_root
         result_dir = flow_root / "results" / rel_root
-        score_factors = hpwl_runtime_score_factors(summary, score_baseline)
-        score_text = "" if score_factors is None else f"{score_factors['score']:.3f}"
-        h_text = "" if score_factors is None else f"{score_factors['H']:.6f}"
-        r_text = "" if score_factors is None else f"{score_factors['R']:.6f}"
+        gain_factors = hpwl_runtime_gain_factors(summary, value_baseline)
+        gain_text = "" if gain_factors is None else f"{gain_factors['score']:.3f}"
+        h_text = "" if gain_factors is None else f"{gain_factors['H']:.6f}"
+        r_text = "" if gain_factors is None else f"{gain_factors['R']:.6f}"
         blocks.extend(
             [
                 f"- run_tag: `{tag}`",
-                f"- C_HR: `{score_text}`",
-                f"- C_HR_H: `{h_text}`",
-                f"- C_HR_R: `{r_text}`",
+                f"- G_HR: `{gain_text}`",
+                f"- G_HR_HPWL_gain_percent: `{h_text}`",
+                f"- G_HR_runtime_penalty_pp: `{r_text}`",
                 f"- HPWLg: `{summary.hpwl_global}`",
                 f"- delta_HPWL_legalization: `{summary.hpwl_stage_delta_legalization}`",
                 f"- delta_HPWL_improve: `{summary.hpwl_stage_delta_improve}`",

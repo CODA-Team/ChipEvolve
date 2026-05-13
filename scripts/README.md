@@ -44,8 +44,15 @@ part of the default workflow.
 | `scripts/run_aggressive_flow_knowledge_experiments.sh` | One-click large experiment driver: build core, create placement snapshots, refresh canonical baselines, then sequentially launch Teacher/Student loops from a TSV plan such as `configs/experiment_plans/flow_knowledge_core_util.tsv`. | Human/Teacher. | Batch knowledge collection. |
 | `scripts/run_candidate_matrix.sh` | Build one fixed candidate `dpl_evolve` source once, then evaluate that identical code across every enabled row in a TSV plan. | Human/Teacher after a promising exported student source commit exists. | Cross-case candidate validation. |
 | `scripts/run_round_candidate_matrices.sh` | Enumerate committed student source revisions from one Teacher round, export each revision, and run `run_candidate_matrix.sh` for each. | Human/Teacher after a completed round. | 4xN candidate validation. |
+| `scripts/export_round_candidate_sources.py` | Export committed student source revisions from one Teacher round into reusable source snapshots. | `run_round_candidate_matrices.sh`, Human/Teacher. | Candidate export. |
+| `scripts/normalize_candidate_matrix_results.py` | Normalize candidate-matrix result TSVs into stable comparison tables. | `run_round_candidate_matrices.sh`, Human/Teacher. | Result analysis. |
 | `scripts/run_jpeg_util60_discovery_then_matrix.sh` | Full pipeline: full baseline matrix, JPEG util60 4x12 framework-start evolution, then fixed-source matrix validation for every generated program. | Human/Teacher. | Main knowledge experiment. |
 | `scripts/run_canonical_line.sh` | Dispatch one canonical line: `openroad_dpl_flow`, `openroad_dpl_negotiation`, or `evolve_default`. | Humans, evaluator, Teacher loop. | Single run. |
+| `scripts/run_openroad_dpl_9case_baselines.sh` | Run OpenROAD default DPL baseline rows for the shared 9-case `place_batch_20260421_220319` set with snapshot preflight, bounded case parallelism, and a metrics summary TSV. | Human/Teacher before BO or evolve sweeps. | Baseline batch. |
+| `scripts/bo_tune_case.py` | Ray Tune black-box optimize Tcl command parameters for one case using the same strict baseline runner and metrics.json as the white-box evolve loop. Requires Ray Tune; there is no local fallback. | Human/Teacher for black-box baselines. | Parameter tuning / ablation. |
+| `scripts/setup_raytune_venv.sh` | Create the repo-local `.venv_raytune` environment and verify `ray.tune` plus `optuna`. | Human before BO runs. | BO setup. |
+| `scripts/run_bo_8case_openroad_dpl.sh` | Sequentially launch the standard 8-case OpenROAD default DPL Ray Tune sweep. Each case runs 100 trials by default with four concurrent Ray Tune trials. | Human/Teacher for black-box baseline sweep. | BO batch. |
+| `scripts/run_bo_9case_openroad_dpl.sh` | Launch the 9-case OpenROAD default DPL Ray Tune sweep for `place_batch_20260421_220319`: ASAP7/Nangate45 AES/IBEX/SWeRV/JPEG plus normal Nangate45 Ariane133, at most three cases concurrently and four trials per case. | Human/Teacher for black-box baseline sweep. | BO batch. |
 | `scripts/compare_runs.py` | Compare two evaluator or metrics JSON files using stable metrics. | Human/Teacher review. | Result analysis. |
 | `scripts/report_stage_metrics.py` | Print canonical per-round stage-wise HPWL/runtime/displacement rows from evaluator `metrics.json`, falling back to labeled partial DPL logs for in-flight evidence. | Human/Teacher review, packets. | Result analysis. |
 | `scripts/report_experiment_status.py` | Summarize a launch directory: active processes, completed/active rounds, best baseline vs best evolved donors, and optional detailed stage rows. | Human/Teacher monitoring. | Monitoring/result analysis. |
@@ -55,8 +62,10 @@ part of the default workflow.
 | Script | Purpose | Called by | Stage |
 | --- | --- | --- | --- |
 | `scripts/optimize_case_with_codex.py` | Stable CLI shim for the multi-iteration Teacher/child optimization round. The implementation is split under `scripts/teacher_loop/`. | Human/Teacher. | Case-specific algorithm search. |
+| `scripts/run_evolve_9case_place_batch.sh` | Launch the shared 9-case place-batch evolve sweep with 4 Students x 15 iterations by default, Teacher `gpt-5.5/xhigh`, Student `gpt-5.4/xhigh`, three concurrent cases, one shared core build, snapshot preflight, and per-case logs. | Human/Teacher. | Batch case-specific algorithm search. |
 | `scripts/run_codex_exec.py` | Stable CLI shim for the low-level `codex exec --json` recorder used by launched Teacher/Student agents.  Can resume a prior Codex session with `--resume-session-id`; records usage and stderr category summaries. Implementation lives under `scripts/codex_exec/`. | `optimize_case_with_codex.py`. | Worker execution. |
 | `scripts/watch_teacher_round.py` | Terminal or local-web dashboard for a Teacher/Student round.  Shows observable status, paths, last visible messages, diffs, metrics, and usage. | Human/Teacher. | Monitoring. |
+| `scripts/compact_round_peer_prompts.py` | Compact large peer-prompt context from a Teacher round into smaller review artifacts. | Human/Teacher when prompt context grows too large. | Prompt hygiene. |
 
 `scripts/teacher_loop/` contains the Python implementation modules:
 `orchestrator.py` for the top-level loop, `common.py` for shared data,
@@ -85,6 +94,115 @@ diff commands from memory.
 Result tables and Teacher packets should use `metrics.json:hpwl` as canonical
 HPWL. That field is parsed from OpenROAD/DPL pin-based log reports. The legacy
 bbox `hpwl_proxy` field is diagnostic only.
+
+### Black-Box Parameter Tuning
+
+Use `scripts/bo_tune_case.py` when we need a black-box comparison against the
+white-box Agent/code-evolution flow.  This runner requires Ray Tune/Optuna and
+intentionally has no local fallback.  The tuner does not edit source code or
+relink OpenROAD.  It injects parameter lists into the existing baseline Tcl
+drivers through the environment prefix declared in the YAML search space.
+OpenROAD native DPL BO uses:
+
+```text
+OPENROAD_DPL_DETAIL_ARGS
+OPENROAD_DPL_IMPROVE_ARGS
+OPENROAD_DPL_OPTIMIZE_ARGS
+```
+
+Set up the local Ray Tune Python once:
+
+```bash
+dpl_evolve_agent/scripts/setup_raytune_venv.sh
+```
+
+Single-case example:
+
+```bash
+dpl_evolve_agent/.venv_raytune/bin/python "$DPL_EVOLVE_AGENT_ROOT/scripts/bo_tune_case.py" \
+  --case aes_dense_nangate45 \
+  --flow-variant DENSE \
+  --space "$DPL_EVOLVE_AGENT_ROOT/configs/bo_search_spaces/openroad_dpl_native.yaml" \
+  --run-id bo_aes_dense_openroad_dpl_100 \
+  --trials 100 \
+  --max-concurrent-trials 4 \
+  --threads 10
+```
+
+Standard 8-case sweep:
+
+```bash
+BO_TRIALS=100 BO_MAX_CONCURRENT_TRIALS=4 BO_THREADS_PER_TRIAL=10 \
+  dpl_evolve_agent/scripts/run_bo_8case_openroad_dpl.sh
+```
+
+Standard 9-case sweep for the shared `place_batch_20260421_220319` snapshots:
+
+```bash
+BO_TRIALS=400 BO_MAX_CONCURRENT_CASES=3 BO_MAX_CONCURRENT_TRIALS=4 \
+BO_THREADS_PER_TRIAL=10 BO_FLOW_VARIANT=place_batch_20260421_220319 \
+  dpl_evolve_agent/scripts/run_bo_9case_openroad_dpl.sh
+```
+
+OpenROAD default DPL baseline rows for the same 9-case set:
+
+```bash
+BASELINE_FLOW_VARIANT=place_batch_20260421_220319 BASELINE_MAX_PARALLEL=3 \
+  dpl_evolve_agent/scripts/run_openroad_dpl_9case_baselines.sh
+```
+
+White-box Agent evolve rows for the same 9-case set:
+
+```bash
+EVOLVE_FLOW_VARIANT=place_batch_20260421_220319 EVOLVE_CHILDREN=4 \
+EVOLVE_ITERATIONS=15 EVOLVE_TEACHER_MODEL=gpt-5.5 \
+EVOLVE_TEACHER_REASONING_EFFORT=xhigh EVOLVE_STUDENT_MODEL=gpt-5.4 \
+EVOLVE_STUDENT_REASONING_EFFORT=xhigh EVOLVE_MAX_CONCURRENT_CASES=3 \
+  dpl_evolve_agent/scripts/run_evolve_9case_place_batch.sh
+```
+
+The 9-case sweep checks that every case has
+`results/<platform>/<design>/place_batch_20260421_220319/3_4_place_resized.odb`
+before launching BO.  If one snapshot is still being generated, the script
+fails before starting any BO jobs.
+
+Outputs are written under:
+
+```text
+$DPL_EVOLVE_STATE_ROOT/bo_runs/<run-id>/
+```
+
+Key artifacts:
+
+- `trials.jsonl`: resumable full ledger, including failed trials.
+- `trials.tsv`: compact spreadsheet-style summary.
+- `best.json`: current best clean legal trial by HPWL/runtime value gain.
+- `config.json`: exact run configuration.
+
+The human-facing value score is higher-is-better:
+
+```text
+G_HR = 100 * (HPWL_ref - HPWL_trial) / HPWL_global
+     - 2 * (sqrt(runtime_trial / runtime_ref) - 1) / (sqrt(2) - 1)
+```
+
+Baseline has `G_HR = 0`; higher is better.  HPWL remains the primary objective;
+the runtime term is a value check so a 2x-slower setting must buy 2 final-HPWL
+percentage points of reduction to break even.  Ray Tune still minimizes a field
+named `score`, so BO stores `score = -G_HR` internally.
+
+The default DSE strategy is not pure random search.  Each run first evaluates a
+small deterministic mechanism-anchor set: OpenROAD default, window-only DPL,
+incremental+global-swap, extra-DPL+global-swap, fast local-window, and large
+window configurations.  It then spends `min(25, max(10, trials/4))` startup
+trials on broad mixed discrete/continuous exploration, followed by Optuna TPE
+with parallel-aware constant-liar suggestions for exploitation.  Override
+`BO_ANCHOR_STRATEGY`, `BO_STARTUP_TRIALS`, or `BO_TPE_CANDIDATES` only when a
+case has a known reason to need a different exploration/exploitation split.
+
+The default OpenROAD DPL search space is
+`configs/bo_search_spaces/openroad_dpl_native.yaml`.  Edit that YAML to change
+parameter ranges before running a new BO sweep.
 
 ### References And Local Research
 

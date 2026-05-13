@@ -1,7 +1,7 @@
 ## Output Format
 
 - compact result table
-- C_HR/H/R value check next to raw HPWL/runtime
+- `G_HR`/HPWL_gain%/runtime_penalty_pp value check next to raw HPWL/runtime
 - stage-wise attribution table
 - runtime-tier attribution table
 - best lineages

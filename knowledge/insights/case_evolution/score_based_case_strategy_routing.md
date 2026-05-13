@@ -17,20 +17,24 @@ Default Teacher context should use the feature-level lessons below.  Concrete
 benchmark ids, program ids, numeric tables, and file paths should stay outside
 default knowledge.
 
-`C_HR = (1 + (HPWL_sol - HPWL_ref) / HPWLg) * max((runtime_sol / runtime_ref)^0.04, 0.7)`.
+`G_HR = HPWL_gain_percent - runtime_penalty_pp`.
 
-Lower is better.  The reference is the complete OpenROAD DPL default flow with
+Here `HPWL_gain_percent = 100 * (HPWL_ref - HPWL_sol) / HPWL_global` and
+`runtime_penalty_pp = 2 * (sqrt(runtime_sol / runtime_ref) - 1) / (sqrt(2) - 1)`.
+Higher is better.  The reference is the complete OpenROAD DPL default flow with
 Diamond search (`detailed_placement`, `improve_placement`, and
-`optimize_mirroring`) at about `1.0`.  HPWL remains the primary research
-objective, but `C_HR` decides whether the runtime cost is already worthwhile or
-whether the candidate is only a HPWL donor that needs runtime repair.
+`optimize_mirroring`) at `G_HR = 0`.  HPWL remains the primary research
+objective, but `G_HR` decides whether the runtime cost is worthwhile or whether
+the candidate is only a HPWL donor that needs runtime repair.  A 2x runtime
+increase requires 2 final-HPWL percentage points of improvement to break even.
 
 ## Main Result Pattern
 
 Single-design evolution can produce HPWL wins, but not every HPWL win is
-score-positive after runtime.  With exponent `0.04`, runtime is only a light
-penalty, so a candidate that still loses `C_HR` is too expensive for its current
-HPWL gain and should be treated as a donor, not a promoted parent.
+value-positive after runtime.  The square-root runtime penalty is moderate near
+baseline and still discourages runaway runtime.  A candidate with negative
+`G_HR` can still be a useful HPWL donor, but the next step should either add a
+new HPWL source or rewrite the mechanism for bounded runtime before promotion.
 
 The same source snapshot can look strong on its discovery design and weak in a
 transfer matrix.  Treat discovery-line winners as mechanisms to distill, then
@@ -82,18 +86,19 @@ Unknown or transfer-oriented designs:
 
 ## Teacher Policy
 
-- Report both raw HPWL gain and `C_HR`.  A candidate with better HPWL but
-  `C_HR >= 1.0` is not a failure; it is a donor that needs either runtime
+- Report both raw HPWL gain and `G_HR`.  A candidate with better HPWL but
+  `G_HR <= 0` is not a failure; it is a donor that needs either runtime
   repair or additional HPWL source.
 - Separate three roles in every review: `score elite`, `HPWL donor`, and
   `failed/regression path`.
-- When the best HPWL donor and best `C_HR` donor differ, assign at least one
+- When the best HPWL donor and best `G_HR` donor differ, assign at least one
   route to preserve the HPWL donor mechanism and one route to rewrite it for
   runtime.
 - If a route wins by less than about `1%` HPWL and runtime grows beyond about
   `1.5x`, require a specific explanation of why the mechanism should be kept.
-- If a route wins `2-3%` HPWL at around `2x` runtime, preserve it as promising:
-  the current score intentionally allows that tradeoff to be near break-even.
+- If a route wins about `2%` HPWL at around `2x` runtime, preserve it as
+  promising: the current value score intentionally makes that tradeoff
+  approximately break-even.
 
 ## Student Policy
 

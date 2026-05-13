@@ -18,6 +18,12 @@ This directory stores reusable control-plane configuration presets.
 - `openroad_variant_example.yaml`
   Example showing how to point evaluation at an isolated
   `build/install/openroad` variant.
+- `bo_search_spaces/`
+  YAML search spaces for `scripts/bo_tune_case.py`.  These files define only
+  command-line parameters, not source-code changes, so black-box tuning remains
+  comparable against white-box Agent evolution.
+- `raytune_requirements.txt`
+  Python dependencies for the required Ray Tune BO environment.
 
 ## Usage rule
 

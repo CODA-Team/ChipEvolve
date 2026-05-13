@@ -50,6 +50,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Pass --force to prepare_workspace.sh when --prepare-workspace is used.",
     )
     parser.add_argument(
+        "--skip-core-build",
+        action="store_true",
+        help=(
+            "Do not configure/build the shared OpenROAD core inside this round. "
+            "Use this when an outer batch launcher has already built the core."
+        ),
+    )
+    parser.add_argument(
         "--iterations",
         type=int,
         default=1,
