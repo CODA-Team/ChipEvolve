@@ -55,7 +55,7 @@ Compare these first:
 - legality
 - HPWL delta from `metrics.json:hpwl`
 - stage HPWL from `metrics.json:hpwl_stages`
-- `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_global - 2 * (sqrt(runtime_sol / runtime_ref) - 1) / (sqrt(2) - 1)`
+- `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref - 1 * (sqrt(runtime_sol / runtime_ref) - 1) / (sqrt(2) - 1)`
   versus the OpenROAD DPL default-flow reference, when present, to decide
   whether the HPWL gain is worth the runtime. Higher `G_HR` is better and the
   reference is 0.

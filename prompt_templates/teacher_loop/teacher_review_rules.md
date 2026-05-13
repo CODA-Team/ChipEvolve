@@ -15,7 +15,7 @@
   message, or legality failed
 - compare only canonical `metrics.json:hpwl`, runtime, avg/max displacement,
   stage-wise HPWL, and generated
-  `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_global - 2 * (sqrt(runtime_sol / runtime_ref) - 1) / (sqrt(2) - 1)`;
+  `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref - 1 * (sqrt(runtime_sol / runtime_ref) - 1) / (sqrt(2) - 1)`;
   ignore
   bbox/proxy wins
 - use `G_HR` versus the OpenROAD DPL default-flow reference as the

@@ -19,14 +19,15 @@ default knowledge.
 
 `G_HR = HPWL_gain_percent - runtime_penalty_pp`.
 
-Here `HPWL_gain_percent = 100 * (HPWL_ref - HPWL_sol) / HPWL_global` and
-`runtime_penalty_pp = 2 * (sqrt(runtime_sol / runtime_ref) - 1) / (sqrt(2) - 1)`.
+Here `HPWL_gain_percent = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref` and
+`runtime_penalty_pp = 1 * (sqrt(runtime_sol / runtime_ref) - 1) / (sqrt(2) - 1)`.
 Higher is better.  The reference is the complete OpenROAD DPL default flow with
 Diamond search (`detailed_placement`, `improve_placement`, and
 `optimize_mirroring`) at `G_HR = 0`.  HPWL remains the primary research
 objective, but `G_HR` decides whether the runtime cost is worthwhile or whether
 the candidate is only a HPWL donor that needs runtime repair.  A 2x runtime
-increase requires 2 final-HPWL percentage points of improvement to break even.
+increase requires 1 reference-normalized final-HPWL percentage point of
+improvement to break even.
 
 ## Main Result Pattern
 

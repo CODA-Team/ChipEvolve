@@ -23,12 +23,12 @@ from scripts.teacher_loop.common import (
 
 VALUE_REFERENCE_LINE = "openroad_dpl_flow"
 HPWL_RUNTIME_GAIN_FORMULA = (
-    "G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_global "
-    "- 2 * (sqrt(runtime_sol / runtime_ref) - 1) / (sqrt(2) - 1)"
+    "G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref "
+    "- 1 * (sqrt(runtime_sol / runtime_ref) - 1) / (sqrt(2) - 1)"
 )
 # Runtime is a value check, not the primary objective: 2x runtime requires
-# 2 percentage points of final-HPWL improvement to break even.
-RUNTIME_PENALTY_SCALE = 2.0
+# 1 percentage point of reference-normalized final-HPWL improvement to break even.
+RUNTIME_PENALTY_SCALE = 1.0
 SQRT2_MINUS_ONE = math.sqrt(2.0) - 1.0
 
 
@@ -522,26 +522,26 @@ def hpwl_runtime_gain_factors(
         or not is_clean_placement(summary)
         or baseline.hpwl_after in (None, 0)
         or summary.hpwl_after in (None, 0)
-        or summary.hpwl_global in (None, 0)
         or baseline.runtime_seconds in (None, 0)
         or summary.runtime_seconds in (None, 0)
     ):
         return None
     hpwl_ref = float(baseline.hpwl_after)
     hpwl_sol = float(summary.hpwl_after)
-    hpwl_global = float(summary.hpwl_global)
+    hpwl_global = (
+        None if summary.hpwl_global in (None, 0) else float(summary.hpwl_global)
+    )
     runtime_ref = float(baseline.runtime_seconds)
     runtime_sol = float(summary.runtime_seconds)
     if (
         hpwl_ref <= 0
         or hpwl_sol <= 0
-        or hpwl_global <= 0
         or runtime_ref <= 0
         or runtime_sol <= 0
     ):
         return None
     runtime_ratio_value = runtime_sol / runtime_ref
-    hpwl_gain_percent = 100.0 * (hpwl_ref - hpwl_sol) / hpwl_global
+    hpwl_gain_percent = 100.0 * (hpwl_ref - hpwl_sol) / hpwl_ref
     runtime_penalty = (
         RUNTIME_PENALTY_SCALE
         * (math.sqrt(runtime_ratio_value) - 1.0)

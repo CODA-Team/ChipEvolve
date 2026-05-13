@@ -29,7 +29,7 @@ import yaml
 SCRIPT_DIR = Path(__file__).resolve().parent
 AGENT_ROOT = SCRIPT_DIR.parent
 DEFAULT_SPACE = AGENT_ROOT / "configs" / "bo_search_spaces" / "openroad_dpl_native.yaml"
-RUNTIME_PENALTY_SCALE = 2.0
+RUNTIME_PENALTY_SCALE = 1.0
 SQRT2_MINUS_ONE = math.sqrt(2.0) - 1.0
 
 sys.path.insert(0, str(AGENT_ROOT))
@@ -445,10 +445,10 @@ def score_candidate(
     hpwl_g = hpwl_global_micron(candidate, hpwl_r)
     runtime_c = float(candidate.get("runtime_seconds") or 0.0)
     runtime_r = float(reference.get("runtime_seconds") or 0.0)
-    if hpwl_g == 0.0 or runtime_c <= 0.0 or runtime_r <= 0.0:
+    if hpwl_r == 0.0 or runtime_c <= 0.0 or runtime_r <= 0.0:
         return fail_score, {"status": "bad_metrics"}
     runtime_ratio_value = runtime_c / runtime_r
-    hpwl_gain_percent = 100.0 * (hpwl_r - hpwl_c) / hpwl_g
+    hpwl_gain_percent = 100.0 * (hpwl_r - hpwl_c) / hpwl_r
     runtime_penalty = (
         runtime_penalty_scale
         * (math.sqrt(runtime_ratio_value) - 1.0)
@@ -799,9 +799,9 @@ def main() -> int:
                 "openroad_binary": args.openroad_binary,
                 "score": {
                     "formula": "score = -G_HR",
-                    "gain_formula": "G_HR = 100*(HPWL_ref - HPWL_sol)/HPWL_global - runtime_penalty_scale*(sqrt(runtime_sol/runtime_ref)-1)/(sqrt(2)-1)",
+                    "gain_formula": "G_HR = 100*(HPWL_ref - HPWL_sol)/HPWL_ref - runtime_penalty_scale*(sqrt(runtime_sol/runtime_ref)-1)/(sqrt(2)-1)",
                     "runtime_penalty_scale": runtime_penalty_scale,
-                    "runtime_break_even": "2x runtime requires 2.0 final-HPWL percentage points of improvement",
+                    "runtime_break_even": "2x runtime requires 1.0 reference-normalized final-HPWL percentage point of improvement",
                     "legacy_hpwl_weight_ignored": hpwl_weight,
                     "fail_score": fail_score,
                 },

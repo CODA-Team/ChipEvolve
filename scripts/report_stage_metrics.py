@@ -51,8 +51,8 @@ class StageRow:
 
 VALUE_REFERENCE_RESULT = "baseline_probe_openroad_dpl_flow"
 # Runtime is a value check, not the primary objective: 2x runtime requires
-# 2 percentage points of final-HPWL improvement to break even.
-RUNTIME_PENALTY_SCALE = 2.0
+# 1 percentage point of reference-normalized final-HPWL improvement to break even.
+RUNTIME_PENALTY_SCALE = 1.0
 SQRT2_MINUS_ONE = math.sqrt(2.0) - 1.0
 
 
@@ -149,15 +149,14 @@ def annotate_hpwl_runtime_gains(rows: list[StageRow]) -> None:
         if (
             row.legality != "clean"
             or row.hpwl_final in (None, 0)
-            or row.hpwlg in (None, 0)
             or row.runtime_seconds in (None, 0)
         ):
             continue
-        assert row.hpwl_final is not None and row.hpwlg is not None and row.runtime_seconds is not None
+        assert row.hpwl_final is not None and row.runtime_seconds is not None
         row.runtime_ratio = float(row.runtime_seconds) / float(ref.runtime_seconds)
         hpwl_gain_percent = (
             (float(ref.hpwl_final) - float(row.hpwl_final))
-            / float(row.hpwlg)
+            / float(ref.hpwl_final)
             * 100.0
         )
         runtime_penalty = (

@@ -182,14 +182,15 @@ Key artifacts:
 The human-facing value score is higher-is-better:
 
 ```text
-G_HR = 100 * (HPWL_ref - HPWL_trial) / HPWL_global
-     - 2 * (sqrt(runtime_trial / runtime_ref) - 1) / (sqrt(2) - 1)
+G_HR = 100 * (HPWL_ref - HPWL_trial) / HPWL_ref
+     - 1 * (sqrt(runtime_trial / runtime_ref) - 1) / (sqrt(2) - 1)
 ```
 
 Baseline has `G_HR = 0`; higher is better.  HPWL remains the primary objective;
-the runtime term is a value check so a 2x-slower setting must buy 2 final-HPWL
-percentage points of reduction to break even.  Ray Tune still minimizes a field
-named `score`, so BO stores `score = -G_HR` internally.
+the HPWL term is normalized by `HPWL_ref`, and the runtime term is a value check
+so a 2x-slower setting must buy 1 reference-normalized final-HPWL percentage
+point of reduction to break even.  Ray Tune still minimizes a field named
+`score`, so BO stores `score = -G_HR` internally.
 
 The default DSE strategy is not pure random search.  Each run first evaluates a
 small deterministic mechanism-anchor set: OpenROAD default, window-only DPL,

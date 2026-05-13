@@ -42,12 +42,12 @@ from scripts.teacher_loop.common import CANONICAL_LINES
 
 VALUE_REFERENCE_LINE = "openroad_dpl_flow"
 HPWL_RUNTIME_GAIN_FORMULA = (
-    "G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_global "
-    "- 2 * (sqrt(runtime_sol / runtime_ref) - 1) / (sqrt(2) - 1)"
+    "G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref "
+    "- 1 * (sqrt(runtime_sol / runtime_ref) - 1) / (sqrt(2) - 1)"
 )
 # Runtime is a value check, not the primary objective: 2x runtime requires
-# 2 percentage points of final-HPWL improvement to break even.
-RUNTIME_PENALTY_SCALE = 2.0
+# 1 percentage point of reference-normalized final-HPWL improvement to break even.
+RUNTIME_PENALTY_SCALE = 1.0
 SQRT2_MINUS_ONE = math.sqrt(2.0) - 1.0
 
 load_local_env_sh(AGENT_ROOT)
@@ -357,7 +357,7 @@ def hpwl_runtime_gain_summary(
     hpwl_gain_percent = (
         100.0
         * (float(baseline_hpwl_after_micron) - hpwl_sol)
-        / hpwl_global
+        / float(baseline_hpwl_after_micron)
     )
     runtime_penalty = (
         RUNTIME_PENALTY_SCALE

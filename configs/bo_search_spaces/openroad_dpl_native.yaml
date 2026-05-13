@@ -25,7 +25,7 @@ env_prefix: OPENROAD_DPL
 objective:
   reference_line: openroad_dpl_flow
   hpwl_weight: 1.0
-  runtime_penalty_scale: 2.0
+  runtime_penalty_scale: 1.0
   fail_score: 1000000000.0
 parameters:
   - name: detail_max_displacement
