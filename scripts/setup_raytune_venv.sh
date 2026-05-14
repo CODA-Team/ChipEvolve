@@ -15,7 +15,7 @@ fi
 
 "${PYTHON_BIN}" -m venv "${VENV_DIR}"
 "${VENV_DIR}/bin/python" -m pip install --upgrade pip setuptools wheel
-LOCAL_RAY_WHEEL="${AGENT_ROOT}/local_backups/ray_wheels/ray-2.31.0-cp311-cp311-manylinux2014_x86_64.whl"
+LOCAL_RAY_WHEEL="${RAYTUNE_LOCAL_RAY_WHEEL:-${AGENT_ROOT}/.dpl_evolve_state/cache/ray_wheels/ray-2.31.0-cp311-cp311-manylinux2014_x86_64.whl}"
 if [[ -f "${LOCAL_RAY_WHEEL}" ]] && "${VENV_DIR}/bin/python" - <<'PY'
 import sys
 raise SystemExit(0 if sys.version_info[:2] == (3, 11) else 1)

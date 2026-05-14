@@ -9,11 +9,18 @@ for source handles, metrics, and log signals.
 - Use this when legal HPWL improves but improve placement or final evaluation
   stages erase the gain; repair the producer/consumer handoff, not downstream
   optimize-mirroring code.
-- Require both producer and consumer counters; metadata that no later stage uses
-  should be treated as a no-op.
-- Keep the queue bounded and focused on high-impact nets/cells/rows.
-
-## Common Failure
-
-- Adding handoff fields to context without changing improve-placement ordering,
-  scoring, or acceptance.
+- Use OpenDB handles as the stable identity: `odb::dbInst*`, `odb::dbNet*`,
+  `odb::dbGroup*`, and `odb::dbRegion*`.  Groups/regions are valid anchors for
+  cell grouping, fence pressure, residual queues, and region-bounded DPO
+  priority.
+- Do not store current legal coordinates; DPO can read them from OpenDB.  Store
+  only non-importable guidance: target miss, original/global target, residual
+  pressure, touched-net priority, or boundary/window tags.
+- Before DPO hot loops, remap handles into current detailed-placement objects
+  and dense ids, cell/segment lists, or bitsets.  Do not persist transient
+  `Node*`, `Edge*`, `DetailedSeg*`, `Pixel*`, or `Group*` objects across the
+  stage boundary.
+- Require producer and consumer counters.  Metadata with no consumer is a
+  no-op.
+- Keep the queue bounded and do not route hot handoff data through files,
+  JSON/text logs, string-keyed maps, or public Tcl/SWIG ABI changes.

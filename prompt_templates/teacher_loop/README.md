@@ -3,6 +3,18 @@
 These files are human-editable prompt templates for
 `scripts/optimize_case_with_codex.py`.
 
+## Directory Layout
+
+- `context/`: shared round context visible to Teacher and Students.
+- `teacher/`: Teacher planning/review prompts, Teacher rules, and Teacher
+  output contracts.
+- `student/`: Student initial/follow-up prompts, Student rules, and small
+  Student-only prompt fragments.
+- `shared/`: reusable schema fragments embedded by both Teacher plan and review
+  prompts.
+- `packets/`: generated packet templates. These are still agent-facing, but
+  Python only fills paths, ids, and measured values.
+
 Rules:
 
 - Keep agent-facing templates short.
@@ -12,12 +24,12 @@ Rules:
   packet files under `iter_XX/packet/`, not in agent prompt prose.
 - Teacher insight is appended to child prompts after Teacher runs, but only the
   assigned `### student_XX` section should be appended.
-- Shared Teacher rules live in `teacher_rules.md`; shared Student rules live in
-  `student_rules.md`. Teacher plan/review output and review rules live in
-  `teacher_plan_output.md`, `teacher_review_rules.md`, and
-  `teacher_review_output.md`. Shared per-student insight packet fields live in
-  `student_insight_packet_format.md`. Do not duplicate these blocks across
-  templates.
+- Shared Teacher rules live in `teacher/rules.md`; shared Student rules live in
+  `student/rules.md`. Teacher plan/review output and review rules live in
+  `teacher/plan_output.md`, `teacher/review_rules.md`, and
+  `teacher/review_output.md`. Shared per-student insight packet fields live in
+  `shared/student_insight_packet_format.md`. Do not duplicate these blocks
+  across templates.
 - Teacher prompts should assign concrete per-student plans with route emphasis:
   `legalizer-emphasis`, `DPO-emphasis`, or `co-optimization-emphasis`.
   Emphasis is a priority label, not a three-way exclusive choice. Students
@@ -36,7 +48,11 @@ Rules:
 - Keep the NoPUA-style coaching signal in `skills/teacher_peer_coaching.md`:
   autonomy, evidence, initiative, and switching perspective after repeated weak
   attempts. Do not compress it into generic encouragement.
-- Use `$variable_name` placeholders.  Python fills them with `string.Template`.
+- Use `$variable_name` placeholders. Python fills them with `string.Template`.
+- Keep new prompt prose in this directory. Python should only choose templates,
+  compute values, and fill placeholders. If a generated packet needs new
+  instructions, add or update a file under `packets/` instead of embedding the
+  prose in Python.
 - Run the prompt audit before launching a new prompt design:
 
 ```bash

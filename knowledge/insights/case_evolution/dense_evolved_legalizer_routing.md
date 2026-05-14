@@ -28,8 +28,9 @@ Important calibration: this card is about legalization-stage behavior.  Later
 full-flow rescoring showed that some high-utilization dense designs can regress
 after LEGALM or NEGOTIATION even when a legal-stage metric looks better.  On
 those features, `evolved_legalm` is a diagnostic or HPWL-stage donor unless
-strict full-flow metrics prove it improves final HPWL.  Prefer the current score
-card when it names a different route such as Diamond/local-DPO repair.
+strict full-flow metrics prove it improves final HPWL. Prefer current
+full-flow HPWL evidence when it names a different route such as
+Diamond/local-DPO repair.
 
 ## Teacher Policy
 

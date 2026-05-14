@@ -2,6 +2,12 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import sys
+
+
+AGENT_ROOT = Path(__file__).resolve().parents[2]
+if str(AGENT_ROOT) not in sys.path:
+    sys.path.insert(0, str(AGENT_ROOT))
 
 from scripts.teacher_loop.common import START_KINDS
 

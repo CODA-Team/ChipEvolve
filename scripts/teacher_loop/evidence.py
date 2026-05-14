@@ -603,18 +603,17 @@ def value_reference_anchor(
 def objective_sort_value(
     summary: MetricSummary,
     baseline: MetricSummary | None,
-) -> tuple[float, float]:
-    if not candidate_beats_hpwl_only(summary, baseline):
-        hpwl_tiebreak = -float(summary.hpwl_after) if summary.hpwl_after is not None else float("-inf")
-        return float("-inf"), hpwl_tiebreak
-    gain = hpwl_runtime_gain(summary, baseline)
-    if gain is not None:
-        # HPWL remains primary; higher value gain breaks HPWL ties.
-        hpwl_tiebreak = -float(summary.hpwl_after) if summary.hpwl_after is not None else float("-inf")
-        return hpwl_tiebreak, gain
+) -> tuple[float]:
+    """Return the evolve optimization key.
+
+    Evolve selection is HPWL-only inside the strict legality/artifact/runtime
+    gates.  G_HR is still reported for experiment analysis, but it must not
+    decide elite continuation or tie-break a lower-HPWL candidate.
+    """
+
     if summary.hpwl_after is not None:
-        return float("-inf"), -float(summary.hpwl_after)
-    return float("-inf"), float("-inf")
+        return (-float(summary.hpwl_after),)
+    return (float("-inf"),)
 
 
 def efficiency_signal(
@@ -657,14 +656,15 @@ def stage_donor_signal(
                 "quality-only HPWL final signal; inefficient runtime "
                 f"{ratio:.2f}x baseline, not an effective donor"
             )
-        gain_text = "" if gain is None else f" G_HR={gain:.3f}"
-        return f"final donor{gain_text}"
+        gain = hpwl_runtime_gain(candidate, baseline)
+        gain_text = "" if gain is None else f" G_HR-analysis={gain:.3f}"
+        return f"final HPWL donor{gain_text}"
 
     gain = hpwl_runtime_gain(candidate, baseline)
     if gain is not None and candidate_beats_hpwl_only(candidate, baseline):
         return (
-            f"HPWL-only donor but G_HR={gain:.3f}; repair runtime/quality "
-            "before treating as an elite route"
+            f"HPWL donor with G_HR-analysis={gain:.3f}; preserve HPWL, "
+            "then repair runtime/quality if needed"
         )
 
     signals: list[str] = []
@@ -755,9 +755,10 @@ def round_scoreboard(
     target_hpwl = five_percent_target_hpwl(baseline)
     lines = [
         f"Value gain: `{HPWL_RUNTIME_GAIN_FORMULA}` versus `{baseline_label or 'missing'}`; "
-        "higher G_HR means the HPWL gain is more runtime-worthy. The research "
-        "target remains HPWL reduction; use G_HR as the runtime value check "
-        "and to identify HPWL donors that need runtime repair.",
+        "this is an analysis metric only. The evolve optimization target and "
+        "elite continuation key are strict final HPWL inside legality/artifact/"
+        "runtime gates. Use G_HR only to identify HPWL donors that need runtime "
+        "repair.",
         "",
         "| iter | student | route_label | artifact_gate | G_HR | HPWL_gain% | runtime_penalty_pp | HPWLg | dHPWLlg% | dHPWLip% | dHPWLfinal% | HPWL final | delta_vs_ref | value_gt_ref | gap_to_5pct_target | runtime_s | runtime_ratio | avg_disp | max_disp | violations | metrics |",
         "|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---:|---:|---:|---:|---:|---|---|",
@@ -781,7 +782,7 @@ def round_scoreboard(
             or objective_sort_value(summary, baseline) > objective_sort_value(best, baseline)
         ):
             best = summary
-        if promotable and candidate_beats_baseline(summary, baseline) and (
+        if promotable and candidate_beats_hpwl_only(summary, baseline) and (
             best_beating is None
             or objective_sort_value(summary, baseline)
             > objective_sort_value(best_beating, baseline)
@@ -846,9 +847,9 @@ def round_scoreboard(
         lines.extend(
             [
                 "",
-                "Best valid clean HPWL candidate with G_HR so far: "
+                "Best valid clean HPWL candidate so far: "
                 f"`{best_iter or '?'}` / `{best_student or '?'}` / "
-                f"`{best_route_label or best.tag}` with G_HR "
+                f"`{best_route_label or best.tag}` with analysis G_HR "
                 f"`{(hpwl_runtime_gain(best, baseline) or float('nan')):.3f}` "
                 f"and HPWL `{best.hpwl_after:.3f}`"
                 + (
@@ -863,13 +864,13 @@ def round_scoreboard(
             round_id, case_id, best_beating.tag
         )
         lines.append(
-            "Best G_HR-positive candidate: "
+            "Best HPWL-beating candidate for G_HR analysis: "
             f"`{beat_iter or '?'}` / `{beat_student or '?'}` / "
             f"`{beat_route_label or best_beating.tag}`."
         )
     else:
         lines.append(
-            "No prior valid student candidate has positive G_HR versus the value reference "
+            "No prior valid student candidate beats the HPWL reference "
             f"(`{baseline_label or 'unknown'}`) yet."
         )
     if target_hpwl is not None:
@@ -908,7 +909,7 @@ def best_round_candidate(
             candidate=summary,
         ):
             continue
-        if require_baseline_beat and not candidate_beats_baseline(summary, baseline):
+        if require_baseline_beat and not candidate_beats_hpwl_only(summary, baseline):
             continue
         iter_part, _student_id, _route_label = parse_candidate_tag(
             round_id, case_id, summary.tag
@@ -1133,7 +1134,7 @@ def write_peer_learning_packet(
         reverse=True,
     )
     beating_candidates = [
-        item for item in clean_candidates if candidate_beats_baseline(item, baseline)
+        item for item in clean_candidates if candidate_beats_hpwl_only(item, baseline)
     ]
 
     chunks = [
@@ -1145,11 +1146,11 @@ def write_peer_learning_packet(
         "Use it to borrow mechanisms and source from valid peer candidates. "
         "A candidate is valid only when the Codex operation, source commit, "
         "diff, knowledge card, private binary, metrics, and legality all pass "
-        "the artifact gate.  A valid clean candidate that beats the fixed "
-        f"`{VALUE_REFERENCE_LINE}` value reference under `{HPWL_RUNTIME_GAIN_FORMULA}` "
-        "is useful elite evidence only when its runtime and complexity are "
-        "controlled. A HPWL-only donor can still be valuable when routed to "
-        "runtime or handoff repair. Treat "
+        "the artifact gate. Elite continuation is selected by lowest strict "
+        "final HPWL inside legality, artifact, and hard runtime gates. "
+        f"`{HPWL_RUNTIME_GAIN_FORMULA}` is an analysis metric only: use it to "
+        "explain runtime value and route runtime repair, not to choose the "
+        "elite parent. Treat "
         "5% below the value reference as a credible research target, not a "
         "hard gate; below-5% stage donors can still be useful when efficient.",
         "",
@@ -1177,12 +1178,13 @@ def write_peer_learning_packet(
             ]
         )
 
-    chunks.extend(["", "## Best G_HR-Positive Candidates"])
+    chunks.extend(["", "## HPWL-Beating Candidates With G_HR Analysis"])
     if not beating_candidates:
         chunks.append(
-            "No prior valid clean student candidate has "
-            "positive G_HR versus the value reference yet. Students may still inspect the best valid "
-            "clean candidate as a clue, but it is not an elite seed."
+            "No prior valid clean student candidate beats the HPWL reference yet. "
+            "Students may still inspect the best valid clean candidate as a clue, "
+            "but it is not an elite seed unless it is the lowest final HPWL row "
+            "inside the hard gates."
         )
     else:
         for candidate in beating_candidates[:3]:
@@ -1246,7 +1248,7 @@ def write_peer_learning_packet(
             "- Student may inspect peer code when it directly supports the chosen implementation change.",
             "- If a student opens peer code or diff, first summarize the peer idea in 2-3 lines, then decide what to borrow.",
             "- Prefer learning a mechanism over blind wholesale replacement.",
-            "- A clean HPWL-winning candidate with positive G_HR may seed an elite continuation branch; HPWL-winning candidates with non-positive G_HR are repair donors, not failures.",
+            "- A clean lowest-final-HPWL candidate is the elite continuation candidate inside the hard runtime gate. G_HR is analysis-only; use it to route runtime repair, not to replace the HPWL elite. A faster but worse-HPWL candidate is runtime/control evidence, not the headline elite.",
             "- Sub-1% wins over `evolve_default` are donor evidence, not success.",
         ]
     )

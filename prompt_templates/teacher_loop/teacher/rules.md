@@ -6,11 +6,13 @@
 - Keep the research target as canonical HPWL reduction. Use
   `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref - P(runtime_sol / runtime_ref), where P(r)=0 for r <= 1.10 and P(2.0)=1.0 percentage point`
   versus the OpenROAD DPL default-flow (`openroad_dpl_flow`,
-  Diamond-search) reference to decide whether a HPWL gain is worth its runtime
-  and whether it should become an elite/default parent. Higher `G_HR` is
-  better and the reference is 0. Do not let `G_HR` hide a strong HPWL donor;
-  route such donors to runtime repair or handoff
-  repair.
+  Diamond-search) reference only as an experiment-analysis and runtime-value
+  metric. Do not use `G_HR` as the optimization target, promotion target, or
+  elite/default-parent selector.
+  Do not promote a faster but worse-final-HPWL candidate over a clean lower-HPWL
+  candidate as the headline elite. Keep the faster candidate as runtime/control
+  evidence unless the lower-HPWL candidate violates legality, artifact gates, or
+  the hard timeout budget.
   The runtime term has a deadband: runtime improvements and <=1.10x
   runtime noise receive no bonus; 2x runtime needs 1.0 percentage point of
   reference-normalized final-HPWL gain to break even.
@@ -57,11 +59,9 @@
   `<kind>`" for `framework`, `diamond`, `evolved_diamond`, `evolved_legalm`,
   or `evolved_negotiation`. Use `*_framework_delta.patch` only when
   intentionally stacking that donor delta on the current framework source.
-- When assigning a clean DPO donor start, prefer explicit prepared branch names
-  such as `evolved_legalm_dpo_neg017b` or `evolved_diamond_dpo_neg014` instead
-  of asking the Student to manually apply a patch. Use direct DPO patch
-  application only for intentional continuation/hybridization from an existing
-  source state.
+- Assign DPO work as source-level mechanism design in the current tree after
+  inspecting active `Optdp`/`Detailed*` code and logs. Implement the selected
+  mechanism directly in the current source.
 - For `route action: continue` from an elite/final donor, continue the
   pre-seeded/materialized elite source. Do not name an `evolved_*` clean-reset
   fallback unless the route is an explicit switch, hybridization, or stage-donor
@@ -79,6 +79,13 @@
 - Prefer hybrid flows when evidence supports them: global differential
   guidance, local greedy legalization/detail improvement, and negotiation-style
   conflict resolution can be combined as a staged source-level algorithm.
+- Hybrid does not mean choosing one complete legalizer by case through an
+  `if/else` selector.  It means composing algorithmic mechanisms inside one
+  candidate source flow, for example lightweight global/differential guidance,
+  native legality closure, local HPWL repair, and a bounded DPO consumer.
+- Treat design-feature strategy cards as inspiration for source mechanisms, not
+  as a routing table.  Ask Students to adapt the idea after inspecting the
+  current code, and require counters that prove the staged mechanism ran.
 
 ## Route Requirements
 
@@ -100,10 +107,17 @@
   meaningful plan for A and B: either a source change, a handoff/consumer
   change, or a concrete diagnostic proving why that stage should be preserved
   this round.
+- Parameter tuning is a valid route only when it is implemented inside the
+  `dpl_evolve` source as mechanism parameters: constants, thresholds,
+  scoring weights, pass schedules, adaptive policies, or compact internal
+  config structs. Do not assign Tcl/flow-script knob sweeps. If Teacher wants
+  a parameter route, name the source file/function where the parameter lives
+  and the liveness counter or stage metric that proves it affected HPWL.
 - For hybrid routes, describe the staged source flow: first legalizer family,
   residual/frontier handoff, second legalizer or repair family, and
   improve-placement consumer. This is internal algorithm sequencing, not
-  repeated endpoint execution.
+  repeated endpoint execution and not case-level selection among unrelated
+  legalizers.
 - Preserve stage-donor repair routes. If one stage improves but a later stage
   erases the gain, keep the useful stage mechanism and assign a repair of the
   handoff/consumer instead of discarding the line.

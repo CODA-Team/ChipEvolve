@@ -42,14 +42,6 @@ Patch status is tracked in:
   `evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` seed sources
   from the framework deltas when the patch files are present.
 
-- `evolved_dpo/`
-  Preserves source-root improve-placement donor patches for private
-  `dpl_evolve` source trees. These are not OpenROAD-root patches. Generated
-  Student workspaces prepare legalizer+DPO start branches such as
-  `start/evolved_legalm_dpo_neg017b`, and provide
-  `07_apply_evolved_dpo_patch.sh --check-only` for intentional continuation or
-  hybridization. `neg017b` is the default runtime-quality donor; `neg014` is
-  the quality-ceiling donor.
 The exact supported base commits are recorded in:
 
 - `metadata/anchors.json`

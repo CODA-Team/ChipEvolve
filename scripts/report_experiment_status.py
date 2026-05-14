@@ -460,7 +460,7 @@ def print_markdown(
     print("## Round Summary")
     print(
         "| case | status | round | HPWLg | best baseline | baseline final | "
-        "best evolved | G_HR | evolved final | HPWL vs baseline | runtime_s | legality | "
+        "best HPWL evolved | G_HR check | evolved final | HPWL vs baseline | runtime_s | legality | "
         "attempts |"
     )
     print("|---|---|---|---:|---|---:|---|---:|---:|---:|---:|---|---:|")

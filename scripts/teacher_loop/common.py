@@ -24,7 +24,6 @@ START_KINDS = (
 
 PREPARED_START_KIND_PATTERN = (
     r"(?:framework|diamond|evolved_diamond|evolved_legalm|evolved_negotiation)"
-    r"(?:_dpo_(?:neg017b|neg014|neg015))?"
 )
 
 CANONICAL_LINES = (

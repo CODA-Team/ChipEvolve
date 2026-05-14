@@ -56,9 +56,9 @@ Compare these first:
 - HPWL delta from `metrics.json:hpwl`
 - stage HPWL from `metrics.json:hpwl_stages`
 - `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref - P(runtime_sol / runtime_ref), where P(r)=0 for r <= 1.10 and P(2.0)=1.0 percentage point`
-  versus the OpenROAD DPL default-flow reference, when present, to decide
-  whether the HPWL gain is worth the runtime. Higher `G_HR` is better and the
-  reference is 0.
+  versus the OpenROAD DPL default-flow reference, when present, as an analysis
+  metric. Higher `G_HR` is better and the reference is 0, but evolve selection
+  remains legal final HPWL under the hard runtime budget.
 - displacement
 - runtime from `metrics.json:runtime_seconds`
 - memory, when recorded
@@ -80,11 +80,11 @@ Classify runtime before judging a result:
 - `aggressive`: larger but timeout-safe runtime spent on a mechanism that could
   materially change final HPWL.
 
-Runtime growth is not automatically bad, but it lowers `G_HR`. Reject
-wasted repetition, duplicate endpoints, random tails, and broad rescans.
-Preserve or promote extra runtime when counters show cached/capped/parallel
-HPWL-source search that improves `G_HR` or creates a clearly reusable HPWL
-donor.
+Runtime growth is not automatically bad, but it is bounded by the generated
+hard timeout and analyzed through `G_HR`. Reject wasted repetition, duplicate
+endpoints, random tails, and broad rescans. Preserve extra-runtime HPWL donors
+when counters show cached/capped/parallel HPWL-source search; use `G_HR` only to
+decide whether the donor needs runtime repair.
 
 ## Strict Track Rule
 
@@ -101,8 +101,8 @@ The wrapper reuses this snapshot and should not rebuild upstream placement.
 Keep only if:
 
 - legality is clean
-- canonical HPWL improves and `G_HR` shows the runtime is worthwhile, or
-  HPWL/stage evidence creates a clear donor that can be repaired for runtime
+- canonical final HPWL improves inside the hard runtime budget, or HPWL/stage
+  evidence creates a clear donor that can be repaired for runtime
 - displacement remains controlled
 
 Reject if:

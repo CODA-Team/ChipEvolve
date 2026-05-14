@@ -11,11 +11,14 @@ should act on it.
 2. `workflow/cross_case_experiment_design.md`
 3. `workflow/metric_contract.md`
 4. `case_evolution/cross_case_transfer_matrix.md`
-5. `case_evolution/score_based_case_strategy_routing.md`
-6. `case_evolution/dense_evolved_legalizer_routing.md`
-7. `case_evolution/optdp_stage_cooptimization.md`
-8. `case_evolution/micro_gain_trap_and_elite_donors.md`
-9. Relevant LEGALM card under `legalm/` only when changing legalization.
+5. `case_evolution/strategy_inspiration_by_design_feature.md`
+6. `case_evolution/score_based_case_strategy_routing.md`
+7. `case_evolution/dense_evolved_legalizer_routing.md`
+8. `case_evolution/optdp_stage_cooptimization.md`
+9. `dpo/source_level_mechanisms.md`
+10. `dpo/openroad_native_handoff.md`
+11. `case_evolution/micro_gain_trap_and_elite_donors.md`
+12. Relevant LEGALM card under `legalm/` only when changing legalization.
 
 ## Workflow
 
@@ -34,6 +37,9 @@ should act on it.
   routing guidance distilled from single-design evolution, fixed-source replay,
   and multi-design legalizer-line evaluation; use it to distinguish score
   elites from HPWL donors.
+- `case_evolution/strategy_inspiration_by_design_feature.md`: feature-level
+  mechanism inspiration for staged source hybrids.  Use this before route
+  assignment to avoid turning empirical lessons into benchmark-name selectors.
 - `case_evolution/dense_evolved_legalizer_routing.md`: dense-case evidence for
   using `evolved_legalm` as a stage-level legalizer prior, plus Teacher policy
   for first-round diversification and later route switching/hybridization.  This
@@ -45,6 +51,13 @@ should act on it.
 - `case_evolution/full_flow_timeout_and_target_selection.md`: full-flow timeout
   discovery-target selection, bad execution patterns, and the configured
   baseline-runtime promotion gate.
+
+## DPO And Handoff Notes
+
+- `dpo/source_level_mechanisms.md`: source-level improve-placement mechanisms
+  to reimplement directly in current `Optdp`/`Detailed*` code.
+- `dpo/openroad_native_handoff.md`: efficient OpenROAD-native producer/consumer
+  data structures for legalization-to-DPO frontier handoff.
 
 ## LEGALM Notes
 

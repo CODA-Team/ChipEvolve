@@ -25,10 +25,11 @@ Here `HPWL_gain_percent = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref` and
 Higher is better.  The reference is the complete OpenROAD DPL default flow with
 Diamond search (`detailed_placement`, `improve_placement`, and
 `optimize_mirroring`) at `G_HR = 0`.  HPWL remains the primary research
-objective, but `G_HR` decides whether the runtime cost is worthwhile or whether
-the candidate is only a HPWL donor that needs runtime repair.  A 2x runtime
-increase requires 1 reference-normalized final-HPWL percentage point of
-improvement to break even.
+objective.  `G_HR` is an analysis field for judging whether the runtime cost is
+reasonable and whether a HPWL donor needs runtime repair; it does not decide
+promotion, elite continuation, or the default parent.  A 2x runtime increase
+requires 1 reference-normalized final-HPWL percentage point of improvement to
+break even in this analysis.
 
 ## Main Result Pattern
 
@@ -42,7 +43,12 @@ The same source snapshot can look strong on its discovery design and weak in a
 transfer matrix.  Treat discovery-line winners as mechanisms to distill, then
 rerun unchanged source on feature-diverse designs before writing a global rule.
 
-## Strategy By Design Feature
+## Strategy Inspiration By Design Feature
+
+The feature notes below are mechanism inspiration, not a route-selection table.
+Do not implement them as a case/scenario selector among complete legalizers.
+Teacher should translate the feature into a staged source flow with producer,
+native closure/repair, and DPO consumer counters.
 
 Medium dense, mostly standard-cell designs with moderate local conflict:
 
@@ -67,7 +73,7 @@ Large row-rich or wrapper-like designs with many local conflicts:
 - Negotiation-style residual/conflict handling is promising when it remains
   bounded and produces nonzero conflict-resolution counters.
 - LEGALM and Diamond may provide HPWL movement, but broad global searches or
-  wide local windows must be distilled before becoming score elites.
+  wide local windows must be distilled before becoming HPWL elites.
 
 Macro, cut-row, fence, or fragmented-row stress:
 
@@ -83,15 +89,16 @@ Unknown or transfer-oriented designs:
   legal completion across diverse features, and near-baseline runtime.
 - Use aggressive high-HPWL donors only when the next step explicitly rewrites
   their candidate generation, exact-delta scoring, caches, or parallel scoring.
-- Do not promote high-runtime donors only because they are the best HPWL row;
-  first distill the mechanism into a cached/capped implementation.
+- Keep the lowest-HPWL donor visible, but do not call high-runtime code directly
+  deployable until the mechanism is distilled into a cached/capped
+  implementation.
 
 ## Teacher Policy
 
 - Report both raw HPWL gain and `G_HR`.  A candidate with better HPWL but
   `G_HR <= 0` is not a failure; it is a donor that needs either runtime
   repair or additional HPWL source.
-- Separate three roles in every review: `score elite`, `HPWL donor`, and
+- Separate three roles in every review: `HPWL elite`, `HPWL donor`, and
   `failed/regression path`.
 - When the best HPWL donor and best `G_HR` donor differ, assign at least one
   route to preserve the HPWL donor mechanism and one route to rewrite it for
@@ -99,12 +106,12 @@ Unknown or transfer-oriented designs:
 - If a route wins by less than about `1%` HPWL and runtime grows beyond about
   `1.5x`, require a specific explanation of why the mechanism should be kept.
 - If a route wins about `2%` HPWL at around `2x` runtime, preserve it as
-  promising: the current value score intentionally makes that tradeoff
-  approximately break-even.
+  promising: the current analysis formula makes that tradeoff approximately
+  break-even, but HPWL remains the elite-continuation target inside hard gates.
 
 ## Student Policy
 
-- Before coding, state whether the target is score-positive promotion, HPWL
+- Before coding, state whether the target is lower-final-HPWL promotion, HPWL
   donor extraction, or runtime repair.
 - If borrowing a high-HPWL/high-runtime donor, do not copy the broad search
   literally.  Replace repeated full scans with affected-net scoring, cached

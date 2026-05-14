@@ -19,11 +19,9 @@
 - evolved legalizer manifest: `$evolved_legalizers_manifest`
 - evolved legalizer validation: `$evolved_legalizers_validation`
 - dense evolved-legalizer routing insight: `$dense_legalizer_routing_insight`
-- evolved DPO patch catalog: `$evolved_dpo_readme`
-- evolved DPO manifest: `$evolved_dpo_manifest`
-- evolved DPO validation: `$evolved_dpo_validation`
-- DPO runtime/quality insight: `$dpo_runtime_quality_insight`
-- cross-legalizer DPO donor insight: `$dpo_cross_legalizer_insight`
+- feature-to-mechanism strategy insight: `$strategy_inspiration_insight`
+- DPO mechanism insight: `$dpo_source_mechanisms_insight`
+- OpenROAD-native handoff insight: `$openroad_native_handoff_insight`
 - LEGO-lite skill index: `$skill_index`
 - LEGO-lite skill query helper: `$skill_query_script`
 - LEGO-lite skill notes: `$skill_cards_dir`
@@ -46,6 +44,9 @@ function/state insertion points. Do not require broad donor-tree reading.
 - A selected skill is guidance, not a cage. Teacher should name the skill id,
   expected stage transition, done criteria, and log signals; Student may refine
   the mechanism when current source evidence contradicts the card.
+- Treat strategy cards as design-feature inspiration, not case-level algorithm
+  selectors.  Teacher should translate them into a staged source mechanism and
+  require liveness counters rather than assigning a fixed route by name.
 - For mechanism inspiration, Teacher should query the skill index first and
   then open the smallest relevant card under `$algorithm_cards_dir`, especially
   `legalization/` for legalizer routes and `dpo_refinement/` for improve
@@ -59,10 +60,13 @@ function/state insertion points. Do not require broad donor-tree reading.
 - primary research target remains canonical HPWL reduction. Use
   `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref - P(runtime_sol / runtime_ref), where P(r)=0 for r <= 1.10 and P(2.0)=1.0 percentage point`
   against the OpenROAD DPL default-flow (`openroad_dpl_flow`, Diamond-search)
-  reference to judge whether the HPWL gain is worth the runtime. Higher
-  `G_HR` is better and the reference is 0. Use HPWL first for research
-  direction and `G_HR` as the value check; preserve strong HPWL-only donors as
-  repair routes instead of discarding them.
+  reference as an analysis metric only. The evolve optimization target,
+  promotion target, and elite/default-parent selector are legal final HPWL under
+  the hard runtime budget. Use `G_HR` only to explain whether the HPWL gain needs
+  runtime repair.
+  A faster but worse-final-HPWL result is runtime/control evidence, not the
+  headline elite, unless the lower-HPWL result fails legality, artifact gates, or
+  the hard timeout budget.
   The runtime term has a deadband: runtime improvements and <=1.10x
   runtime noise receive no bonus; 2x runtime needs 1.0 percentage point of
   reference-normalized final-HPWL gain to break even.
@@ -75,6 +79,10 @@ function/state insertion points. Do not require broad donor-tree reading.
   the handoff and refinement are implemented correctly; weak final HPWL should
   trigger handoff/improve-placement diagnosis, not immediate abandonment of the
   global route
+- hybrid-source prior: useful hybrids are staged algorithms inside one
+  candidate implementation, such as lightweight global guidance, native legal
+  closure, local HPWL repair, and a DPO consumer.  Do not implement hybrid as a
+  case-level selector among complete legalizers.
 - per-round stance: preserve best donors as guardrails, but assign at least one
   route that can attack a larger HPWL source when wins are tiny or plateaued
 - callable flow: `detailed_placement_evolve -> improve_placement_evolve ->
@@ -84,6 +92,12 @@ function/state insertion points. Do not require broad donor-tree reading.
   objective, parameterization, state, and handoff
 - locked surface: external evaluator/ORFS/workspace helper scripts; downstream
   optimize-mirroring code stays evaluation-only unless a future task reopens it
+- parameter search is allowed only as source-level implementation work: change
+  constants, heuristic thresholds, scoring weights, pass schedules,
+  data-dependent policies, or small internal config structs inside
+  `private_dpl_evolve_source`, then rebuild and evaluate the binary. Do not
+  route parameter tuning through Tcl command options, ORFS flow scripts,
+  evaluator scripts, or repeated external endpoint invocation.
 - final HPWL is judged as legalization/improve-placement interaction; useful
   routes should create legal states that improve placement can consume
 - route emphasis can be `legalizer-emphasis`, `DPO-emphasis`, or
@@ -101,8 +115,8 @@ function/state insertion points. Do not require broad donor-tree reading.
   `${student_runtime_multiplier}x` the canonical `openroad_dpl_flow`
   `metrics.json:runtime_seconds`; metrics/evaluator collection is not
   timeout-wrapped
-- runtime is a usable `${student_runtime_multiplier}x`-tolerant budget and
-  also part of `G_HR`. Spend it on
+- runtime is a usable `${student_runtime_multiplier}x` hard budget, not the
+  objective. Spend it on
   bounded stronger mechanisms: deeper legalizer scoring, broader capped
   candidates, donor hybridization, parallel candidate evaluation, or better
   legalizer/improve handoff. Do not waste it on repeated unchanged passes.
@@ -134,27 +148,22 @@ function/state insertion points. Do not require broad donor-tree reading.
 - Student private source trees are normally materialized seed sources; do not
   make Students manually apply OpenROAD-root patches unless that is the route
 
-## DPO / Improve-Placement Donors
+## DPO / Improve-Placement Mechanisms
 
-- evolved DPO patches under `patches/evolved_dpo/` are source-root
-  improve-placement donor patches for private `dpl_evolve` trees. They are
-  meant to stack on the selected legalizer seed, not replace the legalizer.
-- `src_dpo_neg017b_algo1_src_cache_runtime.patch` is the recommended first
-  DPO donor when both final HPWL and runtime matter. It keeps Algorithm-1
-  source-edge cached scoring and bounded runtime behavior.
-- `src_dpo_neg014_hybrid_quality.patch` is the quality-ceiling donor. It can
-  be more expensive, but it is useful when the route intentionally spends
-  bounded runtime on stronger improve-placement quality.
-- Teacher should use DPO donors when the legalizer creates a useful stage
-  donor but improve placement fails to preserve or consume it. Assign DPO work
-  as a source-level `Optdp`/`Detailed*` mechanism, not as repeated endpoint
-  execution.
-- DPO patch base matters: these are private-source-root patches. Students
-  should normally use prepared local branches such as
-  `start/evolved_legalm_dpo_neg017b` or `start/evolved_diamond_dpo_neg014`
-  when Teacher wants a clean legalizer+DPO donor start. For continuation
-  sources, Students can use the generated DPO helper from the workspace packet
-  with `--check-only` first. Do not make them hand-write `git apply` commands.
+- Improve-placement work should be implemented in the current source, especially
+  `Optdp`/`Detailed*` candidate generation, objective, acceptance, transaction,
+  local state, and handoff consumption.
+- Useful mechanisms include source-edge cached scoring, bounded top-K exact
+  candidate evaluation, transaction accept/rollback, selective fallback
+  descent, and scoped LSMC basin escape.
+- LSMC and fallback descent can find better HPWL basins but are heavy. Use
+  compact candidate sets, exact affected-net scoring, cached touched data,
+  producer/consumer counters, and runtime/gain telemetry.
+- Handoff state should stay OpenROAD-native and compact. Use
+  `odb::dbInst*`, `odb::dbNet*`, `odb::dbGroup*`, `odb::dbRegion*`, dense ids,
+  vectors, bitsets, and current detailed-placement mappings. Do not duplicate
+  current coordinates or route hot state through files, logs, JSON, string-keyed
+  hot maps, or public Tcl/SWIG ABI changes.
 
 ## Execution Context
 

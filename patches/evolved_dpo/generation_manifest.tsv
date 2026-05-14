@@ -1,6 +1,0 @@
-name	patch	apply_base	mechanism_id	changed_files	primary_tradeoff
-neg014_hybrid_quality	patches/evolved_dpo/src_dpo_neg014_hybrid_quality.patch	source-root framework/evolved legalizer seed common Optdp.cpp	neg014_hybrid_quality	1	best transferable final HPWL, higher runtime
-neg015_staged_runtime	patches/evolved_dpo/src_dpo_neg015_staged_runtime.patch	source-root framework/evolved legalizer seed common Optdp.cpp	neg015_staged_runtime	1	runtime-balanced staged fallback, some HPWL regression vs 014
-neg017b_algo1_src_cache_runtime	patches/evolved_dpo/src_dpo_neg017b_algo1_src_cache_runtime.patch	source-root framework/evolved legalizer seed common Optdp.cpp	neg017b_algo1_src_cache_runtime	1	recommended runtime-quality donor; preserves 015/016 HPWL with lower runtime
-neg014_to_neg015_runtime_delta	patches/evolved_dpo/src_dpo_neg014_to_neg015_runtime_delta.patch	source root after neg014_hybrid_quality	neg014_to_neg015_runtime_delta	1	review delta for follow-up runtime repair
-neg015_to_neg017b_algo1_cache_delta	patches/evolved_dpo/src_dpo_neg015_to_neg017b_algo1_cache_delta.patch	source root after neg015_staged_runtime	neg015_to_neg017b_algo1_cache_delta	1	review delta adding parallel dry-run/top-K telemetry and source-edge cache

@@ -3,9 +3,9 @@
 
 This runner is intentionally black-box: it does not edit or relink OpenROAD.
 It samples Tcl command parameters with Ray Tune, runs the strict baseline
-harness, reads canonical metrics.json, and ranks legal trials by the project
-HPWL/runtime value gain.  Ray Tune still minimizes a field named `score`, so
-`score = -gain_hr`.
+harness, reads canonical metrics.json, and optimizes legal trials for the
+lowest final HPWL.  Runtime-aware `G_HR` is reported as a value check, not as
+the search objective.
 """
 
 from __future__ import annotations
@@ -479,9 +479,13 @@ def score_candidate(
         runtime_penalty_at_2x=runtime_penalty_at_2x,
     )
     gain = hpwl_gain_percent - runtime_penalty
-    score = -gain
+    # Primary BO objective: lower final HPWL is better.  Runtime-aware G_HR is
+    # kept as a value diagnostic so fast-but-worse trials do not hide the best
+    # HPWL point.
+    score = hpwl_c
     return score, {
         "status": "ok",
+        "score_objective": "min_hpwl_final",
         "hpwl_final": hpwl_c,
         "hpwl_ref": hpwl_r,
         "hpwl_global": hpwl_g,
@@ -603,7 +607,30 @@ def write_best_json(path: Path, trials: list[dict[str, Any]]) -> dict[str, Any] 
     ok_trials = [trial for trial in trials if trial.get("status") == "ok"]
     if not ok_trials:
         return None
-    best = min(ok_trials, key=lambda trial: float(trial["score"]))
+    best = min(
+        ok_trials,
+        key=lambda trial: float((trial.get("metrics") or {}).get("hpwl_final") or trial["score"]),
+    )
+    path.write_text(json.dumps(best, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return best
+
+
+def write_best_value_json(path: Path, trials: list[dict[str, Any]]) -> dict[str, Any] | None:
+    ok_trials = [trial for trial in trials if trial.get("status") == "ok"]
+    value_trials = [
+        trial
+        for trial in ok_trials
+        if (trial.get("metrics") or {}).get("gain_hr") is not None
+    ]
+    if not value_trials:
+        return None
+    best = max(
+        value_trials,
+        key=lambda trial: (
+            float((trial.get("metrics") or {}).get("gain_hr") or float("-inf")),
+            -float((trial.get("metrics") or {}).get("hpwl_final") or float("inf")),
+        ),
+    )
     path.write_text(json.dumps(best, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return best
 
@@ -788,6 +815,7 @@ def main() -> int:
     trials_jsonl = run_root / "trials.jsonl"
     trials_tsv = run_root / "trials.tsv"
     best_json = run_root / "best.json"
+    best_value_json = run_root / "best_value.json"
     config_snapshot = run_root / "config.json"
     trial_rows_dir = run_root / "trial_rows"
 
@@ -829,13 +857,14 @@ def main() -> int:
                 "legalize_timeout_seconds": args.legalize_timeout_seconds,
                 "openroad_binary": args.openroad_binary,
                 "score": {
-                    "formula": "score = -G_HR",
+                    "formula": "score = HPWL_final; lower is better",
                     "gain_formula": "G_HR = 100*(HPWL_ref - HPWL_sol)/HPWL_ref - P(runtime_sol/runtime_ref); P(r)=0 when r<=runtime_deadband_ratio, otherwise runtime_penalty_at_2x*(sqrt(r)-sqrt(runtime_deadband_ratio))/(sqrt(2)-sqrt(runtime_deadband_ratio))",
                     "runtime_deadband_ratio": runtime_deadband_ratio,
                     "runtime_penalty_at_2x": runtime_penalty_at_2x,
-                    "runtime_break_even": "Runtime speedups and <=deadband runtime noise receive no bonus; 2x runtime requires runtime_penalty_at_2x reference-normalized final-HPWL percentage points of improvement.",
+                    "runtime_break_even": "Runtime speedups and <=deadband runtime noise receive no bonus; 2x runtime requires runtime_penalty_at_2x reference-normalized final-HPWL percentage points of improvement to be value-positive. This does not replace raw HPWL as the BO objective.",
                     "legacy_hpwl_weight_ignored": hpwl_weight,
                     "fail_score": fail_score,
+                    "best_json": "best.json is HPWL-best only; best_value.json is G_HR-best for analysis only.",
                 },
                 "default_params": default_trial_params,
                 "default_stage_args": default_env_args,
@@ -1016,19 +1045,27 @@ def main() -> int:
     write_jsonl(trials_jsonl, trials)
     write_summary_tsv(trials_tsv, trials, specs)
     best = write_best_json(best_json, trials)
+    best_value = write_best_value_json(best_value_json, trials)
 
     ok_trials = [trial for trial in trials if trial.get("status") == "ok"]
     print(f"[INFO] completed_trials={len(trials)} ok_trials={len(ok_trials)}")
     print(f"[INFO] trials_tsv={trials_tsv}")
     if best is not None:
-        print(f"[INFO] best_score={float(best['score']):.6f}")
         metrics = best.get("metrics") or {}
+        print(f"[INFO] best_hpwl={float(metrics.get('hpwl_final') or best['score']):.6f}")
         if metrics.get("gain_hr") is not None:
-            print(f"[INFO] best_gain_hr={float(metrics['gain_hr']):.6f}")
-        print(f"[INFO] best_metrics={best.get('metrics_path')}")
-        print(f"[INFO] best_params={json.dumps(best['params'], sort_keys=True)}")
+            print(f"[INFO] best_hpwl_gain_hr={float(metrics['gain_hr']):.6f}")
+        print(f"[INFO] best_hpwl_metrics={best.get('metrics_path')}")
+        print(f"[INFO] best_hpwl_params={json.dumps(best['params'], sort_keys=True)}")
     else:
-        print("[WARN] no clean legal trial found")
+        print("[WARN] no clean legal HPWL trial found")
+    if best_value is not None:
+        metrics = best_value.get("metrics") or {}
+        print(f"[INFO] best_value_gain_hr={float(metrics.get('gain_hr') or 0.0):.6f}")
+        print(f"[INFO] best_value_hpwl={float(metrics.get('hpwl_final') or best_value['score']):.6f}")
+        print(f"[INFO] best_value_metrics={best_value.get('metrics_path')}")
+    elif best is not None:
+        print("[WARN] no clean legal value trial found")
     ray.shutdown()
     return 0
 

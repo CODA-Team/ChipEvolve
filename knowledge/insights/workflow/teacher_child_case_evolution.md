@@ -45,7 +45,7 @@ Child Agent:
 3. Teacher starts children with non-overlapping hypotheses:
    - an optional `evolved_legalm` dense-prior diagnostic route when design
      evidence shows high utilization, standard-cell density, or large
-     global-to-legal HPWL disturbance, unless current full-flow score evidence
+     global-to-legal HPWL disturbance, unless current full-flow HPWL evidence
      says that case archetype should prefer another route,
    - an `evolved_diamond` or Diamond-local route for local greedy closure,
      row/macro structure, or large-case local legality pressure,
@@ -67,7 +67,7 @@ Child Agent:
 7. Teacher compares every child against both the case baseline and the
    best-so-far elite artifact.  A newer iteration is not better just because it
    is newer.
-   Stage-only wins are explanatory evidence; current full-flow score evidence
+   Stage-only wins are explanatory evidence; current full-flow HPWL evidence
    takes precedence when it contradicts a stage prior.
 8. Teacher rejects failures and weak evidence, labels useful failures as
    donors or negative evidence, and writes concrete continuation guidance for

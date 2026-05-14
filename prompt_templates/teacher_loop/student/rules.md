@@ -15,10 +15,13 @@
 - Use canonical `metrics.json:hpwl`; `hpwl_proxy` is debug-only.
 - Optimize canonical HPWL first. Use the generated value gain
   `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref - P(runtime_sol / runtime_ref), where P(r)=0 for r <= 1.10 and P(2.0)=1.0 percentage point`,
-  where higher is better and the OpenROAD DPL default-flow reference is 0, to
-  judge whether the HPWL improvement is worth its runtime. Report `G_HR`
-  together with raw HPWL/runtime so Teacher can separate efficient wins from
-  HPWL-only donors that need runtime repair.
+  where higher is better and the OpenROAD DPL default-flow reference is 0, only
+  as an analysis metric. Do not optimize for `G_HR`; optimize for legal final
+  HPWL under the hard runtime budget. Report `G_HR` together with raw
+  HPWL/runtime so Teacher can analyze whether a HPWL win needs runtime repair.
+  Do not claim a faster but worse-final-HPWL result as the best result. Report it
+  as runtime/control evidence; preserve the clean lower-HPWL source as the HPWL
+  donor unless it fails legality, artifact gates, or the hard timeout budget.
   The runtime term has a deadband: runtime improvements and <=1.10x
   runtime noise receive no bonus; 2x runtime needs 1.0 percentage point of
   reference-normalized final-HPWL gain to break even.
@@ -117,12 +120,27 @@
   handoff-state consumption. If the secondary stage is unchanged, report the
   diagnostic reason and the next source-level mechanism that would make it
   worth changing.
+- Parameter tuning is allowed when it is code-internal: adjust constants,
+  heuristic thresholds, scoring weights, pass schedules, adaptive policies, or
+  compact internal config structs inside your private `dpl_evolve` source.
+  Treat those edits as source mechanisms that must be built, logged, and
+  evaluated. Do not move the tuning to Tcl command options, ORFS flow scripts,
+  evaluator scripts, or repeated external command invocations.
 - Hybrid legalizer routes are allowed when assigned or supported by source
   evidence. Implement them as source-level staged algorithms with explicit
-  residual/frontier handoff; do not hybridize by rerunning unchanged endpoints.
+  residual/frontier handoff; do not hybridize by rerunning unchanged endpoints
+  or by adding a case/scenario selector among complete legalizers.
+- Strategy and feature cards are inspiration, not a menu that limits your
+  implementation.  Translate them into a local source plan after inspecting the
+  active code, then prove the mechanism with counters and stage-wise metrics.
 - Prefer data structures that make deeper search cheap: compact candidate
   queues, dirty-edge/touched-net sets, per-net local boxes, row/segment caches,
   legality caches, and thread-local score buffers.
+- For legalizer-to-DPO handoff, use OpenROAD-native compact state:
+  `odb::dbInst*`, `odb::dbNet*`, `odb::dbGroup*`, `odb::dbRegion*`, dense ids,
+  vectors, and bitsets. Do not duplicate current coordinates. Avoid files,
+  JSON/text logs, string-keyed hot maps, and public Tcl/SWIG ABI changes for
+  ordinary algorithm payloads.
 - Avoid hot-loop full-cell/full-grid/full-net rescans and avoidable `O(n^2)`.
   Cache touched data and make each extra candidate's cost visible in telemetry.
 - Add or reuse lightweight counters/logs that prove the primary mechanism ran.
@@ -140,7 +158,7 @@
 - The generated evaluation command applies a `${student_runtime_multiplier}x`
   timeout to the OpenROAD legalize/improve/mirror flow only; metrics/evaluator
   collection is not timeout-wrapped.
-- Runtime is a usable budget and part of `G_HR`. Spend the tolerant
+- Runtime is a usable hard budget, not the objective. Spend the tolerant
   `${student_runtime_multiplier}x` budget on bounded HPWL-source mechanisms:
   exact affected-net scoring, broader capped windows, batch transactions,
   parallel candidate evaluation, stronger donor hybridization, or stronger

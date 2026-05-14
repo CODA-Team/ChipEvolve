@@ -19,10 +19,14 @@
   ignore
   bbox/proxy wins
 - use `G_HR` versus the OpenROAD DPL default-flow reference as the
-  value/balance check for elite continuation. Higher `G_HR` is better and the
-  reference is 0. The research target remains HPWL; raw HPWL/stage deltas
-  decide whether a higher-runtime candidate is still a useful donor or handoff
-  repair route.
+  analysis value/balance metric only. Higher `G_HR` is better and the reference
+  is 0, but it is not the elite-continuation objective. The research target and
+  continuation key remain legal final HPWL under the hard runtime budget. Raw
+  HPWL/stage deltas decide whether a higher-runtime candidate is still a useful
+  donor or handoff repair route. Do not promote a faster but worse-final-HPWL
+  candidate over a clean lower-HPWL candidate as the headline elite unless the
+  lower-HPWL candidate violates legality, artifact gates, or the hard timeout
+  budget.
 - clean canonical HPWL 5% below the OpenROAD DPL default-flow reference is a credible research
   target, not a hard gate and not a ceiling
 - sub-1% HPWL gains over `evolve_default` are donor evidence, not success
@@ -72,11 +76,19 @@
   there is a high-quality source mechanism, and otherwise explain the
   secondary stage as producer/consumer evidence rather than forcing no-value
   edits.
+- if the next plan uses parameter tuning, require it to be source-internal:
+  constants, thresholds, scoring weights, pass schedules, adaptive policies, or
+  compact internal config structs in `dpl_evolve`. Reject Tcl/flow-script knob
+  sweeps as black-box DSE, not white-box evolve.
 - every packet needs one explicit `HPWL source mechanism`, why it can attack a
   materially larger remaining gap, and metric evidence that would prove or
   disprove it
 - from iteration 2 onward, label each route `continue`, `switch`, or
   `hybridize`, justified by stage-wise HPWL, runtime, and counters
+- `hybridize` means staged source-level mechanism composition inside the
+  candidate implementation.  It must not be implemented as a case/scenario
+  selector that jumps among complete legalizers, and it must not hide a
+  fallback-to-default success path.
 - for `continue` from an elite/final donor, use the pre-seeded/materialized
   elite source. Reserve `evolved_*` starts for explicit switch,
   hybridization, or stage-donor routes
@@ -98,6 +110,9 @@
   ask how legalization can create a better frontier for that consumer
 - hybrid plans must specify first legalizer family, residual/frontier handoff,
   second legalizer or repair family, and improve-placement consumer
+- when feature-level insight suggests a strategy, translate it into one or two
+  concrete source mechanisms and liveness counters.  Do not treat the feature
+  card as a fixed route table.
 - broader-search plans must state endpoint family size, candidate cap or
   touched-region bound, cache/reuse point, runtime tier, and whether OpenMP,
   thread-local caches, or deterministic reductions are appropriate

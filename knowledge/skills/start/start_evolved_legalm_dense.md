@@ -7,7 +7,7 @@ for source handles, patch names, metrics, and log signals.
 ## Extra Guidance
 
 - Use this start when dense/high-util legalization inflation is the visible gap
-  and current full-flow score evidence does not already prefer a different
+  and current full-flow HPWL evidence does not already prefer a different
   route for the case archetype.
 - Let the Student continue or mutate the prepared `start/evolved_legalm` source;
   do not make them reapply OpenROAD-root patches manually.
@@ -15,7 +15,7 @@ for source handles, patch names, metrics, and log signals.
   HPWL does not.
 - For very high-utilization dense designs with weak DPO recovery, treat this as
   a diagnostic or HPWL-stage donor until strict full-flow metrics prove final
-  HPWL benefit; the current score card may prefer Diamond/local-DPO repair.
+  HPWL benefit; current full-flow evidence may prefer Diamond/local-DPO repair.
 
 ## Common Failure
 

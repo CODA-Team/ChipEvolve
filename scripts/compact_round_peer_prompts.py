@@ -3,7 +3,7 @@
 
 This is a post-generation repair tool for long-running rounds that were started
 before prompt-generation code changed.  Source-of-truth rules stay in
-`prompt_templates/teacher_loop/student_rules.md`.
+`prompt_templates/teacher_loop/student/rules.md`.
 """
 from __future__ import annotations
 
@@ -22,19 +22,8 @@ from scripts.teacher_loop.common import render_prompt_template
 from scripts.teacher_loop.prompts import peer_briefing
 
 
-EVIDENCE_POINTER_NOTE = """These paths are evidence pointers, not reading requirements. Start from this
-prompt and the workspace packet; only open context, peer packet, or Teacher
-output with targeted `rg`/small excerpts when a concrete code decision requires
-it. Do not open generic memory files unless an exact path is explicitly required.
-"""
-
-
-WORKSPACE_BUDGET_NOTE = """## Per-Iteration Execution Budget
-
-This packet gives exact paths and commands. The Student prompt is the source of
-truth for algorithm and execution rules. Use this packet for prepare, build,
-evaluate, diff, and knowledge-card paths; do not infer extra rules here.
-"""
+EVIDENCE_POINTER_NOTE = render_prompt_template("student/evidence_pointer_note.md")
+WORKSPACE_BUDGET_NOTE = render_prompt_template("packets/workspace_budget_note.md")
 
 
 def parse_args() -> argparse.Namespace:
@@ -102,7 +91,7 @@ def replace_peer_section(prompt: str, peer_text: str) -> str:
 
 
 def replace_student_rules(prompt: str) -> str:
-    rules = render_prompt_template("student_rules.md").strip()
+    rules = render_prompt_template("student/rules.md").strip()
     marker = "\n\n## Current Teacher Insight Packet"
     end_marker = marker if marker in prompt else None
     if "# Student Rules" in prompt:

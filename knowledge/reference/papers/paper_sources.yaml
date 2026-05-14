@@ -154,7 +154,7 @@ papers:
 
   - id: gpu_dpo_lsmc_2026
     title: "LSMC Meets GPU Acceleration: Scalable and High-Quality Multi-Row Detailed Placement"
-    role: "DPO donor for MIS/global-swap/reorder kernels and LSMC large-step escape."
+    role: "DPO reference for MIS/global-swap/reorder kernels and LSMC large-step escape."
     source_url: "https://vlsicad.ucsd.edu/Publications/Conferences/425/c425.pdf"
     optional_cache_note: "source URL is fetchable for verification when needed"
     git_policy: "do_not_commit_pdf_until_license_checked"

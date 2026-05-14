@@ -49,11 +49,7 @@ If donor evidence is needed, use repo-root references such as:
 - `<agent_root>/patches/evolved_legalizers/generation_manifest.tsv`
 - `<agent_root>/patches/evolved_legalizers/validation.tsv`
 - `<agent_root>/patches/evolved_legalizers/openroad_dpl_evolve_*_iter30_framework_delta.patch`
-- `<agent_root>/patches/evolved_dpo/README.md`
-- `<agent_root>/patches/evolved_dpo/generation_manifest.tsv`
-- `<agent_root>/patches/evolved_dpo/validation.tsv`
-- `<agent_root>/patches/evolved_dpo/src_dpo_neg017b_algo1_src_cache_runtime.patch`
-- `<agent_root>/patches/evolved_dpo/src_dpo_neg014_hybrid_quality.patch`
+- `<agent_root>/knowledge/insights/dpo/source_level_mechanisms.md`
 
 If an absolute donor path is missing, skip it and continue from Teacher-named
 source symbols. Do not search for donor files relative to the private source
@@ -67,24 +63,24 @@ Do not open `~/.codex/memories`, rollout summaries, checkpoint event logs, or
 old transcripts during ordinary Student source edits. The generated Teacher
 packet and repo-local knowledge files are the evidence boundary.
 
-## Evolved DPO Patch Use
+## DPO Mechanism Use
 
-- Evolved DPO patches are source-root patches for a private `dpl_evolve`
-  source repo. They intentionally modify improve-placement code such as
-  `src/Optdp.cpp`; they do not replace the active legalizer seed.
-- Prefer generated local git start branches for clean donor starts, such as
-  `start/evolved_legalm_dpo_neg017b` or `start/evolved_diamond_dpo_neg014`.
-  Use `switch_start_branch_script --kind <legalizer>_dpo_<donor>` when Teacher
-  names one of these branches.
-- Use the generated workspace helper `07_apply_evolved_dpo_patch.sh` when
-  Teacher intentionally assigns applying a DPO donor to the current continuation
-  source. Do not hand-write `git apply` commands for these patches.
-- Default donor: `neg017b` / `src_dpo_neg017b_algo1_src_cache_runtime.patch`
-  for a runtime-quality balance.
-- Quality-ceiling donor: `neg014` / `src_dpo_neg014_hybrid_quality.patch`
-  when Teacher intentionally spends bounded runtime for stronger final HPWL.
-- Always run helper `--check-only` first. Apply exactly one DPO donor, build,
-  evaluate, and then evolve from measured stage-wise metrics.
+- Improve-placement mechanisms belong in the current private source, especially
+  `src/Optdp.cpp`, `src/optimization/`, `src/objective/`, and compact handoff
+  structs.
+- Useful mechanism families include bounded source-edge scoring, top-K exact
+  candidate reduction, transaction accept/rollback, selective fallback
+  descent, scoped LSMC-style basin escape, and legalization-to-DPO handoff
+  consumers.
+- Implement only the selected mechanism, with compact counters/logs, bounded
+  candidate sets, exact affected-net scoring, and full-flow validation. LSMC is
+  allowed only as a scoped basin escape, not as broad repeated random/descent
+  passes.
+- Handoff payloads should be OpenROAD-native and compact. Use
+  `odb::dbInst*`, `odb::dbNet*`, `odb::dbGroup*`, `odb::dbRegion*`, dense ids,
+  vectors, bitsets, and current detailed-placement mappings. Do not duplicate
+  current coordinates or route hot state through files, JSON, log scraping,
+  string-keyed maps, or public Tcl/SWIG ABI layout changes.
 
 ## Patch Style
 
@@ -121,8 +117,7 @@ packet and repo-local knowledge files are the evidence boundary.
   symbols, patch a coherent mechanism and move to generated build/evaluate
   scripts. Do not spend the iteration on broad source exploration.
 - If Teacher assigns a prepared start point (`framework`, `diamond`,
-  `evolved_diamond`, `evolved_legalm`, `evolved_negotiation`, or a
-  `<legalizer>_dpo_<donor>` branch suffix), use the generated
+  `evolved_diamond`, `evolved_legalm`, or `evolved_negotiation`), use the generated
   `switch_start_branch_script` immediately after source preparation and before
   edits. Do not copy seed directories or manually apply OpenROAD-root patches to
   emulate a start-point switch.
@@ -138,7 +133,16 @@ packet and repo-local knowledge files are the evidence boundary.
   including internal endpoint order, pass gating, candidate scoring,
   parameterization, and legalization/improve handoff state, when runtime remains
   bounded and canonical stage metrics prove the effect.
-- If a Tcl option is added, update both the Tcl wrapper and C++ receiver.
+- Hybrid legalizer work should be source-level staged algorithm composition,
+  not a case/scenario selector that switches among complete legalizers. Borrow
+  ideas such as global guidance, resource prices, local compaction, or exact
+  DPO transactions as mechanisms and wire them together with explicit
+  producer/consumer state.
+- Parameter tuning belongs in source code: constants, thresholds, scoring
+  weights, pass schedules, adaptive policies, or compact internal config
+  structs inside `private_dpl_evolve_source`. Do not implement a white-box
+  route by adding or sweeping Tcl command options, changing ORFS flow scripts,
+  changing evaluator scripts, or repeatedly invoking unchanged endpoints.
 - Add telemetry when a new stage or repair operator executes.
 - Add lightweight counters/logs for the mechanism when they help Teacher check
   whether the logic actually executed.

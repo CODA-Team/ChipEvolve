@@ -193,7 +193,9 @@ Key artifacts:
 
 - `trials.jsonl`: resumable full ledger, including failed trials.
 - `trials.tsv`: compact spreadsheet-style summary.
-- `best.json`: current best clean legal trial by HPWL/runtime value gain.
+- `best.json`: current best clean legal trial by lowest final HPWL only.
+- `best_value.json`: current best clean legal trial by `G_HR`; use this only to
+  discuss runtime value, not as the headline HPWL result.
 - `config.json`: exact run configuration.
 
 The human-facing value score is higher-is-better:
@@ -210,8 +212,9 @@ Baseline has `G_HR = 0`; higher is better.  HPWL remains the primary objective;
 the HPWL term is normalized by `HPWL_ref`, and the runtime term is a value check:
 runtime speedups and <=1.10x runtime noise receive no bonus, and a
 2x-slower setting must buy 1.0 reference-normalized final-HPWL percentage
-points of reduction to break even.  Ray Tune still minimizes a field named
-`score`, so BO stores `score = -G_HR` internally.
+points of reduction to break even.  Ray Tune minimizes `score = HPWL_final`;
+`G_HR` is reported in `trials.tsv` and `best_value.json` so a faster but
+worse-HPWL point cannot replace the HPWL-best result.
 
 The default DSE strategy is not pure random search.  Each run first evaluates a
 small deterministic mechanism-anchor set: OpenROAD default, window-only DPL,
