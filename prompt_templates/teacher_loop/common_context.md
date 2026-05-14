@@ -57,14 +57,15 @@ function/state insertion points. Do not require broad donor-tree reading.
 - canonical metric: `metrics.json:hpwl` from OpenROAD/DPL pin-based logs;
   ignore `hpwl_proxy` for promotion
 - primary research target remains canonical HPWL reduction. Use
-  `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref - 1 * (sqrt(runtime_sol / runtime_ref) - 1) / (sqrt(2) - 1)`
+  `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref - P(runtime_sol / runtime_ref), where P(r)=0 for r <= 1.10 and P(2.0)=1.5 percentage points`
   against the OpenROAD DPL default-flow (`openroad_dpl_flow`, Diamond-search)
   reference to judge whether the HPWL gain is worth the runtime. Higher
   `G_HR` is better and the reference is 0. Use HPWL first for research
   direction and `G_HR` as the value check; preserve strong HPWL-only donors as
   repair routes instead of discarding them.
-  The runtime penalty is intentionally light: about 2x runtime needs roughly
-  1 percentage point of reference-normalized final-HPWL gain to break even.
+  The runtime term has a deadband: runtime improvements and <=1.10x
+  runtime noise receive no bonus; 2x runtime needs 1.5 percentage points of
+  reference-normalized final-HPWL gain to break even.
 - stage metrics: report `HPWLg`, `delta HPWLlg`, `delta HPWLip`,
   `delta HPWL final`, and final HPWL when available
 - research belief: clean canonical HPWL at least 5% below the OpenROAD DPL

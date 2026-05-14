@@ -56,9 +56,12 @@ set dpl_args [list detailed_placement \
 set detail_arg_env [append_optional_env_args dpl_args \
   {OPENROAD_DPL_DETAIL_ARGS}]
 log_cmd {*}$dpl_args
-set improve_args [list improve_placement -random_seed 1]
+set improve_args [list improve_placement]
 set improve_arg_env [append_optional_env_args improve_args \
   {OPENROAD_DPL_IMPROVE_ARGS}]
+if { [lsearch -exact $improve_args "-random_seed"] < 0 } {
+  lappend improve_args -random_seed 1
+}
 log_cmd {*}$improve_args
 set optimize_args [list optimize_mirroring]
 set optimize_arg_env [append_optional_env_args optimize_args \

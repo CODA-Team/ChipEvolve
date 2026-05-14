@@ -29,8 +29,8 @@ import yaml
 SCRIPT_DIR = Path(__file__).resolve().parent
 AGENT_ROOT = SCRIPT_DIR.parent
 DEFAULT_SPACE = AGENT_ROOT / "configs" / "bo_search_spaces" / "openroad_dpl_native.yaml"
-RUNTIME_PENALTY_SCALE = 1.0
-SQRT2_MINUS_ONE = math.sqrt(2.0) - 1.0
+RUNTIME_DEADBAND_RATIO = 1.10
+RUNTIME_PENALTY_AT_2X = 1.5
 
 sys.path.insert(0, str(AGENT_ROOT))
 from runtime_paths import load_local_env_sh  # noqa: E402
@@ -430,12 +430,36 @@ def load_metrics(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def runtime_penalty_pp(
+    runtime_ratio: float,
+    *,
+    runtime_deadband_ratio: float = RUNTIME_DEADBAND_RATIO,
+    runtime_penalty_at_2x: float = RUNTIME_PENALTY_AT_2X,
+) -> float:
+    """Return runtime penalty in percentage points.
+
+    Runtime is a value check, not a reward source.  Faster-than-reference
+    runtime and small runtime noise within the deadband receive no bonus.
+    Only material slowdowns reduce G_HR.
+    """
+
+    if runtime_ratio <= runtime_deadband_ratio:
+        return 0.0
+    denominator = math.sqrt(2.0) - math.sqrt(runtime_deadband_ratio)
+    if denominator <= 0.0:
+        return 0.0
+    return runtime_penalty_at_2x * (
+        math.sqrt(runtime_ratio) - math.sqrt(runtime_deadband_ratio)
+    ) / denominator
+
+
 def score_candidate(
     *,
     candidate: dict[str, Any],
     reference: dict[str, Any],
     hpwl_weight: float,
-    runtime_penalty_scale: float,
+    runtime_deadband_ratio: float,
+    runtime_penalty_at_2x: float,
     fail_score: float,
 ) -> tuple[float, dict[str, float | str]]:
     if not is_clean(candidate):
@@ -449,10 +473,10 @@ def score_candidate(
         return fail_score, {"status": "bad_metrics"}
     runtime_ratio_value = runtime_c / runtime_r
     hpwl_gain_percent = 100.0 * (hpwl_r - hpwl_c) / hpwl_r
-    runtime_penalty = (
-        runtime_penalty_scale
-        * (math.sqrt(runtime_ratio_value) - 1.0)
-        / SQRT2_MINUS_ONE
+    runtime_penalty = runtime_penalty_pp(
+        runtime_ratio_value,
+        runtime_deadband_ratio=runtime_deadband_ratio,
+        runtime_penalty_at_2x=runtime_penalty_at_2x,
     )
     gain = hpwl_gain_percent - runtime_penalty
     score = -gain
@@ -466,6 +490,8 @@ def score_candidate(
         "gain_hr": gain,
         "hpwl_gain_percent": hpwl_gain_percent,
         "runtime_penalty_pp": runtime_penalty,
+        "runtime_deadband_ratio": runtime_deadband_ratio,
+        "runtime_penalty_at_2x": runtime_penalty_at_2x,
     }
 
 
@@ -594,7 +620,8 @@ def run_trial_once(
     params: dict[str, Any],
     reference: dict[str, Any],
     hpwl_weight: float,
-    runtime_penalty_scale: float,
+    runtime_deadband_ratio: float,
+    runtime_penalty_at_2x: float,
     fail_score: float,
     threads: int,
     timeout_seconds: int | None,
@@ -629,7 +656,8 @@ def run_trial_once(
             candidate=metrics,
             reference=reference,
             hpwl_weight=hpwl_weight,
-            runtime_penalty_scale=runtime_penalty_scale,
+            runtime_deadband_ratio=runtime_deadband_ratio,
+            runtime_penalty_at_2x=runtime_penalty_at_2x,
             fail_score=fail_score,
         )
         status = str(score_detail.get("status", "fail"))
@@ -742,7 +770,10 @@ def main() -> int:
     line = args.line or str(space.get("line") or "openroad_dpl_flow")
     reference_line = args.reference_line or str(objective.get("reference_line") or "openroad_dpl_flow")
     hpwl_weight = float(objective.get("hpwl_weight", 1.0))
-    runtime_penalty_scale = float(objective.get("runtime_penalty_scale", RUNTIME_PENALTY_SCALE))
+    runtime_deadband_ratio = float(objective.get("runtime_deadband_ratio", RUNTIME_DEADBAND_RATIO))
+    runtime_penalty_at_2x = float(
+        objective.get("runtime_penalty_at_2x", RUNTIME_PENALTY_AT_2X)
+    )
     fail_score = float(objective.get("fail_score", 1e9))
     flow_variant = resolve_flow_variant(args.case_id, args.flow_variant)
 
@@ -799,9 +830,10 @@ def main() -> int:
                 "openroad_binary": args.openroad_binary,
                 "score": {
                     "formula": "score = -G_HR",
-                    "gain_formula": "G_HR = 100*(HPWL_ref - HPWL_sol)/HPWL_ref - runtime_penalty_scale*(sqrt(runtime_sol/runtime_ref)-1)/(sqrt(2)-1)",
-                    "runtime_penalty_scale": runtime_penalty_scale,
-                    "runtime_break_even": "2x runtime requires 1.0 reference-normalized final-HPWL percentage point of improvement",
+                    "gain_formula": "G_HR = 100*(HPWL_ref - HPWL_sol)/HPWL_ref - P(runtime_sol/runtime_ref); P(r)=0 when r<=runtime_deadband_ratio, otherwise runtime_penalty_at_2x*(sqrt(r)-sqrt(runtime_deadband_ratio))/(sqrt(2)-sqrt(runtime_deadband_ratio))",
+                    "runtime_deadband_ratio": runtime_deadband_ratio,
+                    "runtime_penalty_at_2x": runtime_penalty_at_2x,
+                    "runtime_break_even": "Runtime speedups and <=deadband runtime noise receive no bonus; 2x runtime requires runtime_penalty_at_2x reference-normalized final-HPWL percentage points of improvement.",
                     "legacy_hpwl_weight_ignored": hpwl_weight,
                     "fail_score": fail_score,
                 },
@@ -920,7 +952,8 @@ def main() -> int:
             params=config,
             reference=reference,
             hpwl_weight=hpwl_weight,
-            runtime_penalty_scale=runtime_penalty_scale,
+            runtime_deadband_ratio=runtime_deadband_ratio,
+            runtime_penalty_at_2x=runtime_penalty_at_2x,
             fail_score=fail_score,
             threads=args.threads,
             timeout_seconds=args.legalize_timeout_seconds,

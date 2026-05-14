@@ -24,12 +24,14 @@ from scripts.teacher_loop.common import (
 VALUE_REFERENCE_LINE = "openroad_dpl_flow"
 HPWL_RUNTIME_GAIN_FORMULA = (
     "G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref "
-    "- 1 * (sqrt(runtime_sol / runtime_ref) - 1) / (sqrt(2) - 1)"
+    "- P(runtime_sol / runtime_ref), where P(r)=0 for r <= 1.10 "
+    "and P(2.0)=1.5 percentage points"
 )
-# Runtime is a value check, not the primary objective: 2x runtime requires
-# 1 percentage point of reference-normalized final-HPWL improvement to break even.
-RUNTIME_PENALTY_SCALE = 1.0
-SQRT2_MINUS_ONE = math.sqrt(2.0) - 1.0
+# Runtime is a value check, not the primary objective.  Runtime improvements
+# and small runtime noise are not rewarded; only material slowdowns are
+# penalized so Teacher does not chase timing noise.
+RUNTIME_DEADBAND_RATIO = 1.10
+RUNTIME_PENALTY_AT_2X = 1.5
 
 
 def load_json(path: Path) -> dict[str, Any] | None:
@@ -75,6 +77,17 @@ def _float_or_none(value: Any) -> float | None:
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+def runtime_penalty_pp(runtime_ratio: float) -> float:
+    if runtime_ratio <= RUNTIME_DEADBAND_RATIO:
+        return 0.0
+    denominator = math.sqrt(2.0) - math.sqrt(RUNTIME_DEADBAND_RATIO)
+    if denominator <= 0.0:
+        return 0.0
+    return RUNTIME_PENALTY_AT_2X * (
+        math.sqrt(runtime_ratio) - math.sqrt(RUNTIME_DEADBAND_RATIO)
+    ) / denominator
 
 
 def _last_float(pattern: str, text: str) -> float | None:
@@ -542,11 +555,7 @@ def hpwl_runtime_gain_factors(
         return None
     runtime_ratio_value = runtime_sol / runtime_ref
     hpwl_gain_percent = 100.0 * (hpwl_ref - hpwl_sol) / hpwl_ref
-    runtime_penalty = (
-        RUNTIME_PENALTY_SCALE
-        * (math.sqrt(runtime_ratio_value) - 1.0)
-        / SQRT2_MINUS_ONE
-    )
+    runtime_penalty = runtime_penalty_pp(runtime_ratio_value)
     gain = hpwl_gain_percent - runtime_penalty
     return {
         "H_raw": hpwl_gain_percent,

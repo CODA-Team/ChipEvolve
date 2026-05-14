@@ -4,15 +4,16 @@
 
 - Use `metrics.json:hpwl`; ignore proxy metrics.
 - Keep the research target as canonical HPWL reduction. Use
-  `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref - 1 * (sqrt(runtime_sol / runtime_ref) - 1) / (sqrt(2) - 1)`
+  `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref - P(runtime_sol / runtime_ref), where P(r)=0 for r <= 1.10 and P(2.0)=1.5 percentage points`
   versus the OpenROAD DPL default-flow (`openroad_dpl_flow`,
   Diamond-search) reference to decide whether a HPWL gain is worth its runtime
   and whether it should become an elite/default parent. Higher `G_HR` is
   better and the reference is 0. Do not let `G_HR` hide a strong HPWL donor;
   route such donors to runtime repair or handoff
   repair.
-  The runtime penalty is intentionally light: about 2x runtime needs roughly
-  1 percentage point of reference-normalized final-HPWL gain to break even.
+  The runtime term has a deadband: runtime improvements and <=1.10x
+  runtime noise receive no bonus; 2x runtime needs 1.5 percentage points of
+  reference-normalized final-HPWL gain to break even.
 - Treat clean HPWL 5% below the OpenROAD DPL default-flow reference as a credible
   research target, not a hard gate and not a ceiling. Keep useful below-5%
   mechanisms as donor evidence, but do not let sub-1% gains define success.

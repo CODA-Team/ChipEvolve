@@ -144,6 +144,23 @@ BO_THREADS_PER_TRIAL=10 BO_FLOW_VARIANT=place_batch_20260421_220319 \
   dpl_evolve_agent/scripts/run_bo_9case_openroad_dpl.sh
 ```
 
+DPO-boundary sweep with the native legalizer fixed and a wider
+`improve_placement` search space:
+
+```bash
+BO_SPACE="$DPL_EVOLVE_AGENT_ROOT/configs/bo_search_spaces/openroad_dpl_native_dpo_frontier.yaml" \
+BO_RUN_PREFIX=openroad_dpl_native_dpo_frontier_9case_bo \
+BO_TRIALS=400 BO_MAX_CONCURRENT_CASES=3 BO_MAX_CONCURRENT_TRIALS=4 \
+BO_THREADS_PER_TRIAL=10 BO_FLOW_VARIANT=place_batch_20260421_220319 \
+  dpl_evolve_agent/scripts/run_bo_9case_openroad_dpl.sh
+```
+
+This DPO-focused space explores `improve_placement -random_seed`, scalar and
+two-dimensional DPO displacement windows, `-enable_extra_dpl`, and the
+GlobalSwapParams that remain effective despite the native internal DPO script
+hardcoding `gs -p 10 -t 0.005`.  It is intended to show the public-knob
+boundary of DPO, not to replace source-level white-box evolution.
+
 OpenROAD default DPL baseline rows for the same 9-case set:
 
 ```bash
@@ -183,13 +200,17 @@ The human-facing value score is higher-is-better:
 
 ```text
 G_HR = 100 * (HPWL_ref - HPWL_trial) / HPWL_ref
-     - 1 * (sqrt(runtime_trial / runtime_ref) - 1) / (sqrt(2) - 1)
+     - P(runtime_trial / runtime_ref)
+
+P(r) = 0, if r <= 1.10
+P(r) = 1.5 * (sqrt(r) - sqrt(1.10)) / (sqrt(2.0) - sqrt(1.10)), otherwise
 ```
 
 Baseline has `G_HR = 0`; higher is better.  HPWL remains the primary objective;
-the HPWL term is normalized by `HPWL_ref`, and the runtime term is a value check
-so a 2x-slower setting must buy 1 reference-normalized final-HPWL percentage
-point of reduction to break even.  Ray Tune still minimizes a field named
+the HPWL term is normalized by `HPWL_ref`, and the runtime term is a value check:
+runtime speedups and <=1.10x runtime noise receive no bonus, and a
+2x-slower setting must buy 1.5 reference-normalized final-HPWL percentage
+points of reduction to break even.  Ray Tune still minimizes a field named
 `score`, so BO stores `score = -G_HR` internally.
 
 The default DSE strategy is not pure random search.  Each run first evaluates a

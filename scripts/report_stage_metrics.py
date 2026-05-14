@@ -50,10 +50,11 @@ class StageRow:
 
 
 VALUE_REFERENCE_RESULT = "baseline_probe_openroad_dpl_flow"
-# Runtime is a value check, not the primary objective: 2x runtime requires
-# 1 percentage point of reference-normalized final-HPWL improvement to break even.
-RUNTIME_PENALTY_SCALE = 1.0
-SQRT2_MINUS_ONE = math.sqrt(2.0) - 1.0
+# Runtime is a value check, not the primary objective.  Runtime improvements
+# and small noise within this deadband are not rewarded; only material
+# slowdowns are penalized.
+RUNTIME_DEADBAND_RATIO = 1.10
+RUNTIME_PENALTY_AT_2X = 1.5
 
 
 CANONICAL_BASELINES = (
@@ -130,6 +131,17 @@ def fmt(value: float | None, digits: int = 1, suffix: str = "") -> str:
     return f"{value:.{digits}f}{suffix}"
 
 
+def runtime_penalty_pp(runtime_ratio: float) -> float:
+    if runtime_ratio <= RUNTIME_DEADBAND_RATIO:
+        return 0.0
+    denominator = math.sqrt(2.0) - math.sqrt(RUNTIME_DEADBAND_RATIO)
+    if denominator <= 0.0:
+        return 0.0
+    return RUNTIME_PENALTY_AT_2X * (
+        math.sqrt(runtime_ratio) - math.sqrt(RUNTIME_DEADBAND_RATIO)
+    ) / denominator
+
+
 def annotate_hpwl_runtime_gains(rows: list[StageRow]) -> None:
     ref = next(
         (
@@ -159,11 +171,7 @@ def annotate_hpwl_runtime_gains(rows: list[StageRow]) -> None:
             / float(ref.hpwl_final)
             * 100.0
         )
-        runtime_penalty = (
-            RUNTIME_PENALTY_SCALE
-            * (math.sqrt(row.runtime_ratio) - 1.0)
-            / SQRT2_MINUS_ONE
-        )
+        runtime_penalty = runtime_penalty_pp(row.runtime_ratio)
         row.hpwl_gain_percent = hpwl_gain_percent
         row.runtime_penalty_pp = runtime_penalty
         row.gain_hr = hpwl_gain_percent - runtime_penalty
