@@ -54,7 +54,7 @@ VALUE_REFERENCE_RESULT = "baseline_probe_openroad_dpl_flow"
 # and small noise within this deadband are not rewarded; only material
 # slowdowns are penalized.
 RUNTIME_DEADBAND_RATIO = 1.10
-RUNTIME_PENALTY_AT_2X = 1.5
+RUNTIME_PENALTY_AT_2X = 1.0
 
 
 CANONICAL_BASELINES = (

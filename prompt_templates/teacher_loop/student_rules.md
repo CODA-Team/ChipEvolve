@@ -14,13 +14,13 @@
 - External evaluator, ORFS, and workspace helper scripts are not editable.
 - Use canonical `metrics.json:hpwl`; `hpwl_proxy` is debug-only.
 - Optimize canonical HPWL first. Use the generated value gain
-  `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref - P(runtime_sol / runtime_ref), where P(r)=0 for r <= 1.10 and P(2.0)=1.5 percentage points`,
+  `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref - P(runtime_sol / runtime_ref), where P(r)=0 for r <= 1.10 and P(2.0)=1.0 percentage point`,
   where higher is better and the OpenROAD DPL default-flow reference is 0, to
   judge whether the HPWL improvement is worth its runtime. Report `G_HR`
   together with raw HPWL/runtime so Teacher can separate efficient wins from
   HPWL-only donors that need runtime repair.
   The runtime term has a deadband: runtime improvements and <=1.10x
-  runtime noise receive no bonus; 2x runtime needs 1.5 percentage points of
+  runtime noise receive no bonus; 2x runtime needs 1.0 percentage point of
   reference-normalized final-HPWL gain to break even.
 - Treat 5% HPWL reduction as a credible research target, not a hard gate and
   not a ceiling. Build mechanisms that can move the source of HPWL loss, not

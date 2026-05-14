@@ -20,7 +20,8 @@ default knowledge.
 `G_HR = HPWL_gain_percent - runtime_penalty_pp`.
 
 Here `HPWL_gain_percent = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref` and
-`runtime_penalty_pp = 1 * (sqrt(runtime_sol / runtime_ref) - 1) / (sqrt(2) - 1)`.
+`runtime_penalty_pp = 0` for runtime ratios up to `1.10`; otherwise
+`runtime_penalty_pp = 1.0 * (sqrt(runtime_sol / runtime_ref) - sqrt(1.10)) / (sqrt(2) - sqrt(1.10))`.
 Higher is better.  The reference is the complete OpenROAD DPL default flow with
 Diamond search (`detailed_placement`, `improve_placement`, and
 `optimize_mirroring`) at `G_HR = 0`.  HPWL remains the primary research

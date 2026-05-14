@@ -43,12 +43,13 @@ from scripts.teacher_loop.common import CANONICAL_LINES
 VALUE_REFERENCE_LINE = "openroad_dpl_flow"
 HPWL_RUNTIME_GAIN_FORMULA = (
     "G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref "
-    "- 1 * (sqrt(runtime_sol / runtime_ref) - 1) / (sqrt(2) - 1)"
+    "- P(runtime_sol / runtime_ref), where P(r)=0 for r <= 1.10 "
+    "and P(2.0)=1.0 percentage point"
 )
 # Runtime is a value check, not the primary objective: 2x runtime requires
 # 1 percentage point of reference-normalized final-HPWL improvement to break even.
-RUNTIME_PENALTY_SCALE = 1.0
-SQRT2_MINUS_ONE = math.sqrt(2.0) - 1.0
+RUNTIME_DEADBAND_RATIO = 1.10
+RUNTIME_PENALTY_AT_2X = 1.0
 
 load_local_env_sh(AGENT_ROOT)
 try:
@@ -359,11 +360,12 @@ def hpwl_runtime_gain_summary(
         * (float(baseline_hpwl_after_micron) - hpwl_sol)
         / float(baseline_hpwl_after_micron)
     )
-    runtime_penalty = (
-        RUNTIME_PENALTY_SCALE
-        * (math.sqrt(runtime_ratio) - 1.0)
-        / SQRT2_MINUS_ONE
-    )
+    if runtime_ratio <= RUNTIME_DEADBAND_RATIO:
+        runtime_penalty = 0.0
+    else:
+        runtime_penalty = RUNTIME_PENALTY_AT_2X * (
+            math.sqrt(runtime_ratio) - math.sqrt(RUNTIME_DEADBAND_RATIO)
+        ) / (math.sqrt(2.0) - math.sqrt(RUNTIME_DEADBAND_RATIO))
     gain = hpwl_gain_percent - runtime_penalty
     return {
         "gain_hr": gain,

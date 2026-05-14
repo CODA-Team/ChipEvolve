@@ -25,13 +25,13 @@ VALUE_REFERENCE_LINE = "openroad_dpl_flow"
 HPWL_RUNTIME_GAIN_FORMULA = (
     "G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref "
     "- P(runtime_sol / runtime_ref), where P(r)=0 for r <= 1.10 "
-    "and P(2.0)=1.5 percentage points"
+    "and P(2.0)=1.0 percentage point"
 )
 # Runtime is a value check, not the primary objective.  Runtime improvements
 # and small runtime noise are not rewarded; only material slowdowns are
 # penalized so Teacher does not chase timing noise.
 RUNTIME_DEADBAND_RATIO = 1.10
-RUNTIME_PENALTY_AT_2X = 1.5
+RUNTIME_PENALTY_AT_2X = 1.0
 
 
 def load_json(path: Path) -> dict[str, Any] | None:

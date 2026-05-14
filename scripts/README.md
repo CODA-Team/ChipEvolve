@@ -203,13 +203,13 @@ G_HR = 100 * (HPWL_ref - HPWL_trial) / HPWL_ref
      - P(runtime_trial / runtime_ref)
 
 P(r) = 0, if r <= 1.10
-P(r) = 1.5 * (sqrt(r) - sqrt(1.10)) / (sqrt(2.0) - sqrt(1.10)), otherwise
+P(r) = 1.0 * (sqrt(r) - sqrt(1.10)) / (sqrt(2.0) - sqrt(1.10)), otherwise
 ```
 
 Baseline has `G_HR = 0`; higher is better.  HPWL remains the primary objective;
 the HPWL term is normalized by `HPWL_ref`, and the runtime term is a value check:
 runtime speedups and <=1.10x runtime noise receive no bonus, and a
-2x-slower setting must buy 1.5 reference-normalized final-HPWL percentage
+2x-slower setting must buy 1.0 reference-normalized final-HPWL percentage
 points of reduction to break even.  Ray Tune still minimizes a field named
 `score`, so BO stores `score = -G_HR` internally.
 

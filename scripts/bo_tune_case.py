@@ -30,7 +30,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 AGENT_ROOT = SCRIPT_DIR.parent
 DEFAULT_SPACE = AGENT_ROOT / "configs" / "bo_search_spaces" / "openroad_dpl_native.yaml"
 RUNTIME_DEADBAND_RATIO = 1.10
-RUNTIME_PENALTY_AT_2X = 1.5
+RUNTIME_PENALTY_AT_2X = 1.0
 
 sys.path.insert(0, str(AGENT_ROOT))
 from runtime_paths import load_local_env_sh  # noqa: E402
