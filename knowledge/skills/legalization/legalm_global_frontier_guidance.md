@@ -2,7 +2,7 @@
 
 Canonical structured fields live in `knowledge/index/skill_cards.jsonl`.
 Use `scripts/query_knowledge.py --q legalm_global_frontier_guidance --show-full`
-for source handles, patch names, metrics, and log signals.
+for source handles, metrics, and log signals.
 
 ## Extra Guidance
 

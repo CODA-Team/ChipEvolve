@@ -25,7 +25,7 @@ OpenROAD-native in-process structures, not external files or log-derived data.
      legality.
    - Reject zero-counter or no-op transactions as non-executed mechanisms.
 
-3. Selective fallback descent.
+3. Selective staged descent.
    - Start with the cheapest high-confidence move family.
    - Escalate to stronger reorder, swap, or multi-row repair only when the
      frontier is active and expected HPWL gain justifies the extra work.

@@ -7,6 +7,7 @@ dpl_init_runtime "run_candidate_matrix.sh"
 
 PLAN_FILE="${DPL_EVOLVE_AGENT_ROOT}/configs/experiment_plans/flow_knowledge_core_util.tsv"
 MATRIX_ID=""
+OUTPUT_ROOT=""
 CANDIDATE_SRC=""
 CANDIDATE_LABEL="candidate"
 THREADS="10"
@@ -26,7 +27,9 @@ TSV experiment plan.  This is the cross-case verification path for knowledge
 learned by Teacher/Student search.
 
 Options:
-  --matrix-id NAME       Stable output id under .dpl_evolve_state/candidate_matrices/.
+  --matrix-id NAME       Stable output id under the candidate-matrix output root.
+  --output-root PATH     Directory that contains per-matrix subdirectories.
+                         Default: $DPL_EVOLVE_STATE_ROOT/candidate_matrices.
   --candidate-src PATH   Fixed dpl_evolve source tree to test, e.g. an exported
                          student source commit.
   --candidate-label NAME Short run-tag label. Default: candidate.
@@ -52,6 +55,7 @@ EOF
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --matrix-id) MATRIX_ID="$2"; shift 2 ;;
+    --output-root) OUTPUT_ROOT="$2"; shift 2 ;;
     --candidate-src) CANDIDATE_SRC="$2"; shift 2 ;;
     --candidate-label) CANDIDATE_LABEL="$2"; shift 2 ;;
     --plan) PLAN_FILE="$2"; shift 2 ;;
@@ -92,7 +96,9 @@ if [[ ! -f "${PLAN_FILE}" ]]; then
   exit 1
 fi
 
-MATRIX_ROOT="${DPL_EVOLVE_STATE_ROOT}/candidate_matrices/${MATRIX_ID}"
+OUTPUT_ROOT="${OUTPUT_ROOT:-${DPL_EVOLVE_STATE_ROOT}/candidate_matrices}"
+OUTPUT_ROOT="$(realpath -m "${OUTPUT_ROOT}")"
+MATRIX_ROOT="${OUTPUT_ROOT}/${MATRIX_ID}"
 MATRIX_LOG="${MATRIX_ROOT}/run.log"
 RESULTS_TSV="${MATRIX_ROOT}/results.tsv"
 ROW_STATUS_DIR="${MATRIX_ROOT}/row_status"

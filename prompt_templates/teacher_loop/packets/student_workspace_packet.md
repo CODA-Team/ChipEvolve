@@ -16,7 +16,7 @@ commands. Do not ask Teacher to rewrite this content.
 - run_tag: `$run_tag`
 - parent_source: `$parent_src`
 
-## Start-Point / Patch Catalog Notes
+## Start-Point Notes
 
 - `round_default_start_kind` is only the default source seed used before
   Teacher assigns a route. If the top of your Student prompt includes `Initial
@@ -25,8 +25,7 @@ commands. Do not ask Teacher to rewrite this content.
 - If `start_kind` is `evolved_diamond`, `evolved_legalm`, or
   `evolved_negotiation`, your private source is already seeded from the
   corresponding materialized evolved legalizer source under
-  `.dpl_evolve_state/seed_sources/`. Do not manually re-apply the OpenROAD-root
-  patch to your private source.
+  `.dpl_evolve_state/seed_sources/`. Do not reconstruct that seed manually.
 - `prepare_source_script` also prepares local git start branches inside your
   private source repo: `start/framework`, `start/diamond`,
   `start/evolved_diamond`, `start/evolved_legalm`, and
@@ -35,18 +34,16 @@ commands. Do not ask Teacher to rewrite this content.
   `switch_start_branch_script --kind <branch-suffix>` before edits. The script
   resets your iteration branch `$source_branch` to that start point while
   keeping your final work on the normal iteration branch.
-- Evolved legalizer patches are still useful as review/donor evidence. The
-  `*_framework_delta.patch` files are deltas from prepared base+framework
-  OpenROAD to the evolved legalizer line. The `*_from_clean.patch` files apply
-  only to the clean OpenROAD anchor recorded in `metadata/anchors.json`.
+- In this workspace, start-point switches are branch-only: use the prepared
+  local start branches and then commit your own source edits.
 - `evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` are prior
   iter30 route-specific donor starts with measured wins on some archetypes. Use
-  the matching evolved start when Teacher assigns it, or use the catalog to
-  borrow a specific mechanism when your source-level diagnosis supports that
-  route.
+  the matching evolved start when Teacher assigns it. For mechanism inspiration,
+  use the knowledge query helper, skill notes, algorithm cards, and targeted
+  source handles named by Teacher.
 - Improve-placement mechanisms should be implemented directly in the current
   source. Good targets include bounded source-edge scoring, transaction
-  rollback, selective fallback descent, and scoped LSMC basin escape.
+  rollback, bounded staged descent, and scoped LSMC basin escape.
 - Feature-level strategy notes are inspiration for mechanisms, not route
   selectors.  If Teacher assigns a hybrid, implement a staged source flow
   inside the candidate program, not a case/scenario `if/else` that selects
@@ -59,12 +56,6 @@ commands. Do not ask Teacher to rewrite this content.
 - optional_legalm_reference: `$optional_legalm_reference`
 - optional_diamond_reference: `$optional_diamond_reference`
 - optional_negotiation_reference: `$optional_negotiation_reference`
-- optional_evolved_legalizer_catalog: `$optional_evolved_legalizer_catalog`
-- optional_evolved_legalizer_manifest: `$optional_evolved_legalizer_manifest`
-- optional_evolved_legalizer_validation: `$optional_evolved_legalizer_validation`
-- optional_evolved_diamond_framework_delta: `$optional_evolved_diamond_framework_delta`
-- optional_evolved_legalm_framework_delta: `$optional_evolved_legalm_framework_delta`
-- optional_evolved_negotiation_framework_delta: `$optional_evolved_negotiation_framework_delta`
 - optional_strategy_inspiration_insight: `$optional_strategy_inspiration_insight`
 - optional_dpo_source_mechanisms_insight: `$optional_dpo_source_mechanisms_insight`
 - optional_openroad_native_handoff_insight: `$optional_openroad_native_handoff_insight`
@@ -98,7 +89,6 @@ commands. Do not ask Teacher to rewrite this content.
 - prepare_source_script: `$prepare_source_script`
 - switch_start_branch_script: `$switch_start_branch_script`
 - source_context_script: `$source_context_script`
-- apply_evolved_legalizer_patch_script: `$apply_evolved_legalizer_patch_script`
 - build_variant_script: `$build_variant_script`
 - fresh_build_script: `$fresh_build_script`
 - evaluate_candidate_script: `$evaluate_candidate_script`
@@ -185,16 +175,12 @@ is insufficient.
 - If Teacher assigns `framework`, `diamond`, `evolved_diamond`,
   `evolved_legalm`, or `evolved_negotiation` as this route's start point, use
   `switch_start_branch_script --kind <branch-suffix>` immediately after source
-  preparation and before edits. Do not emulate this by manually copying source
-  trees or applying patch files.
+  preparation and before edits. Do not emulate this by copying source trees;
+  start-point switches are branch-only.
 - Use `source_context_script` before nontrivial patches when you need current
   local source anchors. For donor-derived hunks or any edit based on Teacher
   prose rather than currently visible source text, this is mandatory. It only
   prints context; source edits still use `apply_patch`.
-- If Teacher assigns patch application from an evolved legalizer family, use
-  `apply_evolved_legalizer_patch_script --line diamond|legalm|negotiation
-  --check-only` first, then apply exactly one compatible line with the same
-  script. Do not manually run `git apply` on OpenROAD-root patch files.
 - If Teacher assigns improve-placement work, implement the relevant bounded
   idea directly in current `Optdp`/`Detailed*` source with logs and full-flow
   validation.
@@ -234,8 +220,6 @@ internals.
 - switch to a prepared local start branch when Teacher assigns one:
   `$switch_start_branch_script`
 - print current source context for patch anchors: `$source_context_script`
-- apply/check one evolved legalizer framework-delta patch when Teacher assigns
-  that path: `$apply_evolved_legalizer_patch_script`
 - query concise LEGO-lite mechanism skills: `$query_knowledge_script`
 - relevant algorithm/pseudocode cards live under: `$algorithm_cards_dir`
 - build after source edits: `$build_variant_script`
@@ -253,21 +237,24 @@ Execution order:
    `evolved_diamond`, `evolved_legalm`, or `evolved_negotiation`), run
    `switch_start_branch_script --kind
    <branch-suffix>` before edits.
-3. Use `source_context_script <src/...> [symbol]` for patch anchors, confirm
+3. Use `source_context_script <src/...> [symbol]` for patch anchors. The helper
+   takes positional arguments only; do not pass `--symbol`. Confirm
    your source-level mechanism, then edit only `private_dpl_evolve_source` with
    `apply_patch`.
-4. If Teacher explicitly assigns an evolved patch application route, run
-   `apply_evolved_legalizer_patch_script --line <line> --check-only`, then
-   apply the same line with that script before your own mechanism edits.
-5. If Teacher assigns or implies a skill id, query the skill index and keep only
+4. If Teacher assigns or implies a skill id, query the skill index and keep only
    the relevant skill note in context.
-6. Run `build_variant_script`.
-7. Run `evaluate_candidate_script`.
-8. If the result is weak/illegal and time remains, revise the mechanism and
+5. Run `build_variant_script`.
+6. Run `evaluate_candidate_script`.
+7. If the result is weak/illegal and time remains, revise the mechanism and
    rerun build/evaluate.
-9. Run `commit_source_script`.
-10. Run `write_diff_script`.
-11. Write or complete `knowledge_card`.
+8. Run `commit_source_script`.
+9. Run `write_diff_script`.
+10. Write or complete `knowledge_card`.
+
+Manual source git checks must be scoped to `private_dpl_evolve_source`, for
+example `git -C "$private_dpl_evolve_source" diff --check` or after changing
+directory into the private source repo. Do not run candidate source git checks
+from the outer agent repo.
 
 Use `after_edit_script` only after source edits are complete; it runs build,
 evaluate, commit, diff, and knowledge-card template creation in sequence.

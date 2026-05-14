@@ -2,8 +2,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-AGENT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-source "${SCRIPT_DIR}/runtime_env.sh"
+AGENT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+source "${AGENT_ROOT}/scripts/runtime_env.sh"
 dpl_init_runtime "run_evolve_9case_place_batch.sh"
 
 CASE_SET="${EVOLVE_CASE_SET:-evolve_9case}"
@@ -124,11 +124,11 @@ for value_name in CHILDREN ITERATIONS MAX_PARALLEL THREADS MAX_CONCURRENT_CASES;
 done
 
 if [[ "${#CASES[@]}" -eq 0 ]]; then
-  mapfile -t CASES < <(python3 "${SCRIPT_DIR}/case_registry.py" --case-set "${CASE_SET}" --field case)
+  mapfile -t CASES < <(python3 "${AGENT_ROOT}/scripts/case_registry.py" --case-set "${CASE_SET}" --field case)
 fi
 
 case_field() {
-  python3 "${SCRIPT_DIR}/case_registry.py" --case "$1" --field "$2"
+  python3 "${AGENT_ROOT}/scripts/case_registry.py" --case "$1" --field "$2"
 }
 
 snapshot_path() {
@@ -172,7 +172,7 @@ printf "case\tflow_variant\tround_id\tstart_kind\tchildren\titerations\tteacher\
 require_snapshots
 
 if [[ "${PREPARE_WORKSPACE}" -eq 1 ]]; then
-  prepare_cmd=("${SCRIPT_DIR}/prepare_workspace.sh" --workspace-root "${ORFS_ROOT}")
+  prepare_cmd=("${AGENT_ROOT}/scripts/prepare_workspace.sh" --workspace-root "${ORFS_ROOT}")
   if [[ "${PREPARE_FORCE}" -eq 1 ]]; then
     prepare_cmd+=(--force)
   fi
@@ -180,8 +180,8 @@ if [[ "${PREPARE_WORKSPACE}" -eq 1 ]]; then
 fi
 
 if [[ "${SKIP_CORE_BUILD}" -ne 1 ]]; then
-  run_cmd "${SCRIPT_DIR}/configure_openroad_core.sh"
-  run_cmd "${SCRIPT_DIR}/build_openroad_core.sh" --threads "${THREADS}"
+  run_cmd "${AGENT_ROOT}/scripts/configure_openroad_core.sh"
+  run_cmd "${AGENT_ROOT}/scripts/build_openroad_core.sh" --threads "${THREADS}"
 fi
 
 if [[ "${REFRESH_BASELINES}" -eq 1 ]]; then
@@ -207,7 +207,7 @@ run_case() {
     >> "${EXPERIMENTS_FILE}"
 
   cmd=(
-    python3 "${SCRIPT_DIR}/optimize_case_with_codex.py"
+    python3 "${AGENT_ROOT}/scripts/optimize_case_with_codex.py"
     --case "${case_id}"
     --flow-variant "${FLOW_VARIANT}"
     --round-id "${round_id}"

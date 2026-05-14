@@ -301,8 +301,18 @@ if [[ -n "${git_branch}" && "${switched_existing_branch}" -ne 1 ]]; then
   git -C "${dpl_src}" switch -C "${git_branch}" >/dev/null
 fi
 
+display_start_kind="${start_kind}"
+if [[ -n "${seed_src_override}" ]]; then
+  display_start_kind="custom_seed:$(basename "${seed_src}")"
+fi
+
 echo "[INFO] Created variant initial dpl_evolve source"
-echo "[INFO] start_kind=${start_kind}"
+echo "[INFO] start_kind=${display_start_kind}"
+if [[ -n "${seed_src_override}" ]]; then
+  echo "[INFO] seed_src_override=1"
+  echo "[INFO] seed_src_label=$(basename "${seed_src}")"
+  echo "[INFO] requested_start_kind_ignored=${start_kind}"
+fi
 echo "[INFO] seed_src=${seed_src}"
 echo "[INFO] dpl_src=${dpl_src}"
 echo "[INFO] source_repo=${dpl_src}"

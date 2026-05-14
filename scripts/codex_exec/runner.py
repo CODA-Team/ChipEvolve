@@ -124,31 +124,18 @@ def default_codex_home(runtime: Any, session_state: Path | None) -> tuple[Path, 
     explicit = os.environ.get("CODEX_HOME")
     home = Path(explicit).expanduser().resolve() if explicit else (Path.home() / ".codex").resolve()
 
-    # Prefer the real Codex home when it is writable.  Older sandboxed runs may
-    # have recorded a repo-local fallback store; that fallback has session files
-    # but not the user's Codex auth, so reusing it makes future API calls fail.
-    if path_is_writable_dir(home) and recorded_home:
-        recorded_path = Path(recorded_home).expanduser().resolve()
-        fallback_root = (runtime.state_root / "codex_home").resolve()
-        if recorded_path != home and fallback_root in [recorded_path, *recorded_path.parents]:
-            return home, "env" if explicit else "default_home"
-
     if recorded_home:
         recorded_path = Path(recorded_home).expanduser().resolve()
-        if path_is_writable_dir(recorded_path):
+        if recorded_path == home and path_is_writable_dir(recorded_path):
             return recorded_path, "session_state"
 
     if path_is_writable_dir(home):
         return home, "env" if explicit else "default_home"
 
-    fallback = runtime.state_root / "codex_home"
-    fallback.mkdir(parents=True, exist_ok=True)
-    if not path_is_writable_dir(fallback):
-        raise SystemExit(
-            "No writable Codex session store found. Tried "
-            f"{home} and fallback {fallback}."
-        )
-    return fallback.resolve(), f"fallback_unwritable:{home}"
+    raise SystemExit(
+        "Codex session store is not writable. Fix CODEX_HOME or ~/.codex before "
+        f"launching agents: {home}"
+    )
 
 
 def session_exists(codex_home: Path | None, thread_id: str | None) -> bool:
@@ -283,7 +270,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     runtime = runtime_paths()
     root = args.cwd.resolve() if args.cwd else default_exec_root(runtime)
-    op_dir = ensure_operation_dir(runtime.operations_dir, args.operation_id)
+    operations_dir = (
+        args.operations_dir.resolve()
+        if args.operations_dir is not None
+        else runtime.operations_dir
+    )
+    op_dir = ensure_operation_dir(operations_dir, args.operation_id)
     prompt_text = load_prompt(args)
     session_store_home, session_store_reason = default_codex_home(
         runtime, args.session_state
@@ -311,6 +303,7 @@ def main(argv: list[str] | None = None) -> int:
         "codex_cwd": str(root),
         "agent_root": str(runtime.agent_root),
         "state_root": str(runtime.state_root),
+        "operations_dir": str(operations_dir),
         "command": command,
         "model": args.model,
         "profile": args.profile,

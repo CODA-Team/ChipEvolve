@@ -4,7 +4,7 @@ This directory preserves the final code from the three legalization-only
 evolve tracks:
 
 - `legalm`: global differential / LEGALM-oriented line.
-- `negotiation`: NBLG / negotiation-oriented line.
+- `negotiation`: negotiation-primary NBLG/resource-allocation-oriented line.
 - `diamond`: Diamond/local-greedy-oriented line.
 
 Use the stable line names and patch paths below. Do not ask Agents to check
@@ -52,6 +52,15 @@ should start from:
   `evolved_legalm`, or `evolved_negotiation`, or
 - another start kind while borrowing only a specific evolved mechanism.
 
+`evolved_negotiation` is intentionally negotiation-primary.  It may use
+LEGALM-style guidance only as a seed/frontier, but it must not return success
+from a full LEGALM legalization before running negotiation.  Use it for
+conflict-heavy, row-scarce, or cut-row-like legalization hypotheses and verify
+the route with negotiation-primary log counters.  It is a donor, not a
+universal HPWL winner: validation against OpenROAD negotiation showed useful
+runtime/quality tradeoffs on conflict-heavy cases, while small/local cases can
+prefer the native negotiation baseline.
+
 For normal Teacher/Student rounds, do not ask Students to manually apply these
 OpenROAD-root patch files inside their private source tree.  Run
 `scripts/prepare_workspace.sh` to materialize the corresponding seed sources
@@ -78,3 +87,10 @@ git -C /path/to/OpenROAD apply /path/to/dpl_evolve_agent/patches/evolved_legaliz
 
 `generation_manifest.tsv` records stable start kinds and patch paths.
 `validation.tsv` records `git apply --check` results for both patch types.
+`negotiation_primary_validation.tsv` records the repaired negotiation donor's
+three-case full-flow comparison against OpenROAD negotiation, OpenROAD Diamond,
+and a direct `runLegalmFullLegalization()` ablation.  The repaired line is
+useful because it demonstrates a route-pure pattern: differential guidance can
+stop early as a seed/frontier producer, then negotiation remains the primary
+successful legalizer.  Treat the guidance objective, stop point, and downstream
+consumer as optimization variables for future Teacher/Student rounds.

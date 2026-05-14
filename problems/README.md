@@ -27,7 +27,7 @@ Examples:
 ## Notes
 
 - Teacher/child case prompts are generated under
-  `$DPL_EVOLVE_STATE_ROOT/teacher_rounds/` by
+  `$DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/` by
   `../scripts/optimize_case_with_codex.py`.
 - Algorithm/reference context lives under `../knowledge/` and
   `../family_variants/`.

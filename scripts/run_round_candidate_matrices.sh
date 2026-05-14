@@ -27,10 +27,10 @@ and run a fixed-source candidate matrix for each.  This is the "4 students x
 12 iterations -> test every generated program on every case" path.
 
 Options:
-  --round-id NAME          Teacher round id under .dpl_evolve_state/teacher_rounds/.
+  --round-id NAME          Teacher round id under .dpl_evolve_state/<round-id>/teacher_rounds/.
   --round-dir PATH         Explicit round directory override.
   --plan PATH              TSV matrix plan. Default: full_cross_case_core_util.tsv.
-  --matrix-prefix NAME     Output prefix under candidate_matrices/.
+  --matrix-prefix NAME     Output prefix under <round-id>/candidate_matrices/.
                             Default: <round-id>_matrix.
   --threads N              OpenROAD threads. Default: 10.
   --matrix-row-parallel N  Parallel case/utilization rows inside each fixed
@@ -44,7 +44,7 @@ Options:
   --help                   Show this message.
 
 Output:
-  .dpl_evolve_state/candidate_matrix_batches/<matrix-prefix>/candidates.tsv
+  .dpl_evolve_state/<round-id>/candidate_matrix_batches/<matrix-prefix>/candidates.tsv
 
 Each candidate matrix builds exactly one candidate source once, then evaluates
 that same binary on every enabled plan row.
@@ -76,10 +76,16 @@ if [[ -z "${ROUND_DIR}" ]]; then
     usage >&2
     exit 1
   fi
-  ROUND_DIR="${DPL_EVOLVE_STATE_ROOT}/teacher_rounds/${ROUND_ID}"
+  ROUND_DIR="${DPL_EVOLVE_STATE_ROOT}/${ROUND_ID}/teacher_rounds"
 else
   ROUND_DIR="$(realpath -m "${ROUND_DIR}")"
-  ROUND_ID="${ROUND_ID:-$(basename "${ROUND_DIR}")}"
+  if [[ -z "${ROUND_ID}" ]]; then
+    if [[ "$(basename "${ROUND_DIR}")" == "teacher_rounds" ]]; then
+      ROUND_ID="$(basename "$(dirname "${ROUND_DIR}")")"
+    else
+      ROUND_ID="$(basename "${ROUND_DIR}")"
+    fi
+  fi
 fi
 
 if [[ ! -d "${ROUND_DIR}/students" ]]; then
@@ -94,7 +100,9 @@ if [[ ! -f "${PLAN_FILE}" ]]; then
 fi
 
 MATRIX_PREFIX="${MATRIX_PREFIX:-${ROUND_ID}_matrix}"
-BATCH_ROOT="${DPL_EVOLVE_STATE_ROOT}/candidate_matrix_batches/${MATRIX_PREFIX}"
+ROUND_ROOT="${DPL_EVOLVE_STATE_ROOT}/${ROUND_ID}"
+BATCH_ROOT="${ROUND_ROOT}/candidate_matrix_batches/${MATRIX_PREFIX}"
+MATRIX_OUTPUT_ROOT="${ROUND_ROOT}/candidate_matrices"
 BATCH_LOG="${BATCH_ROOT}/run.log"
 CANDIDATES_TSV="${BATCH_ROOT}/candidates.tsv"
 mkdir -p "${BATCH_ROOT}"
@@ -118,6 +126,7 @@ log "round_id=${ROUND_ID}"
 log "round_dir=${ROUND_DIR}"
 log "plan=${PLAN_FILE}"
 log "matrix_prefix=${MATRIX_PREFIX}"
+log "matrix_output_root=${MATRIX_OUTPUT_ROOT}"
 log "matrix_row_parallel=${MATRIX_ROW_PARALLEL}"
 MATERIALIZED_ROOT="${BATCH_ROOT}/materialized_sources"
 
@@ -148,6 +157,7 @@ if [[ "${SKIP_BASELINE_MATRIX}" -ne 1 ]]; then
   baseline_args=(
     "${SCRIPT_DIR}/run_candidate_matrix.sh"
     --matrix-id "${MATRIX_PREFIX}_baselines"
+    --output-root "${MATRIX_OUTPUT_ROOT}"
     --plan "${PLAN_FILE}"
     --threads "${THREADS}"
     --baseline-only
@@ -195,8 +205,8 @@ while IFS=$'\t' read -r student iter_part source_repo source_ref candidate_src; 
 
   label="${student}_${iter_part}"
   matrix_id="${MATRIX_PREFIX}_${label}"
-  results_tsv="${DPL_EVOLVE_STATE_ROOT}/candidate_matrices/${matrix_id}/results.tsv"
-  matrix_log="${DPL_EVOLVE_STATE_ROOT}/candidate_matrices/${matrix_id}/run.log"
+  results_tsv="${MATRIX_OUTPUT_ROOT}/${matrix_id}/results.tsv"
+  matrix_log="${MATRIX_OUTPUT_ROOT}/${matrix_id}/run.log"
 
   if [[ -f "${results_tsv}" ]]; then
     rows_done="$(result_rows "${results_tsv}")"
@@ -225,6 +235,7 @@ while IFS=$'\t' read -r student iter_part source_repo source_ref candidate_src; 
   args=(
     "${SCRIPT_DIR}/run_candidate_matrix.sh"
     --matrix-id "${matrix_id}"
+    --output-root "${MATRIX_OUTPUT_ROOT}"
     --candidate-src "${candidate_src}"
     --candidate-label "${label}"
     --plan "${PLAN_FILE}"

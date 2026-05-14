@@ -2,8 +2,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-AGENT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-source "${SCRIPT_DIR}/runtime_env.sh"
+AGENT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+source "${AGENT_ROOT}/scripts/runtime_env.sh"
 dpl_init_runtime "run_bo_9case_openroad_dpl.sh"
 
 PYTHON_BIN="${RAYTUNE_PYTHON:-${AGENT_ROOT}/.venv_raytune/bin/python}"
@@ -60,7 +60,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ "${#CASES[@]}" -eq 0 ]]; then
-  mapfile -t CASES < <(python3 "${SCRIPT_DIR}/case_registry.py" --case-set "${CASE_SET}" --field case)
+  mapfile -t CASES < <(python3 "${AGENT_ROOT}/scripts/case_registry.py" --case-set "${CASE_SET}" --field case)
 fi
 
 if [[ ! -x "${PYTHON_BIN}" ]]; then
@@ -83,8 +83,8 @@ printf "case\tstatus\tlog\tstart\tend\trun_id\n" > "${STATUS_FILE}"
 check_case_snapshot() {
   local case_id="$1"
   local design platform snapshot
-  design="$(python3 "${SCRIPT_DIR}/case_registry.py" --case "${case_id}" --field design)"
-  platform="$(python3 "${SCRIPT_DIR}/case_registry.py" --case "${case_id}" --field platform)"
+  design="$(python3 "${AGENT_ROOT}/scripts/case_registry.py" --case "${case_id}" --field design)"
+  platform="$(python3 "${AGENT_ROOT}/scripts/case_registry.py" --case "${case_id}" --field platform)"
   snapshot="${ORFS_ROOT}/flow/results/${platform}/${design}/${FLOW_VARIANT}/3_4_place_resized.odb"
   if [[ ! -f "${snapshot}" ]]; then
     echo "[ERROR] Missing input snapshot for ${case_id}: ${snapshot}" >&2

@@ -11,8 +11,9 @@ Runtime roots:
 
 ## Script Inventory
 
-Every active script is listed here.  If a file is not listed, it should not be
-part of the default workflow.
+Every active framework/helper script in `scripts/` is listed here.  If a file
+is experiment-specific, keep it under `experiments/launchers/` or
+`experiments/workbenches/` instead of this directory.
 
 ### Workspace And Runtime
 
@@ -41,18 +42,15 @@ part of the default workflow.
 | Script | Purpose | Called by | Stage |
 | --- | --- | --- | --- |
 | `scripts/run_place_batch.sh` | Produce reusable `3_4_place_resized.odb` snapshots for selected cases. | Human/Teacher before baseline/evolve gates. | Input snapshot generation. |
-| `scripts/run_aggressive_flow_knowledge_experiments.sh` | One-click large experiment driver: build core, create placement snapshots, refresh canonical baselines, then sequentially launch Teacher/Student loops from a TSV plan such as `configs/experiment_plans/flow_knowledge_core_util.tsv`. | Human/Teacher. | Batch knowledge collection. |
+| `scripts/calibrate_start_seeds.sh` | Build/evaluate prepared start-kind seeds such as `framework`, `evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` for one case, then write initial donor-evidence tables. | `optimize_case_with_codex.py --calibrate-start-seeds`, Human/Teacher. | Start donor calibration. |
+| `scripts/summarize_start_seed_calibration.py` | Summarize start-kind calibration candidate matrices into markdown/TSV stage-wise metrics. | `calibrate_start_seeds.sh`. | Result analysis. |
 | `scripts/run_candidate_matrix.sh` | Build one fixed candidate `dpl_evolve` source once, then evaluate that identical code across every enabled row in a TSV plan. | Human/Teacher after a promising exported student source commit exists. | Cross-case candidate validation. |
 | `scripts/run_round_candidate_matrices.sh` | Enumerate committed student source revisions from one Teacher round, export each revision, and run `run_candidate_matrix.sh` for each. | Human/Teacher after a completed round. | 4xN candidate validation. |
 | `scripts/export_round_candidate_sources.py` | Export committed student source revisions from one Teacher round into reusable source snapshots. | `run_round_candidate_matrices.sh`, Human/Teacher. | Candidate export. |
 | `scripts/normalize_candidate_matrix_results.py` | Normalize candidate-matrix result TSVs into stable comparison tables. | `run_round_candidate_matrices.sh`, Human/Teacher. | Result analysis. |
-| `scripts/run_jpeg_util60_discovery_then_matrix.sh` | Full pipeline: full baseline matrix, JPEG util60 4x12 framework-start evolution, then fixed-source matrix validation for every generated program. | Human/Teacher. | Main knowledge experiment. |
 | `scripts/run_canonical_line.sh` | Dispatch one canonical line: `openroad_dpl_flow`, `openroad_dpl_negotiation`, or `evolve_default`. | Humans, evaluator, Teacher loop. | Single run. |
-| `scripts/run_openroad_dpl_9case_baselines.sh` | Run OpenROAD default DPL baseline rows for the shared 9-case `place_batch_20260421_220319` set with snapshot preflight, bounded case parallelism, and a metrics summary TSV. | Human/Teacher before BO or evolve sweeps. | Baseline batch. |
 | `scripts/bo_tune_case.py` | Ray Tune black-box optimize Tcl command parameters for one case using the same strict baseline runner and metrics.json as the white-box evolve loop. Requires Ray Tune; there is no local fallback. | Human/Teacher for black-box baselines. | Parameter tuning / ablation. |
 | `scripts/setup_raytune_venv.sh` | Create the repo-local `.venv_raytune` environment and verify `ray.tune` plus `optuna`. | Human before BO runs. | BO setup. |
-| `scripts/run_bo_8case_openroad_dpl.sh` | Sequentially launch the standard 8-case OpenROAD default DPL Ray Tune sweep. Each case runs 100 trials by default with four concurrent Ray Tune trials. | Human/Teacher for black-box baseline sweep. | BO batch. |
-| `scripts/run_bo_9case_openroad_dpl.sh` | Launch the 9-case OpenROAD default DPL Ray Tune sweep for `place_batch_20260421_220319`: ASAP7/Nangate45 AES/IBEX/SWeRV/JPEG plus normal Nangate45 Ariane133, at most three cases concurrently and four trials per case. | Human/Teacher for black-box baseline sweep. | BO batch. |
 | `scripts/compare_runs.py` | Compare two evaluator or metrics JSON files using stable metrics. | Human/Teacher review. | Result analysis. |
 | `scripts/report_stage_metrics.py` | Print canonical per-round stage-wise HPWL/runtime/displacement rows from evaluator `metrics.json`, falling back to labeled partial DPL logs for in-flight evidence. | Human/Teacher review, packets. | Result analysis. |
 | `scripts/report_experiment_status.py` | Summarize a launch directory: active processes, completed/active rounds, best baseline vs best evolved donors, and optional detailed stage rows. | Human/Teacher monitoring. | Monitoring/result analysis. |
@@ -62,10 +60,31 @@ part of the default workflow.
 | Script | Purpose | Called by | Stage |
 | --- | --- | --- | --- |
 | `scripts/optimize_case_with_codex.py` | Stable CLI shim for the multi-iteration Teacher/child optimization round. The implementation is split under `scripts/teacher_loop/`. | Human/Teacher. | Case-specific algorithm search. |
-| `scripts/run_evolve_9case_place_batch.sh` | Launch the shared 9-case place-batch evolve sweep with 4 Students x 15 iterations by default, Teacher `gpt-5.5/xhigh`, Student `gpt-5.4/xhigh`, three concurrent cases, one shared core build, snapshot preflight, and per-case logs. | Human/Teacher. | Batch case-specific algorithm search. |
 | `scripts/run_codex_exec.py` | Stable CLI shim for the low-level `codex exec --json` recorder used by launched Teacher/Student agents.  Can resume a prior Codex session with `--resume-session-id`; records usage and stderr category summaries. Implementation lives under `scripts/codex_exec/`. | `optimize_case_with_codex.py`. | Worker execution. |
 | `scripts/watch_teacher_round.py` | Terminal or local-web dashboard for a Teacher/Student round.  Shows observable status, paths, last visible messages, diffs, metrics, and usage. | Human/Teacher. | Monitoring. |
 | `scripts/compact_round_peer_prompts.py` | Compact large peer-prompt context from a Teacher round into smaller review artifacts. | Human/Teacher when prompt context grows too large. | Prompt hygiene. |
+
+### Experiment-Specific Launchers
+
+Experiment-specific launch scripts are intentionally outside `scripts/` so
+Teacher/Student agents do not treat them as generic framework tools:
+
+```text
+experiments/launchers/
+experiments/workbenches/
+```
+
+Current launchers:
+
+| Script | Purpose |
+| --- | --- |
+| `experiments/launchers/run_aggressive_flow_knowledge_experiments.sh` | Historical flow-knowledge batch driver from a TSV plan. |
+| `experiments/launchers/run_jpeg_util60_discovery_then_matrix.sh` | JPEG util60 discovery plus fixed-candidate matrix pipeline. |
+| `experiments/launchers/run_openroad_dpl_9case_baselines.sh` | 9-case OpenROAD DPL baseline batch. |
+| `experiments/launchers/run_bo_8case_openroad_dpl.sh` | 8-case OpenROAD native DPL BO sweep. |
+| `experiments/launchers/run_bo_9case_openroad_dpl.sh` | 9-case OpenROAD native DPL BO sweep. |
+| `experiments/launchers/run_evolve_9case_place_batch.sh` | 9-case Teacher/Student evolve sweep. |
+| `experiments/workbenches/prepare_negotiation_patch_repair_workbench.sh` | Dedicated evolved-negotiation patch repair workbench generator. |
 
 `scripts/teacher_loop/` contains the Python implementation modules:
 `orchestrator.py` for the top-level loop, `common.py` for shared data,
@@ -133,7 +152,7 @@ Standard 8-case sweep:
 
 ```bash
 BO_TRIALS=100 BO_MAX_CONCURRENT_TRIALS=4 BO_THREADS_PER_TRIAL=10 \
-  dpl_evolve_agent/scripts/run_bo_8case_openroad_dpl.sh
+  dpl_evolve_agent/experiments/launchers/run_bo_8case_openroad_dpl.sh
 ```
 
 Standard 9-case sweep for the shared `place_batch_20260421_220319` snapshots:
@@ -141,7 +160,7 @@ Standard 9-case sweep for the shared `place_batch_20260421_220319` snapshots:
 ```bash
 BO_TRIALS=400 BO_MAX_CONCURRENT_CASES=3 BO_MAX_CONCURRENT_TRIALS=4 \
 BO_THREADS_PER_TRIAL=10 BO_FLOW_VARIANT=place_batch_20260421_220319 \
-  dpl_evolve_agent/scripts/run_bo_9case_openroad_dpl.sh
+  dpl_evolve_agent/experiments/launchers/run_bo_9case_openroad_dpl.sh
 ```
 
 DPO-boundary sweep with the native legalizer fixed and a wider
@@ -152,7 +171,7 @@ BO_SPACE="$DPL_EVOLVE_AGENT_ROOT/configs/bo_search_spaces/openroad_dpl_native_dp
 BO_RUN_PREFIX=openroad_dpl_native_dpo_frontier_9case_bo \
 BO_TRIALS=400 BO_MAX_CONCURRENT_CASES=3 BO_MAX_CONCURRENT_TRIALS=4 \
 BO_THREADS_PER_TRIAL=10 BO_FLOW_VARIANT=place_batch_20260421_220319 \
-  dpl_evolve_agent/scripts/run_bo_9case_openroad_dpl.sh
+  dpl_evolve_agent/experiments/launchers/run_bo_9case_openroad_dpl.sh
 ```
 
 This DPO-focused space explores `improve_placement -random_seed`, scalar and
@@ -165,7 +184,7 @@ OpenROAD default DPL baseline rows for the same 9-case set:
 
 ```bash
 BASELINE_FLOW_VARIANT=place_batch_20260421_220319 BASELINE_MAX_PARALLEL=3 \
-  dpl_evolve_agent/scripts/run_openroad_dpl_9case_baselines.sh
+  dpl_evolve_agent/experiments/launchers/run_openroad_dpl_9case_baselines.sh
 ```
 
 White-box Agent evolve rows for the same 9-case set:
@@ -175,7 +194,7 @@ EVOLVE_FLOW_VARIANT=place_batch_20260421_220319 EVOLVE_CHILDREN=4 \
 EVOLVE_ITERATIONS=15 EVOLVE_TEACHER_MODEL=gpt-5.5 \
 EVOLVE_TEACHER_REASONING_EFFORT=xhigh EVOLVE_STUDENT_MODEL=gpt-5.4 \
 EVOLVE_STUDENT_REASONING_EFFORT=xhigh EVOLVE_MAX_CONCURRENT_CASES=3 \
-  dpl_evolve_agent/scripts/run_evolve_9case_place_batch.sh
+  dpl_evolve_agent/experiments/launchers/run_evolve_9case_place_batch.sh
 ```
 
 The 9-case sweep checks that every case has
@@ -352,7 +371,7 @@ Follow-up prompts are compact by default after iteration 1. Each student also
 keeps editing one stable active source workspace by default:
 
 ```text
-.dpl_evolve_state/teacher_rounds/<round>/students/student_XX/workspace/variant/dpl_evolve
+.dpl_evolve_state/<round>/teacher_rounds/students/student_XX/workspace/variant/dpl_evolve
 ```
 
 That source directory is a local git repository. Each launched iteration uses a
@@ -361,7 +380,7 @@ final source state. The orchestrator creates a fallback commit only when source
 changes remain uncommitted, then records the revision at:
 
 ```text
-.dpl_evolve_state/teacher_rounds/<round>/students/student_XX/iter_XX/artifacts/source_commit.json
+.dpl_evolve_state/<round>/teacher_rounds/students/student_XX/iter_XX/artifacts/source_commit.json
 ```
 
 Per-iteration diffs, build logs, and eval logs still live under
@@ -377,11 +396,33 @@ preflight, which refreshes the start-kind seed snapshots.  Use
 `--prepare-force` only when it is safe to reset the prepared ORFS/OpenROAD
 workspace.
 
+Use `--calibrate-start-seeds` when Teacher should see initial full-flow
+results for the prepared start-kind seeds before assigning Student routes:
+
+```bash
+"$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py" \
+  --case jpeg_nangate45 \
+  --flow-variant place_batch_20260421_220319 \
+  --round-id jpeg_start_calibration_probe \
+  --prepare-workspace \
+  --calibrate-start-seeds \
+  --children 4 \
+  --iterations 1 \
+  --launch
+```
+
+The calibration packet is written to:
+
+```text
+$DPL_EVOLVE_STATE_ROOT/<round>/teacher_rounds/iter_XX/packet/start_seed_calibration.md
+$DPL_EVOLVE_STATE_ROOT/<round>/start_seed_calibration/start_seed_calibration.tsv
+```
+
 The top-level orchestrator writes human-readable progress to:
 
 ```text
-.dpl_evolve_state/teacher_rounds/<round>/round.log
-.dpl_evolve_state/teacher_rounds/<round>/events.jsonl
+.dpl_evolve_state/<round>/teacher_rounds/round.log
+.dpl_evolve_state/<round>/teacher_rounds/events.jsonl
 ```
 
 Those files are the quickest way to verify whether baseline preflight,
@@ -393,25 +434,20 @@ candidate so far and pre-seeds `student_01` from that exported source commit.  T
 keeps one protected elite-continuation branch alive while the other students
 continue, cross-learn, or pivot.
 
-Launched Teacher/Student sessions prefer the normal Codex session store,
-usually `~/.codex`.  `scripts/run_codex_exec.py` now checks that the selected
-store is writable before starting Codex.  If the normal store is read-only
-inside an execution sandbox, the wrapper falls back to:
-
-```text
-.dpl_evolve_state/codex_home
-```
+Launched Teacher/Student sessions use the normal Codex session store, usually
+`~/.codex` unless `CODEX_HOME` is explicitly set. `scripts/run_codex_exec.py`
+checks that the selected store is writable before starting Codex; if it is not
+writable, the operation fails so the environment can be fixed directly.
 
 The chosen store and reason are recorded in `codex_invocation.json`,
-`codex_usage_summary.json`, and each worker's session state.  Later runs reuse
-the recorded store for that worker, so session resume remains consistent even
-when fallback was needed.
+`codex_usage_summary.json`, and each worker's session state. Later runs reuse
+the recorded thread id only when it is visible in the same selected store.
 
 Each Teacher/Student workspace stores its identity and last thread id:
 
 ```text
-.dpl_evolve_state/teacher_rounds/<round>/teacher_workspace/.codex_session_state.json
-.dpl_evolve_state/teacher_rounds/<round>/students/student_XX/workspace/.codex_session_state.json
+.dpl_evolve_state/<round>/teacher_rounds/teacher_workspace/.codex_session_state.json
+.dpl_evolve_state/<round>/teacher_rounds/students/student_XX/workspace/.codex_session_state.json
 ```
 
 `scripts/run_codex_exec.py` auto-resumes from that state file when it contains
@@ -438,7 +474,7 @@ show hidden model reasoning; if we want more live visibility, the prompts should
 ask students to write short progress notes or stage telemetry into artifacts.
 
 The script is conservative by default: without `--launch`, it only writes the
-round manifest and prompts under `DPL_EVOLVE_STATE_ROOT/teacher_rounds/`.
+round manifest and prompts under `DPL_EVOLVE_STATE_ROOT/<round>/teacher_rounds/`.
 Each iteration has three phases:
 
 1. Teacher planning prompt.
@@ -447,7 +483,7 @@ Each iteration has three phases:
    changes side by side, compares metrics, and writes per-student continuation
    or pivot guidance.
 
-Student lineage is tracked under `teacher_rounds/<round>/students/`, so later
+Student lineage is tracked under `<round>/teacher_rounds/students/`, so later
 iterations tell each student to continue its own implementation direction
 instead of restarting from unrelated ideas.  Review statuses are guidance for
 how to revise the next attempt; they do not freeze a student automatically.

@@ -7,11 +7,10 @@ family-tree tuning to a constrained `detailed_placement_evolve` framework.
 
 - The evolved command remains `detailed_placement_evolve`.
 - The active source patch is `patches/openroad_dpl_evolve_framework.patch`.
-- The evolved legalizer patch catalog is
-  `patches/evolved_legalizers/README.md`. It preserves active donor/start
-  seeds from prior legalization-only evolve runs: `evolved_diamond`,
-  `evolved_legalm`, and `evolved_negotiation` are prior iter30 donor starts
-  that need case-specific validation.
+- Prepared evolved start branches preserve active donor/start seeds from prior
+  legalization-only evolve runs: `evolved_diamond`, `evolved_legalm`, and
+  `evolved_negotiation` are prior iter30 donor starts that need case-specific
+  validation.
 - `EvolveLegalizer` is a stage scaffold, not a fixed final algorithm.
 - Student experiments use private `dpl_evolve` source trees plus lightweight
   variant relink.
@@ -29,14 +28,22 @@ family-tree tuning to a constrained `detailed_placement_evolve` framework.
   `metrics.json:hpwl`.  The legacy bbox proxy is a debug field only.
 - OpenROAD diamond remains a local-search donor and prepass reference, not a
   standalone canonical baseline runner in the current harness.
-- The `evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` patch/seeds
-  are active route-specific donor starts with prior wins. Teacher should
-  consider whether the matching evolved seed is the better start point before
-  assigning a student to a clean route seed, but must use current case evidence
-  to justify that choice.
+- The `evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` prepared
+  start branches are active route-specific donor starts with prior wins.
+  Teacher should consider whether the matching evolved seed is the better start
+  point before assigning a student to a clean route seed, but must use current
+  case evidence to justify that choice.
 - OpenROAD negotiation/NBLG is a repair and mechanism donor. It should not be
   promoted as the primary path without case evidence against the current
   OpenROAD DPL flow anchor.
+- `evolved_negotiation` is a negotiation-primary donor seed.  It may consume
+  guidance from earlier stages, but the normal successful route must execute
+  negotiation/resource allocation and must not silently return from full LEGALM
+  legalization.
+- Differential guidance can be used as a route-internal seed/frontier stage.
+  Its target objective, stopping point, and consumer are open mechanism choices;
+  they should be tested by stage-wise and final full-flow metrics rather than
+  treated as fixed LEGALM behavior.
 - Selected threaded-frontier mechanisms from earlier negotiation experiments
   live under
   `family_variants/openroad_negotiation_nblg/mechanism_deltas/`.

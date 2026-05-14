@@ -251,7 +251,7 @@ def sanitize_process_line(line: str) -> str:
         (r"--session-env-file\s+\S+", "--session-env-file ..."),
         (r"--add-dir\s+\S+", ""),
         (
-            r"\S*/dpl_evolve_agent/\.dpl_evolve_state/teacher_rounds/\S+",
+            r"\S*/dpl_evolve_agent/\.dpl_evolve_state/\S+/teacher_rounds/\S+",
             "...",
         ),
         (r"\S*/OpenROAD-flow-scripts", "ORFS"),

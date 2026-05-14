@@ -41,6 +41,9 @@ Patch status is tracked in:
   Teacher/Student donor evidence: `prepare_workspace.sh` materializes
   `evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` seed sources
   from the framework deltas when the patch files are present.
+  `evolved_negotiation` is negotiation-primary by contract.  It may use
+  differential guidance as a seed/frontier, but the successful primary
+  legalization route must execute negotiation/resource allocation.
 
 The exact supported base commits are recorded in:
 

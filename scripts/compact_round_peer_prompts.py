@@ -179,7 +179,7 @@ def main() -> int:
         script_name="compact_round_peer_prompts.py",
     )
     state_root = args.state_root or runtime.state_root
-    round_dir = state_root / "teacher_rounds" / args.round_id
+    round_dir = state_root / args.round_id / "teacher_rounds"
     if not round_dir.is_dir():
         raise SystemExit(f"missing round dir: {round_dir}")
 

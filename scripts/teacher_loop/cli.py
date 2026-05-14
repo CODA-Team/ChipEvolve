@@ -35,7 +35,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "`framework` starts from the constrained top-level framework; "
             "`diamond` starts from the clean dpl_evolve/base implementation; "
             "`evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` "
-            "start from the materialized iter30 evolved legalizer patch seeds. "
+            "start from materialized iter30 evolved legalizer seed sources. "
             "`evolved_legalm` is the default current LEGALM/global-differential "
             "seed; "
             "`prepared` copies the current prepared ORFS dpl_evolve source."
@@ -159,6 +159,43 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--reuse-baseline-preflight",
         action="store_true",
         help="Reuse canonical baseline metrics when all rows already exist.",
+    )
+    parser.add_argument(
+        "--calibrate-start-seeds",
+        dest="calibrate_start_seeds",
+        action="store_true",
+        help=(
+            "Before Teacher planning, build/evaluate prepared start-kind seed "
+            "sources and write a start_seed_calibration packet for initial "
+            "seed donor evidence."
+        ),
+    )
+    parser.add_argument(
+        "--calibrate-start-patches",
+        dest="calibrate_start_seeds",
+        action="store_true",
+        help=(
+            "Deprecated alias for --calibrate-start-seeds. It evaluates "
+            "prepared seed branches; Students do not apply patch files."
+        ),
+    )
+    parser.add_argument(
+        "--calibration-start-kind",
+        action="append",
+        dest="calibration_start_kind",
+        choices=[
+            "framework",
+            "diamond",
+            "evolved_diamond",
+            "evolved_legalm",
+            "evolved_negotiation",
+        ],
+        default=[],
+        help=(
+            "Start-kind seed to include in --calibrate-start-seeds. "
+            "Repeatable. Default: framework, evolved_diamond, "
+            "evolved_legalm, evolved_negotiation."
+        ),
     )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(

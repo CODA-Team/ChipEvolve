@@ -14,6 +14,7 @@ import shlex
 import subprocess
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 AGENT_ROOT = Path(__file__).resolve().parents[2]
@@ -104,6 +105,53 @@ def child_prompt_warning_lines(
     return lines
 
 
+def start_seed_calibration_command(
+    *,
+    runtime: Any,
+    output_root: Path,
+    case_id: str,
+    flow_variant: str,
+    round_id: str,
+    threads: int,
+    start_kinds: list[str],
+    reuse_baseline: bool,
+    dry_run: bool,
+) -> list[str]:
+    command = [
+        str(runtime.agent_root / "scripts" / "calibrate_start_seeds.sh"),
+        "--case",
+        case_id,
+        "--flow-variant",
+        flow_variant,
+        "--round-id",
+        round_id,
+        "--output-root",
+        str(output_root),
+        "--threads",
+        str(threads),
+        "--max-parallel",
+        "1",
+        "--start-kinds",
+        ",".join(start_kinds),
+    ]
+    if reuse_baseline:
+        command.append("--skip-baseline")
+    if dry_run:
+        command.append("--dry-run")
+    return command
+
+
+def runtime_with_round_outputs(runtime: Any, round_root: Path) -> Any:
+    return SimpleNamespace(
+        orfs_root=runtime.orfs_root,
+        agent_root=runtime.agent_root,
+        state_root=runtime.state_root,
+        packet_dir=round_root / "packets",
+        checkpoints_dir=round_root / "checkpoints",
+        operations_dir=round_root / "checkpoints" / "operations",
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     runtime = resolve_runtime_paths(
@@ -139,7 +187,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.student_runtime_multiplier <= 0:
         raise SystemExit("--student-runtime-multiplier must be positive.")
     round_id = args.round_id or default_round_id(args.case)
-    round_dir = runtime.state_root / "teacher_rounds" / round_id
+    round_root = runtime.state_root / round_id
+    runtime = runtime_with_round_outputs(runtime, round_root)
+    round_dir = round_root / "teacher_rounds"
     round_dir.mkdir(parents=True, exist_ok=True)
     logger = RoundLogger(round_dir)
     teacher_session = teacher_session_paths(round_dir=round_dir, round_id=round_id)
@@ -166,6 +216,9 @@ def main(argv: list[str] | None = None) -> int:
     manifest_iterations: list[dict[str, Any]] = []
     last_metrics: dict[str, MetricSummary | None] | None = None
     baseline_preflight_commands: list[list[str]] = []
+    calibration_summary_path: Path | None = None
+    calibration_tsv_path: Path | None = None
+    calibration_commands: list[list[str]] = []
 
     prepare_command: list[str] | None = None
     core_configure_command: list[str] | None = None
@@ -285,6 +338,53 @@ def main(argv: list[str] | None = None) -> int:
     else:
         logger.event("baseline", "preflight_skipped")
 
+    if args.calibrate_start_seeds:
+        calibration_start_kinds = args.calibration_start_kind or [
+            "framework",
+            "evolved_diamond",
+            "evolved_legalm",
+            "evolved_negotiation",
+        ]
+        calibration_command = start_seed_calibration_command(
+            runtime=runtime,
+            output_root=round_root,
+            case_id=args.case,
+            flow_variant=args.flow_variant,
+            round_id=round_id,
+            threads=args.threads,
+            start_kinds=calibration_start_kinds,
+            reuse_baseline=not args.refresh_baseline and not args.skip_baseline_preflight,
+            dry_run=dry_run,
+        )
+        calibration_commands.append(calibration_command)
+        all_commands.append(calibration_command)
+        calibration_root = round_root / "start_seed_calibration"
+        calibration_summary_path = calibration_root / "start_seed_calibration.md"
+        calibration_tsv_path = calibration_root / "start_seed_calibration.tsv"
+        if dry_run:
+            logger.event(
+                "calibration",
+                "planned",
+                command=" ".join(shlex.quote(part) for part in calibration_command),
+                summary=calibration_summary_path,
+            )
+        else:
+            logger.event("calibration", "start", command=calibration_command)
+            rc = subprocess.run(
+                calibration_command, env=clean_subprocess_env()
+            ).returncode
+            if rc:
+                logger.event("calibration", "failed", return_code=rc)
+                return rc
+            logger.event(
+                "calibration",
+                "done",
+                summary=calibration_summary_path,
+                tsv=calibration_tsv_path,
+            )
+    else:
+        logger.event("calibration", "skipped")
+
     for iteration in range(start_iteration, iterations + 1):
         iteration_dir = round_dir / iter_name(iteration)
         prompt_dir = iteration_dir / "prompts"
@@ -323,6 +423,18 @@ def main(argv: list[str] | None = None) -> int:
             flow_variant=args.flow_variant,
             metrics=metrics,
         )
+        start_seed_calibration_packet = packet_dir / "start_seed_calibration.md"
+        if calibration_summary_path is not None and calibration_summary_path.exists():
+            start_seed_calibration_packet.write_text(
+                calibration_summary_path.read_text(encoding="utf-8", errors="replace"),
+                encoding="utf-8",
+            )
+        else:
+            start_seed_calibration_packet.write_text(
+                "# Start Seed Calibration\n\n"
+                "No start-kind calibration matrix was requested or completed for this round.\n",
+                encoding="utf-8",
+            )
         design_characteristics_path = write_design_characteristics_packet(
             path=packet_dir / "design_characteristics.md",
             case_id=args.case,
@@ -407,6 +519,7 @@ def main(argv: list[str] | None = None) -> int:
             metrics=metrics,
             packet_path=packet_path,
             baseline_artifacts_path=baseline_artifacts_path,
+            start_seed_calibration_path=start_seed_calibration_packet,
             design_characteristics_path=design_characteristics_path,
             peer_learning_path=peer_learning_path,
             round_id=round_id,
@@ -465,6 +578,7 @@ def main(argv: list[str] | None = None) -> int:
             session_identity=teacher_session.identity,
             session_state=teacher_session.session_state,
             session_env_file=teacher_session.session_env_file,
+            operations_dir=runtime.operations_dir,
             cwd=child_cwd,
             skip_git_repo_check=True,
         )
@@ -618,6 +732,7 @@ def main(argv: list[str] | None = None) -> int:
                         session_identity=f"{round_id}:{student_id}",
                         session_state=paths.session_state,
                         session_env_file=paths.session_env_file,
+                        operations_dir=runtime.operations_dir,
                         cwd=child_cwd,
                         skip_git_repo_check=True,
                     )
@@ -672,6 +787,7 @@ def main(argv: list[str] | None = None) -> int:
                     session_identity=teacher_session.identity,
                     session_state=teacher_session.session_state,
                     session_env_file=teacher_session.session_env_file,
+                    operations_dir=runtime.operations_dir,
                     cwd=child_cwd,
                     skip_git_repo_check=True,
                 )

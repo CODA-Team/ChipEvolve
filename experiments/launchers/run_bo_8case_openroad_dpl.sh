@@ -2,8 +2,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-AGENT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-source "${SCRIPT_DIR}/runtime_env.sh"
+AGENT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+source "${AGENT_ROOT}/scripts/runtime_env.sh"
 dpl_init_runtime "run_bo_8case_openroad_dpl.sh"
 
 PYTHON_BIN="${RAYTUNE_PYTHON:-${AGENT_ROOT}/.venv_raytune/bin/python}"

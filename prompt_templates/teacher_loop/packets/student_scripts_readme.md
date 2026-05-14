@@ -10,17 +10,18 @@ Recommended flow:
    `04_switch_start_branch.sh --kind <framework|diamond|evolved_...>` before edits.
 3. Use `05_source_context.sh <src/...> [symbol]` when you need
    current local source context for an apply_patch anchor.
-4. Use `06_apply_evolved_legalizer_patch.sh --check-only` only
-   when Teacher explicitly assigns an evolved framework-delta patch.
-5. Use `08_query_knowledge.sh --stage <stage> --q <text>` when
+4. Use `08_query_knowledge.sh --stage <stage> --q <text>` when
    Teacher names a skill id or you need one concise mechanism card.
    Open only the relevant algorithm/pseudocode card it points to.
-6. Edit only the packet `private_dpl_evolve_source` with apply_patch.
-7. `10_build_variant.sh` after code changes.
-8. `20_evaluate_candidate.sh` for canonical metrics.
-9. `30_commit_source.sh` before the final answer.
-10. `40_write_diff.sh` to write the implementation diff.
-11. `50_seed_knowledge_card.sh` if the knowledge card does not exist yet.
+5. Edit only the packet `private_dpl_evolve_source` with apply_patch.
+6. `10_build_variant.sh` after code changes.
+7. `20_evaluate_candidate.sh` for canonical metrics.
+8. `30_commit_source.sh` before the final answer.
+9. `40_write_diff.sh` to write the implementation diff.
+10. `50_seed_knowledge_card.sh` if the knowledge card does not exist yet.
+
+Student start-point switches are branch-only. Use the prepared git start
+branches and then commit local source edits.
 
 Use `11_build_variant_fresh.sh` only when the normal generated build
 script fails or leaves the private binary missing.

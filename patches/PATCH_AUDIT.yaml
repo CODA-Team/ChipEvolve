@@ -61,13 +61,15 @@ evolved_legalizer_patches:
 
   - path: patches/evolved_legalizers/openroad_dpl_evolve_negotiation_iter30_from_clean.patch
     status: active_evolved_candidate_patch
-    source_commit: 52f3b85
-    source_tag: negotiation_20iter_001_iter_29 and negotiation_20iter_001_iter_30
+    source_commit: tracked_patch
+    source_tag: negotiation_primary_repaired_patch
     meaning: >
-      Standalone clean-anchor OpenROAD patch preserving the final NBLG /
-      negotiation legalization-only evolve line.
+      Standalone clean-anchor OpenROAD patch preserving the repaired
+      negotiation-primary NBLG/resource-allocation donor line.  LEGALM-style
+      guidance is allowed only as a seed/frontier; full LEGALM legalization is
+      not the successful primary route.
     apply_target: clean OpenROAD anchor from metadata/anchors.json
-    verification: git_apply_check_ok
+    verification: git_apply_check_ok; 3case_vs_openroad_negotiation_pass
 
   - path: patches/evolved_legalizers/openroad_dpl_evolve_diamond_iter30_from_clean.patch
     status: active_evolved_candidate_patch
@@ -90,12 +92,12 @@ evolved_legalizer_patches:
 
   - path: patches/evolved_legalizers/openroad_dpl_evolve_negotiation_iter30_framework_delta.patch
     status: active_review_delta
-    source_commit: 52f3b85
+    source_commit: tracked_patch
     meaning: >
-      Review-sized delta from the prepared dpl_evolve framework to the final
-      NBLG / negotiation line.
+      Review-sized delta from the prepared dpl_evolve framework to the repaired
+      negotiation-primary line.
     apply_target: prepared OpenROAD after base and framework patches
-    verification: git_apply_check_ok
+    verification: git_apply_check_ok; 3case_vs_openroad_negotiation_pass
 
   - path: patches/evolved_legalizers/openroad_dpl_evolve_diamond_iter30_framework_delta.patch
     status: active_review_delta

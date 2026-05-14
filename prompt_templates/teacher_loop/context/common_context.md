@@ -15,9 +15,6 @@
 - OpenROAD DPL default-flow reference: `$openroad_diamond`
 - negotiation donor: `$openroad_negotiation_nblg`
 - Abacus donor: `$dreamplace_abacus`
-- evolved legalizer patch catalog: `$evolved_legalizers_readme`
-- evolved legalizer manifest: `$evolved_legalizers_manifest`
-- evolved legalizer validation: `$evolved_legalizers_validation`
 - dense evolved-legalizer routing insight: `$dense_legalizer_routing_insight`
 - feature-to-mechanism strategy insight: `$strategy_inspiration_insight`
 - DPO mechanism insight: `$dpo_source_mechanisms_insight`
@@ -136,17 +133,13 @@ function/state insertion points. Do not require broad donor-tree reading.
 - compare `openroad_dpl_flow`, `openroad_dpl_negotiation`, and
   `evolve_default` together; all three are legitimate evidence and
   donor/start-point choices
-- evolved legalizers under `patches/evolved_legalizers/` are active donor
-  starts, not stale backups: `evolved_diamond`, `evolved_legalm`, and
-  `evolved_negotiation`
+- evolved donor seeds are materialized as prepared start branches:
+  `evolved_diamond`, `evolved_legalm`, and `evolved_negotiation`
 - prior evidence makes `evolved_legalm` a strong first-round route on dense
   high-utilization standard-cell cases with large legalization HPWL inflation;
   still test Diamond and negotiation families when stage evidence supports them
-- patch base matters: `*_from_clean.patch` applies to the clean OpenROAD anchor
-  in `metadata/anchors.json`; `*_framework_delta.patch` applies only after the
-  base/framework patches
-- Student private source trees are normally materialized seed sources; do not
-  make Students manually apply OpenROAD-root patches unless that is the route
+- Student private source trees use materialized seed sources and prepared git
+  start branches. Student start-point switches are branch-only.
 
 ## DPO / Improve-Placement Mechanisms
 
@@ -154,9 +147,9 @@ function/state insertion points. Do not require broad donor-tree reading.
   `Optdp`/`Detailed*` candidate generation, objective, acceptance, transaction,
   local state, and handoff consumption.
 - Useful mechanisms include source-edge cached scoring, bounded top-K exact
-  candidate evaluation, transaction accept/rollback, selective fallback
-  descent, and scoped LSMC basin escape.
-- LSMC and fallback descent can find better HPWL basins but are heavy. Use
+  candidate evaluation, transaction accept/rollback, bounded staged descent,
+  and scoped LSMC basin escape.
+- Scoped LSMC and staged descent can find better HPWL basins but are heavy. Use
   compact candidate sets, exact affected-net scoring, cached touched data,
   producer/consumer counters, and runtime/gain telemetry.
 - Handoff state should stay OpenROAD-native and compact. Use
@@ -192,6 +185,15 @@ Detailed packet: `$design_characteristics_path`
 
 $metric_table
 
+## Start Seed Calibration
+
+- start-kind donor calibration packet: `$start_seed_calibration_path`
+- If this packet contains rows, Teacher should use it as initial source-level
+  donor evidence before assigning Student routes.  Compare `framework`,
+  `evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` stage-wise
+  results, but do not treat the best initial seed as the only exploration
+  parent.  A stage donor can still be useful when its final HPWL is not best.
+
 ## Scoreboard
 
 $scoreboard
@@ -203,6 +205,7 @@ $elite_text
 ## Packets
 
 - baseline artifacts: `$baseline_artifacts_path`
+- start seed calibration: `$start_seed_calibration_path`
 - peer learning: `$peer_learning_path`
 
 ## Prior Context

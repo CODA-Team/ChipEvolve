@@ -140,6 +140,21 @@ def iter_name(iteration: int) -> str:
     return f"iter_{iteration:02d}"
 
 
+def round_id_from_dir(round_dir: Path) -> str:
+    manifest = round_dir / "manifest.json"
+    if manifest.is_file():
+        try:
+            payload = json.loads(manifest.read_text(encoding="utf-8"))
+            value = payload.get("round_id")
+            if isinstance(value, str) and value:
+                return value
+        except Exception:
+            pass
+    if round_dir.name == "teacher_rounds" and round_dir.parent.name:
+        return round_dir.parent.name
+    return round_dir.name
+
+
 def assigned_start_kind_from_insight(text: str) -> str | None:
     """Extract the primary prepared start-branch kind from Teacher text.
 

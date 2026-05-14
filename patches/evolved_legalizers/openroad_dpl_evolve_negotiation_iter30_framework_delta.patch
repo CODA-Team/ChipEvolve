@@ -1,5 +1,61 @@
+diff --git a/src/dpl_evolve/src/EvolveNegotiationRepair.cpp b/src/dpl_evolve/src/EvolveNegotiationRepair.cpp
+index bbd7c36..0b39337 100644
+--- a/src/dpl_evolve/src/EvolveNegotiationRepair.cpp
++++ b/src/dpl_evolve/src/EvolveNegotiationRepair.cpp
+@@ -6,10 +6,9 @@
+ 
+ namespace dpl_evolve {
+ 
+-// Explicit policy-assisted repair after the paper-style LEGALM path.  This is
+-// not a LEGALM paper stage.  LEGALM writes Opendp Node positions first, so sync
+-// them to ODB before the negotiation legalizer imports its compact DB-backed
+-// state.
++// Negotiation-primary legalization for the evolved route.  Earlier stages may
++// seed guided Opendp Node positions, so sync them to ODB before the negotiation
++// legalizer imports its compact DB-backed state.
+ bool Opendp::runEvolveNegotiationRepair(const bool run_abacus)
+ {
+   updateDbInstLocations();
+@@ -22,8 +21,11 @@ bool Opendp::runEvolveNegotiationRepair(const bool run_abacus)
+ 
+   logger_->info(DPL,
+                 1215,
+-                "DPL-Evolve repair stage: NegotiationLegalizer with Abacus {}.",
++                "DPL-Evolve primary stage: NegotiationLegalizer with Abacus "
++                "{}.",
+                 run_abacus ? "enabled" : "disabled");
++  logger_->metric("dpl_evolve__negotiation_primary__run_abacus",
++                  run_abacus ? 1 : 0);
+ 
+   NegotiationLegalizer negotiation(this,
+                                    db_,
+@@ -38,18 +40,18 @@ bool Opendp::runEvolveNegotiationRepair(const bool run_abacus)
+                                           : "negotiation_repair");
+ 
+   const int violations = negotiation.numViolations();
+-  logger_->metric("dpl_evolve__repair__negotiation_violations", violations);
++  logger_->metric("dpl_evolve__negotiation_primary__final_violations",
++                  violations);
+   if (violations > 0) {
+     logger_->warn(DPL,
+                   1216,
+-                  "DPL-Evolve negotiation repair left {} placement violations.",
++                  "DPL-Evolve primary negotiation left {} placement "
++                  "violations.",
+                   violations);
+     return false;
+   }
+-  // LEGALM may have recorded cells that its interval legalizer could not place.
+-  // Negotiation repair has just checked the final state, so stale LEGALM
+-  // failure records must not make the top-level DPL error path report a clean
+-  // repair as failed.
++  // Guidance/frontier stages may have stale failure records; the primary
++  // negotiation legalizer has just checked the final state.
+   placement_failures_.clear();
+   return true;
+ }
 diff --git a/src/dpl_evolve/src/LegalmFullLegalization.cpp b/src/dpl_evolve/src/LegalmFullLegalization.cpp
-index d15528b955..801a6fa42b 100644
+index d15528b..801a6fa 100644
 --- a/src/dpl_evolve/src/LegalmFullLegalization.cpp
 +++ b/src/dpl_evolve/src/LegalmFullLegalization.cpp
 @@ -2,7 +2,10 @@
@@ -6265,10 +6321,38 @@ index d15528b955..801a6fa42b 100644
                  1214,
                  "LEGALM full legalization placed {} / {} cells self-legally "
 diff --git a/src/dpl_evolve/src/NegotiationLegalizer.cpp b/src/dpl_evolve/src/NegotiationLegalizer.cpp
-index ead0899c04..f941d69ef6 100644
+index ead0899..a69584e 100644
 --- a/src/dpl_evolve/src/NegotiationLegalizer.cpp
 +++ b/src/dpl_evolve/src/NegotiationLegalizer.cpp
-@@ -557,6 +557,8 @@ bool NegotiationLegalizer::initFromDb()
+@@ -232,6 +232,9 @@ void NegotiationLegalizer::legalize()
+     debug_observer_->redrawAndPause();
+   }
+ 
++  logger_->metric("dpl_evolve__negotiation_primary__initial_illegal_cells",
++                  static_cast<int>(illegal.size()));
++
+   // --- Part 2: Negotiation (main legalization) -------------------
+   if (!illegal.empty()) {
+     debugPrint(logger_,
+@@ -247,6 +250,17 @@ void NegotiationLegalizer::legalize()
+                             1,
+                             "runNegotiation: {}");
+     runNegotiation(illegal);
++  } else {
++    logger_->metric("dpl_evolve__negotiation_primary__phase_1_active_cells",
++                    0);
++    logger_->metric("dpl_evolve__negotiation_primary__phase_1_seed_conflicts",
++                    0);
++    logger_->metric("dpl_evolve__negotiation_primary__phase_1_iterations", 0);
++    logger_->metric("dpl_evolve__negotiation_primary__phase_1_conflicts", 0);
++    logger_->metric("dpl_evolve__negotiation_primary__phase_1_candidates", 0);
++    logger_->metric("dpl_evolve__negotiation_primary__phase_2_iterations", 0);
++    logger_->metric("dpl_evolve__negotiation_primary__phase_2_conflicts", 0);
++    logger_->metric("dpl_evolve__negotiation_primary__phase_2_candidates", 0);
+   }
+ 
+   // Re-sync the DPL pixel grid after negotiation.  During negotiation,
+@@ -557,6 +571,8 @@ bool NegotiationLegalizer::initFromDb()
  
    // Build NegCell records from all placed instances.
    cells_.clear();
@@ -6277,7 +6361,7 @@ index ead0899c04..f941d69ef6 100644
    cells_.reserve(block->getInsts().size());
  
    // Cache region boundaries converted to grid coordinates, keyed by dbRegion*.
-@@ -807,9 +809,12 @@ bool NegotiationLegalizer::initFromDb()
+@@ -807,9 +823,12 @@ bool NegotiationLegalizer::initFromDb()
        cell.pad_right = padding_->padRight(db_inst).v;
      }
  
@@ -6291,7 +6375,7 @@ index ead0899c04..f941d69ef6 100644
  }
  
 diff --git a/src/dpl_evolve/src/NegotiationLegalizer.h b/src/dpl_evolve/src/NegotiationLegalizer.h
-index 9df5e47055..4dd3c4f54a 100644
+index 9df5e47..08237ba 100644
 --- a/src/dpl_evolve/src/NegotiationLegalizer.h
 +++ b/src/dpl_evolve/src/NegotiationLegalizer.h
 @@ -5,8 +5,10 @@
@@ -6377,11 +6461,19 @@ index 9df5e47055..4dd3c4f54a 100644
    std::vector<FenceRegion> fences_;
    std::vector<NLPowerRailType> row_rail_;
    std::vector<bool>
+@@ -279,6 +318,7 @@ class NegotiationLegalizer
+   mutable double prof_drc_s_{0};
+   mutable int prof_candidates_evaluated_{0};
+   mutable int prof_candidates_filtered_{0};
++  int last_iter_moves_{0};
+ };
+ 
+ }  // namespace dpl_evolve
 diff --git a/src/dpl_evolve/src/NegotiationLegalizerPass.cpp b/src/dpl_evolve/src/NegotiationLegalizerPass.cpp
-index e4f191f26c..b80c65f9b7 100644
+index e4f191f..be1c128 100644
 --- a/src/dpl_evolve/src/NegotiationLegalizerPass.cpp
 +++ b/src/dpl_evolve/src/NegotiationLegalizerPass.cpp
-@@ -34,28 +34,71 @@ namespace dpl_evolve {
+@@ -34,28 +34,75 @@ namespace dpl_evolve {
  void NegotiationLegalizer::runNegotiation(const std::vector<int>& illegalCells)
  {
    // Seed with illegal cells and all movable neighbors within the search
@@ -6461,10 +6553,142 @@ index e4f191f26c..b80c65f9b7 100644
 +                  kNegTailHistoryGainPerTail);
 +  logger_->metric("negotiation__tail_history__extra_threshold",
 +                  kNegTailHistoryExtraThreshold);
++  logger_->metric("dpl_evolve__negotiation_primary__phase_1_active_cells",
++                  static_cast<int>(active.size()));
++  logger_->metric("dpl_evolve__negotiation_primary__phase_1_seed_conflicts",
++                  static_cast<int>(illegalCells.size()));
  
    // Phase 1 – all active cells rip-up every iteration (isolation point = 0).
    debugPrint(logger_,
-@@ -394,6 +437,7 @@ void NegotiationLegalizer::place(int cell_idx, int x, int y)
+@@ -68,6 +115,11 @@ void NegotiationLegalizer::runNegotiation(const std::vector<int>& illegalCells)
+ 
+   int prev_overflows = -1;
+   int stall_count = 0;
++  int64_t phase_1_candidate_evals = 0;
++  int64_t phase_1_candidate_filtered = 0;
++  int64_t phase_1_moved_cells = 0;
++  int phase_1_iterations = 0;
++  int phase_1_final_overflows = 0;
+   for (int iter = 0; iter < max_iter_neg_; ++iter) {
+     debugPrint(logger_,
+                utl::DPL,
+@@ -78,6 +130,11 @@ void NegotiationLegalizer::runNegotiation(const std::vector<int>& illegalCells)
+                active.size());
+     const int phase_1_overflows
+         = negotiationIter(active, iter, /*updateHistory=*/true);
++    ++phase_1_iterations;
++    phase_1_final_overflows = phase_1_overflows;
++    phase_1_candidate_evals += prof_candidates_evaluated_;
++    phase_1_candidate_filtered += prof_candidates_filtered_;
++    phase_1_moved_cells += last_iter_moves_;
+     if (phase_1_overflows == 0) {
+       debugPrint(logger_,
+                  utl::DPL,
+@@ -86,6 +143,17 @@ void NegotiationLegalizer::runNegotiation(const std::vector<int>& illegalCells)
+                  "Negotiation phase 1 converged at iteration {}.",
+                  iter);
+       logger_->metric("negotiation__converge__phase_1__iteration", iter);
++      logger_->metric("dpl_evolve__negotiation_primary__phase_1_iterations",
++                      phase_1_iterations);
++      logger_->metric("dpl_evolve__negotiation_primary__phase_1_conflicts",
++                      phase_1_final_overflows);
++      logger_->metric("dpl_evolve__negotiation_primary__phase_1_candidates",
++                      static_cast<double>(phase_1_candidate_evals));
++      logger_->metric(
++          "dpl_evolve__negotiation_primary__phase_1_candidates_filtered",
++          static_cast<double>(phase_1_candidate_filtered));
++      logger_->metric("dpl_evolve__negotiation_primary__phase_1_moves",
++                      static_cast<double>(phase_1_moved_cells));
+       debugPause("Pause after convergence at phase 1.");
+       return;
+     }
+@@ -108,6 +176,17 @@ void NegotiationLegalizer::runNegotiation(const std::vector<int>& illegalCells)
+   }
+ 
+   debugPause("Pause before negotiation phase 2.");
++  logger_->metric("dpl_evolve__negotiation_primary__phase_1_iterations",
++                  phase_1_iterations);
++  logger_->metric("dpl_evolve__negotiation_primary__phase_1_conflicts",
++                  phase_1_final_overflows);
++  logger_->metric("dpl_evolve__negotiation_primary__phase_1_candidates",
++                  static_cast<double>(phase_1_candidate_evals));
++  logger_->metric(
++      "dpl_evolve__negotiation_primary__phase_1_candidates_filtered",
++      static_cast<double>(phase_1_candidate_filtered));
++  logger_->metric("dpl_evolve__negotiation_primary__phase_1_moves",
++                  static_cast<double>(phase_1_moved_cells));
+ 
+   // Phase 2 – isolation point active: skip already-legal cells.
+   debugPrint(logger_,
+@@ -119,6 +198,11 @@ void NegotiationLegalizer::runNegotiation(const std::vector<int>& illegalCells)
+ 
+   prev_overflows = -1;
+   stall_count = 0;
++  int64_t phase_2_candidate_evals = 0;
++  int64_t phase_2_candidate_filtered = 0;
++  int64_t phase_2_moved_cells = 0;
++  int phase_2_iterations = 0;
++  int phase_2_final_overflows = phase_1_final_overflows;
+   for (int iter = 0; iter < kMaxIterNeg2; ++iter) {
+     debugPrint(logger_,
+                utl::DPL,
+@@ -131,6 +215,11 @@ void NegotiationLegalizer::runNegotiation(const std::vector<int>& illegalCells)
+                active.size());
+     const int phase_2_overflows
+         = negotiationIter(active, iter + max_iter_neg_, /*updateHistory=*/true);
++    ++phase_2_iterations;
++    phase_2_final_overflows = phase_2_overflows;
++    phase_2_candidate_evals += prof_candidates_evaluated_;
++    phase_2_candidate_filtered += prof_candidates_filtered_;
++    phase_2_moved_cells += last_iter_moves_;
+     if (phase_2_overflows == 0) {
+       debugPrint(logger_,
+                  utl::DPL,
+@@ -139,6 +228,17 @@ void NegotiationLegalizer::runNegotiation(const std::vector<int>& illegalCells)
+                  "Negotiation phase 2 converged at iteration {}.",
+                  iter);
+       logger_->metric("negotiation__converge__phase_2__iteration", iter);
++      logger_->metric("dpl_evolve__negotiation_primary__phase_2_iterations",
++                      phase_2_iterations);
++      logger_->metric("dpl_evolve__negotiation_primary__phase_2_conflicts",
++                      phase_2_final_overflows);
++      logger_->metric("dpl_evolve__negotiation_primary__phase_2_candidates",
++                      static_cast<double>(phase_2_candidate_evals));
++      logger_->metric(
++          "dpl_evolve__negotiation_primary__phase_2_candidates_filtered",
++          static_cast<double>(phase_2_candidate_filtered));
++      logger_->metric("dpl_evolve__negotiation_primary__phase_2_moves",
++                      static_cast<double>(phase_2_moved_cells));
+       debugPause("Pause after convergence at phase 2.");
+       return;
+     }
+@@ -167,6 +267,17 @@ void NegotiationLegalizer::runNegotiation(const std::vector<int>& illegalCells)
+              1,
+              "Negotiation did not fully converge. Remaining violations: {}.",
+              numViolations());
++  logger_->metric("dpl_evolve__negotiation_primary__phase_2_iterations",
++                  phase_2_iterations);
++  logger_->metric("dpl_evolve__negotiation_primary__phase_2_conflicts",
++                  phase_2_final_overflows);
++  logger_->metric("dpl_evolve__negotiation_primary__phase_2_candidates",
++                  static_cast<double>(phase_2_candidate_evals));
++  logger_->metric(
++      "dpl_evolve__negotiation_primary__phase_2_candidates_filtered",
++      static_cast<double>(phase_2_candidate_filtered));
++  logger_->metric("dpl_evolve__negotiation_primary__phase_2_moves",
++                  static_cast<double>(phase_2_moved_cells));
+   debugPause("Pause after non-convergence at negotiation phases 1 and 2.");
+ }
+ 
+@@ -235,6 +346,7 @@ int NegotiationLegalizer::negotiationIter(std::vector<int>& activeCells,
+                by);
+   }
+ 
++  last_iter_moves_ = moves_count;
+   // Re-sync the DPL pixel grid before checking violations.  During the
+   // rip-up/place loop above, overlapping cells can lose their pixel->cell
+   // entry when a co-located cell is ripped up, leaving bystander cells
+@@ -394,6 +506,7 @@ void NegotiationLegalizer::place(int cell_idx, int x, int y)
    cells_[cell_idx].y = y;
    addUsage(cell_idx, 1);
    syncCellToDplGrid(cell_idx);
@@ -6472,7 +6696,7 @@ index e4f191f26c..b80c65f9b7 100644
    if (opendp_->deep_iterative_debug_ && debug_observer_) {
      const odb::dbInst* debug_inst = debug_observer_->getDebugInstance();
      if (!debug_inst || cells_[cell_idx].db_inst == debug_inst) {
-@@ -577,6 +621,261 @@ std::pair<int, int> NegotiationLegalizer::findBestLocation(int cell_idx,
+@@ -577,6 +690,261 @@ std::pair<int, int> NegotiationLegalizer::findBestLocation(int cell_idx,
    return {best_x, best_y};
  }
  
@@ -6734,7 +6958,7 @@ index e4f191f26c..b80c65f9b7 100644
  // ===========================================================================
  // negotiationCost – Eq. 10 from the NBLG paper
  //   Cost(x,y) = b(x,y) + Σ_grids h(g) * p(g)
-@@ -586,6 +885,32 @@ double NegotiationLegalizer::negotiationCost(int cell_idx, int x, int y) const
+@@ -586,6 +954,32 @@ double NegotiationLegalizer::negotiationCost(int cell_idx, int x, int y) const
  {
    const NegCell& cell = cells_[cell_idx];
    double cost = targetCost(cell_idx, x, y);
@@ -6767,7 +6991,7 @@ index e4f191f26c..b80c65f9b7 100644
  
    const int xBegin = std::max(0, x - cell.pad_left);
    const int xEnd = std::min(grid_w_, x + cell.width + cell.pad_right);
-@@ -648,7 +973,7 @@ void NegotiationLegalizer::updateHistoryCosts()
+@@ -648,7 +1042,7 @@ void NegotiationLegalizer::updateHistoryCosts()
        Pixel& g = gridAt(gx, gy);
        const int ov = g.overuse();
        if (ov > 0) {
@@ -6776,7 +7000,7 @@ index e4f191f26c..b80c65f9b7 100644
        }
      }
    }
-@@ -692,7 +1017,9 @@ void NegotiationLegalizer::updateDrcHistoryCosts(
+@@ -692,7 +1086,9 @@ void NegotiationLegalizer::updateDrcHistoryCosts(
        for (int dy = 0; dy < cell.height; ++dy) {
          for (int gx = xBegin; gx < xEnd; ++gx) {
            if (gridExists(gx, cell.y + dy)) {
@@ -6787,7 +7011,7 @@ index e4f191f26c..b80c65f9b7 100644
            }
          }
        }
-@@ -731,6 +1058,13 @@ void NegotiationLegalizer::sortByNegotiationOrder(
+@@ -731,6 +1127,13 @@ void NegotiationLegalizer::sortByNegotiationOrder(
      if (oa != ob) {
        return oa > ob;
      }
@@ -6801,3 +7025,93 @@ index e4f191f26c..b80c65f9b7 100644
      if (cells_[a].height != cells_[b].height) {
        return cells_[a].height < cells_[b].height;
      }
+diff --git a/src/dpl_evolve/src/StudentAlgorithm.cpp b/src/dpl_evolve/src/StudentAlgorithm.cpp
+index 78cd8c1..8bd2469 100644
+--- a/src/dpl_evolve/src/StudentAlgorithm.cpp
++++ b/src/dpl_evolve/src/StudentAlgorithm.cpp
+@@ -11,11 +11,11 @@ namespace dpl_evolve {
+ bool Opendp::runStudentAlgorithm(const EvolveContext& context)
+ {
+   clearGuidedInitialLocations();
+-  logger_->metric("dpl_evolve__student_algorithm__pipeline_version", 1);
++  logger_->metric("dpl_evolve__student_algorithm__pipeline_version", 2);
+   logger_->info(DPL,
+                 1220,
+-                "Running DPL-Evolve pipeline: LEGALM guidance, complete target "
+-                "handoff, LEGALM legalization.");
++                "Running DPL-Evolve pipeline: LEGALM guidance seed, "
++                "negotiation-primary legalization.");
+ 
+   using Clock = std::chrono::steady_clock;
+   auto elapsed_ms
+@@ -30,54 +30,29 @@ bool Opendp::runStudentAlgorithm(const EvolveContext& context)
+   logger_->metric("dpl_evolve__pipeline__legalm_guidance_ms", guidance_ms);
+   reportEvolvePlacementMetrics("legalm_guidance");
+ 
+-  const auto legalm_begin = Clock::now();
+-  const bool legalm_ok = runLegalmFullLegalization(context);
+-  const auto legalm_end = Clock::now();
+-  const double legalm_ms = elapsed_ms(legalm_begin, legalm_end);
+-  logger_->metric("dpl_evolve__pipeline__legalm_full_ms", legalm_ms);
+-  logger_->metric("dpl_evolve__pipeline__legalm_status", legalm_ok ? 1 : 0);
++  const int guided_seed_cells = commitGuidedInitialLocationsToDb();
++  logger_->metric("dpl_evolve__pipeline__guided_seed_cells",
++                  guided_seed_cells);
++  reportEvolvePlacementMetrics("guided_seed_handoff");
+ 
+-  if (legalm_ok) {
+-    logger_->metric("dpl_evolve__pipeline__policy_repair_used", 0);
+-    logger_->info(DPL,
+-                  1221,
+-                  "DPL-Evolve LEGALM-only pipeline timing: guidance {:.2f} ms, "
+-                  "full legalization {:.2f} ms.",
+-                  guidance_ms,
+-                  legalm_ms);
+-    reportEvolvePlacementMetrics("legalm_only");
+-    return true;
+-  }
+-
+-  if (!use_negotiation_) {
+-    logger_->metric("dpl_evolve__pipeline__policy_repair_used", 0);
+-    logger_->warn(DPL,
+-                  1222,
+-                  "LEGALM full legalization did not close legality; no "
+-                  "policy-assisted repair was requested.");
+-    return false;
+-  }
+-
+-  logger_->warn(DPL,
+-                1223,
+-                "LEGALM full legalization did not close legality; running "
+-                "explicit policy-assisted negotiation repair.");
+-  const auto repair_begin = Clock::now();
++  logger_->metric("dpl_evolve__pipeline__legalm_full_used", 0);
++  logger_->metric("dpl_evolve__pipeline__negotiation_primary_used", 1);
++  const auto negotiation_begin = Clock::now();
+   const bool negotiation_ok = runEvolveNegotiationRepair(run_abacus_);
+-  const auto repair_end = Clock::now();
+-  const double repair_ms = elapsed_ms(repair_begin, repair_end);
+-  logger_->metric("dpl_evolve__pipeline__policy_repair_used", 1);
+-  logger_->metric("dpl_evolve__pipeline__negotiation_repair_ms", repair_ms);
+-  logger_->metric("dpl_evolve__pipeline__negotiation_status",
++  const auto negotiation_end = Clock::now();
++  const double negotiation_ms = elapsed_ms(negotiation_begin, negotiation_end);
++  logger_->metric("dpl_evolve__pipeline__negotiation_primary_ms",
++                  negotiation_ms);
++  logger_->metric("dpl_evolve__pipeline__negotiation_primary_status",
+                   negotiation_ok ? 1 : 0);
+   logger_->info(DPL,
+                 1224,
+-                "DPL-Evolve policy-assisted pipeline timing: guidance {:.2f} "
+-                "ms, full legalization {:.2f} ms, negotiation repair {:.2f} "
++                "DPL-Evolve negotiation-primary pipeline timing: guidance "
++                "{:.2f} ms, guided seed handoff {} cells, negotiation {:.2f} "
+                 "ms.",
+                 guidance_ms,
+-                legalm_ms,
+-                repair_ms);
++                guided_seed_cells,
++                negotiation_ms);
+   return negotiation_ok;
+ }
+ 

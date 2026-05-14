@@ -9,7 +9,7 @@ then inspect which mechanisms repeat.
 
 ## TSV Format
 
-`run_aggressive_flow_knowledge_experiments.sh --plan <file>` expects tab
+`experiments/launchers/run_aggressive_flow_knowledge_experiments.sh --plan <file>` expects tab
 separated rows:
 
 ```text
@@ -23,8 +23,8 @@ enabled case core_utilization flow_variant round_id start_kind notes
 - `round_id`: stable Teacher/Student output directory name.
 - `start_kind`: `framework`, `diamond`,
   `evolved_diamond`, `evolved_legalm`, `evolved_negotiation`, or `prepared`.
-  `evolved_*` rows use materialized seed sources created from
-  `patches/evolved_legalizers/*_framework_delta.patch`.
+  `evolved_*` rows use prepared seed sources created by
+  `scripts/prepare_workspace.sh`.
 - `notes`: short human intent for this experiment point.
 
 ## Recommended Pattern
@@ -61,7 +61,7 @@ constant while the design and utilization change.
 The main large knowledge experiment is:
 
 ```bash
-"$DPL_EVOLVE_AGENT_ROOT/scripts/run_jpeg_util60_discovery_then_matrix.sh"
+"$DPL_EVOLVE_AGENT_ROOT/experiments/launchers/run_jpeg_util60_discovery_then_matrix.sh"
 ```
 
 Default behavior:

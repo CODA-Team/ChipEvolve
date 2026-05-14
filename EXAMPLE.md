@@ -24,7 +24,7 @@ python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py" \
 The script writes:
 
 ```text
-$DPL_EVOLVE_STATE_ROOT/teacher_rounds/<round_id>/
+$DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/
 ```
 
 Each iteration contains:
@@ -39,7 +39,7 @@ Each iteration contains:
 Student lineage lives under:
 
 ```text
-$DPL_EVOLVE_STATE_ROOT/teacher_rounds/<round_id>/students/
+$DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/students/
 ```
 
 ## Launch Agents

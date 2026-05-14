@@ -14,6 +14,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         description="Run one non-interactive Codex operation and record artifacts."
     )
     parser.add_argument("--operation-id", default=default_operation_id())
+    parser.add_argument(
+        "--operations-dir",
+        type=Path,
+        help=(
+            "Directory that stores this operation's recorded artifacts. "
+            "Defaults to the runtime checkpoints/operations directory."
+        ),
+    )
     parser.add_argument("--prompt")
     parser.add_argument("--prompt-file", type=Path)
     parser.add_argument("--model")

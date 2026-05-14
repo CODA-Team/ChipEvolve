@@ -331,7 +331,7 @@ def load_log_row(round_id: str, log_path: Path) -> StageRow | None:
 
 
 def round_status(state_root: Path, round_id: str) -> str:
-    round_dir = state_root / "teacher_rounds" / round_id
+    round_dir = teacher_round_dir(state_root, round_id)
     if not round_dir.exists():
         return "round_dir_missing"
     round_log = round_dir / "round.log"
@@ -341,8 +341,12 @@ def round_status(state_root: Path, round_id: str) -> str:
     return lines[-1] if lines else "round_log_empty"
 
 
+def teacher_round_dir(state_root: Path, round_id: str) -> Path:
+    return state_root / round_id / "teacher_rounds"
+
+
 def round_dir(state_root: Path, round_id: str) -> Path:
-    return state_root / "teacher_rounds" / round_id
+    return teacher_round_dir(state_root, round_id)
 
 
 def round_case_id(state_root: Path, round_id: str) -> str:

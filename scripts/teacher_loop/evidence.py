@@ -771,7 +771,7 @@ def round_scoreboard(
         )
         artifact_problems = candidate_artifact_problems(
             runtime=runtime,
-            round_dir=runtime.state_root / "teacher_rounds" / round_id,
+            round_dir=runtime.state_root / round_id / "teacher_rounds",
             round_id=round_id,
             case_id=case_id,
             candidate=summary,
@@ -903,7 +903,7 @@ def best_round_candidate(
             continue
         if not is_promotable_candidate(
             runtime=runtime,
-            round_dir=runtime.state_root / "teacher_rounds" / round_id,
+            round_dir=runtime.state_root / round_id / "teacher_rounds",
             round_id=round_id,
             case_id=case_id,
             candidate=summary,
@@ -1391,20 +1391,19 @@ def metric_table(metrics: dict[str, MetricSummary | None]) -> str:
     lines = [
         f"Value reference: `{value_label or VALUE_REFERENCE_LINE}`; value gain `{HPWL_RUNTIME_GAIN_FORMULA}`.",
         "",
-        "| line | tag | G_HR | HPWL_gain% | runtime_penalty_pp | HPWLg | delta HPWLlg | delta HPWLip | delta HPWL final | HPWL final | runtime_s | avg_disp | max_disp | violations |",
-        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|",
+        "| line | G_HR | HPWL_gain% | runtime_penalty_pp | HPWLg | delta HPWLlg | delta HPWLip | delta HPWL final | HPWL final | runtime_s | avg_disp | max_disp | violations |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|",
     ]
     for name in CANONICAL_LINES:
         summary = metrics.get(name)
         if summary is None:
-            lines.append(f"| {name} | missing |  |  |  |  |  |  |  |  |  |  |  |  |")
+            lines.append(f"| {name} | missing |  |  |  |  |  |  |  |  |  |  |  |")
             continue
         gain_factors = hpwl_runtime_gain_factors(summary, value_baseline)
         lines.append(
-            "| {name} | {tag} | {score} | {h} | {r} | {hpwlg} | {d_lg} | {d_ip} | {d_final} | {hpwl_after} | {runtime} | "
+            "| {name} | {score} | {h} | {r} | {hpwlg} | {d_lg} | {d_ip} | {d_final} | {hpwl_after} | {runtime} | "
             "{avg_disp} | {max_disp} | {violations} |".format(
                 name=name,
-                tag=summary.tag,
                 score="" if gain_factors is None else f"{gain_factors['score']:.3f}",
                 h="" if gain_factors is None else f"{gain_factors['H']:.4f}",
                 r="" if gain_factors is None else f"{gain_factors['R']:.4f}",

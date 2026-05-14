@@ -13,6 +13,10 @@ Use this when a Student edits its private `dpl_evolve` source workspace.
   `agent/<student_id>/<iter_name>`.
 - Do not create copied source backup trees.  The git commit is the lineage
   record.
+- Run source git commands from this private repo, or use
+  `git -C "$private_dpl_evolve_source" ...`. Do not run `git diff --check`,
+  `git status`, or commits from the outer agent repo because that can inspect
+  release patch artifacts instead of the candidate source.
 
 ## Required Flow
 
@@ -39,6 +43,11 @@ Use this when a Student edits its private `dpl_evolve` source workspace.
    workbench checkpoint so Teacher can continue repairing it later.
 8. Run `commit_source_script`.
 9. Run `write_diff_script` after the final commit.
+
+Run any manual `git diff --check` as `git -C "$private_dpl_evolve_source" diff
+--check` or after `cd "$private_dpl_evolve_source"`. Generated build/evaluate
+scripts may be launched from their script directory, but source git hygiene is
+always scoped to the private source repo.
 
 The orchestrator records the final commit after the Student exits.  If the
 Student leaves uncommitted changes, the orchestrator may create a fallback

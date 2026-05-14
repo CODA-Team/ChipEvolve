@@ -2,7 +2,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/runtime_env.sh"
+AGENT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+source "${AGENT_ROOT}/scripts/runtime_env.sh"
 dpl_init_runtime "run_jpeg_util60_discovery_then_matrix.sh"
 
 ROUND_ID="jpeg_util60_discovery_4x12"
@@ -138,12 +139,12 @@ log "baseline_parallel=${BASELINE_PARALLEL}"
 log "matrix_row_parallel=${MATRIX_ROW_PARALLEL}"
 
 if [[ "${MATRIX_ONLY}" -ne 1 && "${SKIP_CORE_BUILD}" -ne 1 ]]; then
-  run_cmd "${SCRIPT_DIR}/configure_openroad_core.sh"
-  run_cmd "${SCRIPT_DIR}/build_openroad_core.sh" "${THREADS}"
+  run_cmd "${AGENT_ROOT}/scripts/configure_openroad_core.sh"
+  run_cmd "${AGENT_ROOT}/scripts/build_openroad_core.sh" "${THREADS}"
 fi
 
 if [[ "${MATRIX_ONLY}" -ne 1 && "${SKIP_BASELINE_MATRIX}" -ne 1 ]]; then
-  run_cmd "${SCRIPT_DIR}/run_candidate_matrix.sh" \
+  run_cmd "${AGENT_ROOT}/scripts/run_candidate_matrix.sh" \
     --matrix-id "${ROUND_ID}_baselines" \
     --plan "${PLAN_FILE}" \
     --threads "${THREADS}" \
@@ -157,7 +158,7 @@ if [[ "${BASELINE_ONLY}" -eq 1 ]]; then
 fi
 
 if [[ "${MATRIX_ONLY}" -ne 1 ]]; then
-  run_cmd python3 "${SCRIPT_DIR}/optimize_case_with_codex.py" \
+  run_cmd python3 "${AGENT_ROOT}/scripts/optimize_case_with_codex.py" \
     --case "${MAIN_CASE}" \
     --flow-variant "${MAIN_FLOW_VARIANT}" \
     --round-id "${ROUND_ID}" \
@@ -180,7 +181,7 @@ if [[ "${DISCOVERY_ONLY}" -eq 1 ]]; then
 fi
 
 matrix_args=(
-  "${SCRIPT_DIR}/run_round_candidate_matrices.sh"
+  "${AGENT_ROOT}/scripts/run_round_candidate_matrices.sh"
   --round-id "${ROUND_ID}"
   --plan "${PLAN_FILE}"
   --matrix-prefix "${ROUND_ID}_all_candidates"

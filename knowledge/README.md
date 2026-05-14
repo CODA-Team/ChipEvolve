@@ -11,13 +11,14 @@ Default reading order:
 4. `../baseline/canonical_lines.yaml`
 5. `../family_variants/REFERENCE_INDEX.yaml`
 6. `index/skill_cards.jsonl` through `../scripts/query_knowledge.py` when selecting stage mechanisms
-7. `../patches/evolved_legalizers/README.md` when choosing a legalizer donor/start seed
-8. `insights/case_evolution/strategy_inspiration_by_design_feature.md` when
+7. `insights/case_evolution/strategy_inspiration_by_design_feature.md` when
    translating design features into mechanism inspiration
-9. `insights/dpo/source_level_mechanisms.md` when planning improve-placement
+8. `insights/dpo/source_level_mechanisms.md` when planning improve-placement
    source mechanisms
-10. `insights/dpo/openroad_native_handoff.md` when passing legalization
+9. `insights/dpo/openroad_native_handoff.md` when passing legalization
    frontier state into improve placement
+10. `skills/legalization/differential_guidance_stop_target.md` when using
+   LEGALM/differential guidance as a seed/frontier instead of a full legalizer
 11. one relevant file under `algorithm_cards/` or `insights/`
 12. paper PDFs and source notes under `reference/` only if needed
 
@@ -58,6 +59,7 @@ Current compact algorithm cards:
 - `algorithm_cards/context/nblg.md`
 - `algorithm_cards/context/legalm2.md`
 - `algorithm_cards/context/dreamplace_abacus.md`
+- `skills/legalization/differential_guidance_stop_target.md`
 
 The previous family-tree knowledge base is not part of default tracked context.
 Do not broad-read external archives during normal framework patching.  They are
@@ -74,15 +76,26 @@ strategy guidance.  Do not put local experiment paths, result-table filenames,
 or benchmark-specific result rows in default knowledge.  Keep those in external
 experiment archives and translate only the reusable lesson back into knowledge.
 
-The evolved legalizer catalog is active donor inventory.
+Prepared evolved start branches are active donor inventory.
 `evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` are prior
 iter30 legalizer donor seeds with measured wins on some design archetypes, not
 universal defaults. Improve-placement knowledge should be expressed as
 mechanism guidance: bounded source-edge scoring, exact top-K candidate
-evaluation, transaction rollback, selective fallback descent, scoped LSMC
-basin escape, and legalizer-to-DPO handoff consumers. Teacher should assign
+evaluation, transaction rollback, bounded staged descent, scoped LSMC basin
+escape, and legalizer-to-DPO handoff consumers. Teacher should assign
 those mechanisms directly in the current private source and validate them
 against stage-wise evidence.
+
+For `evolved_negotiation`, verify the negotiation-primary route signal before
+using it as a donor.  The intended mechanism is resource-allocation/conflict
+resolution; full LEGALM legalization must not be the successful primary path
+inside this start kind.
+
+Differential/LEGALM-style guidance can still be valuable in a non-LEGALM route
+when it stops early and produces a bounded seed/frontier for the downstream
+legalizer or DPO consumer.  Treat the guidance objective, stop point, handoff
+payload, and consumer as mechanism-level search variables, then promote only by
+full-flow final HPWL, legality, displacement, and runtime evidence.
 
 ## Legalizer Algorithm Flow Review
 

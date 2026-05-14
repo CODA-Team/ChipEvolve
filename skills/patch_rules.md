@@ -45,15 +45,14 @@ If donor evidence is needed, use repo-root references such as:
 - `<agent_root>/family_variants/openroad_negotiation_nblg/README.md`
 - `<agent_root>/family_variants/openroad_negotiation_nblg/mechanism_deltas/`
   only when assigned to negotiation-history mechanisms.
-- `<agent_root>/patches/evolved_legalizers/README.md`
-- `<agent_root>/patches/evolved_legalizers/generation_manifest.tsv`
-- `<agent_root>/patches/evolved_legalizers/validation.tsv`
-- `<agent_root>/patches/evolved_legalizers/openroad_dpl_evolve_*_iter30_framework_delta.patch`
 - `<agent_root>/knowledge/insights/dpo/source_level_mechanisms.md`
 
 If an absolute donor path is missing, skip it and continue from Teacher-named
 source symbols. Do not search for donor files relative to the private source
 repo.
+Evolved starts are prepared as local git branches by the workspace scripts.
+Patch files under the repo are release/reproduction artifacts, not ordinary
+Student inputs.
 Use the generated `08_query_knowledge.sh` helper when Teacher names a LEGO-lite
 skill id. Open only the matching skill note and current source handles; do not
 bulk-read all skill records.
@@ -69,8 +68,8 @@ packet and repo-local knowledge files are the evidence boundary.
   `src/Optdp.cpp`, `src/optimization/`, `src/objective/`, and compact handoff
   structs.
 - Useful mechanism families include bounded source-edge scoring, top-K exact
-  candidate reduction, transaction accept/rollback, selective fallback
-  descent, scoped LSMC-style basin escape, and legalization-to-DPO handoff
+  candidate reduction, transaction accept/rollback, bounded staged descent,
+  scoped LSMC-style basin escape, and legalization-to-DPO handoff
   consumers.
 - Implement only the selected mechanism, with compact counters/logs, bounded
   candidate sets, exact affected-net scoring, and full-flow validation. LSMC is
@@ -104,7 +103,9 @@ packet and repo-local knowledge files are the evidence boundary.
   declaration, one include list, or one build-list edit per hunk. Large
   mechanisms should be decomposed into several verified small patches.
 - After a successful patch, verify the changed symbol with targeted `rg -n` or a
-  small excerpt, then run `git diff --check` before building.
+  small excerpt, then run `git -C "$private_dpl_evolve_source" diff --check`
+  before building. If you already changed into the private source repo, plain
+  `git diff --check` is equivalent; do not run it from the outer agent repo.
 - If `apply_patch` fails, do not retry the same stale hunk. Re-open the current
   local source around the intended function/state, reduce the edit to the
   smallest semantic insertion or replacement, and apply a fresh patch based only
@@ -119,13 +120,9 @@ packet and repo-local knowledge files are the evidence boundary.
 - If Teacher assigns a prepared start point (`framework`, `diamond`,
   `evolved_diamond`, `evolved_legalm`, or `evolved_negotiation`), use the generated
   `switch_start_branch_script` immediately after source preparation and before
-  edits. Do not copy seed directories or manually apply OpenROAD-root patches to
-  emulate a start-point switch.
-- If Teacher assigns an evolved patch application rather than an evolved
-  start-kind, use the generated `apply_evolved_legalizer_patch_script`.
-  First run it with `--check-only`, then apply exactly one line
-  (`diamond`, `legalm`, or `negotiation`). Do not manually run `git apply` on
-  OpenROAD-root patches inside the private source tree.
+  edits. Do not copy seed directories to emulate a start-point switch.
+- Student workspaces use prepared git branches, then local source edits and
+  commits.
 - Keep `detailed_placement_evolve` as the primary evolved placement command.
 - Keep external evaluator, baseline Tcl, ORFS flow, workspace helper, and
   benchmark-selection scripts locked. Inside `private_dpl_evolve_source`, it is

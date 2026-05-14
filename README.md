@@ -161,7 +161,7 @@ python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py" \
 The script prints the round directory. It also follows this pattern:
 
 ```text
-$DPL_EVOLVE_STATE_ROOT/teacher_rounds/<round_id>/
+$DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/
 ```
 
 Watch a launched round:
@@ -306,7 +306,7 @@ every iteration for review, matrix testing, and lineage comparison.
 Round outputs live under:
 
 ```text
-$DPL_EVOLVE_STATE_ROOT/teacher_rounds/<round_id>/
+$DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/
 ```
 
 Useful files:
@@ -323,13 +323,13 @@ students/student_XX/iter_XX/artifacts/
 Each student's stable active workspace is:
 
 ```text
-$DPL_EVOLVE_STATE_ROOT/teacher_rounds/<round_id>/students/student_XX/workspace/
+$DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/students/student_XX/workspace/
 ```
 
 The editable private source tree is:
 
 ```text
-$DPL_EVOLVE_STATE_ROOT/teacher_rounds/<round_id>/students/student_XX/workspace/variant/dpl_evolve
+$DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/students/student_XX/workspace/variant/dpl_evolve
 ```
 
 The editable private source tree is a local git repository. Each student should
@@ -338,13 +338,13 @@ orchestrator creates a fallback commit only if the student leaves source
 changes uncommitted. The committed revision is recorded at:
 
 ```text
-$DPL_EVOLVE_STATE_ROOT/teacher_rounds/<round_id>/students/student_XX/iter_XX/artifacts/source_commit.json
+$DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/students/student_XX/iter_XX/artifacts/source_commit.json
 ```
 
 Per-iteration build/eval logs and diffs stay in:
 
 ```text
-$DPL_EVOLVE_STATE_ROOT/teacher_rounds/<round_id>/students/student_XX/iter_XX/artifacts/
+$DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/students/student_XX/iter_XX/artifacts/
 ```
 
 ### Model Flags
@@ -370,19 +370,27 @@ framework             constrained top-level dpl_evolve framework; clean framewor
 diamond               direct/default DPL-style evolve seed; useful as a contrast line
 evolved_diamond       prior iter30 Diamond/local-greedy evolved donor seed
 evolved_legalm        current default; prior iter30 LEGALM/global-differential evolved donor seed
-evolved_negotiation   prior iter30 NBLG/negotiation evolved donor seed
+evolved_negotiation   prior iter30 negotiation-primary evolved donor seed; can use differential guidance only as seed/frontier
 prepared              copy the current ORFS dpl_evolve source; useful for local debug only
 ```
 
 `evolved_legalm` is the CLI default because it starts from the current
 LEGALM/global-differential evolved source line. Use `framework` when a round
-should explicitly restart from the constrained clean framework.
+should explicitly restart from the constrained clean framework. Use
+`evolved_negotiation` as a conflict/resource-allocation donor, not as a
+universal HPWL winner; route logs should prove negotiation-primary execution.
 
 The evolved seeds are materialized by `scripts/prepare_workspace.sh` from
 `patches/evolved_legalizers/*_framework_delta.patch`.  The standalone
 `*_from_clean.patch` files in that directory are for clean OpenROAD checkouts at
 the recorded anchor; they are not meant to be manually applied inside a Student
 private source tree.
+
+Before a new case-specific round, `--calibrate-start-seeds` can compile and
+run the prepared start-kind seed branches on the target case.  The generated
+`start_seed_calibration.md` packet gives Teacher initial stage-wise evidence
+for `framework`, `evolved_diamond`, `evolved_legalm`, and
+`evolved_negotiation` before Student routes are assigned.
 
 ### Where More Details Live
 

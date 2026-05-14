@@ -2,7 +2,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/runtime_env.sh"
+AGENT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+source "${AGENT_ROOT}/scripts/runtime_env.sh"
 dpl_init_runtime "run_aggressive_flow_knowledge_experiments.sh"
 
 PREFIX="flow_knowledge"
@@ -133,7 +134,7 @@ run_cmd_env() {
 }
 
 case_field() {
-  python3 "${SCRIPT_DIR}/case_registry.py" --case "$1" --field "$2"
+  python3 "${AGENT_ROOT}/scripts/case_registry.py" --case "$1" --field "$2"
 }
 
 snapshot_path() {
@@ -203,12 +204,12 @@ log "agent_root=${DPL_EVOLVE_AGENT_ROOT}"
 log "start_kind=${START_KIND} children=${CHILDREN} iterations=${ITERATIONS} max_parallel=${MAX_PARALLEL}"
 
 if [[ "${PREPARE_WORKSPACE}" -eq 1 ]]; then
-  run_cmd "${SCRIPT_DIR}/prepare_workspace.sh" --workspace-root "${ORFS_ROOT}"
+  run_cmd "${AGENT_ROOT}/scripts/prepare_workspace.sh" --workspace-root "${ORFS_ROOT}"
 fi
 
 if [[ "${SKIP_CORE_BUILD}" -ne 1 ]]; then
-  run_cmd "${SCRIPT_DIR}/configure_openroad_core.sh"
-  run_cmd "${SCRIPT_DIR}/build_openroad_core.sh" "${THREADS}"
+  run_cmd "${AGENT_ROOT}/scripts/configure_openroad_core.sh"
+  run_cmd "${AGENT_ROOT}/scripts/build_openroad_core.sh" "${THREADS}"
 fi
 
 log "phase=place_and_baseline"
@@ -225,14 +226,14 @@ for row in "${EXPERIMENTS[@]}"; do
     log "reuse_snapshot case=${case_id} flow_variant=${flow_variant} snapshot=${snapshot}"
   elif [[ -n "${core_util}" ]]; then
     run_cmd_env CORE_UTILIZATION "${core_util}" \
-      "${SCRIPT_DIR}/run_place_batch.sh" \
+      "${AGENT_ROOT}/scripts/run_place_batch.sh" \
       --case "${case_id}" \
       --flow-variant "${flow_variant}" \
       --max-tasks 1 \
       --num-cores "${THREADS}" \
       --target place
   else
-    run_cmd "${SCRIPT_DIR}/run_place_batch.sh" \
+    run_cmd "${AGENT_ROOT}/scripts/run_place_batch.sh" \
       --case "${case_id}" \
       --flow-variant "${flow_variant}" \
       --max-tasks 1 \
@@ -256,7 +257,7 @@ log "phase=teacher_student_loops"
 for row in "${EXPERIMENTS[@]}"; do
   IFS='|' read -r case_id core_util flow_variant round_id row_start_kind notes <<< "${row}"
   log "launch_round case=${case_id} core_utilization=${core_util:-default} round_id=${round_id} start_kind=${row_start_kind} notes=${notes}"
-  run_cmd python3 "${SCRIPT_DIR}/optimize_case_with_codex.py" \
+  run_cmd python3 "${AGENT_ROOT}/scripts/optimize_case_with_codex.py" \
     --case "${case_id}" \
     --flow-variant "${flow_variant}" \
     --round-id "${round_id}" \

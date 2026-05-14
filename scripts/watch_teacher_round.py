@@ -27,6 +27,7 @@ if str(AGENT_ROOT) not in sys.path:
     sys.path.insert(0, str(AGENT_ROOT))
 
 from runtime_paths import resolve_runtime_paths
+from scripts.teacher_loop.common import round_id_from_dir
 
 
 @dataclass(frozen=True)
@@ -137,7 +138,7 @@ def summarize_events(events_path: Path) -> str:
 
 
 def infer_operations(round_dir: Path, operations_dir: Path) -> list[tuple[str, str, str, Path]]:
-    round_id = round_dir.name
+    round_id = round_id_from_dir(round_dir)
     inferred: list[tuple[str, str, str, Path]] = []
     for iter_dir in sorted(round_dir.glob("iter_*")):
         if not iter_dir.is_dir():
@@ -184,10 +185,11 @@ def operation_status(op_id: str, op_dir: Path, proc_text: str) -> tuple[str, int
 
 def collect(round_dir: Path) -> list[OperationView]:
     rt = runtime_paths()
+    operations_dir = round_dir.parent / "checkpoints" / "operations"
     proc_text = process_text()
     views: list[OperationView] = []
-    for iteration, kind, op_id, prompt_path in infer_operations(round_dir, rt.operations_dir):
-        op_dir = rt.operations_dir / op_id
+    for iteration, kind, op_id, prompt_path in infer_operations(round_dir, operations_dir):
+        op_dir = operations_dir / op_id
         summary = load_json(op_dir / "codex_usage_summary.json") or {}
         status, returncode = operation_status(op_id, op_dir, proc_text)
         usage = summary.get("usage", {}) if isinstance(summary.get("usage"), dict) else {}
@@ -358,7 +360,7 @@ def resolve_round_dir(value: str) -> Path:
     if path.exists():
         return path.resolve()
     rt = runtime_paths()
-    return (rt.state_root / "teacher_rounds" / value).resolve()
+    return (rt.state_root / value / "teacher_rounds").resolve()
 
 
 def main(argv: list[str] | None = None) -> int:

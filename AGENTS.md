@@ -1,176 +1,123 @@
 # AGENTS.md
 
-This file is the execution contract for coding agents.  For human setup, use
-`README.md`.
+This file is the repo-level execution contract for coding agents maintaining
+`dpl_evolve_agent`. It is not the runtime Teacher prompt and it is not the
+runtime Student prompt.
 
-## Runtime Roots
+Human setup and common commands live in `README.md` and `scripts/README.md`.
+Runtime Teacher/Student behavior is generated from `prompt_templates/`.
 
-- `DPL_EVOLVE_AGENT_ROOT`: this control repo.
-- `ORFS_ROOT`: the external OpenROAD-flow-scripts workspace.
-- `DPL_EVOLVE_STATE_ROOT`: ignored runtime state, builds, checkpoints,
-  operations, and private variant binaries.
+## Agent Roles And Prompt Locations
 
-Machine-local values belong in ignored `env.sh`.  Do not hardcode local paths
-in tracked scripts, prompts, or patches.
+### Repo Agent
 
-ORFS is the interaction workspace.  Agents may read it and may write runtime
-artifacts under `DPL_EVOLVE_STATE_ROOT`, but durable source-of-truth changes
-belong in this repo as patches, docs, or database records.
+The repo Agent is the agent editing this repository. Its job is to keep the
+framework publishable:
 
-## Current Direction
+- Maintain scripts, prompt templates, knowledge cards, patch catalogs, docs,
+  and validation helpers in this repo.
+- Keep tracked files self-contained and machine-portable. Do not hardcode
+  local absolute paths in tracked scripts, prompts, knowledge, or patches.
+- Keep runtime-generated outputs under `DPL_EVOLVE_STATE_ROOT`; do not commit
+  `.dpl_evolve_state`, ORFS run outputs, or private variant workspaces.
+- Validate changed Python and shell scripts before launching experiments.
+- Keep prompt text in `prompt_templates/` when possible. Python may assemble,
+  substitute, and index prompt fragments, but should not grow hidden long-form
+  Teacher/Student instructions.
 
-The active project direction is a constrained top-level detailed-placement
-framework.  The primary evolved placement command is always:
-
-```text
-detailed_placement_evolve
-```
-
-Do not revive the old family-tree router unless explicitly assigned.  Legacy
-family-flow notes, matrices, routers, and robustness reports are intentionally
-excluded from default tracked context so they do not pollute agent prompts.
-
-The current source patch is:
+Repo Agent rules are defined here:
 
 ```text
-patches/openroad_dpl_evolve_framework.patch
+AGENTS.md
 ```
 
-It introduces the `EvolveLegalizer` hook surface behind
-`detailed_placement_evolve`:
+### Evolve Teacher Agent
 
-1. import design context,
-2. call a student-owned algorithm hook,
-3. expose optional donor callbacks for code that intentionally uses them,
-4. emit stage telemetry.
+The Teacher Agent is created by the evolve loop. Its job is to review evidence
+and assign mechanism-level routes to Students.
 
-This is a strong starting framework, not a final algorithm. The prepared source
-runs a concrete LEGALM-style guidance/legalization path and can use
-Abacus-enabled negotiation repair when needed. Agents are expected to modify,
-replace, or reorder those stages aggressively inside private variant source,
-then the strict evaluator judges the result against a separately measured
-OpenROAD DPL flow baseline.
-
-## Reference Sources
-
-Use the compact donor shelf, not old experiment directories:
+Teacher source templates live here:
 
 ```text
-family_variants/
-family_variants/REFERENCE_INDEX.yaml
+prompt_templates/teacher_loop/teacher/
+prompt_templates/teacher_loop/context/
+prompt_templates/teacher_loop/shared/
 ```
 
-Canonical donors:
-
-- OpenROAD DPL flow: current strict-track comparison anchor
-  (`detailed_placement`, `improve_placement`, `optimize_mirroring`).
-- OpenROAD diamond DPL: local-search donor and prepass reference, not the
-  current standalone baseline runner.
-- OpenROAD negotiation/NBLG: repair and overflow donor; do not assume it is the
-  right primary engine for every case.
-- OpenROAD negotiation/NBLG also includes selected threaded-frontier mechanism
-  deltas from older experiments.
-- LEGALM-guidance source reference: staged relaxed legalization / ALM-style
-  donor for the active framework.
-- DREAMPlace Abacus: row assignment and compaction donor.
-
-If you need old algobank/family evidence, the task must provide or name that
-archive explicitly. Do not broad-read external or ignored archival material by
-default.
-
-## Patch Contract
-
-When an outer loop invokes a coding agent, the loop owns:
-
-- prepare and patch application,
-- snapshot discovery and validation,
-- checkpoint restore,
-- build/relink,
-- evaluator execution,
-- scoring and accept/reject.
-
-The coding agent owns one bounded route/mechanism for the iteration.  That
-route may require coordinated source changes in legalization/detailed
-placement, improve placement, and their shared handoff.  The agent should
-plan, implement, build/evaluate, inspect canonical metrics/logs, revise when
-the mechanism has a concrete next fix, and leave the best clean evaluated
-source commit.  It should stop only when additional work would repeat the same
-mechanism without new evidence, when legality/build blocks are clearly reported,
-or when the route becomes non-promotable under the configured runtime budget.
-
-Preferred target surface for framework work:
-
-- `tools/OpenROAD/src/dpl_evolve/src/EvolveLegalizer.cpp`
-- `tools/OpenROAD/src/dpl_evolve/src/EvolveLegalizer.h`
-- `tools/OpenROAD/src/dpl_evolve/src/EvolveContext.h`
-- `tools/OpenROAD/src/dpl_evolve/src/EvolveTelemetry.h`
-- `tools/OpenROAD/src/dpl_evolve/src/StudentAlgorithm.cpp`
-- LEGALM-stage files under `tools/OpenROAD/src/dpl_evolve/src/Legalm*.{h,cpp}`
-- detailed-improvement files under
-  `tools/OpenROAD/src/dpl_evolve/src/optimization/` and
-  `tools/OpenROAD/src/dpl_evolve/src/objective/`
-- `tools/OpenROAD/src/dpl_evolve/src/Optdp.cpp`
-- existing donor files under `tools/OpenROAD/src/dpl_evolve/src/` when a stage
-  intentionally borrows diamond, negotiation, or DRC logic.
-
-Do not edit classic `tools/OpenROAD/src/dpl/`.  Do not edit evaluator/scoring
-logic to make a result look better.
-
-## Algorithm Standard
-
-Bounded does not mean timid.  Real patches should change a mechanism:
-
-- candidate generation or ordering,
-- relaxed/differentiable guidance,
-- row or cluster assignment,
-- legality recovery,
-- objective/proxy cost,
-- repair trigger policy,
-- bounded polish,
-- telemetry that explains success or failure.
-
-Weak patches that only tune constants are calibration probes, not algorithmic
-results.
-
-## High-Performance Interface Contract
-
-The evolved framework boundary is in-process and control-plane only.
-`EvolveContext` should carry small options such as thread budget, displacement
-limits, and report names.  Do not move per-cell/per-net hot data through JSON,
-string-keyed maps, cross-process calls, or generic callback dispatch.
-
-Student implementations should keep hot data as compact C++ structures:
-node-id keyed vectors, struct-of-arrays where useful, row/segment interval
-indexes, bounded candidate arrays, and deterministic per-thread scratch
-buffers.  Coarse donor hooks may be used to call a whole stage, but not inside
-inner candidate loops.
-
-Every algorithmic patch should state:
-
-- mechanism changed,
-- stage touched,
-- expected HPWL/runtime/displacement/legality effect,
-- expected failure mode,
-- repair or failure-handling policy inside the algorithm.
-
-Use `knowledge/EVIDENCE_POLICY.md` when converting run results or paper notes
-into prompt text. Do not encode a single-case observation as a permanent
-algorithm rule without marking its scope.
-
-## Baselines
-
-The canonical baseline/evolve lines live in `baseline/canonical_lines.yaml`.
-
-Current OpenROAD DPL baseline intentionally mirrors the normal detail-place
-flow:
+Generated Teacher prompts for one round live here:
 
 ```text
-detailed_placement
-improve_placement
-optimize_mirroring
+$DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/iter_XX/prompts/teacher_plan.md
+$DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/iter_XX/prompts/teacher_review.md
 ```
 
-The evolved line mirrors that shape through the evolved command namespace:
+The Teacher must use stage-wise metrics, logs, source evidence, skill/knowledge
+queries, and prior negative evidence. It should assign source-level mechanisms,
+not blind patch commands. It should make the route emphasis explicit:
+`legalizer-emphasis`, `DPO-emphasis`, or `co-optimization-emphasis`; this is a
+priority label, not a restriction to one stage.
+
+### Evolve Student Agent
+
+The Student Agent is created by the evolve loop. Its job is to implement one
+Teacher-assigned route in its private `dpl_evolve` source workspace, evaluate
+it with the canonical full flow, and report exact evidence.
+
+Student source templates live here:
+
+```text
+prompt_templates/teacher_loop/student/
+prompt_templates/teacher_loop/packets/
+```
+
+Generated Student prompts and workspace packets live here:
+
+```text
+$DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/iter_XX/prompts/student_XX.md
+$DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/iter_XX/packet/student_XX_workspace.md
+```
+
+Student private source workspaces live here:
+
+```text
+$DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/students/student_XX/workspace/variant/dpl_evolve
+```
+
+Students should plan from Teacher guidance plus current source diagnosis,
+patch the private source, build/evaluate, inspect metrics/logs, revise when the
+mechanism is live but weak, commit the best clean evaluated source, and write
+the final report. Students should not edit external evaluator scripts, ORFS
+flow scripts, or repository-level prompt templates during an evolve run.
+
+## Runtime Layout Contract
+
+`DPL_EVOLVE_STATE_ROOT` remains the global state root. Do not change its
+meaning. New Teacher-round artifacts are grouped by round id:
+
+```text
+$DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/
+$DPL_EVOLVE_STATE_ROOT/<round_id>/checkpoints/operations/
+$DPL_EVOLVE_STATE_ROOT/<round_id>/candidate_matrices/
+$DPL_EVOLVE_STATE_ROOT/<round_id>/candidate_matrix_batches/
+$DPL_EVOLVE_STATE_ROOT/<round_id>/start_seed_calibration/
+```
+
+Codex session storage remains the normal Codex store, usually `~/.codex` unless
+`CODEX_HOME` is explicitly set. The evolve framework records session identity
+and thread ids in the round workspace, but it does not move the Codex session
+store into `.dpl_evolve_state`.
+
+ORFS evaluator outputs stay in ORFS:
+
+```text
+flow/reports/<platform>/<design>/<FLOW_VARIANT>/dpl_evolve_baseline/<run_tag>/metrics.json
+flow/logs/<platform>/<design>/<FLOW_VARIANT>/dpl_evolve_baseline/<run_tag>/
+```
+
+## Current Source Direction
+
+The active project direction is a constrained detailed-placement evolution
+framework. The evolved flow mirrors the OpenROAD detailed-placement flow:
 
 ```text
 detailed_placement_evolve
@@ -178,7 +125,84 @@ improve_placement_evolve
 optimize_mirroring_evolve
 ```
 
-## Build And Run Rules
+The canonical patch surface is the evolved detailed-placement source, not the
+classic OpenROAD DPL implementation:
+
+```text
+tools/OpenROAD/src/dpl_evolve/
+```
+
+Do not edit classic `tools/OpenROAD/src/dpl/` unless a task explicitly changes
+the project direction.
+
+The current base framework patch is:
+
+```text
+patches/openroad_dpl_evolve_framework.patch
+```
+
+Evolved start seeds are cataloged under:
+
+```text
+patches/evolved_legalizers/
+```
+
+Teacher/Student use prepared start branches in generated workspaces. Patch
+catalogs are release/reproduction artifacts used by repo-maintenance scripts to
+materialize those starts; they are evidence, not manual Student commands.
+
+## Source And Algorithm Scope
+
+Valid source-level optimization work includes:
+
+- legalization/detailed-placement candidate generation and ordering,
+- global/differential guidance,
+- row/segment/cluster assignment,
+- negotiation/conflict repair,
+- legality recovery,
+- exact or cached HPWL objective scoring,
+- transaction accept/rollback policy,
+- bounded local polish,
+- DPO candidate generation and acceptance,
+- legalizer-to-DPO handoff state,
+- lightweight counters and telemetry that prove mechanism liveness.
+
+Parameter tuning is allowed when implemented inside the `dpl_evolve` source as
+constants, thresholds, scoring weights, pass schedules, adaptive policies, or
+compact internal config structs. Do not turn evolve into Tcl/flow-script knob
+sweeps.
+
+Hybrid algorithms should compose mechanisms inside one source flow. Do not
+hybridize by adding case-name selectors among complete legalizers, by repeated
+endpoint execution, or by uninstrumented random tails.
+
+For legalizer-to-DPO handoff, prefer OpenROAD-native compact state such as
+`odb::dbInst*`, `odb::dbNet*`, `odb::dbGroup*`, `odb::dbRegion*`, dense ids,
+vectors, bitsets, and row/segment indices. Do not duplicate current coordinates
+or pass hot algorithm state through JSON/text logs/string-keyed maps.
+
+## Evidence And Metrics
+
+Use evaluator-produced `metrics.json` as truth. The canonical HPWL is the
+OpenROAD/DPL pin-based HPWL reported through `metrics.json:hpwl` and
+`hpwl_stages`. `hpwl_proxy` is a debug-only cell-bbox proxy and must not drive
+promotion, Teacher planning, public tables, or claims.
+
+The headline optimization target remains legal final HPWL versus the OpenROAD
+DPL default-flow Diamond baseline. Runtime is analyzed as value/cost evidence
+and controlled by the configured timeout budget; it is not the primary
+optimization objective.
+
+Hard failures include:
+
+- build failure,
+- evaluator failure,
+- legality failure,
+- missing or malformed metrics,
+- stale source/binary/metrics mismatch,
+- uncontrolled displacement or runtime regression.
+
+## Build And Evaluation Rules
 
 Build common OpenROAD once, then relink private variants:
 
@@ -197,27 +221,22 @@ Build common OpenROAD once, then relink private variants:
   --threads 10
 ```
 
-Variant/evolved runs must pass an explicit private binary.  Do not assume the
+Variant/evolved runs must pass an explicit private binary. Do not assume the
 root `tools/install/OpenROAD/bin/openroad` is the candidate binary.
 
-The Teacher/Student loop uses this relink path for algorithm experiments.  Do
-not introduce shared-object runtime entrypoints unless the repository direction
-explicitly changes again.
+Use generated workspace helper scripts during evolve runs. Do not reconstruct
+build/relink/evaluator commands by hand unless a helper fails and the failure
+itself must be diagnosed.
 
-Strict evaluator output lives under:
+## Repo Hygiene
 
-```text
-flow/reports/<platform>/<design>/<FLOW_VARIANT>/dpl_evolve_baseline/<run_tag>/metrics.json
-```
-
-The canonical HPWL field is `hpwl`, sourced from OpenROAD/DPL pin-based log
-reports.  `hpwl_proxy` is a legacy cell-bbox diagnostic and must not be used
-for promotion, Teacher planning, or public result tables.
-
-Hard failures:
-
-- build failure,
-- evaluator failure,
-- legality failure,
-- missing/malformed metrics,
-- uncontrolled displacement/runtime regression.
+- Use `rg`/`rg --files` for discovery.
+- Use `apply_patch` for tracked source edits.
+- Do not rewrite large files with heredocs or ad-hoc Python when a patch is
+  sufficient.
+- Do not revert unrelated user or experiment changes.
+- Keep generated files ignored and outside commits unless the user explicitly
+  asks to preserve an artifact as documentation.
+- Before committing framework changes, run at least Python compile checks,
+  shell syntax checks, and a smoke or dry-run that exercises prompt generation,
+  workspace layout, and command assembly.

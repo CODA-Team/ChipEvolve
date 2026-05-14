@@ -21,6 +21,7 @@ from scripts.teacher_loop.common import (
     assigned_start_kind_from_insight,
     iter_name,
     render_prompt_template,
+    round_id_from_dir,
     student_workspace_paths,
 )
 from scripts.teacher_loop.evidence import (
@@ -261,7 +262,7 @@ def peer_briefing(
     if iteration <= 1:
         return render_prompt_template("context/no_prior_peer_results.md").strip()
 
-    round_id = round_dir.name
+    round_id = round_id_from_dir(round_dir)
     previous = iter_name(iteration - 1)
     baseline_metrics: dict[str, MetricSummary | None] = {}
     for line in CANONICAL_LINES:
@@ -506,6 +507,7 @@ def common_context(
     metrics: dict[str, MetricSummary | None],
     packet_path: Path,
     baseline_artifacts_path: Path,
+    start_seed_calibration_path: Path,
     design_characteristics_path: Path,
     peer_learning_path: Path,
     round_id: str,
@@ -596,6 +598,7 @@ def common_context(
         scoreboard=scoreboard,
         elite_text=elite_text,
         baseline_artifacts_path=baseline_artifacts_path,
+        start_seed_calibration_path=start_seed_calibration_path,
         peer_learning_path=peer_learning_path,
         prior_context=prior_context,
         student_runtime_multiplier=format_multiplier(student_runtime_multiplier),
@@ -795,7 +798,7 @@ def child_evaluation_timeout(
         timeout_s,
         "DPL flow timeout: "
         f"`{timeout_s}s` = {multiplier_label}x canonical openroad_dpl_flow reported runtime "
-        f"`{runtime_s:.3f}s` from `metrics.json:runtime_seconds` at `{baseline_path}`. "
+        f"`{runtime_s:.3f}s` from the canonical baseline `metrics.json:runtime_seconds`. "
         "The timeout is applied only to the OpenROAD legalize/improve/mirror flow run; "
         "post-run metrics/evaluator collection is not timeout-wrapped, so timeout failures "
         "should still write metrics.json failure evidence when possible.  Runtime below the "
@@ -914,7 +917,6 @@ ensure_dpl_git_repo() {{
         "prepare": script_dir / "00_prepare_source.sh",
         "switch_start_branch": script_dir / "04_switch_start_branch.sh",
         "source_context": script_dir / "05_source_context.sh",
-        "apply_evolved_patch": script_dir / "06_apply_evolved_legalizer_patch.sh",
         "query_knowledge": script_dir / "08_query_knowledge.sh",
         "build": script_dir / "10_build_variant.sh",
         "fresh_build": script_dir / "11_build_variant_fresh.sh",
@@ -1204,98 +1206,6 @@ fi
     )
 
     write_executable_script(
-        scripts["apply_evolved_patch"],
-        f"""#!/usr/bin/env bash
-set -euo pipefail
-{common_vars}
-ensure_dpl_git_repo
-
-line=""
-check_only=0
-usage() {{
-  cat >&2 <<'USAGE'
-Usage:
-  06_apply_evolved_legalizer_patch.sh --line diamond|legalm|negotiation [--check-only]
-
-Apply or check exactly one evolved legalizer framework-delta patch against the
-private dpl_evolve source. Use this only when Teacher assigns patch application
-instead of starting directly from an evolved_* seed.
-USAGE
-}}
-
-while [[ "$#" -gt 0 ]]; do
-  case "$1" in
-    --line)
-      line="$2"
-      shift 2
-      ;;
-    --check-only)
-      check_only=1
-      shift
-      ;;
-    --help|-h)
-      usage
-      exit 0
-      ;;
-    *)
-      echo "[ERROR] unknown argument: $1" >&2
-      usage
-      exit 2
-      ;;
-  esac
-done
-
-case "$line" in
-  diamond)
-    patch="$AGENT_ROOT/patches/evolved_legalizers/openroad_dpl_evolve_diamond_iter30_framework_delta.patch"
-    ;;
-  legalm)
-    patch="$AGENT_ROOT/patches/evolved_legalizers/openroad_dpl_evolve_legalm_iter30_framework_delta.patch"
-    ;;
-  negotiation)
-    patch="$AGENT_ROOT/patches/evolved_legalizers/openroad_dpl_evolve_negotiation_iter30_framework_delta.patch"
-    ;;
-  *)
-    echo "[ERROR] expected --line diamond|legalm|negotiation" >&2
-    usage
-    exit 2
-    ;;
-esac
-
-if [[ -f "$DPL_SRC/.dpl_evolve_seed_manifest.json" ]]; then
-  echo "[ERROR] private source already comes from an evolved seed manifest." >&2
-  echo "[ERROR] Do not stack an evolved framework-delta patch on this source." >&2
-  cat "$DPL_SRC/.dpl_evolve_seed_manifest.json" >&2 || true
-  exit 2
-fi
-if [[ ! -f "$patch" ]]; then
-  echo "[ERROR] missing evolved legalizer framework-delta patch: $patch" >&2
-  exit 2
-fi
-if [[ -n "$(git -C "$DPL_SRC" status --short)" ]]; then
-  echo "[ERROR] private source has uncommitted changes; commit/stash before applying the evolved legalizer patch." >&2
-  git -C "$DPL_SRC" status --short >&2
-  exit 2
-fi
-
-if ! git -C "$DPL_SRC" apply --whitespace=nowarn --check -p3 "$patch"; then
-  echo "[ERROR] evolved patch does not apply to current private source: $patch" >&2
-  echo "[ERROR] Use it as review evidence or start a fresh route from the matching evolved_* seed." >&2
-  exit 1
-fi
-if [[ "$check_only" -eq 1 ]]; then
-  echo "[INFO] evolved patch check OK: line=$line patch=$patch"
-  exit 0
-fi
-git -C "$DPL_SRC" apply --whitespace=nowarn -p3 "$patch"
-git -C "$DPL_SRC" add -A
-git -C "$DPL_SRC" commit -m "Apply evolved legalizer $line framework delta"
-echo "[INFO] evolved patch applied and committed: line=$line"
-echo "[INFO] source_commit=$(git -C "$DPL_SRC" rev-parse HEAD)"
-""",
-    )
-
-    write_executable_script(
         scripts["query_knowledge"],
         f"""#!/usr/bin/env bash
 set -euo pipefail
@@ -1555,7 +1465,7 @@ def write_child_workspace_packet(
         runtime=runtime,
         case_id=case_id,
         flow_variant=flow_variant,
-        round_id=round_dir.name,
+        round_id=round_id_from_dir(round_dir),
         runtime_multiplier=student_runtime_multiplier,
         baseline_metrics=baseline_metrics,
     )
@@ -1609,30 +1519,6 @@ def write_child_workspace_packet(
             / "family_variants"
             / "openroad_negotiation_nblg"
             / "README.md",
-            optional_evolved_legalizer_catalog=agent_root
-            / "patches"
-            / "evolved_legalizers"
-            / "README.md",
-            optional_evolved_legalizer_manifest=agent_root
-            / "patches"
-            / "evolved_legalizers"
-            / "generation_manifest.tsv",
-            optional_evolved_legalizer_validation=agent_root
-            / "patches"
-            / "evolved_legalizers"
-            / "validation.tsv",
-            optional_evolved_diamond_framework_delta=agent_root
-            / "patches"
-            / "evolved_legalizers"
-            / "openroad_dpl_evolve_diamond_iter30_framework_delta.patch",
-            optional_evolved_legalm_framework_delta=agent_root
-            / "patches"
-            / "evolved_legalizers"
-            / "openroad_dpl_evolve_legalm_iter30_framework_delta.patch",
-            optional_evolved_negotiation_framework_delta=agent_root
-            / "patches"
-            / "evolved_legalizers"
-            / "openroad_dpl_evolve_negotiation_iter30_framework_delta.patch",
             optional_dpo_source_mechanisms_insight=agent_root
             / "knowledge"
             / "insights"
@@ -1673,7 +1559,6 @@ def write_child_workspace_packet(
             prepare_source_script=script_paths["prepare"],
             switch_start_branch_script=script_paths["switch_start_branch"],
             source_context_script=script_paths["source_context"],
-            apply_evolved_legalizer_patch_script=script_paths["apply_evolved_patch"],
             build_variant_script=script_paths["build"],
             fresh_build_script=script_paths["fresh_build"],
             evaluate_candidate_script=script_paths["evaluate"],

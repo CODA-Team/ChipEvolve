@@ -57,8 +57,8 @@
   the parent that best tests their HPWL source mechanism.
 - When assigning a start kind, be explicit: say "use the prepared start branch
   `<kind>`" for `framework`, `diamond`, `evolved_diamond`, `evolved_legalm`,
-  or `evolved_negotiation`. Use `*_framework_delta.patch` only when
-  intentionally stacking that donor delta on the current framework source.
+  or `evolved_negotiation`. Student start-point switches are branch-only; the
+  Student then commits local source edits on the iteration branch.
 - Assign DPO work as source-level mechanism design in the current tree after
   inspecting active `Optdp`/`Detailed*` code and logs. Implement the selected
   mechanism directly in the current source.

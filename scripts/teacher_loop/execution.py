@@ -96,6 +96,7 @@ def build_codex_exec_command(
     session_identity: str | None = None,
     session_state: Path | None = None,
     session_env_file: Path | None = None,
+    operations_dir: Path | None = None,
     cwd: Path | None = None,
     skip_git_repo_check: bool = False,
 ) -> list[str]:
@@ -109,6 +110,8 @@ def build_codex_exec_command(
         "--sandbox",
         sandbox,
     ]
+    if operations_dir is not None:
+        cmd.extend(["--operations-dir", str(operations_dir)])
     for add_dir in add_dirs:
         cmd.extend(["--add-dir", str(add_dir)])
     if cwd is not None:

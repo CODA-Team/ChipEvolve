@@ -105,7 +105,9 @@
   source-context helper before patching. Donor snippets and old line numbers
   are evidence, not patch context.
 - Keep hunks small and anchored on currently visible unique lines. After each
-  patch, re-check the changed symbol and run `git diff --check` before build.
+  patch, re-check the changed symbol and run `git -C "$private_dpl_evolve_source"
+  diff --check` before build, or `cd` into the private source repo first. Do
+  not run source git checks from the outer agent repo.
 - If `apply_patch` fails, refresh the current source around the intended
   function/state and apply a smaller semantic patch. Do not turn a patch
   failure into CMake/relink archaeology or broad source search.
