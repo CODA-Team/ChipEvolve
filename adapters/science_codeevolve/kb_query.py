@@ -87,6 +87,14 @@ REFERENCE_FILES = [
 ]
 
 
+def abs_orfs(rel: str, runtime: Any) -> str:
+    return str(runtime.orfs_root / rel)
+
+
+def abs_agent(rel: str) -> str:
+    return str(AGENT_ROOT / rel)
+
+
 def parse_scalar(value: str) -> Any:
     value = value.strip()
     if value in {"true", "True"}:
@@ -261,24 +269,28 @@ def build_packet(problem_dir: Path, out_dir: Path) -> dict[str, Any]:
         "reference_index": reference_index,
         "selected_patch_surface": LEGALIZE_IMPROVE_SURFACE,
         "primary_handles": [
-            "tools/OpenROAD/src/dpl_evolve/src/StudentAlgorithm.cpp",
-            "tools/OpenROAD/src/dpl_evolve/src/Optdp.cpp",
-            "tools/OpenROAD/src/dpl_evolve/src/LegalmGuidance.cpp",
+            abs_orfs("tools/OpenROAD/src/dpl_evolve/src/StudentAlgorithm.cpp", runtime),
+            abs_orfs("tools/OpenROAD/src/dpl_evolve/src/Optdp.cpp", runtime),
+            abs_orfs("tools/OpenROAD/src/dpl_evolve/src/LegalmGuidance.cpp", runtime),
         ],
         "secondary_handles": [
-            "tools/OpenROAD/src/dpl_evolve/src/LegalmFullLegalization.cpp",
-            "tools/OpenROAD/src/dpl_evolve/include/dpl_evolve/Opendp.h",
+            abs_orfs(
+                "tools/OpenROAD/src/dpl_evolve/src/LegalmFullLegalization.cpp", runtime
+            ),
+            abs_orfs("tools/OpenROAD/src/dpl_evolve/include/dpl_evolve/Opendp.h", runtime),
         ],
         "reference_shelf": [
-            "knowledge/insights/workflow/metric_contract.md",
-            "knowledge/insights/case_evolution/strategy_inspiration_by_design_feature.md",
-            "knowledge/insights/dpo/source_level_mechanisms.md",
-            "knowledge/insights/dpo/openroad_native_handoff.md",
-            "knowledge/index/skill_cards.jsonl",
-            "scripts/query_knowledge.py",
-            "family_variants/openroad_diamond/README.md",
-            "family_variants/openroad_negotiation_nblg/README.md",
-            "family_variants/legalm_guidance/README.md",
+            abs_agent("knowledge/insights/workflow/metric_contract.md"),
+            abs_agent(
+                "knowledge/insights/case_evolution/strategy_inspiration_by_design_feature.md"
+            ),
+            abs_agent("knowledge/insights/dpo/source_level_mechanisms.md"),
+            abs_agent("knowledge/insights/dpo/openroad_native_handoff.md"),
+            abs_agent("knowledge/index/skill_cards.jsonl"),
+            abs_agent("scripts/query_knowledge.py"),
+            abs_agent("family_variants/openroad_diamond/README.md"),
+            abs_agent("family_variants/openroad_negotiation_nblg/README.md"),
+            abs_agent("family_variants/legalm_guidance/README.md"),
         ],
         "reference_files": REFERENCE_FILES,
         "evidence_cards": cards,
