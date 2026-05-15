@@ -17,9 +17,11 @@ should act on it.
 8. `case_evolution/optdp_stage_cooptimization.md`
 9. `legalization/algorithm_role_liveness_basics.md`
 10. `dpo/source_level_mechanisms.md`
-11. `dpo/openroad_native_handoff.md`
-12. `case_evolution/micro_gain_trap_and_elite_donors.md`
-13. Relevant LEGALM card under `legalm/` only when changing legalization.
+11. `dpo/lightweight_post_dpo_basin.md`
+12. `dpo/frontier_guided_basin_consumer.md`
+13. `dpo/openroad_native_handoff.md`
+14. `case_evolution/micro_gain_trap_and_elite_donors.md`
+15. Relevant LEGALM card under `legalm/` only when changing legalization.
 
 ## Workflow
 
@@ -57,6 +59,12 @@ should act on it.
 
 - `dpo/source_level_mechanisms.md`: source-level improve-placement mechanisms
   to reimplement directly in current `Optdp`/`Detailed*` code.
+- `dpo/lightweight_post_dpo_basin.md`: when a stable legalizer still leaves
+  local DPO residue and one bounded basin cleanup pass is a good donor.
+- `dpo/aggressive_basin_schedule.md`: when a validated light basin donor should
+  spend more runtime under control for stronger exact local search.
+- `dpo/frontier_guided_basin_consumer.md`: handoff-aware DPO consumer pattern
+  that uses producer frontiers to rank and probe exact basin candidates.
 - `dpo/openroad_native_handoff.md`: efficient OpenROAD-native producer/consumer
   data structures for legalization-to-DPO frontier handoff.
 

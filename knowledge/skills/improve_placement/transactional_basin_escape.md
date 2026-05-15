@@ -12,6 +12,11 @@ for source handles, metrics, and log signals.
   scoped LSMC only when active frontier evidence predicts useful HPWL gain.
 - Bound the mechanism with window size, candidate caps, failed-window caps, and
   accepted-gain thresholds.
+- A good first step is a lightweight post-DPO basin donor.  Deeper pass growth,
+  larger candidate windows, and wider row radius should be treated as a second
+  mechanism only after the light donor is proven live.
+- If legalization already exposes frontier or residual guidance, prefer
+  frontier-aware basin ranking over a pure displacement-only basin schedule.
 
 ## Common Failure
 

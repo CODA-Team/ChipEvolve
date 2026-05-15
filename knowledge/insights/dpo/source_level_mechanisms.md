@@ -24,6 +24,9 @@ OpenROAD-native in-process structures, not external files or log-derived data.
    - Keep rollback local and deterministic so broader searches do not corrupt
      legality.
    - Reject zero-counter or no-op transactions as non-executed mechanisms.
+   - A lightweight post-DPO basin pass is a good first donor; an aggressive
+     schedule should be treated as a continuation only after the light donor is
+     proven live.
 
 3. Selective staged descent.
    - Start with the cheapest high-confidence move family.
@@ -48,6 +51,9 @@ OpenROAD-native in-process structures, not external files or log-derived data.
      cells, and local repair windows.
    - A handoff mechanism is live only when producer and consumer counters are
      both nonzero and the after-improve stage responds.
+   - Frontier-aware basin ranking is often more valuable than frontier-only DPO
+     ordering because it converts producer state into exact local search rather
+     than passive queue bias.
 
 ## What To Avoid
 

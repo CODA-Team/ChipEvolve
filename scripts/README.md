@@ -191,7 +191,7 @@ White-box Agent evolve rows for the same 9-case set:
 
 ```bash
 EVOLVE_FLOW_VARIANT=place_batch_20260421_220319 EVOLVE_CHILDREN=4 \
-EVOLVE_ITERATIONS=15 EVOLVE_TEACHER_MODEL=gpt-5.5 \
+EVOLVE_ITERATIONS=15 EVOLVE_TEACHER_MODEL=gpt-5.4 \
 EVOLVE_TEACHER_REASONING_EFFORT=xhigh EVOLVE_STUDENT_MODEL=gpt-5.4 \
 EVOLVE_STUDENT_REASONING_EFFORT=xhigh EVOLVE_MAX_CONCURRENT_CASES=3 \
   dpl_evolve_agent/experiments/launchers/run_evolve_9case_place_batch.sh

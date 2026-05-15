@@ -39,6 +39,14 @@ Required counters:
 - accepted/rejected transactions,
 - handoff build/consume runtime.
 
+For frontier-aware basin consumers, also track:
+
+- frontier-ranked cells,
+- frontier-selected cells,
+- frontier-probed exact moves,
+- frontier-accepted moves,
+- non-frontier accepted moves for comparison.
+
 ## What Not To Do
 
 - Do not persist transient DPO objects such as `Node*`, `Edge*`,

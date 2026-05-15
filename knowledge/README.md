@@ -17,12 +17,16 @@ Default reading order:
    source mechanisms
 9. `insights/dpo/openroad_native_handoff.md` when passing legalization
    frontier state into improve placement
-10. `insights/legalization/algorithm_role_liveness_basics.md` before routing
+10. `insights/dpo/lightweight_post_dpo_basin.md` when a stable legalizer still
+    leaves post-DPO HPWL residue
+11. `insights/dpo/frontier_guided_basin_consumer.md` when a producer frontier
+    should be consumed by exact basin search
+12. `insights/legalization/algorithm_role_liveness_basics.md` before routing
    Diamond, negotiation, LEGALM, or Differential Guidance families
-11. `skills/legalization/differential_guidance_stop_target.md` when using
+13. `skills/legalization/differential_guidance_stop_target.md` when using
    LEGALM/differential guidance as a seed/frontier instead of a full legalizer
-12. one relevant file under `algorithm_cards/` or `insights/`
-13. paper PDFs and source notes under `reference/` only if needed
+14. one relevant file under `algorithm_cards/` or `insights/`
+15. paper PDFs and source notes under `reference/` only if needed
 
 Current compact algorithm cards:
 
@@ -39,6 +43,9 @@ Current compact algorithm cards:
 - `insights/case_evolution/full_flow_timeout_and_target_selection.md`
 - `insights/dpo/source_level_mechanisms.md`
 - `insights/dpo/openroad_native_handoff.md`
+- `insights/dpo/lightweight_post_dpo_basin.md`
+- `insights/dpo/aggressive_basin_schedule.md`
+- `insights/dpo/frontier_guided_basin_consumer.md`
 - `insights/legalization/algorithm_role_liveness_basics.md`
 - `index/skill_cards.jsonl` and `skills/README.md`
 - `insights/legalm/paper_faithful_legalization_integration.md`

@@ -16,7 +16,7 @@ ITERATIONS="${EVOLVE_ITERATIONS:-15}"
 MAX_PARALLEL="${EVOLVE_MAX_PARALLEL:-4}"
 THREADS="${EVOLVE_THREADS:-10}"
 MAX_CONCURRENT_CASES="${EVOLVE_MAX_CONCURRENT_CASES:-3}"
-TEACHER_MODEL="${EVOLVE_TEACHER_MODEL:-gpt-5.5}"
+TEACHER_MODEL="${EVOLVE_TEACHER_MODEL:-gpt-5.4}"
 TEACHER_REASONING_EFFORT="${EVOLVE_TEACHER_REASONING_EFFORT:-xhigh}"
 STUDENT_MODEL="${EVOLVE_STUDENT_MODEL:-gpt-5.4}"
 STUDENT_REASONING_EFFORT="${EVOLVE_STUDENT_REASONING_EFFORT:-xhigh}"
@@ -39,7 +39,7 @@ Defaults:
   case set:        evolve_9case
   children:        4
   iterations:      15
-  teacher:         gpt-5.5 / xhigh
+  teacher:         gpt-5.4 / xhigh
   student:         gpt-5.4 / xhigh
   start kind:      evolved_legalm
   case concurrency 3
@@ -56,7 +56,7 @@ Options:
   --max-parallel N             Parallel students inside one case. Default: 4.
   --threads N                  OpenROAD threads. Default: 10.
   --max-concurrent-cases N     Concurrent Teacher rounds. Default: 3.
-  --teacher-model NAME         Default: gpt-5.5.
+  --teacher-model NAME         Default: gpt-5.4.
   --teacher-reasoning-effort E Default: xhigh.
   --student-model NAME         Default: gpt-5.4.
   --student-reasoning-effort E Default: xhigh.
@@ -162,6 +162,15 @@ run_cmd() {
   fi
 }
 
+round_model_tag() {
+  local model="$1"
+  local effort="$2"
+  local normalized
+  normalized="${model//./}"
+  normalized="${normalized//-/}"
+  printf '%s_%s' "${normalized}" "${effort}"
+}
+
 BATCH_ROOT="${DPL_EVOLVE_STATE_ROOT}/experiment_batches/${RUN_PREFIX}_${FLOW_VARIANT}"
 LOG_DIR="${BATCH_ROOT}/logs"
 STATUS_FILE="${BATCH_ROOT}/status.tsv"
@@ -197,9 +206,10 @@ fi
 
 run_case() {
   local case_id="$1"
-  local round_id log start_ts end_ts rc
+  local round_id round_tag log start_ts end_ts rc
   local -a cmd
-  round_id="${RUN_PREFIX}_${FLOW_VARIANT}_${case_id}_4x${ITERATIONS}_t55_s54_xhigh"
+  round_tag="t$(round_model_tag "${TEACHER_MODEL}" "${TEACHER_REASONING_EFFORT}")_s$(round_model_tag "${STUDENT_MODEL}" "${STUDENT_REASONING_EFFORT}")"
+  round_id="${RUN_PREFIX}_${FLOW_VARIANT}_${case_id}_4x${ITERATIONS}_${round_tag}"
   log="${LOG_DIR}/${case_id}.log"
   start_ts="$(date '+%F %T')"
   printf "%s\t%s\t%s\t%s\t%s\t%s\t%s/%s\t%s/%s\n" \
