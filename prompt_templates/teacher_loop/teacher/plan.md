@@ -2,10 +2,13 @@
 
 Context: `$context_path`
 
-Read the context first, then the coaching skill if needed. Treat source and
-reference paths as targeted search handles, not required reading. Use only small
-`rg`/excerpt checks around concrete symbols you plan to name. Produce concise
-per-student plans; do not include build/eval procedure.
+Do not start with a broad read of the context file. First route from the
+current run packet, scoreboard, and baseline evidence already embedded there.
+Open the context file only with small `rg`/excerpt checks when you need a
+concrete symbol, metric line, or path that the packet does not already pin
+down. Treat source and reference paths as targeted search handles, not required
+reading. Produce concise per-student plans; do not include build/eval
+procedure.
 
 ## Student Slots
 
