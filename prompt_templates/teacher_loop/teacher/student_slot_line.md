@@ -1,3 +1,1 @@
-- `$student_id`: Teacher assigns this route after reading context, source
-  references, peer evidence, and metrics.
-
+- `$student_id`: assign one distinct route after reading the current context, source references, peer evidence, and metrics.
