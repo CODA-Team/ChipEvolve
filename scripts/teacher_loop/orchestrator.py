@@ -76,6 +76,7 @@ from scripts.teacher_loop.prompts import (
     validate_start_kind_seed,
     write_child_workspace_packet,
     write_iteration_context,
+    write_teacher_routing_context,
     write_review_artifacts_packet,
     write_round_readme,
 )
@@ -533,6 +534,16 @@ def main(argv: list[str] | None = None) -> int:
             iteration_dir=iteration_dir,
             context=context,
         )
+        teacher_context_path = write_teacher_routing_context(
+            iteration_dir=iteration_dir,
+            case_id=args.case,
+            flow_variant=args.flow_variant,
+            threads=args.threads,
+            start_kind=args.start_kind,
+            round_id=round_id,
+            iteration=iteration,
+            full_context_path=full_context_path,
+        )
         # Use the compact Teacher/review prompt shape from the first iteration.
         # The initial route is the most latency-sensitive step in smoke/batch
         # runs, and the full Teacher prompt encourages unnecessary broad reads.
@@ -583,7 +594,7 @@ def main(argv: list[str] | None = None) -> int:
         teacher_path.write_text(
             (
                 compact_teacher_prompt(
-                    context_path=full_context_path,
+                    context_path=teacher_context_path,
                     current_run_packet_path=packet_path,
                     design_characteristics_path=design_characteristics_path,
                     baseline_artifacts_path=teacher_baseline_path,
@@ -596,7 +607,7 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 if compact_followup_prompts
                 else teacher_prompt(
-                    context_path=full_context_path,
+                    context_path=teacher_context_path,
                     current_run_packet_path=packet_path,
                     design_characteristics_path=design_characteristics_path,
                     baseline_artifacts_path=teacher_baseline_path,

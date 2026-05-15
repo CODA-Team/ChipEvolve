@@ -479,6 +479,36 @@ def write_iteration_context(
     return path
 
 
+def write_teacher_routing_context(
+    *,
+    iteration_dir: Path,
+    case_id: str,
+    flow_variant: str,
+    threads: int,
+    start_kind: str,
+    round_id: str,
+    iteration: int,
+    full_context_path: Path,
+) -> Path:
+    context_dir = iteration_dir / "context"
+    context_dir.mkdir(parents=True, exist_ok=True)
+    path = context_dir / "teacher_routing_context.md"
+    path.write_text(
+        render_prompt_template(
+            "context/teacher_routing_context.md",
+            case_id=case_id,
+            flow_variant=flow_variant,
+            threads=threads,
+            start_kind=start_kind,
+            round_id=round_id,
+            iteration_name=iter_name(iteration),
+            full_context_path=full_context_path,
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
 def build_packet(
     *,
     agent_root: Path,
