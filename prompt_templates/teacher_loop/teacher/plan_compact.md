@@ -3,8 +3,8 @@
 Context: `$context_path`
 Current run packet: `$current_run_packet_path`
 Design characteristics: `$design_characteristics_path`
-Baseline artifacts: `$baseline_artifacts_path`
-Peer learning: `$peer_learning_path`
+Baseline artifacts: `$baseline_artifacts_path` (open only if the design-characteristics table is insufficient)
+Peer learning: `$peer_learning_path` (open only if prior clean donors exist or a borrow decision is needed)
 Start calibration: `$start_seed_calibration_path`
 
 Use prior Teacher session memory. The context is a delta packet; do not reread
