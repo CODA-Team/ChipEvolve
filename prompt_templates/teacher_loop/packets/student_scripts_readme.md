@@ -17,6 +17,7 @@ Minimal flow:
    - `20_evaluate_candidate.sh` auto-generates `candidate_metrics_summary.json/md`; use that summary before keep/reject
    - if rejected: `25_trial_source.sh reject --reason "<why>"`
    - if retained: `25_trial_source.sh keep --reason "<why>"`
+   - if retained and ready to close: `22_keep_and_finalize.sh --reason "<why-kept>"`
 3. Final retained source:
    - `30_finalize_source.sh`
 
@@ -46,6 +47,8 @@ Optional helpers:
   leaves the private binary missing.
 - `21_report_candidate_metrics.sh`: regenerate the canonical candidate metrics
   summary from `metrics.json` and the referenced DPL log.
+- `22_keep_and_finalize.sh --reason "<why-kept>"`: keep the active trial and
+  immediately finalize the retained source state.
 - `25_trial_source.sh status`: inspect active trial state and recent trial log.
 - `run_after_edit.sh`: build, evaluate, and finalize after source edits are
   already complete and no active trial remains.

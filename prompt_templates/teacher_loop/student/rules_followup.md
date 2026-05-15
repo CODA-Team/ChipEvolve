@@ -37,6 +37,14 @@ choice needs it.
 - After evaluation, inspect metrics/logs for HPWL stage movement, legality,
   runtime, liveness counters, accept/reject bottleneck, and source/binary/metric
   alignment.
+- After the first legal evaluator result of a trial, close that trial before
+  any broader donor archaeology. Decide `keep` or `reject` from the current
+  trial evidence first, then finalize or start a new trial; do not leave an
+  active trial open while fetching prepared-start diffs or broad donor context.
+- If the current trial is legal and no concrete second patch is already queued
+  inside the same landing zone, prefer immediate `keep -> finalize`. Smoke
+  follow-ups should produce a closed result, not extended post-eval donor
+  mining.
 - If the mechanism is live and correct but still has extremely small full-flow
   HPWL movement after a meaningful repair attempt, stop chasing tiny variants.
   Record `validated-low-ROI`, preserve it through the trial helper, and propose

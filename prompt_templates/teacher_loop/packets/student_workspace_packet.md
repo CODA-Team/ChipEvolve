@@ -76,7 +76,9 @@ Primary flow:
    - canonical result summary is generated automatically; read `$candidate_metrics_summary_md` before deciding keep/reject
    - rejected path: `$trial_source_script reject --reason <why-rejected>`
    - retained path: `$trial_source_script keep --reason <why-kept>`
-4. final retained source: `$finalize_source_script`
+4. close a legal retained result immediately when it is already reviewable:
+   - `$keep_and_finalize_script --reason <why-kept>`
+5. final retained source: `$finalize_source_script`
 
 Optional helpers:
 
@@ -84,6 +86,7 @@ Optional helpers:
 - switch prepared start after prepare: `$switch_start_branch_script --kind <kind>`
 - trial state/status: `$trial_source_script status`
 - metrics summary on demand: `$report_candidate_metrics_script`
+- one-shot for a legal kept result: `$keep_and_finalize_script --reason <why-kept>`
 - one-shot after edits with no active trial: `$after_edit_script`
 - fresh build only if normal build fails: `$fresh_build_script`
 
@@ -128,6 +131,7 @@ Before final answer:
   source reading before the first evaluator run unless that landing zone is
   clearly wrong or blocked by a concrete compile/correctness question.
 - Read raw logs only when the generated metrics summary cannot answer the current keep/reject or repair question.
+- After the first legal evaluator result, close the active trial before any broader donor reading. Prefer `$keep_and_finalize_script` when the current result is already the best clean evidence you have.
 
 ## Evaluation Timeout
 

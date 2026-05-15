@@ -991,6 +991,7 @@ assert_no_git_index_lock() {{
         "fresh_build": script_dir / "11_build_variant_fresh.sh",
         "evaluate": script_dir / "20_evaluate_candidate.sh",
         "report_metrics": script_dir / "21_report_candidate_metrics.sh",
+        "keep_and_finalize": script_dir / "22_keep_and_finalize.sh",
         "trial": script_dir / "25_trial_source.sh",
         "finalize": script_dir / "30_finalize_source.sh",
         "after_edit": script_dir / "run_after_edit.sh",
@@ -1618,6 +1619,21 @@ echo "[INFO] metrics_summary_md=$METRICS_SUMMARY_MD"
     )
 
     write_executable_script(
+        scripts["keep_and_finalize"],
+        """#!/usr/bin/env bash
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ "${1:-}" != "--reason" || "$#" -lt 2 ]]; then
+  echo "Usage: 22_keep_and_finalize.sh --reason <why-kept>" >&2
+  exit 2
+fi
+reason="$2"
+"$SCRIPT_DIR/25_trial_source.sh" keep --reason "$reason"
+"$SCRIPT_DIR/30_finalize_source.sh"
+""",
+    )
+
+    write_executable_script(
         scripts["trial"],
         f"""#!/usr/bin/env bash
 set -euo pipefail
@@ -2234,6 +2250,7 @@ def write_child_workspace_packet(
             fresh_build_script=script_paths["fresh_build"],
             evaluate_candidate_script=script_paths["evaluate"],
             report_candidate_metrics_script=script_paths["report_metrics"],
+            keep_and_finalize_script=script_paths["keep_and_finalize"],
             trial_source_script=script_paths["trial"],
             finalize_source_script=script_paths["finalize"],
             after_edit_script=script_paths["after_edit"],

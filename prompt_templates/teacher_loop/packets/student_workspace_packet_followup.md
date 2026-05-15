@@ -45,7 +45,9 @@ Primary flow:
    - read `$candidate_metrics_summary_md` before deciding keep/reject
    - rejected path: `$trial_source_script reject --reason <why-rejected>`
    - retained path: `$trial_source_script keep --reason <why-kept>`
-3. final retained source: `$finalize_source_script`
+3. close a legal retained result immediately when it is already reviewable:
+   - `$keep_and_finalize_script --reason <why-kept>`
+4. final retained source: `$finalize_source_script`
 
 Optional helpers:
 
@@ -57,6 +59,7 @@ Optional helpers:
 - metrics summary on demand: `$report_candidate_metrics_script`
 - trial state/status: `$trial_source_script status`
 - fresh build only if normal build fails: `$fresh_build_script`
+- one-shot for a legal kept result: `$keep_and_finalize_script --reason <why-kept>`
 - one-shot after edits with no active trial: `$after_edit_script`
 
 For Diamond/negotiation/LEGALM/Differential Guidance mixtures, query
@@ -90,6 +93,9 @@ Teacher can later continue a repairable rejected line with `begin --from-ref`.
 - If Teacher already provided `first patch handles`, keep the first edit/build/
   eval loop inside that landing zone unless a concrete blocker forces one extra
   support read.
+- After the first legal evaluator result, close the active trial before any
+  broader donor reading. Prefer `$keep_and_finalize_script` when the current
+  result is already the best clean evidence in hand.
 
 ## Report Fields
 
