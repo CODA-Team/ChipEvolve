@@ -10,10 +10,11 @@
 ## Required Workflow
 
 1. Open the workspace packet, then use generated helpers for prepare/start, trial begin/keep/reject, build, evaluate, and finalization.
-2. Do focused source diagnosis: current HPWL source, active functions/state, likely legality/runtime bottleneck, and why the mechanism can move more than a tiny donor polish.
-3. Plan the source mechanism before editing. Large mechanism-level rewrites and implementation-local helper files are allowed when they are coherent, bounded, reviewable, and validated.
-4. Patch source, build, run the canonical full-flow evaluator, read the generated candidate metrics summary first, then inspect raw logs/counters only when the summary is insufficient. Make bounded evidence-driven revisions while a concrete mechanism-level fix exists. Use `25_trial_source.sh reject` for rejected mechanisms so the script preserves the branch and restores the retained checkpoint safely. Stop when the path is illegal, timed out, non-executed, or validated-low-ROI, and keep the best clean evaluated source.
-5. Run finalization for the final source state and make sure source commit/ref, binary, metrics, diff, and report all describe the same code.
+2. Do short focused source diagnosis: current HPWL source, active functions/state, likely legality/runtime bottleneck, and why the mechanism can move more than a tiny donor polish. Do not turn diagnosis into a long reading pass.
+3. Start the first real trial early. After a short diagnosis and one concrete mechanism plan, run `25_trial_source.sh begin --label <name>` and land the first coherent patch before doing more broad reading.
+4. Plan the source mechanism before editing, but keep the plan execution-oriented. Large mechanism-level rewrites and implementation-local helper files are allowed when they are coherent, bounded, reviewable, and validated.
+5. Patch source, build, run the canonical full-flow evaluator, read the generated candidate metrics summary first, then inspect raw logs/counters only when the summary is insufficient. Make bounded evidence-driven revisions while a concrete mechanism-level fix exists. Use `25_trial_source.sh reject` for rejected mechanisms so the script preserves the branch and restores the retained checkpoint safely. Stop when the path is illegal, timed out, non-executed, or validated-low-ROI, and keep the best clean evaluated source.
+6. Run finalization for the final source state and make sure source commit/ref, binary, metrics, diff, and report all describe the same code.
 
 ## Source And Branch Protocol
 
@@ -35,6 +36,8 @@
 
 ## Evaluation And Diagnosis
 
+- Do not stay in diagnosis mode once the first implementation path is clear. If you have already identified the intended mechanism and main source handles, move to `trial begin -> patch -> build -> evaluate`.
+- Keep pre-edit reading narrow: use a few targeted `rg`/`sed` inspections around the assigned mechanism. Avoid broad cross-tree tours before the first patch unless the current source handle is clearly wrong.
 - After each evaluation, inspect `candidate_metrics_summary_md/json` first. Open raw `metrics.json`, `legalize_summary.json`, or the DPL log only when the summary is missing a needed counter or path. Report final HPWL, stage-wise HPWL movement, legality, displacement, runtime, and active counters.
 - Separate algorithmic failure from implementation cost: zero counters, stale binary/source mismatch, acceptance too strict, legality rejects, fallback domination, duplicate endpoint work, broad rescans, poor cache reuse, missing parallelism, or timeout.
 - If a mechanism is live and correct but full-flow HPWL remains extremely small after a meaningful repair attempt, record `validated-low-ROI`, preserve it through the trial helper, and propose a different HPWL source instead of stacking tiny variants.

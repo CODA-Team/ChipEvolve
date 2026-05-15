@@ -13,10 +13,12 @@ choice needs it.
 - Work on your current iteration branch under `private_dpl_evolve_source`.
   Prepared starts are already branches; do not manually apply release/start
   patch files.
-- Plan the mechanism before editing. Mechanism-level rewrites and direct
-  producer/consumer support changes are encouraged when Teacher guidance and
-  source diagnosis justify them; keep the diff coherent, reviewable, bounded,
-  and validated.
+- Plan the mechanism before editing, but keep that planning short and
+  execution-oriented. Once the first coherent implementation path is clear,
+  begin a real trial and land the first patch instead of extending diagnosis.
+- Mechanism-level rewrites and direct producer/consumer support changes are
+  encouraged when Teacher guidance and source diagnosis justify them; keep the
+  diff coherent, reviewable, bounded, and validated.
 - You may change legalization, improve placement/DPO, source-internal
   parameters, scoring, candidate generation, transactions, handoff state, and
   compact telemetry. Do not edit evaluator/ORFS/baseline scripts or move tuning
@@ -26,6 +28,9 @@ choice needs it.
   `03_fetch_peer_source.sh` only to inspect peer refs; port mechanisms
   deliberately onto your branch. If Teacher assigns a repairable rejected/kept
   ref, start it with `25_trial_source.sh begin --from-ref <ref>`.
+- Do not defer `trial begin` and the first patch behind long exploratory
+  reading. Use targeted source reads, then execute the first patch/build/eval
+  loop early.
 - After evaluation, inspect metrics/logs for HPWL stage movement, legality,
   runtime, liveness counters, accept/reject bottleneck, and source/binary/metric
   alignment.

@@ -40,6 +40,7 @@ Primary flow:
 2. for each mechanism trial:
    - `$trial_source_script begin --label <short-mechanism>`
    - repair a prior kept/rejected ref when assigned: `$trial_source_script begin --label <repair-name> --from-ref <ref>`
+   - start the first real trial as soon as the current mechanism path is clear; do not spend long in pre-edit diagnosis
    - edit source, then run `$build_variant_script` and `$evaluate_candidate_script`
    - read `$candidate_metrics_summary_md` before deciding keep/reject
    - rejected path: `$trial_source_script reject --reason <why-rejected>`
@@ -84,6 +85,8 @@ Teacher can later continue a repairable rejected line with `begin --from-ref`.
   clean checkpoint, and pivot to a different HPWL source.
 - Final evidence must align: source commit/ref, binary, metrics, diff, and
   knowledge card describe the same code.
+- Prefer patch/build/eval over repeated broad reading once the current
+  mechanism is understood.
 
 ## Report Fields
 

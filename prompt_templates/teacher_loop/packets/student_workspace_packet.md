@@ -71,6 +71,7 @@ Primary flow:
 3. for each mechanism trial:
    - `$trial_source_script begin --label <short-mechanism>`
    - repair a prior kept/rejected ref when assigned: `$trial_source_script begin --label <repair-name> --from-ref <ref>`
+   - after a short targeted diagnosis, start the first real trial early; do not delay `begin` behind broad code reading
    - edit source, then run `$build_variant_script` and `$evaluate_candidate_script`
    - canonical result summary is generated automatically; read `$candidate_metrics_summary_md` before deciding keep/reject
    - rejected path: `$trial_source_script reject --reason <why-rejected>`
@@ -118,6 +119,12 @@ Before final answer:
 - rejected branches are preserved before reverting any useful failed workbench
 - `knowledge_card` records hypothesis, mechanism, result, causal lesson, and next experiment
 - report includes final HPWL/runtime/displacement, stage-wise HPWL deltas, legality, active counters, metrics path, diff path, rejected refs if any, knowledge card path, source commit/ref, and next repair or pivot
+
+## Execution Bias
+
+- Prefer the first concrete patch/build/eval loop over extended diagnosis.
+- If the assigned mechanism and source handles are already clear, patch now and use evaluation to drive the next diagnosis.
+- Read raw logs only when the generated metrics summary cannot answer the current keep/reject or repair question.
 
 ## Evaluation Timeout
 

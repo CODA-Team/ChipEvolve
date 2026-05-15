@@ -11,6 +11,7 @@
 ## Mechanism Search Policy
 
 - Give each Student one primary HPWL-source hypothesis with exact source handles, a falsifiable metric outcome, runtime tier, and liveness counters. Supporting producer/consumer edits across legalization, DPO, and handoff are allowed when they serve that hypothesis.
+- Route Students toward an early first patch/build/eval loop. Do not assign broad "read more first" work when the current HPWL source and source handles are already clear enough to test a mechanism.
 - Mechanism-level source rewrites are allowed and expected when evidence supports them. The constraint is coherent, bounded, reviewable, measurable, and full-flow validated; it is not "small edit only".
 - Route emphasis can be `legalizer-emphasis`, `DPO-emphasis`, or `co-optimization-emphasis`. This is a priority label, not permission to ignore the other stage. If a stage is not patched, require a concrete diagnosis of how it preserves, consumes, or erases the gain.
 - Use a short A/B/C chain: A legalization/detailed-placement, B improve-placement/DPO, C handoff/co-optimization. A/B/C can be real source changes or explicit preservation/diagnosis; do not force cosmetic edits just to fill a stage.
