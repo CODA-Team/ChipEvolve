@@ -130,6 +130,10 @@ Before final answer:
 - Treat Teacher `first patch handles` as the initial landing zone. Do not widen
   source reading before the first evaluator run unless that landing zone is
   clearly wrong or blocked by a concrete compile/correctness question.
+- After `trial begin`, do not go back to broad evaluator/flow command tracing
+  unless the current landing zone is blocked by a concrete call-order or
+  artifact-wiring uncertainty. Use the generated packet and helper scripts as
+  the authoritative stage-order reference.
 - Read raw logs only when the generated metrics summary cannot answer the current keep/reject or repair question.
 - After the first legal evaluator result, close the active trial before any broader donor reading. Prefer `$keep_and_finalize_script` when the current result is already the best clean evidence you have.
 
