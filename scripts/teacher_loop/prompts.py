@@ -22,6 +22,7 @@ from scripts.teacher_loop.common import (
     iter_name,
     render_prompt_template,
     round_id_from_dir,
+    stable_candidate_ref,
     student_workspace_paths,
 )
 from scripts.teacher_loop.evidence import (
@@ -71,9 +72,15 @@ def read_text_excerpt(path: Path, *, max_chars: int = 6000) -> str:
     return render_prompt_template("context/long_content_pointer.md", path=path).strip()
 
 
-def previous_teacher_review_excerpt(
-    *, runtime: Any, round_id: str, iteration: int, max_chars: int = 6000
+def previous_teacher_review_text(
+    *, runtime: Any, round_id: str, iteration: int, warn_chars: int = 12000
 ) -> str:
+    """Return the complete previous Teacher review.
+
+    Review evidence must not be summarized or capped before another agent sees
+    it.  Long reviews get a warning header, but the full text remains available
+    in the generated context.
+    """
     if iteration <= 1:
         return render_prompt_template("context/no_previous_teacher_review.md").strip()
     review_op = f"{round_id}_{iter_name(iteration - 1)}_teacher_review"
@@ -91,9 +98,18 @@ def previous_teacher_review_excerpt(
         ).strip()
     if any(marker in text for marker in INFRASTRUCTURE_REVIEW_MARKERS):
         return render_prompt_template("context/previous_review_infra_omitted.md").strip()
-    if len(text) <= max_chars:
+    if len(text) <= warn_chars:
         return text
-    return focused_message_excerpt(text, max_chars=min(max_chars, 1200))
+    return (
+        render_prompt_template(
+            "context/long_previous_teacher_review_warning.md",
+            review_path=review_path,
+            review_chars=len(text),
+            warn_chars=warn_chars,
+        ).strip()
+        + "\n\n"
+        + text
+    )
 
 
 def compact_inline_text(text: str, *, max_chars: int = 220) -> str:
@@ -428,11 +444,11 @@ def prior_iteration_context(
             previous_teacher_review_artifact=operation_artifact_block(
                 runtime, review_op
             ),
-            previous_teacher_review_excerpt=previous_teacher_review_excerpt(
+            previous_teacher_review_text=previous_teacher_review_text(
                 runtime=runtime,
                 round_id=round_id,
                 iteration=iteration,
-                max_chars=8000,
+                warn_chars=12000,
             ),
         ).rstrip()
     ]
@@ -525,8 +541,13 @@ def common_context(
             elite_seed_source=elite_seed_source,
         )
     )
+    context_template = (
+        "context/common_context_followup.md"
+        if iteration > 1
+        else "context/common_context.md"
+    )
     return render_prompt_template(
-        "context/common_context.md",
+        context_template,
         case_id=case_id,
         flow_variant=flow_variant,
         threads=threads,
@@ -676,7 +697,7 @@ def compact_teacher_prompt(
         route_lines=route_lines,
         student_roster=student_roster,
         teacher_rules=render_prompt_template(
-            "teacher/rules.md",
+            "teacher/rules_followup.md",
             student_runtime_multiplier=format_multiplier(student_runtime_multiplier),
         ),
         teacher_plan_output=render_prompt_template(
@@ -723,7 +744,7 @@ def compact_teacher_review_prompt(
         context_path=context_path,
         review_packet_path=review_packet_path,
         teacher_review_rules=render_prompt_template(
-            "teacher/review_rules.md",
+            "teacher/review_rules_followup.md",
             student_runtime_multiplier=format_multiplier(student_runtime_multiplier),
         ),
         teacher_review_output=render_prompt_template(
@@ -890,6 +911,7 @@ DPL_SRC={shlex.quote(str(paths.dpl_src))}
 PRIVATE_BINARY={shlex.quote(str(paths.private_binary))}
 ARTIFACT_DIR={shlex.quote(str(paths.artifact_dir))}
 SOURCE_BRANCH={shlex.quote(paths.source_branch)}
+CANDIDATE_SOURCE_REF={shlex.quote(stable_candidate_ref(run_tag))}
 SOURCE_BASE_RECORD={shlex.quote(str(paths.source_base_record))}
 SOURCE_COMMIT_RECORD={shlex.quote(str(paths.source_commit_record))}
 IMPLEMENTATION_DIFF={shlex.quote(str(paths.implementation_diff))}
@@ -920,7 +942,7 @@ acquire_workspace_git_lock() {{
   exec 9>"$VARIANT_ROOT/.workspace_git.lock"
   if ! flock -n 9; then
     echo "[ERROR] another generated workspace helper is already mutating this private source." >&2
-    echo "[INFO] Run dependent helpers serially: prepare/switch/build/evaluate/commit/diff." >&2
+    echo "[INFO] Run dependent helpers serially: prepare/switch/build/evaluate/checkpoint/preserve/commit/diff." >&2
     exit 2
   fi
 }}
@@ -928,7 +950,7 @@ acquire_workspace_git_lock() {{
 assert_no_git_index_lock() {{
   if [[ -e "$DPL_SRC/.git/index.lock" ]]; then
     echo "[ERROR] git index lock exists in private source: $DPL_SRC/.git/index.lock" >&2
-    echo "[INFO] Do not run prepare/switch/build/evaluate/commit helpers in parallel." >&2
+    echo "[INFO] Do not run prepare/switch/build/evaluate/checkpoint/preserve/commit helpers in parallel." >&2
     echo "[INFO] If no helper process is active, remove the stale lock manually after inspecting processes." >&2
     exit 2
   fi
@@ -938,15 +960,16 @@ assert_no_git_index_lock() {{
     scripts = {
         "prepare": script_dir / "00_prepare_source.sh",
         "prepare_start_source": script_dir / "01_prepare_start_source.sh",
+        "source_status": script_dir / "02_source_status.sh",
+        "peer_source": script_dir / "03_fetch_peer_source.sh",
         "switch_start_branch": script_dir / "04_switch_start_branch.sh",
         "source_context": script_dir / "05_source_context.sh",
         "query_knowledge": script_dir / "08_query_knowledge.sh",
         "build": script_dir / "10_build_variant.sh",
         "fresh_build": script_dir / "11_build_variant_fresh.sh",
         "evaluate": script_dir / "20_evaluate_candidate.sh",
-        "commit": script_dir / "30_commit_source.sh",
-        "diff": script_dir / "40_write_diff.sh",
-        "knowledge_template": script_dir / "50_seed_knowledge_card.sh",
+        "trial": script_dir / "25_trial_source.sh",
+        "finalize": script_dir / "30_finalize_source.sh",
         "after_edit": script_dir / "run_after_edit.sh",
     }
 
@@ -1095,6 +1118,159 @@ DPL_EVOLVE_WORKSPACE_LOCK_HELD=1 "$SCRIPT_DIR/04_switch_start_branch.sh" --kind 
     )
 
     write_executable_script(
+        scripts["source_status"],
+        f"""#!/usr/bin/env bash
+set -euo pipefail
+{common_vars}
+if [[ ! -d "$DPL_SRC/.git" ]]; then
+  echo "[INFO] source repo is not prepared yet: $DPL_SRC"
+  echo "[INFO] run 00_prepare_source.sh or 01_prepare_start_source.sh first"
+  exit 0
+fi
+ensure_dpl_git_repo
+echo "[INFO] source=$DPL_SRC"
+echo "[INFO] expected_source_branch=$SOURCE_BRANCH"
+echo "[INFO] current_branch=$(git -C "$DPL_SRC" branch --show-current)"
+echo "[INFO] head=$(git -C "$DPL_SRC" rev-parse --short HEAD) $(git -C "$DPL_SRC" log -1 --pretty=%s)"
+if [[ -s "$SOURCE_BASE_RECORD" ]]; then
+  echo "[INFO] source_base_commit=$(head -n 1 "$SOURCE_BASE_RECORD")"
+else
+  echo "[INFO] source_base_commit=<not recorded yet>"
+fi
+if git -C "$DPL_SRC" show-ref --verify --quiet "refs/heads/$CANDIDATE_SOURCE_REF"; then
+  echo "[INFO] stable_candidate_ref=$CANDIDATE_SOURCE_REF $(git -C "$DPL_SRC" rev-parse --short "$CANDIDATE_SOURCE_REF")"
+else
+  echo "[INFO] stable_candidate_ref=$CANDIDATE_SOURCE_REF <not pinned yet>"
+fi
+echo "[INFO] source status:"
+git -C "$DPL_SRC" status --short
+echo "[INFO] iteration branches:"
+git -C "$DPL_SRC" for-each-ref --format='[INFO]   %(refname:short) %(objectname:short) %(subject)' "refs/heads/agent/" | tail -20 || true
+echo "[INFO] candidate refs:"
+git -C "$DPL_SRC" for-each-ref --format='[INFO]   %(refname:short) %(objectname:short) %(subject)' "refs/heads/candidate/" | tail -20 || true
+echo "[INFO] start branches:"
+git -C "$DPL_SRC" for-each-ref --format='[INFO]   %(refname:short) %(objectname:short) %(subject)' "refs/heads/start/" || true
+""",
+    )
+
+    write_executable_script(
+        scripts["peer_source"],
+        f"""#!/usr/bin/env bash
+set -euo pipefail
+{common_vars}
+peer_repo=""
+peer_ref=""
+label=""
+paths=()
+
+usage() {{
+  cat >&2 <<'USAGE'
+Usage:
+  03_fetch_peer_source.sh --peer-repo <repo> --peer-ref <ref> [--label <name>] [--path <src/path> ...]
+
+Fetch another Student's evaluated source ref into this local repo as
+peer/<label>, then write a diff summary under this iteration's artifacts.
+This helper does not modify the working tree. Use it to inspect and migrate
+selected mechanisms onto the current iteration branch.
+USAGE
+}}
+
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    --peer-repo)
+      peer_repo="$2"
+      shift 2
+      ;;
+    --peer-ref)
+      peer_ref="$2"
+      shift 2
+      ;;
+    --label)
+      label="$2"
+      shift 2
+      ;;
+    --path)
+      paths+=("$2")
+      shift 2
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "[ERROR] unknown argument: $1" >&2
+      usage
+      exit 2
+      ;;
+  esac
+done
+
+if [[ -z "$peer_repo" || -z "$peer_ref" ]]; then
+  echo "[ERROR] --peer-repo and --peer-ref are required" >&2
+  usage
+  exit 2
+fi
+
+acquire_workspace_git_lock
+ensure_dpl_git_repo
+assert_no_git_index_lock
+peer_repo="$(realpath -m "$peer_repo")"
+if [[ ! -d "$peer_repo/.git" ]]; then
+  echo "[ERROR] peer repo is not a local git repo: $peer_repo" >&2
+  exit 2
+fi
+
+if [[ -z "$label" ]]; then
+  label="$(basename "$(dirname "$peer_repo")")_$(basename "$peer_ref")"
+fi
+safe_label="$(python3 - "$label" <<'PY'
+import re
+import sys
+
+label = sys.argv[1]
+safe = re.sub(r"[^A-Za-z0-9._-]+", "_", label).strip("._-")
+print(safe or "peer_source")
+PY
+)"
+peer_branch="peer/$safe_label"
+git -C "$DPL_SRC" check-ref-format --branch "$peer_branch" >/dev/null
+git -C "$DPL_SRC" fetch --no-tags "$peer_repo" "+$peer_ref:refs/heads/$peer_branch" >/dev/null
+peer_commit="$(git -C "$DPL_SRC" rev-parse "$peer_branch")"
+
+out_dir="$ARTIFACT_DIR/peer_imports"
+mkdir -p "$out_dir"
+summary="$out_dir/${{safe_label}}.summary.txt"
+diff_path="$out_dir/${{safe_label}}.diff"
+
+{{
+  echo "[INFO] source=$DPL_SRC"
+  echo "[INFO] current_branch=$(git -C "$DPL_SRC" branch --show-current)"
+  echo "[INFO] local_peer_ref=$peer_branch"
+  echo "[INFO] peer_repo=$peer_repo"
+  echo "[INFO] peer_ref=$peer_ref"
+  echo "[INFO] peer_commit=$peer_commit"
+  if [[ "${{#paths[@]}}" -gt 0 ]]; then
+    printf '[INFO] path_filters='
+    printf '%s ' "${{paths[@]}}"
+    printf '\\n'
+  else
+    echo "[INFO] path_filters=<all>"
+  fi
+  echo "[INFO] diff stat:"
+  git -C "$DPL_SRC" diff --stat HEAD.."$peer_branch" -- "${{paths[@]}}" || true
+  echo "[INFO] changed files:"
+  git -C "$DPL_SRC" diff --name-status HEAD.."$peer_branch" -- "${{paths[@]}}" || true
+}} | tee "$summary"
+
+git -C "$DPL_SRC" diff --no-ext-diff HEAD.."$peer_branch" -- "${{paths[@]}}" > "$diff_path" || true
+echo "[INFO] peer_summary=$summary"
+echo "[INFO] peer_diff=$diff_path"
+echo "[INFO] inspect_file_example=git -C '$DPL_SRC' show '$peer_branch:src/Optdp.cpp'"
+echo "[INFO] migrate selectively on $SOURCE_BRANCH, then build/evaluate before final commit."
+""",
+    )
+
+    write_executable_script(
         scripts["switch_start_branch"],
         f"""#!/usr/bin/env bash
 set -euo pipefail
@@ -1196,8 +1372,9 @@ Examples:
   05_source_context.sh src/Optdp.cpp --symbol improvePlacement
   05_source_context.sh src/optimization/detailed_manager.h DetailedMgr
 
-This script only prints current local source context for patch anchoring.
-Edit with apply_patch after reading the current excerpt.
+This script only prints current local source context for edit anchoring.
+Use the excerpt to make coherent mechanism-level source edits when justified by
+the Teacher route and your diagnosis.
 USAGE
 }}
 
@@ -1397,13 +1574,341 @@ echo "[INFO] metrics=$METRICS_PATH"
     )
 
     write_executable_script(
-        scripts["commit"],
+        scripts["trial"],
         f"""#!/usr/bin/env bash
 set -euo pipefail
 {common_vars}
+COMMAND="${{1:-}}"
+if [[ "$#" -gt 0 ]]; then
+  shift
+fi
+TRIAL_STATE="$ARTIFACT_DIR/source_trial_state.json"
+TRIAL_LOG="$ARTIFACT_DIR/source_trials.jsonl"
+TRIAL_DIR="$ARTIFACT_DIR/source_trials"
+
+usage() {{
+  cat >&2 <<'USAGE'
+Usage:
+  25_trial_source.sh begin --label <short-mechanism> [--from-ref <kept-or-rejected-ref>]
+  25_trial_source.sh reject --reason <why-rejected>
+  25_trial_source.sh keep --reason <why-kept>
+  25_trial_source.sh status
+
+begin  : checkpoint the current clean/base state and open one active trial.
+         With --from-ref, reset the iteration branch to that prior kept/rejected
+         ref as the trial workbench while preserving the current base for reject.
+reject : commit/pin current work as rejected evidence, snapshot diff/metrics,
+         restore the iteration branch to the begin checkpoint, and clear state.
+keep   : commit/pin current work as kept evidence and clear state; branch stays
+         at the kept source.
+status : print active trial state and source branch status.
+USAGE
+}}
+
+sanitize_label() {{
+  local raw="$1"
+  local safe
+  safe="$(printf '%s' "$raw" | tr -cs 'A-Za-z0-9._-' '_' | sed 's/^[_\\.-]*//; s/[_\\.-]*$//' | cut -c1-80)"
+  if [[ -z "$safe" ]]; then
+    safe="attempt"
+  fi
+  printf '%s\n' "$safe"
+}}
+
+require_iteration_branch() {{
+  current_branch="$(git -C "$DPL_SRC" branch --show-current)"
+  if [[ "$current_branch" != "$SOURCE_BRANCH" ]]; then
+    echo "[ERROR] expected source branch $SOURCE_BRANCH, got $current_branch" >&2
+    exit 2
+  fi
+}}
+
+commit_current_if_needed() {{
+  local message="$1"
+  git -C "$DPL_SRC" add -A
+  if ! git -C "$DPL_SRC" diff --cached --quiet; then
+    git -C "$DPL_SRC" commit -m "$message" >&2
+  else
+    echo "[INFO] no staged changes; pinning current HEAD" >&2
+  fi
+  git -C "$DPL_SRC" rev-parse HEAD
+}}
+
+write_diff_for_commit() {{
+  local base_commit="$1"
+  local commit="$2"
+  local diff_path="$3"
+  mkdir -p "$(dirname "$diff_path")"
+  git -C "$DPL_SRC" diff --no-ext-diff "$base_commit".."$commit" > "$diff_path" || true
+  if [[ ! -s "$diff_path" ]]; then
+    git -C "$DPL_SRC" diff --no-ext-diff "$base_commit" "$commit" > "$diff_path" || true
+  fi
+}}
+
+snapshot_metrics() {{
+  local prefix="$1"
+  local out=""
+  if [[ -f "$METRICS_PATH" ]]; then
+    out="$TRIAL_DIR/${{prefix}}.metrics.json"
+    mkdir -p "$TRIAL_DIR"
+    cp -f "$METRICS_PATH" "$out"
+  fi
+  printf '%s\n' "$out"
+}}
+
+append_trial_event() {{
+  local action="$1"
+  local ref="$2"
+  local commit="$3"
+  local reason="${{4:-}}"
+  local diff_path="${{5:-}}"
+  local metrics_snapshot="${{6:-}}"
+  SOURCE_BRANCH_NOW="$(git -C "$DPL_SRC" branch --show-current)" \
+  TRIAL_ACTION="$action" \
+  TRIAL_REF="$ref" \
+  TRIAL_COMMIT="$commit" \
+  TRIAL_REASON="$reason" \
+  TRIAL_DIFF="$diff_path" \
+  TRIAL_METRICS="$metrics_snapshot" \
+  TRIAL_RUN_TAG="$RUN_TAG" \
+  DPL_SRC="$DPL_SRC" \
+  python3 - "$TRIAL_LOG" <<'PY'
+import json
+import os
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+path.parent.mkdir(parents=True, exist_ok=True)
+payload = {{
+    "action": os.environ["TRIAL_ACTION"],
+    "branch": os.environ["SOURCE_BRANCH_NOW"],
+    "diff_path": os.environ.get("TRIAL_DIFF") or None,
+    "metrics_snapshot": os.environ.get("TRIAL_METRICS") or None,
+    "reason": os.environ.get("TRIAL_REASON") or None,
+    "ref": os.environ.get("TRIAL_REF") or None,
+    "run_tag": os.environ["TRIAL_RUN_TAG"],
+    "source_commit": os.environ.get("TRIAL_COMMIT") or None,
+    "source_repo": os.environ["DPL_SRC"],
+}}
+with path.open("a", encoding="utf-8") as fh:
+    fh.write(json.dumps(payload, sort_keys=True) + "\\n")
+PY
+}}
+
+load_state_exports() {{
+  python3 - "$TRIAL_STATE" <<'PY'
+import json
+import shlex
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+if not path.exists():
+    raise SystemExit("[ERROR] no active trial state; run begin first")
+payload = json.loads(path.read_text(encoding="utf-8"))
+for key, value in payload.items():
+    env_key = "TRIAL_" + key.upper()
+    print(f"{{env_key}}={{shlex.quote(str(value))}}")
+PY
+}}
+
+label=""
+reason=""
+from_ref=""
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    --label|-l)
+      if [[ "$#" -lt 2 ]]; then echo "[ERROR] --label requires a value" >&2; usage; exit 2; fi
+      label="$2"; shift 2 ;;
+    --reason|-r)
+      if [[ "$#" -lt 2 ]]; then echo "[ERROR] --reason requires a value" >&2; usage; exit 2; fi
+      reason="$2"; shift 2 ;;
+    --from-ref)
+      if [[ "$#" -lt 2 ]]; then echo "[ERROR] --from-ref requires a value" >&2; usage; exit 2; fi
+      from_ref="$2"; shift 2 ;;
+    --help|-h)
+      usage; exit 0 ;;
+    *)
+      echo "[ERROR] unknown argument: $1" >&2; usage; exit 2 ;;
+  esac
+done
+
+case "$COMMAND" in
+  begin)
+    if [[ -z "$label" ]]; then
+      echo "[ERROR] begin requires --label" >&2
+      usage
+      exit 2
+    fi
+    acquire_workspace_git_lock
+    ensure_dpl_git_repo
+    assert_no_git_index_lock
+    require_iteration_branch
+    mkdir -p "$ARTIFACT_DIR" "$TRIAL_DIR"
+    if [[ -f "$TRIAL_STATE" ]]; then
+      echo "[ERROR] active trial already exists: $TRIAL_STATE" >&2
+      echo "[INFO] Resolve it with: 25_trial_source.sh keep|reject --reason <why>" >&2
+      exit 2
+    fi
+    safe_label="$(sanitize_label "$label")"
+    base_commit="$(commit_current_if_needed "trial base $SOURCE_BRANCH $safe_label")"
+    stamp="$(date +%Y%m%d_%H%M%S)"
+    checkpoint_ref="checkpoint/${{RUN_TAG}}/${{stamp}}-${{safe_label}}"
+    git -C "$DPL_SRC" check-ref-format --branch "$checkpoint_ref" >/dev/null
+    git -C "$DPL_SRC" branch -f "$checkpoint_ref" "$base_commit" >/dev/null
+    start_ref="$base_commit"
+    start_commit="$base_commit"
+    if [[ -n "$from_ref" ]]; then
+      start_commit="$(git -C "$DPL_SRC" rev-parse --verify "$from_ref^{{commit}}")"
+      git -C "$DPL_SRC" reset --hard "$start_commit" >/dev/null
+      start_ref="$from_ref"
+      echo "[INFO] trial_from_ref=$from_ref"
+      echo "[INFO] trial_start_commit=$start_commit"
+    fi
+    TRIAL_LABEL="$label" \
+    TRIAL_SAFE_LABEL="$safe_label" \
+    TRIAL_BASE_COMMIT="$base_commit" \
+    TRIAL_CHECKPOINT_REF="$checkpoint_ref" \
+    TRIAL_FROM_REF="$start_ref" \
+    TRIAL_START_COMMIT="$start_commit" \
+    TRIAL_STARTED_AT="$stamp" \
+    python3 - "$TRIAL_STATE" <<'PY'
+import json
+import os
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+payload = {{
+    "base_commit": os.environ["TRIAL_BASE_COMMIT"],
+    "checkpoint_ref": os.environ["TRIAL_CHECKPOINT_REF"],
+    "from_ref": os.environ["TRIAL_FROM_REF"],
+    "label": os.environ["TRIAL_LABEL"],
+    "safe_label": os.environ["TRIAL_SAFE_LABEL"],
+    "start_commit": os.environ["TRIAL_START_COMMIT"],
+    "started_at": os.environ["TRIAL_STARTED_AT"],
+}}
+path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\\n", encoding="utf-8")
+PY
+    append_trial_event "begin" "$checkpoint_ref" "$base_commit" "trial opened from $start_ref" "" ""
+    echo "[INFO] trial_base_commit=$base_commit"
+    echo "[INFO] trial_checkpoint_ref=$checkpoint_ref"
+    echo "[INFO] trial_state=$TRIAL_STATE"
+    ;;
+  reject)
+    if [[ -z "$reason" ]]; then
+      echo "[ERROR] reject requires --reason" >&2
+      usage
+      exit 2
+    fi
+    acquire_workspace_git_lock
+    ensure_dpl_git_repo
+    assert_no_git_index_lock
+    require_iteration_branch
+    mkdir -p "$TRIAL_DIR"
+    eval "$(load_state_exports)"
+    stamp="$(date +%Y%m%d_%H%M%S)"
+    rejected_commit="$(commit_current_if_needed "rejected $SOURCE_BRANCH ${{TRIAL_SAFE_LABEL}}: $reason")"
+    rejected_ref="rejected/${{RUN_TAG}}/${{stamp}}-${{TRIAL_SAFE_LABEL}}"
+    git -C "$DPL_SRC" check-ref-format --branch "$rejected_ref" >/dev/null
+    git -C "$DPL_SRC" branch -f "$rejected_ref" "$rejected_commit" >/dev/null
+    diff_path="$TRIAL_DIR/${{stamp}}-${{TRIAL_SAFE_LABEL}}.rejected.diff"
+    write_diff_for_commit "$TRIAL_BASE_COMMIT" "$rejected_commit" "$diff_path"
+    metrics_snapshot="$(snapshot_metrics "${{stamp}}-${{TRIAL_SAFE_LABEL}}.rejected")"
+    if [[ -n "$metrics_snapshot" ]]; then
+      rm -f "$METRICS_PATH"
+      echo "[INFO] removed canonical metrics after rejected restore; rerun evaluation for the retained source before finalize."
+    fi
+    append_trial_event "reject" "$rejected_ref" "$rejected_commit" "$reason" "$diff_path" "$metrics_snapshot"
+    git -C "$DPL_SRC" reset --hard "$TRIAL_BASE_COMMIT" >/dev/null
+    rm -f "$TRIAL_STATE"
+    echo "[INFO] rejected_commit=$rejected_commit"
+    echo "[INFO] rejected_ref=$rejected_ref"
+    echo "[INFO] rejected_diff=$diff_path"
+    if [[ -n "$metrics_snapshot" ]]; then echo "[INFO] rejected_metrics_snapshot=$metrics_snapshot"; fi
+    echo "[INFO] restored_source_commit=$TRIAL_BASE_COMMIT"
+    echo "[INFO] source_trials=$TRIAL_LOG"
+    ;;
+  keep)
+    if [[ -z "$reason" ]]; then
+      echo "[ERROR] keep requires --reason" >&2
+      usage
+      exit 2
+    fi
+    acquire_workspace_git_lock
+    ensure_dpl_git_repo
+    assert_no_git_index_lock
+    require_iteration_branch
+    mkdir -p "$TRIAL_DIR"
+    eval "$(load_state_exports)"
+    stamp="$(date +%Y%m%d_%H%M%S)"
+    kept_commit="$(commit_current_if_needed "kept $SOURCE_BRANCH ${{TRIAL_SAFE_LABEL}}: $reason")"
+    kept_ref="kept/${{RUN_TAG}}/${{stamp}}-${{TRIAL_SAFE_LABEL}}"
+    git -C "$DPL_SRC" check-ref-format --branch "$kept_ref" >/dev/null
+    git -C "$DPL_SRC" branch -f "$kept_ref" "$kept_commit" >/dev/null
+    diff_path="$TRIAL_DIR/${{stamp}}-${{TRIAL_SAFE_LABEL}}.kept.diff"
+    write_diff_for_commit "$TRIAL_BASE_COMMIT" "$kept_commit" "$diff_path"
+    metrics_snapshot="$(snapshot_metrics "${{stamp}}-${{TRIAL_SAFE_LABEL}}.kept")"
+    append_trial_event "keep" "$kept_ref" "$kept_commit" "$reason" "$diff_path" "$metrics_snapshot"
+    rm -f "$TRIAL_STATE"
+    echo "[INFO] kept_commit=$kept_commit"
+    echo "[INFO] kept_ref=$kept_ref"
+    echo "[INFO] kept_diff=$diff_path"
+    if [[ -n "$metrics_snapshot" ]]; then echo "[INFO] kept_metrics_snapshot=$metrics_snapshot"; fi
+    echo "[INFO] source_trials=$TRIAL_LOG"
+    ;;
+  status)
+    ensure_dpl_git_repo
+    echo "[INFO] branch=$(git -C "$DPL_SRC" branch --show-current)"
+    echo "[INFO] head=$(git -C "$DPL_SRC" rev-parse --short HEAD)"
+    git -C "$DPL_SRC" status --short
+    if [[ -f "$TRIAL_STATE" ]]; then
+      echo "[INFO] active_trial_state=$TRIAL_STATE"
+      cat "$TRIAL_STATE"
+    else
+      echo "[INFO] active_trial_state=<none>"
+    fi
+    if [[ -f "$TRIAL_LOG" ]]; then
+      echo "[INFO] source_trials=$TRIAL_LOG"
+      tail -n 5 "$TRIAL_LOG"
+    fi
+    ;;
+  --help|-h|"")
+    usage
+    if [[ -z "$COMMAND" ]]; then exit 2; fi
+    ;;
+  *)
+    echo "[ERROR] unknown command: $COMMAND" >&2
+    usage
+    exit 2
+    ;;
+esac
+""",
+    )
+
+    write_executable_script(
+        scripts["finalize"],
+        f"""#!/usr/bin/env bash
+set -euo pipefail
+{common_vars}
+TRIAL_STATE="$ARTIFACT_DIR/source_trial_state.json"
+TRIAL_LOG="$ARTIFACT_DIR/source_trials.jsonl"
+
 acquire_workspace_git_lock
 ensure_dpl_git_repo
 assert_no_git_index_lock
+current_branch="$(git -C "$DPL_SRC" branch --show-current)"
+if [[ "$current_branch" != "$SOURCE_BRANCH" ]]; then
+  echo "[ERROR] expected source branch $SOURCE_BRANCH, got $current_branch" >&2
+  exit 2
+fi
+if [[ -f "$TRIAL_STATE" ]]; then
+  echo "[ERROR] active trial still exists: $TRIAL_STATE" >&2
+  echo "[INFO] Resolve it first with: 25_trial_source.sh keep|reject --reason <why>" >&2
+  exit 2
+fi
+
 git -C "$DPL_SRC" status --short
 git -C "$DPL_SRC" add -A
 if ! git -C "$DPL_SRC" diff --cached --quiet; then
@@ -1411,15 +1916,31 @@ if ! git -C "$DPL_SRC" diff --cached --quiet; then
 fi
 commit="$(git -C "$DPL_SRC" rev-parse HEAD)"
 dirty="$(git -C "$DPL_SRC" status --short)"
-SOURCE_COMMIT="$commit" DIRTY_STATUS="$dirty" python3 - "$SOURCE_COMMIT_RECORD" "$SOURCE_BRANCH" <<'PY'
+git -C "$DPL_SRC" check-ref-format --branch "$CANDIDATE_SOURCE_REF" >/dev/null
+git -C "$DPL_SRC" branch -f "$CANDIDATE_SOURCE_REF" "$commit" >/dev/null
+if [[ -s "$SOURCE_BASE_RECORD" ]]; then
+  SOURCE_BASE_COMMIT="$(head -n 1 "$SOURCE_BASE_RECORD")"
+else
+  SOURCE_BASE_COMMIT="$(git -C "$DPL_SRC" rev-list --max-parents=0 HEAD | tail -n 1)"
+fi
+mkdir -p "$ARTIFACT_DIR"
+SOURCE_COMMIT="$commit" \
+DIRTY_STATUS="$dirty" \
+CANDIDATE_SOURCE_REF="$CANDIDATE_SOURCE_REF" \
+DPL_SRC="$DPL_SRC" \
+SOURCE_BASE_COMMIT="$SOURCE_BASE_COMMIT" \
+python3 - "$SOURCE_COMMIT_RECORD" "$SOURCE_BRANCH" <<'PY'
 import json
 import os
 import sys
 
 path, branch = sys.argv[1], sys.argv[2]
 payload = {{
-    "source_commit": os.environ["SOURCE_COMMIT"],
+    "source_base_commit": os.environ.get("SOURCE_BASE_COMMIT") or None,
+    "source_candidate_ref": os.environ["CANDIDATE_SOURCE_REF"],
     "source_branch": branch,
+    "source_commit": os.environ["SOURCE_COMMIT"],
+    "source_repo": os.environ.get("DPL_SRC"),
     "dirty_after_commit": bool(os.environ.get("DIRTY_STATUS", "")),
     "dirty_status": os.environ.get("DIRTY_STATUS", ""),
 }}
@@ -1427,32 +1948,11 @@ with open(path, "w", encoding="utf-8") as fh:
     json.dump(payload, fh, indent=2, sort_keys=True)
     fh.write("\\n")
 PY
-echo "[INFO] source_commit=$commit"
-if [[ -n "$dirty" ]]; then
-  echo "[WARN] source repo still dirty after commit:" >&2
-  printf '%s\\n' "$dirty" >&2
-fi
-""",
-    )
 
-    write_executable_script(
-        scripts["diff"],
-        f"""#!/usr/bin/env bash
-set -euo pipefail
-{common_vars}
-acquire_workspace_git_lock
-ensure_dpl_git_repo
-assert_no_git_index_lock
-mkdir -p "$ARTIFACT_DIR"
-if [[ -s "$SOURCE_BASE_RECORD" ]]; then
-  SOURCE_BASE_COMMIT="$(head -n 1 "$SOURCE_BASE_RECORD")"
-else
-  SOURCE_BASE_COMMIT="$(git -C "$DPL_SRC" rev-list --max-parents=0 HEAD | tail -n 1)"
-fi
-git -C "$DPL_SRC" diff --no-ext-diff "$SOURCE_BASE_COMMIT"..HEAD \\
+git -C "$DPL_SRC" diff --no-ext-diff "$SOURCE_BASE_COMMIT".."$commit" \
   > "$IMPLEMENTATION_DIFF" || true
 if [[ ! -s "$IMPLEMENTATION_DIFF" ]]; then
-  git -C "$DPL_SRC" diff --no-ext-diff "$SOURCE_BASE_COMMIT" \\
+  git -C "$DPL_SRC" diff --no-ext-diff "$SOURCE_BASE_COMMIT" "$commit" \
     > "$IMPLEMENTATION_DIFF" || true
 fi
 if [[ ! -s "$IMPLEMENTATION_DIFF" ]]; then
@@ -1460,20 +1960,9 @@ if [[ ! -s "$IMPLEMENTATION_DIFF" ]]; then
 else
   echo "[INFO] implementation_diff=$IMPLEMENTATION_DIFF"
 fi
-""",
-    )
 
-    write_executable_script(
-        scripts["knowledge_template"],
-        f"""#!/usr/bin/env bash
-set -euo pipefail
-{common_vars}
-mkdir -p "$ARTIFACT_DIR"
-if [[ -f "$KNOWLEDGE_CARD" ]]; then
-  echo "[INFO] knowledge card already exists: $KNOWLEDGE_CARD"
-  exit 0
-fi
-cat > "$KNOWLEDGE_CARD" <<'EOF'
+if [[ ! -f "$KNOWLEDGE_CARD" ]]; then
+  cat > "$KNOWLEDGE_CARD" <<'EOF_KNOWLEDGE'
 # Knowledge Card
 
 ## Hypothesis
@@ -1485,8 +1974,47 @@ cat > "$KNOWLEDGE_CARD" <<'EOF'
 ## Causal lesson
 
 ## Next experiment
-EOF
+EOF_KNOWLEDGE
+fi
+
+FINAL_SOURCE_BRANCH="$current_branch" \
+FINAL_SOURCE_COMMIT="$commit" \
+FINAL_CANDIDATE_REF="$CANDIDATE_SOURCE_REF" \
+FINAL_DIFF="$IMPLEMENTATION_DIFF" \
+FINAL_KNOWLEDGE="$KNOWLEDGE_CARD" \
+DPL_SRC="$DPL_SRC" \
+RUN_TAG="$RUN_TAG" \
+python3 - "$TRIAL_LOG" <<'PY'
+import json
+import os
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+path.parent.mkdir(parents=True, exist_ok=True)
+payload = {{
+    "action": "finalize",
+    "branch": os.environ["FINAL_SOURCE_BRANCH"],
+    "candidate_ref": os.environ["FINAL_CANDIDATE_REF"],
+    "diff_path": os.environ["FINAL_DIFF"],
+    "knowledge_card": os.environ["FINAL_KNOWLEDGE"],
+    "run_tag": os.environ["RUN_TAG"],
+    "source_commit": os.environ["FINAL_SOURCE_COMMIT"],
+    "source_repo": os.environ["DPL_SRC"],
+}}
+with path.open("a", encoding="utf-8") as fh:
+    fh.write(json.dumps(payload, sort_keys=True) + "\\n")
+PY
+
+echo "[INFO] source_commit=$commit"
+echo "[INFO] source_candidate_ref=$CANDIDATE_SOURCE_REF"
+echo "[INFO] source_commit_record=$SOURCE_COMMIT_RECORD"
+echo "[INFO] source_trials=$TRIAL_LOG"
 echo "[INFO] knowledge_card=$KNOWLEDGE_CARD"
+if [[ -n "$dirty" ]]; then
+  echo "[WARN] source repo still dirty after finalize:" >&2
+  printf '%s\n' "$dirty" >&2
+fi
 """,
     )
 
@@ -1497,9 +2025,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 "$SCRIPT_DIR/10_build_variant.sh"
 "$SCRIPT_DIR/20_evaluate_candidate.sh"
-"$SCRIPT_DIR/30_commit_source.sh"
-"$SCRIPT_DIR/40_write_diff.sh"
-"$SCRIPT_DIR/50_seed_knowledge_card.sh"
+"$SCRIPT_DIR/30_finalize_source.sh"
 """,
     )
 
@@ -1581,9 +2107,14 @@ def write_child_workspace_packet(
     )
     agent_root = runtime.agent_root
     teacher_last_message = runtime.operations_dir / teacher_operation_id / "codex_last_message.txt"
+    workspace_template = (
+        "packets/student_workspace_packet_followup.md"
+        if iteration > 1
+        else "packets/student_workspace_packet.md"
+    )
     path.write_text(
         render_prompt_template(
-            "packets/student_workspace_packet.md",
+            workspace_template,
             student_id=student_id,
             child_id=child_id,
             route_label=route_label,
@@ -1595,6 +2126,7 @@ def write_child_workspace_packet(
             run_tag=run_tag,
             parent_src=parent_src,
             source_branch=paths.source_branch,
+            source_candidate_ref=stable_candidate_ref(run_tag),
             agent_root=agent_root,
             optional_reference_index=agent_root / "family_variants" / "REFERENCE_INDEX.yaml",
             optional_legalm_reference=agent_root
@@ -1648,14 +2180,15 @@ def write_child_workspace_packet(
             command_script_dir=paths.student_workspace / "scripts",
             prepare_source_script=script_paths["prepare"],
             prepare_start_source_script=script_paths["prepare_start_source"],
+            source_status_script=script_paths["source_status"],
+            fetch_peer_source_script=script_paths["peer_source"],
             switch_start_branch_script=script_paths["switch_start_branch"],
             source_context_script=script_paths["source_context"],
             build_variant_script=script_paths["build"],
             fresh_build_script=script_paths["fresh_build"],
             evaluate_candidate_script=script_paths["evaluate"],
-            commit_source_script=script_paths["commit"],
-            write_diff_script=script_paths["diff"],
-            seed_knowledge_card_script=script_paths["knowledge_template"],
+            trial_source_script=script_paths["trial"],
+            finalize_source_script=script_paths["finalize"],
             after_edit_script=script_paths["after_edit"],
             peer_learning_path=peer_learning_path,
             teacher_prompt_path=teacher_prompt_path,
@@ -1705,6 +2238,8 @@ def write_review_artifacts_packet(
                 private_binary=child.private_binary,
                 failed_attempts=child.implementation_diff.parent
                 / "failed_attempts.jsonl",
+                source_trials=child.implementation_diff.parent
+                / "source_trials.jsonl",
                 implementation_diff=child.implementation_diff,
                 knowledge_card=child.knowledge_card,
                 source_base_record=child.source_base_record,
@@ -1826,7 +2361,7 @@ def compact_child_prompt(
         elite_note=elite_note,
         peer_context=peer_context,
         student_rules=render_prompt_template(
-            "student/rules.md",
+            "student/rules_followup.md",
             student_runtime_multiplier=format_multiplier(student_runtime_multiplier),
         ),
     )
@@ -1943,13 +2478,17 @@ def prompt_audit(
     """
     rows: list[dict[str, Any]] = []
     warnings = 0
-    files = sorted(round_dir.glob("iter_*/prompts/*.md")) + sorted(
-        round_dir.glob("iter_*/packet/*.md")
+    files = (
+        sorted(round_dir.glob("iter_*/prompts/*.md"))
+        + sorted(round_dir.glob("iter_*/packet/*.md"))
+        + sorted(round_dir.glob("iter_*/context/*.md"))
     )
     for path in files:
         rel = path.relative_to(round_dir)
         text = path.read_text(encoding="utf-8", errors="replace")
-        is_agent_prompt = "/prompts/" in f"/{rel.as_posix()}"
+        rel_posix = f"/{rel.as_posix()}"
+        is_agent_prompt = "/prompts/" in rel_posix
+        is_context = "/context/" in rel_posix
         file_warnings: list[str] = []
         if is_agent_prompt:
             file_warnings.extend(
@@ -1957,11 +2496,21 @@ def prompt_audit(
                     text, max_agent_prompt_bytes=max_agent_prompt_bytes
                 )
             )
+        elif is_context and len(text.encode("utf-8")) > 30000:
+            file_warnings.append(
+                "generated context is large; evidence is retained uncapped"
+            )
         warnings += len(file_warnings)
         rows.append(
             {
                 "file": str(rel),
-                "kind": "agent_prompt" if is_agent_prompt else "generated_packet",
+                "kind": (
+                    "agent_prompt"
+                    if is_agent_prompt
+                    else "generated_context"
+                    if is_context
+                    else "generated_packet"
+                ),
                 "bytes": len(text.encode("utf-8")),
                 "lines": text.count("\n") + 1,
                 "absolute_path_count": text.count("/home/"),

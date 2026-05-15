@@ -105,8 +105,8 @@ Student workspace packets point to iteration-specific generated scripts such as
 `scripts/iter_XX/00_prepare_source.sh`,
 `scripts/iter_XX/10_build_variant.sh`,
 `scripts/iter_XX/20_evaluate_candidate.sh`,
-`scripts/iter_XX/30_commit_source.sh`, and
-`scripts/iter_XX/40_write_diff.sh` under each Student workspace. Students
+`scripts/iter_XX/25_trial_source.sh`, and
+`scripts/iter_XX/30_finalize_source.sh` under each Student workspace. Students
 should run those scripts instead of reconstructing relink, evaluator, git, or
 diff commands from memory.
 
@@ -382,6 +382,31 @@ changes remain uncommitted, then records the revision at:
 ```text
 .dpl_evolve_state/<round>/teacher_rounds/students/student_XX/iter_XX/artifacts/source_commit.json
 ```
+
+The same commit is also pinned to a stable local branch such as
+`candidate/<round>_iter_03_student_01_<case>`. Later workspace reseeding keeps
+the git repository and these candidate refs, so elite continuation and matrix
+export can inherit the exact evaluated source instead of relying on a mutable
+iteration branch.
+
+Generated workspaces include helper scripts for this branch workflow:
+
+- `00_prepare_source.sh` creates/reuses the private source repo and switches to
+  the iteration branch.
+- `01_prepare_start_source.sh --kind <kind>` atomically prepares and switches
+  from a prepared start branch.
+- `02_source_status.sh` prints current branch, base commit, candidate refs, and
+  start branches.
+- `03_fetch_peer_source.sh --peer-repo <repo> --peer-ref <ref>` fetches a peer
+  candidate into `peer/<label>` and writes diff artifacts without changing the
+  working tree.
+- `25_trial_source.sh begin|keep|reject|status` owns checkpoint, kept, and
+  rejected branch handling. `begin --from-ref <ref>` starts a repair trial from
+  a prior kept/rejected ref. Reject automatically restores the iteration branch
+  to the begin checkpoint and snapshots rejected diff/metrics evidence.
+- `30_finalize_source.sh` commits the final iteration source, pins the stable
+  candidate ref used by elite continuation/export, writes the implementation
+  diff, and seeds the knowledge card skeleton if needed.
 
 Per-iteration diffs, build logs, and eval logs still live under
 `students/student_XX/iter_XX/artifacts`.

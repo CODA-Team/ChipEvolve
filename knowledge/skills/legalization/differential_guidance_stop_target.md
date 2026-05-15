@@ -11,6 +11,12 @@ Differential or LEGALM-style guidance can be useful as a seed/frontier producer:
 it estimates globally useful movement directions, row pressure, target misses,
 and high-impact nets before the final legalizer commits a placement.
 
+It is not normally a legalizer by itself.  Diamond and negotiation can directly
+legalize when their primary routes execute; Differential Guidance must be paired
+with a primary legalizer, a bounded legal repair, or a DPO consumer.  Its timing
+is a heuristic design choice and should be diagnosed with logs rather than
+assumed correct.
+
 The key search variables are:
 
 - `objective`: which pressure/HPWL/displacement/recoverability terms define the
@@ -36,6 +42,9 @@ The key search variables are:
   legalizer.
 - Log compact counters: guided cells, target misses, frontier size, consumer
   attempts, consumer accepts, and elapsed time.
+- If paired with Diamond or negotiation, log both the guidance producer and the
+  downstream legalizer route signal so the report proves which mechanism closed
+  legality and which mechanism only shaped the basin.
 
 ## Bad Use
 

@@ -14,6 +14,7 @@
 - source_branch: `$source_branch`
 - private_binary: `$private_binary`
 - failed_attempts: `$failed_attempts`
+- source_trials: `$source_trials`
 - implementation_diff: `$implementation_diff`
 - knowledge_card: `$knowledge_card`
 - source_base_commit: `$source_base_record`
@@ -22,4 +23,3 @@
 - codex_session_state: `$session_state`
 - codex_identity_env: `$session_env_file`
 $artifact_status_block
-

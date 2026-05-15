@@ -61,7 +61,18 @@ def main() -> int:
                 continue
             if args.iteration and iteration != args.iteration:
                 continue
-            source_ref = item.get("source_commit")
+            source_ref = item.get("source_candidate_ref") or item.get("source_commit")
+            if not source_ref:
+                record = (
+                    student_root
+                    / iteration
+                    / "artifacts"
+                    / "source_commit.json"
+                )
+                payload = load_json(record)
+                source_ref = payload.get("source_candidate_ref") or payload.get(
+                    "source_commit"
+                )
             if not source_ref:
                 continue
             target = output_root / student_root.name / iteration / "dpl_evolve"

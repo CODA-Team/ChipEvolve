@@ -7,6 +7,10 @@ should cite the specific paper/card idea used in their plan/report.
 
 ## Mandatory Review Discipline
 
+- Name the algorithm role before coding: `primary_legalizer`,
+  `guidance_producer`, `repair_or_polish`, or `handoff_consumer`.  Use
+  `algorithm_role_liveness_basics.md` if the route mixes Diamond, negotiation,
+  LEGALM, and Differential Guidance.
 - Path purity is mandatory: LEGALM evolves LEGALM; NEGOTIATION evolves
   negotiation/resource-allocation; DIAMOND evolves Diamond/Tetris/Abacus-style
   legalization.  Do not use another line as fallback, parent, hidden donor, or
@@ -27,6 +31,10 @@ should cite the specific paper/card idea used in their plan/report.
 Core idea: process cells in global-placement order, place into the closest legal
 site/row, then repair overlaps with local row compaction.  This is fast and often
 DPO-friendly because it preserves a simple local order.
+
+Role: `primary_legalizer`.  Diamond can directly legalize when its local search
+and repair route executes.  If it is used only to produce moved cells, dirty
+rows, or touched nets for DPO, state that secondary handoff role separately.
 
 Use on DIAMOND path:
 
@@ -59,6 +67,10 @@ Core idea: model placement rows/zones/sites as resources and solve assignment to
 minimize deviation from global placement; history/conflict costs guide iterative
 repair.
 
+Role: `primary_legalizer` when negotiation/resource allocation closes all
+violations.  If used after another clean legalizer, first prove it still emits
+nonzero moved/conflict/frontier counters; otherwise it may be a no-op producer.
+
 Use on NEGOTIATION path:
 
 - contested resource prices;
@@ -82,6 +94,27 @@ Use by path:
   repair -> full-flow handoff diagnosis.
 - DIAMOND: local row reorder windows around high-pressure endpoints.
 - NEGOTIATION: row membership changes become resource moves with prices.
+
+### Differential / LEGALM-Style Guidance
+
+Core idea: compute target fields, pressure, moved-target sets, or high-impact
+frontiers before committing a final legal placement.  This is a heuristic
+producer unless it is embedded in a full legalizer with explicit legal closure.
+
+Role: usually `guidance_producer`, not `primary_legalizer`.  It must be paired
+with Diamond, negotiation, LEGALM full closure, local repair, or DPO.  Good use
+requires a stated stop point and nonzero producer/consumer counters.
+
+Use by path:
+
+- DIAMOND: seed local candidate ordering or DPO basin search, then let Diamond
+  remain the primary legal closure.
+- NEGOTIATION: seed resource prices or conflict candidates, then prove
+  negotiation still runs as the primary closure.
+- LEGALM: keep the paper-style guidance connected to row assignment,
+  no-overflow refinement, and final full-flow handoff.
+- DPO: consume residual target misses, dirty rows, or touched-net frontiers as a
+  bounded priority/hot set with exact HPWL acceptance.
 
 ### Mixed-Height / Zone-Based Optimal Subproblems
 

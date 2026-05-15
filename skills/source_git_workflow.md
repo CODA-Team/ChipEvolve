@@ -11,62 +11,64 @@ Use this when a Student edits its private `dpl_evolve` source workspace.
 - It is a local git repository.
 - Work on the branch named `source_branch`, normally
   `agent/<student_id>/<iter_name>`.
-- Do not create copied source backup trees.  The git commit is the lineage
-  record.
-- Run source git commands from this private repo, or use
-  `git -C "$private_dpl_evolve_source" ...`. Do not run `git diff --check`,
-  `git status`, or commits from the outer agent repo because that can inspect
-  release patch artifacts instead of the candidate source.
+- Do not create copied source backup trees. Git refs record the lineage:
+  checkpoint refs, `kept/<run_tag>/...`, `rejected/<run_tag>/...`, and the final
+  stable candidate ref.
 
 ## Required Flow
 
 1. Open the workspace packet.
 2. If Teacher assigns a prepared start point, run
-   `prepare_start_source_script --kind <kind>` before edits. This is the
-   preferred atomic helper; do not launch `prepare_source_script` and
-   `switch_start_branch_script` as parallel commands.
-3. Otherwise run `prepare_source_script` to create or reuse the local source
-   repo.
-4. Confirm the generated script reports the expected branch and prepared
-   `start/...` branches.
-5. If you already prepared the source and still need to switch before edits,
-   run `switch_start_branch_script --kind <kind>` serially. Your working branch
-   remains `source_branch` after the switch.
-   For an elite/final-donor continuation route, do not treat an `evolved_*`
-   branch mentioned as fallback evidence as the parent. Keep the pre-seeded or
-   materialized elite source unless Teacher's primary route explicitly assigns
-   an evolved start branch.
-6. Edit only files under `private_dpl_evolve_source`.
-7. Before each canonical evaluation after a substantial mechanism change,
-   create a local commit or record the current commit hash. This gives you a
-   cheap source checkpoint if the next revision is worse.
-8. Before final answer, make the source tree match the best clean canonical
-   evaluation from this task. If a later revision worsened HPWL, restore the
-   best clean commit before running `commit_source_script`.
-   If the worsened revision was an active mechanism workbench with nonzero
-   counters or useful stage-local gain, keep its commit hash and report it as a
-   workbench checkpoint so Teacher can continue repairing it later.
-9. Run `commit_source_script`.
-10. Run `write_diff_script` after the final commit.
+   `prepare_start_source_script --kind <kind>` before edits. Otherwise run
+   `prepare_source_script` once.
+3. Confirm the generated script reports the expected branch and prepared
+   `start/...` branches. Use `source_status_script` for a compact status check.
+4. If Teacher asks you to reuse another Student's mechanism, run
+   `fetch_peer_source_script --peer-repo <source_repo> --peer-ref <source_ref>
+   --label <short-name>`. This fetches a peer ref and writes diff artifacts
+   without modifying your working tree. Inspect the diff and port only the
+   mechanism you understand onto your current iteration branch.
+5. For each mechanism workbench, use the trial state machine:
+   - `trial_source_script begin --label <short-mechanism>`
+   - when Teacher asks to continue a repairable rejected/kept line, use
+     `trial_source_script begin --label <repair-name> --from-ref <ref>`
+   - edit only files under `private_dpl_evolve_source`
+   - build and evaluate with the generated helpers
+   - `trial_source_script reject --reason <why>` for a rejected mechanism
+   - `trial_source_script keep --reason <why>` for a retained mechanism
+6. `reject` commits and pins the rejected code, snapshots diff/metrics into
+   `source_trials.jsonl`, removes stale canonical metrics, and restores the
+   iteration branch to the begin checkpoint. Re-run evaluation after a reject if
+   you will finalize the restored source. A rejected mechanism is not
+   necessarily abandoned; it can become a repair workbench through
+   `begin --from-ref` when Teacher classifies the issue as implementation or
+   handoff repairable.
+7. Before final answer, make the source tree match the best clean canonical
+   evaluation from this task and run `finalize_source_script`. Finalize pins the
+   stable candidate ref, writes `source_commit.json`, writes
+   `implementation.diff`, and creates the knowledge-card skeleton if missing.
 
 Generated workspace helpers that mutate the private source repo are serialized
 by a file lock and must not be run in one parallel tool call:
 `prepare_source_script`, `prepare_start_source_script`,
 `switch_start_branch_script`, `build_variant_script`,
-`evaluate_candidate_script`, `commit_source_script`, and `write_diff_script`.
-Parallel file reads are fine after the source branch is prepared.
+`evaluate_candidate_script`, `trial_source_script`, and
+`finalize_source_script`. Parallel file reads and `source_status_script` are
+fine after the source branch is prepared. `fetch_peer_source_script` mutates
+local git refs and should be run serially, but it does not change the working
+tree.
 
 Run any manual `git diff --check` as `git -C "$private_dpl_evolve_source" diff
 --check` or after `cd "$private_dpl_evolve_source"`. Generated build/evaluate
 scripts may be launched from their script directory, but source git hygiene is
 always scoped to the private source repo.
 
-The orchestrator records the final commit after the Student exits.  If the
+The orchestrator records the final commit after the Student exits. If the
 Student leaves uncommitted changes, the orchestrator may create a fallback
 commit, but that is a safety net, not the intended workflow.
 
 The final recorded commit, `implementation_diff`, metrics row, and knowledge
-card must describe the same code state.  Do not report an earlier best run as
+card must describe the same code state. Do not report an earlier best run as
 the final result while leaving a later, worse source revision checked out.
 
 ## Report
@@ -75,8 +77,8 @@ Report:
 
 - source branch,
 - final commit hash,
-- active mechanism workbench commit hash if the final source restored a better
-  donor,
-- dirty status after commit,
+- stable candidate source ref printed by `finalize_source_script`,
+- `kept/...` or `rejected/...` refs when relevant,
+- dirty status after finalize,
 - implementation diff path,
-- any reason the Student could not commit.
+- any reason the Student could not finalize.

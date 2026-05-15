@@ -43,13 +43,20 @@ If recent attempts repeat the same weak idea, switch perspective instead of
 asking for another retune.  Name the failed assumption and assign a different
 algorithmic route.
 
+If a mechanism is live, correctly implemented, and still produces only
+negligible clean full-flow HPWL movement after a meaningful repair attempt, mark it
+`validated-low-ROI`. Preserve the lesson, then route Students to a different
+HPWL source instead of adding more small variants.
+
 ## Per-Student Packet Contract
 
 Each student packet should include only:
 
 - current diagnosis,
 - peer or donor mechanism to borrow or avoid,
-- selected LEGO-lite stage skills when they clarify the mechanism,
+- selected LEGO-lite stage skills when they clarify the mechanism; normally use
+  one primary mechanism skill, one auxiliary handoff/objective skill, and one
+  optional diagnosis skill,
 - relevant algorithm/pseudocode card only when it provides a concrete mechanism
   skeleton, liveness counter, or failure mode,
 - route emphasis: `legalizer-emphasis`, `DPO-emphasis`, or
@@ -66,6 +73,11 @@ Each student packet should include only:
 - intended runtime tier and what extra quality work that tier buys,
 - success metric,
 - what knowledge card should record.
+
+When a route has plateaued or only preserves a donor, label one route
+`mechanism-redesign`. Give it permission to inspect a deeper call chain and make
+a larger bounded source change, but keep the packet focused on one primary HPWL
+source, one producer/consumer boundary, and concrete liveness counters.
 
 Use autonomy-supportive wording: Teacher gives insight, not a full design.
 Students should trust their source-level judgment, verify with canonical
@@ -104,6 +116,8 @@ If a student fails or produces a weak/no-op diff:
 - Legality failure: ask for a cleaner representation or commit path.
 - Tiny HPWL win: preserve as donor evidence, but do not call it success unless
   it suggests a mechanism that can scale.
+- Verified but tiny mechanism: classify as `validated-low-ROI`, stop assigning
+  repeated micro-variants, and switch the next route to a different HPWL source.
 - Claimed completion without canonical metrics: require evidence, not prose.
 - Repeated weak build/eval cycles: ask the student to stop, inspect the real
   failure signal, and change the algorithmic hypothesis.
@@ -130,6 +144,8 @@ When no student is better:
 - Do not ask students to redo Teacher's global comparison.
 - Do not reward no-op/default-equivalent diffs.
 - Do not let every student work on the same small retune.
+- Do not chase repeated tiny tie-break/threshold/local-polish changes after the
+  mechanism's limited upside is already verified.
 - Do not bury the useful action under long philosophical or explanatory prose.
 
 ## NoPUA Operating Style
@@ -139,10 +155,10 @@ initiative.  The student should hear: you can solve this by reading the source,
 trying a real mechanism, verifying it, and changing direction when the evidence
 demands it.  Do not use threats, shame, or artificial competition.
 
-When a route stalls:
+When a route stalls or becomes validated-low-ROI:
 
 - switch perspective instead of repeating the same parameter search,
 - read the original failure signal and relevant source,
 - form a different hypothesis with a clear validation criterion,
-- implement the smallest strong mechanism that can prove or disprove it,
+- implement the clearest bounded strong mechanism that can prove or disprove it,
 - verify with canonical metrics and record the causal lesson.

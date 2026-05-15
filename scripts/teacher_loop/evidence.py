@@ -927,11 +927,13 @@ def source_ref_for_iteration(*, student_root: Path, iter_part: str) -> str | Non
     data = load_json(student_root / "lineage.json") or {}
     for item in data.get("iterations", []):
         if item.get("iteration") == iter_part:
-            value = item.get("source_commit")
-            return str(value) if value else None
+            value = item.get("source_candidate_ref") or item.get("source_commit")
+            if value:
+                return str(value)
+            break
     record = student_root / iter_part / "artifacts" / "source_commit.json"
     payload = load_json(record) or {}
-    value = payload.get("source_commit")
+    value = payload.get("source_candidate_ref") or payload.get("source_commit")
     return str(value) if value else None
 
 
@@ -1688,6 +1690,12 @@ def child_artifact_status(
     metric_summary = summarize_metrics(metrics_path) if metrics_path.exists() else None
     diff_size = child.implementation_diff.stat().st_size if child.implementation_diff.exists() else 0
     knowledge_size = child.knowledge_card.stat().st_size if child.knowledge_card.exists() else 0
+    source_trials = child.implementation_diff.parent / "source_trials.jsonl"
+    source_trials_size = source_trials.stat().st_size if source_trials.exists() else 0
+    source_trials_count = 0
+    if source_trials.exists():
+        with source_trials.open(encoding="utf-8", errors="replace") as fh:
+            source_trials_count = sum(1 for line in fh if line.strip())
     last_message_size = child.last_message.stat().st_size if child.last_message.exists() else 0
     returncode = usage.get("returncode")
     agent_message_count = int(usage.get("agent_message_count", 0) or 0)
@@ -1734,6 +1742,10 @@ def child_artifact_status(
         "metric_summary": metric_summary,
         "diff_exists": child.implementation_diff.exists(),
         "diff_size": diff_size,
+        "source_trials": source_trials,
+        "source_trials_exists": source_trials.exists(),
+        "source_trials_size": source_trials_size,
+        "source_trials_count": source_trials_count,
         "knowledge_card": child.knowledge_card,
         "knowledge_exists": child.knowledge_card.exists(),
         "knowledge_size": knowledge_size,
@@ -1789,6 +1801,10 @@ def child_artifact_status_block(
             f"- metrics_json_exists: `{status['metrics_exists']}`",
             f"- implementation_diff_exists: `{status['diff_exists']}`",
             f"- implementation_diff_size: `{status['diff_size']}`",
+            f"- source_trials: `{status['source_trials']}`",
+            f"- source_trials_exists: `{status['source_trials_exists']}`",
+            f"- source_trials_count: `{status['source_trials_count']}`",
+            f"- source_trials_size: `{status['source_trials_size']}`",
             f"- knowledge_card: `{status['knowledge_card']}`",
             f"- knowledge_card_exists: `{status['knowledge_exists']}`",
             f"- knowledge_card_size: `{status['knowledge_size']}`",
@@ -1816,6 +1832,7 @@ def write_child_artifact_status_json(
         metric_summary = status.pop("metric_summary")
         status.pop("usage", None)
         status["metrics_path"] = str(status["metrics_path"])
+        status["source_trials"] = str(status["source_trials"])
         status["knowledge_card"] = str(status["knowledge_card"])
         if metric_summary is not None:
             status["metrics_summary"] = {

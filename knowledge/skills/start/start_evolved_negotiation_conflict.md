@@ -9,6 +9,10 @@ for source handles, metrics, and log signals.
 - Use negotiation starts for row scarcity, fragmented rows, cut-row stress, or
   conflict-heavy legalization where local greedy behavior fails legality,
   displacement, or runtime.
+- Negotiation is a complete primary legalizer when its route really runs.  If it
+  is invoked after another legalizer already produced a clean placement, first
+  verify that it emits nonzero moved/conflict/frontier counters; otherwise it is
+  a dead producer and should be rejected or retimed.
 - `evolved_negotiation` is negotiation-primary.  It may use global/differential
   guidance only as a seed/frontier, but a successful run must execute
   negotiation as the primary legalizer rather than returning from full LEGALM

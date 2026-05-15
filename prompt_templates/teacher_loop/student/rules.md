@@ -2,198 +2,51 @@
 
 ## Mission
 
-- Use the assigned Teacher packet as the primary research hypothesis; do not
-  redo Teacher's global review, but do validate the route against current
-  source and metrics before coding.
-- Edit only your private `dpl_evolve` source and keep
-  `detailed_placement_evolve -> improve_placement_evolve ->
-  optimize_mirroring_evolve` callable.
-- Modify the active patch surface: legalization/detailed placement and improve
-  placement. Do not edit downstream optimize-mirroring code unless the task
-  explicitly reopens it.
-- External evaluator, ORFS, and workspace helper scripts are not editable.
-- Use canonical `metrics.json:hpwl`; `hpwl_proxy` is debug-only.
-- Optimize canonical HPWL first. Use the generated value gain
-  `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref - P(runtime_sol / runtime_ref), where P(r)=0 for r <= 1.10 and P(2.0)=1.0 percentage point`,
-  where higher is better and the OpenROAD DPL default-flow reference is 0, only
-  as an analysis metric. Do not optimize for `G_HR`; optimize for legal final
-  HPWL under the hard runtime budget. Report `G_HR` together with raw
-  HPWL/runtime so Teacher can analyze whether a HPWL win needs runtime repair.
-  Do not claim a faster but worse-final-HPWL result as the best result. Report it
-  as runtime/control evidence; preserve the clean lower-HPWL source as the HPWL
-  donor unless it fails legality, artifact gates, or the hard timeout budget.
-  The runtime term has a deadband: runtime improvements and <=1.10x
-  runtime noise receive no bonus; 2x runtime needs 1.0 percentage point of
-  reference-normalized final-HPWL gain to break even.
-- Treat 5% HPWL reduction as a credible research target, not a hard gate and
-  not a ceiling. Build mechanisms that can move the source of HPWL loss, not
-  only preserve a small donor.
-- Implement the assigned route as the default plan, not a blind script. Combine
-  Teacher's stage plan with your own source-level diagnosis; if current source
-  shows a stronger route or contradicts the plan, adjust the mechanism and
-  report the reason.
-- Canonical lines `openroad_dpl_flow`, `openroad_dpl_negotiation`, and
-  `evolve_default` are all usable evidence and donor/start choices. If you
-  borrow from Diamond, negotiation, or evolved starts, state what source-level
-  behavior you reused or changed.
+- Use the Teacher route as the primary hypothesis, then validate it against current source and metrics before coding. Do not blindly execute Teacher prose when source evidence shows a better mechanism.
+- Optimize legal final `metrics.json:hpwl`. `G_HR` is analysis-only for runtime value; it is not the promotion target.
+- Runtime is a `${student_runtime_multiplier}x` hard budget and a spendable search resource for the OpenROAD legalize/improve/mirror flow. Do not optimize for baseline-like runtime by avoiding useful search; spend the available budget when it buys a cached, capped, explainable HPWL mechanism.
+- Edit only your private `dpl_evolve` source. Keep `detailed_placement_evolve -> improve_placement_evolve -> optimize_mirroring_evolve` callable.
 
-## Required Execution
+## Required Workflow
 
-- Use the workspace packet for exact prepare/build/evaluate/diff/knowledge
-  commands. Trust generated helpers; do not reconstruct relink/evaluator/git
-  commands unless a helper fails and its error requires it.
-- Treat the generated prompt, workspace packet, peer packet, knowledge files,
-  and source tree as complete context. Do not read memories, rollout summaries,
-  session archives, event logs, or broad donor trees by default.
-- Before coding, do a focused source-level diagnosis: remaining HPWL loss,
-  active function/state where it can be changed, and why the route is larger
-  than a constant retune or local repair.
-- If Teacher names LEGO-lite skill ids, query the generated skill helper or
-  `scripts/query_knowledge.py` and keep only the relevant skill note. Use its
-  source handles, metrics, log signals, and done criteria as the mechanism
-  contract, but still inspect current local source before patching.
-- If Teacher names an algorithm family or pseudocode mechanism, open only the
-  relevant card under `algorithm_cards/legalization/`,
-  `algorithm_cards/dpo_refinement/`, or `algorithm_cards/context/`. Convert the
-  pseudocode into your own source-level plan and liveness counters before
-  patching; do not paste it blindly.
-- Use the Teacher chain as the execution outline: source diagnosis,
-  legalization patch, improve-placement patch, build/evaluate, inspect stage
-  metrics/log counters, revise the weak stage, then keep the best clean
-  candidate. Refine the outline when code evidence shows a better mechanism.
-- Required closure loop: plan the algorithm, patch source, build, run the
-  canonical full-flow evaluator, inspect metrics and logs, revise once when the
-  mechanism is live but weak, commit the best clean source state, write the
-  diff, and report the exact evidence.
-- After each evaluation, inspect the canonical `metrics.json` and the DPL log
-  referenced by the metrics/log path. Diagnose mechanism liveness, stage that
-  lost HPWL, runtime growth, timeout/failure reason, zero or implausible
-  counters, stale-binary/source mismatch, and hot-loop/full-rescan symptoms.
-- Follow the assigned route emphasis. `legalizer-emphasis`,
-  `DPO-emphasis`, and `co-optimization-emphasis` name the primary HPWL source,
-  not the only stage you may touch. Inspect both A legalization/detailed
-  placement and B improve placement, then patch every stage where you have a
-  coherent high-quality mechanism. If you leave a stage unchanged, explicitly
-  diagnose how it preserved, consumed, or erased the gain and what source
-  change would be worth doing next.
-- If Teacher assigns an elite/final-donor continuation, keep the
-  pre-seeded/materialized elite source. Switch to an `evolved_*` start branch
-  only when the primary route explicitly says to use that prepared start.
-- Use local git checkpoints for your workspace. The final committed source,
-  `metrics.json`, `implementation.diff`, and knowledge card must correspond to
-  the best clean evaluated code state.
-- If you restore, revert, or switch the final source after an evaluation,
-  rebuild and rerun the evaluator so the retained source commit, binary,
-  `metrics.json`, diff, and final report all describe the same code.
-- If a larger mechanism runs with nonzero counters but loses final HPWL, keep a
-  workbench checkpoint and report the exact repair needed: liveness, objective,
-  acceptance, persistence, handoff, final-safe survival scoring, or runtime
-  implementation.
-- A weak final result with active counters is not automatically failed. Revise
-  the mechanism once by changing objective, acceptance, persistence, handoff,
-  or runtime implementation before declaring it exhausted. Revisions must
-  change the mechanism, not only constants.
+1. Open the workspace packet, then use generated helpers for prepare/start, trial begin/keep/reject, build, evaluate, and finalization.
+2. Do focused source diagnosis: current HPWL source, active functions/state, likely legality/runtime bottleneck, and why the mechanism can move more than a tiny donor polish.
+3. Plan the source mechanism before editing. Large mechanism-level rewrites and implementation-local helper files are allowed when they are coherent, bounded, reviewable, and validated.
+4. Patch source, build, run the canonical full-flow evaluator, inspect metrics/logs/counters, then make bounded evidence-driven revisions while a concrete mechanism-level fix exists. Use `25_trial_source.sh reject` for rejected mechanisms so the script preserves the branch and restores the retained checkpoint safely. Stop when the path is illegal, timed out, non-executed, or validated-low-ROI, and keep the best clean evaluated source.
+5. Run finalization for the final source state and make sure source commit/ref, binary, metrics, diff, and report all describe the same code.
 
-## Source And Patch Protocol
+## Source And Branch Protocol
 
-- Use `apply_patch` for source edits. Do not rewrite source with Python,
-  heredocs, `sed -i`, `perl -pi`, or broad formatter-driven edits.
-- Patch only current files from your private source tree. Confirm paths with
-  `rg --files`, locate exact symbols with `rg -n`, and read a small nearby
-  excerpt before each nontrivial patch.
-- For donor-derived or Teacher-prose-derived edits, run the generated
-  source-context helper before patching. Donor snippets and old line numbers
-  are evidence, not patch context.
-- Keep hunks small and anchored on currently visible unique lines. After each
-  patch, re-check the changed symbol and run `git -C "$private_dpl_evolve_source"
-  diff --check` before build, or `cd` into the private source repo first. Do
-  not run source git checks from the outer agent repo.
-- If `apply_patch` fails, refresh the current source around the intended
-  function/state and apply a smaller semantic patch. Do not turn a patch
-  failure into CMake/relink archaeology or broad source search.
+- Work on the current iteration branch in `private_dpl_evolve_source`. Prepared starts are already branches; do not manually apply release/start patch files.
+- Edit current files directly with explicit, reviewable hunks or intentional path-limited scripts. For scripted edits, preview scope and run `git diff --check` plus targeted source inspection.
+- Confirm paths with `rg --files`, locate symbols with `rg -n`, and read current nearby source before nontrivial edits. Donor snippets and old line numbers are evidence, not patch context.
+- Use `03_fetch_peer_source.sh` only to fetch and inspect peer refs. Port understood mechanisms deliberately onto your branch; do not auto-apply peer diffs.
+- Use `25_trial_source.sh begin|keep|reject|status` as the only checkpoint/rejected-source state machine. Do not manually reset around rejected work unless the helper reports a blocking error.
+- If Teacher assigns a repairable rejected/kept ref, start that workbench with `25_trial_source.sh begin --label <repair-name> --from-ref <ref>` and then repair it as a normal trial.
+- Do not edit evaluator, ORFS, baseline scripts, workspace helpers, downstream optimize-mirroring code, memories, rollout summaries, session archives, or event logs.
 
-## Algorithm Standard
+## Allowed Mechanisms
 
-- Make aggressive case-focused source changes; no default-equivalent behavior.
-- Aim to improve both legalization and improve placement when the changes are
-  real mechanisms rather than cosmetic edits. Valid improve-placement edits
-  include candidate generation, ordering, local HPWL objective, acceptance,
-  endpoint policy, touched-region cache, internal parameter use, and
-  handoff-state consumption. If the secondary stage is unchanged, report the
-  diagnostic reason and the next source-level mechanism that would make it
-  worth changing.
-- Parameter tuning is allowed when it is code-internal: adjust constants,
-  heuristic thresholds, scoring weights, pass schedules, adaptive policies, or
-  compact internal config structs inside your private `dpl_evolve` source.
-  Treat those edits as source mechanisms that must be built, logged, and
-  evaluated. Do not move the tuning to Tcl command options, ORFS flow scripts,
-  evaluator scripts, or repeated external command invocations.
-- Hybrid legalizer routes are allowed when assigned or supported by source
-  evidence. Implement them as source-level staged algorithms with explicit
-  residual/frontier handoff; do not hybridize by rerunning unchanged endpoints
-  or by adding a case/scenario selector among complete legalizers.
-- Strategy and feature cards are inspiration, not a menu that limits your
-  implementation.  Translate them into a local source plan after inspecting the
-  active code, then prove the mechanism with counters and stage-wise metrics.
-- Prefer data structures that make deeper search cheap: compact candidate
-  queues, dirty-edge/touched-net sets, per-net local boxes, row/segment caches,
-  legality caches, and thread-local score buffers.
-- For legalizer-to-DPO handoff, use OpenROAD-native compact state:
-  `odb::dbInst*`, `odb::dbNet*`, `odb::dbGroup*`, `odb::dbRegion*`, dense ids,
-  vectors, and bitsets. Do not duplicate current coordinates. Avoid files,
-  JSON/text logs, string-keyed hot maps, and public Tcl/SWIG ABI changes for
-  ordinary algorithm payloads.
-- Avoid hot-loop full-cell/full-grid/full-net rescans and avoidable `O(n^2)`.
-  Cache touched data and make each extra candidate's cost visible in telemetry.
-- Add or reuse lightweight counters/logs that prove the primary mechanism ran.
-  If key counters are zero, report the route as non-executed even if inherited
-  code produced the final metrics.
-- Log diagnosis must separate algorithmic failure from implementation cost:
-  candidate generation too broad, acceptance too strict, legality rejects,
-  fallback domination, duplicate endpoint work, full-cell/full-net rescans,
-  poor cache reuse, missing parallelism, or source/binary/metrics mismatch.
-- No case-name hardcoding. Avoid public Tcl/SWIG ABI changes unless essential
-  and smoke-tested.
+- You may change legalization/detailed placement, improve placement/DPO, source-internal parameters, scoring weights, candidate generation/order, acceptance, transactions/rollback, local state, handoff state, compact telemetry, and implementation-local helper classes/files.
+- Source-internal parameter tuning is allowed as code work: constants, thresholds, pass schedules, adaptive policies, or compact internal config structs. Do not move tuning to Tcl options or flow scripts.
+- Legalizer-to-DPO handoff should use compact native state where useful: `odb::dbInst*`, `odb::dbNet*`, `odb::dbGroup*`, `odb::dbRegion*`, dense ids, vectors, bitsets, and existing detailed-placement mappings. Do not duplicate current coordinates or route hot payload through files/JSON/string keys/public Tcl ABI.
+- Hybrid routes should be staged algorithms inside the source implementation, not case-name hardcoding and not selectors among complete legalizers.
+- No case-name hardcoding. Public Tcl/SWIG ABI changes require an explicit reason and smoke-tested compatibility.
 
-## Runtime And Search Budget
+## Evaluation And Diagnosis
 
-- The generated evaluation command applies a `${student_runtime_multiplier}x`
-  timeout to the OpenROAD legalize/improve/mirror flow only; metrics/evaluator
-  collection is not timeout-wrapped.
-- Runtime is a usable hard budget, not the objective. Spend the tolerant
-  `${student_runtime_multiplier}x` budget on bounded HPWL-source mechanisms:
-  exact affected-net scoring, broader capped windows, batch transactions,
-  parallel candidate evaluation, stronger donor hybridization, or stronger
-  legalization-to-improve handoff.
-- Do not optimize back to baseline-like runtime when the assigned route needs
-  explore/aggressive search. Extra time is acceptable when it is cached,
-  capped, explainable, and supported by stage-wise metrics.
-- Any source-level search behavior is allowed when speed and quality remain
-  controllable: broad scans, repeated endpoint-like subpasses, randomized
-  perturbations, or stronger DPO/legalizer loops must have scope limits,
-  counters, early-stop or gain-rate rules, and full-flow evidence. Do not rely
-  on blind random trial-and-error as the mechanism; prefer handoff/frontier
-  signals to target the rows, cells, windows, or nets that are likely
-  recoverable.
-- Use OpenMP or existing thread utilities for independent candidate scoring,
-  local HPWL probes, row/window probes, and feasibility filters when using
-  thread-local scratch data and deterministic reduction.
-- If the DPL flow times out, stop that implementation path, record it as
-  non-promotable, and do not rerun the same mechanism.
+- After each evaluation, inspect `metrics.json` and the DPL log referenced by the metrics. Report final HPWL, stage-wise HPWL movement, legality, displacement, runtime, and active counters.
+- Separate algorithmic failure from implementation cost: zero counters, stale binary/source mismatch, acceptance too strict, legality rejects, fallback domination, duplicate endpoint work, broad rescans, poor cache reuse, missing parallelism, or timeout.
+- If a mechanism is live and correct but full-flow HPWL remains extremely small after a meaningful repair attempt, record `validated-low-ROI`, preserve it through the trial helper, and propose a different HPWL source instead of stacking tiny variants.
+- If a stage-local gain is erased downstream, keep the stage donor evidence and diagnose the consumer/handoff repair.
+
+## Runtime And Performance
+
+- Use the runtime budget deliberately. If the current implementation is very fast but HPWL is weak, try a stronger bounded candidate search, exact scoring, local dynamic programming, or producer/consumer repair before declaring the route exhausted.
+- Any source-level search behavior is allowed when speed and quality remain controllable: broader scans, repeated subpasses, stronger DPO/legalizer loops, or randomized perturbations must have scope limits, counters, early-stop/gain-rate rules, and full-flow evidence.
+- Prefer handoff/frontier-guided targeting, compact candidate queues, dirty-edge/touched-net sets, row/segment caches, legality caches, per-net local boxes, thread-local score buffers, OpenMP/existing thread utilities, and deterministic reductions.
+- If the DPL flow times out, stop that implementation path and report it as non-promotable; do not rerun the same mechanism unchanged.
 
 ## Final Report
 
-- Include a compact table with rows: legalization/detailed placement, improve
-  placement, and optional coordination. For each row, name exact
-  function/state changes and behavior changes.
-- Include a stage transition table with columns: `stage`, `selected skill`,
-  `touched function/state`, `expected behavior`, `metric/log evidence`, and
-  `done/fail reason`.
-- Report touched files, mechanism, stage-wise HPWL deltas, canonical
-  HPWL/runtime/displacement delta, `G_HR`/HPWL_gain%/runtime_penalty_pp when
-  available, legality, metrics path, diff path, knowledge card path, active
-  counters, best clean commit, and next uncertainty.
-- Include a `Log/efficiency diagnosis` paragraph: DPL log path or key line
-  handles, dominant counters, runtime bottleneck classification, evidence of
-  wrong or non-executed implementation, and the specific next repair Teacher
-  should assign.
+Keep the report compact: touched files, mechanism, final HPWL/runtime/displacement, stage-wise HPWL deltas, legality, active counters, metrics path, diff path, rejected refs if any, knowledge card path, best clean source commit/ref, failure mode, and next repair or pivot.

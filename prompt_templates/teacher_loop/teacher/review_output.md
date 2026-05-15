@@ -1,19 +1,13 @@
 ## Output Format
 
-- compact result table
-- `G_HR`/HPWL_gain%/runtime_penalty_pp value check next to raw HPWL/runtime
-- stage-wise attribution table
-- runtime-tier attribution table
-- best lineages
-- final donors, stage donors, active mechanism workbenches, non-executed routes,
-  and negative evidence
-- efficiency bottlenecks
-- under-exploration or over-spend diagnosis
-- mechanism knowledge used or missing: selected skill ids, algorithm/pseudocode
-  cards, and whether the Student proved the expected counters
-- workbench repair routes to continue
-- matrix candidates to freeze, if any
-- knowledge cards to preserve
+Write a compact review only:
+
+- validity gate: build/evaluator/metrics/source/diff/legality status
+- result table: final HPWL/runtime/legality plus `G_HR`, HPWL_gain%, runtime_penalty_pp
+- stage attribution: where legalization, DPO, or handoff helped or erased gains
+- mechanism classification: final donor, stage donor, workbench, validated-low-ROI, non-executed, or negative evidence
+- efficiency diagnosis: useful runtime spend, over-spend, or under-exploration
+- next routing decision: preserve, repair, pivot, or freeze
 
 End with:
 

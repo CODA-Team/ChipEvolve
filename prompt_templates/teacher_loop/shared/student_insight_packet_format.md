@@ -1,26 +1,11 @@
 ### student_XX
-- route type:
-- route emphasis:
-- route action:
-- start/donor family:
-- continuation parent:
-- HPWL source mechanism:
-- why this can beat a small donor:
-- evidence:
-- selected stage skills:
-- expected stage transitions:
-- done criteria by stage:
-- required log signals:
-- active workbench repair, if any:
-- step-by-step execution chain:
-- algorithm closure loop:
-- plan A legalization/detailed placement:
-- plan B improve placement:
-- plan C co-optimization/handoff:
-- pivot condition:
-- function/state insertion points:
-- skills to use:
-- efficiency/bounded-search:
-- runtime tier:
-- runtime-budget use:
-- record:
+- route: <type/emphasis/action>
+- start/parent: <prepared branch or donor/workbench>
+- HPWL source: <stage and mechanism being attacked>
+- source handles: <functions/state/files to inspect or change>
+- mechanism plan: <A legalization/detail, B improve-placement/DPO, C handoff/co-optimization>
+- skills/cards: <only selected ids or none>
+- expected proof: <stage metrics, counters/logs, legality/runtime evidence>
+- runtime/complexity: <fast|explore|aggressive plus caps/cache/parallelism>
+- stop/pivot: <low-ROI, failure, or repair condition>
+- record: <diff/metrics/knowledge evidence to preserve>

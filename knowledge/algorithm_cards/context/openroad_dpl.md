@@ -7,6 +7,12 @@ OpenROAD DPL currently exposes **two legalizer engines at runtime**:
 1. **Diamond search** (default)
 2. **NegotiationLegalizer** (`-use_negotiation`)
 
+Both are complete legalizer engines when their routes execute.  They may also
+act as donors for DPO handoff or local repair, but a plan should not confuse
+that secondary role with the primary legalizer role.  If a route claims Diamond
+or negotiation changed the placement, require route logs and nonzero
+moved/candidate/conflict counters.
+
 Within the negotiation engine, the public docs describe a logical flow:
 
 - Abacus pass (optional / skippable)
@@ -29,6 +35,10 @@ Therefore:
   detailed placement, improve placement, and mirroring.
 - HPWL promotion uses `metrics.json:hpwl`, parsed from OpenROAD/DPL pin-based
   log reports.  Local or bbox HPWL proxies are diagnostics only.
+- Differential or LEGALM-style target fields are not legal placements by
+  themselves.  Treat them as heuristic producers unless followed by explicit
+  legal assignment/repair and clean legality, or unless DPO consumes their
+  frontier with nonzero counters.
 
 ## High-value surfaces
 

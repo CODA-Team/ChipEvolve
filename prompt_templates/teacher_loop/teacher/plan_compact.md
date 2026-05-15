@@ -2,10 +2,10 @@
 
 Context: `$context_path`
 
-Read context, peer results, and the coaching skill if needed. Treat source and
-reference paths as targeted search handles, not required reading. Use only small
-`rg`/excerpt checks around concrete symbols you plan to name. Output only next
-student directions, not build/eval procedure.
+Use prior Teacher session memory. The context is a delta packet; do not reread
+global rules or broad reference trees. Read only the current scoreboard/prior
+delta and use small `rg`/excerpt checks around concrete symbols you plan to
+name. Output only next student directions, not build/eval procedure.
 
 ## Student Slots
 

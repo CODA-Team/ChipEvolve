@@ -14,11 +14,12 @@ from scripts.teacher_loop.common import (
     ChildRound,
     assigned_start_kind_from_insight,
     iter_name,
+    stable_candidate_ref,
 )
 from scripts.teacher_loop.evidence import load_json, seed_private_source_from_elite
 from scripts.teacher_loop.prompts import focused_message_excerpt, read_text_excerpt
 
-MAX_CHILD_TEACHER_INSIGHT_CHARS = 3600
+MAX_CHILD_TEACHER_INSIGHT_CHARS = 2800
 
 
 def operation_thread_id(runtime: Any, operation_id: str) -> str | None:
@@ -318,6 +319,9 @@ def commit_child_sources(
             )
             child.implementation_diff.parent.mkdir(parents=True, exist_ok=True)
             child.implementation_diff.write_text(diff.stdout, encoding="utf-8")
+        candidate_ref = stable_candidate_ref(child.run_tag)
+        _git(child.dpl_src, "check-ref-format", "--branch", candidate_ref)
+        _git(child.dpl_src, "branch", "-f", candidate_ref, commit)
         record = {
             "student_id": child.student_id,
             "route_label": child.route_label,
@@ -325,6 +329,7 @@ def commit_child_sources(
             "run_tag": child.run_tag,
             "source_repo": str(child.dpl_src),
             "source_branch": current_branch(child.dpl_src),
+            "source_candidate_ref": candidate_ref,
             "source_base_commit": base_commit or None,
             "source_commit": commit,
             "fallback_commit_created": changed,
@@ -343,6 +348,7 @@ def commit_child_sources(
             updates={
                 "source_repo": str(child.dpl_src),
                 "source_branch": current_branch(child.dpl_src),
+                "source_candidate_ref": candidate_ref,
                 "source_commit": commit,
                 "source_commit_record": str(child.source_commit_record),
                 "fallback_commit_created": changed,
@@ -351,7 +357,8 @@ def commit_child_sources(
         )
         print(
             "[optimize_case] committed "
-            f"{child.student_id} source: {commit} repo={child.dpl_src}"
+            f"{child.student_id} source: {commit} ref={candidate_ref} "
+            f"repo={child.dpl_src}"
         )
 
 
@@ -444,6 +451,7 @@ def compact_teacher_child_insight(text: str, *, max_chars: int) -> str:
         "- why this can beat a small donor:",
         "- evidence:",
         "- active workbench repair, if any:",
+        "- low-ROI stop rule, if any:",
         "- step-by-step execution chain:",
         "- plan chain:",
         "- plan A legalization/detailed placement:",

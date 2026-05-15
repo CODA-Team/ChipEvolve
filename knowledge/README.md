@@ -17,10 +17,12 @@ Default reading order:
    source mechanisms
 9. `insights/dpo/openroad_native_handoff.md` when passing legalization
    frontier state into improve placement
-10. `skills/legalization/differential_guidance_stop_target.md` when using
+10. `insights/legalization/algorithm_role_liveness_basics.md` before routing
+   Diamond, negotiation, LEGALM, or Differential Guidance families
+11. `skills/legalization/differential_guidance_stop_target.md` when using
    LEGALM/differential guidance as a seed/frontier instead of a full legalizer
-11. one relevant file under `algorithm_cards/` or `insights/`
-12. paper PDFs and source notes under `reference/` only if needed
+12. one relevant file under `algorithm_cards/` or `insights/`
+13. paper PDFs and source notes under `reference/` only if needed
 
 Current compact algorithm cards:
 
@@ -37,6 +39,7 @@ Current compact algorithm cards:
 - `insights/case_evolution/full_flow_timeout_and_target_selection.md`
 - `insights/dpo/source_level_mechanisms.md`
 - `insights/dpo/openroad_native_handoff.md`
+- `insights/legalization/algorithm_role_liveness_basics.md`
 - `index/skill_cards.jsonl` and `skills/README.md`
 - `insights/legalm/paper_faithful_legalization_integration.md`
 - `insights/legalm/legalm_self_legal_closure.md`
@@ -96,6 +99,13 @@ when it stops early and produces a bounded seed/frontier for the downstream
 legalizer or DPO consumer.  Treat the guidance objective, stop point, handoff
 payload, and consumer as mechanism-level search variables, then promote only by
 full-flow final HPWL, legality, displacement, and runtime evidence.
+
+Use `insights/legalization/algorithm_role_liveness_basics.md` when an agent
+needs to distinguish complete legalizers from heuristic producers.  In short:
+Diamond and negotiation are primary legalizer families when their routes really
+execute; Differential Guidance is usually a heuristic seed/frontier producer
+that must be paired with a legalizer or DPO consumer and diagnosed through
+producer/consumer log counters.
 
 ## Legalizer Algorithm Flow Review
 

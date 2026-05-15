@@ -41,9 +41,16 @@ function/state insertion points. Do not require broad donor-tree reading.
 - A selected skill is guidance, not a cage. Teacher should name the skill id,
   expected stage transition, done criteria, and log signals; Student may refine
   the mechanism when current source evidence contradicts the card.
+- Keep skill selection small: one primary mechanism skill, one auxiliary
+  handoff/objective skill, and one optional diagnosis skill is the normal upper
+  bound for a Student route.
 - Treat strategy cards as design-feature inspiration, not case-level algorithm
   selectors.  Teacher should translate them into a staged source mechanism and
   require liveness counters rather than assigning a fixed route by name.
+- When mixing Diamond, negotiation, LEGALM, or Differential Guidance, first
+  query `--stage legalization --q "diamond negotiation differential guidance liveness"`
+  and name the route role: primary legalizer, guidance producer,
+  repair/polish stage, or handoff consumer.
 - For mechanism inspiration, Teacher should query the skill index first and
   then open the smallest relevant card under `$algorithm_cards_dir`, especially
   `legalization/` for legalizer routes and `dpo_refinement/` for improve
@@ -82,6 +89,13 @@ function/state insertion points. Do not require broad donor-tree reading.
   case-level selector among complete legalizers.
 - per-round stance: preserve best donors as guardrails, but assign at least one
   route that can attack a larger HPWL source when wins are tiny or plateaued
+- plateau escape: when recent rounds repeat a donor with tiny gains, Teacher
+  should assign a `mechanism-redesign` route that changes a deeper source
+  mechanism under explicit complexity caps and liveness counters
+- low-ROI rule: when a mechanism is verified live/correct but still gives only
+  extremely small full-flow HPWL movement after a meaningful repair attempt, preserve
+  it as evidence and switch to a different HPWL source instead of stacking
+  micro-variants
 - callable flow: `detailed_placement_evolve -> improve_placement_evolve ->
   optimize_mirroring_evolve`
 - editable patch surface: source-level detailed placement/legalization and

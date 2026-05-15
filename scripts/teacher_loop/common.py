@@ -140,6 +140,15 @@ def iter_name(iteration: int) -> str:
     return f"iter_{iteration:02d}"
 
 
+def stable_candidate_ref(run_tag: str) -> str:
+    """Return a long-lived local git branch name for one evaluated candidate."""
+    safe = re.sub(r"[^A-Za-z0-9._/-]+", "_", str(run_tag)).strip("./")
+    safe = re.sub(r"/+", "/", safe)
+    if not safe:
+        safe = "candidate"
+    return f"candidate/{safe}"
+
+
 def round_id_from_dir(round_dir: Path) -> str:
     manifest = round_dir / "manifest.json"
     if manifest.is_file():

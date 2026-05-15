@@ -71,8 +71,9 @@ packet and repo-local knowledge files are the evidence boundary.
   candidate reduction, transaction accept/rollback, bounded staged descent,
   scoped LSMC-style basin escape, and legalization-to-DPO handoff
   consumers.
-- Implement only the selected mechanism, with compact counters/logs, bounded
-  candidate sets, exact affected-net scoring, and full-flow validation. LSMC is
+- Implement the selected mechanism hypothesis plus directly needed
+  producer/consumer support, with compact counters/logs, bounded candidate sets,
+  exact affected-net scoring, and full-flow validation. LSMC is
   allowed as a scoped basin escape when perturbations are controlled by window,
   dirty-row, touched-net, displacement, gain-rate, and runtime evidence; avoid
   blind random trial-and-error when a handoff/frontier signal can target the
@@ -85,15 +86,25 @@ packet and repo-local knowledge files are the evidence boundary.
 
 ## Patch Style
 
-- Change one coherent route/mechanism at a time.  For Teacher/Student rounds,
+- Change one coherent route hypothesis at a time.  For Teacher/Student rounds,
   that route may include multiple related code changes spanning
   legalization/detailed placement, improve placement, and their shared
-  objective/handoff.
-- Start from Teacher-named exact symbols and inspect only nearby code before
-  patching. Avoid full-file reads, full-tree archaeology, and donor-source
-  sweeps unless exact-symbol lookup fails.
-- Use `apply_patch` for source edits. Do not rewrite source files with Python,
-  heredocs, `sed -i`, `perl -pi`, or broad formatter-driven edits.
+  objective/handoff; avoid unrelated side quests.
+- Start from Teacher-named exact symbols and nearby code before patching.
+  Expand to a deeper call-chain inspection only when exact-symbol lookup fails
+  or the route is explicitly a `mechanism-redesign`. Do not drift into
+  unrelated donor-source sweeps.
+- Use coherent, reviewable source diffs on the current iteration branch.
+  Mechanism-level rewrites are encouraged when they follow Teacher guidance,
+  current source diagnosis, and a concrete validation plan. In Codex,
+  `apply_patch`-style editing means changing current files with explicit hunks;
+  it is not `git apply` and not a start-point mechanism. Do not manually apply
+  release/start patch files; prepared start branches already encode those
+  seeds. A scripted mechanical edit is acceptable when it is intentional,
+  path-limited, previewed before use, and followed by
+  `git -C "$private_dpl_evolve_source" diff --check` plus targeted inspection
+  of the changed symbols. Do not use formatter-driven rewrites or unreviewed
+  broad replacements.
 - Patch only current file contents from the private source tree. Before each
   nontrivial patch, confirm the module-relative file with `rg --files`, locate
   the exact function/state with targeted `rg -n`, and inspect a small nearby
@@ -101,17 +112,17 @@ packet and repo-local knowledge files are the evidence boundary.
 - Do not patch against remembered snippets, Teacher-plan prose, donor examples,
   old checkpoints, or another student's workspace. Those are evidence, not
   current patch anchors.
-- Keep hunk anchors narrow and unique. Prefer one function body, one state
-  declaration, one include list, or one build-list edit per hunk. Large
-  mechanisms should be decomposed into several verified small patches.
+- Keep hunk anchors unambiguous. Large mechanisms may span multiple files and
+  functions; decompose them into coherent verified edits by subsystem or
+  producer/consumer boundary so review and rollback remain possible.
 - After a successful patch, verify the changed symbol with targeted `rg -n` or a
   small excerpt, then run `git -C "$private_dpl_evolve_source" diff --check`
   before building. If you already changed into the private source repo, plain
   `git diff --check` is equivalent; do not run it from the outer agent repo.
-- If `apply_patch` fails, do not retry the same stale hunk. Re-open the current
-  local source around the intended function/state, reduce the edit to the
-  smallest semantic insertion or replacement, and apply a fresh patch based only
-  on the refreshed text.
+- If a hunk edit fails, do not retry the same stale hunk. Re-open the current
+  local source around the intended function/state and re-apply the mechanism
+  against refreshed text; keep the edit coherent rather than shrinking it into
+  a cosmetic tweak.
 - For donor-derived edits or Teacher-prose-derived hunks, run the generated
   source-context helper first and patch against current local source text only.
   Never reuse donor line numbers or old hunk context as the patch anchor.
@@ -121,8 +132,9 @@ packet and repo-local knowledge files are the evidence boundary.
   `prepare_start_source_script --kind <kind>` before edits. Do not launch
   prepare and switch helpers in parallel. After reading the workspace packet,
   required skills, and nearby Teacher-named symbols, patch a coherent mechanism
-  and move to generated build/evaluate scripts. Do not spend the iteration on
-  broad source exploration.
+  and move to generated build/evaluate scripts. If broader source inspection is
+  needed, keep it tied to the selected HPWL mechanism and stop once the
+  producer/consumer boundary is clear.
 - If you already ran `prepare_source_script` and still need to switch before
   edits, run `switch_start_branch_script` serially. Do not copy seed directories
   to emulate a start-point switch.

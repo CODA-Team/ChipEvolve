@@ -15,10 +15,11 @@ should act on it.
 6. `case_evolution/score_based_case_strategy_routing.md`
 7. `case_evolution/dense_evolved_legalizer_routing.md`
 8. `case_evolution/optdp_stage_cooptimization.md`
-9. `dpo/source_level_mechanisms.md`
-10. `dpo/openroad_native_handoff.md`
-11. `case_evolution/micro_gain_trap_and_elite_donors.md`
-12. Relevant LEGALM card under `legalm/` only when changing legalization.
+9. `legalization/algorithm_role_liveness_basics.md`
+10. `dpo/source_level_mechanisms.md`
+11. `dpo/openroad_native_handoff.md`
+12. `case_evolution/micro_gain_trap_and_elite_donors.md`
+13. Relevant LEGALM card under `legalm/` only when changing legalization.
 
 ## Workflow
 
@@ -58,6 +59,13 @@ should act on it.
   to reimplement directly in current `Optdp`/`Detailed*` code.
 - `dpo/openroad_native_handoff.md`: efficient OpenROAD-native producer/consumer
   data structures for legalization-to-DPO frontier handoff.
+
+## Legalization Role Notes
+
+- `legalization/algorithm_role_liveness_basics.md`: baseline roles for Diamond,
+  negotiation, LEGALM-style full legalization, and Differential Guidance.  Use
+  it to distinguish primary legalizers from heuristic producers and to choose
+  liveness counters before implementing a route.
 
 ## LEGALM Notes
 

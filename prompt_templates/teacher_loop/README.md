@@ -22,13 +22,18 @@ Rules:
   should point to that file rather than embedding the whole context.
 - Put exact paths, shell commands, run tags, and artifact locations in generated
   packet files under `iter_XX/packet/`, not in agent prompt prose.
+- Workspace packets should be command/source maps, not second rulebooks. The
+  first iteration may include more paths, but it should still stay concise;
+  follow-up packets should be smaller and avoid restating global constraints.
 - Teacher insight is appended to child prompts after Teacher runs, but only the
   assigned `### student_XX` section should be appended.
-- Shared Teacher rules live in `teacher/rules.md`; shared Student rules live in
-  `student/rules.md`. Teacher plan/review output and review rules live in
-  `teacher/plan_output.md`, `teacher/review_rules.md`, and
-  `teacher/review_output.md`. Shared per-student insight packet fields live in
-  `shared/student_insight_packet_format.md`. Do not duplicate these blocks
+- Full first-round rules live in `teacher/rules.md`, `student/rules.md`, and
+  `teacher/review_rules.md`. Follow-up prompts use the lighter
+  `*_followup.md` rule files because Teacher/Student sessions already carry
+  prior context; keep these follow-up files as reminders, not full policy
+  restatements. Teacher plan/review output lives in `teacher/plan_output.md`
+  and `teacher/review_output.md`. Shared per-student insight packet fields live
+  in `shared/student_insight_packet_format.md`. Do not duplicate these blocks
   across templates.
 - Teacher prompts should assign concrete per-student plans with route emphasis:
   `legalizer-emphasis`, `DPO-emphasis`, or `co-optimization-emphasis`.
@@ -53,6 +58,9 @@ Rules:
   compute values, and fill placeholders. If a generated packet needs new
   instructions, add or update a file under `packets/` instead of embedding the
   prose in Python.
+- Do not hard-cap evidence text such as Teacher reviews. If a generated
+  context becomes large, audit should warn while retaining the complete
+  evidence or a complete source path.
 - Run the prompt audit before launching a new prompt design:
 
 ```bash
@@ -70,5 +78,8 @@ Audit output:
 - `PROMPT_AUDIT.md`
 - `prompt_audit.json`
 
-Agent prompts live under `iter_XX/prompts/`.  Generated machine packets live
-under `iter_XX/packet/`.
+Agent prompts live under `iter_XX/prompts/`. Generated machine packets live
+under `iter_XX/packet/`, and generated context deltas live under
+`iter_XX/context/`. Follow-up iterations should be visibly smaller than
+iteration 1 because stable global rules are carried by the resumed session
+rather than resent as a full prompt.
