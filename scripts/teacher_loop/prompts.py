@@ -911,10 +911,33 @@ ensure_dpl_git_repo() {{
     exit 2
   fi
 }}
+
+acquire_workspace_git_lock() {{
+  if [[ "${{DPL_EVOLVE_WORKSPACE_LOCK_HELD:-0}}" == "1" ]]; then
+    return 0
+  fi
+  mkdir -p "$VARIANT_ROOT"
+  exec 9>"$VARIANT_ROOT/.workspace_git.lock"
+  if ! flock -n 9; then
+    echo "[ERROR] another generated workspace helper is already mutating this private source." >&2
+    echo "[INFO] Run dependent helpers serially: prepare/switch/build/evaluate/commit/diff." >&2
+    exit 2
+  fi
+}}
+
+assert_no_git_index_lock() {{
+  if [[ -e "$DPL_SRC/.git/index.lock" ]]; then
+    echo "[ERROR] git index lock exists in private source: $DPL_SRC/.git/index.lock" >&2
+    echo "[INFO] Do not run prepare/switch/build/evaluate/commit helpers in parallel." >&2
+    echo "[INFO] If no helper process is active, remove the stale lock manually after inspecting processes." >&2
+    exit 2
+  fi
+}}
 """
 
     scripts = {
         "prepare": script_dir / "00_prepare_source.sh",
+        "prepare_start_source": script_dir / "01_prepare_start_source.sh",
         "switch_start_branch": script_dir / "04_switch_start_branch.sh",
         "source_context": script_dir / "05_source_context.sh",
         "query_knowledge": script_dir / "08_query_knowledge.sh",
@@ -932,7 +955,9 @@ ensure_dpl_git_repo() {{
         f"""#!/usr/bin/env bash
 	set -euo pipefail
 {common_vars}
+acquire_workspace_git_lock
 mkdir -p "$VARIANT_ROOT" "$ARTIFACT_DIR"
+assert_no_git_index_lock
 "$AGENT_ROOT/scripts/create_variant_start.sh" \\
   --orfs-root "$ORFS_ROOT" \\
   --variant-root "$VARIANT_ROOT" \\
@@ -940,6 +965,7 @@ mkdir -p "$VARIANT_ROOT" "$ARTIFACT_DIR"
   --dpl-src "$DPL_SRC" \\
 {seed_lines}  --git-branch "$SOURCE_BRANCH"
 ensure_dpl_git_repo
+assert_no_git_index_lock
 current_branch="$(git -C "$DPL_SRC" branch --show-current)"
 if [[ "$current_branch" != "$SOURCE_BRANCH" ]]; then
   echo "[ERROR] expected source branch $SOURCE_BRANCH, got $current_branch" >&2
@@ -1018,11 +1044,64 @@ echo "[INFO] base_commit=$(cat "$SOURCE_BASE_RECORD")"
     )
 
     write_executable_script(
+        scripts["prepare_start_source"],
+        f"""#!/usr/bin/env bash
+set -euo pipefail
+{common_vars}
+SCRIPT_DIR="$(cd "$(dirname "${{BASH_SOURCE[0]}}")" && pwd)"
+
+kind=""
+usage() {{
+  cat >&2 <<'USAGE'
+Usage:
+  01_prepare_start_source.sh --kind <prepared-start-kind>
+
+Atomically run source preparation and switch to the Teacher-assigned prepared
+start branch. Use this instead of launching 00_prepare_source.sh and
+04_switch_start_branch.sh separately when Teacher assigns a start point.
+USAGE
+}}
+
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    --kind)
+      kind="$2"
+      shift 2
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "[ERROR] unknown argument: $1" >&2
+      usage
+      exit 2
+      ;;
+  esac
+done
+
+if [[ -z "$kind" ]]; then
+  echo "[ERROR] missing --kind" >&2
+  usage
+  exit 2
+fi
+
+acquire_workspace_git_lock
+assert_no_git_index_lock
+DPL_EVOLVE_WORKSPACE_LOCK_HELD=1 "$SCRIPT_DIR/00_prepare_source.sh"
+assert_no_git_index_lock
+DPL_EVOLVE_WORKSPACE_LOCK_HELD=1 "$SCRIPT_DIR/04_switch_start_branch.sh" --kind "$kind"
+""",
+    )
+
+    write_executable_script(
         scripts["switch_start_branch"],
         f"""#!/usr/bin/env bash
 set -euo pipefail
 {common_vars}
+acquire_workspace_git_lock
 ensure_dpl_git_repo
+assert_no_git_index_lock
 
 kind=""
 usage() {{
@@ -1219,7 +1298,9 @@ exec python3 "$AGENT_ROOT/scripts/query_knowledge.py" "$@"
         f"""#!/usr/bin/env bash
         set -euo pipefail
 {common_vars}
+acquire_workspace_git_lock
 ensure_dpl_git_repo
+assert_no_git_index_lock
 "$AGENT_ROOT/scripts/configure_openroad_variant_relink.sh" \\
   --variant-root "$VARIANT_ROOT" \\
   --dpl-src "$DPL_SRC"
@@ -1237,7 +1318,9 @@ echo "[INFO] private_binary=$PRIVATE_BINARY"
         f"""#!/usr/bin/env bash
 set -euo pipefail
 {common_vars}
+acquire_workspace_git_lock
 ensure_dpl_git_repo
+assert_no_git_index_lock
 FRESH_BUILD_DIR="$VARIANT_ROOT/build_fresh"
 "$AGENT_ROOT/scripts/configure_openroad_variant_relink.sh" \\
   --variant-root "$VARIANT_ROOT" \\
@@ -1258,6 +1341,9 @@ echo "[INFO] private_binary=$PRIVATE_BINARY"
         f"""#!/usr/bin/env bash
 set -euo pipefail
 {common_vars}
+acquire_workspace_git_lock
+ensure_dpl_git_repo
+assert_no_git_index_lock
 RUN_BASELINE="$AGENT_ROOT/baseline/run_baseline.sh"
 mkdir -p "$ARTIFACT_DIR"
 set +e
@@ -1315,7 +1401,9 @@ echo "[INFO] metrics=$METRICS_PATH"
         f"""#!/usr/bin/env bash
 set -euo pipefail
 {common_vars}
+acquire_workspace_git_lock
 ensure_dpl_git_repo
+assert_no_git_index_lock
 git -C "$DPL_SRC" status --short
 git -C "$DPL_SRC" add -A
 if ! git -C "$DPL_SRC" diff --cached --quiet; then
@@ -1352,7 +1440,9 @@ fi
         f"""#!/usr/bin/env bash
 set -euo pipefail
 {common_vars}
+acquire_workspace_git_lock
 ensure_dpl_git_repo
+assert_no_git_index_lock
 mkdir -p "$ARTIFACT_DIR"
 if [[ -s "$SOURCE_BASE_RECORD" ]]; then
   SOURCE_BASE_COMMIT="$(head -n 1 "$SOURCE_BASE_RECORD")"
@@ -1557,6 +1647,7 @@ def write_child_workspace_packet(
             session_env_file=paths.session_env_file,
             command_script_dir=paths.student_workspace / "scripts",
             prepare_source_script=script_paths["prepare"],
+            prepare_start_source_script=script_paths["prepare_start_source"],
             switch_start_branch_script=script_paths["switch_start_branch"],
             source_context_script=script_paths["source_context"],
             build_variant_script=script_paths["build"],
@@ -1825,7 +1916,7 @@ def agent_prompt_warnings(
     for raw_line in text.splitlines():
         if raw_line.startswith("Initial workspace setup:"):
             immediate_match = re.search(
-                r"switch_start_branch_script --kind\s+([A-Za-z0-9_]+)",
+                r"(?:prepare_start_source_script|switch_start_branch_script) --kind\s+([A-Za-z0-9_]+)",
                 raw_line,
             )
             immediate_start = immediate_match.group(1) if immediate_match else None

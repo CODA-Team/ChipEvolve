@@ -31,9 +31,10 @@ commands. Do not ask Teacher to rewrite this content.
   `start/evolved_diamond`, `start/evolved_legalm`, and
   `start/evolved_negotiation`.
 - If Teacher assigns one of these prepared start points, run
-  `switch_start_branch_script --kind <branch-suffix>` before edits. The script
-  resets your iteration branch `$source_branch` to that start point while
-  keeping your final work on the normal iteration branch.
+  `prepare_start_source_script --kind <branch-suffix>` before edits. This
+  single helper performs source preparation and branch switching in order. Do
+  not launch `prepare_source_script` and `switch_start_branch_script` as
+  separate parallel commands.
 - In this workspace, start-point switches are branch-only: use the prepared
   local start branches and then commit your own source edits.
 - `evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` are prior
@@ -87,6 +88,7 @@ commands. Do not ask Teacher to rewrite this content.
 - codex_identity_env: `$session_env_file`
 - command_script_dir: `$command_script_dir`
 - prepare_source_script: `$prepare_source_script`
+- prepare_start_source_script: `$prepare_start_source_script`
 - switch_start_branch_script: `$switch_start_branch_script`
 - source_context_script: `$source_context_script`
 - build_variant_script: `$build_variant_script`
@@ -172,11 +174,16 @@ is insufficient.
   `private_dpl_evolve_source` and validate with the generated full-flow
   evaluator.
 - Use generated scripts below for prepare/build/evaluate/diff/knowledge.
+- Generated workspace helpers that mutate the private source repo must be run
+  serially. Do not put `prepare_source_script`, `prepare_start_source_script`,
+  `switch_start_branch_script`, `build_variant_script`,
+  `evaluate_candidate_script`, `commit_source_script`, or `write_diff_script`
+  in the same parallel tool call. Parallel reads such as `rg`, `sed`, and
+  `source_context_script` are fine after the source branch is prepared.
 - If Teacher assigns `framework`, `diamond`, `evolved_diamond`,
   `evolved_legalm`, or `evolved_negotiation` as this route's start point, use
-  `switch_start_branch_script --kind <branch-suffix>` immediately after source
-  preparation and before edits. Do not emulate this by copying source trees;
-  start-point switches are branch-only.
+  `prepare_start_source_script --kind <branch-suffix>` before edits. Do not
+  emulate this by copying source trees; start-point switches are branch-only.
 - Use `source_context_script` before nontrivial patches when you need current
   local source anchors. For donor-derived hunks or any edit based on Teacher
   prose rather than currently visible source text, this is mandatory. It only
@@ -217,6 +224,8 @@ scripts instead of reconstructing shell commands or studying CMake/relink
 internals.
 
 - prepare source before editing: `$prepare_source_script`
+- atomically prepare source and switch to a Teacher-assigned start branch:
+  `$prepare_start_source_script`
 - switch to a prepared local start branch when Teacher assigns one:
   `$switch_start_branch_script`
 - print current source context for patch anchors: `$source_context_script`
@@ -232,15 +241,14 @@ internals.
 
 Execution order:
 
-1. Run `prepare_source_script`.
-2. If Teacher assigns a prepared start point (`framework`, `diamond`,
+1. If Teacher assigns a prepared start point (`framework`, `diamond`,
    `evolved_diamond`, `evolved_legalm`, or `evolved_negotiation`), run
-   `switch_start_branch_script --kind
-   <branch-suffix>` before edits.
+   `prepare_start_source_script --kind <branch-suffix>` before edits.
+2. Otherwise, run `prepare_source_script`.
 3. Use `source_context_script <src/...> [symbol]` for patch anchors. The helper
-   takes positional arguments only; do not pass `--symbol`. Confirm
-   your source-level mechanism, then edit only `private_dpl_evolve_source` with
-   `apply_patch`.
+   also accepts `--symbol <symbol>`, but the simple positional form is enough.
+   Confirm your source-level mechanism, then edit only
+   `private_dpl_evolve_source` with `apply_patch`.
 4. If Teacher assigns or implies a skill id, query the skill index and keep only
    the relevant skill note in context.
 5. Run `build_variant_script`.

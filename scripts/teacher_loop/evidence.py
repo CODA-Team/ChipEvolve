@@ -391,11 +391,9 @@ def candidate_artifact_problems(
     problems: list[str] = []
     if not usage_path.exists():
         problems.append("missing_usage_summary")
-    elif returncode != 0:
-        problems.append(f"codex_returncode_{returncode}")
     if agent_message_count <= 0:
         problems.append("no_agent_message")
-    if last_message_size <= 0:
+    if last_message_size <= 0 and not str(usage.get("last_agent_message") or "").strip():
         problems.append("empty_last_message")
     if not private_binary.exists():
         problems.append("missing_private_binary")
@@ -411,10 +409,6 @@ def candidate_artifact_problems(
         problems.append("missing_implementation_diff")
     elif diff_size <= 0:
         problems.append("empty_implementation_diff")
-    if not artifacts.knowledge_card.exists():
-        problems.append("missing_knowledge_card")
-    elif knowledge_size <= 0:
-        problems.append("empty_knowledge_card")
     if not candidate.metrics_path.exists():
         problems.append("missing_metrics_json")
     if not is_clean_placement(candidate):
@@ -1698,15 +1692,19 @@ def child_artifact_status(
     returncode = usage.get("returncode")
     agent_message_count = int(usage.get("agent_message_count", 0) or 0)
 
+    warnings: list[str] = []
     problems: list[str] = []
     if not child.usage_summary.exists():
         problems.append("missing_usage_summary")
     elif returncode != 0:
-        problems.append(f"codex_returncode_{returncode}")
+        warnings.append(f"codex_returncode_{returncode}")
     if agent_message_count <= 0:
         problems.append("no_agent_message")
     if last_message_size <= 0:
-        problems.append("empty_last_message")
+        if str(usage.get("last_agent_message") or "").strip():
+            warnings.append("last_message_materialized_from_stream")
+        else:
+            problems.append("empty_last_message")
     if not child.private_binary.exists():
         problems.append("missing_private_binary")
     if not metrics_path.exists():
@@ -1716,14 +1714,15 @@ def child_artifact_status(
     elif diff_size <= 0:
         problems.append("empty_implementation_diff")
     if not child.knowledge_card.exists():
-        problems.append("missing_knowledge_card")
+        warnings.append("missing_knowledge_card")
     elif knowledge_size <= 0:
-        problems.append("empty_knowledge_card")
+        warnings.append("empty_knowledge_card")
 
     status = "valid" if not problems else "invalid"
     return {
         "status": status,
         "problems": problems,
+        "warnings": warnings,
         "usage": usage,
         "returncode": returncode,
         "agent_message_count": agent_message_count,
@@ -1774,10 +1773,13 @@ def child_artifact_status_block(
 
     problems = status["problems"]
     problem_text = ", ".join(problems) if problems else "none"
+    warnings = status.get("warnings") or []
+    warning_text = ", ".join(warnings) if warnings else "none"
     return "\n".join(
         [
             f"- artifact_status: `{status['status']}`",
             f"- artifact_problems: `{problem_text}`",
+            f"- artifact_warnings: `{warning_text}`",
             f"- codex_returncode: `{status['returncode']}`",
             f"- agent_message_count: `{status['agent_message_count']}`",
             f"- last_message_exists: `{status['last_message_exists']}`",

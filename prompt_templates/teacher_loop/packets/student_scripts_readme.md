@@ -5,9 +5,10 @@ Use them instead of reconstructing build, evaluator, git, or diff commands.
 
 Recommended flow:
 
-1. `00_prepare_source.sh` once before editing.
-2. If Teacher assigns a prepared start point, run
-   `04_switch_start_branch.sh --kind <framework|diamond|evolved_...>` before edits.
+1. If Teacher assigns a prepared start point, run
+   `01_prepare_start_source.sh --kind <framework|diamond|evolved_...>` before
+   edits. This is the preferred atomic helper.
+2. Otherwise run `00_prepare_source.sh` once before editing.
 3. Use `05_source_context.sh <src/...> [symbol]` when you need
    current local source context for an apply_patch anchor.
 4. Use `08_query_knowledge.sh --stage <stage> --q <text>` when
@@ -22,6 +23,10 @@ Recommended flow:
 
 Student start-point switches are branch-only. Use the prepared git start
 branches and then commit local source edits.
+
+Run workspace helpers that mutate the private source repo serially. Do not
+launch prepare, switch, build, evaluate, commit, or diff helpers in parallel.
+They share one private git repo and are protected by a file lock.
 
 Use `11_build_variant_fresh.sh` only when the normal generated build
 script fails or leaves the private binary missing.

@@ -996,8 +996,8 @@ def main(argv: list[str] | None = None) -> int:
                         for child, status in zip(child_rounds, artifact_statuses)
                     )
                     print(
-                        "[optimize_case] error: all child artifacts are invalid; "
-                        f"stopping before Teacher review. {problem_text}",
+                        "[optimize_case] warning: all child artifacts are invalid; "
+                        f"continuing to Teacher review for diagnosis. {problem_text}",
                         file=sys.stderr,
                     )
                     logger.event(
@@ -1006,7 +1006,6 @@ def main(argv: list[str] | None = None) -> int:
                         iteration=iter_name(iteration),
                         problems=problem_text,
                     )
-                    return 3
                 write_review_artifacts_packet(
                     path=packet_dir / "teacher_review_artifacts.md",
                     runtime=runtime,

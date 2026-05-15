@@ -525,10 +525,11 @@ def inline_teacher_plan_for_children(
         )
         if assigned_start_kind:
             start_action = (
-                "After opening the workspace packet, run `prepare_source_script`, "
-                f"then run `switch_start_branch_script --kind {assigned_start_kind}` "
-                "before editing source. Then inspect source and refine the "
-                "mechanism before coding."
+                "After opening the workspace packet, run "
+                f"`prepare_start_source_script --kind {assigned_start_kind}` before "
+                "editing source. Do not launch prepare and switch helpers as "
+                "parallel commands. Then inspect source and refine the mechanism "
+                "before coding."
             )
         section = (
             f"{begin_marker}\n"

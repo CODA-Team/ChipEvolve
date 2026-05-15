@@ -396,6 +396,17 @@ def main(argv: list[str] | None = None) -> int:
         cached_input_price_per_1m=args.cached_input_price_per_1m,
         output_price_per_1m=args.output_price_per_1m,
     )
+    if (
+        (not last_message_path.exists() or last_message_path.stat().st_size == 0)
+        and str(summary.get("last_agent_message") or "").strip()
+    ):
+        # `codex exec -o` only writes a final answer on a clean turn completion.
+        # Preserve the last streamed agent message so Teacher review still has
+        # useful context after transport failures late in a long student turn.
+        last_message_path.write_text(
+            str(summary["last_agent_message"]).rstrip() + "\n",
+            encoding="utf-8",
+        )
     summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     if args.session_state is not None:
         previous_state = load_json_file(args.session_state)

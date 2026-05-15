@@ -113,14 +113,17 @@ packet and repo-local knowledge files are the evidence boundary.
 - For donor-derived edits or Teacher-prose-derived hunks, run the generated
   source-context helper first and patch against current local source text only.
   Never reuse donor line numbers or old hunk context as the patch anchor.
-- Run the generated source-preparation script before code inspection. After
-  reading the workspace packet, required skills, and nearby Teacher-named
-  symbols, patch a coherent mechanism and move to generated build/evaluate
-  scripts. Do not spend the iteration on broad source exploration.
-- If Teacher assigns a prepared start point (`framework`, `diamond`,
-  `evolved_diamond`, `evolved_legalm`, or `evolved_negotiation`), use the generated
-  `switch_start_branch_script` immediately after source preparation and before
-  edits. Do not copy seed directories to emulate a start-point switch.
+- Run the generated source-preparation script before code inspection. If
+  Teacher assigns a prepared start point (`framework`, `diamond`,
+  `evolved_diamond`, `evolved_legalm`, or `evolved_negotiation`), use
+  `prepare_start_source_script --kind <kind>` before edits. Do not launch
+  prepare and switch helpers in parallel. After reading the workspace packet,
+  required skills, and nearby Teacher-named symbols, patch a coherent mechanism
+  and move to generated build/evaluate scripts. Do not spend the iteration on
+  broad source exploration.
+- If you already ran `prepare_source_script` and still need to switch before
+  edits, run `switch_start_branch_script` serially. Do not copy seed directories
+  to emulate a start-point switch.
 - Student workspaces use prepared git branches, then local source edits and
   commits.
 - Keep `detailed_placement_evolve` as the primary evolved placement command.

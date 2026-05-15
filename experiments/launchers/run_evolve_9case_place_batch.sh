@@ -8,7 +8,8 @@ dpl_init_runtime "run_evolve_9case_place_batch.sh"
 
 CASE_SET="${EVOLVE_CASE_SET:-evolve_9case}"
 FLOW_VARIANT="${EVOLVE_FLOW_VARIANT:-place_batch_20260421_220319}"
-RUN_PREFIX="${EVOLVE_RUN_PREFIX:-evolve_9case_place_batch}"
+RUN_STAMP="$(date +%Y%m%d_%H%M%S)"
+RUN_PREFIX="${EVOLVE_RUN_PREFIX:-evolve_9case_place_batch_${RUN_STAMP}}"
 START_KIND="${EVOLVE_START_KIND:-evolved_legalm}"
 CHILDREN="${EVOLVE_CHILDREN:-4}"
 ITERATIONS="${EVOLVE_ITERATIONS:-15}"
@@ -47,7 +48,7 @@ Options:
   --case-set NAME              Case set from problems/case_sets.json.
   --case ID                    Run one case. May be repeated. Overrides case set.
   --flow-variant NAME          Default: place_batch_20260421_220319.
-  --run-prefix NAME            Round-id prefix.
+  --run-prefix NAME            Round-id prefix. Default includes launch stamp.
   --start-kind KIND            framework, diamond, evolved_diamond,
                                evolved_legalm, evolved_negotiation, prepared.
   --children N                 Student count per iteration. Default: 4.
@@ -161,7 +162,7 @@ run_cmd() {
   fi
 }
 
-BATCH_ROOT="${DPL_EVOLVE_STATE_ROOT}/experiment_batches/${RUN_PREFIX}_${FLOW_VARIANT}_$(date +%Y%m%d_%H%M%S)"
+BATCH_ROOT="${DPL_EVOLVE_STATE_ROOT}/experiment_batches/${RUN_PREFIX}_${FLOW_VARIANT}"
 LOG_DIR="${BATCH_ROOT}/logs"
 STATUS_FILE="${BATCH_ROOT}/status.tsv"
 EXPERIMENTS_FILE="${BATCH_ROOT}/experiments.tsv"
@@ -254,6 +255,7 @@ echo "9-case evolve launch"
 echo "  case_set             : ${CASE_SET}"
 echo "  cases                : ${CASES[*]}"
 echo "  flow_variant         : ${FLOW_VARIANT}"
+echo "  run_prefix           : ${RUN_PREFIX}"
 echo "  start_kind           : ${START_KIND}"
 echo "  children x iterations: ${CHILDREN} x ${ITERATIONS}"
 echo "  teacher              : ${TEACHER_MODEL} / ${TEACHER_REASONING_EFFORT}"
