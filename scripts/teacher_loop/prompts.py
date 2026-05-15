@@ -914,6 +914,8 @@ SOURCE_BRANCH={shlex.quote(paths.source_branch)}
 CANDIDATE_SOURCE_REF={shlex.quote(stable_candidate_ref(run_tag))}
 SOURCE_BASE_RECORD={shlex.quote(str(paths.source_base_record))}
 SOURCE_COMMIT_RECORD={shlex.quote(str(paths.source_commit_record))}
+METRICS_SUMMARY_JSON={shlex.quote(str(paths.candidate_metrics_summary_json))}
+METRICS_SUMMARY_MD={shlex.quote(str(paths.candidate_metrics_summary_md))}
 IMPLEMENTATION_DIFF={shlex.quote(str(paths.implementation_diff))}
 KNOWLEDGE_CARD={shlex.quote(str(paths.knowledge_card))}
 THREADS={shlex.quote(str(threads))}
@@ -968,6 +970,7 @@ assert_no_git_index_lock() {{
         "build": script_dir / "10_build_variant.sh",
         "fresh_build": script_dir / "11_build_variant_fresh.sh",
         "evaluate": script_dir / "20_evaluate_candidate.sh",
+        "report_metrics": script_dir / "21_report_candidate_metrics.sh",
         "trial": script_dir / "25_trial_source.sh",
         "finalize": script_dir / "30_finalize_source.sh",
         "after_edit": script_dir / "run_after_edit.sh",
@@ -1518,6 +1521,7 @@ echo "[INFO] private_binary=$PRIVATE_BINARY"
         f"""#!/usr/bin/env bash
 set -euo pipefail
 {common_vars}
+SCRIPT_DIR="$(cd "$(dirname "${{BASH_SOURCE[0]}}")" && pwd)"
 acquire_workspace_git_lock
 ensure_dpl_git_repo
 assert_no_git_index_lock
@@ -1570,6 +1574,26 @@ if [[ ! -f "$METRICS_PATH" ]]; then
   exit 2
 fi
 echo "[INFO] metrics=$METRICS_PATH"
+"$SCRIPT_DIR/21_report_candidate_metrics.sh"
+""",
+    )
+
+    write_executable_script(
+        scripts["report_metrics"],
+        f"""#!/usr/bin/env bash
+set -euo pipefail
+{common_vars}
+mkdir -p "$ARTIFACT_DIR"
+if [[ ! -f "$METRICS_PATH" ]]; then
+  echo "[ERROR] metrics json missing: $METRICS_PATH" >&2
+  exit 2
+fi
+python3 "$AGENT_ROOT/scripts/report_candidate_metrics.py" \\
+  --metrics "$METRICS_PATH" \\
+  --output-json "$METRICS_SUMMARY_JSON" \\
+  --output-md "$METRICS_SUMMARY_MD" >/dev/null
+echo "[INFO] metrics_summary_json=$METRICS_SUMMARY_JSON"
+echo "[INFO] metrics_summary_md=$METRICS_SUMMARY_MD"
 """,
     )
 
@@ -2170,6 +2194,8 @@ def write_child_workspace_packet(
             source_objective_dir=paths.dpl_src / "src" / "objective",
             private_binary=paths.private_binary,
             artifact_dir=paths.artifact_dir,
+            candidate_metrics_summary_json=paths.candidate_metrics_summary_json,
+            candidate_metrics_summary_md=paths.candidate_metrics_summary_md,
             failed_attempts=paths.artifact_dir / "failed_attempts.jsonl",
             implementation_diff=paths.implementation_diff,
             knowledge_card=paths.knowledge_card,
@@ -2187,6 +2213,7 @@ def write_child_workspace_packet(
             build_variant_script=script_paths["build"],
             fresh_build_script=script_paths["fresh_build"],
             evaluate_candidate_script=script_paths["evaluate"],
+            report_candidate_metrics_script=script_paths["report_metrics"],
             trial_source_script=script_paths["trial"],
             finalize_source_script=script_paths["finalize"],
             after_edit_script=script_paths["after_edit"],

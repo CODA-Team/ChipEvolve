@@ -27,6 +27,8 @@ packet for mechanism intent.
 - private_binary: `$private_binary`
 - metrics: `$metrics_path`
 - artifact_dir: `$artifact_dir`
+- candidate_metrics_summary_json: `$candidate_metrics_summary_json`
+- candidate_metrics_summary_md: `$candidate_metrics_summary_md`
 - implementation_diff: `$implementation_diff`
 - knowledge_card: `$knowledge_card`
 - source_base_commit: `$source_base_record`
@@ -70,6 +72,7 @@ Primary flow:
    - `$trial_source_script begin --label <short-mechanism>`
    - repair a prior kept/rejected ref when assigned: `$trial_source_script begin --label <repair-name> --from-ref <ref>`
    - edit source, then run `$build_variant_script` and `$evaluate_candidate_script`
+   - canonical result summary is generated automatically; read `$candidate_metrics_summary_md` before deciding keep/reject
    - rejected path: `$trial_source_script reject --reason <why-rejected>`
    - retained path: `$trial_source_script keep --reason <why-kept>`
 4. final retained source: `$finalize_source_script`
@@ -79,6 +82,7 @@ Optional helpers:
 - peer mechanism diff only: `$fetch_peer_source_script --peer-repo <repo> --peer-ref <ref> --label <name>`
 - switch prepared start after prepare: `$switch_start_branch_script --kind <kind>`
 - trial state/status: `$trial_source_script status`
+- metrics summary on demand: `$report_candidate_metrics_script`
 - one-shot after edits with no active trial: `$after_edit_script`
 - fresh build only if normal build fails: `$fresh_build_script`
 
@@ -108,6 +112,7 @@ Before final answer:
 - current source branch is `$source_branch`
 - build produced `private_binary`
 - evaluation wrote `metrics`
+- evaluation wrote `candidate_metrics_summary_json/md`
 - best clean source state is committed and pinned to `stable_candidate_ref`
 - `implementation_diff` exists and describes the committed source
 - rejected branches are preserved before reverting any useful failed workbench

@@ -107,6 +107,8 @@ class StudentWorkspace:
     variant_env: Path
     private_binary: Path
     artifact_dir: Path
+    candidate_metrics_summary_json: Path
+    candidate_metrics_summary_md: Path
     implementation_diff: Path
     knowledge_card: Path
     source_branch: str
@@ -231,6 +233,8 @@ def student_workspace_paths(
         variant_env=variant_root / "variant_env.sh",
         private_binary=variant_root / "install" / "OpenROAD" / "bin" / "openroad",
         artifact_dir=artifact_dir,
+        candidate_metrics_summary_json=artifact_dir / "candidate_metrics_summary.json",
+        candidate_metrics_summary_md=artifact_dir / "candidate_metrics_summary.md",
         implementation_diff=artifact_dir / "implementation.diff",
         knowledge_card=artifact_dir / "knowledge_card.md",
         source_branch=f"agent/{student_id}/{iter_name(iteration)}",

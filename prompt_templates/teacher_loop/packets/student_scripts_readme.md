@@ -13,6 +13,7 @@ Minimal flow:
    - or, when Teacher asks to repair a prior rejected/kept mechanism:
      `25_trial_source.sh begin --label <repair-name> --from-ref <ref>`
    - edit source, then run `10_build_variant.sh` and `20_evaluate_candidate.sh`
+   - `20_evaluate_candidate.sh` auto-generates `candidate_metrics_summary.json/md`; use that summary before keep/reject
    - if rejected: `25_trial_source.sh reject --reason "<why>"`
    - if retained: `25_trial_source.sh keep --reason "<why>"`
 3. Final retained source:
@@ -42,6 +43,8 @@ Optional helpers:
   mechanism card or skill id.
 - `11_build_variant_fresh.sh`: use only when the normal build script fails or
   leaves the private binary missing.
+- `21_report_candidate_metrics.sh`: regenerate the canonical candidate metrics
+  summary from `metrics.json` and the referenced DPL log.
 - `25_trial_source.sh status`: inspect active trial state and recent trial log.
 - `run_after_edit.sh`: build, evaluate, and finalize after source edits are
   already complete and no active trial remains.

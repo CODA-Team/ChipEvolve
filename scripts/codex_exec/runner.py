@@ -266,6 +266,63 @@ def build_command(
     return cmd
 
 
+def should_auto_resume(summary: dict[str, Any], returncode: int) -> tuple[bool, str]:
+    if returncode == 0:
+        return False, "clean_exit"
+    thread_id = str(summary.get("thread_id") or "").strip()
+    if not thread_id:
+        return False, "missing_thread_id"
+    if int(summary.get("agent_message_count", 0) or 0) <= 0:
+        return False, "missing_agent_messages"
+    last_error = str(summary.get("last_error_message") or "").lower()
+    last_event = str(summary.get("last_event_type") or "")
+    transient_needles = (
+        "stream disconnected before completion",
+        "stream closed before response.completed",
+        "stream closed before completion",
+        "reconnecting",
+    )
+    if any(needle in last_error for needle in transient_needles):
+        return True, "transient_stream_disconnect"
+    if last_event == "turn.failed" and "stream" in last_error:
+        return True, "turn_failed_stream_disconnect"
+    return False, "non_transient_failure"
+
+
+def run_codex_process(
+    *,
+    command: list[str],
+    root: Path,
+    env: dict[str, str],
+    prompt_text: str,
+    events_path: Path,
+    stderr_path: Path,
+) -> int:
+    with events_path.open("a", encoding="utf-8") as events_fh, stderr_path.open(
+        "a", encoding="utf-8"
+    ) as stderr_fh:
+        proc = subprocess.Popen(
+            command,
+            cwd=str(root),
+            env=env,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=stderr_fh,
+            text=True,
+            encoding="utf-8",
+        )
+        assert proc.stdin is not None
+        assert proc.stdout is not None
+        proc.stdin.write(prompt_text)
+        proc.stdin.close()
+
+        for line in proc.stdout:
+            events_fh.write(line)
+            events_fh.flush()
+
+        return proc.wait()
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     runtime = runtime_paths()
@@ -333,39 +390,55 @@ def main(argv: list[str] | None = None) -> int:
         last_thread_id=auto_resume_session_id,
     )
 
-    with events_path.open("w", encoding="utf-8") as events_fh, stderr_path.open(
-        "w", encoding="utf-8"
-    ) as stderr_fh:
-        env = clean_subprocess_env()
-        env["CODEX_HOME"] = str(session_store_home)
-        proc = subprocess.Popen(
-            command,
-            cwd=str(root),
-            env=env,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=stderr_fh,
-            text=True,
-            encoding="utf-8",
-        )
-        assert proc.stdin is not None
-        assert proc.stdout is not None
-        proc.stdin.write(prompt_text)
-        proc.stdin.close()
-
-        for line in proc.stdout:
-            events_fh.write(line)
-            events_fh.flush()
-
-        returncode = proc.wait()
+    events_path.write_text("", encoding="utf-8")
+    stderr_path.write_text("", encoding="utf-8")
+    env = clean_subprocess_env()
+    env["CODEX_HOME"] = str(session_store_home)
+    returncode = run_codex_process(
+        command=command,
+        root=root,
+        env=env,
+        prompt_text=prompt_text,
+        events_path=events_path,
+        stderr_path=stderr_path,
+    )
 
     finished_at = dt.datetime.now().isoformat()
     elapsed_seconds = time.perf_counter() - start_time
     summary = summarize_events(events_path)
+    auto_resumed = False
+    auto_resume_attempts = 0
+    auto_resume_reasons: list[str] = []
+    for _ in range(2):
+        resume_ok, resume_reason = should_auto_resume(summary, returncode)
+        if not resume_ok:
+            auto_resume_reasons.append(resume_reason)
+            break
+        auto_resumed = True
+        auto_resume_attempts += 1
+        auto_resume_reasons.append(resume_reason)
+        resume_thread_id = str(summary.get("thread_id") or "").strip()
+        if not resume_thread_id:
+            break
+        command = build_command(args, root, last_message_path, resume_thread_id)
+        returncode = run_codex_process(
+            command=command,
+            root=root,
+            env=env,
+            prompt_text=prompt_text,
+            events_path=events_path,
+            stderr_path=stderr_path,
+        )
+        finished_at = dt.datetime.now().isoformat()
+        elapsed_seconds = time.perf_counter() - start_time
+        summary = summarize_events(events_path)
     summary["stderr_summary"] = summarize_stderr(stderr_path)
     usage = summary["usage"]
     summary["operation_id"] = args.operation_id
     summary["returncode"] = returncode
+    summary["auto_resumed"] = auto_resumed
+    summary["auto_resume_attempts"] = auto_resume_attempts
+    summary["auto_resume_reasons"] = auto_resume_reasons
     summary["session_identity"] = args.session_identity
     summary["session_state"] = None if args.session_state is None else str(args.session_state)
     summary["session_env_file"] = None

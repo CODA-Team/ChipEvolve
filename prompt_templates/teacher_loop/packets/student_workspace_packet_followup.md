@@ -22,6 +22,8 @@ mechanism.
 - private_binary: `$private_binary`
 - metrics: `$metrics_path`
 - artifact_dir: `$artifact_dir`
+- candidate_metrics_summary_json: `$candidate_metrics_summary_json`
+- candidate_metrics_summary_md: `$candidate_metrics_summary_md`
 - implementation_diff: `$implementation_diff`
 - knowledge_card: `$knowledge_card`
 - source_commit_record: `$source_commit_record`
@@ -39,6 +41,7 @@ Primary flow:
    - `$trial_source_script begin --label <short-mechanism>`
    - repair a prior kept/rejected ref when assigned: `$trial_source_script begin --label <repair-name> --from-ref <ref>`
    - edit source, then run `$build_variant_script` and `$evaluate_candidate_script`
+   - read `$candidate_metrics_summary_md` before deciding keep/reject
    - rejected path: `$trial_source_script reject --reason <why-rejected>`
    - retained path: `$trial_source_script keep --reason <why-kept>`
 3. final retained source: `$finalize_source_script`
@@ -50,6 +53,7 @@ Optional helpers:
 - switch prepared start after prepare: `$switch_start_branch_script --kind <kind>`
 - source context: `$source_context_script <src/...> [symbol]`
 - knowledge query: `$query_knowledge_script --stage <stage> --q <text>`
+- metrics summary on demand: `$report_candidate_metrics_script`
 - trial state/status: `$trial_source_script status`
 - fresh build only if normal build fails: `$fresh_build_script`
 - one-shot after edits with no active trial: `$after_edit_script`

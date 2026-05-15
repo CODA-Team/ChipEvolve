@@ -52,6 +52,7 @@ is experiment-specific, keep it under `experiments/launchers/` or
 | `scripts/bo_tune_case.py` | Ray Tune black-box optimize Tcl command parameters for one case using the same strict baseline runner and metrics.json as the white-box evolve loop. Requires Ray Tune; there is no local fallback. | Human/Teacher for black-box baselines. | Parameter tuning / ablation. |
 | `scripts/setup_raytune_venv.sh` | Create the repo-local `.venv_raytune` environment and verify `ray.tune` plus `optuna`. | Human before BO runs. | BO setup. |
 | `scripts/compare_runs.py` | Compare two evaluator or metrics JSON files using stable metrics. | Human/Teacher review. | Result analysis. |
+| `scripts/report_candidate_metrics.py` | Summarize one candidate run into canonical final/stage metrics, artifact paths, and key log counter lines so Students do not need to hand-parse nested metrics/log files. | Student helpers, Human/Teacher review. | Candidate result summary. |
 | `scripts/report_stage_metrics.py` | Print canonical per-round stage-wise HPWL/runtime/displacement rows from evaluator `metrics.json`, falling back to labeled partial DPL logs for in-flight evidence. | Human/Teacher review, packets. | Result analysis. |
 | `scripts/report_experiment_status.py` | Summarize a launch directory: active processes, completed/active rounds, best baseline vs best evolved donors, and optional detailed stage rows. | Human/Teacher monitoring. | Monitoring/result analysis. |
 
@@ -105,6 +106,7 @@ Student workspace packets point to iteration-specific generated scripts such as
 `scripts/iter_XX/00_prepare_source.sh`,
 `scripts/iter_XX/10_build_variant.sh`,
 `scripts/iter_XX/20_evaluate_candidate.sh`,
+`scripts/iter_XX/21_report_candidate_metrics.sh`,
 `scripts/iter_XX/25_trial_source.sh`, and
 `scripts/iter_XX/30_finalize_source.sh` under each Student workspace. Students
 should run those scripts instead of reconstructing relink, evaluator, git, or

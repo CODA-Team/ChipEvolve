@@ -45,8 +45,11 @@ def summarize_events(events_path: Path) -> dict[str, Any]:
     }
     thread_id = None
     turn_count = 0
+    turn_failed_count = 0
     agent_message_count = 0
     last_agent_message = None
+    last_error_message = None
+    last_event_type = None
 
     with events_path.open("r", encoding="utf-8") as fh:
         for raw_line in fh:
@@ -58,6 +61,7 @@ def summarize_events(events_path: Path) -> dict[str, Any]:
             except json.JSONDecodeError:
                 continue
 
+            last_event_type = event.get("type", last_event_type)
             if event.get("type") == "thread.started":
                 thread_id = event.get("thread_id", thread_id)
 
@@ -70,6 +74,15 @@ def summarize_events(events_path: Path) -> dict[str, Any]:
                 )
                 usage_totals["output_tokens"] += int(usage.get("output_tokens", 0) or 0)
 
+            if event.get("type") == "turn.failed":
+                turn_failed_count += 1
+                error = event.get("error", {})
+                if isinstance(error, dict):
+                    last_error_message = error.get("message", last_error_message)
+
+            if event.get("type") == "error":
+                last_error_message = event.get("message", last_error_message)
+
             if event.get("type") == "item.completed":
                 item = event.get("item", {})
                 if item.get("type") == "agent_message":
@@ -79,8 +92,11 @@ def summarize_events(events_path: Path) -> dict[str, Any]:
     return {
         "thread_id": thread_id,
         "turn_count": turn_count,
+        "turn_failed_count": turn_failed_count,
         "agent_message_count": agent_message_count,
         "last_agent_message": last_agent_message,
+        "last_error_message": last_error_message,
+        "last_event_type": last_event_type,
         "usage": usage_totals,
     }
 
