@@ -15,6 +15,15 @@ def load_json(path: Path) -> dict:
         return {}
 
 
+def git_ref_exists(source_repo: Path, source_ref: str) -> bool:
+    check = subprocess.run(
+        ["git", "-C", str(source_repo), "rev-parse", "--verify", source_ref],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    return check.returncode == 0
+
+
 def git_archive(source_repo: Path, source_ref: str, target: Path) -> None:
     target.mkdir(parents=True, exist_ok=True)
     archive = subprocess.Popen(
@@ -31,6 +40,15 @@ def git_archive(source_repo: Path, source_ref: str, target: Path) -> None:
         )
     if extract.returncode:
         raise SystemExit(f"[ERROR] tar extraction failed for {target}")
+
+
+def resolve_source_ref(
+    source_repo: Path, primary_ref: str | None, fallback_ref: str | None
+) -> str | None:
+    for ref in (primary_ref, fallback_ref):
+        if ref and git_ref_exists(source_repo, ref):
+            return ref
+    return None
 
 
 def main() -> int:
@@ -61,7 +79,11 @@ def main() -> int:
                 continue
             if args.iteration and iteration != args.iteration:
                 continue
-            source_ref = item.get("source_candidate_ref") or item.get("source_commit")
+            source_candidate_ref = item.get("source_candidate_ref")
+            source_commit = item.get("source_commit")
+            source_ref = resolve_source_ref(
+                source_repo, source_candidate_ref, source_commit
+            )
             if not source_ref:
                 record = (
                     student_root
@@ -70,8 +92,10 @@ def main() -> int:
                     / "source_commit.json"
                 )
                 payload = load_json(record)
-                source_ref = payload.get("source_candidate_ref") or payload.get(
-                    "source_commit"
+                source_candidate_ref = payload.get("source_candidate_ref")
+                source_commit = payload.get("source_commit")
+                source_ref = resolve_source_ref(
+                    source_repo, source_candidate_ref, source_commit
                 )
             if not source_ref:
                 continue
