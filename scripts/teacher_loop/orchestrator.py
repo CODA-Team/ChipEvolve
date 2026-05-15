@@ -533,7 +533,50 @@ def main(argv: list[str] | None = None) -> int:
             iteration_dir=iteration_dir,
             context=context,
         )
-        compact_followup_prompts = iteration > 1
+        # Use the compact Teacher/review prompt shape from the first iteration.
+        # The initial route is the most latency-sensitive step in smoke/batch
+        # runs, and the full Teacher prompt encourages unnecessary broad reads.
+        compact_followup_prompts = True
+
+        teacher_baseline_path = packet_dir / "baseline_routing_note.md"
+        teacher_baseline_path.write_text(
+            "\n".join(
+                [
+                    "# Baseline Routing Note",
+                    "",
+                    "Use `design_characteristics.md` as the primary baseline",
+                    "summary for routing. Open the full baseline artifact packet",
+                    "only if you need an exact metrics/log/result path.",
+                    "",
+                    f"- full packet: `{baseline_artifacts_path}`",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        teacher_peer_path = packet_dir / "peer_learning_routing_note.md"
+        teacher_peer_path.write_text(
+            "\n".join(
+                [
+                    "# Peer Learning Routing Note",
+                    "",
+                    (
+                        "No prior clean donors exist before `iter_01`. "
+                        "Do not open the full peer-learning packet during the "
+                        "initial routing pass unless a borrow decision is "
+                        "explicitly required."
+                        if iteration <= 1
+                        else "Open the full peer-learning packet only if a "
+                        "borrow or elite-continuation decision is actually "
+                        "needed."
+                    ),
+                    "",
+                    f"- full packet: `{peer_learning_path}`",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
 
         teacher_op = f"{round_id}_{iter_name(iteration)}_teacher_plan"
         teacher_path = prompt_dir / "teacher_plan.md"
@@ -543,8 +586,8 @@ def main(argv: list[str] | None = None) -> int:
                     context_path=full_context_path,
                     current_run_packet_path=packet_path,
                     design_characteristics_path=design_characteristics_path,
-                    baseline_artifacts_path=baseline_artifacts_path,
-                    peer_learning_path=peer_learning_path,
+                    baseline_artifacts_path=teacher_baseline_path,
+                    peer_learning_path=teacher_peer_path,
                     start_seed_calibration_path=start_seed_calibration_packet,
                     strategies=route_labels,
                     children=len(route_labels),
@@ -556,8 +599,8 @@ def main(argv: list[str] | None = None) -> int:
                     context_path=full_context_path,
                     current_run_packet_path=packet_path,
                     design_characteristics_path=design_characteristics_path,
-                    baseline_artifacts_path=baseline_artifacts_path,
-                    peer_learning_path=peer_learning_path,
+                    baseline_artifacts_path=teacher_baseline_path,
+                    peer_learning_path=teacher_peer_path,
                     start_seed_calibration_path=start_seed_calibration_packet,
                     strategies=route_labels,
                     children=len(route_labels),
