@@ -31,6 +31,9 @@ choice needs it.
 - Do not defer `trial begin` and the first patch behind long exploratory
   reading. Use targeted source reads, then execute the first patch/build/eval
   loop early.
+- If Teacher already gave a first-patch landing zone, stay inside those handles
+  until the first evaluator result unless a concrete compile or correctness
+  blocker forces one extra support read.
 - After evaluation, inspect metrics/logs for HPWL stage movement, legality,
   runtime, liveness counters, accept/reject bottleneck, and source/binary/metric
   alignment.

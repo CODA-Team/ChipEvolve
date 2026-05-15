@@ -29,7 +29,7 @@
 ## Next-Plan Requirements
 
 - Next packets should be evidence-driven, not quota-driven. Do not force a fixed number of legalizer, DPO, or hybrid routes; choose routes from the current largest HPWL source and mechanism uncertainty.
-- Each next route needs one primary HPWL-source hypothesis, exact source handles, concise A/B/C plan, runtime tier, liveness counters, expected metric proof, and a stop/pivot rule.
+- Each next route needs one primary HPWL-source hypothesis, a minimal first-patch landing zone, concise A/B/C plan, runtime tier, liveness counters, expected metric proof, and a stop/pivot rule. Usually give 1-3 primary handles and at most 2 support handles.
 - A/B/C can include real source changes or explicit preservation/diagnosis. Do not require cosmetic edits in a stage just to fill the plan.
 - Emphasis labels (`legalizer-emphasis`, `DPO-emphasis`, `co-optimization-emphasis`) are priorities, not exclusive permissions. Students may patch multiple stages when a coherent source mechanism needs producer/consumer support.
 - Parameter tuning is valid only as source-internal mechanism work: constants, thresholds, scoring weights, pass schedules, adaptive policies, or compact internal config structs in `dpl_evolve`. Reject Tcl/flow-script knob sweeps.

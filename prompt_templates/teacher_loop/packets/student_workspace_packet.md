@@ -124,6 +124,9 @@ Before final answer:
 
 - Prefer the first concrete patch/build/eval loop over extended diagnosis.
 - If the assigned mechanism and source handles are already clear, patch now and use evaluation to drive the next diagnosis.
+- Treat Teacher `first patch handles` as the initial landing zone. Do not widen
+  source reading before the first evaluator run unless that landing zone is
+  clearly wrong or blocked by a concrete compile/correctness question.
 - Read raw logs only when the generated metrics summary cannot answer the current keep/reject or repair question.
 
 ## Evaluation Timeout

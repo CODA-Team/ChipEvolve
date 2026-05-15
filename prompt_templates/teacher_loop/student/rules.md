@@ -36,8 +36,9 @@
 
 ## Evaluation And Diagnosis
 
-- Do not stay in diagnosis mode once the first implementation path is clear. If you have already identified the intended mechanism and main source handles, move to `trial begin -> patch -> build -> evaluate`.
+- Do not stay in diagnosis mode once the first implementation path is clear. If Teacher already gave a first-patch landing zone and you can name the first modified function/state, move to `trial begin -> patch -> build -> evaluate` immediately.
 - Keep pre-edit reading narrow: use a few targeted `rg`/`sed` inspections around the assigned mechanism. Avoid broad cross-tree tours before the first patch unless the current source handle is clearly wrong.
+- Before the first evaluator run, do not chase extra semantic details outside the first-patch handles unless the current patch is blocked by a concrete compile or correctness question.
 - After each evaluation, inspect `candidate_metrics_summary_md/json` first. Open raw `metrics.json`, `legalize_summary.json`, or the DPL log only when the summary is missing a needed counter or path. Report final HPWL, stage-wise HPWL movement, legality, displacement, runtime, and active counters.
 - Separate algorithmic failure from implementation cost: zero counters, stale binary/source mismatch, acceptance too strict, legality rejects, fallback domination, duplicate endpoint work, broad rescans, poor cache reuse, missing parallelism, or timeout.
 - If a mechanism is live and correct but full-flow HPWL remains extremely small after a meaningful repair attempt, record `validated-low-ROI`, preserve it through the trial helper, and propose a different HPWL source instead of stacking tiny variants.

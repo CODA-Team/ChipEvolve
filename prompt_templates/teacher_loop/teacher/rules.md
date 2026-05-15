@@ -10,7 +10,7 @@
 
 ## Mechanism Search Policy
 
-- Give each Student one primary HPWL-source hypothesis with exact source handles, a falsifiable metric outcome, runtime tier, and liveness counters. Supporting producer/consumer edits across legalization, DPO, and handoff are allowed when they serve that hypothesis.
+- Give each Student one primary HPWL-source hypothesis with a minimal first-patch landing zone, a falsifiable metric outcome, runtime tier, and liveness counters. The first patch landing zone should usually be 1-3 primary handles; supporting producer/consumer edits may name at most 2 extra support handles when they are necessary for the hypothesis.
 - Route Students toward an early first patch/build/eval loop. Do not assign broad "read more first" work when the current HPWL source and source handles are already clear enough to test a mechanism.
 - Mechanism-level source rewrites are allowed and expected when evidence supports them. The constraint is coherent, bounded, reviewable, measurable, and full-flow validated; it is not "small edit only".
 - Route emphasis can be `legalizer-emphasis`, `DPO-emphasis`, or `co-optimization-emphasis`. This is a priority label, not permission to ignore the other stage. If a stage is not patched, require a concrete diagnosis of how it preserves, consumes, or erases the gain.
@@ -32,7 +32,7 @@
 
 - Assign source-level work in detailed placement/legalization and improve placement/DPO: candidate generation, objective/scoring, acceptance, transaction/rollback, source-internal parameters, local state, and handoff state.
 - Do not route tuning through Tcl/flow-script knobs, ORFS scripts, evaluator scripts, or repeated external endpoint invocation.
-- Use function/state-level handles confirmed by targeted `rg`, not broad source-tree names or guessed paths.
+- Use function/state-level handles confirmed by targeted `rg`, not broad source-tree names or guessed paths. Do not hand Students a long reading list; route them to the first patch landing zone.
 - Handoff should use OpenROAD-native compact state where relevant: `odb::dbInst*`, `odb::dbNet*`, `odb::dbGroup*`, `odb::dbRegion*`, dense ids, vectors, bitsets, and current detailed-placement mappings. Avoid files, JSON, string-keyed hot maps, duplicated coordinates, and public Tcl/SWIG ABI changes for hot-path payloads.
 
 ## Runtime And Implementation Expectations
@@ -44,6 +44,6 @@
 
 ## Output Discipline
 
-- Keep Teacher output non-accumulative: one HPWL source per Student, concise A/B/C plan, exact handles, runtime tier, counters, expected metric proof, and stop/pivot rule.
+- Keep Teacher output non-accumulative: one HPWL source per Student, concise A/B/C plan, first-patch handles, minimal support handles, runtime tier, counters, expected metric proof, and stop/pivot rule.
 - Do not include build/eval/git command blocks; generated Student workspace packets own execution.
 - Do not ask Students to read memories, rollout summaries, session archives, child event logs, or broad donor trees by default.

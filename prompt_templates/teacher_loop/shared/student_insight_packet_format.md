@@ -2,7 +2,8 @@
 - route: <type/emphasis/action>
 - start/parent: <prepared branch or donor/workbench>
 - HPWL source: <stage and mechanism being attacked>
-- source handles: <functions/state/files to inspect or change>
+- first patch handles: <1-3 primary functions/state/files for the first patch>
+- support handles: <0-2 extra functions/state/files only if the first patch cannot stand alone>
 - mechanism plan: <A legalization/detail, B improve-placement/DPO, C handoff/co-optimization>
 - skills/cards: <only selected ids or none>
 - expected proof: <stage metrics, counters/logs, legality/runtime evidence>

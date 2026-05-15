@@ -87,6 +87,9 @@ Teacher can later continue a repairable rejected line with `begin --from-ref`.
   knowledge card describe the same code.
 - Prefer patch/build/eval over repeated broad reading once the current
   mechanism is understood.
+- If Teacher already provided `first patch handles`, keep the first edit/build/
+  eval loop inside that landing zone unless a concrete blocker forces one extra
+  support read.
 
 ## Report Fields
 
