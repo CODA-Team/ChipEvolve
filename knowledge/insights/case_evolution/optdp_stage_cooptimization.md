@@ -287,10 +287,10 @@ Primary source handles:
   placement state, and exact affected-net deltas.
 - Stage allocation should use stage-wise attribution: legal HPWL, after-improve
   HPWL, final HPWL, runtime, accepted moves, and touched-net scoring cost.
-- Runtime should be spent on bounded exact-scored mechanisms and reusable
-  caches.  Repeating unchanged random tails, broad random retries, or
-  expensive global rescans for small incremental gains is not a promotable
-  strategy.
+- Runtime should be spent on exact-scored mechanisms, reusable caches, and
+  handoff/frontier-targeted search. Repeated or randomized work is promotable
+  only after it becomes a scoped source mechanism with counters, early-stop
+  rules, and clear HPWL-stage evidence.
 - OpenMP is appropriate for parallel candidate scoring, net-cache build, and
   dry-run evaluation.  Do not parallelize direct grid/segment mutation unless
   the commit protocol is explicitly serialized or conflict-checked.
@@ -310,8 +310,8 @@ The cached GPU-DPO paper adds a useful DPO-specific donor:
 
 For this repo, first try a CPU-only version after the current experiments
 finish.  The key is to optimize the detailed-placement descent kernels before
-adding kicks.  LSMC should not become a wrapper around repeated unchanged
-random tails.
+adding kicks.  LSMC should be a controlled basin-escape mechanism, not blind
+random trial-and-error.
 
 ## Teacher Guidance
 
@@ -337,8 +337,9 @@ When editing `Optdp`:
 - keep exact `DetailedHPWL` and legal move/swap checks as commit guards,
 - use compact candidate queues and source-class telemetry,
 - avoid full-cell/full-net rescans inside inner loops,
-- spend runtime budget on one bounded new mechanism with a clear stop
-  condition, not on repeated unchanged random tails.
+- spend runtime budget on one controlled new mechanism with scope, counters, and
+  a clear stop condition; use handoff/frontier signals when they can reduce
+  random search.
 
 ## Source-Only Improve-Placement Closure Evidence
 

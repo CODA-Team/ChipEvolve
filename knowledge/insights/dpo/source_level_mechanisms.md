@@ -37,8 +37,9 @@ OpenROAD-native in-process structures, not external files or log-derived data.
      descent and accept only if canonical or exact local HPWL improves.
    - Keep perturbation scope bounded by dirty rows, touched nets, displacement
      limits, and runtime budget.
-   - LSMC is a basin-escape tool, not permission for broad random tails or
-     repeated unchanged improve-placement passes.
+   - LSMC is a basin-escape tool: use controlled perturbations, accepted-gain
+     counters, and handoff/frontier targeting so the runtime buys a specific
+     recoverability test instead of blind random trial-and-error.
    - Use multi-thread for different window on this kind of search and perturbation.
 
 5. Legalizer-to-DPO handoff consumers.
@@ -51,8 +52,12 @@ OpenROAD-native in-process structures, not external files or log-derived data.
 ## What To Avoid
 
 - Do not depend on archived source patches or prepared DPO start branches.
-- Do not add extra endpoint stacking as a substitute for algorithmic changes.
-- Do not run repeated random/descent tails without exact accept counters.
+- Extra endpoint-like subpasses are useful only when they are transformed into
+  an algorithmic source mechanism with scope, counters, and stop conditions.
+- Randomized or repeated descent can be explored when it is scoped, capped,
+  instrumented, and tied to a handoff/frontier hypothesis; avoid blind random
+  trial-and-error when the same budget can target known dirty rows, touched
+  nets, pressure segments, or boundary-active cells.
 - Do not add huge logs. Prefer one compact line per pass plus aggregate
   counters and elapsed time.
 - Do not change public Tcl/SWIG-wrapped class layout for ordinary caches or

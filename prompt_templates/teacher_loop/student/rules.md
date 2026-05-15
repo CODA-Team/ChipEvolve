@@ -168,8 +168,13 @@
 - Do not optimize back to baseline-like runtime when the assigned route needs
   explore/aggressive search. Extra time is acceptable when it is cached,
   capped, explainable, and supported by stage-wise metrics.
-- Do not buy HPWL by repeated random tails, duplicate passes, endpoint
-  stacking, or unchanged repeated improve-placement runs.
+- Any source-level search behavior is allowed when speed and quality remain
+  controllable: broad scans, repeated endpoint-like subpasses, randomized
+  perturbations, or stronger DPO/legalizer loops must have scope limits,
+  counters, early-stop or gain-rate rules, and full-flow evidence. Do not rely
+  on blind random trial-and-error as the mechanism; prefer handoff/frontier
+  signals to target the rows, cells, windows, or nets that are likely
+  recoverable.
 - Use OpenMP or existing thread utilities for independent candidate scoring,
   local HPWL probes, row/window probes, and feasibility filters when using
   thread-local scratch data and deterministic reduction.

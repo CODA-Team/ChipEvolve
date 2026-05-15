@@ -23,8 +23,9 @@ Use targeted queries such as
 
 - DPO starts from a legal placement and must leave a legal placement.
 - Primary objective remains final HPWL; runtime is a cost/value signal.
-- Do not buy quality through unbounded repeated random passes.  Spend runtime on
-  deeper cached, parallel, or better-targeted candidate evaluation.
+- Spend runtime on deeper cached, parallel, or better-targeted candidate
+  evaluation. Randomized or repeated search must be scoped, instrumented, and
+  tied to a concrete HPWL/recoverability hypothesis.
 - DPO success must be measured as `HPWLlg -> HPWLimprove -> HPWLfinal`.
 - If legalization creates a basin DPO cannot improve, fix handoff or local
   recoverability instead of only tuning constants.

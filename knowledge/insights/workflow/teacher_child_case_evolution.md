@@ -167,8 +167,9 @@ Teacher should call out bad execution patterns explicitly when reviewing a
 child:
 
 - claimed mechanisms with zero accepted candidates or inactive telemetry,
-- repeated random tails or endpoint stacks that buy HPWL only with excessive
-  runtime,
+- runtime-heavy searches whose HPWL comes only from uncontrolled random
+  trial-and-error or repeated endpoint-like work, instead of scoped
+  handoff/frontier targeting,
 - stale binaries whose logs do not contain the new mechanism,
 - continuing a stage-negative path after stage-wise evidence says the source of
   improvement is in another stage,

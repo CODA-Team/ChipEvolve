@@ -102,14 +102,15 @@ Policy:
   with bounded complexity,
 - Teacher must report `runtime_s`, `runtime_vs_baseline`, final HPWL, and
   stage-wise HPWL before assigning follow-up work,
-- Student must design candidate counts, endpoint counts, random tails, and
-  exact-HPWL checks so the expected complexity is bounded before running the
-  evaluator.
+- Student must design candidate counts, subpass counts, perturbation counts,
+  and exact-HPWL checks so the expected complexity is controlled before running
+  the evaluator.
 
 Negative patterns observed in evolution rounds:
 
-- endpoint stacking or repeated random-improve tails that approach the target
-  only by spending tens of times the baseline runtime,
+- endpoint-like stacking or random-improve perturbations that approach the
+  target only through uncontrolled runtime instead of scoped,
+  handoff/frontier-targeted work,
 - claiming a stage mechanism was implemented while the runtime log shows zero
   accepted work, zero candidates, or an inactive pass,
 - continuing a lineage that Teacher identified as stage-negative, such as

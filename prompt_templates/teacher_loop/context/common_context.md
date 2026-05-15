@@ -123,8 +123,10 @@ function/state insertion points. Do not require broad donor-tree reading.
 - runtime tiers: `fast` preserves a donor, `explore` spends moderate extra
   time on bounded search, and `aggressive` spends larger timeout-safe budget on
   a mechanism that could materially change final HPWL
-- do not buy quality through endpoint stacking, repeated random tails, broad
-  rescans, or repeated unchanged improve-placement runs
+- larger scans, repeated endpoint-like subpasses, and randomized perturbations
+  are allowed only as controlled source mechanisms with scope, counters,
+  early-stop or gain-rate evidence, and full-flow metrics; prefer
+  handoff/frontier-guided targeting over blind random search
 - high-performance exploration may use OpenMP, thread-local scratch buffers,
   cached touched data, and deterministic reductions for independent probes
 

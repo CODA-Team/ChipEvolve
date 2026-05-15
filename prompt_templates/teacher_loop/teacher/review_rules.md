@@ -46,8 +46,8 @@
   signals
 - identify implementation/runtime failure modes separately from algorithmic
   failure: zero counters, timeout, stale source/binary/metrics, low accept
-  rate, legality rejection, fallback domination, duplicate endpoints, broad
-  rescans, or missing cache/parallelism
+  rate, legality rejection, fallback domination, uncontrolled repeated work,
+  untargeted scans, or missing cache/parallelism
 - classify reusable evidence as `final donor`, `stage donor`, `active mechanism
   workbench`, `non-executed route`, `negative evidence`, or `quality-only but
   inefficient clue`
@@ -60,12 +60,14 @@
 - preserve an active workbench for one focused repair when counters are
   nonzero, legality is clean, runtime is bounded, and either stage-local HPWL
   improved or the final erase is diagnosable
-- classify runtime growth as useful bounded search, fixable implementation
-  cost, or wasted repetition. Do not over-reward routes that stay fast by
+- classify runtime growth as useful controlled search, fixable implementation
+  cost, or unsupported work. Do not over-reward routes that stay fast by
   avoiding the hard search.
-- mark endpoint stacking, repeated random tails, repeated unchanged
-  improve-placement runs, full rescans, and expensive marginal retunes as
-  non-promotable until distilled into one bounded mechanism
+- mark any runtime-heavy behavior as non-promotable only when it is uncontrolled
+  or unsupported by counters. Repeated subpasses, broad scans, or randomized
+  perturbations can be kept as donors when they are distilled into one scoped,
+  measured source mechanism with handoff/frontier targeting and full-flow
+  evidence.
 - treat avg/max displacement as diagnostics, not hard success caps
 
 ## Next-Plan Requirements

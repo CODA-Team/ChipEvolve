@@ -81,10 +81,14 @@ Classify runtime before judging a result:
   materially change final HPWL.
 
 Runtime growth is not automatically bad, but it is bounded by the generated
-hard timeout and analyzed through `G_HR`. Reject wasted repetition, duplicate
-endpoints, random tails, and broad rescans. Preserve extra-runtime HPWL donors
-when counters show cached/capped/parallel HPWL-source search; use `G_HR` only to
-decide whether the donor needs runtime repair.
+hard timeout and analyzed through `G_HR`. Broad scans, repeated endpoint-like
+subpasses, and randomized perturbations are acceptable when they are
+source-level, scoped, capped or early-stopped, instrumented, and tied to a real
+HPWL source. Prefer handoff/frontier signals that reduce blind random search and
+focus effort on recoverable rows, cells, windows, or nets. Preserve
+extra-runtime HPWL donors when counters show cached/capped/parallel
+HPWL-source search; use `G_HR` only to decide whether the donor needs runtime
+repair.
 
 ## Strict Track Rule
 

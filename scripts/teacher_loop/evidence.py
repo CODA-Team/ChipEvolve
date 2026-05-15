@@ -635,8 +635,8 @@ def stage_donor_signal(
     """Classify candidate evidence without reducing it to final HPWL only.
 
     A strong HPWL result that needs much more than the student evaluation
-    budget is quality evidence, not an effective donor.  This prevents endpoint
-    stacking or many-round random replay from being promoted as an elite route.
+    budget is quality evidence, not an effective donor.  Runtime-heavy search is
+    useful only when it is scoped, measured, and tied to a concrete HPWL source.
     """
     if baseline is None or not is_clean_placement(candidate):
         return "unclassified"
@@ -1237,7 +1237,7 @@ def write_peer_learning_packet(
             "## Use Policy",
             "- Teacher should compare code and metrics before assigning a borrow/merge direction.",
             "- Invalid metric rows are diagnostic only. Do not call them clean elites, do not seed from them, and do not ask a Student to inherit their source.",
-            f"- Teacher must separate effective donors from quality-only signals.  A candidate that wins mainly by repeated random/end-point replay or exceeds the {student_runtime_multiplier:g}x runtime budget is not an effective donor until the mechanism is reimplemented with bounded complexity.",
+            f"- Teacher must separate effective donors from quality-only signals.  A candidate that wins mainly through uncontrolled repeated subpasses, untargeted scans, or random trial-and-error, or exceeds the {student_runtime_multiplier:g}x runtime budget, is not an effective donor until the mechanism is reimplemented with scoped targeting, counters, and bounded complexity.",
             "- Teacher must separate final donors from stage donors.  If a candidate improves one stage but loses later, preserve a repair route for the later-stage handoff.",
             "- Student may inspect peer code when it directly supports the chosen implementation change.",
             "- If a student opens peer code or diff, first summarize the peer idea in 2-3 lines, then decide what to borrow.",

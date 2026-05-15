@@ -17,9 +17,9 @@ large-step escape mechanism:
 4. keep the new state only if the canonical cost improves,
 5. stop after a bounded number of failed large-step attempts.
 
-This is not the same as rerunning unchanged random tails.  The large step is a
-controlled escape from a basin of attraction, and the descent must be strong
-and efficient enough to recover quality after the perturbation.
+The large step is a controlled escape from a basin of attraction, not blind
+random trial-and-error. The descent must be strong and efficient enough to
+recover quality after the perturbation.
 
 ## Paper knobs worth preserving
 
@@ -90,10 +90,10 @@ High-value source areas:
 
 ## What not to do
 
-- Do not claim an LSMC implementation if it only runs random improvement more
-  times.
-- Do not use unbounded random kicks.  Kick count should be a documented ratio
-  of movable cells and should have an early-exit policy.
+- Do not claim an LSMC implementation if it only increases random improvement
+  work without a basin-escape design, counters, and acceptance evidence.
+- Keep kicks scoped and measurable. Kick count should be a documented ratio of
+  movable cells or frontier size and should have an early-exit policy.
 - Do not use bbox proxy HPWL as the promotion metric.  Use canonical
   OpenROAD/DPL pin-based HPWL from the flow metrics/logs.
 - Do not let LSMC hide weak descent quality.  If descent cannot recover from a
@@ -111,7 +111,7 @@ Before GPU work, try a small CPU-only LSMC prototype:
 6. compare stage-wise HPWL and runtime against the no-kick baseline.
 
 Promote only if the improvement comes from better final HPWL under the runtime
-cap, not from repeated unchanged random tails.
+cap and from a controlled basin-escape mechanism with accepted-gain evidence.
 
 ## Implementation Lessons
 

@@ -13,8 +13,8 @@ Source handles: `fastdp_2005`.
 Best use: baseline CPU DPO mechanism and local DIAMOND-style repair idea.
 
 Core thesis: combine global swap, local reorder, and segment-level shifting so
-the search can escape simple row-order defects without becoming an unbounded
-random tail.
+the search can escape simple row-order defects with scoped, measured candidate
+expansion rather than blind random trial-and-error.
 
 Pseudo code:
 

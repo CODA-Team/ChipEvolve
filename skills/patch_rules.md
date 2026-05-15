@@ -73,8 +73,10 @@ packet and repo-local knowledge files are the evidence boundary.
   consumers.
 - Implement only the selected mechanism, with compact counters/logs, bounded
   candidate sets, exact affected-net scoring, and full-flow validation. LSMC is
-  allowed only as a scoped basin escape, not as broad repeated random/descent
-  passes.
+  allowed as a scoped basin escape when perturbations are controlled by window,
+  dirty-row, touched-net, displacement, gain-rate, and runtime evidence; avoid
+  blind random trial-and-error when a handoff/frontier signal can target the
+  same recoverable region.
 - Handoff payloads should be OpenROAD-native and compact. Use
   `odb::dbInst*`, `odb::dbNet*`, `odb::dbGroup*`, `odb::dbRegion*`, dense ids,
   vectors, bitsets, and current detailed-placement mappings. Do not duplicate

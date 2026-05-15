@@ -15,6 +15,8 @@ for source handles, metrics, and log signals.
 
 ## Common Failure
 
-- Broad repeated descent or random tails consume runtime without an exact
-  accepted-gain counter.
+- Large descent or randomized perturbation consumes runtime without scope,
+  accept/reject counters, or accepted-gain evidence.  Fix this by binding the
+  search to handoff/frontier signals and by stopping on gain rate, not by
+  assuming the search family is forbidden.
 - A perturbation improves a proxy but fails canonical after-improve/final HPWL.

@@ -38,8 +38,8 @@
   quality signals, non-executed mechanisms, and negative evidence.
 - Use Student log/efficiency diagnoses as first-class evidence: DPL counters,
   timeout/failure cause, zero-counter mechanisms, stale binary/source mismatch,
-  acceptance bottlenecks, legality rejects, fallback domination, broad rescans,
-  and duplicated endpoint work should change the next route.
+  acceptance bottlenecks, legality rejects, fallback domination, uncontrolled
+  scans, and duplicated work should change the next route.
 - If the best lineage repeats, plateaus, or wins by a tiny delta, keep it as a
   regression guard but assign at least one route to a different large HPWL
   source: objective, legal frontier, candidate generator, transaction, exact
@@ -175,9 +175,12 @@
   touched-net/cache reuse, parallel scoring count, and elapsed pass/runtime
   signal. A quality clue with poor runtime should become a rewrite-for-efficiency
   route, not be discarded automatically.
-- Do not promote wins from unchanged repeated improve-placement runs, random
-  tails, duplicate passes, endpoint stacking, or uninstrumented broad rescans.
-  Distill any quality signal into one bounded mechanism.
+- Broad scans, repeated endpoint-like work, and randomized perturbations are not
+  forbidden by name; they are acceptable only when the Student turns them into a
+  source-level mechanism with scope, caps or early-stop rules, counters, and
+  full-flow evidence. Prefer handoff/frontier-driven targeting that reduces
+  blind random search and focuses effort on cells, rows, windows, or nets with a
+  concrete recoverability signal.
 
 ## Review-To-Plan Discipline
 

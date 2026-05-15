@@ -1,7 +1,8 @@
 # DPO Cards: Handoff And Runtime-Controlled Search
 
-Scope: connect legalizer outputs to improve-placement search without turning
-DPO into repeated endpoint execution or unbounded random passes.
+Scope: connect legalizer outputs to improve-placement search so broader DPO work
+is targeted by recoverability evidence instead of dominated by blind random
+trial-and-error.
 
 ## D2. GPU-DPO / LSMC Large-Step Escape
 
