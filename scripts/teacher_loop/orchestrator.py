@@ -541,6 +541,11 @@ def main(argv: list[str] | None = None) -> int:
             (
                 compact_teacher_prompt(
                     context_path=full_context_path,
+                    current_run_packet_path=packet_path,
+                    design_characteristics_path=design_characteristics_path,
+                    baseline_artifacts_path=baseline_artifacts_path,
+                    peer_learning_path=peer_learning_path,
+                    start_seed_calibration_path=start_seed_calibration_packet,
                     strategies=route_labels,
                     children=len(route_labels),
                     iteration=iteration,
@@ -549,6 +554,11 @@ def main(argv: list[str] | None = None) -> int:
                 if compact_followup_prompts
                 else teacher_prompt(
                     context_path=full_context_path,
+                    current_run_packet_path=packet_path,
+                    design_characteristics_path=design_characteristics_path,
+                    baseline_artifacts_path=baseline_artifacts_path,
+                    peer_learning_path=peer_learning_path,
+                    start_seed_calibration_path=start_seed_calibration_packet,
                     strategies=route_labels,
                     children=len(route_labels),
                     iteration=iteration,
