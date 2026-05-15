@@ -183,6 +183,9 @@ def compact_problem(problem: dict[str, Any]) -> dict[str, Any]:
 
 def packet_markdown(packet: dict[str, Any]) -> str:
     surface = packet["selected_patch_surface"]
+    primary_handles = packet.get("primary_handles", [])
+    secondary_handles = packet.get("secondary_handles", [])
+    reference_shelf = packet.get("reference_shelf", packet["reference_files"])
     lines = [
         "# Current Run Packet",
         "",
@@ -205,37 +208,25 @@ def packet_markdown(packet: dict[str, Any]) -> str:
         "- Implement handoff with OpenROAD-native in-process state: compact ids/vectors and `odb`/DetailedMgr mappings, not log/file/string payloads.",
         "- Use `knowledge/index/skill_cards.jsonl` and `scripts/query_knowledge.py` as the first-stage LEGO-lite skill lookup before opening one matched skill note.",
         "",
-        "## Selected Patch Surface",
+        "## Routing Surface",
         f"- file: {surface['file']}",
-        "- headers:",
-        *[f"- {item}" for item in surface["header_files"]],
+        f"- symbol: {surface['symbol']}",
+        "- primary handles:",
+        *[f"- {item}" for item in primary_handles],
+        "- secondary handles:",
+        *[f"- {item}" for item in secondary_handles],
         f"- risk: {surface['risk']}",
         "- allowed patch modes:",
         *[f"- {item}" for item in surface["allowed_patch_modes"]],
         "",
         "## Reference Shelf",
-        *[f"- {item}" for item in packet["reference_files"]],
+        *[f"- {item}" for item in reference_shelf],
         "",
         "## Evidence Cards",
         *[f"- {item}" for item in packet["evidence_cards"]],
         "",
         "## Last Failures To Avoid",
         *[f"- {item}" for item in packet["last_failures_to_avoid"]],
-        "",
-        "## Read Order",
-        *[f"- {item}" for item in packet["read_order"]],
-        "",
-        "## Allowed Actions",
-        *[f"- {item}" for item in packet["allowed_actions"]],
-        "",
-        "## Forbidden Actions",
-        *[f"- {item}" for item in packet["forbidden_actions"]],
-        "",
-        "## Hard Gates",
-        *[f"- {item}" for item in packet["hard_gates"]],
-        "",
-        "## Required Final Note",
-        *[f"- {item}" for item in packet["required_final_note"]],
     ]
     return "\n".join(lines) + "\n"
 
@@ -269,6 +260,26 @@ def build_packet(problem_dir: Path, out_dir: Path) -> dict[str, Any]:
         "problem": problem,
         "reference_index": reference_index,
         "selected_patch_surface": LEGALIZE_IMPROVE_SURFACE,
+        "primary_handles": [
+            "tools/OpenROAD/src/dpl_evolve/src/StudentAlgorithm.cpp",
+            "tools/OpenROAD/src/dpl_evolve/src/Optdp.cpp",
+            "tools/OpenROAD/src/dpl_evolve/src/LegalmGuidance.cpp",
+        ],
+        "secondary_handles": [
+            "tools/OpenROAD/src/dpl_evolve/src/LegalmFullLegalization.cpp",
+            "tools/OpenROAD/src/dpl_evolve/include/dpl_evolve/Opendp.h",
+        ],
+        "reference_shelf": [
+            "knowledge/insights/workflow/metric_contract.md",
+            "knowledge/insights/case_evolution/strategy_inspiration_by_design_feature.md",
+            "knowledge/insights/dpo/source_level_mechanisms.md",
+            "knowledge/insights/dpo/openroad_native_handoff.md",
+            "knowledge/index/skill_cards.jsonl",
+            "scripts/query_knowledge.py",
+            "family_variants/openroad_diamond/README.md",
+            "family_variants/openroad_negotiation_nblg/README.md",
+            "family_variants/legalm_guidance/README.md",
+        ],
         "reference_files": REFERENCE_FILES,
         "evidence_cards": cards,
         "last_failures_to_avoid": failures,
