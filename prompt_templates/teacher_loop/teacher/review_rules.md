@@ -1,7 +1,12 @@
 ## Evidence Discipline
 
 - Read the artifact packet once first; it already contains validity, metrics, artifact sizes, and exact paths.
-- Prefer each Student's `knowledge_card` for mechanism and lesson. Use final messages for compact summary only.
+- Prefer each Student's `knowledge_card` for implemented mechanism, bottleneck
+  diagnosis, liveness evidence, and lesson. Use final messages for compact
+  summary only.
+- Artifact read order: `teacher_review_artifacts.md` -> per-student
+  `knowledge_card` -> `source_trials.jsonl` for kept/rejected refs ->
+  `implementation_diff`/logs only when the card or validity gate is unclear.
 - Do not rerun or reread artifacts broadly unless a validity conflict needs it. Repeated artifact reads without a mechanism decision are review inefficiency.
 - Use Student log/efficiency diagnosis when present; if missing, infer only the minimum from `metrics.json`, DPL logs, counters, and artifact state.
 
@@ -46,6 +51,10 @@
 ## Next-Plan Requirements
 
 - Next packets should be evidence-driven, not quota-driven. Do not force a fixed number of legalizer, DPO, or hybrid routes; choose routes from the current largest HPWL source and mechanism uncertainty.
+- Before assigning next packets, synthesize three inputs: canonical stage metrics,
+  Student knowledge-card reasoning, and the most relevant knowledge/algorithm
+  card. The next route should say which knowledge idea is being tested or why
+  evidence rejects it for this round.
 - Each next route needs one primary HPWL-source hypothesis, a minimal first-patch landing zone, concise A/B/C plan, runtime tier, liveness counters, expected metric proof, and a stop/pivot rule. Usually give 1-3 primary handles and at most 2 support handles.
 - Review whether the route mix is too narrow. If all next routes would polish
   one donor family while the case still trails baseline, require one broader

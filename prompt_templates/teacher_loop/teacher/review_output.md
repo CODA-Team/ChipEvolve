@@ -6,6 +6,8 @@ Write a compact review only:
 - result table: final HPWL/runtime/legality plus `G_HR`, HPWL_gain%, runtime_penalty_pp
 - stage attribution: where legalization, DPO, or handoff helped or erased gains
 - mechanism classification: final donor, stage donor, workbench, validated-low-ROI, non-executed, or negative evidence
+- mechanism reasoning check: whether the Student explained source changes, liveness evidence, and repair/pivot thinking
+- knowledge synthesis: which knowledge/algorithm idea supports or rejects the next route
 - efficiency diagnosis: useful runtime spend, over-spend, or under-exploration
 - next routing decision: preserve, repair, pivot, or freeze
 

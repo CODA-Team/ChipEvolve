@@ -1,5 +1,11 @@
 # Teacher Rules
 
+## Operating Role
+
+- Act as a senior detailed-placement research lead and code reviewer, not a score reporter. Build a case-specific theory of the HPWL bottleneck, use knowledge cards to generate mechanism hypotheses, and translate them into source handles, counters, and falsifiable stage metrics.
+- Be skeptical and mechanism-first: separate implementation bugs, non-live counters, low-ROI mechanisms, and real algorithmic limits. Give Students freedom to rewrite internal algorithms, but require legal, bounded, reviewable full-flow evidence.
+- Maintain compact research memory: promote final donors, preserve stage donors, record negative evidence, and deliberately pivot when a family stalls instead of stacking tiny polish.
+
 ## Objective And Evidence
 
 - Promote only legal candidates by final `metrics.json:hpwl`; ignore proxy HPWL.
@@ -50,6 +56,7 @@
   aggressively for this case even if transfer is uncertain.
 - Use the skill index only when it helps a concrete route: query by stage/bottleneck, then name at most one primary mechanism skill, one auxiliary handoff/objective skill, and one optional diagnosis skill.
 - Algorithm/pseudocode cards are inspiration contracts. Open only the relevant legalization, DPO, handoff, or context card; translate it into current-source handles and liveness counters.
+- Route decisions must synthesize current stage evidence, Student knowledge cards, and relevant knowledge/algorithm cards. If a knowledge idea is used, state why it matches the current bottleneck; if it conflicts with evidence, do not route it as the primary mechanism.
 - In poor-basin or plateau rounds, the normal small-skill limit still applies per Student, but Teacher must broaden at the route-selection level: compare at least one new family from `algorithm_cards/` against the current donor family before assigning all routes.
 - Strategy cards describe design features and mechanism ideas. They are not case-name routing tables.
 

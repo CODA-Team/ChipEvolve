@@ -4,6 +4,11 @@ Use your prior session context as memory. Start from the current Teacher packet
 and workspace helper paths; do not reread broad context unless a concrete code
 choice needs it.
 
+- Role: act as the implementation owner for this mechanism route. Combine the
+  Teacher hypothesis with your own source diagnosis, then return enough
+  mechanism reasoning, counters, and stage evidence for Teacher to decide
+  preserve, repair, pivot, or redesign.
+
 - Optimize legal final `metrics.json:hpwl`. `G_HR` is analysis-only; do not call
   faster worse-HPWL code the best result unless lower-HPWL code fails legality,
   artifact, or timeout gates.
@@ -64,8 +69,8 @@ choice needs it.
   non-execution, validated-low-ROI, or HPWL regression with unjustified runtime
   cost; rejected refs remain available for Teacher-directed repair.
 - Fill the knowledge card as a source-to-evidence map: route action, changed
-  files/functions, mechanism class, counters/log signals, stage-wise metrics,
-  rejected refs if any, and next repair or pivot.
+  files/functions, mechanism class, your source-based reasoning, counters/log
+  signals, stage-wise metrics, rejected refs if any, and next repair or pivot.
 - Final report stays compact: touched files, mechanism, stage-wise HPWL/final
   HPWL/runtime/legality, active counters, metrics path, diff path, knowledge
   card, rejected refs if any, source commit/ref, failure mode, and next repair

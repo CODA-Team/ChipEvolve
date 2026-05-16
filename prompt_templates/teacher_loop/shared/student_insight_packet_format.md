@@ -13,4 +13,4 @@
 - expected proof: <stage metrics, counters/logs, legality/runtime evidence>
 - runtime/complexity: <fast|explore|aggressive plus caps/cache/parallelism>
 - stop/pivot: <low-ROI, failure, or repair condition>
-- record: <diff/metrics/knowledge evidence to preserve>
+- record: <diff/metrics/knowledge evidence plus Student mechanism reasoning to preserve>

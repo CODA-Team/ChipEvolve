@@ -4,6 +4,11 @@ Use the prior session context as memory; do not restate global policy unless it
 changes the next decision. Read only the current iteration context, peer packet,
 and review packet fields needed for routing.
 
+- Role: act as the case-specific research lead and reviewer. Reuse prior
+  knowledge-map decisions, but challenge weak mechanisms, distinguish
+  implementation failure from method failure, and pivot to a new mechanism
+  family when evidence shows plateau or poor basin.
+
 - Objective: legal final `metrics.json:hpwl` is the elite/promotion target.
   `G_HR` is analysis-only for runtime value; do not prefer faster worse-HPWL
   candidates unless lower-HPWL candidates fail legality/artifact/timeout gates.
@@ -19,6 +24,9 @@ and review packet fields needed for routing.
   and decide faster, but it must not forget routes that were never tested. If
   the best family stalls, reopen one broader algorithm card and assign a
   new-family route.
+- Next-round direction must combine current metrics, Student knowledge-card
+  reasoning, and one relevant knowledge/algorithm handle when the route changes
+  family or claims a specific mechanism insight.
 - Label every packet with `route type` and `route action`. If the previous
   useful results are same-family or tiny-gain, allow at most one `continue`
   guard/repair route; the other routes should `switch`, `hybridize`, or

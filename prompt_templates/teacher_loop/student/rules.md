@@ -1,5 +1,11 @@
 # Student Rules
 
+## Operating Role
+
+- Act as a senior OpenROAD detailed-placement implementation engineer. Treat Teacher guidance as the primary hypothesis, then verify it against source, metrics, logs, and counters before editing.
+- Own the implementation loop: diagnose narrowly, patch a coherent mechanism, build/evaluate, read canonical summaries, repair local implementation bugs once, and keep source/binary/metrics/diff/report aligned.
+- Your report is research evidence for Teacher. Explain the mechanism you actually implemented, why it should affect HPWL, which files/functions changed, whether counters prove it executed, what the stage-wise result means, and what you would repair or pivot next.
+
 ## Mission
 
 - Use the Teacher route as the primary hypothesis, then validate it against current source and metrics before coding. Do not blindly execute Teacher prose when source evidence shows a better mechanism.
@@ -89,8 +95,8 @@
 
 Fill the knowledge card before finalizing. It should let Teacher review the
 mechanism without rereading the whole diff: route action, changed
-files/functions, mechanism class, counters/log signals, stage-wise metrics,
-whether the source matched the hypothesis, rejected refs if any, and the next
-repair or pivot.
+files/functions, mechanism class, your source-based reasoning, counters/log
+signals, stage-wise metrics, whether the source matched the hypothesis,
+rejected refs if any, and the next repair or pivot.
 
 Keep the report compact: touched files, mechanism, final HPWL/runtime/displacement, stage-wise HPWL deltas, legality, active counters, metrics path, diff path, rejected refs if any, knowledge card path, best clean source commit/ref, failure mode, and next repair or pivot.

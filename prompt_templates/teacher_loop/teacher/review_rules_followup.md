@@ -15,6 +15,9 @@ route. Keep the review concise and action-bearing.
 - Use each knowledge card as the source-to-evidence map. A useful card should
   name changed files/functions, route action, executed counters, stage movement,
   and next repair; vague cards should trigger tighter next-packet requirements.
+- Read order for mechanism reasoning is the artifact packet first, then each
+  relevant `knowledge_card`, then `source_trials.jsonl` or diff/logs only if a
+  card is vague, inconsistent, or marks a repairable rejected ref.
 - Treat `reject` as not-final-for-this-trial, not automatic method death. Use
   source diff, counters, logs, and stage movement to decide implementation bug,
   handoff/composition issue, method-low-ROI, or hard non-promotable failure.
@@ -41,6 +44,10 @@ route. Keep the review concise and action-bearing.
 - If a Student restored a better final source, use `source_trials.jsonl` refs as
   evidence for any useful rejected or kept workbench. If repairable, tell the
   next Student to use `25_trial_source.sh begin --from-ref <ref>`.
+- Before next routing, combine current metrics, Student knowledge-card reasoning,
+  and the relevant knowledge/algorithm handle. When changing route family, name
+  the mechanism insight being tested; when not changing, state why evidence
+  supports staying in the family.
 - Next packets must be non-accumulative: one distinct HPWL-source hypothesis,
   concise A/B/C plan, exact function/state handles, runtime tier, liveness
   counters, and the low-ROI stop condition when relevant. A/B/C may include
