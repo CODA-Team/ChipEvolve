@@ -108,6 +108,32 @@ that ref through `begin --from-ref <ref>`.
 - If Teacher assigns a prepared start, use `prepare_start_source_script --kind <kind>` before edits. Do not manually apply release/start patch files and do not copy source trees.
 - After preparation, implement and commit your mechanism on the iteration branch `$source_branch`.
 
+## Algorithm Entry Points
+
+Start algorithm work from internal implementation entry points, not from the
+top-level Tcl/SWIG command layer. These are preferred landing zones, not an
+exclusive whitelist. If one coherent mechanism needs adjacent internal files,
+state, or helpers, you may change them too.
+
+- legalization / orchestration:
+  - `src/StudentAlgorithm.cpp`
+  - `src/EvolveLegalizer.cpp`
+  - `src/EvolveContext.h`
+- LEGALM / guidance / row assignment / negotiation repair:
+  - `src/Legalm*.cpp`
+  - `src/EvolveNegotiationRepair.cpp`
+- improve placement / DPO / exact local search:
+  - `src/Optdp.cpp`
+  - `src/optimization/`
+  - `src/objective/detailed_hpwl.*`
+- shared persistent state or handoff fields:
+  - `src/Opendp.h`
+  - `src/EvolveContext.h`
+
+Use Teacher `first patch handles` as the first landing zone. If Teacher did not
+name exact files, start from the matching entry point above instead of
+re-reading the whole module.
+
 ## Completion Gate
 
 Before final answer:
@@ -130,11 +156,21 @@ Before final answer:
 - Treat Teacher `first patch handles` as the initial landing zone. Do not widen
   source reading before the first evaluator run unless that landing zone is
   clearly wrong or blocked by a concrete compile/correctness question.
+- Student-side research should stay narrow: confirm only the current landing
+  zone, nearby state, and any required OpenROAD interface/call site. Do not do
+  broad donor, paper, or flow research when the first implementation path is
+  already clear.
 - After `trial begin`, do not go back to broad evaluator/flow command tracing
   unless the current landing zone is blocked by a concrete call-order or
   artifact-wiring uncertainty. Use the generated packet and helper scripts as
   the authoritative stage-order reference.
 - Read raw logs only when the generated metrics summary cannot answer the current keep/reject or repair question.
+- New algorithms or handoff paths should emit compact counters/logs that prove
+  producer/consumer liveness, accept/reject behavior, HPWL movement, and
+  pass/runtime cost.
+- A failed first evaluation is a diagnosis input, not an immediate reason to
+  abandon the route. Try one coherent same-route repair when the failure is a
+  plausible implementation or integration bug.
 - After the first legal evaluator result, close the active trial before any broader donor reading. Prefer `$keep_and_finalize_script` when the current result is already the best clean evidence you have.
 
 ## Evaluation Timeout
@@ -148,3 +184,15 @@ Do not edit evaluator, baseline Tcl, benchmark selection, root ORFS source,
 workspace helper scripts, generated command scripts, or classic
 `tools/OpenROAD/src/dpl`. This does not restrict source-level algorithm changes
 inside `private_dpl_evolve_source`.
+
+Do not change the top-level command interfaces for:
+
+- `detailed_placement_evolve`
+- `improve_placement_evolve`
+- `optimize_mirroring_evolve`
+
+Keep command names, outer stage order, and top-level invocation contract
+stable. Do not use this round to edit `src/Opendp.i` or other Tcl/SWIG command
+binding/plumbing unless Teacher explicitly assigns command-interface work. For
+ordinary algorithm evolution, start from the internal implementation files
+listed above and expand only as needed for the same mechanism.

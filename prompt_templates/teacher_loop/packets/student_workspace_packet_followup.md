@@ -86,6 +86,13 @@ Teacher can later continue a repairable rejected line with `begin --from-ref`.
 - If a live/correct mechanism remains extremely low ROI after a meaningful
   repair attempt, record `validated-low-ROI`, preserve the rejected branch or
   clean checkpoint, and pivot to a different HPWL source.
+- New algorithms or handoff paths should emit compact counters/logs for
+  producer/consumer liveness, accept/reject behavior, HPWL movement, and
+  pass/runtime cost.
+- A failed first evaluation should trigger one coherent same-route repair when
+  the failure looks like an implementation or integration bug. Reject when
+  there is no plausible repair, repair fails, the route is non-executed, or
+  HPWL regresses with unjustified runtime cost.
 - Final evidence must align: source commit/ref, binary, metrics, diff, and
   knowledge card describe the same code.
 - Prefer patch/build/eval over repeated broad reading once the current
@@ -93,6 +100,15 @@ Teacher can later continue a repairable rejected line with `begin --from-ref`.
 - If Teacher already provided `first patch handles`, keep the first edit/build/
   eval loop inside that landing zone unless a concrete blocker forces one extra
   support read.
+- Reuse the main workspace packet `Algorithm Entry Points` section; treat it as
+  a preferred landing-zone map, not a whitelist. Do not restudy the whole
+  module. Student-side research should stay narrow to the current landing zone,
+  nearby state, and any required OpenROAD interface/call site.
+- Do not modify the top-level command interfaces for
+  `detailed_placement_evolve`, `improve_placement_evolve`, or
+  `optimize_mirroring_evolve`. Keep command names and outer invocation
+  contract stable; do not edit `src/Opendp.i` unless Teacher explicitly assigns
+  command-interface work.
 - After the first legal evaluator result, close the active trial before any
   broader donor reading. Prefer `$keep_and_finalize_script` when the current
   result is already the best clean evidence in hand.

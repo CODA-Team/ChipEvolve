@@ -1054,23 +1054,37 @@ def main(argv: list[str] | None = None) -> int:
                     for child, status in zip(child_rounds, artifact_statuses)
                     if status.get("status") == "valid"
                 ]
+                reviewable_children = [
+                    child.student_id
+                    for child, status in zip(child_rounds, artifact_statuses)
+                    if status.get("status") == "valid"
+                    or status.get("rejected_only_workbench")
+                ]
                 if not valid_children and child_rounds:
-                    problem_text = "; ".join(
-                        f"{child.student_id}: {','.join(status.get('problems') or [])}"
-                        for child, status in zip(child_rounds, artifact_statuses)
-                    )
-                    print(
-                        "[optimize_case] error: all child artifacts are invalid; "
-                        f"stopping this iteration before Teacher review. {problem_text}",
-                        file=sys.stderr,
-                    )
-                    logger.event(
-                        "student",
-                        "all_artifacts_invalid",
-                        iteration=iter_name(iteration),
-                        problems=problem_text,
-                    )
-                    return 1
+                    if reviewable_children:
+                        logger.event(
+                            "student",
+                            "rejected_only_reviewable",
+                            iteration=iter_name(iteration),
+                            students=",".join(reviewable_children),
+                        )
+                    else:
+                        problem_text = "; ".join(
+                            f"{child.student_id}: {','.join(status.get('problems') or [])}"
+                            for child, status in zip(child_rounds, artifact_statuses)
+                        )
+                        print(
+                            "[optimize_case] error: all child artifacts are invalid; "
+                            f"stopping this iteration before Teacher review. {problem_text}",
+                            file=sys.stderr,
+                        )
+                        logger.event(
+                            "student",
+                            "all_artifacts_invalid",
+                            iteration=iter_name(iteration),
+                            problems=problem_text,
+                        )
+                        return 1
                 write_review_artifacts_packet(
                     path=packet_dir / "teacher_review_artifacts.md",
                     runtime=runtime,

@@ -37,6 +37,13 @@ choice needs it.
 - After evaluation, inspect metrics/logs for HPWL stage movement, legality,
   runtime, liveness counters, accept/reject bottleneck, and source/binary/metric
   alignment.
+- New algorithms or handoff paths need minimal useful counters/logs: producer
+  count, consumer attempts, accepts/rejects, HPWL gain or loss, and pass/runtime
+  cost where applicable.
+- Do not reject just because the first evaluation fails. If build failure,
+  crash, timeout, illegal placement, or zero-counter behavior looks like an
+  implementation/integration bug, diagnose it and try one coherent same-route
+  repair before rejecting.
 - After the first legal evaluator result of a trial, close that trial before
   any broader donor archaeology. Decide `keep` or `reject` from the current
   trial evidence first, then finalize or start a new trial; do not leave an
@@ -49,6 +56,9 @@ choice needs it.
   HPWL movement after a meaningful repair attempt, stop chasing tiny variants.
   Record `validated-low-ROI`, preserve it through the trial helper, and propose
   a different HPWL source.
+- Prefer `reject` for no plausible repair, failed same-route repair,
+  non-execution, validated-low-ROI, or HPWL regression with unjustified runtime
+  cost; rejected refs remain available for Teacher-directed repair.
 - Final report stays compact: touched files, mechanism, stage-wise HPWL/final
   HPWL/runtime/legality, active counters, metrics path, diff path, knowledge
   card, rejected refs if any, source commit/ref, failure mode, and next repair
