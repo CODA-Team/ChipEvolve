@@ -7,6 +7,9 @@ when Teacher needs the exact metrics/log checklist.
 ## Extra Guidance
 
 - Start every route decision from the stage table, not from final HPWL alone.
+- Check whether legalization destroys too much of the global-placement basin:
+  a large `HPWLg -> HPWLlg` disruption plus weak DPO recovery is evidence that
+  the legalizer output may need repair before adding more DPO polish.
 - For an active launch, use `scripts/report_experiment_status.py` to combine
   process status, best-donor summaries, and recent stage rows.  Use
   `scripts/report_stage_metrics.py` when only one round's full per-student

@@ -19,14 +19,17 @@ Default reading order:
    frontier state into improve placement
 10. `insights/dpo/lightweight_post_dpo_basin.md` when a stable legalizer still
     leaves post-DPO HPWL residue
-11. `insights/dpo/frontier_guided_basin_consumer.md` when a producer frontier
+11. `skills/case/legalizer_dpo_handoff_triage.md` when stage evidence is
+   ambiguous and Teacher must decide whether to repair legalizer output,
+   strengthen DPO, or improve handoff
+12. `insights/dpo/frontier_guided_basin_consumer.md` when a producer frontier
     should be consumed by exact basin search
-12. `insights/legalization/algorithm_role_liveness_basics.md` before routing
+13. `insights/legalization/algorithm_role_liveness_basics.md` before routing
    Diamond, negotiation, LEGALM, or Differential Guidance families
-13. `skills/legalization/differential_guidance_stop_target.md` when using
+14. `skills/legalization/differential_guidance_stop_target.md` when using
    LEGALM/differential guidance as a seed/frontier instead of a full legalizer
-14. one relevant file under `algorithm_cards/` or `insights/`
-15. paper PDFs and source notes under `reference/` only if needed
+15. one relevant file under `algorithm_cards/` or `insights/`
+16. paper PDFs and source notes under `reference/` only if needed
 
 Current compact algorithm cards:
 
@@ -41,6 +44,7 @@ Current compact algorithm cards:
 - `insights/case_evolution/strategy_inspiration_by_design_feature.md`
 - `insights/case_evolution/micro_gain_trap_and_elite_donors.md`
 - `insights/case_evolution/full_flow_timeout_and_target_selection.md`
+- `skills/case/legalizer_dpo_handoff_triage.md`
 - `insights/dpo/source_level_mechanisms.md`
 - `insights/dpo/openroad_native_handoff.md`
 - `insights/dpo/lightweight_post_dpo_basin.md`

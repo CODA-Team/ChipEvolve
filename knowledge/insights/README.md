@@ -15,13 +15,14 @@ should act on it.
 6. `case_evolution/score_based_case_strategy_routing.md`
 7. `case_evolution/dense_evolved_legalizer_routing.md`
 8. `case_evolution/optdp_stage_cooptimization.md`
-9. `legalization/algorithm_role_liveness_basics.md`
-10. `dpo/source_level_mechanisms.md`
-11. `dpo/lightweight_post_dpo_basin.md`
-12. `dpo/frontier_guided_basin_consumer.md`
-13. `dpo/openroad_native_handoff.md`
-14. `case_evolution/micro_gain_trap_and_elite_donors.md`
-15. Relevant LEGALM card under `legalm/` only when changing legalization.
+9. `../skills/case/legalizer_dpo_handoff_triage.md`
+10. `legalization/algorithm_role_liveness_basics.md`
+11. `dpo/source_level_mechanisms.md`
+12. `dpo/lightweight_post_dpo_basin.md`
+13. `dpo/frontier_guided_basin_consumer.md`
+14. `dpo/openroad_native_handoff.md`
+15. `case_evolution/micro_gain_trap_and_elite_donors.md`
+16. Relevant LEGALM card under `legalm/` only when changing legalization.
 
 ## Workflow
 
@@ -57,6 +58,9 @@ should act on it.
 
 ## DPO And Handoff Notes
 
+- `../skills/case/legalizer_dpo_handoff_triage.md`: stage triage rule for
+  deciding whether weak final HPWL should be attacked by legalizer-output
+  repair, DPO-consumer strengthening, handoff repair, or co-optimization.
 - `dpo/source_level_mechanisms.md`: source-level improve-placement mechanisms
   to reimplement directly in current `Optdp`/`Detailed*` code.
 - `dpo/lightweight_post_dpo_basin.md`: when a stable legalizer still leaves
