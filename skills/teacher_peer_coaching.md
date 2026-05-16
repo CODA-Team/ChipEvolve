@@ -47,11 +47,12 @@ If recent attempts repeat the same weak idea, switch perspective instead of
 asking for another retune.  Name the failed assumption and assign a different
 algorithmic route.
 
-If the current best clean candidate is still worse than the OpenROAD DPL
-default-flow HPWL after a meaningful attempt, treat the case as a poor basin:
-keep at most one guard donor, then assign at least one aggressive
-`mechanism-redesign` or new-family route from a broader skill query and one
-algorithm/pseudocode card outside the current donor family.
+If current-run legal candidates are tiny-gain, same-family, or too heavy for the
+HPWL gained, treat that as weak-gain/over-cost evidence: keep at most one guard
+donor, then assign at least one aggressive within-run route. This can be a
+`mechanism-redesign`, a new mechanism family from a broader skill query and one
+algorithm/pseudocode card, or a repair of a current-run kept/rejected ref using
+the trial helper. Do not use cross-experiment donors as implementation starts.
 
 If a mechanism is live, correctly implemented, and still produces only
 negligible clean full-flow HPWL movement after a meaningful repair attempt, mark it

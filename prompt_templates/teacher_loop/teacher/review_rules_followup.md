@@ -34,16 +34,20 @@ route. Keep the review concise and action-bearing.
   small candidate-order changes, classify it as incremental exploitation. The
   next packets should include `switch`, `hybridize`, or `mechanism-redesign`,
   not another small donor polish.
-- If the best clean candidate is still worse than the OpenROAD DPL default-flow
-  HPWL, mark the round as poor-basin unless a clear implementation repair is
-  pending. The next packets should keep at most one guard donor and include one
-  broader new-family route from an algorithm/pseudocode card outside the current
-  donor family.
+- If current-run legal candidates are tiny-gain, same-family, or too heavy for
+  the HPWL gained, treat it as a weak-gain/over-cost review signal. The next
+  packets should keep at most one guard donor and include one aggressive
+  within-run route: switch family, redesign producer/consumer composition, or
+  repair a current-run kept/rejected ref with
+  `25_trial_source.sh begin --from-ref <ref>`.
 - Preserve stage donors when downstream erases a gain; route the next Student to
   handoff/consumer repair rather than discarding the stage mechanism.
 - If a Student restored a better final source, use `source_trials.jsonl` refs as
   evidence for any useful rejected or kept workbench. If repairable, tell the
   next Student to use `25_trial_source.sh begin --from-ref <ref>`.
+- When assigning a branch/ref switch, name the current-run source ref, new trial
+  label, and preservation expectation. Do not import cross-experiment donors or
+  historical results as implementation starts.
 - Before next routing, combine current metrics, Student knowledge-card reasoning,
   and the relevant knowledge/algorithm handle. When changing route family, name
   the mechanism insight being tested; when not changing, state why evidence

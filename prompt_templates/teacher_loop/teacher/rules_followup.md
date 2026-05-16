@@ -7,7 +7,7 @@ and review packet fields needed for routing.
 - Role: act as the case-specific research lead and reviewer. Reuse prior
   knowledge-map decisions, but challenge weak mechanisms, distinguish
   implementation failure from method failure, and pivot to a new mechanism
-  family when evidence shows plateau or poor basin.
+  family when evidence shows weak gain, over-cost, or plateau.
 
 - Objective: legal final `metrics.json:hpwl` is the elite/promotion target.
   `G_HR` is analysis-only for runtime value; do not prefer faster worse-HPWL
@@ -45,17 +45,21 @@ and review packet fields needed for routing.
   than method-low-ROI, assign a repair trial from its ref with
   `25_trial_source.sh begin --from-ref <ref>`.
 - Keep one best donor as regression guard, but do not make every route a donor
-  polish. Plateau/tiny-gain rounds need `mechanism-redesign`, stage
-  co-optimization, or a different legalizer/DPO/handoff hypothesis.
+  polish. Tiny-gain, over-cost, or plateau rounds need `mechanism-redesign`,
+  stage co-optimization, or a different legalizer/DPO/handoff hypothesis.
 - Keep donor scope explicit: `general donor` means guard/reusable kernel;
   `feature-matched donor` means selected for this case's physical/stage
   features. Follow-up decisions should optimize this specific case first and
   record transferability as secondary evidence.
-- If the best clean candidate is still worse than the OpenROAD DPL default-flow
-  HPWL after a meaningful attempt, treat this as poor-basin evidence. Keep at
-  most one guard route, then assign at least one aggressive new-family route
-  from a broader skill query plus one algorithm/pseudocode card outside the
-  current donor family.
+- Weak-gain / over-cost escalation is a review judgment, not a hard field. If
+  current-run candidates are legal but tiny-gain, same-family, or too heavy for
+  the HPWL gained, keep at most one guard route and assign at least one
+  aggressive within-run route: switch mechanism family, redesign the
+  producer/consumer pair, or continue from a current-run kept/rejected ref with
+  `25_trial_source.sh begin --from-ref <ref>`.
+- If assigning a branch/ref switch, name the source ref and new trial label, and
+  require trial-helper branch preservation. Do not import cross-experiment
+  donors or historical results as implementation starts.
 - Prepared starts are branch-only: `framework`, `diamond`, `evolved_diamond`,
   `evolved_legalm`, `evolved_negotiation`. Do not ask Students to manually
   apply release/start patch files.

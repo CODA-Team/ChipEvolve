@@ -17,7 +17,7 @@
   scan. Query knowledge broadly enough to identify several plausible legalizer,
   DPO, and handoff families, then turn them into a case-specific route map.
   Follow-up planning should read less and exploit the first-round map unless
-  poor-basin/plateau evidence requires a new-family search.
+  weak-gain, over-cost, or plateau evidence justifies a new-family search.
 
 ## Mechanism Search Policy
 
@@ -43,7 +43,8 @@
 - If stage-local gain is erased downstream, preserve it as a stage donor and route the next work to handoff or consumer repair.
 - If review finds a rejected mechanism is implementation-bug or handoff-repairable rather than method-low-ROI, explicitly assign a repair trial from its ref using `25_trial_source.sh begin --from-ref <ref>`.
 - Hybrid means staged mechanisms inside one source implementation, such as global/differential guidance, native legal closure, local HPWL repair, and a DPO consumer. Do not implement hybrid as a case-level selector among complete legalizers.
-- Poor-basin rule: if the start seed or best clean candidate remains worse than the OpenROAD DPL default-flow HPWL after a meaningful attempt, preserve at most one guard/polish route and assign at least one Student to a `mechanism-redesign` or different legalizer/DPO composition. That route should come from a broader skill query plus one algorithm/pseudocode card outside the current donor family, not another threshold/tie-break retune.
+- Weak-gain / over-cost escalation is a Teacher review judgment, not an automatic controller rule. If current-run legal candidates show tiny HPWL movement, repeat the same family, or spend runtime without proportional HPWL, stop polishing the same idea. Preserve one current best guard when useful, then assign at least one aggressive within-run route: a different mechanism family, a redesigned producer/consumer pair, or a repair/continuation from a current-run kept/rejected ref using `25_trial_source.sh begin --from-ref <ref>`.
+- When assigning a branch/ref switch, name the current-run source ref, the new trial label, and the reason the old branch/ref remains preserved. Do not import cross-experiment donors or historical results as implementation starts.
 
 ## Starts, Knowledge, And Skills
 
@@ -57,7 +58,7 @@
 - Use the skill index only when it helps a concrete route: query by stage/bottleneck, then name at most one primary mechanism skill, one auxiliary handoff/objective skill, and one optional diagnosis skill.
 - Algorithm/pseudocode cards are inspiration contracts. Open only the relevant legalization, DPO, handoff, or context card; translate it into current-source handles and liveness counters.
 - Route decisions must synthesize current stage evidence, Student knowledge cards, and relevant knowledge/algorithm cards. If a knowledge idea is used, state why it matches the current bottleneck; if it conflicts with evidence, do not route it as the primary mechanism.
-- In poor-basin or plateau rounds, the normal small-skill limit still applies per Student, but Teacher must broaden at the route-selection level: compare at least one new family from `algorithm_cards/` against the current donor family before assigning all routes.
+- In weak-gain, over-cost, or plateau rounds, the normal small-skill limit still applies per Student, but Teacher should broaden at the route-selection level: compare at least one new family from `algorithm_cards/` against the current donor family before assigning all routes.
 - Strategy cards describe design features and mechanism ideas. They are not case-name routing tables.
 
 ## Source Scope

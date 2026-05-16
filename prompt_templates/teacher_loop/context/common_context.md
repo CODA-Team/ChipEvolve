@@ -81,11 +81,15 @@ survey.
   `legalization/` for legalizer routes and `dpo_refinement/` for improve
   placement or handoff routes. Pseudocode cards are idea contracts, not fixed
   recipes.
-- Poor-basin trigger: if the start seed or best clean candidate is still worse
-  than the OpenROAD DPL default-flow HPWL after meaningful attempts, do not only
-  polish the current donor. Query a broader stage/mechanism term, open one
-  relevant algorithm/pseudocode card outside the current donor family, and give
-  at least one Student a `mechanism-redesign` or new-family route.
+- Weak-gain / over-cost escalation is a Teacher judgment, not an automatic
+  controller rule.
+  If current-run legal candidates show tiny HPWL movement, repeat one family,
+  or spend runtime without proportional HPWL, do not only polish the current
+  donor. Query a broader stage/mechanism term, open one relevant
+  algorithm/pseudocode card outside the current donor family, and give at least
+  one Student a stronger within-run route. Current-run kept/rejected refs may
+  be repaired with `25_trial_source.sh begin --from-ref <ref>`; do not import
+  cross-experiment donors or historical results as implementation starts.
 
 ## Objective And Boundaries
 
@@ -122,10 +126,11 @@ survey.
 - plateau escape: when recent rounds repeat a donor with tiny gains, Teacher
   should assign a `mechanism-redesign` route that changes a deeper source
   mechanism under explicit complexity caps and liveness counters
-- poor-basin escape: when the current start family is clearly behind
-  `openroad_dpl_flow` or `openroad_dpl_negotiation`, keep one guard route if
-  useful, but assign at least one aggressive route that changes the legalizer/DPO
-  composition or tries a different algorithm family from the pseudocode cards
+- weak-gain / over-cost escalation: when the current run is tiny-gain,
+  same-family, or too heavy for the HPWL gained, keep one guard route if useful,
+  but assign at least one aggressive route that changes the legalizer/DPO
+  composition, repairs a current-run ref, or tries a different algorithm family
+  from the pseudocode cards
 - low-ROI rule: when a mechanism is verified live/correct but still gives only
   extremely small full-flow HPWL movement after a meaningful repair attempt, preserve
   it as evidence and switch to a different HPWL source instead of stacking

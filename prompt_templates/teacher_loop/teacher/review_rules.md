@@ -42,11 +42,15 @@
   same-family incremental exploitation and require the next plan to include a
   `switch`, `hybridize`, or `mechanism-redesign` route.
 - Separate algorithmic failure from implementation cost: timeout, broad untargeted scans, low accept rate, legality rejects, fallback domination, duplicate endpoint work, weak cache reuse, or missing parallelism.
-- If the best clean candidate remains worse than the OpenROAD DPL default-flow
-  HPWL, classify the round as poor-basin unless there is a clear implementation
-  bug to repair. The next plan should preserve at most one guard donor and add a
-  broader new-family route from an algorithm/pseudocode card outside the current
-  donor family.
+- If current-run legal candidates are tiny-gain, same-family, or too heavy for
+  the HPWL gained, diagnose whether the issue is implementation cost,
+  producer/consumer composition, or a weak mechanism. The next plan should
+  preserve at most one guard and include a more aggressive within-run route:
+  switch family, redesign the mechanism, or repair a current-run kept/rejected
+  ref with `25_trial_source.sh begin --from-ref <ref>`.
+- When a next route switches parent/ref, name the current-run source ref, new
+  trial label, and preservation expectation. Do not use cross-experiment
+  donors or historical runs as implementation starts.
 
 ## Next-Plan Requirements
 
@@ -65,7 +69,7 @@
 - Hybridize only as staged source-level mechanism composition inside one candidate implementation. Do not implement case/scenario selectors among complete legalizers or fallback-to-default success paths.
 - When feature-level insight suggests a strategy, translate it into source mechanisms and liveness counters. The feature card is inspiration, not a fixed route table.
 - Broader-search plans should state candidate/window bound, cache/reuse point, runtime tier, counters, and whether parallel scoring or deterministic reductions are appropriate. The plan may intentionally consume the hard-budget headroom when the expected HPWL mechanism is stronger.
-- Poor-basin plans should explicitly name the new mechanism family and why it is
-  different from the current donor family; otherwise the plan is just donor
+- Weak-gain or over-cost plans should explicitly name the stronger mechanism
+  family or repaired current-run ref and why it is different from donor
   polishing.
 - Keep next packets concise and non-accumulative. Replace stale guidance with the current mechanism decision.
