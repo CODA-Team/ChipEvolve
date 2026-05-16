@@ -183,6 +183,7 @@ def assigned_start_kind_from_insight(text: str) -> str | None:
     )
     field_prefixes = (
         "route action:",
+        "start/parent:",
         "start/donor family:",
         "continuation parent:",
         "runtime tier:",

@@ -146,7 +146,7 @@ Before final answer:
 - best clean source state is committed and pinned to `stable_candidate_ref`
 - `implementation_diff` exists and describes the committed source
 - rejected branches are preserved before reverting any useful failed workbench
-- `knowledge_card` records hypothesis, mechanism, result, causal lesson, and next experiment
+- `knowledge_card` maps source to evidence: route action, changed files/functions, mechanism class, counters/logs, stage metrics, rejected refs, and next repair or pivot
 - report includes final HPWL/runtime/displacement, stage-wise HPWL deltas, legality, active counters, metrics path, diff path, rejected refs if any, knowledge card path, source commit/ref, and next repair or pivot
 
 ## Execution Bias

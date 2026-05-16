@@ -15,6 +15,10 @@
 ## Review Focus
 
 - Identify the real executed mechanism, not only the claimed mechanism. Zero counters or stale artifacts mean non-executed/negative evidence even if inherited code produced acceptable metrics.
+- Use the knowledge card as a source-to-evidence map. Prefer cards that name
+  changed files/functions, route action, executed counters, stage movement, and
+  next repair; treat vague cards as incomplete review evidence even when the
+  metrics are valid.
 - If a Student spends substantial time in diagnosis without reaching a first patch/build/eval loop, review that as execution inefficiency and route the next packet toward a faster concrete implementation path.
 - Treat `reject` as "not the final candidate for this trial", not as automatic method death. Inspect the source diff, counters, stage movement, and logs before deciding whether the failure is implementation, handoff/composition, or method-level.
 - Attribute stage movement across legalization, improve placement/DPO, handoff, final mirror contribution, runtime, and counters.
@@ -28,6 +32,10 @@
 - If the Student restored a better final source, check `source_trials.jsonl` for rejected or kept refs before losing the failed workbench as evidence. If a rejected ref is repairable, route the next Student to start from it with `25_trial_source.sh begin --from-ref <ref>`.
 - Use this rejection taxonomy: implementation-bug means the idea may be sound but source/counters/logs show it did not execute correctly; composition/handoff issue means stage-local gain was erased downstream; method-low-ROI means the mechanism is live, legal, bounded, and still cannot move HPWL after a meaningful repair; non-promotable means build/eval/legality/timeout/stale-artifact failure.
 - If a live/correct mechanism still gives extremely small full-flow HPWL movement after a meaningful repair attempt, classify it as `validated-low-ROI` and stop assigning repeated variants of the same idea as primary routes.
+- If multiple candidates only extend one donor family with constants,
+  tie-breaks, telemetry, or small candidate-order changes, mark the round as
+  same-family incremental exploitation and require the next plan to include a
+  `switch`, `hybridize`, or `mechanism-redesign` route.
 - Separate algorithmic failure from implementation cost: timeout, broad untargeted scans, low accept rate, legality rejects, fallback domination, duplicate endpoint work, weak cache reuse, or missing parallelism.
 - If the best clean candidate remains worse than the OpenROAD DPL default-flow
   HPWL, classify the round as poor-basin unless there is a clear implementation

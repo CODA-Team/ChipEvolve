@@ -17,6 +17,11 @@
 2. Do short focused source diagnosis: current HPWL source, active functions/state, likely legality/runtime bottleneck, and why the mechanism can move more than a tiny donor polish. Do not turn diagnosis into a long reading pass.
 3. Start the first real trial early. After a short diagnosis and one concrete mechanism plan, run `25_trial_source.sh begin --label <name>` and land the first coherent patch before doing more broad reading.
 4. Plan the source mechanism before editing, but keep the plan execution-oriented. Large mechanism-level rewrites and implementation-local helper files are allowed when they are coherent, bounded, reviewable, and validated.
+   For non-guard routes, the patch should change a real mechanism class such
+   as candidate generation, scoring, acceptance, transaction/rollback,
+   legalizer-DPO handoff, or bounded search scope. Do not spend the main trial
+   only on constants, tie-breaks, or telemetry unless Teacher assigned a guard
+   or repair.
 5. Patch source, build, run the canonical full-flow evaluator, read the generated candidate metrics summary first, then inspect raw logs/counters only when the summary is insufficient. Make bounded evidence-driven revisions while a concrete mechanism-level fix exists. If build failure, crash, timeout, illegal placement, or zero-counter behavior looks like an implementation bug or integration bug, diagnose it and try one coherent same-route repair before rejecting. Use `25_trial_source.sh reject` only after preserving evidence when the path has no clear repair, stays non-executed, is validated-low-ROI, or worsens HPWL while also adding unjustified runtime. Keep the best clean evaluated source.
 6. Run finalization for the final source state and make sure source commit/ref, binary, metrics, diff, and report all describe the same code.
 
@@ -81,5 +86,11 @@
   implementation bugs once; do not rerun the same mechanism unchanged.
 
 ## Final Report
+
+Fill the knowledge card before finalizing. It should let Teacher review the
+mechanism without rereading the whole diff: route action, changed
+files/functions, mechanism class, counters/log signals, stage-wise metrics,
+whether the source matched the hypothesis, rejected refs if any, and the next
+repair or pivot.
 
 Keep the report compact: touched files, mechanism, final HPWL/runtime/displacement, stage-wise HPWL deltas, legality, active counters, metrics path, diff path, rejected refs if any, knowledge card path, best clean source commit/ref, failure mode, and next repair or pivot.

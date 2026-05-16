@@ -186,7 +186,7 @@ def enrich_round_info(info: RoundInfo, state_root: Path) -> RoundInfo:
     return info
 
 
-def active_process_summary(round_ids: set[str]) -> ProcessSummary:
+def active_process_summary(round_ids: set[str], state_root: Path = DEFAULT_STATE_ROOT) -> ProcessSummary:
     counts: dict[str, int] = {
         "optimize_case": 0,
         "run_codex_exec": 0,
@@ -216,15 +216,24 @@ def active_process_summary(round_ids: set[str]) -> ProcessSummary:
         "run_baseline.sh",
         "openroad -exit",
     )
+    def accept_round_id(round_id: str) -> bool:
+        if not round_id:
+            return False
+        if round_id in round_ids:
+            return True
+        return (state_root / round_id).is_dir()
+
     for raw_line in output.splitlines()[1:]:
         if not any(token in raw_line for token in interesting):
             continue
         round_arg = re.search(r"--round-id\s+(\S+)", raw_line)
-        if round_arg:
+        if round_arg and accept_round_id(round_arg.group(1)):
             active_rounds.add(round_arg.group(1))
         op_arg = re.search(r"--operation-id\s+(\S+?_iter_\d+_(?:teacher|student))", raw_line)
         if op_arg:
-            active_rounds.add(re.sub(r"_iter_\d+_(?:teacher|student).*", "", op_arg.group(1)))
+            round_id = re.sub(r"_iter_\d+_(?:teacher|student).*", "", op_arg.group(1))
+            if accept_round_id(round_id):
+                active_rounds.add(round_id)
         for round_id in round_ids:
             if round_id and round_id in raw_line:
                 active_rounds.add(round_id)
@@ -645,7 +654,7 @@ def main() -> int:
 
     processes = None
     if not args.no_processes:
-        processes = active_process_summary({info.round_id for info in rounds})
+        processes = active_process_summary({info.round_id for info in rounds}, args.state_root)
         for round_id in sorted(processes.active_round_ids):
             if round_id not in round_map:
                 round_map[round_id] = enrich_round_info(

@@ -95,6 +95,9 @@ Teacher can later continue a repairable rejected line with `begin --from-ref`.
   HPWL regresses with unjustified runtime cost.
 - Final evidence must align: source commit/ref, binary, metrics, diff, and
   knowledge card describe the same code.
+- Fill the knowledge card as a source-to-evidence map: route action, changed
+  files/functions, mechanism class, counters/logs, stage metrics, rejected
+  refs, and next repair or pivot.
 - Prefer patch/build/eval over repeated broad reading once the current
   mechanism is understood.
 - If Teacher already provided `first patch handles`, keep the first edit/build/

@@ -19,6 +19,10 @@ choice needs it.
 - Mechanism-level rewrites and direct producer/consumer support changes are
   encouraged when Teacher guidance and source diagnosis justify them; keep the
   diff coherent, reviewable, bounded, and validated.
+- For non-guard routes, change a real mechanism class such as candidate
+  generation, scoring, acceptance, transaction/rollback, handoff, or bounded
+  search scope. Do not make the main trial only a constants/tie-break/telemetry
+  retune unless Teacher explicitly assigned guard or repair.
 - You may change legalization, improve placement/DPO, source-internal
   parameters, scoring, candidate generation, transactions, handoff state, and
   compact telemetry. Do not edit evaluator/ORFS/baseline scripts or move tuning
@@ -59,6 +63,9 @@ choice needs it.
 - Prefer `reject` for no plausible repair, failed same-route repair,
   non-execution, validated-low-ROI, or HPWL regression with unjustified runtime
   cost; rejected refs remain available for Teacher-directed repair.
+- Fill the knowledge card as a source-to-evidence map: route action, changed
+  files/functions, mechanism class, counters/log signals, stage-wise metrics,
+  rejected refs if any, and next repair or pivot.
 - Final report stays compact: touched files, mechanism, stage-wise HPWL/final
   HPWL/runtime/legality, active counters, metrics path, diff path, knowledge
   card, rejected refs if any, source commit/ref, failure mode, and next repair

@@ -19,6 +19,13 @@ and review packet fields needed for routing.
   and decide faster, but it must not forget routes that were never tested. If
   the best family stalls, reopen one broader algorithm card and assign a
   new-family route.
+- Label every packet with `route type` and `route action`. If the previous
+  useful results are same-family or tiny-gain, allow at most one `continue`
+  guard/repair route; the other routes should `switch`, `hybridize`, or
+  `mechanism-redesign` with a different producer/consumer mechanism.
+- Each non-guard route must say why it can beat a small donor by attacking a
+  larger HPWL source. Same-family follow-up is valid only when it changes the
+  mechanism class, not just thresholds, tie-breaks, counters, or local polish.
 - Encourage coherent mechanism-level source rewrites when justified by Teacher
   evidence and source diagnosis; the constraint is bounded/reviewable/measured,
   not small.

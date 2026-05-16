@@ -2055,15 +2055,41 @@ if [[ ! -f "$KNOWLEDGE_CARD" ]]; then
   cat > "$KNOWLEDGE_CARD" <<'EOF_KNOWLEDGE'
 # Knowledge Card
 
-## Hypothesis
+## Route And Hypothesis
 
-## Mechanism
+- route action:
+- HPWL source:
+- expected stage movement:
+
+## Source Map
+
+- changed files:
+- changed functions/state:
+- mechanism class:
+- support handles:
+
+## Execution Evidence
+
+- counters/log signals:
+- source/binary/metrics alignment:
+- rejected refs:
 
 ## Result
 
-## Causal lesson
+- final HPWL:
+- stage-wise HPWL:
+- runtime:
+- legality/displacement:
+- kept/ref:
 
-## Next experiment
+## Causal Lesson
+
+- why it worked or failed:
+- low-ROI / implementation / handoff / method status:
+
+## Next Repair Or Pivot
+
+- next action:
 EOF_KNOWLEDGE
 fi
 

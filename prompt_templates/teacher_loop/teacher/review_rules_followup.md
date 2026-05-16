@@ -12,6 +12,9 @@ route. Keep the review concise and action-bearing.
   under-exploration and route stronger bounded search instead of rewarding speed.
 - Identify the real mechanism and whether counters/logs prove it executed. Zero
   counters or stale source/binary/metrics means non-executed/negative evidence.
+- Use each knowledge card as the source-to-evidence map. A useful card should
+  name changed files/functions, route action, executed counters, stage movement,
+  and next repair; vague cards should trigger tighter next-packet requirements.
 - Treat `reject` as not-final-for-this-trial, not automatic method death. Use
   source diff, counters, logs, and stage movement to decide implementation bug,
   handoff/composition issue, method-low-ROI, or hard non-promotable failure.
@@ -24,6 +27,10 @@ route. Keep the review concise and action-bearing.
 - If a verified mechanism gives extremely small full-flow HPWL movement after
   a meaningful repair attempt, mark `validated-low-ROI` and stop assigning
   repeated tie-break/threshold/local-polish variants as primary routes.
+- If the round is dominated by same-family constants, tie-breaks, telemetry, or
+  small candidate-order changes, classify it as incremental exploitation. The
+  next packets should include `switch`, `hybridize`, or `mechanism-redesign`,
+  not another small donor polish.
 - If the best clean candidate is still worse than the OpenROAD DPL default-flow
   HPWL, mark the round as poor-basin unless a clear implementation repair is
   pending. The next packets should keep at most one guard donor and include one

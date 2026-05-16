@@ -23,6 +23,14 @@
   consumer, and aggressive bounded basin search when those are plausible for
   the case. Later rounds may concentrate on the best family once evidence
   supports it.
+- Every Student packet must label `route type` and `route action`. Use
+  `continue` for at most one guard/repair route unless all other evidence is
+  broken; otherwise use `switch`, `hybridize`, or `mechanism-redesign` when the
+  last useful results are same-family or tiny-gain.
+- Each non-guard route must state why it can beat a small donor: the larger
+  HPWL source it attacks, the mechanism class it changes, and the expected
+  stage-wise movement. A same-family route must change the mechanism class, not
+  only constants, tie-breaks, or telemetry.
 - Route emphasis can be `legalizer-emphasis`, `DPO-emphasis`, or `co-optimization-emphasis`. This is a priority label, not permission to ignore the other stage. If a stage is not patched, require a concrete diagnosis of how it preserves, consumes, or erases the gain.
 - Use a short A/B/C chain: A legalization/detailed-placement, B improve-placement/DPO, C handoff/co-optimization. A/B/C can be real source changes or explicit preservation/diagnosis; do not force cosmetic edits just to fill a stage.
 - If a verified live mechanism gives only extremely small full-flow HPWL movement after a meaningful repair attempt, mark it `validated-low-ROI`, require `source_trials.jsonl` evidence from the trial helper, and assign a different HPWL source. Do not keep assigning tie-break, threshold, or donor-polish variants.

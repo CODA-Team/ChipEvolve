@@ -445,6 +445,7 @@ def compact_teacher_child_insight(text: str, *, max_chars: int) -> str:
         "### student_",
         "- route:",
         "- start/parent:",
+        "- donor scope:",
         "- HPWL source:",
         "- first patch handles:",
         "- support handles:",
