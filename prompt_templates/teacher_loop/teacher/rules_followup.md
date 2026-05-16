@@ -31,6 +31,12 @@ and review packet fields needed for routing.
   useful results are same-family or tiny-gain, allow at most one `continue`
   guard/repair route; the other routes should `switch`, `hybridize`, or
   `mechanism-redesign` with a different producer/consumer mechanism.
+- Route emphasis is not stage exclusion. In each follow-up round, preserve
+  explicit coverage of legalizer-output quality, DPO-consumer strength, and
+  handoff/co-optimization. A Student can prioritize one surface, but the packet
+  should still say how the other two are changed, consumed, or deliberately
+  held as guards. Avoid assigning a whole roster that only chases one DPO
+  family or one legalizer family.
 - Each non-guard route must say why it can beat a small donor by attacking a
   larger HPWL source. Same-family follow-up is valid only when it changes the
   mechanism class, not just thresholds, tie-breaks, counters, or local polish.
@@ -68,5 +74,8 @@ and review packet fields needed for routing.
 - Keep packets non-accumulative: one HPWL source, concise A/B/C plan, first-
   patch handles, minimal support handles, runtime tier, liveness counters,
   low-ROI stop rule, and metric proof.
-  A/B/C may include preservation or diagnosis; do not require cosmetic edits.
+  A/B/C should cover legalization, DPO, and handoff behavior. Preservation or
+  diagnosis is acceptable for guard/repair routes, but ordinary optimization
+  routes should attempt a concrete producer-consumer connection rather than
+  cosmetic edits.
   Replace stale guidance instead of appending history.

@@ -28,6 +28,11 @@
    legalizer-DPO handoff, or bounded search scope. Do not spend the main trial
    only on constants, tie-breaks, or telemetry unless Teacher assigned a guard
    or repair.
+   Your plan must explicitly address all three surfaces: legalizer behavior,
+   DPO/improve-placement behavior, and the handoff/frontier state between them.
+   You may emphasize one surface, but for ordinary optimization work do not
+   leave the other two as afterthoughts; either change them coherently or state
+   the concrete source-level reason they are being preserved as guards.
 5. Patch source, build, run the canonical full-flow evaluator, read the generated candidate metrics summary first, then inspect raw logs/counters only when the summary is insufficient. Make bounded evidence-driven revisions while a concrete mechanism-level fix exists. If build failure, crash, timeout, illegal placement, or zero-counter behavior looks like an implementation bug or integration bug, diagnose it and try one coherent same-route repair before rejecting. Use `25_trial_source.sh reject` only after preserving evidence when the path has no clear repair, stays non-executed, is validated-low-ROI, or worsens HPWL while also adding unjustified runtime. Keep the best clean evaluated source.
 6. Run finalization for the final source state and make sure source commit/ref, binary, metrics, diff, and report all describe the same code.
 
@@ -58,6 +63,13 @@
   pass/runtime cost where applicable. These logs are evidence for your own
   repair decision and for the next Teacher review.
 - Hybrid routes should be staged algorithms inside the source implementation, not case-name hardcoding and not selectors among complete legalizers.
+- A good detailed-placement candidate should be a producer-consumer design:
+  the legalizer creates a DPO-recoverable placement, DPO has a move/scoring
+  mechanism capable of consuming that state, and any useful dirty-row,
+  residual-net, boundary-cell, or pressure/frontier signal is handed off through
+  compact in-process state. Avoid presenting a DPO-only polish or a
+  legalizer-only placement as complete unless Teacher assigned a guard/control
+  route.
 - No case-name hardcoding. Public Tcl/SWIG ABI changes require an explicit reason and smoke-tested compatibility.
 
 ## Evaluation And Diagnosis

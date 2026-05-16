@@ -37,8 +37,20 @@
   HPWL source it attacks, the mechanism class it changes, and the expected
   stage-wise movement. A same-family route must change the mechanism class, not
   only constants, tie-breaks, or telemetry.
-- Route emphasis can be `legalizer-emphasis`, `DPO-emphasis`, or `co-optimization-emphasis`. This is a priority label, not permission to ignore the other stage. If a stage is not patched, require a concrete diagnosis of how it preserves, consumes, or erases the gain.
-- Use a short A/B/C chain: A legalization/detailed-placement, B improve-placement/DPO, C handoff/co-optimization. A/B/C can be real source changes or explicit preservation/diagnosis; do not force cosmetic edits just to fill a stage.
+- Route emphasis can be `legalizer-emphasis`, `DPO-emphasis`, or
+  `co-optimization-emphasis`. This is only the priority label. Do not let a
+  round collapse into only one segment of the flow. Across the Student roster,
+  keep live coverage of legalizer-output repair, DPO-consumer strengthening,
+  and legalizer-to-DPO handoff/co-optimization unless the current evidence has
+  proven one surface irrelevant.
+- Use a short A/B/C chain: A legalization/detailed-placement, B
+  improve-placement/DPO, C handoff/co-optimization. For ordinary optimization
+  routes, ask the Student to plan concrete source behavior for all three:
+  how the legalizer will produce a more DPO-recoverable placement, how DPO will
+  consume or further repair it, and what bounded handoff/frontier signal will
+  connect them. A route may emphasize one surface, but it should not be
+  DPO-only or legalizer-only unless it is explicitly a guard, regression
+  control, or narrowly scoped repair.
 - If a verified live mechanism gives only extremely small full-flow HPWL movement after a meaningful repair attempt, mark it `validated-low-ROI`, require `source_trials.jsonl` evidence from the trial helper, and assign a different HPWL source. Do not keep assigning tie-break, threshold, or donor-polish variants.
 - If stage-local gain is erased downstream, preserve it as a stage donor and route the next work to handoff or consumer repair.
 - If review finds a rejected mechanism is implementation-bug or handoff-repairable rather than method-low-ROI, explicitly assign a repair trial from its ref using `25_trial_source.sh begin --from-ref <ref>`.

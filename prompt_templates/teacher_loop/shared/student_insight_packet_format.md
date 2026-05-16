@@ -8,7 +8,7 @@
 - why this can beat a small donor: <larger HPWL source, mechanism novelty, and expected stage movement>
 - first patch handles: <1-3 primary functions/state/files for the first patch>
 - support handles: <0-2 extra functions/state/files only if the first patch cannot stand alone>
-- mechanism plan: <A legalization/detail, B improve-placement/DPO, C handoff/co-optimization>
+- mechanism plan: <A legalizer behavior, B DPO/improve-placement behavior, C bounded handoff/co-optimization signal; ordinary optimization routes should address all three even when one is the emphasis>
 - skills/cards: <only selected ids or none>
 - expected proof: <stage metrics, counters/logs, legality/runtime evidence>
 - runtime/complexity: <fast|explore|aggressive plus caps/cache/parallelism>

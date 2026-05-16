@@ -28,6 +28,11 @@ choice needs it.
   generation, scoring, acceptance, transaction/rollback, handoff, or bounded
   search scope. Do not make the main trial only a constants/tie-break/telemetry
   retune unless Teacher explicitly assigned guard or repair.
+- Your short plan must cover the legalizer, DPO/improve-placement, and their
+  handoff. A route can emphasize one surface, but ordinary optimization should
+  still define how the legalizer output remains DPO-recoverable, how DPO
+  consumes or repairs it, and what compact frontier/residual signal is passed
+  or intentionally guarded.
 - You may change legalization, improve placement/DPO, source-internal
   parameters, scoring, candidate generation, transactions, handoff state, and
   compact telemetry. Do not edit evaluator/ORFS/baseline scripts or move tuning

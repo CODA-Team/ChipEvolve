@@ -25,7 +25,16 @@ row-window moves.
 ## Three Valid Improvement Routes
 
 Teacher should keep all three routes available and choose by stage evidence.
-Do not let every weak round collapse into more DPO polish.
+Do not let every weak round collapse into more DPO polish, and do not let it
+collapse into legalizer-only repair either. A strong candidate should normally
+state a producer-consumer story:
+
+- what legalizer behavior makes the placement DPO-recoverable;
+- what DPO/improve-placement mechanism consumes or further repairs that state;
+- what bounded handoff/frontier evidence connects the two.
+
+A route may emphasize one surface, but the other two surfaces should be
+explicitly changed, consumed, or guarded with source-level evidence.
 
 ### 1. Repair Legalizer Output So DPO Can Work
 
@@ -123,6 +132,17 @@ If the answer to 2 is no, route at least one Student to a new DPO move family.
 If the answer to 3 is no, route at least one Student to handoff producer-consumer
 repair. A guard route can preserve the current elite, but the remaining routes
 should not all retune the same DPO basin.
+
+For an ordinary optimization round, require every Student packet to include a
+compact A/B/C plan:
+
+- A: legalizer behavior or legalizer-state guard;
+- B: DPO/improve-placement consumer behavior;
+- C: bounded handoff or explicit reason no handoff is needed.
+
+This is not a request for cosmetic edits in all files. It is a requirement that
+the design of the candidate covers the full detailed-placement flow and explains
+how the stages compose.
 
 ## Student Reporting Contract
 
