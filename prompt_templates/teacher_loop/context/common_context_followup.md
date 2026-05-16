@@ -24,6 +24,10 @@ mechanism decision.
 - If a live/correct mechanism has extremely small full-flow HPWL movement after
   a meaningful repair attempt, preserve it as `validated-low-ROI` evidence and pivot
   to a different HPWL source.
+- Follow-up rounds should use the first-round global route map as memory, then
+  read less and optimize the current case more sharply. Keep donor scope clear:
+  `general donor` for guard/reusable kernels, `feature-matched donor` for
+  mechanisms selected because this specific design feature suggests upside.
 
 ## Current Evidence
 
@@ -57,6 +61,17 @@ and handoff consumer roles.
 Use at most a few targeted `rg`/excerpt reads around the selected stage,
 mechanism, and source symbols. Pseudocode cards are inspiration contracts, not
 case-level algorithm selectors.
+
+If the current best clean candidate is still behind the OpenROAD DPL default
+flow or recent rounds only make tiny same-family gains, treat the case as a
+poor-basin/plateau round. Keep a guard donor if useful, but query one broader
+stage/mechanism term, open one relevant algorithm/pseudocode card outside the
+current donor family, and assign at least one `mechanism-redesign` or
+new-family route.
+
+Do not over-optimize for universal donors in follow-up rounds. The target is
+the best legal final HPWL for this specific case under the runtime gate; transfer
+evidence is a secondary classification.
 
 ## Prior Iteration Delta
 

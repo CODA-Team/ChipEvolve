@@ -15,6 +15,10 @@ and review packet fields needed for routing.
   landing zone. Usually give 1-3 primary handles and at most 2 support
   handles; allow direct supporting edits across producer/consumer stages only
   when they are necessary for that hypothesis.
+- Use the first-round global route map as memory. Follow-up should read less
+  and decide faster, but it must not forget routes that were never tested. If
+  the best family stalls, reopen one broader algorithm card and assign a
+  new-family route.
 - Encourage coherent mechanism-level source rewrites when justified by Teacher
   evidence and source diagnosis; the constraint is bounded/reviewable/measured,
   not small.
@@ -28,6 +32,15 @@ and review packet fields needed for routing.
 - Keep one best donor as regression guard, but do not make every route a donor
   polish. Plateau/tiny-gain rounds need `mechanism-redesign`, stage
   co-optimization, or a different legalizer/DPO/handoff hypothesis.
+- Keep donor scope explicit: `general donor` means guard/reusable kernel;
+  `feature-matched donor` means selected for this case's physical/stage
+  features. Follow-up decisions should optimize this specific case first and
+  record transferability as secondary evidence.
+- If the best clean candidate is still worse than the OpenROAD DPL default-flow
+  HPWL after a meaningful attempt, treat this as poor-basin evidence. Keep at
+  most one guard route, then assign at least one aggressive new-family route
+  from a broader skill query plus one algorithm/pseudocode card outside the
+  current donor family.
 - Prepared starts are branch-only: `framework`, `diamond`, `evolved_diamond`,
   `evolved_legalm`, `evolved_negotiation`. Do not ask Students to manually
   apply release/start patch files.

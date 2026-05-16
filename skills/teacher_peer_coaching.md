@@ -33,6 +33,10 @@ Then identify:
 - one dominant case bottleneck,
 - one or two mechanisms that worked,
 - one or two mechanisms that failed and why,
+- a compact first-round route map across plausible legalizer, DPO, and handoff
+  families,
+- which donors are general guards/reusable kernels and which are
+  feature-matched to this case,
 - whether the round needs local refinement, a stage-level mechanism, optional
   stage coordination, or a full direction change.
 - whether the round is under-exploring: repeated near-baseline runtime and
@@ -42,6 +46,12 @@ Then identify:
 If recent attempts repeat the same weak idea, switch perspective instead of
 asking for another retune.  Name the failed assumption and assign a different
 algorithmic route.
+
+If the current best clean candidate is still worse than the OpenROAD DPL
+default-flow HPWL after a meaningful attempt, treat the case as a poor basin:
+keep at most one guard donor, then assign at least one aggressive
+`mechanism-redesign` or new-family route from a broader skill query and one
+algorithm/pseudocode card outside the current donor family.
 
 If a mechanism is live, correctly implemented, and still produces only
 negligible clean full-flow HPWL movement after a meaningful repair attempt, mark it
@@ -54,6 +64,8 @@ Each student packet should include only:
 
 - current diagnosis,
 - peer or donor mechanism to borrow or avoid,
+- donor scope: general guard/reusable kernel, feature-matched donor, new
+  mechanism, or guard route,
 - selected LEGO-lite stage skills when they clarify the mechanism; normally use
   one primary mechanism skill, one auxiliary handoff/objective skill, and one
   optional diagnosis skill,

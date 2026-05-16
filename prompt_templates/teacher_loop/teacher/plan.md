@@ -7,12 +7,12 @@ Baseline artifacts: `$baseline_artifacts_path` (open only if the design-characte
 Peer learning: `$peer_learning_path` (open only if prior clean donors exist or a borrow decision is needed)
 Start calibration: `$start_seed_calibration_path`
 
-Treat `Context` as a backing evidence file, not the first thing to read. Start
-from the packet files listed above. Do not open `student_XX_workspace.md`
-during initial routing; that packet is for Student execution unless a later
-review needs a concrete workspace path. Do not spend time discovering these
-paths. Open the context file only with small `rg`/excerpt checks when a packet
-does not already pin down a concrete metric line, symbol, or path. Treat source
+This is the first Teacher route for this case. Open `Context` first and read
+only its `Sources`, `First-Round Global Route Scan`, `LEGO-lite Skill Lookup`,
+`Donors And Starts`, and evidence sections needed to build a compact global
+route map. Then read the packet files listed above. Do not open
+`student_XX_workspace.md` during initial routing; that packet is for Student
+execution unless a later review needs a concrete workspace path. Treat source
 and reference paths as targeted search handles, not required reading. Produce
 concise per-student plans; do not include build/eval procedure.
 

@@ -43,6 +43,12 @@ Rules:
   legalize/improve/mirror flow. Student prompts should keep optimize mirroring
   callable for evaluation but outside the active patch surface unless a future
   task explicitly reopens it.
+- Teacher planning is two-stage. Iteration 1 should use the fuller context to
+  do a bounded global knowledge scan, build a case-specific route map, and
+  classify donors as `general donor` or `feature-matched donor`. Follow-up
+  iterations should use compact prompts and read less, but poor-basin or
+  plateau evidence should reopen one broader algorithm/pseudocode card and add
+  a new-family route instead of polishing only the current donor.
 - LEGO-lite mechanism lookup lives in `knowledge/index/skill_cards.jsonl`,
   `knowledge/skills/`, and `knowledge/algorithm_cards/`. Teacher packets should
   select relevant stage skills and the smallest useful algorithm/pseudocode

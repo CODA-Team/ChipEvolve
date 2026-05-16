@@ -544,10 +544,9 @@ def main(argv: list[str] | None = None) -> int:
             iteration=iteration,
             full_context_path=full_context_path,
         )
-        # Use the compact Teacher/review prompt shape from the first iteration.
-        # The initial route is the most latency-sensitive step in smoke/batch
-        # runs, and the full Teacher prompt encourages unnecessary broad reads.
-        compact_followup_prompts = True
+        # Iteration 1 should build a global mechanism map from the knowledge
+        # base.  Follow-up iterations can stay compact and evidence-driven.
+        compact_followup_prompts = iteration > 1
 
         teacher_baseline_path = packet_dir / "baseline_routing_note.md"
         teacher_baseline_path.write_text(

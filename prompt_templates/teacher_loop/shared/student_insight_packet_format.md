@@ -1,6 +1,7 @@
 ### student_XX
 - route: <type/emphasis/action>
 - start/parent: <prepared branch or donor/workbench>
+- donor scope: <general donor | feature-matched donor | new mechanism | guard>
 - HPWL source: <stage and mechanism being attacked>
 - first patch handles: <1-3 primary functions/state/files for the first patch>
 - support handles: <0-2 extra functions/state/files only if the first patch cannot stand alone>

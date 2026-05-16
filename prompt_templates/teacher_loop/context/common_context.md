@@ -28,6 +28,31 @@
 Use these paths as search handles only when they help identify concrete
 function/state insertion points. Do not require broad donor-tree reading.
 
+## First-Round Global Route Scan
+
+In the first Teacher planning round, do a bounded global knowledge scan before
+assigning Students. The goal is a case-specific route map, not a literature
+survey.
+
+- Read the design characteristics and stage metrics first.
+- Query the skill index for the dominant bottleneck and for at least two
+  distinct stage families, normally one legalization/handoff family and one
+  improve-placement/DPO family.
+- Open the smallest useful algorithm/pseudocode cards from both
+  `$algorithm_cards_dir/legalization/` and `$algorithm_cards_dir/dpo_refinement/`
+  when the case bottleneck could involve both stages.
+- Classify donors as either `general donor` or `feature-matched donor`.
+  General donors are safe regression guards or broadly useful kernels.
+  Feature-matched donors are hypotheses tied to design features such as dense
+  row pressure, low-util slack, fragmented rows, macro/edge pressure, high
+  conflict pressure, or weak DPO recoverability.
+- Assign the first-round Students across distinct route families. Do not put
+  every Student on the current start seed or the same donor-polish path unless
+  the evidence leaves no other credible mechanism.
+- The objective is extreme per-case HPWL optimization under the runtime gate.
+  Universal transferability is useful evidence, but it is not required for a
+  case-specific winner.
+
 ## LEGO-lite Skill Lookup
 
 - Use the skill index as the first-stage knowledge database. Query it before
@@ -56,6 +81,11 @@ function/state insertion points. Do not require broad donor-tree reading.
   `legalization/` for legalizer routes and `dpo_refinement/` for improve
   placement or handoff routes. Pseudocode cards are idea contracts, not fixed
   recipes.
+- Poor-basin trigger: if the start seed or best clean candidate is still worse
+  than the OpenROAD DPL default-flow HPWL after meaningful attempts, do not only
+  polish the current donor. Query a broader stage/mechanism term, open one
+  relevant algorithm/pseudocode card outside the current donor family, and give
+  at least one Student a `mechanism-redesign` or new-family route.
 
 ## Objective And Boundaries
 
@@ -92,6 +122,10 @@ function/state insertion points. Do not require broad donor-tree reading.
 - plateau escape: when recent rounds repeat a donor with tiny gains, Teacher
   should assign a `mechanism-redesign` route that changes a deeper source
   mechanism under explicit complexity caps and liveness counters
+- poor-basin escape: when the current start family is clearly behind
+  `openroad_dpl_flow` or `openroad_dpl_negotiation`, keep one guard route if
+  useful, but assign at least one aggressive route that changes the legalizer/DPO
+  composition or tries a different algorithm family from the pseudocode cards
 - low-ROI rule: when a mechanism is verified live/correct but still gives only
   extremely small full-flow HPWL movement after a meaningful repair attempt, preserve
   it as evidence and switch to a different HPWL source instead of stacking
@@ -149,6 +183,11 @@ function/state insertion points. Do not require broad donor-tree reading.
 - compare `openroad_dpl_flow`, `openroad_dpl_negotiation`, and
   `evolve_default` together; all three are legitimate evidence and
   donor/start-point choices
+- donor taxonomy: distinguish `general donor` from `feature-matched donor` in
+  Teacher output. A general donor is reusable across many cases or works as a
+  regression guard. A feature-matched donor is plausible because the current
+  design has matching stage/physical features; it can be aggressively optimized
+  for this case even if it may not transfer universally.
 - evolved donor seeds are materialized as prepared start branches:
   `evolved_diamond`, `evolved_legalm`, and `evolved_negotiation`
 - prior evidence makes `evolved_legalm` a strong first-round route on dense

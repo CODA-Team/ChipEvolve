@@ -19,21 +19,36 @@
 - Treat `reject` as "not the final candidate for this trial", not as automatic method death. Inspect the source diff, counters, stage movement, and logs before deciding whether the failure is implementation, handoff/composition, or method-level.
 - Attribute stage movement across legalization, improve placement/DPO, handoff, final mirror contribution, runtime, and counters.
 - Classify each result as `final donor`, `stage donor`, `active mechanism workbench`, `validated-low-ROI`, `non-executed route`, or `negative evidence`.
+- Also classify donor scope when useful: `general donor` if it is a reusable
+  guard/kernel, or `feature-matched donor` if it appears useful because this
+  design has matching density, row-fragmentation, conflict, macro-edge, or DPO
+  recoverability features.
 - Preserve stage donors when downstream erases a gain; the next route should repair the consumer/handoff rather than discard the producer mechanism.
 - Preserve an active workbench when counters are nonzero, legality is clean, runtime is bounded, and either stage-local HPWL improves or the final erase is diagnosable.
 - If the Student restored a better final source, check `source_trials.jsonl` for rejected or kept refs before losing the failed workbench as evidence. If a rejected ref is repairable, route the next Student to start from it with `25_trial_source.sh begin --from-ref <ref>`.
 - Use this rejection taxonomy: implementation-bug means the idea may be sound but source/counters/logs show it did not execute correctly; composition/handoff issue means stage-local gain was erased downstream; method-low-ROI means the mechanism is live, legal, bounded, and still cannot move HPWL after a meaningful repair; non-promotable means build/eval/legality/timeout/stale-artifact failure.
 - If a live/correct mechanism still gives extremely small full-flow HPWL movement after a meaningful repair attempt, classify it as `validated-low-ROI` and stop assigning repeated variants of the same idea as primary routes.
 - Separate algorithmic failure from implementation cost: timeout, broad untargeted scans, low accept rate, legality rejects, fallback domination, duplicate endpoint work, weak cache reuse, or missing parallelism.
+- If the best clean candidate remains worse than the OpenROAD DPL default-flow
+  HPWL, classify the round as poor-basin unless there is a clear implementation
+  bug to repair. The next plan should preserve at most one guard donor and add a
+  broader new-family route from an algorithm/pseudocode card outside the current
+  donor family.
 
 ## Next-Plan Requirements
 
 - Next packets should be evidence-driven, not quota-driven. Do not force a fixed number of legalizer, DPO, or hybrid routes; choose routes from the current largest HPWL source and mechanism uncertainty.
 - Each next route needs one primary HPWL-source hypothesis, a minimal first-patch landing zone, concise A/B/C plan, runtime tier, liveness counters, expected metric proof, and a stop/pivot rule. Usually give 1-3 primary handles and at most 2 support handles.
+- Review whether the route mix is too narrow. If all next routes would polish
+  one donor family while the case still trails baseline, require one broader
+  new-family route from the algorithm cards.
 - A/B/C can include real source changes or explicit preservation/diagnosis. Do not require cosmetic edits in a stage just to fill the plan.
 - Emphasis labels (`legalizer-emphasis`, `DPO-emphasis`, `co-optimization-emphasis`) are priorities, not exclusive permissions. Students may patch multiple stages when a coherent source mechanism needs producer/consumer support.
 - Parameter tuning is valid only as source-internal mechanism work: constants, thresholds, scoring weights, pass schedules, adaptive policies, or compact internal config structs in `dpl_evolve`. Reject Tcl/flow-script knob sweeps.
 - Hybridize only as staged source-level mechanism composition inside one candidate implementation. Do not implement case/scenario selectors among complete legalizers or fallback-to-default success paths.
 - When feature-level insight suggests a strategy, translate it into source mechanisms and liveness counters. The feature card is inspiration, not a fixed route table.
 - Broader-search plans should state candidate/window bound, cache/reuse point, runtime tier, counters, and whether parallel scoring or deterministic reductions are appropriate. The plan may intentionally consume the hard-budget headroom when the expected HPWL mechanism is stronger.
+- Poor-basin plans should explicitly name the new mechanism family and why it is
+  different from the current donor family; otherwise the plan is just donor
+  polishing.
 - Keep next packets concise and non-accumulative. Replace stale guidance with the current mechanism decision.
