@@ -489,6 +489,7 @@ def write_teacher_routing_context(
     round_id: str,
     iteration: int,
     full_context_path: Path,
+    manual_teacher_guidance_path: Path | None = None,
 ) -> Path:
     context_dir = iteration_dir / "context"
     context_dir.mkdir(parents=True, exist_ok=True)
@@ -503,6 +504,11 @@ def write_teacher_routing_context(
             round_id=round_id,
             iteration_name=iter_name(iteration),
             full_context_path=full_context_path,
+            manual_teacher_guidance_path=(
+                manual_teacher_guidance_path
+                if manual_teacher_guidance_path is not None
+                else "none"
+            ),
         ),
         encoding="utf-8",
     )
@@ -664,6 +670,7 @@ def teacher_prompt(
     baseline_artifacts_path: Path,
     peer_learning_path: Path,
     start_seed_calibration_path: Path,
+    manual_teacher_guidance_path: Path | None = None,
     strategies: list[str],
     children: int,
     iteration: int,
@@ -691,6 +698,11 @@ def teacher_prompt(
         baseline_artifacts_path=baseline_artifacts_path,
         peer_learning_path=peer_learning_path,
         start_seed_calibration_path=start_seed_calibration_path,
+        manual_teacher_guidance_path=(
+            manual_teacher_guidance_path
+            if manual_teacher_guidance_path is not None
+            else "none"
+        ),
         iteration_name=iter_name(iteration),
         route_lines=route_lines,
         student_roster=student_roster,
@@ -716,6 +728,7 @@ def compact_teacher_prompt(
     baseline_artifacts_path: Path,
     peer_learning_path: Path,
     start_seed_calibration_path: Path,
+    manual_teacher_guidance_path: Path | None = None,
     strategies: list[str],
     children: int,
     iteration: int,
@@ -743,6 +756,11 @@ def compact_teacher_prompt(
         baseline_artifacts_path=baseline_artifacts_path,
         peer_learning_path=peer_learning_path,
         start_seed_calibration_path=start_seed_calibration_path,
+        manual_teacher_guidance_path=(
+            manual_teacher_guidance_path
+            if manual_teacher_guidance_path is not None
+            else "none"
+        ),
         iteration_name=iter_name(iteration),
         route_lines=route_lines,
         student_roster=student_roster,

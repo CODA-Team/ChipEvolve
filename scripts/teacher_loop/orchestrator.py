@@ -534,6 +534,16 @@ def main(argv: list[str] | None = None) -> int:
             iteration_dir=iteration_dir,
             context=context,
         )
+        manual_teacher_guidance_path = round_dir / "manual_teacher_guidance.md"
+        if manual_teacher_guidance_path.is_file():
+            logger.event(
+                "iteration",
+                "manual_teacher_guidance_detected",
+                iteration=iter_name(iteration),
+                path=manual_teacher_guidance_path,
+            )
+        else:
+            manual_teacher_guidance_path = None
         teacher_context_path = write_teacher_routing_context(
             iteration_dir=iteration_dir,
             case_id=args.case,
@@ -543,6 +553,7 @@ def main(argv: list[str] | None = None) -> int:
             round_id=round_id,
             iteration=iteration,
             full_context_path=full_context_path,
+            manual_teacher_guidance_path=manual_teacher_guidance_path,
         )
         # Iteration 1 should build a global mechanism map from the knowledge
         # base.  Follow-up iterations can stay compact and evidence-driven.
@@ -599,6 +610,7 @@ def main(argv: list[str] | None = None) -> int:
                     baseline_artifacts_path=teacher_baseline_path,
                     peer_learning_path=teacher_peer_path,
                     start_seed_calibration_path=start_seed_calibration_packet,
+                    manual_teacher_guidance_path=manual_teacher_guidance_path,
                     strategies=route_labels,
                     children=len(route_labels),
                     iteration=iteration,
@@ -612,6 +624,7 @@ def main(argv: list[str] | None = None) -> int:
                     baseline_artifacts_path=teacher_baseline_path,
                     peer_learning_path=teacher_peer_path,
                     start_seed_calibration_path=start_seed_calibration_packet,
+                    manual_teacher_guidance_path=manual_teacher_guidance_path,
                     strategies=route_labels,
                     children=len(route_labels),
                     iteration=iteration,
