@@ -36,6 +36,9 @@ In the basin search:
 - rank candidates by frontier priority before pure displacement ranking,
 - boost candidate score by incident-net HPWL or touched-net importance,
 - keep a cap on frontier-ranked cells,
+- use exact affected-net or journal HPWL to commit the selected candidates,
+- prefer grouped residual-net windows when independent single-cell moves cannot
+  shrink the net box,
 - measure how many frontier-ranked candidates are selected, probed, and
   accepted,
 - compare frontier-driven accepts against non-frontier basin accepts.
@@ -64,6 +67,13 @@ This turns handoff from passive metadata into an explicit DPO search bias.
 3. Both live, final HPWL still weak.
    - Preserve the route as handoff evidence, but mark the current frontier
      ranking policy as low ROI and redesign the consumer or producer score.
+
+4. Metadata live, exact consumer unchanged.
+   - Producer and ranking counters move, but the exact accepted moves are the
+     same as the generic DPO path or final HPWL barely changes.
+   - Treat this as passive handoff.  The next route should change the exact
+     consumer: grouped windows, transaction scoring, candidate generator, or
+     accepted-move protection.
 
 ## Teacher Guidance
 

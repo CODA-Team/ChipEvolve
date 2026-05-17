@@ -43,7 +43,9 @@ The mechanism is especially useful when:
 
 ## Good Signs
 
-- final HPWL improves across multiple design families,
+- same-case final HPWL improves against the canonical reference,
+- cross-case improvement exists only as extra confidence, not as a replacement
+  for same-case final HPWL proof,
 - runtime stays near the canonical flow or increases only slightly,
 - accepted exact moves are nonzero,
 - pass-level gain decays smoothly rather than collapsing immediately,

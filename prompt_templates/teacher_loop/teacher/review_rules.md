@@ -15,7 +15,7 @@
 - A candidate is not promotable if build/evaluator failed, metrics are missing, diff is missing/empty, agent message is missing, legality failed, source/binary/metrics are stale, or the DPL flow timed out.
 - Rank promotable candidates by legal final `metrics.json:hpwl`. Ignore bbox/proxy HPWL for promotion.
 - Use `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref - P(runtime_sol / runtime_ref), where P(r)=0 for r <= 1.10 and P(2.0)=1.0 percentage point` only to explain runtime value and repair priority. A faster worse-HPWL candidate is not the headline elite unless lower-HPWL candidates fail validity gates.
-- Treat runtime and displacement as diagnostics: useful controlled search, under-exploration, fixable implementation cost, or unsupported work. Do not over-reward baseline-like runtime that avoids the hard HPWL search; when a legal candidate stays far under budget and HPWL is weak, review it as possible under-exploration and route a stronger bounded search.
+- Treat runtime and displacement as diagnostics: controlled cost, under-exploration, fixable implementation cost, or unsupported work. Do not over-reward baseline-like runtime that avoids a needed HPWL mechanism; when a legal candidate stays far under budget and HPWL is weak, first identify the missing HPWL source, then route a stronger bounded mechanism if justified.
 
 ## Review Focus
 
@@ -59,16 +59,16 @@
   Student knowledge-card reasoning, and the most relevant knowledge/algorithm
   card. The next route should say which knowledge idea is being tested or why
   evidence rejects it for this round.
-- Each next route needs one primary HPWL-source hypothesis, a minimal first-patch landing zone, concise A/B/C plan, runtime tier, liveness counters, expected metric proof, and a stop/pivot rule. Usually give 1-3 primary handles and at most 2 support handles.
+- Each next route needs one primary HPWL-source hypothesis, a minimal first-patch landing zone, concise dominant-mechanism plan, adjacent-stage compatibility proof, runtime tier, liveness counters, expected metric proof, and a stop/pivot rule. Usually give 1-3 primary handles and at most 2 support handles.
 - Review whether the route mix is too narrow. If all next routes would polish
   one donor family while the case still trails baseline, require one broader
   new-family route from the algorithm cards.
-- A/B/C can include real source changes or explicit preservation/diagnosis. Do not require cosmetic edits in a stage just to fill the plan.
+- Adjacent-stage notes can include real source changes or explicit preservation/diagnosis. Do not require cosmetic edits in a stage just to fill the plan.
 - Emphasis labels (`legalizer-emphasis`, `DPO-emphasis`, `co-optimization-emphasis`) are priorities, not exclusive permissions. Students may patch multiple stages when a coherent source mechanism needs producer/consumer support.
 - Parameter tuning is valid only as source-internal mechanism work: constants, thresholds, scoring weights, pass schedules, adaptive policies, or compact internal config structs in `dpl_evolve`. Reject Tcl/flow-script knob sweeps.
 - Hybridize only as staged source-level mechanism composition inside one candidate implementation. Do not implement case/scenario selectors among complete legalizers or fallback-to-default success paths.
 - When feature-level insight suggests a strategy, translate it into source mechanisms and liveness counters. The feature card is inspiration, not a fixed route table.
-- Broader-search plans should state candidate/window bound, cache/reuse point, runtime tier, counters, and whether parallel scoring or deterministic reductions are appropriate. The plan may intentionally consume the hard-budget headroom when the expected HPWL mechanism is stronger.
+- Broader-search plans should state candidate/window bound, cache/reuse point, runtime tier, counters, and whether parallel scoring or deterministic reductions are appropriate. Extra runtime is acceptable only as controlled cost for a stronger identified HPWL mechanism.
 - Weak-gain or over-cost plans should explicitly name the stronger mechanism
   family or repaired current-run ref and why it is different from donor
   polishing.

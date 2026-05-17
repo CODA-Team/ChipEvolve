@@ -11,6 +11,17 @@ OpenROAD-native in-process structures, not external files or log-derived data.
 
 ## Useful Mechanism Families
 
+Observed priority:
+
+- Prefer mechanisms that couple a producer frontier with an exact consumer:
+  residual-net queues, grouped windows, exact transaction/rollback, and
+  affected-net scoring.
+- Treat DPO-only tails as secondary donors unless stage metrics show the
+  legalizer is already stable and the remaining HPWL is local DPO residue.
+- Treat telemetry-only, guard-only, threshold-only, mirror-only, and passive
+  ordering changes as diagnosis or elite-preservation evidence, not active
+  search mechanisms.
+
 1. Bounded source-edge and local-net scoring.
    - Build a compact candidate set from cells near active source edges, touched
      nets, dirty rows, or high-pressure windows.
@@ -58,6 +69,14 @@ OpenROAD-native in-process structures, not external files or log-derived data.
 ## What To Avoid
 
 - Do not depend on archived source patches or prepared DPO start branches.
+- Do not spend most of a round on guard-only preservation of an already retained
+  elite.  Keep one guard when useful, then route other Students to producer,
+  consumer, or handoff mechanisms that can change final HPWL.
+- Do not call a route handoff-aware when it only records metadata.  The DPO
+  consumer must probe and accept candidates that are visibly influenced by the
+  producer state.
+- Do not promote mirror/orientation priority changes as the main DPO mechanism.
+  They are useful only as protection or observability for accepted exact moves.
 - Extra endpoint-like subpasses are useful only when they are transformed into
   an algorithmic source mechanism with scope, counters, and stop conditions.
 - Randomized or repeated descent can be explored when it is scoped, capped,
@@ -81,3 +100,6 @@ OpenROAD-native in-process structures, not external files or log-derived data.
 - If a high-quality clue is slow, guide the Student to rewrite it with caches,
   top-K exact scoring, thread-local scratch, or deterministic parallel
   reduction before discarding it.
+- If a route has become guard-only or low-ROI after one meaningful repair,
+  preserve the source ref and switch the next active route to a different
+  mechanism family.

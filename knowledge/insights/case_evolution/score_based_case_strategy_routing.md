@@ -64,7 +64,7 @@ whitespace and strong global-to-legal HPWL disturbance:
   design is dense.  Full-flow evidence can favor local-greedy/Diamond plus DPO
   or handoff repair when global legalization creates a basin that DPO cannot
   recover.
-- If a dense route spends much more runtime for only a small HPWL win, make the
+- If a dense route consumes much more runtime for only a small HPWL win, make the
   next iteration a runtime-rewrite or cache/cap iteration, not another broader
   search.
 

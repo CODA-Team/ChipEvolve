@@ -63,7 +63,7 @@ mechanism, and source symbols. Pseudocode cards are inspiration contracts, not
 case-level algorithm selectors.
 
 If current-run legal candidates show tiny HPWL movement, repeat the same family,
-or spend runtime without proportional HPWL, treat it as weak-gain/over-cost
+or incur runtime cost without proportional HPWL, treat it as weak-gain/over-cost
 evidence. Keep a guard donor if useful, but query one broader stage/mechanism
 term, open one relevant algorithm/pseudocode card outside the current donor
 family, and assign at least one stronger within-run route. Current-run

@@ -7,9 +7,10 @@ route. Keep the review concise and action-bearing.
   must be clean before a candidate can be promoted.
 - Rank by legal final `metrics.json:hpwl`; use `G_HR` only to explain runtime
   value or runtime-repair priority.
-- Runtime below the hard budget is available search headroom. If a candidate is
-  legal but HPWL-poor and baseline-fast, classify the issue as possible
-  under-exploration and route stronger bounded search instead of rewarding speed.
+- Runtime below the hard budget is not a reason by itself to add work. If a
+  candidate is legal but HPWL-poor and baseline-fast, identify the missing HPWL
+  source first; route stronger bounded search only when it changes the
+  mechanism rather than rewarding runtime use.
 - Identify the real mechanism and whether counters/logs prove it executed. Zero
   counters or stale source/binary/metrics means non-executed/negative evidence.
 - Use each knowledge card as the source-to-evidence map. A useful card should
@@ -53,9 +54,9 @@ route. Keep the review concise and action-bearing.
   the mechanism insight being tested; when not changing, state why evidence
   supports staying in the family.
 - Next packets must be non-accumulative: one distinct HPWL-source hypothesis,
-  concise A/B/C plan, exact function/state handles, runtime tier, liveness
-  counters, and the low-ROI stop condition when relevant. A/B/C may include
-  preservation or diagnosis; do not require cosmetic edits.
+  concise dominant-mechanism plan, adjacent-stage compatibility proof, exact
+  function/state handles, runtime tier, liveness counters, and the low-ROI stop
+  condition when relevant. Do not require cosmetic edits in every stage.
 - If the next packet set would only polish the same donor family while still
   behind baseline, add one broader new-family route from the first-round route
   map or a newly opened algorithm card.

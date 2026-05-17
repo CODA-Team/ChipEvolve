@@ -41,8 +41,8 @@ Rules:
   should inspect and improve legalization, improve placement, and handoff when
   they can make high-quality mechanism changes, then validate the full
   legalize/improve/mirror flow. Student prompts should keep optimize mirroring
-  callable for evaluation but outside the active patch surface unless a future
-  task explicitly reopens it.
+  callable for evaluation; mirror-internal edits are not the normal patch
+  surface and require explicit Teacher assignment with concrete source handles.
 - Teacher planning is two-stage. Iteration 1 should use the fuller context to
   do a bounded global knowledge scan, build a case-specific route map, and
   classify donors as `general donor` or `feature-matched donor`. Follow-up

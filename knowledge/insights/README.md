@@ -12,17 +12,18 @@ should act on it.
 3. `workflow/metric_contract.md`
 4. `case_evolution/cross_case_transfer_matrix.md`
 5. `case_evolution/strategy_inspiration_by_design_feature.md`
-6. `case_evolution/score_based_case_strategy_routing.md`
-7. `case_evolution/dense_evolved_legalizer_routing.md`
-8. `case_evolution/optdp_stage_cooptimization.md`
-9. `../skills/case/legalizer_dpo_handoff_triage.md`
-10. `legalization/algorithm_role_liveness_basics.md`
-11. `dpo/source_level_mechanisms.md`
-12. `dpo/lightweight_post_dpo_basin.md`
-13. `dpo/frontier_guided_basin_consumer.md`
-14. `dpo/openroad_native_handoff.md`
-15. `case_evolution/micro_gain_trap_and_elite_donors.md`
-16. Relevant LEGALM card under `legalm/` only when changing legalization.
+6. `case_evolution/evidence_weighted_mechanism_priority.md`
+7. `case_evolution/score_based_case_strategy_routing.md`
+8. `case_evolution/dense_evolved_legalizer_routing.md`
+9. `case_evolution/optdp_stage_cooptimization.md`
+10. `../skills/case/legalizer_dpo_handoff_triage.md`
+11. `legalization/algorithm_role_liveness_basics.md`
+12. `dpo/source_level_mechanisms.md`
+13. `dpo/lightweight_post_dpo_basin.md`
+14. `dpo/frontier_guided_basin_consumer.md`
+15. `dpo/openroad_native_handoff.md`
+16. `case_evolution/micro_gain_trap_and_elite_donors.md`
+17. Relevant LEGALM card under `legalm/` only when changing legalization.
 
 ## Workflow
 
@@ -44,6 +45,12 @@ should act on it.
 - `case_evolution/strategy_inspiration_by_design_feature.md`: feature-level
   mechanism inspiration for staged source hybrids.  Use this before route
   assignment to avoid turning empirical lessons into benchmark-name selectors.
+- `case_evolution/evidence_weighted_mechanism_priority.md`: ranks mechanism
+  families by same-case final-HPWL evidence.  It promotes producer frontier plus
+  exact consumer, residual grouped-window transactions, resource/row reservation
+  with a proven consumer, and endpoint-level branch scoring only when final HPWL
+  improves; it demotes legalize-only wins, guard-only, telemetry-only,
+  mirror-only, threshold-only, passive-handoff, and random-tail polishing.
 - `case_evolution/dense_evolved_legalizer_routing.md`: dense-case evidence for
   using `evolved_legalm` as a stage-level legalizer prior, plus Teacher policy
   for first-round diversification and later route switching/hybridization.  This
@@ -66,7 +73,7 @@ should act on it.
 - `dpo/lightweight_post_dpo_basin.md`: when a stable legalizer still leaves
   local DPO residue and one bounded basin cleanup pass is a good donor.
 - `dpo/aggressive_basin_schedule.md`: when a validated light basin donor should
-  spend more runtime under control for stronger exact local search.
+  allocate more controlled runtime cost to stronger exact local search.
 - `dpo/frontier_guided_basin_consumer.md`: handoff-aware DPO consumer pattern
   that uses producer frontiers to rank and probe exact basin candidates.
 - `dpo/openroad_native_handoff.md`: efficient OpenROAD-native producer/consumer

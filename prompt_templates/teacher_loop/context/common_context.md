@@ -84,12 +84,14 @@ survey.
 - Weak-gain / over-cost escalation is a Teacher judgment, not an automatic
   controller rule.
   If current-run legal candidates show tiny HPWL movement, repeat one family,
-  or spend runtime without proportional HPWL, do not only polish the current
+  or incur runtime cost without proportional HPWL, do not only polish the current
   donor. Query a broader stage/mechanism term, open one relevant
   algorithm/pseudocode card outside the current donor family, and give at least
   one Student a stronger within-run route. Current-run kept/rejected refs may
   be repaired with `25_trial_source.sh begin --from-ref <ref>`; do not import
   cross-experiment donors or historical results as implementation starts.
+  Query `--stage teacher_review --q "mechanism priority guard telemetry grouped window exact consumer"`
+  when deciding which donor families to promote, guard, or demote.
 
 ## Objective And Boundaries
 
@@ -140,8 +142,10 @@ survey.
 - editable patch surface: source-level detailed placement/legalization and
   improve placement, including their internal flow, candidate generation,
   objective, parameterization, state, and handoff
-- locked surface: external evaluator/ORFS/workspace helper scripts; downstream
-  optimize-mirroring code stays evaluation-only unless a future task reopens it
+- locked surface: external evaluator/ORFS/workspace helper scripts and the
+  top-level command interfaces. Optimize mirroring must stay callable and is
+  normally evaluation/control evidence; edit its internals only if Teacher
+  explicitly assigns a mirror mechanism with concrete source handles.
 - parameter search is allowed only as source-level implementation work: change
   constants, heuristic thresholds, scoring weights, pass schedules,
   data-dependent policies, or small internal config structs inside
@@ -152,10 +156,10 @@ survey.
   routes should create legal states that improve placement can consume
 - route emphasis can be `legalizer-emphasis`, `DPO-emphasis`, or
   `co-optimization-emphasis`. This is not a mutually exclusive permission to
-  ignore other stages. Student should inspect legalization, improve placement,
-  and handoff together, and should improve multiple stages when the source
-  evidence supports high-quality changes. The emphasis only names the primary
-  HPWL source for the round.
+  ignore adjacent-stage compatibility. Student should understand how the
+  emphasized mechanism interacts with legalization, improve placement, and
+  handoff, but should not make cosmetic edits across all stages. The emphasis
+  names the primary HPWL source for the round.
 
 ## Runtime And Performance
 
@@ -165,17 +169,17 @@ survey.
   `${student_runtime_multiplier}x` the canonical `openroad_dpl_flow`
   `metrics.json:runtime_seconds`; metrics/evaluator collection is not
   timeout-wrapped
-- runtime is a usable `${student_runtime_multiplier}x` hard budget, not the
-  objective. Spend it on
-  bounded stronger mechanisms: deeper legalizer scoring, broader capped
-  candidates, donor hybridization, parallel candidate evaluation, or better
-  legalizer/improve handoff. Do not waste it on repeated unchanged passes.
+- runtime is a `${student_runtime_multiplier}x` hard budget and constrained
+  cost, not the objective. Extra runtime is justified only for bounded stronger
+  mechanisms: deeper legalizer scoring, broader capped candidates, donor
+  hybridization, parallel candidate evaluation, or better legalizer/improve
+  handoff. Do not waste it on repeated unchanged passes.
 - `bounded` means complexity-controlled and measurable, not small-scope; use
   caps, caches, thread-local scoring, and deterministic reductions to make
   larger searches practical
-- runtime tiers: `fast` preserves a donor, `explore` spends moderate extra
-  time on bounded search, and `aggressive` spends larger timeout-safe budget on
-  a mechanism that could materially change final HPWL
+- runtime tiers: `fast` preserves a donor, `explore` allows moderate bounded
+  cost, and `aggressive` allows larger timeout-safe cost only for a mechanism
+  that could materially change final HPWL
 - larger scans, repeated endpoint-like subpasses, and randomized perturbations
   are allowed only as controlled source mechanisms with scope, counters,
   early-stop or gain-rate evidence, and full-flow metrics; prefer

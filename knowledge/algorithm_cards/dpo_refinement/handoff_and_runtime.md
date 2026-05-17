@@ -94,7 +94,7 @@ Source status: `implementation-hypothesis`.
 
 Source handles: `gpu_dpo_lsmc_2026`, `abcdplace_2020`.
 
-Best use: keep runtime as a usable resource while spending it on higher-quality
+Best use: keep runtime as a usable resource while allocating it to higher-quality
 search.
 
 Pseudo code:

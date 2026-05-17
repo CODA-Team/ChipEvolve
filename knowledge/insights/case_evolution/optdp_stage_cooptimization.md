@@ -337,7 +337,7 @@ When editing `Optdp`:
 - keep exact `DetailedHPWL` and legal move/swap checks as commit guards,
 - use compact candidate queues and source-class telemetry,
 - avoid full-cell/full-net rescans inside inner loops,
-- spend runtime budget on one controlled new mechanism with scope, counters, and
+- allocate runtime budget to one controlled new mechanism with scope, counters, and
   a clear stop condition; use handoff/frontier signals when they can reduce
   random search.
 

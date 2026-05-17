@@ -13,23 +13,25 @@ Default reading order:
 6. `index/skill_cards.jsonl` through `../scripts/query_knowledge.py` when selecting stage mechanisms
 7. `insights/case_evolution/strategy_inspiration_by_design_feature.md` when
    translating design features into mechanism inspiration
-8. `insights/dpo/source_level_mechanisms.md` when planning improve-placement
+8. `insights/case_evolution/evidence_weighted_mechanism_priority.md` when
+   choosing which prior mechanism families deserve active search budget
+9. `insights/dpo/source_level_mechanisms.md` when planning improve-placement
    source mechanisms
-9. `insights/dpo/openroad_native_handoff.md` when passing legalization
+10. `insights/dpo/openroad_native_handoff.md` when passing legalization
    frontier state into improve placement
-10. `insights/dpo/lightweight_post_dpo_basin.md` when a stable legalizer still
+11. `insights/dpo/lightweight_post_dpo_basin.md` when a stable legalizer still
     leaves post-DPO HPWL residue
-11. `skills/case/legalizer_dpo_handoff_triage.md` when stage evidence is
+12. `skills/case/legalizer_dpo_handoff_triage.md` when stage evidence is
    ambiguous and Teacher must decide whether to repair legalizer output,
    strengthen DPO, or improve handoff
-12. `insights/dpo/frontier_guided_basin_consumer.md` when a producer frontier
+13. `insights/dpo/frontier_guided_basin_consumer.md` when a producer frontier
     should be consumed by exact basin search
-13. `insights/legalization/algorithm_role_liveness_basics.md` before routing
+14. `insights/legalization/algorithm_role_liveness_basics.md` before routing
    Diamond, negotiation, LEGALM, or Differential Guidance families
-14. `skills/legalization/differential_guidance_stop_target.md` when using
+15. `skills/legalization/differential_guidance_stop_target.md` when using
    LEGALM/differential guidance as a seed/frontier instead of a full legalizer
-15. one relevant file under `algorithm_cards/` or `insights/`
-16. paper PDFs and source notes under `reference/` only if needed
+16. one relevant file under `algorithm_cards/` or `insights/`
+17. paper PDFs and source notes under `reference/` only if needed
 
 Current compact algorithm cards:
 
@@ -42,6 +44,7 @@ Current compact algorithm cards:
 - `insights/case_evolution/cross_case_transfer_matrix.md`
 - `insights/case_evolution/score_based_case_strategy_routing.md`
 - `insights/case_evolution/strategy_inspiration_by_design_feature.md`
+- `insights/case_evolution/evidence_weighted_mechanism_priority.md`
 - `insights/case_evolution/micro_gain_trap_and_elite_donors.md`
 - `insights/case_evolution/full_flow_timeout_and_target_selection.md`
 - `skills/case/legalizer_dpo_handoff_triage.md`
@@ -99,6 +102,16 @@ evaluation, transaction rollback, bounded staged descent, scoped LSMC basin
 escape, and legalizer-to-DPO handoff consumers. Teacher should assign
 those mechanisms directly in the current private source and validate them
 against stage-wise evidence.
+
+Do not give equal priority to every observed donor.  A mechanism is strong only
+when the same-case final `metrics.json:hpwl` improves with clean legality and
+source/log liveness.  The strongest repeated final-HPWL pattern is
+legalizer-produced frontier/residual state consumed by exact DPO transactions or
+grouped windows.  Stage-only legalizer wins, DPO-only tails, guard-only
+preservation, telemetry-only edits, mirror-only ordering, and threshold/tie-break
+polishing are lower-priority evidence unless the current stage metrics expose a
+specific repair path.  See
+`insights/case_evolution/evidence_weighted_mechanism_priority.md`.
 
 For `evolved_negotiation`, verify the negotiation-primary route signal before
 using it as a donor.  The intended mechanism is resource-allocation/conflict

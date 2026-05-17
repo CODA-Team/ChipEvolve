@@ -40,7 +40,7 @@ This schedule is usually more robust than jumping to one huge window at pass 1.
 ## Why It Helps
 
 Large designs or designs with strong residual DPO basins may need more than one
-short cleanup pass.  A gradual schedule lets the search spend more runtime only
+short cleanup pass.  A gradual schedule lets the search allocate more runtime only
 when earlier smaller passes were already productive.
 
 ## Risks

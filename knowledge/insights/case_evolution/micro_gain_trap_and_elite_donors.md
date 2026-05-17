@@ -30,6 +30,11 @@ detailed-improvement frontier:
 This mechanism is cheap and safe enough to keep as a seed, but it should not
 consume all students in later rounds.
 
+If later iterations only add telemetry, minor threshold changes, mirror
+ordering, or guard-only preservation around the same donor, downgrade the line
+to `elite guard` or `validated-low-ROI`.  It remains useful for comparison, but
+it should not be treated as the main algorithmic route.
+
 ## What Not To Conclude
 
 Do not conclude that the broader DPL framework is solved.  Micro-gains usually
@@ -45,6 +50,7 @@ metrics.
 Teacher should:
 
 - preserve the best micro-gain source as an elite donor,
+- keep at most one guard route on that donor in a round,
 - report the gain honestly as small,
 - stop assigning more quota or threshold tuning after gains flatten,
 - keep at least one student on larger algorithmic changes such as flow order,

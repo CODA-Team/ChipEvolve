@@ -9,7 +9,7 @@ Detailed placement is a producer-consumer flow:
 global placement -> legalization producer -> handoff state -> DPO consumer -> final mirror/check
 ```
 
-If legalization produces a legal but DPO-hostile state, later DPO may spend
+If legalization produces a legal but DPO-hostile state, later DPO may consume
 runtime on local moves while never reaching the basin that a better legalizer
 could have exposed. A stronger DPO can help, but it is not a substitute for
 fixing the producer state or making the producer-consumer handoff informative.
@@ -42,7 +42,7 @@ Use when:
 
 - `HPWLlg` is poor, or legal HPWL improves but DPO recovery is weak.
 - `HPWLg -> HPWLlg` shows a large early disruption, especially when DPO later
-  spends runtime but cannot recover final HPWL.
+  consumes runtime but cannot recover final HPWL.
 - Legalizer logs show large residual target miss, row pressure, conflict
   leftovers, or many cells moved into DPO-hostile local order.
 - DPO accepts are nonzero but mostly repair damage created by legalization.
@@ -82,7 +82,7 @@ Mechanism directions:
   local reorder, multi-row windows, or bounded basin escape;
 - improve candidate ranking with affected-net or boundary-net scoring;
 - use transactional accept/rollback and deterministic conflict filtering;
-- spend runtime on new accepted-gain sources, not on repeating the same
+- allocate runtime cost to new accepted-gain sources, not to repeating the same
   zero-accept candidate family.
 
 Proof:
@@ -133,16 +133,15 @@ If the answer to 3 is no, route at least one Student to handoff producer-consume
 repair. A guard route can preserve the current elite, but the remaining routes
 should not all retune the same DPO basin.
 
-For an ordinary optimization round, require every Student packet to include a
-compact A/B/C plan:
+For an ordinary optimization round, require every Student packet to name one
+dominant mechanism and one adjacent-stage compatibility proof.  A legalizer
+route should explain why the legal output remains DPO-recoverable.  A DPO route
+should explain why the input state and any frontier make the search targeted.  A
+handoff route should name both producer and consumer counters.
 
-- A: legalizer behavior or legalizer-state guard;
-- B: DPO/improve-placement consumer behavior;
-- C: bounded handoff or explicit reason no handoff is needed.
-
-This is not a request for cosmetic edits in all files. It is a requirement that
-the design of the candidate covers the full detailed-placement flow and explains
-how the stages compose.
+This is not a request for cosmetic edits in all files.  It is a requirement that
+the candidate design explains how the stages compose and why the emphasized
+mechanism can move final HPWL.
 
 ## Student Reporting Contract
 

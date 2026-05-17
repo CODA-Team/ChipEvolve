@@ -65,7 +65,7 @@
 - If stage-local gain is erased downstream, preserve it as a stage donor and route the next work to handoff or consumer repair.
 - If review finds a rejected mechanism is implementation-bug or handoff-repairable rather than method-low-ROI, explicitly assign a repair trial from its ref using `25_trial_source.sh begin --from-ref <ref>`.
 - Hybrid means staged mechanisms inside one source implementation, such as global/differential guidance, native legal closure, local HPWL repair, and a DPO consumer. Do not implement hybrid as a case-level selector among complete legalizers.
-- Weak-gain / over-cost escalation is a Teacher review judgment, not an automatic controller rule. If current-run legal candidates show tiny HPWL movement, repeat the same family, or spend runtime without proportional HPWL, stop polishing the same idea. Preserve one current best guard when useful, then assign at least one aggressive within-run route: a different mechanism family, a redesigned producer/consumer pair, or a repair/continuation from a current-run kept/rejected ref using `25_trial_source.sh begin --from-ref <ref>`.
+- Weak-gain / over-cost escalation is a Teacher review judgment, not an automatic controller rule. If current-run legal candidates show tiny HPWL movement, repeat the same family, or incur runtime cost without proportional HPWL, stop polishing the same idea. Preserve one current best guard when useful, then assign at least one aggressive within-run route: a different mechanism family, a redesigned producer/consumer pair, or a repair/continuation from a current-run kept/rejected ref using `25_trial_source.sh begin --from-ref <ref>`.
 - When assigning a branch/ref switch, name the current-run source ref, the new trial label, and the reason the old branch/ref remains preserved. Do not import cross-experiment donors or historical results as implementation starts.
 
 ## Starts, Knowledge, And Skills
@@ -92,7 +92,7 @@
 
 ## Runtime And Implementation Expectations
 
-- Treat runtime as a constrained cost, not as something to spend by default. If
+- Treat runtime as a constrained cost, not as a resource to consume by default. If
   current candidates stay near baseline runtime but miss HPWL, route a stronger
   bounded mechanism only after identifying the missing HPWL source.
 - Extra runtime should buy a qualitatively different mechanism: better
@@ -108,6 +108,6 @@
 
 ## Output Discipline
 
-- Keep Teacher output non-accumulative: one HPWL source per Student, concise A/B/C plan, first-patch handles, minimal support handles, runtime tier, counters, expected metric proof, and stop/pivot rule.
+- Keep Teacher output non-accumulative: one HPWL source per Student, concise dominant-mechanism plan, adjacent-stage compatibility proof, first-patch handles, minimal support handles, runtime tier, counters, expected metric proof, and stop/pivot rule.
 - Do not include build/eval/git command blocks; generated Student workspace packets own execution.
 - Do not ask Students to read memories, rollout summaries, session archives, child event logs, or broad donor trees by default.

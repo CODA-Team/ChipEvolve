@@ -132,7 +132,7 @@ Use by path:
 ### Parallel Legalization
 
 Core idea: legalization can be parallelized by independent regions/rows/zones
-with boundary reconciliation.  Use this to spend runtime on wider search without
+with boundary reconciliation.  Use this to allocate runtime to wider search without
 serial blow-up.
 
 Use by path:

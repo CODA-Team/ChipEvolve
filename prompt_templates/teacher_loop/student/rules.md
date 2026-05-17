@@ -62,7 +62,11 @@
 - Use `03_fetch_peer_source.sh` only to fetch and inspect peer refs. Port understood mechanisms deliberately onto your branch; do not auto-apply peer diffs.
 - Use `25_trial_source.sh begin|keep|reject|status` as the only checkpoint/rejected-source state machine. Do not manually reset around rejected work unless the helper reports a blocking error.
 - If Teacher assigns a repairable rejected/kept ref, start that workbench with `25_trial_source.sh begin --label <repair-name> --from-ref <ref>` and then repair it as a normal trial.
-- Do not edit evaluator, ORFS, baseline scripts, workspace helpers, downstream optimize-mirroring code, memories, rollout summaries, session archives, or event logs.
+- Do not edit evaluator, ORFS, baseline scripts, workspace helpers, memories,
+  rollout summaries, session archives, or event logs. Optimize mirroring must
+  remain callable for the full-flow evaluator; ordinary routes should change
+  legalizer/DPO/handoff internals, and mirror-internal work requires explicit
+  Teacher assignment with concrete source handles.
 
 ## Allowed Mechanisms
 

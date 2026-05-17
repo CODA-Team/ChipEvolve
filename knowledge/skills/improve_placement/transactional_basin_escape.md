@@ -17,6 +17,14 @@ for source handles, metrics, and log signals.
   mechanism only after the light donor is proven live.
 - If legalization already exposes frontier or residual guidance, prefer
   frontier-aware basin ranking over a pure displacement-only basin schedule.
+- Strong prior evidence favors exact grouped residual-net or window
+  transactions over independent target pushes.  Commit a bundle only when the
+  whole journal improves exact HPWL; otherwise roll back the whole group and
+  keep the previous best source.
+- Endpoint-level branch scoring can be useful when different improve-placement
+  branches fight each other, but score complete tail endpoints from the same
+  legalized snapshot and treat high runtime as a donor that may need
+  compression.
 
 ## Common Failure
 
@@ -25,3 +33,5 @@ for source handles, metrics, and log signals.
   search to handoff/frontier signals and by stopping on gain rate, not by
   assuming the search family is forbidden.
 - A perturbation improves a proxy but fails canonical after-improve/final HPWL.
+- A direct target push changes downstream ordering without exact grouped
+  acceptance and regresses final HPWL.
