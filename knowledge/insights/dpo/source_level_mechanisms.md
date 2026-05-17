@@ -54,7 +54,11 @@ Observed priority:
    - LSMC is a basin-escape tool: use controlled perturbations, accepted-gain
      counters, and handoff/frontier targeting so the runtime buys a specific
      recoverability test instead of blind random trial-and-error.
-   - Use multi-thread for different window on this kind of search and perturbation.
+   - Use deterministic parallel work for independent windows when the candidate
+     set is already bounded.  Do not use parallelism to hide an unbounded or
+     low-accept search.
+   - Treat LSMC as a secondary quality donor unless a light exact consumer is
+     already live and final HPWL still has a clear local-minimum gap.
 
 5. Legalizer-to-DPO handoff consumers.
    - Legalization should expose compact frontier signals that DPO can consume:

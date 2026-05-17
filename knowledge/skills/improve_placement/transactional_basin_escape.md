@@ -15,6 +15,9 @@ for source handles, metrics, and log signals.
 - A good first step is a lightweight post-DPO basin donor.  Deeper pass growth,
   larger candidate windows, and wider row radius should be treated as a second
   mechanism only after the light donor is proven live.
+- Treat LSMC-style perturbation as a secondary quality donor, not a first
+  default route.  It needs a live descent kernel, a legal kick, whole-loop exact
+  accept/rollback, and accepted-basin-change counters.
 - If legalization already exposes frontier or residual guidance, prefer
   frontier-aware basin ranking over a pure displacement-only basin schedule.
 - Strong prior evidence favors exact grouped residual-net or window

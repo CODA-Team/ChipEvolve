@@ -9,20 +9,21 @@ rule.  For current full-flow promotion and case routing, read
 
 ## Observation
 
-On high-utilization, standard-cell-dense placements,
-`evolved_legalm` was the best measured legalization-stage donor among the three
-iter30 evolved legalizer starts.  It reduced global-to-legal HPWL disturbance
-relative to the other legalizer starts and to the clean local-greedy baseline.
+On some high-utilization, standard-cell-dense placements, `evolved_legalm` was
+the best measured legalization-stage donor among the three evolved legalizer
+starts.  It reduced global-to-legal HPWL disturbance relative to the other
+legalizer starts and to the clean local-greedy baseline.
 
 The mechanism evidence in the LEGALM trace was not a tiny metadata change.  The
 run activated high-pressure tail refinement and endpoint HPWL anchors:
 frontier attempts, accepted interval/swap/chain moves, and exact HPWL gain
 counters.
 
-The same evolved legalizer ordering did not hold for all design archetypes.
-For larger macro/row-rich placements, the evolved Diamond/local-greedy line was
-often stronger.  Treat `evolved_legalm` as a dense-standard-cell prior, not as
-the default for every case.
+The same evolved legalizer ordering did not hold for all design archetypes, and
+later full-flow evidence showed that even dense designs can prefer local closure
+plus DPO or handoff repair.  Treat `evolved_legalm` as a dense-standard-cell
+legalization prior, not as the default first parent and not as a final-flow
+winner until strict final HPWL proves it on the active design.
 
 Important calibration: this card is about legalization-stage behavior.  Later
 full-flow rescoring showed that some high-utilization dense designs can regress

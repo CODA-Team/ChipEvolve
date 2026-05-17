@@ -13,25 +13,28 @@ Default reading order:
 6. `index/skill_cards.jsonl` through `../scripts/query_knowledge.py` when selecting stage mechanisms
 7. `insights/case_evolution/strategy_inspiration_by_design_feature.md` when
    translating design features into mechanism inspiration
-8. `insights/case_evolution/evidence_weighted_mechanism_priority.md` when
+8. `insights/case_evolution/runtime_light_final_hpwl_mechanism_priority.md`
+   when choosing final-HPWL-proven mechanisms with runtime kept as a visible
+   cost
+9. `insights/case_evolution/evidence_weighted_mechanism_priority.md` when
    choosing which prior mechanism families deserve active search budget
-9. `insights/dpo/source_level_mechanisms.md` when planning improve-placement
+10. `insights/dpo/source_level_mechanisms.md` when planning improve-placement
    source mechanisms
-10. `insights/dpo/openroad_native_handoff.md` when passing legalization
+11. `insights/dpo/openroad_native_handoff.md` when passing legalization
    frontier state into improve placement
-11. `insights/dpo/lightweight_post_dpo_basin.md` when a stable legalizer still
+12. `insights/dpo/lightweight_post_dpo_basin.md` when a stable legalizer still
     leaves post-DPO HPWL residue
-12. `skills/case/legalizer_dpo_handoff_triage.md` when stage evidence is
+13. `skills/case/legalizer_dpo_handoff_triage.md` when stage evidence is
    ambiguous and Teacher must decide whether to repair legalizer output,
    strengthen DPO, or improve handoff
-13. `insights/dpo/frontier_guided_basin_consumer.md` when a producer frontier
+14. `insights/dpo/frontier_guided_basin_consumer.md` when a producer frontier
     should be consumed by exact basin search
-14. `insights/legalization/algorithm_role_liveness_basics.md` before routing
+15. `insights/legalization/algorithm_role_liveness_basics.md` before routing
    Diamond, negotiation, LEGALM, or Differential Guidance families
-15. `skills/legalization/differential_guidance_stop_target.md` when using
+16. `skills/legalization/differential_guidance_stop_target.md` when using
    LEGALM/differential guidance as a seed/frontier instead of a full legalizer
-16. one relevant file under `algorithm_cards/` or `insights/`
-17. paper PDFs and source notes under `reference/` only if needed
+17. one relevant file under `algorithm_cards/` or `insights/`
+18. paper PDFs and source notes under `reference/` only if needed
 
 Current compact algorithm cards:
 
@@ -44,6 +47,7 @@ Current compact algorithm cards:
 - `insights/case_evolution/cross_case_transfer_matrix.md`
 - `insights/case_evolution/score_based_case_strategy_routing.md`
 - `insights/case_evolution/strategy_inspiration_by_design_feature.md`
+- `insights/case_evolution/runtime_light_final_hpwl_mechanism_priority.md`
 - `insights/case_evolution/evidence_weighted_mechanism_priority.md`
 - `insights/case_evolution/micro_gain_trap_and_elite_donors.md`
 - `insights/case_evolution/full_flow_timeout_and_target_selection.md`
@@ -111,6 +115,7 @@ grouped windows.  Stage-only legalizer wins, DPO-only tails, guard-only
 preservation, telemetry-only edits, mirror-only ordering, and threshold/tie-break
 polishing are lower-priority evidence unless the current stage metrics expose a
 specific repair path.  See
+`insights/case_evolution/runtime_light_final_hpwl_mechanism_priority.md` and
 `insights/case_evolution/evidence_weighted_mechanism_priority.md`.
 
 For `evolved_negotiation`, verify the negotiation-primary route signal before

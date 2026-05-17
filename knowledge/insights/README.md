@@ -12,18 +12,19 @@ should act on it.
 3. `workflow/metric_contract.md`
 4. `case_evolution/cross_case_transfer_matrix.md`
 5. `case_evolution/strategy_inspiration_by_design_feature.md`
-6. `case_evolution/evidence_weighted_mechanism_priority.md`
-7. `case_evolution/score_based_case_strategy_routing.md`
-8. `case_evolution/dense_evolved_legalizer_routing.md`
-9. `case_evolution/optdp_stage_cooptimization.md`
-10. `../skills/case/legalizer_dpo_handoff_triage.md`
-11. `legalization/algorithm_role_liveness_basics.md`
-12. `dpo/source_level_mechanisms.md`
-13. `dpo/lightweight_post_dpo_basin.md`
-14. `dpo/frontier_guided_basin_consumer.md`
-15. `dpo/openroad_native_handoff.md`
-16. `case_evolution/micro_gain_trap_and_elite_donors.md`
-17. Relevant LEGALM card under `legalm/` only when changing legalization.
+6. `case_evolution/runtime_light_final_hpwl_mechanism_priority.md`
+7. `case_evolution/evidence_weighted_mechanism_priority.md`
+8. `case_evolution/score_based_case_strategy_routing.md`
+9. `case_evolution/dense_evolved_legalizer_routing.md`
+10. `case_evolution/optdp_stage_cooptimization.md`
+11. `../skills/case/legalizer_dpo_handoff_triage.md`
+12. `legalization/algorithm_role_liveness_basics.md`
+13. `dpo/source_level_mechanisms.md`
+14. `dpo/lightweight_post_dpo_basin.md`
+15. `dpo/frontier_guided_basin_consumer.md`
+16. `dpo/openroad_native_handoff.md`
+17. `case_evolution/micro_gain_trap_and_elite_donors.md`
+18. Relevant LEGALM card under `legalm/` only when changing legalization.
 
 ## Workflow
 
@@ -45,6 +46,11 @@ should act on it.
 - `case_evolution/strategy_inspiration_by_design_feature.md`: feature-level
   mechanism inspiration for staged source hybrids.  Use this before route
   assignment to avoid turning empirical lessons into benchmark-name selectors.
+- `case_evolution/runtime_light_final_hpwl_mechanism_priority.md`: ranks
+  final-HPWL-proven mechanisms by runtime/value.  Prefer recoverability-shaped
+  legalizer producers plus exact DPO consumers, residual-basin objective repair,
+  source-edge/frontier-ranked exact consumers, and local exact closure before
+  heavier LSMC, endpoint, or broad replay donors.
 - `case_evolution/evidence_weighted_mechanism_priority.md`: ranks mechanism
   families by same-case final-HPWL evidence.  It promotes producer frontier plus
   exact consumer, residual grouped-window transactions, resource/row reservation

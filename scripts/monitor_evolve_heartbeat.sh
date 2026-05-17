@@ -161,20 +161,10 @@ heartbeat() {
 
   echo
   echo "[round summary]"
-  if [[ "${SHOW_PROCESSES}" -eq 1 ]]; then
-    python3 "${AGENT_ROOT}/scripts/report_experiment_status.py" \
-      --format markdown \
-      "${report_args[@]}" \
-      --detail-round active \
-      --detail-tail "${DETAIL_TAIL}" \
-      --show-processes
-  else
-    python3 "${AGENT_ROOT}/scripts/report_experiment_status.py" \
-      --format markdown \
-      "${report_args[@]}" \
-      --detail-round active \
-      --detail-tail "${DETAIL_TAIL}"
-  fi
+  python3 "${AGENT_ROOT}/scripts/report_experiment_quick_status.py" \
+    --format markdown \
+    --batch-root "${batch}" \
+    "${report_args[@]}"
 
   if [[ "${DETAIL_STAGE}" -eq 1 ]]; then
     echo

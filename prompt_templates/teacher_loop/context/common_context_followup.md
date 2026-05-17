@@ -70,6 +70,10 @@ family, and assign at least one stronger within-run route. Current-run
 kept/rejected refs may be repaired with `25_trial_source.sh begin --from-ref
 <ref>`; do not import cross-experiment donors or historical results as
 implementation starts.
+Before assigning a heavy donor, query
+`--stage teacher_review --q "runtime light final HPWL mechanism priority"` and
+prefer a lighter final-HPWL mechanism unless the stage evidence justifies the
+extra runtime.
 
 Do not over-optimize for universal donors in follow-up rounds. The target is
 the best legal final HPWL for this specific case under the runtime gate; transfer

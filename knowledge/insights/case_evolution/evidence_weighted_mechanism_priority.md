@@ -8,6 +8,12 @@ Use this card when Teacher has many plausible donors and must decide which
 mechanism families deserve search budget.  It ranks reusable mechanism patterns,
 not historical implementations.
 
+Pair this card with
+`runtime_light_final_hpwl_mechanism_priority.md` when choosing first routes.  If
+a mechanism appears here as a quality donor but the runtime-aware card marks it
+as heavy or secondary, assign it only after a lighter final-HPWL mechanism or a
+concrete runtime-rewrite plan.
+
 ## Evidence Gate
 
 A mechanism is `strong` only for a target case after the external evaluator
@@ -111,7 +117,7 @@ Preferred use:
 
 This mechanism is strong only when the selected endpoint reduces final HPWL on
 the target case.  It can be expensive, so treat it as a quality donor that may
-need runtime repair, not as a default small guard.
+need runtime repair, not as a default small guard or first-route mechanism.
 
 ### 5. Local Exact Closure For Row-Rich Or Locally Recoverable Designs
 

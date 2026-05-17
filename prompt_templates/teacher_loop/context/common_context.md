@@ -92,6 +92,8 @@ survey.
   cross-experiment donors or historical results as implementation starts.
   Query `--stage teacher_review --q "mechanism priority guard telemetry grouped window exact consumer"`
   when deciding which donor families to promote, guard, or demote.
+  Query `--stage teacher_review --q "runtime light final HPWL mechanism priority"`
+  before spending a route on a heavy donor.
 
 ## Objective And Boundaries
 

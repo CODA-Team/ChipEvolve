@@ -53,6 +53,7 @@ is experiment-specific, keep it under `experiments/launchers/` or
 | `scripts/setup_raytune_venv.sh` | Create the repo-local `.venv_raytune` environment and verify `ray.tune` plus `optuna`. | Human before BO runs. | BO setup. |
 | `scripts/compare_runs.py` | Compare two evaluator or metrics JSON files using stable metrics. | Human/Teacher review. | Result analysis. |
 | `scripts/report_candidate_metrics.py` | Summarize one candidate run into canonical final/stage metrics, artifact paths, and key log counter lines so Students do not need to hand-parse nested metrics/log files. | Student helpers, Human/Teacher review. | Candidate result summary. |
+| `scripts/report_experiment_quick_status.py` | Fast state-only batch summary from round packets and Student metric summaries. Avoids ORFS-wide scans for frequent heartbeat checks. | Human/Teacher monitoring. | Monitoring/result analysis. |
 | `scripts/report_stage_metrics.py` | Print canonical per-round stage-wise HPWL/runtime/displacement rows from evaluator `metrics.json`, falling back to labeled partial DPL logs for in-flight evidence. | Human/Teacher review, packets. | Result analysis. |
 | `scripts/report_experiment_status.py` | Summarize a launch directory: active processes, completed/active rounds, best baseline vs best evolved donors, and optional detailed stage rows. | Human/Teacher monitoring. | Monitoring/result analysis. |
 
