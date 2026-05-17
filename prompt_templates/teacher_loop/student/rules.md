@@ -10,7 +10,9 @@
 
 - Use the Teacher route as the primary hypothesis, then validate it against current source and metrics before coding. Do not blindly execute Teacher prose when source evidence shows a better mechanism.
 - Optimize legal final `metrics.json:hpwl`. `G_HR` is analysis-only for runtime value; it is not the promotion target.
-- Runtime is a `${student_runtime_multiplier}x` hard budget and a spendable search resource for the OpenROAD legalize/improve/mirror flow. Do not optimize for baseline-like runtime by avoiding useful search; spend the available budget when it buys a cached, capped, explainable HPWL mechanism.
+- Runtime is a `${student_runtime_multiplier}x` hard budget and a cost to
+  justify, not an objective to consume. Extra search is useful only when it
+  changes a real HPWL mechanism and remains cached, capped, and explainable.
 - Edit only your private `dpl_evolve` source. Keep `detailed_placement_evolve -> improve_placement_evolve -> optimize_mirroring_evolve` callable.
 - Do not modify the top-level command interfaces for `detailed_placement_evolve`,
   `improve_placement_evolve`, or `optimize_mirroring_evolve`. Keep command
@@ -21,6 +23,10 @@
 
 1. Open the workspace packet, then use generated helpers for prepare/start, trial begin/keep/reject, build, evaluate, and finalization.
 2. Do short focused source diagnosis: current HPWL source, active functions/state, likely legality/runtime bottleneck, and why the mechanism can move more than a tiny donor polish. Do not turn diagnosis into a long reading pass.
+   Before coding, decide whether the bottleneck is producer-side legalization,
+   DPO consumer strength, handoff/frontier loss, or their composition. Teacher
+   guidance is a hypothesis; use current source evidence to choose the concrete
+   mechanism and implementation shape.
 3. Start the first real trial early. After a short diagnosis and one concrete mechanism plan, run `25_trial_source.sh begin --label <name>` and land the first coherent patch before doing more broad reading.
 4. Plan the source mechanism before editing, but keep the plan execution-oriented. Large mechanism-level rewrites and implementation-local helper files are allowed when they are coherent, bounded, reviewable, and validated.
    For non-guard routes, the patch should change a real mechanism class such
@@ -28,13 +34,18 @@
    legalizer-DPO handoff, or bounded search scope. Do not spend the main trial
    only on constants, tie-breaks, or telemetry unless Teacher assigned a guard
    or repair.
-   Your plan must explicitly address all three surfaces: legalizer behavior,
-   DPO/improve-placement behavior, and the handoff/frontier state between them.
-   You may emphasize one surface, but for ordinary optimization work do not
-   leave the other two as afterthoughts; either change them coherently or state
-   the concrete source-level reason they are being preserved as guards.
-5. Patch source, build, run the canonical full-flow evaluator, read the generated candidate metrics summary first, then inspect raw logs/counters only when the summary is insufficient. Make bounded evidence-driven revisions while a concrete mechanism-level fix exists. If build failure, crash, timeout, illegal placement, or zero-counter behavior looks like an implementation bug or integration bug, diagnose it and try one coherent same-route repair before rejecting. Use `25_trial_source.sh reject` only after preserving evidence when the path has no clear repair, stays non-executed, is validated-low-ROI, or worsens HPWL while also adding unjustified runtime. Keep the best clean evaluated source.
-6. Run finalization for the final source state and make sure source commit/ref, binary, metrics, diff, and report all describe the same code.
+   Your plan should name one dominant mechanism and one compatibility check
+   for adjacent stages. For example, a legalizer route should explain why the
+   output remains DPO-recoverable; a DPO route should explain why the input
+   state and any handoff/frontier make the search targeted. Do not make
+   cosmetic edits to legalizer, DPO, and handoff just to satisfy a checklist.
+   If the route is DPO-emphasis, avoid simply adding more post-DPO work. State
+   how the legalizer or handoff will make the DPO search targeted, or why a new
+   DPO move/scoring family attacks a different HPWL source.
+5. Patch source, build, run the canonical full-flow evaluator, read the generated candidate metrics summary first, then inspect raw logs/counters only when the summary is insufficient.
+6. Before finalization, run one self-diagnosis and strengthening loop. Diagnose whether the first result exposed an implementation bug, zero/non-live counter, weak accept rate, missing producer/consumer handoff, wrong HPWL source, excessive runtime, or stage-local gain erased downstream. Then make one coherent strengthened modification and re-run build/evaluation, unless the first result failed so fundamentally that the route must be rejected.
+7. After the strengthened evaluation, decide keep/reject/finalize from the best clean source. Use `25_trial_source.sh reject` only after preserving evidence when the path has no clear repair, stays non-executed, is validated-low-ROI, or worsens HPWL while also adding unjustified runtime. Keep the best clean evaluated source.
+8. Run finalization for the final source state and make sure source commit/ref, binary, metrics, diff, and report all describe the same code.
 
 ## Source And Branch Protocol
 
@@ -83,8 +94,22 @@
 - Before the first evaluator run, do not chase extra semantic details outside the first-patch handles unless the current patch is blocked by a concrete compile or correctness question.
 - After `trial begin`, stop re-deriving the outer command/evaluator chain unless the current patch is blocked by an actual uncertainty about call order or artifact wiring. Assume the generated packet, Teacher assignment, and helper scripts are the source of truth for stage order and evaluation entrypoints.
 - After each evaluation, inspect `candidate_metrics_summary_md/json` first. Open raw `metrics.json`, `legalize_summary.json`, or the DPL log only when the summary is missing a needed counter or path. Report final HPWL, stage-wise HPWL movement, legality, displacement, runtime, and active counters.
-- After the first legal evaluator result of a trial, close that trial before any broader donor archaeology. Decide `keep` or `reject` from the current trial evidence first, then finalize or start a new trial. Do not fetch prepared-start diffs or compare broad donor branches while an active trial is still open.
-- If the current trial is legal and you do not already have a concrete second patch ready inside the same landing zone, prefer immediate `keep -> finalize` over more reading. Smoke runs should bias toward one coherent patch and one closed result, not exploratory donor mining after evaluation.
+- The first evaluation after implementing Teacher's plan is not the final
+  stopping point. Use it as diagnosis input, then perform one strengthened
+  modification and re-evaluation before finalizing. The strengthened patch may
+  fix liveness, widen or retarget a bounded candidate set, add a missing
+  consumer, repair handoff, improve cache/caps, or pivot within the same HPWL
+  source.
+- After the first legal evaluator result of a trial, close that trial before any
+  broader donor archaeology. Decide `keep` or `reject` from the current trial
+  evidence first, then either finalize or start a focused new trial from the
+  preserved ref. Do not fetch prepared-start diffs or compare broad donor
+  branches while an active trial is still open.
+- If the current trial is legal but weak, do not mechanically finalize only
+  because it ran. If metrics expose a concrete same-route implementation bug,
+  missing consumer, or wrong HPWL source, start one focused repair/pivot trial;
+  otherwise keep/finalize the best clean source and report the limitation.
+  Smoke runs may still bias toward one coherent patch and one closed result.
 - Separate algorithmic failure from implementation cost: zero counters, stale binary/source mismatch, acceptance too strict, legality rejects, fallback domination, duplicate endpoint work, broad rescans, poor cache reuse, missing parallelism, or timeout.
 - Do not reject just because the first evaluation fails. First diagnose whether
   the failure is a local implementation/integration issue that can be repaired
@@ -96,9 +121,15 @@
 
 ## Runtime And Performance
 
-- Use the runtime budget deliberately. If the current implementation is very fast but HPWL is weak, try a stronger bounded candidate search, exact scoring, local dynamic programming, or producer/consumer repair before declaring the route exhausted.
+- Use runtime only with a mechanism reason. If the current implementation is
+  fast but HPWL is weak, first identify the missing HPWL source, then try a
+  stronger bounded candidate search, exact scoring, local dynamic programming,
+  or producer/consumer repair.
 - Any source-level search behavior is allowed when speed and quality remain controllable: broader scans, repeated subpasses, stronger DPO/legalizer loops, or randomized perturbations must have scope limits, counters, early-stop/gain-rate rules, and full-flow evidence.
 - Prefer handoff/frontier-guided targeting, compact candidate queues, dirty-edge/touched-net sets, row/segment caches, legality caches, per-net local boxes, thread-local score buffers, OpenMP/existing thread utilities, and deterministic reductions.
+- Plan high performance with the algorithm: name the cache/frontier/cap or
+  parallelization that keeps the mechanism efficient before relying on a wider
+  search. Runtime can increase only when it buys a controlled HPWL mechanism.
 - If the DPL flow times out, diagnose whether the cause is an implementation
   bug, an uncapped loop, or a fundamentally too-heavy mechanism. Repair capped
   implementation bugs once; do not rerun the same mechanism unchanged.

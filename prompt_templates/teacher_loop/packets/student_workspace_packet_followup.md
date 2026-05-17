@@ -42,10 +42,11 @@ Primary flow:
    - repair a prior kept/rejected ref when assigned: `$trial_source_script begin --label <repair-name> --from-ref <ref>`
    - start the first real trial as soon as the current mechanism path is clear; do not spend long in pre-edit diagnosis
    - edit source, then run `$build_variant_script` and `$evaluate_candidate_script`
-   - read `$candidate_metrics_summary_md` before deciding keep/reject
+   - read `$candidate_metrics_summary_md`, self-diagnose the first result, make one strengthened modification, then rerun `$build_variant_script` and `$evaluate_candidate_script`
+   - decide keep/reject only after the strengthened evaluation, unless the first result proves no plausible repair exists
    - rejected path: `$trial_source_script reject --reason <why-rejected>`
    - retained path: `$trial_source_script keep --reason <why-kept>`
-3. close a legal retained result immediately when it is already reviewable:
+3. close a legal retained result only after self-diagnosis plus strengthened evaluation:
    - `$keep_and_finalize_script --reason <why-kept>`
 4. final retained source: `$finalize_source_script`
 
@@ -59,7 +60,7 @@ Optional helpers:
 - metrics summary on demand: `$report_candidate_metrics_script`
 - trial state/status: `$trial_source_script status`
 - fresh build only if normal build fails: `$fresh_build_script`
-- one-shot for a legal kept result: `$keep_and_finalize_script --reason <why-kept>`
+- one-shot after the strengthened legal kept result: `$keep_and_finalize_script --reason <why-kept>`
 - one-shot after edits with no active trial: `$after_edit_script`
 
 For Diamond/negotiation/LEGALM/Differential Guidance mixtures, query
@@ -112,9 +113,10 @@ Teacher can later continue a repairable rejected line with `begin --from-ref`.
   `optimize_mirroring_evolve`. Keep command names and outer invocation
   contract stable; do not edit `src/Opendp.i` unless Teacher explicitly assigns
   command-interface work.
-- After the first legal evaluator result, close the active trial before any
-  broader donor reading. Prefer `$keep_and_finalize_script` when the current
-  result is already the best clean evidence in hand.
+- After the first legal evaluator result, do not finalize immediately. Diagnose
+  the bottleneck from metrics/logs/counters, make one strengthened modification,
+  and re-evaluate before keep/finalize. Close the active trial before broader
+  donor reading.
 
 ## Report Fields
 

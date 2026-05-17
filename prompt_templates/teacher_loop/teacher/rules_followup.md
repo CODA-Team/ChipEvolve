@@ -12,9 +12,9 @@ and review packet fields needed for routing.
 - Objective: legal final `metrics.json:hpwl` is the elite/promotion target.
   `G_HR` is analysis-only for runtime value; do not prefer faster worse-HPWL
   candidates unless lower-HPWL candidates fail legality/artifact/timeout gates.
-- Runtime is a spendable search resource inside the hard budget, not a value to
-  minimize by itself. If candidates are baseline-fast but HPWL-poor, assign a
-  stronger bounded mechanism that intentionally spends runtime for HPWL.
+- Runtime is a hard budget and secondary value check, not a direction by
+  itself. Assign heavier work only when the route names a missing HPWL source
+  and changes a real mechanism with a cost-control path.
 - Route from stage-wise evidence: identify the current largest HPWL source and
   assign one primary mechanism hypothesis per Student with a minimal first-patch
   landing zone. Usually give 1-3 primary handles and at most 2 support
@@ -24,6 +24,10 @@ and review packet fields needed for routing.
   and decide faster, but it must not forget routes that were never tested. If
   the best family stalls, reopen one broader algorithm card and assign a
   new-family route.
+- Before routing, restate the dominant HPWL source in one phrase: legalizer
+  producer quality, DPO consumer strength, handoff/frontier loss, final
+  mirror interaction, or composition. This source should drive the roster more
+  than generic runtime headroom.
 - Next-round direction must combine current metrics, Student knowledge-card
   reasoning, and one relevant knowledge/algorithm handle when the route changes
   family or claims a specific mechanism insight.
@@ -32,17 +36,27 @@ and review packet fields needed for routing.
   guard/repair route; the other routes should `switch`, `hybridize`, or
   `mechanism-redesign` with a different producer/consumer mechanism.
 - Route emphasis is not stage exclusion. In each follow-up round, preserve
-  explicit coverage of legalizer-output quality, DPO-consumer strength, and
-  handoff/co-optimization. A Student can prioritize one surface, but the packet
-  should still say how the other two are changed, consumed, or deliberately
-  held as guards. Avoid assigning a whole roster that only chases one DPO
-  family or one legalizer family.
+  compatibility coverage of legalizer-output quality, DPO-consumer strength,
+  and handoff/co-optimization. A Student can prioritize one surface; the packet
+  should say how adjacent stages will consume, preserve, or validate that
+  mechanism, but should not force cosmetic edits in every stage. Avoid assigning
+  a whole roster that only chases one DPO family or one legalizer family.
+- If the current winners are DPO/mirror-heavy, runtime-heavy, or tiny-gain,
+  route at most one Student to continue that consumer family. Use the other
+  slots for different HPWL sources: legalizer producer repair, placement
+  shaping that preserves downstream recoverability, compact native handoff, or
+  a genuinely new bounded DPO move family.
 - Each non-guard route must say why it can beat a small donor by attacking a
   larger HPWL source. Same-family follow-up is valid only when it changes the
   mechanism class, not just thresholds, tie-breaks, counters, or local polish.
 - Encourage coherent mechanism-level source rewrites when justified by Teacher
   evidence and source diagnosis; the constraint is bounded/reviewable/measured,
   not small.
+- Require each non-guard Student to diagnose the current source before coding
+  and to design an efficient implementation path for the chosen mechanism:
+  capped candidate generation, cached/touched-net scoring, compact frontier
+  state, or parallel independent probes where useful. Do not assign a route
+  whose plan is only "try more DPO work" without a new HPWL source hypothesis.
 - Avoid repeated micro-optimization loops. If a mechanism is live, correctly
   implemented, and still has extremely small full-flow HPWL movement after one
   meaningful repair, mark it `validated-low-ROI`, require `source_trials.jsonl`
@@ -71,11 +85,9 @@ and review packet fields needed for routing.
   apply release/start patch files.
 - Limit selected mechanism skills: normally one primary mechanism skill, one
   auxiliary handoff/objective skill, and one optional diagnosis skill.
-- Keep packets non-accumulative: one HPWL source, concise A/B/C plan, first-
-  patch handles, minimal support handles, runtime tier, liveness counters,
+- Keep packets non-accumulative: one HPWL source, concise dominant-mechanism
+  plan, first-patch handles, minimal support handles, runtime tier, liveness counters,
   low-ROI stop rule, and metric proof.
-  A/B/C should cover legalization, DPO, and handoff behavior. Preservation or
-  diagnosis is acceptable for guard/repair routes, but ordinary optimization
-  routes should attempt a concrete producer-consumer connection rather than
-  cosmetic edits.
+  Adjacent-stage notes should prove compatibility or handoff needs, not force
+  equal edits across legalization, DPO, and handoff.
   Replace stale guidance instead of appending history.

@@ -12,9 +12,10 @@ choice needs it.
 - Optimize legal final `metrics.json:hpwl`. `G_HR` is analysis-only; do not call
   faster worse-HPWL code the best result unless lower-HPWL code fails legality,
   artifact, or timeout gates.
-- Treat runtime inside the hard budget as a search resource. If the route is
-  baseline-fast but HPWL-poor, deliberately spend budget on bounded stronger
-  candidate generation, exact scoring, local DP, or producer/consumer repair.
+- Treat runtime inside the hard budget as a cost to justify. If the route is
+  baseline-fast but HPWL-poor, first identify the missing HPWL source, then use
+  bounded stronger candidate generation, exact scoring, local DP, or
+  producer/consumer repair only when it changes the mechanism.
 - Work on your current iteration branch under `private_dpl_evolve_source`.
   Prepared starts are already branches; do not manually apply release/start
   patch files.
@@ -28,11 +29,10 @@ choice needs it.
   generation, scoring, acceptance, transaction/rollback, handoff, or bounded
   search scope. Do not make the main trial only a constants/tie-break/telemetry
   retune unless Teacher explicitly assigned guard or repair.
-- Your short plan must cover the legalizer, DPO/improve-placement, and their
-  handoff. A route can emphasize one surface, but ordinary optimization should
-  still define how the legalizer output remains DPO-recoverable, how DPO
-  consumes or repairs it, and what compact frontier/residual signal is passed
-  or intentionally guarded.
+- Your short plan should name one dominant mechanism and the adjacent-stage
+  compatibility proof. A legalizer route should explain DPO recoverability; a
+  DPO route should explain why the input state and handoff/frontier make the
+  search targeted; a handoff route should name both producer and consumer.
 - You may change legalization, improve placement/DPO, source-internal
   parameters, scoring, candidate generation, transactions, handoff state, and
   compact telemetry. Do not edit evaluator/ORFS/baseline scripts or move tuning
@@ -51,6 +51,13 @@ choice needs it.
 - After evaluation, inspect metrics/logs for HPWL stage movement, legality,
   runtime, liveness counters, accept/reject bottleneck, and source/binary/metric
   alignment.
+- Treat the first evaluation after Teacher-plan implementation as diagnosis,
+  not finalization. Before finalizing, make one strengthened modification and
+  re-run build/evaluation. Strengthen by fixing liveness, retargeting bounded
+  candidates, adding a missing producer/consumer link, repairing handoff,
+  improving cache/caps, or pivoting within the same HPWL source. Reject instead
+  only when the first result shows no plausible repair or a fundamental route
+  failure.
 - New algorithms or handoff paths need minimal useful counters/logs: producer
   count, consumer attempts, accepts/rejects, HPWL gain or loss, and pass/runtime
   cost where applicable.
@@ -60,12 +67,14 @@ choice needs it.
   repair before rejecting.
 - After the first legal evaluator result of a trial, close that trial before
   any broader donor archaeology. Decide `keep` or `reject` from the current
-  trial evidence first, then finalize or start a new trial; do not leave an
-  active trial open while fetching prepared-start diffs or broad donor context.
-- If the current trial is legal and no concrete second patch is already queued
-  inside the same landing zone, prefer immediate `keep -> finalize`. Smoke
-  follow-ups should produce a closed result, not extended post-eval donor
-  mining.
+  trial evidence first, then finalize or start a focused repair/pivot trial
+  from the preserved ref; do not leave an active trial open while fetching
+  prepared-start diffs or broad donor context.
+- If the current trial is legal but weak, do not mechanically finalize only
+  because it ran. Continue only when metrics expose a concrete same-route
+  implementation bug, missing consumer, or wrong HPWL source; otherwise keep
+  the best clean source and report the limitation. Smoke follow-ups may still
+  produce one closed result.
 - If the mechanism is live and correct but still has extremely small full-flow
   HPWL movement after a meaningful repair attempt, stop chasing tiny variants.
   Record `validated-low-ROI`, preserve it through the trial helper, and propose

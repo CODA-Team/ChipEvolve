@@ -73,10 +73,12 @@ Primary flow:
    - repair a prior kept/rejected ref when assigned: `$trial_source_script begin --label <repair-name> --from-ref <ref>`
    - after a short targeted diagnosis, start the first real trial early; do not delay `begin` behind broad code reading
    - edit source, then run `$build_variant_script` and `$evaluate_candidate_script`
-   - canonical result summary is generated automatically; read `$candidate_metrics_summary_md` before deciding keep/reject
+   - canonical result summary is generated automatically; read `$candidate_metrics_summary_md`
+   - self-diagnose the first result, make one strengthened modification, then rerun `$build_variant_script` and `$evaluate_candidate_script`
+   - decide keep/reject only after the strengthened evaluation, unless the first result proves the route has no plausible repair
    - rejected path: `$trial_source_script reject --reason <why-rejected>`
    - retained path: `$trial_source_script keep --reason <why-kept>`
-4. close a legal retained result immediately when it is already reviewable:
+4. close a legal retained result only after the self-diagnosis plus strengthened evaluation:
    - `$keep_and_finalize_script --reason <why-kept>`
 5. final retained source: `$finalize_source_script`
 
@@ -86,7 +88,7 @@ Optional helpers:
 - switch prepared start after prepare: `$switch_start_branch_script --kind <kind>`
 - trial state/status: `$trial_source_script status`
 - metrics summary on demand: `$report_candidate_metrics_script`
-- one-shot for a legal kept result: `$keep_and_finalize_script --reason <why-kept>`
+- one-shot after the strengthened legal kept result: `$keep_and_finalize_script --reason <why-kept>`
 - one-shot after edits with no active trial: `$after_edit_script`
 - fresh build only if normal build fails: `$fresh_build_script`
 
@@ -171,7 +173,10 @@ Before final answer:
 - A failed first evaluation is a diagnosis input, not an immediate reason to
   abandon the route. Try one coherent same-route repair when the failure is a
   plausible implementation or integration bug.
-- After the first legal evaluator result, close the active trial before any broader donor reading. Prefer `$keep_and_finalize_script` when the current result is already the best clean evidence you have.
+- After the first legal evaluator result, do not finalize immediately. Use the
+  metrics summary and any needed counters to diagnose the bottleneck, make one
+  strengthened modification, and re-evaluate before keep/finalize. Close the
+  active trial before any broader donor reading.
 
 ## Evaluation Timeout
 

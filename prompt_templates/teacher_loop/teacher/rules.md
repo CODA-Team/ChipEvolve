@@ -10,12 +10,14 @@
 
 - Promote only legal candidates by final `metrics.json:hpwl`; ignore proxy HPWL.
 - `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref - P(runtime_sol / runtime_ref), where P(r)=0 for r <= 1.10 and P(2.0)=1.0 percentage point` is analysis-only. Use it to explain whether runtime is worth the HPWL gain, not as the elite selector.
-- Runtime is a `${student_runtime_multiplier}x` hard budget and a search resource for the evaluated DPL flow. Teacher should expect Students to spend some of that budget on stronger bounded HPWL exploration when the mechanism is plausible. A faster but worse-final-HPWL candidate is runtime/control evidence unless the lower-HPWL candidate fails legality, artifacts, or timeout.
+- Runtime is a `${student_runtime_multiplier}x` hard budget and a secondary value check, not a routing objective. Extra runtime is justified only when the route names a larger HPWL source, changes a real mechanism, and has caps/cache/parallelism that make the cost explainable. A faster but worse-final-HPWL candidate is runtime/control evidence unless the lower-HPWL candidate fails legality, artifacts, or timeout.
 - Always inspect stage-wise evidence before routing: `HPWLg`, legalization delta, improve-placement delta, final HPWL, legality, displacement, runtime, logs, and liveness counters.
 - Compare `openroad_dpl_flow`, `openroad_dpl_negotiation`, and `evolve_default` as evidence. The OpenROAD DPL default-flow row is the value reference.
 - First-round Teacher planning should spend real effort on a global mechanism
-  scan. Query knowledge broadly enough to identify several plausible legalizer,
-  DPO, and handoff families, then turn them into a case-specific route map.
+  scan. Query knowledge broadly enough to identify several feature-matched
+  legalizer, DPO, and handoff families, then choose the strongest route map
+  from design features and stage attribution. Do not treat the scan as a long
+  reading task; it should produce concrete donor-family hypotheses.
   Follow-up planning should read less and exploit the first-round map unless
   weak-gain, over-cost, or plateau evidence justifies a new-family search.
 
@@ -24,6 +26,11 @@
 - Give each Student one primary HPWL-source hypothesis with a minimal first-patch landing zone, a falsifiable metric outcome, runtime tier, and liveness counters. The first patch landing zone should usually be 1-3 primary handles; supporting producer/consumer edits may name at most 2 extra support handles when they are necessary for the hypothesis.
 - Route Students toward an early first patch/build/eval loop. Do not assign broad "read more first" work when the current HPWL source and source handles are already clear enough to test a mechanism.
 - Mechanism-level source rewrites are allowed and expected when evidence supports them. The constraint is coherent, bounded, reviewable, measurable, and full-flow validated; it is not "small edit only".
+- Before assigning routes, state the dominant current HPWL source: legalizer
+  producer quality, DPO consumer strength, handoff/frontier loss, final mirror
+  interaction, or their composition. Most non-guard routes should attack that
+  source through different mechanism families, not through unrelated balanced
+  edits.
 - First-round route diversity matters. Spread Students across distinct
   mechanism families such as legalizer composition, DPO kernel redesign, handoff
   consumer, and aggressive bounded basin search when those are plausible for
@@ -43,14 +50,17 @@
   keep live coverage of legalizer-output repair, DPO-consumer strengthening,
   and legalizer-to-DPO handoff/co-optimization unless the current evidence has
   proven one surface irrelevant.
-- Use a short A/B/C chain: A legalization/detailed-placement, B
-  improve-placement/DPO, C handoff/co-optimization. For ordinary optimization
-  routes, ask the Student to plan concrete source behavior for all three:
-  how the legalizer will produce a more DPO-recoverable placement, how DPO will
-  consume or further repair it, and what bounded handoff/frontier signal will
-  connect them. A route may emphasize one surface, but it should not be
-  DPO-only or legalizer-only unless it is explicitly a guard, regression
-  control, or narrowly scoped repair.
+- If current best candidates mostly come from DPO/mirror consumers or spend
+  runtime for tiny final-HPWL gains, do not route the whole roster into more
+  DPO polish. Keep at most one DPO guard/repair route, then assign diverse
+  producer-side or producer-consumer mechanisms: legalizer output repair,
+  DPO-recoverable placement shaping, compact handoff/frontier creation, or a
+  new bounded DPO move family with a different HPWL source.
+- Use a short dominant-mechanism plan, not a forced balanced checklist. Name
+  the primary mechanism, then add compatibility proof for the adjacent stages:
+  how legalizer output remains DPO-recoverable, how DPO consumes or preserves
+  the state, and whether a compact handoff/frontier signal is needed. Do not
+  require cosmetic edits in all three stages.
 - If a verified live mechanism gives only extremely small full-flow HPWL movement after a meaningful repair attempt, mark it `validated-low-ROI`, require `source_trials.jsonl` evidence from the trial helper, and assign a different HPWL source. Do not keep assigning tie-break, threshold, or donor-polish variants.
 - If stage-local gain is erased downstream, preserve it as a stage donor and route the next work to handoff or consumer repair.
 - If review finds a rejected mechanism is implementation-bug or handoff-repairable rather than method-low-ROI, explicitly assign a repair trial from its ref using `25_trial_source.sh begin --from-ref <ref>`.
@@ -82,10 +92,19 @@
 
 ## Runtime And Implementation Expectations
 
-- Treat runtime budget as spendable engineering capital, not a minimization target. If current candidates stay near baseline runtime but miss HPWL, route at least one Student toward a stronger bounded exploration that deliberately consumes available budget for HPWL.
-- Runtime budget should buy stronger bounded mechanisms: larger capped row/window search, exact affected-net scoring, batch transactions, parallel candidate evaluation, donor hybridization, local dynamic programming, or better legalizer-to-DPO handoff.
+- Treat runtime as a constrained cost, not as something to spend by default. If
+  current candidates stay near baseline runtime but miss HPWL, route a stronger
+  bounded mechanism only after identifying the missing HPWL source.
+- Extra runtime should buy a qualitatively different mechanism: better
+  legalizer producer state, a new DPO move family, exact affected-net scoring,
+  batch transactions, parallel candidate evaluation, donor hybridization, local
+  dynamic programming, or better legalizer-to-DPO handoff.
 - Larger scans, repeated endpoint-like subpasses, and randomized perturbations are allowed only as controlled source mechanisms with scope, counters, early-stop/gain-rate evidence, and full-flow metrics. Prefer frontier/handoff-guided targeting over blind random search.
 - Encourage efficient implementation: caps, caches, compact queues, touched-net/frontier data, thread-local scratch buffers, OpenMP/existing thread utilities for independent probes, and deterministic reductions.
+- Ask Students to design the performance path, not only the idea: identify
+  which data is reused, which candidates are capped, which counters prove
+  liveness, and where parallel or cached exact scoring makes the stronger
+  mechanism affordable inside the runtime gate.
 
 ## Output Discipline
 
