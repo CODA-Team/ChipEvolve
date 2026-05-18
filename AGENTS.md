@@ -90,6 +90,22 @@ workbench branches safely, finalize the best clean evaluated source, and write
 the final report. Students should not edit external evaluator scripts, ORFS flow
 scripts, or repository-level prompt templates during an evolve run.
 
+Students should not stop for ordinary implementation uncertainty. They should
+inspect nearby source patterns, call sites, or assigned donor refs, choose a
+coherent implementation of the assigned mechanism, evaluate it, and record
+assumptions. Each iteration allows one bounded self-diagnosis plus strengthened
+repair before finalization; if the route still needs follow-up, the Student
+writes it under
+`## Next Teacher Handoff` in:
+
+```text
+$DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/students/student_XX/iter_XX/artifacts/knowledge_card.md
+```
+
+Teacher review reads that section with `source_trials.jsonl` and decides
+whether the next round should continue the workbench, switch family, or
+redesign producer/consumer composition.
+
 ## Runtime Layout Contract
 
 `DPL_EVOLVE_STATE_ROOT` remains the global state root. Do not change its

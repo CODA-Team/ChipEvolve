@@ -185,7 +185,14 @@ def focused_message_excerpt(text: str, *, max_chars: int = 900) -> str:
             "mechanism",
             labeled_line_excerpt(
                 text,
-                ("Mechanism", "core idea", "Implemented", "Touched files"),
+                (
+                    "Mechanism",
+                    "core idea",
+                    "Implemented",
+                    "Touched files",
+                    "Route And Hypothesis",
+                    "Source Map",
+                ),
                 max_chars=per_field,
             ),
         ),
@@ -201,7 +208,13 @@ def focused_message_excerpt(text: str, *, max_chars: int = 900) -> str:
             "next",
             labeled_line_excerpt(
                 text,
-                ("Next experiment", "Next uncertainty", "Next step"),
+                (
+                    "Next Teacher Handoff",
+                    "Next Repair Or Pivot",
+                    "Next experiment",
+                    "Next uncertainty",
+                    "Next step",
+                ),
                 max_chars=per_field,
             ),
         ),
@@ -239,9 +252,17 @@ def peer_mechanism_summary(
     text = ""
     if artifacts and artifacts.knowledge_card.exists():
         text = artifacts.knowledge_card.read_text(encoding="utf-8", errors="replace")
-        mechanism = markdown_section_excerpt(text, "Mechanism")
+        mechanism = (
+            markdown_section_excerpt(text, "Mechanism")
+            or markdown_section_excerpt(text, "Route And Hypothesis")
+            or markdown_section_excerpt(text, "Source Map")
+        )
         lesson = markdown_section_excerpt(text, "Causal lesson")
-        next_step = markdown_section_excerpt(text, "Next experiment")
+        next_step = (
+            markdown_section_excerpt(text, "Next Teacher Handoff")
+            or markdown_section_excerpt(text, "Next Repair Or Pivot")
+            or markdown_section_excerpt(text, "Next experiment")
+        )
         if mechanism or lesson or next_step:
             return (
                 mechanism,
@@ -260,7 +281,13 @@ def peer_mechanism_summary(
     )
     next_step = labeled_line_excerpt(
         text,
-        ("Next experiment", "Next uncertainty", "Next step"),
+        (
+            "Next Teacher Handoff",
+            "Next Repair Or Pivot",
+            "Next experiment",
+            "Next uncertainty",
+            "Next step",
+        ),
     )
     return mechanism, lesson, next_step
 
@@ -2108,6 +2135,14 @@ if [[ ! -f "$KNOWLEDGE_CARD" ]]; then
 ## Next Repair Or Pivot
 
 - next action:
+
+## Next Teacher Handoff
+
+- current bottleneck:
+- attempted self-diagnosis/repair:
+- why one repair was enough or insufficient:
+- source refs/handles for Teacher:
+- proposed next route:
 EOF_KNOWLEDGE
 fi
 

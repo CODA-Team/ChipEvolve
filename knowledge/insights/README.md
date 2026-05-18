@@ -20,11 +20,12 @@ should act on it.
 11. `../skills/case/legalizer_dpo_handoff_triage.md`
 12. `legalization/algorithm_role_liveness_basics.md`
 13. `dpo/source_level_mechanisms.md`
-14. `dpo/lightweight_post_dpo_basin.md`
-15. `dpo/frontier_guided_basin_consumer.md`
-16. `dpo/openroad_native_handoff.md`
-17. `case_evolution/micro_gain_trap_and_elite_donors.md`
-18. Relevant LEGALM card under `legalm/` only when changing legalization.
+14. `dpo/exact_source_edge_recoverability_consumer.md`
+15. `dpo/lightweight_post_dpo_basin.md`
+16. `dpo/frontier_guided_basin_consumer.md`
+17. `dpo/openroad_native_handoff.md`
+18. `case_evolution/micro_gain_trap_and_elite_donors.md`
+19. Relevant LEGALM card under `legalm/` only when changing legalization.
 
 ## Workflow
 
@@ -76,6 +77,10 @@ should act on it.
   repair, DPO-consumer strengthening, handoff repair, or co-optimization.
 - `dpo/source_level_mechanisms.md`: source-level improve-placement mechanisms
   to reimplement directly in current `Optdp`/`Detailed*` code.
+- `dpo/exact_source_edge_recoverability_consumer.md`: co-optimization pattern
+  where a legal but not HPWL-optimal state is preserved for exact
+  source-edge/global-swap, edge-critical, selected-reorder, and bounded polish
+  consumers.  Use it when final HPWL responds strongly after improve placement.
 - `dpo/lightweight_post_dpo_basin.md`: when a stable legalizer still leaves
   local DPO residue and one bounded basin cleanup pass is a good donor.
 - `dpo/aggressive_basin_schedule.md`: when a validated light basin donor should

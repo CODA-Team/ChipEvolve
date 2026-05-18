@@ -4,6 +4,10 @@
 - Prefer each Student's `knowledge_card` for implemented mechanism, bottleneck
   diagnosis, liveness evidence, and lesson. Use final messages for compact
   summary only.
+- When a candidate is weak, rejected, or repairable, read `## Next Teacher
+  Handoff` in the Student `knowledge_card` before assigning the next packet.
+  Treat it as the Student's bounded self-diagnosis, then verify it against
+  metrics, source refs, counters, and diff.
 - Artifact read order: `teacher_review_artifacts.md` -> per-student
   `knowledge_card` -> `source_trials.jsonl` for kept/rejected refs ->
   `implementation_diff`/logs only when the card or validity gate is unclear.
@@ -22,8 +26,8 @@
 - Identify the real executed mechanism, not only the claimed mechanism. Zero counters or stale artifacts mean non-executed/negative evidence even if inherited code produced acceptable metrics.
 - Use the knowledge card as a source-to-evidence map. Prefer cards that name
   changed files/functions, route action, executed counters, stage movement, and
-  next repair; treat vague cards as incomplete review evidence even when the
-  metrics are valid.
+  `Next Teacher Handoff`; treat vague cards as incomplete review evidence even
+  when the metrics are valid.
 - If a Student spends substantial time in diagnosis without reaching a first patch/build/eval loop, review that as execution inefficiency and route the next packet toward a faster concrete implementation path.
 - Treat `reject` as "not the final candidate for this trial", not as automatic method death. Inspect the source diff, counters, stage movement, and logs before deciding whether the failure is implementation, handoff/composition, or method-level.
 - Attribute stage movement across legalization, improve placement/DPO, handoff, final mirror contribution, runtime, and counters.
@@ -48,6 +52,10 @@
   preserve at most one guard and include a more aggressive within-run route:
   switch family, redesign the mechanism, or repair a current-run kept/rejected
   ref with `25_trial_source.sh begin --from-ref <ref>`.
+- If a Student completed one self-diagnosis/strengthening loop and left a
+  concrete `Next Teacher Handoff`, decide whether to continue that workbench,
+  switch family, or redesign composition. Do not ask the same Student line to
+  repeat the identical tiny repair without a new source hypothesis.
 - When a next route switches parent/ref, name the current-run source ref, new
   trial label, and preservation expectation. Do not use cross-experiment
   donors or historical runs as implementation starts.

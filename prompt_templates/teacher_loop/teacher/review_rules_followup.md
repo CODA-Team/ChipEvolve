@@ -15,10 +15,15 @@ route. Keep the review concise and action-bearing.
   counters or stale source/binary/metrics means non-executed/negative evidence.
 - Use each knowledge card as the source-to-evidence map. A useful card should
   name changed files/functions, route action, executed counters, stage movement,
-  and next repair; vague cards should trigger tighter next-packet requirements.
+  and `Next Teacher Handoff`; vague cards should trigger tighter next-packet
+  requirements.
 - Read order for mechanism reasoning is the artifact packet first, then each
   relevant `knowledge_card`, then `source_trials.jsonl` or diff/logs only if a
   card is vague, inconsistent, or marks a repairable rejected ref.
+- When a candidate is weak, rejected, or repairable, read `## Next Teacher
+  Handoff` in the Student `knowledge_card` as its bounded self-diagnosis before
+  assigning the next packet; verify it against metrics, refs, counters, and
+  diff.
 - Treat `reject` as not-final-for-this-trial, not automatic method death. Use
   source diff, counters, logs, and stage movement to decide implementation bug,
   handoff/composition issue, method-low-ROI, or hard non-promotable failure.
@@ -41,6 +46,9 @@ route. Keep the review concise and action-bearing.
   within-run route: switch family, redesign producer/consumer composition, or
   repair a current-run kept/rejected ref with
   `25_trial_source.sh begin --from-ref <ref>`.
+- If a Student completed one self-diagnosis/strengthening loop and left a
+  concrete `Next Teacher Handoff`, continue that workbench only with a new
+  source hypothesis; otherwise switch family or redesign composition.
 - Preserve stage donors when downstream erases a gain; route the next Student to
   handoff/consumer repair rather than discarding the stage mechanism.
 - If a Student restored a better final source, use `source_trials.jsonl` refs as

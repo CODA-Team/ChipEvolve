@@ -43,6 +43,7 @@ Primary flow:
    - start the first real trial as soon as the current mechanism path is clear; do not spend long in pre-edit diagnosis
    - edit source, then run `$build_variant_script` and `$evaluate_candidate_script`
    - read `$candidate_metrics_summary_md`, self-diagnose the first result, make one strengthened modification, then rerun `$build_variant_script` and `$evaluate_candidate_script`
+   - if the strengthened result still needs follow-up, write `## Next Teacher Handoff` in `$knowledge_card`
    - decide keep/reject only after the strengthened evaluation, unless the first result proves no plausible repair exists
    - rejected path: `$trial_source_script reject --reason <why-rejected>`
    - retained path: `$trial_source_script keep --reason <why-kept>`
@@ -100,7 +101,11 @@ Teacher can later continue a repairable rejected line with `begin --from-ref`.
   knowledge card describe the same code.
 - Fill the knowledge card as a source-to-evidence map: route action, changed
   files/functions, mechanism class, counters/logs, stage metrics, rejected
-  refs, and next repair or pivot.
+  refs, and `## Next Teacher Handoff` when follow-up is needed.
+- Resolve ordinary code uncertainty with targeted source inspection of nearby
+  implementations, call sites, or assigned donor refs. If still ambiguous,
+  choose the simplest coherent implementation of the assigned mechanism; do not
+  pause the iteration for ordinary uncertainty.
 - Prefer patch/build/eval over repeated broad reading once the current
   mechanism is understood.
 - If Teacher already provided `first patch handles`, keep the first edit/build/

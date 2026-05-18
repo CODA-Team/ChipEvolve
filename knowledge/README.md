@@ -20,21 +20,23 @@ Default reading order:
    choosing which prior mechanism families deserve active search budget
 10. `insights/dpo/source_level_mechanisms.md` when planning improve-placement
    source mechanisms
-11. `insights/dpo/openroad_native_handoff.md` when passing legalization
+11. `insights/dpo/exact_source_edge_recoverability_consumer.md` when a legal
+   but not HPWL-optimal state may have a large DPO-recoverable basin
+12. `insights/dpo/openroad_native_handoff.md` when passing legalization
    frontier state into improve placement
-12. `insights/dpo/lightweight_post_dpo_basin.md` when a stable legalizer still
+13. `insights/dpo/lightweight_post_dpo_basin.md` when a stable legalizer still
     leaves post-DPO HPWL residue
-13. `skills/case/legalizer_dpo_handoff_triage.md` when stage evidence is
+14. `skills/case/legalizer_dpo_handoff_triage.md` when stage evidence is
    ambiguous and Teacher must decide whether to repair legalizer output,
    strengthen DPO, or improve handoff
-14. `insights/dpo/frontier_guided_basin_consumer.md` when a producer frontier
+15. `insights/dpo/frontier_guided_basin_consumer.md` when a producer frontier
     should be consumed by exact basin search
-15. `insights/legalization/algorithm_role_liveness_basics.md` before routing
+16. `insights/legalization/algorithm_role_liveness_basics.md` before routing
    Diamond, negotiation, LEGALM, or Differential Guidance families
-16. `skills/legalization/differential_guidance_stop_target.md` when using
+17. `skills/legalization/differential_guidance_stop_target.md` when using
    LEGALM/differential guidance as a seed/frontier instead of a full legalizer
-17. one relevant file under `algorithm_cards/` or `insights/`
-18. paper PDFs and source notes under `reference/` only if needed
+18. one relevant file under `algorithm_cards/` or `insights/`
+19. paper PDFs and source notes under `reference/` only if needed
 
 Current compact algorithm cards:
 
@@ -53,6 +55,7 @@ Current compact algorithm cards:
 - `insights/case_evolution/full_flow_timeout_and_target_selection.md`
 - `skills/case/legalizer_dpo_handoff_triage.md`
 - `insights/dpo/source_level_mechanisms.md`
+- `insights/dpo/exact_source_edge_recoverability_consumer.md`
 - `insights/dpo/openroad_native_handoff.md`
 - `insights/dpo/lightweight_post_dpo_basin.md`
 - `insights/dpo/aggressive_basin_schedule.md`
@@ -117,6 +120,14 @@ polishing are lower-priority evidence unless the current stage metrics expose a
 specific repair path.  See
 `insights/case_evolution/runtime_light_final_hpwl_mechanism_priority.md` and
 `insights/case_evolution/evidence_weighted_mechanism_priority.md`.
+
+One high-value replay pattern is a legalizer that slightly worsens `HPWLlg` but
+preserves a DPO-recoverable basin, followed by exact source-edge/global-swap
+consumers, edge-critical queues, selected-segment exact reorder, and bounded
+post-reorder polish.  Treat this as a co-optimization donor: the promotion
+evidence is clean final full-flow HPWL plus producer/consumer liveness, not
+legalization-stage HPWL alone.  See
+`insights/dpo/exact_source_edge_recoverability_consumer.md`.
 
 For `evolved_negotiation`, verify the negotiation-primary route signal before
 using it as a donor.  The intended mechanism is resource-allocation/conflict

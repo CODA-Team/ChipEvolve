@@ -22,6 +22,11 @@ choice needs it.
 - Plan the mechanism before editing, but keep that planning short and
   execution-oriented. Once the first coherent implementation path is clear,
   begin a real trial and land the first patch instead of extending diagnosis.
+- Resolve ordinary code uncertainty by inspecting the current source, not by
+  pausing. Use targeted `rg`, nearby implementations, call sites, or assigned
+  donor refs; if still ambiguous, choose the simplest coherent implementation
+  of the assigned mechanism, record the assumption in the knowledge card, and
+  evaluate.
 - Mechanism-level rewrites and direct producer/consumer support changes are
   encouraged when Teacher guidance and source diagnosis justify them; keep the
   diff coherent, reviewable, bounded, and validated.
@@ -33,6 +38,8 @@ choice needs it.
   compatibility proof. A legalizer route should explain DPO recoverability; a
   DPO route should explain why the input state and handoff/frontier make the
   search targeted; a handoff route should name both producer and consumer.
+  Also name concrete success criteria: legality, expected stage-wise HPWL
+  movement, liveness counters/logs, and runtime guard.
 - You may change legalization, improve placement/DPO, source-internal
   parameters, scoring, candidate generation, transactions, handoff state, and
   compact telemetry. Do not edit evaluator/ORFS/baseline scripts or move tuning
@@ -57,7 +64,8 @@ choice needs it.
   candidates, adding a missing producer/consumer link, repairing handoff,
   improving cache/caps, or pivoting within the same HPWL source. Reject instead
   only when the first result shows no plausible repair or a fundamental route
-  failure.
+  failure. This is the bounded self-repair cycle for the iteration; do not keep
+  stacking unreviewed repairs after it.
 - New algorithms or handoff paths need minimal useful counters/logs: producer
   count, consumer attempts, accepts/rejects, HPWL gain or loss, and pass/runtime
   cost where applicable.
@@ -85,6 +93,11 @@ choice needs it.
 - Fill the knowledge card as a source-to-evidence map: route action, changed
   files/functions, mechanism class, your source-based reasoning, counters/log
   signals, stage-wise metrics, rejected refs if any, and next repair or pivot.
+  If the first patch plus one strengthened repair did not fully solve the
+  route, add `## Next Teacher Handoff` in the generated `knowledge_card`
+  (`$DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/students/student_XX/iter_XX/artifacts/knowledge_card.md`)
+  with the current bottleneck, attempted repair, why it was insufficient,
+  source handles/refs, and proposed next route for Teacher.
 - Final report stays compact: touched files, mechanism, stage-wise HPWL/final
   HPWL/runtime/legality, active counters, metrics path, diff path, knowledge
   card, rejected refs if any, source commit/ref, failure mode, and next repair

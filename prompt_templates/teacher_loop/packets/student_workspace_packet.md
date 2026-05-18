@@ -79,6 +79,7 @@ Primary flow:
    - edit source, then run `$build_variant_script` and `$evaluate_candidate_script`
    - canonical result summary is generated automatically; read `$candidate_metrics_summary_md`
    - self-diagnose the first result, make one strengthened modification, then rerun `$build_variant_script` and `$evaluate_candidate_script`
+   - if the strengthened result still needs follow-up, write `## Next Teacher Handoff` in `$knowledge_card`
    - decide keep/reject only after the strengthened evaluation, unless the first result proves the route has no plausible repair
    - rejected path: `$trial_source_script reject --reason <why-rejected>`
    - retained path: `$trial_source_script keep --reason <why-kept>`
@@ -152,13 +153,17 @@ Before final answer:
 - best clean source state is committed and pinned to `stable_candidate_ref`
 - `implementation_diff` exists and describes the committed source
 - rejected branches are preserved before reverting any useful failed workbench
-- `knowledge_card` maps source to evidence: route action, changed files/functions, mechanism class, counters/logs, stage metrics, rejected refs, and next repair or pivot
+- `knowledge_card` maps source to evidence: route action, changed files/functions, mechanism class, counters/logs, stage metrics, rejected refs, and `## Next Teacher Handoff` when follow-up is needed
 - report includes final HPWL/runtime/displacement, stage-wise HPWL deltas, legality, active counters, metrics path, diff path, rejected refs if any, knowledge card path, source commit/ref, and next repair or pivot
 
 ## Execution Bias
 
 - Prefer the first concrete patch/build/eval loop over extended diagnosis.
 - If the assigned mechanism and source handles are already clear, patch now and use evaluation to drive the next diagnosis.
+- Resolve ordinary code uncertainty with targeted source inspection of nearby
+  implementations, call sites, or assigned donor refs. If still ambiguous,
+  choose the simplest coherent implementation of the assigned mechanism; do not
+  pause the iteration for ordinary uncertainty.
 - Treat Teacher `first patch handles` as the initial landing zone. Do not widen
   source reading before the first evaluator run unless that landing zone is
   clearly wrong or blocked by a concrete compile/correctness question.
