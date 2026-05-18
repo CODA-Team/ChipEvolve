@@ -40,11 +40,22 @@
    legalizer-DPO handoff, or bounded search scope. Do not spend the main trial
    only on constants, tie-breaks, or telemetry unless Teacher assigned a guard
    or repair.
+   If Teacher assigned a guard route, do not assume it is no-op telemetry.
+   Unless Teacher explicitly says pure-control attribution, keep the guard
+   behavior but add one low-risk, bounded, independently revertible HPWL
+   improvement and prove with counters/full-flow metrics that the reference
+   behavior was not disturbed.
    Your plan should name one dominant mechanism and one compatibility check
    for adjacent stages. For example, a legalizer route should explain why the
    output remains DPO-recoverable; a DPO route should explain why the input
    state and any handoff/frontier make the search targeted. Do not make
    cosmetic edits to legalizer, DPO, and handoff just to satisfy a checklist.
+   If Teacher provides `pipeline coverage`, implement the primary mechanism and
+   at least one real adjacent-stage support mechanism or liveness hook unless
+   current source evidence proves it unsafe. For `co-optimization-emphasis`,
+   try to make producer, handoff/frontier, and consumer all execute in the same
+   source variant; if one stays unchanged, justify it with source evidence and
+   counters.
    If the route is DPO-emphasis, avoid simply adding more post-DPO work. State
    how the legalizer or handoff will make the DPO search targeted, or why a new
    DPO move/scoring family attacks a different HPWL source.

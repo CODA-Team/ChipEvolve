@@ -6,6 +6,7 @@
 - donor scope: <general donor | feature-matched donor | new mechanism | guard>
 - HPWL source: <stage and mechanism being attacked>
 - why this can beat a small donor: <larger HPWL source, mechanism novelty, and expected stage movement>
+- pipeline coverage: <producer/legalizer action; handoff/frontier action; consumer/DPO action. For non-pure-control routes, at least two should be active source mechanisms or liveness hooks; co-optimization should normally make all three active>
 - first patch handles: <1-3 primary functions/state/files for the first patch>
 - support handles: <0-2 extra functions/state/files only if the first patch cannot stand alone>
 - mechanism plan: <dominant mechanism plus adjacent-stage compatibility proof; name legalizer recoverability, DPO consumption, or handoff only where it matters>

@@ -18,7 +18,7 @@ and review packet fields needed for routing.
 - Route from stage-wise evidence: identify the current largest HPWL source and
   assign one primary mechanism hypothesis per Student with a minimal first-patch
   landing zone. Usually give 1-3 primary handles and at most 2 support
-  handles; allow direct supporting edits across producer/consumer stages only
+  handles; include supporting edits across producer/handoff/consumer stages
   when they are necessary for that hypothesis.
 - Use the first-round route map as memory. Follow-up should read less and
   decide faster, but it must not forget routes that were never tested. If the
@@ -36,12 +36,21 @@ and review packet fields needed for routing.
   useful results are same-family or tiny-gain, allow at most one `continue`
   guard/repair route; the other routes should `switch`, `hybridize`, or
   `mechanism-redesign` with a different producer/consumer mechanism.
+- Guard still means active evidence, not passive preservation. Unless the
+  packet explicitly says pure-control attribution, assign one low-risk bounded
+  HPWL improvement on top of the guard and require counters plus full-flow
+  metrics to prove it did not disturb the reference behavior.
 - Route emphasis is not stage exclusion. In each follow-up round, preserve
   compatibility coverage of legalizer-output quality, DPO-consumer strength,
   and handoff/co-optimization. A Student can prioritize one surface; the packet
   should say how adjacent stages will consume, preserve, or validate that
   mechanism, but should not force cosmetic edits in every stage. Avoid assigning
   a whole roster that only chases one DPO family or one legalizer family.
+- Strengthen each non-pure-control packet with `pipeline coverage`: producer /
+  legalizer action, handoff / frontier action, and consumer / DPO action. At
+  least two entries must be active source mechanisms or liveness hooks. A
+  `co-optimization-emphasis` packet should make all three active unless the
+  current evidence justifies leaving one stage untouched.
 - If the current winners are DPO/mirror-heavy, runtime-heavy, or tiny-gain,
   route at most one Student to continue that consumer family. Use the other
   slots for different HPWL sources: legalizer producer repair, placement
@@ -87,8 +96,8 @@ and review packet fields needed for routing.
 - Limit selected mechanism skills: normally one primary mechanism skill, one
   auxiliary handoff/objective skill, and one optional diagnosis skill.
 - Keep packets non-accumulative: one HPWL source, concise dominant-mechanism
-  plan, first-patch handles, minimal support handles, runtime tier, liveness counters,
-  low-ROI stop rule, and metric proof.
-  Adjacent-stage notes should prove compatibility or handoff needs, not force
-  equal edits across legalization, DPO, and handoff.
+  plan, pipeline coverage, first-patch handles, minimal support handles,
+  runtime tier, liveness counters, low-ROI stop rule, and metric proof.
+  Adjacent-stage notes should drive real support mechanisms or liveness hooks,
+  not equal cosmetic edits across legalization, DPO, and handoff.
   Replace stale guidance instead of appending history.

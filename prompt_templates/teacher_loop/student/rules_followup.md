@@ -34,12 +34,21 @@ choice needs it.
   generation, scoring, acceptance, transaction/rollback, handoff, or bounded
   search scope. Do not make the main trial only a constants/tie-break/telemetry
   retune unless Teacher explicitly assigned guard or repair.
+- For guard routes, preserve the guard behavior but do not default to no-op
+  telemetry. Unless Teacher explicitly says pure-control attribution, add one
+  low-risk bounded HPWL improvement and prove with counters/full-flow metrics
+  that the guard behavior remains intact.
 - Your short plan should name one dominant mechanism and the adjacent-stage
   compatibility proof. A legalizer route should explain DPO recoverability; a
   DPO route should explain why the input state and handoff/frontier make the
   search targeted; a handoff route should name both producer and consumer.
   Also name concrete success criteria: legality, expected stage-wise HPWL
   movement, liveness counters/logs, and runtime guard.
+- If the Teacher packet includes `pipeline coverage`, implement the primary
+  mechanism plus at least one real adjacent-stage support mechanism or liveness
+  hook. For `co-optimization-emphasis`, try to make producer, handoff/frontier,
+  and consumer all active in the same source variant; if one remains unchanged,
+  justify it from current source evidence and counters.
 - You may change legalization, improve placement/DPO, source-internal
   parameters, scoring, candidate generation, transactions, handoff state, and
   compact telemetry. Do not edit evaluator/ORFS/baseline scripts or move tuning

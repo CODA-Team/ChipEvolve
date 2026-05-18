@@ -23,7 +23,7 @@
 
 ## Mechanism Search Policy
 
-- Give each Student one primary HPWL-source hypothesis with a minimal first-patch landing zone, a falsifiable metric outcome, runtime tier, and liveness counters. The first patch landing zone should usually be 1-3 primary handles; supporting producer/consumer edits may name at most 2 extra support handles when they are necessary for the hypothesis.
+- Give each Student one primary HPWL-source hypothesis with a minimal first-patch landing zone, a falsifiable metric outcome, runtime tier, and liveness counters. The first patch landing zone should usually be 1-3 primary handles; supporting producer/handoff/consumer edits may name at most 2 extra support handles when they are necessary for the hypothesis.
 - Route Students toward an early first patch/build/eval loop. Do not assign broad "read more first" work when the current HPWL source and source handles are already clear enough to test a mechanism.
 - Mechanism-level source rewrites are allowed and expected when evidence supports them. The constraint is coherent, bounded, reviewable, measurable, and full-flow validated; it is not "small edit only".
 - Before assigning routes, state the dominant current HPWL source: legalizer
@@ -40,6 +40,10 @@
   `continue` for at most one guard/repair route unless all other evidence is
   broken; otherwise use `switch`, `hybridize`, or `mechanism-redesign` when the
   last useful results are same-family or tiny-gain.
+- A guard route is not a default no-op. Unless you explicitly mark it as a
+  pure-control attribution route, it should preserve the guard behavior while
+  testing one low-risk, bounded, independently revertible HPWL improvement with
+  counters and full-flow metrics.
 - Each non-guard route must state why it can beat a small donor: the larger
   HPWL source it attacks, the mechanism class it changes, and the expected
   stage-wise movement. A same-family route must change the mechanism class, not
@@ -50,6 +54,12 @@
   keep live coverage of legalizer-output repair, DPO-consumer strengthening,
   and legalizer-to-DPO handoff/co-optimization unless the current evidence has
   proven one surface irrelevant.
+- Require broader per-Student pipeline coverage. For every non-pure-control
+  route, include a `pipeline coverage` line that names: producer/legalizer
+  action, handoff/frontier action, and consumer/DPO action. At least two of
+  those must be real source mechanisms or liveness/counter hooks, not just
+  prose. For `co-optimization-emphasis`, all three should be active unless
+  source evidence proves one stage should remain untouched.
 - If current best candidates mostly come from DPO/mirror consumers or spend
   runtime for tiny final-HPWL gains, do not route the whole roster into more
   DPO polish. Keep at most one DPO guard/repair route, then assign diverse
@@ -60,7 +70,10 @@
   the primary mechanism, then add compatibility proof for the adjacent stages:
   how legalizer output remains DPO-recoverable, how DPO consumes or preserves
   the state, and whether a compact handoff/frontier signal is needed. Do not
-  require cosmetic edits in all three stages.
+  require cosmetic edits in all three stages, but also do not assign a
+  complete-flow HPWL route that only changes one isolated stage with no real
+  adjacent support. If a route is intentionally stage-local, label it as a
+  stage-donor/control route rather than a complete-flow attack.
 - If a verified live mechanism gives only extremely small full-flow HPWL movement after a meaningful repair attempt, mark it `validated-low-ROI`, require `source_trials.jsonl` evidence from the trial helper, and assign a different HPWL source. Do not keep assigning tie-break, threshold, or donor-polish variants.
 - If stage-local gain is erased downstream, preserve it as a stage donor and route the next work to handoff or consumer repair.
 - If review finds a rejected mechanism is implementation-bug or handoff-repairable rather than method-low-ROI, explicitly assign a repair trial from its ref using `25_trial_source.sh begin --from-ref <ref>`.
