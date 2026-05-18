@@ -39,7 +39,8 @@ Default Student skills for source-edit workers:
   objective/handoff as directed by Teacher
 - when Teacher assigns a pseudocode/algorithm family, read only the relevant
   card under `../knowledge/algorithm_cards/` and translate it into a concrete
-  source-level plan before patching
+  source-level plan shaped by the current metrics, logs, and source path before
+  patching
 - let the orchestrator-owned packet decide whether this worker should build
   and evaluate
 

@@ -60,16 +60,17 @@ and handoff consumer roles.
 
 Use at most a few targeted `rg`/excerpt reads around the selected stage,
 mechanism, and source symbols. Pseudocode cards are inspiration contracts, not
-case-level algorithm selectors.
+case-level algorithm selectors. Current metrics/logs/source evidence override a
+card when they conflict.
 
 If current-run legal candidates show tiny HPWL movement, repeat the same family,
 or incur runtime cost without proportional HPWL, treat it as weak-gain/over-cost
-evidence. Keep a guard donor if useful, but query one broader stage/mechanism
-term, open one relevant algorithm/pseudocode card outside the current donor
-family, and assign at least one stronger within-run route. Current-run
-kept/rejected refs may be repaired with `25_trial_source.sh begin --from-ref
-<ref>`; do not import cross-experiment donors or historical results as
-implementation starts.
+evidence. Keep a guard donor if useful, but route from the observed failure
+mode: use at most one broader stage/mechanism query or card to identify a
+different source-level hypothesis, then assign at least one stronger within-run
+route. Current-run kept/rejected refs may be repaired with
+`25_trial_source.sh begin --from-ref <ref>`; do not import cross-experiment
+donors or historical results as implementation starts.
 Before assigning a heavy donor, query
 `--stage teacher_review --q "runtime light final HPWL mechanism priority"` and
 prefer a lighter final-HPWL mechanism unless the stage evidence justifies the

@@ -56,7 +56,9 @@ Optional helpers:
 - peer mechanism diff only: `$fetch_peer_source_script --peer-repo <repo> --peer-ref <ref> --label <name>`
 - switch prepared start after prepare: `$switch_start_branch_script --kind <kind>`
 - source context: `$source_context_script <src/...> [symbol]`
-- knowledge query: `$query_knowledge_script --stage <stage> --q <text>`
+- knowledge query, only when Teacher names a card/skill, the mechanism role is
+  unclear, or metrics/logs suggest a pivot:
+  `$query_knowledge_script --stage <stage> --q <text>`
 - metrics summary on demand: `$report_candidate_metrics_script`
 - trial state/status: `$trial_source_script status`
 - fresh build only if normal build fails: `$fresh_build_script`
@@ -116,7 +118,8 @@ Teacher can later continue a repairable rejected line with `begin --from-ref`.
 - After the first legal evaluator result, do not finalize immediately. Diagnose
   the bottleneck from metrics/logs/counters, make one strengthened modification,
   and re-evaluate before keep/finalize. Close the active trial before broader
-  donor reading.
+  donor reading; use broader knowledge only when current evidence shows the
+  assigned hypothesis is low-ROI or wrong.
 
 ## Report Fields
 

@@ -38,7 +38,9 @@ packet for mechanism intent.
 
 ## Knowledge Handles
 
-Open only what the current mechanism needs.
+Open only what the current mechanism and observed bottleneck need. Knowledge is
+for inspiration, vocabulary, liveness checks, and known failure modes; do not
+copy a card mechanically when local source evidence points elsewhere.
 
 - reference index: `$optional_reference_index`
 - LEGALM reference: `$optional_legalm_reference`
@@ -67,7 +69,9 @@ Primary flow:
 2. inspect status/context as needed:
    - `$source_status_script`
    - `$source_context_script <src/...> [symbol]`
-   - `$query_knowledge_script --stage <stage> --q <text>`
+   - `$query_knowledge_script --stage <stage> --q <text>` only when Teacher
+     names a card/skill, the mechanism role is unclear, or metrics/logs suggest
+     a pivot
 3. for each mechanism trial:
    - `$trial_source_script begin --label <short-mechanism>`
    - repair a prior kept/rejected ref when assigned: `$trial_source_script begin --label <repair-name> --from-ref <ref>`
@@ -176,7 +180,8 @@ Before final answer:
 - After the first legal evaluator result, do not finalize immediately. Use the
   metrics summary and any needed counters to diagnose the bottleneck, make one
   strengthened modification, and re-evaluate before keep/finalize. Close the
-  active trial before any broader donor reading.
+  active trial before any broader donor reading; use broader knowledge only if
+  the strengthened result shows the current hypothesis is low-ROI or wrong.
 
 ## Evaluation Timeout
 

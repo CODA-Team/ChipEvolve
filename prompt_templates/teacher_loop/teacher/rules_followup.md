@@ -20,17 +20,18 @@ and review packet fields needed for routing.
   landing zone. Usually give 1-3 primary handles and at most 2 support
   handles; allow direct supporting edits across producer/consumer stages only
   when they are necessary for that hypothesis.
-- Use the first-round global route map as memory. Follow-up should read less
-  and decide faster, but it must not forget routes that were never tested. If
-  the best family stalls, reopen one broader algorithm card and assign a
-  new-family route.
+- Use the first-round route map as memory. Follow-up should read less and
+  decide faster, but it must not forget routes that were never tested. If the
+  best family stalls, name the observed failure mode and assign a new-family
+  route; open a broader algorithm card only when it provides a concrete
+  mechanism for that failure mode.
 - Before routing, restate the dominant HPWL source in one phrase: legalizer
   producer quality, DPO consumer strength, handoff/frontier loss, final
   mirror interaction, or composition. This source should drive the roster more
   than generic runtime headroom.
 - Next-round direction must combine current metrics, Student knowledge-card
-  reasoning, and one relevant knowledge/algorithm handle when the route changes
-  family or claims a specific mechanism insight.
+  reasoning, and targeted knowledge only when it clarifies the route change or
+  mechanism insight. Current evidence wins over a knowledge card.
 - Label every packet with `route type` and `route action`. If the previous
   useful results are same-family or tiny-gain, allow at most one `continue`
   guard/repair route; the other routes should `switch`, `hybridize`, or

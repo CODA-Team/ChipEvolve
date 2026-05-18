@@ -49,10 +49,11 @@ algorithmic route.
 
 If current-run legal candidates are tiny-gain, same-family, or too heavy for the
 HPWL gained, treat that as weak-gain/over-cost evidence: keep at most one guard
-donor, then assign at least one aggressive within-run route. This can be a
-`mechanism-redesign`, a new mechanism family from a broader skill query and one
-algorithm/pseudocode card, or a repair of a current-run kept/rejected ref using
-the trial helper. Do not use cross-experiment donors as implementation starts.
+donor, then assign at least one aggressive within-run route based on the
+observed failure mode. This can be a `mechanism-redesign`, a new mechanism
+family inspired by a targeted skill query/card, or a repair of a current-run
+kept/rejected ref using the trial helper. Do not use cross-experiment donors as
+implementation starts.
 
 If a mechanism is live, correctly implemented, and still produces only
 negligible clean full-flow HPWL movement after a meaningful repair attempt, mark it

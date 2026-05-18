@@ -44,16 +44,16 @@ Rules:
   callable for evaluation; mirror-internal edits are not the normal patch
   surface and require explicit Teacher assignment with concrete source handles.
 - Teacher planning is two-stage. Iteration 1 should use the fuller context to
-  do a bounded global knowledge scan, build a case-specific route map, and
-  classify donors as `general donor` or `feature-matched donor`. Follow-up
-  iterations should use compact prompts and read less, but weak-gain, over-cost,
-  or plateau evidence should reopen one broader algorithm/pseudocode card and
-  add a stronger within-run route instead of polishing only the current donor.
+  build an evidence-driven case route map, using knowledge cards as targeted
+  inspiration after the bottleneck is named. Follow-up iterations should use
+  compact prompts and read less, but weak-gain, over-cost, or plateau evidence
+  should trigger a different source-level hypothesis rather than polishing only
+  the current donor.
 - LEGO-lite mechanism lookup lives in `knowledge/index/skill_cards.jsonl`,
   `knowledge/skills/`, and `knowledge/algorithm_cards/`. Teacher packets should
-  select relevant stage skills and the smallest useful algorithm/pseudocode
-  card; Student reports should prove selected mechanisms with source, metrics,
-  and log evidence.
+  select relevant stage skills/cards only when they clarify the current
+  evidence; Student reports should prove the adapted mechanism with source,
+  metrics, and log evidence.
 - Prompts should favor controllable algorithm complexity, bounded candidates,
   cached touched data, and direct HPWL mechanisms.
 - Keep the NoPUA-style coaching signal in `skills/teacher_peer_coaching.md`:

@@ -28,19 +28,21 @@
 Use these paths as search handles only when they help identify concrete
 function/state insertion points. Do not require broad donor-tree reading.
 
-## First-Round Global Route Scan
+## First-Round Evidence-Driven Route Scan
 
-In the first Teacher planning round, do a bounded global knowledge scan before
-assigning Students. The goal is a case-specific route map, not a literature
-survey.
+In the first Teacher planning round, build the route map from observed case
+evidence first. Knowledge cards are vocabulary, inspiration, and prior evidence;
+they are not fixed recipes or mandatory donors.
 
 - Read the design characteristics and stage metrics first.
-- Query the skill index for the dominant bottleneck and for at least two
-  distinct stage families, normally one legalization/handoff family and one
-  improve-placement/DPO family.
-- Open the smallest useful algorithm/pseudocode cards from both
-  `$algorithm_cards_dir/legalization/` and `$algorithm_cards_dir/dpo_refinement/`
-  when the case bottleneck could involve both stages.
+- After naming the dominant bottleneck, query the skill index only to sharpen
+  plausible mechanisms or to avoid repeating known low-ROI paths. Normally
+  consider at least two distinct stage families, such as one
+  legalization/handoff family and one improve-placement/DPO family, when the
+  metrics leave both credible.
+- Open the smallest useful algorithm/pseudocode card only when it provides a
+  concrete mechanism, liveness counter, or failure mode relevant to the observed
+  bottleneck.
 - Classify donors as either `general donor` or `feature-matched donor`.
   General donors are safe regression guards or broadly useful kernels.
   Feature-matched donors are hypotheses tied to design features such as dense
@@ -55,17 +57,18 @@ survey.
 
 ## LEGO-lite Skill Lookup
 
-- Use the skill index as the first-stage knowledge database. Query it before
-  assigning a route when the needed legalizer, DPO, handoff, or diagnosis
-  mechanism is not obvious from the metrics.
+- Use the skill index as a targeted evidence database after the stage metrics
+  and logs identify a bottleneck. Do not choose a route just because a card
+  exists.
 - Fast command pattern:
   `python3 $skill_query_script --stage <stage> --q "<bottleneck or mechanism>"`
 - Stage names: `case_diagnosis`, `start_selection`, `legalization`,
   `improve_placement`, `handoff`, `build_eval_log_diagnosis`, and
   `teacher_review`.
 - A selected skill is guidance, not a cage. Teacher should name the skill id,
-  expected stage transition, done criteria, and log signals; Student may refine
-  the mechanism when current source evidence contradicts the card.
+  expected stage transition, done criteria, and log signals; Student should
+  adapt or reject the mechanism when current source evidence contradicts the
+  card.
 - Keep skill selection small: one primary mechanism skill, one auxiliary
   handoff/objective skill, and one optional diagnosis skill is the normal upper
   bound for a Student route.
@@ -76,19 +79,18 @@ survey.
   query `--stage legalization --q "diamond negotiation differential guidance liveness"`
   and name the route role: primary legalizer, guidance producer,
   repair/polish stage, or handoff consumer.
-- For mechanism inspiration, Teacher should query the skill index first and
-  then open the smallest relevant card under `$algorithm_cards_dir`, especially
-  `legalization/` for legalizer routes and `dpo_refinement/` for improve
-  placement or handoff routes. Pseudocode cards are idea contracts, not fixed
-  recipes.
+- For mechanism inspiration, Teacher may query the skill index after stating
+  the observed bottleneck and mechanism hypothesis, then open the smallest
+  relevant card under `$algorithm_cards_dir`. Pseudocode cards are idea
+  contracts, not fixed recipes.
 - Weak-gain / over-cost escalation is a Teacher judgment, not an automatic
   controller rule.
   If current-run legal candidates show tiny HPWL movement, repeat one family,
   or incur runtime cost without proportional HPWL, do not only polish the current
-  donor. Query a broader stage/mechanism term, open one relevant
-  algorithm/pseudocode card outside the current donor family, and give at least
-  one Student a stronger within-run route. Current-run kept/rejected refs may
-  be repaired with `25_trial_source.sh begin --from-ref <ref>`; do not import
+  donor. Use one broader stage/mechanism query or card only to find a different
+  source-level hypothesis that matches the current evidence, then give at least
+  one Student a stronger within-run route. Current-run kept/rejected refs may be
+  repaired with `25_trial_source.sh begin --from-ref <ref>`; do not import
   cross-experiment donors or historical results as implementation starts.
   Query `--stage teacher_review --q "mechanism priority guard telemetry grouped window exact consumer"`
   when deciding which donor families to promote, guard, or demote.
