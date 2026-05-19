@@ -45,13 +45,13 @@
    cause nonzero accepts or stage-wise movement. If your patch preserves the
    same start-basin `HPWLlg/HPWLimprove/HPWLfinal`, diagnose it as shallow
    polish and propose a different mechanism in `## Next Teacher Handoff`.
-   If Teacher assigned a guard route, do not assume it is no-op telemetry.
-   Keep the guard behavior, but still make one low-risk, bounded,
-   independently revertible HPWL attempt or adjacent-stage liveness hook that
-   can be evaluated. Do not finalize a zero-diff guard-only rerun unless the
-   source cannot be safely edited and you explain the concrete blocker in
-   `## Next Teacher Handoff`. Prove with counters/full-flow metrics that the
-   reference behavior was not disturbed.
+   If Teacher assigned a guard route, do not assume it is no-op telemetry or
+   tiny polish. Keep the guard behavior, but use the allowed runtime for one
+   bounded quality attempt or runtime rewrite that has a real HPWL source,
+   caps/caches, counters, and rollback. Do not finalize a zero-diff guard-only
+   rerun unless the source cannot be safely edited and you explain the concrete
+   blocker in `## Next Teacher Handoff`. Prove with counters/full-flow metrics
+   that the reference behavior was not disturbed.
    Your plan should name one dominant mechanism and one compatibility check
    for adjacent stages. For example, a legalizer route should explain why the
    output remains DPO-recoverable; a DPO route should explain why the input
@@ -66,6 +66,10 @@
    If the route is DPO-emphasis, avoid simply adding more post-DPO work. State
    how the legalizer or handoff will make the DPO search targeted, or why a new
    DPO move/scoring family attacks a different HPWL source.
+   If Teacher asks you to stack current-case mechanisms, implement one coherent
+   producer/handoff/consumer flow. Port the mechanism deliberately onto your
+   branch and add counters that prove the stack executes; do not implement a
+   case selector among whole algorithms or another threshold-only variant.
 5. Patch source, build, run the canonical full-flow evaluator, read the generated candidate metrics summary first, then inspect raw logs/counters only when the summary is insufficient.
 6. Before finalization, run one self-diagnosis and strengthening loop. Diagnose whether the first result exposed an implementation bug, zero/non-live counter, weak accept rate, missing producer/consumer handoff, wrong HPWL source, excessive runtime, or stage-local gain erased downstream. Then make one coherent strengthened modification and re-run build/evaluation, unless the first result failed so fundamentally that the route must be rejected. This is the bounded self-repair cycle for the iteration; do not keep stacking unreviewed repairs after it.
 7. After the strengthened evaluation, decide keep/reject/finalize from the best clean source. Use `25_trial_source.sh reject` only after preserving evidence when the path has no clear repair, stays non-executed, is validated-low-ROI, or worsens HPWL while also adding unjustified runtime. Keep the best clean evaluated source. If the route still needs follow-up, write the exact next repair or pivot into `## Next Teacher Handoff` in the generated knowledge card so Teacher can decide the next round.
@@ -93,9 +97,10 @@
 - If Teacher assigns a repairable rejected/kept ref, start that workbench with `25_trial_source.sh begin --label <repair-name> --from-ref <ref>` and then repair it as a normal trial.
 - Do not edit evaluator, ORFS, baseline scripts, workspace helpers, memories,
   rollout summaries, session archives, or event logs. Optimize mirroring must
-  remain callable for the full-flow evaluator; ordinary routes should change
-  legalizer/DPO/handoff internals, and mirror-internal work requires explicit
-  Teacher assignment with concrete source handles.
+  remain callable for the full-flow evaluator. Mirror-internal work is not a
+  standalone optimization route; do it only when Teacher explicitly pairs it
+  with accepted DPO/reorder/handoff moves that need preservation or attribution.
+  Otherwise focus ordinary routes on legalizer/DPO/handoff internals.
 
 ## Allowed Mechanisms
 

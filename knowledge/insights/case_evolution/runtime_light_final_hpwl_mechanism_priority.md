@@ -115,7 +115,7 @@ Required liveness:
 - ranked candidates, exact-scored candidates, and exact accepts are all nonzero;
 - accepted HPWL gain is reported separately from ranking-only telemetry;
 - mirror/final-stage handoff is only credited when it preserves accepted exact
-  moves.
+  moves. Do not route mirror guard as a standalone optimizer.
 
 Why this is high priority:
 
@@ -148,8 +148,11 @@ Required liveness:
 
 Why this is high priority:
 
-It is cheap and stable.  It can plateau quickly, so keep one guard source and
-move other Students to a different HPWL source once gains flatten.
+It is cheap and stable.  It can plateau quickly, so keep at most one guard
+source.  That guard should still test a bounded quality mechanism or runtime
+rewrite when safe: preserve the elite behavior, but use available runtime for a
+real HPWL source with caps, counters, and rollback.  Move other Students to a
+different HPWL source once gains flatten.
 
 ## Medium-Priority Quality Donors
 
@@ -238,7 +241,8 @@ mechanisms.  Do not present them as the first default route.
 Teacher should explicitly demote these unless paired with a concrete repair:
 
 - legalize-only wins that do not improve after-improve or final HPWL;
-- guard-only reruns of an elite source;
+- guard-only reruns of an elite source without a bounded quality attempt or
+  runtime rewrite;
 - telemetry-only edits;
 - passive handoff records with zero consumer probes or accepts;
 - mirror-only ordering without accepted exact moves to protect;
@@ -268,3 +272,6 @@ Then route Students as follows:
 When a mechanism is live but weak, Teacher should decide whether it is a
 producer failure, consumer failure, runtime implementation problem, or low-ROI
 family.  Do not keep stacking small variants on a verified low-ROI mechanism.
+When multiple same-case mechanisms are live and one improves final HPWL, prefer
+coherent stacking or runtime repair of those mechanisms over another
+threshold-only or mirror-only route.

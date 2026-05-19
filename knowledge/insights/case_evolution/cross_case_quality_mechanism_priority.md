@@ -119,8 +119,10 @@ Implementation shape:
 
 Promotion rule:
 
-Use as a guard or first local route, but do not let all Students chase the same
-small local closure once gains flatten.
+Use as a protected guard or first local route, but do not let all Students chase
+the same small local closure once gains flatten.  A guard should still test a
+bounded quality mechanism or runtime rewrite unless it is explicitly a
+pure-control attribution run.
 
 ## Heavy Mechanisms That Need Runtime Discipline
 
@@ -166,6 +168,9 @@ Before assigning routes, Teacher should classify the current case by evidence:
 - if all routes are small and runtime-light, allocate one Student to a heavier
   quality donor with caps and one Student to a runtime rewrite of the best
   quality donor;
+- if current-case evidence identifies compatible live mechanisms, prefer a
+  coherent producer/handoff/consumer stack over another guard-only or
+  mirror-only route;
 - if a mechanism is live but weak after one real repair, switch mechanism
   family instead of stacking more threshold variants.
 

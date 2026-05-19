@@ -36,9 +36,10 @@ choice needs it.
   search scope. Do not make the main trial only a constants/tie-break/telemetry
   retune unless Teacher explicitly assigned guard or repair.
 - For guard routes, preserve the guard behavior but do not default to no-op
-  telemetry. Unless Teacher explicitly says pure-control attribution, add one
-  low-risk bounded HPWL improvement and prove with counters/full-flow metrics
-  that the guard behavior remains intact.
+  telemetry or tiny polish. Unless Teacher explicitly says pure-control
+  attribution, use the allowed runtime for one bounded quality mechanism or
+  runtime rewrite with a real HPWL source, caps/caches, counters, rollback, and
+  full-flow proof that the guard behavior remains intact.
 - Your short plan should name one dominant mechanism and the adjacent-stage
   compatibility proof. A legalizer route should explain DPO recoverability; a
   DPO route should explain why the input state and handoff/frontier make the
@@ -54,6 +55,14 @@ choice needs it.
   parameters, scoring, candidate generation, transactions, handoff state, and
   compact telemetry. Do not edit evaluator/ORFS/baseline scripts or move tuning
   into Tcl/flow-script knobs.
+- Mirror-internal edits are support mechanisms, not standalone optimization
+  routes. Only change mirror behavior when it protects or attributes a concrete
+  accepted DPO/reorder/handoff mechanism; otherwise keep mirroring callable and
+  focus the patch on producer/consumer/handoff HPWL sources.
+- If Teacher asks for same-case mechanism stacking, implement a coherent
+  producer/handoff/consumer source flow using the named refs or mechanisms.
+  Do not turn it into a selector among complete algorithms. Add counters for
+  each live part of the stack and evaluate the complete flow.
 - Use generated helpers instead of reconstructing commands: prepare/start,
   trial begin/keep/reject, build, evaluate, and finalization. Use
   `03_fetch_peer_source.sh` only to inspect peer refs; port mechanisms

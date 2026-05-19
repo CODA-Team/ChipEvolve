@@ -30,7 +30,10 @@
   when the metrics are valid.
 - If a Student spends substantial time in diagnosis without reaching a first patch/build/eval loop, review that as execution inefficiency and route the next packet toward a faster concrete implementation path.
 - Treat `reject` as "not the final candidate for this trial", not as automatic method death. Inspect the source diff, counters, stage movement, and logs before deciding whether the failure is implementation, handoff/composition, or method-level.
-- Attribute stage movement across legalization, improve placement/DPO, handoff, final mirror contribution, runtime, and counters.
+- Attribute stage movement across legalization, improve placement/DPO, handoff,
+  final mirror contribution, runtime, and counters. Treat mirror contribution
+  as diagnostic/support evidence; do not promote a mirror-only guard as a
+  standalone optimization mechanism.
 - Classify each result as `final donor`, `stage donor`, `active mechanism workbench`, `validated-low-ROI`, `non-executed route`, or `negative evidence`.
 - Also classify donor scope when useful: `general donor` if it is a reusable
   guard/kernel, or `feature-matched donor` if it appears useful because this
@@ -62,10 +65,21 @@
   preserve at most one guard and include a more aggressive within-run route:
   switch family, redesign the mechanism, or repair a current-run kept/rejected
   ref with `25_trial_source.sh begin --from-ref <ref>`.
-- A guard route is a protected experiment, not permission for a no-op rerun.
-  If Teacher asks a Student to guard an elite donor, also assign one bounded
-  new HPWL attempt or adjacent-stage liveness hook. Treat zero-diff finalize as
-  incomplete unless the Student reports a concrete source-safety blocker.
+- If a candidate only changes mirror/orientation behavior, classify it as
+  support evidence unless it preserves a named accepted DPO/reorder/handoff
+  mechanism and final HPWL improves. Next plans should not allocate a primary
+  route to mirror-only guard; pair mirror work with an upstream producer or DPO
+  consumer, or drop it.
+- A guard route is a protected experiment, not permission for a no-op rerun or
+  tiny polish. If Teacher asks a Student to guard an elite donor, also assign
+  one bounded quality mechanism or runtime rewrite that can materially move
+  final HPWL while preserving the guard. Treat zero-diff finalize as incomplete
+  unless the Student reports a concrete source-safety blocker.
+- When current-case mechanisms have nonzero counters and improve final HPWL,
+  route follow-up toward compatible stacking or runtime repair of those
+  mechanisms before assigning more same-basin threshold variants. Stacking must
+  be a coherent producer/handoff/consumer source flow, not a selector among
+  complete algorithms.
 - If a Student completed one self-diagnosis/strengthening loop and left a
   concrete `Next Teacher Handoff`, decide whether to continue that workbench,
   switch family, or redesign composition. Do not ask the same Student line to

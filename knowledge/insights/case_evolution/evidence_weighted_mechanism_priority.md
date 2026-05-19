@@ -134,8 +134,10 @@ Preferred use:
 
 This pattern is final-HPWL-effective only when the local closure plus DPO
 consumer beats the same-case baseline.  It is often stable and cheap, but it can
-plateau quickly.  Once it becomes guard-only, keep one guard route and move
-other Students to a different mechanism family.
+plateau quickly.  Once it becomes guard-like, keep one protected route but let
+that route spend bounded runtime on a real quality mechanism or runtime rewrite
+with counters and rollback.  Move other Students to a different mechanism
+family.
 
 ## Lower-Priority Or Weak Patterns
 
@@ -145,12 +147,15 @@ full roster unless Teacher has a specific repair hypothesis.
 - Telemetry-only or marker-only edits.  They help diagnose liveness but are not
   a mechanism.
 - Guard-only continuation of an already retained elite.  Keep at most one guard
-  route; do not let every Student preserve the same elite.
+  route, and require it to test a bounded quality mechanism or runtime rewrite
+  unless it is explicitly a pure-control attribution run. Do not let every
+  Student preserve the same elite.
 - Threshold, constant, tie-break, or pass-order tweaks without a changed
   candidate generator, scoring function, transaction, producer, or consumer.
 - Passive handoff metadata that no downstream consumer probes or accepts.
-- Mirror-only or orientation-only priority changes.  Use them as downstream
-  observability or protection for accepted groups, not as the primary optimizer.
+- Mirror-only or orientation-only priority changes.  Use them only as
+  downstream observability or protection for accepted DPO/reorder/handoff
+  groups, not as a standalone optimizer or primary route family.
 - Broad random-tail or repeated endpoint work without a new source-level
   mechanism, exact accept evidence, caps, and gain-rate stops.
 - Directly forcing legalizer-produced targets through a broad global swap
@@ -162,7 +167,8 @@ full roster unless Teacher has a specific repair hypothesis.
 
 For each round, classify the current best evidence:
 
-- `elite guard`: clean best HPWL, but no new mechanism needed;
+- `elite guard`: clean best HPWL that needs protected continuation, plus one
+  bounded quality or runtime-rewrite attempt unless used only as control;
 - `stage donor`: strong legalizer or DPO stage signal, weak final flow;
 - `consumer failure`: producer exists, consumer probes or accepts are weak;
 - `producer failure`: DPO is live, but legalization destroys recoverability;
@@ -178,6 +184,11 @@ Then assign routes accordingly:
   resource/row assignment,
 - abandon `low-ROI family` after one meaningful repair and switch mechanism
   family.
+- when two current-case mechanisms are live and compatible, try a coherent
+  source-level stack before another threshold-only or same-basin variant.
+  Useful stacks include producer shaping plus DPO recoverability, compact
+  handoff plus exact consumer, and source-edge/top-K scoring plus
+  selected-segment reorder.
 
 ## Student Implementation Rule
 

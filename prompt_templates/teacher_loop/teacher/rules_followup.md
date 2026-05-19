@@ -28,9 +28,10 @@ and review packet fields needed for routing.
   route; open a broader algorithm card only when it provides a concrete
   mechanism for that failure mode.
 - Before routing, restate the dominant HPWL source in one phrase: legalizer
-  producer quality, DPO consumer strength, handoff/frontier loss, final
-  mirror interaction, or composition. This source should drive the roster more
-  than generic runtime headroom.
+  producer quality, DPO consumer strength, handoff/frontier loss, or
+  composition. Final mirror interaction is support/attribution evidence, not a
+  standalone HPWL source. Route mirror-internal work only when it protects or
+  diagnoses accepted DPO/reorder/handoff gains.
 - Next-round direction must combine current metrics, Student knowledge-card
   reasoning, and targeted knowledge only when it clarifies the route change or
   mechanism insight. Current evidence wins over a knowledge card.
@@ -39,9 +40,11 @@ and review packet fields needed for routing.
   guard/repair route; the other routes should `switch`, `hybridize`, or
   `mechanism-redesign` with a different producer/consumer mechanism.
 - Guard still means active evidence, not passive preservation. Unless the
-  packet explicitly says pure-control attribution, assign one low-risk bounded
-  HPWL improvement on top of the guard and require counters plus full-flow
-  metrics to prove it did not disturb the reference behavior.
+  packet explicitly says pure-control attribution, preserve the guard behavior
+  while assigning one bounded quality mechanism or runtime rewrite that can
+  materially move final HPWL. The guard may spend runtime inside the hard
+  budget, but the packet must name the HPWL source, caps/caches, counters,
+  rollback guard, and full-flow proof.
 - Route emphasis is not stage exclusion. In each follow-up round, preserve
   compatibility coverage of legalizer-output quality, DPO-consumer strength,
   and handoff/co-optimization. A Student can prioritize one surface; the packet
@@ -58,6 +61,17 @@ and review packet fields needed for routing.
   slots for different HPWL sources: legalizer producer repair, placement
   shaping that preserves downstream recoverability, compact native handoff, or
   a genuinely new bounded DPO move family.
+- Do not continue mirror guard as its own optimization family. If mirror
+  attribution matters, pair it with a concrete upstream mechanism: an exact DPO
+  consumer, selected-segment reorder, accepted-move protection, or handoff
+  consumer. Otherwise keep mirroring callable and spend the route on
+  legalizer/DPO/handoff mechanisms.
+- After the first wave, prefer same-case mechanism stacking when evidence shows
+  real final-HPWL movement: combine a live producer with a consumer, add compact
+  handoff to a proven exact move family, or rewrite a strong heavy donor for
+  bounded runtime. Do not spend follow-up routes on mirror-only, guard-only,
+  threshold-only, or another same-basin variant when compatible live mechanisms
+  can be combined.
 - Each non-guard route must say why it can beat a small donor by attacking a
   larger HPWL source. Same-family follow-up is valid only when it changes the
   mechanism class, not just thresholds, tie-breaks, counters, or local polish.

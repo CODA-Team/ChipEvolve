@@ -80,6 +80,8 @@ Observed priority:
   consumer must probe and accept candidates that are visibly influenced by the
   producer state.
 - Do not promote mirror/orientation priority changes as the main DPO mechanism.
+  Mirror work is valid only when it preserves or attributes named accepted
+  DPO/reorder/handoff moves; otherwise keep it as diagnostics.
   They are useful only as protection or observability for accepted exact moves.
 - Extra endpoint-like subpasses are useful only when they are transformed into
   an algorithmic source mechanism with scope, counters, and stop conditions.

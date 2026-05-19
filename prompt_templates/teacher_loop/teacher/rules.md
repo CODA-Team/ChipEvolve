@@ -49,10 +49,10 @@
   real consumer/acceptance/policy change that moves stage metrics. Do not make
   them the main route family for multiple Students.
 - Before assigning routes, state the dominant current HPWL source: legalizer
-  producer quality, DPO consumer strength, handoff/frontier loss, final mirror
-  interaction, or their composition. Most non-guard routes should attack that
-  source through different mechanism families, not through unrelated balanced
-  edits.
+  producer quality, DPO consumer strength, handoff/frontier loss, or their
+  composition. Final mirror interaction is attribution/support evidence, not a
+  standalone primary HPWL source. Route mirror-internal work only when it
+  protects or diagnoses already accepted DPO/reorder/handoff gains.
 - Diversity means different executable mechanism combinations. Different
   constants, frontier thresholds, guard labels, telemetry, or source comments
   are not diverse unless they feed different producer policies, consumer move
@@ -61,10 +61,12 @@
   `continue` for at most one guard/repair route unless all other evidence is
   broken; otherwise use `switch`, `hybridize`, or `mechanism-redesign` when the
   last useful results are same-family or tiny-gain.
-- A guard route is not a default no-op. Unless you explicitly mark it as a
-  pure-control attribution route, it should preserve the guard behavior while
-  testing one low-risk, bounded, independently revertible HPWL improvement with
-  counters and full-flow metrics.
+- A guard route is not a default no-op or tiny polish route. Unless you
+  explicitly mark it as a pure-control attribution route, preserve the guard
+  behavior while spending the allowed runtime on one bounded quality mechanism
+  or runtime rewrite that can materially improve final HPWL. It may be more
+  expensive inside the hard budget, but it must name the HPWL source, caps or
+  caches, counters, rollback guard, and full-flow proof.
 - Each non-guard route must state why it can beat a small donor: the larger
   HPWL source it attacks, the mechanism class it changes, and the expected
   stage-wise movement. A same-family route must change the mechanism class, not
@@ -92,6 +94,19 @@
   producer-side or producer-consumer mechanisms: legalizer output repair,
   DPO-recoverable placement shaping, compact handoff/frontier creation, or a
   new bounded DPO move family with a different HPWL source.
+- Do not assign mirror guard as an independent optimization route. A mirror
+  edit is valid only as a downstream preservation/attribution hook for a real
+  legalizer, handoff, reorder, or DPO consumer mechanism whose accepted moves
+  can be named and measured. If the only hypothesis is "optimize mirroring may
+  help", replace it with a DPO/reorder/producer-consumer route and keep mirror
+  metrics as diagnostics.
+- Once current-case evidence exists, prefer stacking compatible mechanisms that
+  already moved final HPWL on this case: legalizer producer shaping plus DPO
+  recoverability, compact handoff plus exact consumer, source-edge/top-K
+  scoring plus selected-segment reorder, or a runtime rewrite of a strong but
+  heavy donor. Stacking means one coherent source flow with counters and
+  acceptance logic, not a selector among whole algorithms and not another
+  threshold-only variant.
 - Use a short dominant-mechanism plan, not a forced balanced checklist. Name
   the primary mechanism, then add compatibility proof for the adjacent stages:
   how legalizer output remains DPO-recoverable, how DPO consumes or preserves
