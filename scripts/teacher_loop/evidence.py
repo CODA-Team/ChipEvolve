@@ -8,8 +8,9 @@ import shlex
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from runtime_paths import clean_subprocess_env
 from scripts.case_registry import get_case
@@ -1243,6 +1244,7 @@ def write_peer_learning_packet(
             "## Use Policy",
             "- Teacher should compare code and metrics before assigning a borrow/merge direction.",
             "- Invalid metric rows are diagnostic only. Do not call them clean elites, do not seed from them, and do not ask a Student to inherit their source.",
+            "- If an invalid row is the best final-HPWL signal only because its source object is missing, treat it as lost-source donor evidence: preserve the mechanism summary from metrics, diff, logs, or knowledge card, assign at most one reconstruction route from a valid current-run ref, and keep the rest of the roster on broad mechanism search.",
             f"- Teacher must separate effective donors from quality-only signals.  A candidate that wins mainly through uncontrolled repeated subpasses, untargeted scans, or random trial-and-error, or exceeds the {student_runtime_multiplier:g}x runtime budget, is not an effective donor until the mechanism is reimplemented with scoped targeting, counters, and bounded complexity.",
             "- Teacher must separate final donors from stage donors.  If a candidate improves one stage but loses later, preserve a repair route for the later-stage handoff.",
             "- Student may inspect peer code when it directly supports the chosen implementation change.",
@@ -1260,25 +1262,150 @@ def seed_private_source_from_elite(
     *,
     seed_source: Path,
     target_source: Path,
-) -> None:
+) -> dict[str, str | bool | None]:
     if not seed_source.exists():
         raise FileNotFoundError(f"missing elite seed source: {seed_source}")
+    ignore = shutil.ignore_patterns(
+        ".git",
+        "__pycache__",
+        "*.pyc",
+        "*.o",
+        "*.a",
+        "*.so",
+        "CMakeFiles",
+        "cmake_install.cmake",
+    )
+    if target_source.exists() and (target_source / ".git").exists():
+        return _seed_into_existing_git_source(
+            seed_source=seed_source,
+            target_source=target_source,
+            ignore=ignore,
+        )
     if target_source.exists():
         shutil.rmtree(target_source)
     target_source.parent.mkdir(parents=True, exist_ok=True)
     shutil.copytree(
         seed_source,
         target_source,
-        ignore=shutil.ignore_patterns(
-            "__pycache__",
-            "*.pyc",
-            "*.o",
-            "*.a",
-            "*.so",
-            "CMakeFiles",
-            "cmake_install.cmake",
-        ),
+        ignore=ignore,
     )
+    return {"mode": "fresh_copy", "backup_ref": None, "seed_commit": None}
+
+
+def _seed_git(
+    repo: Path,
+    *args: str,
+    check: bool = True,
+    capture: bool = False,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", "-C", str(repo), *args],
+        check=check,
+        text=True,
+        stdout=subprocess.PIPE if capture else None,
+        stderr=subprocess.PIPE if capture else None,
+        env=clean_subprocess_env(),
+    )
+
+
+def _seed_repo_has_head(repo: Path) -> bool:
+    return (
+        _seed_git(
+            repo,
+            "rev-parse",
+            "--verify",
+            "HEAD",
+            check=False,
+            capture=True,
+        ).returncode
+        == 0
+    )
+
+
+def _seed_configure_git_repo(repo: Path) -> None:
+    top = _seed_git(repo, "rev-parse", "--show-toplevel", capture=True).stdout.strip()
+    if Path(top).resolve() != repo.resolve():
+        raise RuntimeError(f"elite seed target is not an independent git repo: {repo}")
+    _seed_git(repo, "config", "user.email", "dpl-evolve-agent@example.invalid")
+    _seed_git(repo, "config", "user.name", "dpl-evolve-agent")
+
+
+def _seed_commit_if_staged(repo: Path, message: str) -> str | None:
+    if _seed_git(repo, "diff", "--cached", "--quiet", check=False).returncode == 0:
+        return None
+    _seed_git(repo, "commit", "-m", message)
+    return _seed_git(repo, "rev-parse", "HEAD", capture=True).stdout.strip()
+
+
+def _replace_worktree_preserving_git(
+    *,
+    seed_source: Path,
+    target_source: Path,
+    ignore: Callable[[str, list[str]], set[str]],
+) -> None:
+    tmp = target_source.parent / f".{target_source.name}.elite_seed_tmp"
+    if tmp.exists():
+        shutil.rmtree(tmp)
+    shutil.copytree(seed_source, tmp, ignore=ignore)
+    try:
+        for child in target_source.iterdir():
+            if child.name == ".git":
+                continue
+            if child.is_dir() and not child.is_symlink():
+                shutil.rmtree(child)
+            else:
+                child.unlink()
+        for child in tmp.iterdir():
+            shutil.move(str(child), str(target_source / child.name))
+    finally:
+        if tmp.exists():
+            shutil.rmtree(tmp)
+
+
+def _seed_into_existing_git_source(
+    *,
+    seed_source: Path,
+    target_source: Path,
+    ignore: Callable[[str, list[str]], set[str]],
+) -> dict[str, str | bool | None]:
+    """Seed an elite source while preserving candidate refs and git objects."""
+
+    _seed_configure_git_repo(target_source)
+    had_head = _seed_repo_has_head(target_source)
+    backup_ref: str | None = None
+    preserve_commit: str | None = None
+    if had_head:
+        _seed_git(target_source, "add", "-A")
+        preserve_commit = _seed_commit_if_staged(
+            target_source,
+            "Preserve workspace before elite seed",
+        )
+        backup_ref = f"backup/pre_elite_seed/{time.strftime('%Y%m%d%H%M%S')}-{time.time_ns() % 1000000}"
+        _seed_git(target_source, "branch", "-f", backup_ref, "HEAD")
+    _replace_worktree_preserving_git(
+        seed_source=seed_source,
+        target_source=target_source,
+        ignore=ignore,
+    )
+    _seed_git(target_source, "add", "-A")
+    seed_commit = _seed_commit_if_staged(
+        target_source,
+        "Seed elite source while preserving candidate refs",
+    )
+    if seed_commit is None and _seed_repo_has_head(target_source):
+        seed_commit = _seed_git(
+            target_source,
+            "rev-parse",
+            "HEAD",
+            capture=True,
+        ).stdout.strip()
+    return {
+        "mode": "preserved_git",
+        "had_head": had_head,
+        "backup_ref": backup_ref,
+        "preserve_commit": preserve_commit,
+        "seed_commit": seed_commit,
+    }
 
 
 def baseline_suite_preflight_command(

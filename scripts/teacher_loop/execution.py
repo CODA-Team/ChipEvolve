@@ -625,11 +625,14 @@ def seed_elite_children(child_rounds: list[ChildRound]) -> None:
     for child in child_rounds:
         if child.elite_seed_source is None:
             continue
-        seed_private_source_from_elite(
+        seed_info = seed_private_source_from_elite(
             seed_source=child.elite_seed_source,
             target_source=child.dpl_src,
         )
         print(
             "[optimize_case] seeded "
-            f"{child.student_id} from elite: {child.elite_seed_source}"
+            f"{child.student_id} from elite: {child.elite_seed_source} "
+            f"mode={seed_info.get('mode')} "
+            f"backup_ref={seed_info.get('backup_ref') or '<none>'} "
+            f"seed_commit={seed_info.get('seed_commit') or '<none>'}"
         )

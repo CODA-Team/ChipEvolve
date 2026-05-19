@@ -20,7 +20,10 @@ assumed correct.
 The key search variables are:
 
 - `objective`: which pressure/HPWL/displacement/recoverability terms define the
-  target field.
+  target field.  This objective is allowed to be heuristic and case-adaptive:
+  Teacher/Student may change weights, nonlinear gates, feature triggers,
+  target clipping, or net/cell priority terms when logs show the current field
+  is not creating a DPO-recoverable basin.
 - `stop point`: when the guidance should stop before over-committing a full
   legal solution that downstream negotiation, Diamond-style repair, or DPO
   cannot recover.
@@ -34,6 +37,9 @@ The key search variables are:
 
 - Run guidance only far enough to create a better basin, then hand off to the
   route's primary legalizer.
+- Treat the target function as an optimization surface.  Use counters and
+  stage metrics to decide whether to change the guidance objective, stop point,
+  payload, or consumer; do not assume the paper/default target is fixed.
 - Use stage-wise metrics to check whether the guidance improved legal HPWL but
   hurt final HPWL; if so, tune the stop point or consumer instead of assuming
   the global signal is wrong.
@@ -61,6 +67,8 @@ The key search variables are:
 - Did guidance change the committed placement or only produce unused counters?
 - Did the primary downstream legalizer or DPO consumer execute with nonzero
   counters?
+- Did the logs explain which objective terms fired and whether their targets
+  became accepted moves, rejected candidates, or unused frontier entries?
 - Did the final full-flow HPWL improve, or only the legalizer-stage HPWL?
 - If final HPWL regressed, is the fix a different guidance objective, an earlier
   stop point, or a stronger frontier consumer?

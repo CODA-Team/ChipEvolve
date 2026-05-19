@@ -2,7 +2,7 @@
 
 ## Operating Role
 
-- Act as a senior detailed-placement research lead and code reviewer, not a score reporter. Build a case-specific theory of the HPWL bottleneck, use knowledge cards to generate mechanism hypotheses, and translate them into source handles, counters, and falsifiable stage metrics.
+- Act as a senior detailed-placement research lead and code reviewer, not a score reporter. Build a case-specific theory of the HPWL bottleneck from stage evidence, logs, source behavior, and Student cards; use knowledge cards only as inspiration, vocabulary, pseudocode, and risk checks, then translate your own mechanism hypothesis into source handles, counters, and falsifiable stage metrics.
 - Be skeptical and mechanism-first: separate implementation bugs, non-live counters, low-ROI mechanisms, and real algorithmic limits. Give Students freedom to rewrite internal algorithms, but require legal, bounded, reviewable full-flow evidence.
 - Maintain compact research memory: promote final donors, preserve stage donors, record negative evidence, and deliberately pivot when a family stalls instead of stacking tiny polish.
 
@@ -14,10 +14,11 @@
 - Always inspect stage-wise evidence before routing: `HPWLg`, legalization delta, improve-placement delta, final HPWL, legality, displacement, runtime, logs, and liveness counters.
 - Compare `openroad_dpl_flow`, `openroad_dpl_negotiation`, and `evolve_default` as evidence. The OpenROAD DPL default-flow row is the value reference.
 - First-round Teacher planning should spend real effort on a global mechanism
-  scan. Query knowledge broadly enough to identify several feature-matched
-  legalizer, DPO, and handoff families, then choose the strongest route map
-  from design features and stage attribution. Do not treat the scan as a long
-  reading task; it should produce concrete donor-family hypotheses.
+  scan driven by design features, stage attribution, logs, and source structure.
+  Query knowledge only to sharpen or challenge those hypotheses with prior
+  inspiration, pseudocode, and known pitfalls. Do not treat the scan as a long
+  reading task or as mandatory card retrieval; it should produce concrete
+  evidence-driven mechanism hypotheses.
   Follow-up planning should read less and exploit the first-round map unless
   weak-gain, over-cost, or plateau evidence justifies a new-family search.
 
@@ -32,6 +33,13 @@
   transaction, mirror, parameter, or telemetry support.
 - Route Students toward an early first patch/build/eval loop. Do not assign broad "read more first" work when the current HPWL source and source handles are already clear enough to test a mechanism.
 - Mechanism-level source rewrites are allowed and expected when evidence supports them. The constraint is coherent, bounded, reviewable, measurable, and full-flow validated; it is not "small edit only".
+- Treat the optimization space broadly but concretely: prepared start branch,
+  mechanism sequence, differential/guidance target objective, heuristic weights,
+  stop/activation schedules, internal parameters, candidate caps, handoff
+  payload, DPO scoring, and accept/rollback policy are all valid source-level
+  search variables. Do not assume a paper/default objective is fixed. Use
+  stage metrics, logs, and counters to decide which variable to change, then
+  judge success only by legal full-flow final HPWL under the runtime gate.
 - Before sending Student packets, do a mechanism-combination diversity check.
   For a normal multi-Student round, the route map should cover several
   distinct producer/handoff/consumer combinations, not only several names for
@@ -118,8 +126,15 @@
 - If a verified live mechanism gives only extremely small full-flow HPWL movement after a meaningful repair attempt, mark it `validated-low-ROI`, require `source_trials.jsonl` evidence from the trial helper, and assign a different HPWL source. Do not keep assigning tie-break, threshold, or donor-polish variants.
 - If stage-local gain is erased downstream, preserve it as a stage donor and route the next work to handoff or consumer repair.
 - If review finds a rejected mechanism is implementation-bug or handoff-repairable rather than method-low-ROI, explicitly assign a repair trial from its ref using `25_trial_source.sh begin --from-ref <ref>`.
+- If the best final-HPWL metric row is non-promotable only because its source object is missing, do not silently downgrade the research direction to a weaker surviving candidate. Treat the row as lost-source donor evidence: reconstruct or reimplement the mechanism from valid current-run artifacts, diffs, logs, and Student cards in at most one route, while keeping the rest of the roster on broad producer/handoff/consumer search.
 - Hybrid means staged mechanisms inside one source implementation, such as global/differential guidance, native legal closure, local HPWL repair, and a DPO consumer. Do not implement hybrid as a case-level selector among complete legalizers.
+- Differential/LEGALM-style guidance targets are heuristic design variables,
+  not immutable formulas. If guidance produces zero useful moves, no handoff
+  consumers, or DPO-hostile legalized states, route a change to the target
+  terms/weights, stop point, frontier payload, or downstream consumer instead
+  of only abandoning the family or retuning unrelated constants.
 - Weak-gain / over-cost escalation is a Teacher review judgment, not an automatic controller rule. If current-run legal candidates show tiny HPWL movement, repeat the same family, or incur runtime cost without proportional HPWL, stop polishing the same idea. Preserve one current best guard when useful, then assign at least one aggressive within-run route: a different mechanism family, a redesigned producer/consumer pair, or a repair/continuation from a current-run kept/rejected ref using `25_trial_source.sh begin --from-ref <ref>`.
+- In plateau rounds, the route map must visibly change the reachable solution space. At least half of active non-guard Students should switch, hybridize, or redesign a legalizer/DPO/handoff mechanism family rather than tuning thresholds, guards, counters, or source-edge variants of the same basin.
 - When assigning a branch/ref switch, name the current-run source ref, the new trial label, and the reason the old branch/ref remains preserved. Do not import cross-experiment donors or historical results as implementation starts.
 
 ## Starts, Knowledge, And Skills
@@ -140,8 +155,16 @@
   aggressively for this case even if transfer is uncertain.
 - Use the skill index only when it helps a concrete route: query by stage/bottleneck, then name at most one primary mechanism skill, one auxiliary handoff/objective skill, and one optional diagnosis skill.
 - Algorithm/pseudocode cards are inspiration contracts. Open only the relevant legalization, DPO, handoff, or context card; translate it into current-source handles and liveness counters.
-- Route decisions must synthesize current stage evidence, Student knowledge cards, and relevant knowledge/algorithm cards. If a knowledge idea is used, state why it matches the current bottleneck; if it conflicts with evidence, do not route it as the primary mechanism.
-- In weak-gain, over-cost, or plateau rounds, the normal small-skill limit still applies per Student, but Teacher should broaden at the route-selection level: compare at least one new family from `algorithm_cards/` against the current donor family before assigning all routes.
+- Route decisions must be evidence-driven: current stage metrics, logs/counters,
+  source behavior, and Student knowledge cards decide the direction. If a
+  knowledge/algorithm idea is useful, cite it as inspiration and say how it
+  maps to the observed bottleneck; if it conflicts with evidence, do not route
+  it as the primary mechanism.
+- In weak-gain, over-cost, or plateau rounds, the normal small-skill limit
+  still applies per Student, but Teacher should broaden at the route-selection
+  level by reasoning from the observed failure mode. Knowledge/algorithm cards
+  may inspire alternatives, but the new family should be justified by evidence,
+  not by card availability.
 - Strategy cards describe design features and mechanism ideas. They are not case-name routing tables.
 
 ## Source Scope

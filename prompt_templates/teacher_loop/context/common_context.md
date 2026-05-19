@@ -119,6 +119,11 @@ they are not fixed recipes or mandatory donors.
   the handoff and refinement are implemented correctly; weak final HPWL should
   trigger handoff/improve-placement diagnosis, not immediate abandonment of the
   global route
+- source-search prior: the Teacher may optimize branch choice, mechanism
+  ordering, differential/guidance objectives, heuristic weights, stop schedules,
+  internal parameters, handoff payloads, and DPO scoring/acceptance policies.
+  These are source-level search variables. Use logs and stage-wise evidence to
+  decide what to change; promote only by legal full-flow final HPWL.
 - hybrid-source prior: useful hybrids are staged algorithms inside one
   candidate implementation, such as lightweight global guidance, native legal
   closure, local HPWL repair, and a DPO consumer.  Do not implement hybrid as a
@@ -132,8 +137,9 @@ they are not fixed recipes or mandatory donors.
   same-family, or too heavy for the HPWL gained, follow the escalation rule in
   LEGO-lite Skill Lookup: keep one guard route if useful, then assign at least
   one aggressive route that changes the legalizer/DPO composition, repairs a
-  current-run ref, or tries a feature-matched algorithm family from the
-  pseudocode cards
+  current-run ref, or tests a different feature-matched mechanism hypothesis
+  derived from the observed failure mode. Pseudocode cards may inspire the
+  implementation, but they are not the reason for the route.
 - low-ROI rule: when a mechanism is verified live/correct but still gives only
   extremely small full-flow HPWL movement after a meaningful repair attempt, preserve
   it as evidence and switch to a different HPWL source instead of stacking

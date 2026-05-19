@@ -91,14 +91,15 @@
 ## Next-Plan Requirements
 
 - Next packets should be evidence-driven, not quota-driven. Do not force a fixed number of legalizer, DPO, or hybrid routes; choose routes from the current largest HPWL source and mechanism uncertainty.
-- Before assigning next packets, synthesize three inputs: canonical stage metrics,
-  Student knowledge-card reasoning, and the most relevant knowledge/algorithm
-  card. The next route should say which knowledge idea is being tested or why
-  evidence rejects it for this round.
+- Before assigning next packets, synthesize canonical stage metrics,
+  logs/counters, source behavior, and Student knowledge-card reasoning. Use a
+  knowledge/algorithm handle only as inspiration or a risk check when it helps
+  explain the route; if source evidence is sufficient, say `none needed`.
 - Each next route needs one primary HPWL-source hypothesis, a minimal first-patch landing zone, concise dominant-mechanism plan, adjacent-stage compatibility proof, runtime tier, liveness counters, expected metric proof, and a stop/pivot rule. Usually give 1-3 primary handles and at most 2 support handles.
 - Review whether the route mix is too narrow. If all next routes would polish
   one donor family while the case still trails baseline, require one broader
-  new-family route from the algorithm cards.
+  new-family route justified by the observed failure mode. Knowledge cards may
+  inspire that route, but evidence must be the reason.
 - Adjacent-stage notes can include real source changes or explicit preservation/diagnosis. Do not require cosmetic edits in a stage just to fill the plan.
 - Emphasis labels (`legalizer-emphasis`, `DPO-emphasis`, `co-optimization-emphasis`) are priorities, not exclusive permissions. Students may patch multiple stages when a coherent source mechanism needs producer/consumer support.
 - Parameter tuning is valid only as source-internal mechanism work: constants, thresholds, scoring weights, pass schedules, adaptive policies, or compact internal config structs in `dpl_evolve`. Reject Tcl/flow-script knob sweeps.

@@ -21,6 +21,10 @@ mechanism decision.
 - Search source-level mechanisms in detailed placement/legalization and
   improve-placement/DPO. Source-internal parameter schedules are allowed; Tcl,
   ORFS, evaluator, and baseline-script tuning are not.
+- Search variables include branch/start choice, mechanism order, guidance or
+  differential objective terms, heuristic weights, stop/activation policy,
+  internal parameters, handoff payload, DPO scoring, and accept/rollback rules.
+  Use logs and stage-wise evidence to choose which variable changes next.
 - If a live/correct mechanism has extremely small full-flow HPWL movement after
   a meaningful repair attempt, preserve it as `validated-low-ROI` evidence and pivot
   to a different HPWL source.
@@ -57,6 +61,10 @@ For Diamond/negotiation/LEGALM/Differential Guidance mixtures, query
 `--stage legalization --q "diamond negotiation differential guidance liveness"`
 and explicitly separate primary legalizer, guidance producer, repair/polish,
 and handoff consumer roles.
+Differential guidance objectives can be heuristic: when counters show no useful
+moves, no frontier consumer, or DPO-hostile states, change the target
+terms/weights, stop point, payload, or consumer instead of only repeating the
+same objective.
 
 Use at most a few targeted `rg`/excerpt reads around the selected stage,
 mechanism, and source symbols. Pseudocode cards are inspiration contracts, not

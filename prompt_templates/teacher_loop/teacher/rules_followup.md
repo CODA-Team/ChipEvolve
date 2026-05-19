@@ -5,7 +5,7 @@ changes the next decision. Read only the current iteration context, peer packet,
 and review packet fields needed for routing.
 
 - Role: act as the case-specific research lead and reviewer. Reuse prior
-  knowledge-map decisions, but challenge weak mechanisms, distinguish
+  evidence-backed route-map decisions, but challenge weak mechanisms, distinguish
   implementation failure from method failure, and pivot to a new mechanism
   family when evidence shows weak gain, over-cost, or plateau.
 
@@ -22,19 +22,26 @@ and review packet fields needed for routing.
   private `dpl_evolve` source when the mechanism requires coherent producer,
   handoff, consumer, objective, transaction, mirror, source-internal parameter,
   helper, or telemetry support.
+- Treat branch choice, mechanism composition, guidance objective, heuristic
+  weights, internal parameters, stop/activation policy, candidate caps,
+  handoff payload, DPO scoring, and accept/rollback rules as searchable
+  source-level variables. Follow-up routing should use logs and stage evidence
+  to decide which variable to change, not assume the current paper/default
+  objective or branch is fixed.
 - Use the first-round route map as memory. Follow-up should read less and
   decide faster, but it must not forget routes that were never tested. If the
   best family stalls, name the observed failure mode and assign a new-family
-  route; open a broader algorithm card only when it provides a concrete
-  mechanism for that failure mode.
+  route from evidence. Open a broader algorithm card only when it can inspire
+  or sanity-check a concrete mechanism for that observed failure mode.
 - Before routing, restate the dominant HPWL source in one phrase: legalizer
   producer quality, DPO consumer strength, handoff/frontier loss, or
   composition. Final mirror interaction is support/attribution evidence, not a
   standalone HPWL source. Route mirror-internal work only when it protects or
   diagnoses accepted DPO/reorder/handoff gains.
-- Next-round direction must combine current metrics, Student knowledge-card
-  reasoning, and targeted knowledge only when it clarifies the route change or
-  mechanism insight. Current evidence wins over a knowledge card.
+- Next-round direction must combine current metrics, logs/counters, source
+  behavior, and Student knowledge-card reasoning. Use targeted knowledge only
+  when it clarifies a route change or mechanism insight. Current evidence wins
+  over a knowledge card.
 - Label every packet with `route type` and `route action`. If the previous
   useful results are same-family or tiny-gain, allow at most one `continue`
   guard/repair route; the other routes should `switch`, `hybridize`, or
@@ -90,9 +97,20 @@ and review packet fields needed for routing.
 - If a rejected mechanism is implementation-bug or handoff-repairable rather
   than method-low-ROI, assign a repair trial from its ref with
   `25_trial_source.sh begin --from-ref <ref>`.
+- If the best final-HPWL metric row is non-promotable only because its source
+  object is missing, do not silently downgrade the research direction to a
+  weaker surviving candidate. Treat it as lost-source donor evidence: assign
+  at most one reconstruction route from valid current-run artifacts, diffs,
+  logs, and Student cards, and keep the remaining Students on broad
+  producer/handoff/consumer mechanism search.
 - Keep one best donor as regression guard, but do not make every route a donor
   polish. Tiny-gain, over-cost, or plateau rounds need `mechanism-redesign`,
   stage co-optimization, or a different legalizer/DPO/handoff hypothesis.
+- For Differential/LEGALM-style guidance, the target objective itself can be
+  heuristic. If logs show zero useful moves, missing frontier consumption, or
+  final-HPWL damage after DPO, change the guidance target/weights, stop point,
+  handoff payload, or downstream consumer rather than only repeating the same
+  objective or discarding the whole guidance family.
 - Keep donor scope explicit: `general donor` means guard/reusable kernel;
   `feature-matched donor` means selected for this case's physical/stage
   features. Follow-up decisions should optimize this specific case first and
@@ -103,6 +121,10 @@ and review packet fields needed for routing.
   aggressive within-run route: switch mechanism family, redesign the
   producer/consumer pair, or continue from a current-run kept/rejected ref with
   `25_trial_source.sh begin --from-ref <ref>`.
+- In plateau rounds, visibly change reachable solution space. At least half of
+  active non-guard Students should switch, hybridize, or redesign a
+  legalizer/DPO/handoff family rather than retuning thresholds, counters,
+  guards, or same-basin source-edge variants.
 - If assigning a branch/ref switch, name the source ref and new trial label, and
   require trial-helper branch preservation. Do not import cross-experiment
   donors or historical results as implementation starts.

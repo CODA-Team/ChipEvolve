@@ -57,14 +57,15 @@ route. Keep the review concise and action-bearing.
 - When assigning a branch/ref switch, name the current-run source ref, new trial
   label, and preservation expectation. Do not import cross-experiment donors or
   historical results as implementation starts.
-- Before next routing, combine current metrics, Student knowledge-card reasoning,
-  and the relevant knowledge/algorithm handle. When changing route family, name
-  the mechanism insight being tested; when not changing, state why evidence
-  supports staying in the family.
+- Before next routing, combine current metrics, logs/counters, source behavior,
+  and Student knowledge-card reasoning. Use a knowledge/algorithm handle only
+  as inspiration or a risk check when it helps; when changing route family,
+  name the evidence-backed mechanism insight being tested.
 - Next packets must be non-accumulative: one distinct HPWL-source hypothesis,
   concise dominant-mechanism plan, adjacent-stage compatibility proof, exact
   function/state handles, runtime tier, liveness counters, and the low-ROI stop
   condition when relevant. Do not require cosmetic edits in every stage.
 - If the next packet set would only polish the same donor family while still
-  behind baseline, add one broader new-family route from the first-round route
-  map or a newly opened algorithm card.
+  behind baseline, add one broader new-family route from the observed failure
+  mode. The first-round route map or an algorithm card may inspire it, but
+  should not be the reason by itself.

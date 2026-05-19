@@ -51,9 +51,10 @@ $DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/iter_XX/prompts/teacher_plan.md
 $DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/iter_XX/prompts/teacher_review.md
 ```
 
-The Teacher must use stage-wise metrics, logs, source evidence, skill/knowledge
-queries, and prior negative evidence. It should assign source-level mechanisms,
-not blind patch commands. It should make the route emphasis explicit:
+The Teacher must lead with stage-wise metrics, logs, source evidence, Student
+cards, and prior negative evidence. Skill/knowledge queries are inspiration and
+risk checks, not the primary route source. It should assign source-level
+mechanisms, not blind patch commands. It should make the route emphasis explicit:
 `legalizer-emphasis`, `DPO-emphasis`, or `co-optimization-emphasis`; this is a
 priority label, not a restriction to one stage.
 
