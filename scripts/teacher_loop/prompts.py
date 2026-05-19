@@ -856,6 +856,8 @@ def start_kind_source(runtime: Any, start_kind: str) -> Path:
         return runtime.state_root / "seed_sources" / "framework_dpl_evolve"
     if start_kind == "diamond":
         return runtime.state_root / "seed_sources" / "diamond_dpl_evolve"
+    if start_kind == "default_negotiation":
+        return runtime.state_root / "seed_sources" / "default_negotiation_dpl_evolve"
     if start_kind == "evolved_diamond":
         return runtime.state_root / "seed_sources" / "evolved_diamond_dpl_evolve"
     if start_kind == "evolved_legalm":
@@ -1103,6 +1105,9 @@ seed_for_kind() {{
     diamond)
       printf '%s\\n' "$AGENT_ROOT/.dpl_evolve_state/seed_sources/diamond_dpl_evolve"
       ;;
+    default_negotiation)
+      printf '%s\\n' "$AGENT_ROOT/.dpl_evolve_state/seed_sources/default_negotiation_dpl_evolve"
+      ;;
     evolved_diamond)
       printf '%s\\n' "$AGENT_ROOT/.dpl_evolve_state/seed_sources/evolved_diamond_dpl_evolve"
       ;;
@@ -1150,7 +1155,7 @@ prepare_start_branches() {{
     echo "[WARN] current branch is $return_branch, expected $SOURCE_BRANCH; skip start branch materialization" >&2
     return 0
   fi
-  for kind in framework diamond evolved_diamond evolved_legalm evolved_negotiation; do
+  for kind in framework diamond default_negotiation evolved_diamond evolved_legalm evolved_negotiation; do
     materialize_start_branch "$kind"
   done
   git -C "$DPL_SRC" switch "$SOURCE_BRANCH" >/dev/null

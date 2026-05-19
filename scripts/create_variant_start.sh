@@ -28,6 +28,10 @@ Create the initial private dpl_evolve source tree for one experiment variant.
 This copies one prepared seed source:
   framework:    $DPL_EVOLVE_STATE_ROOT/seed_sources/framework_dpl_evolve
   diamond:      $DPL_EVOLVE_STATE_ROOT/seed_sources/diamond_dpl_evolve
+  default_negotiation:
+                $DPL_EVOLVE_STATE_ROOT/seed_sources/default_negotiation_dpl_evolve
+                framework-compatible source layout with negotiation enabled
+                by default; this is not the evolved_negotiation donor.
   evolved_diamond:     $DPL_EVOLVE_STATE_ROOT/seed_sources/evolved_diamond_dpl_evolve
   evolved_legalm:      $DPL_EVOLVE_STATE_ROOT/seed_sources/evolved_legalm_dpl_evolve
   evolved_negotiation: $DPL_EVOLVE_STATE_ROOT/seed_sources/evolved_negotiation_dpl_evolve
@@ -48,6 +52,7 @@ Options:
   --dpl-src PATH         Destination dpl_evolve source path.
                          Default: <variant-root>/dpl_evolve.
   --start-kind KIND      Seed type: framework, diamond,
+                         default_negotiation,
                          evolved_diamond, evolved_legalm,
                          evolved_negotiation, or prepared.
                          Default: evolved_legalm.
@@ -180,6 +185,9 @@ else
     diamond)
       seed_src="${state_root}/seed_sources/diamond_dpl_evolve"
       ;;
+    default_negotiation)
+      seed_src="${state_root}/seed_sources/default_negotiation_dpl_evolve"
+      ;;
     evolved_diamond)
       seed_src="${state_root}/seed_sources/evolved_diamond_dpl_evolve"
       ;;
@@ -194,7 +202,7 @@ else
       ;;
     *)
       echo "[ERROR] Unsupported --start-kind: ${start_kind}" >&2
-      echo "[ERROR] Expected one of: framework, diamond, evolved_diamond, evolved_legalm, evolved_negotiation, prepared" >&2
+      echo "[ERROR] Expected one of: framework, diamond, default_negotiation, evolved_diamond, evolved_legalm, evolved_negotiation, prepared" >&2
       exit 1
       ;;
   esac
@@ -212,6 +220,12 @@ fi
 if [[ ("${start_kind}" == "framework" || "${start_kind}" == "evolved_diamond" || "${start_kind}" == "evolved_legalm" || "${start_kind}" == "evolved_negotiation") && -z "${seed_src_override}" && ! -f "${seed_src}/src/LegalmGuidance.cpp" ]]; then
   echo "[ERROR] Prepared seed source lacks LegalmGuidance.cpp: ${seed_src}" >&2
   exit 1
+fi
+if [[ "${start_kind}" == "default_negotiation" && -z "${seed_src_override}" ]]; then
+  if [[ ! -f "${seed_src}/src/EvolveLegalizer.cpp" || ! -f "${seed_src}/src/LegalmGuidance.cpp" || ! -f "${seed_src}/src/NegotiationLegalizer.cpp" ]]; then
+    echo "[ERROR] Prepared default_negotiation seed lacks required framework/negotiation sources: ${seed_src}" >&2
+    exit 1
+  fi
 fi
 if [[ -z "${seed_src_override}" ]]; then
   case "${start_kind}" in

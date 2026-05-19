@@ -49,6 +49,12 @@
   tie-breaks, telemetry, or small candidate-order changes, mark the round as
   same-family incremental exploitation and require the next plan to include a
   `switch`, `hybridize`, or `mechanism-redesign` route.
+- If multiple Students have identical stage-wise tuples or fall back to the
+  same start-basin HPWL, treat that as evidence the assigned variants did not
+  change the reachable solution space. Do not route another main plan to
+  frontier retune, guard parity, or liveness-only edits; require a mechanism
+  that changes producer policy, consumer acceptance/move family, or their
+  composition.
 - Separate algorithmic failure from implementation cost: timeout, broad untargeted scans, low accept rate, legality rejects, fallback domination, duplicate endpoint work, weak cache reuse, or missing parallelism.
 - If current-run legal candidates are tiny-gain, same-family, or too heavy for
   the HPWL gained, diagnose whether the issue is implementation cost,
@@ -56,6 +62,10 @@
   preserve at most one guard and include a more aggressive within-run route:
   switch family, redesign the mechanism, or repair a current-run kept/rejected
   ref with `25_trial_source.sh begin --from-ref <ref>`.
+- A guard route is a protected experiment, not permission for a no-op rerun.
+  If Teacher asks a Student to guard an elite donor, also assign one bounded
+  new HPWL attempt or adjacent-stage liveness hook. Treat zero-diff finalize as
+  incomplete unless the Student reports a concrete source-safety blocker.
 - If a Student completed one self-diagnosis/strengthening loop and left a
   concrete `Next Teacher Handoff`, decide whether to continue that workbench,
   switch family, or redesign composition. Do not ask the same Student line to

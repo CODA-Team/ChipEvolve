@@ -17,9 +17,11 @@ and review packet fields needed for routing.
   and changes a real mechanism with a cost-control path.
 - Route from stage-wise evidence: identify the current largest HPWL source and
   assign one primary mechanism hypothesis per Student with a minimal first-patch
-  landing zone. Usually give 1-3 primary handles and at most 2 support
-  handles; include supporting edits across producer/handoff/consumer stages
-  when they are necessary for that hypothesis.
+  landing zone. Usually give 1-3 primary handles for orientation, but those
+  handles are not an allowed-file list. Students may modify any file under the
+  private `dpl_evolve` source when the mechanism requires coherent producer,
+  handoff, consumer, objective, transaction, mirror, source-internal parameter,
+  helper, or telemetry support.
 - Use the first-round route map as memory. Follow-up should read less and
   decide faster, but it must not forget routes that were never tested. If the
   best family stalls, name the observed failure mode and assign a new-family
@@ -90,8 +92,12 @@ and review packet fields needed for routing.
 - If assigning a branch/ref switch, name the source ref and new trial label, and
   require trial-helper branch preservation. Do not import cross-experiment
   donors or historical results as implementation starts.
-- Prepared starts are branch-only: `framework`, `diamond`, `evolved_diamond`,
-  `evolved_legalm`, `evolved_negotiation`. Do not ask Students to manually
+- Prepared starts are branch-only source parents: `framework`, `diamond`,
+  `default_negotiation`, `evolved_diamond`, `evolved_legalm`, and
+  `evolved_negotiation`. A start branch never restricts edit scope. Any route
+  may modify any private `dpl_evolve` file when the mechanism requires
+  legalizer, DPO, handoff, objective, transaction, mirror, source-internal
+  parameter, helper, or telemetry changes. Do not ask Students to manually
   apply release/start patch files.
 - Limit selected mechanism skills: normally one primary mechanism skill, one
   auxiliary handoff/objective skill, and one optional diagnosis skill.

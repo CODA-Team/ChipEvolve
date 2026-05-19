@@ -14,18 +14,19 @@ should act on it.
 5. `case_evolution/strategy_inspiration_by_design_feature.md`
 6. `case_evolution/runtime_light_final_hpwl_mechanism_priority.md`
 7. `case_evolution/evidence_weighted_mechanism_priority.md`
-8. `case_evolution/score_based_case_strategy_routing.md`
-9. `case_evolution/dense_evolved_legalizer_routing.md`
-10. `case_evolution/optdp_stage_cooptimization.md`
-11. `../skills/case/legalizer_dpo_handoff_triage.md`
-12. `legalization/algorithm_role_liveness_basics.md`
-13. `dpo/source_level_mechanisms.md`
-14. `dpo/exact_source_edge_recoverability_consumer.md`
-15. `dpo/lightweight_post_dpo_basin.md`
-16. `dpo/frontier_guided_basin_consumer.md`
-17. `dpo/openroad_native_handoff.md`
-18. `case_evolution/micro_gain_trap_and_elite_donors.md`
-19. Relevant LEGALM card under `legalm/` only when changing legalization.
+8. `case_evolution/cross_case_quality_mechanism_priority.md`
+9. `case_evolution/score_based_case_strategy_routing.md`
+10. `case_evolution/dense_evolved_legalizer_routing.md`
+11. `case_evolution/optdp_stage_cooptimization.md`
+12. `../skills/case/legalizer_dpo_handoff_triage.md`
+13. `legalization/algorithm_role_liveness_basics.md`
+14. `dpo/source_level_mechanisms.md`
+15. `dpo/exact_source_edge_recoverability_consumer.md`
+16. `dpo/lightweight_post_dpo_basin.md`
+17. `dpo/frontier_guided_basin_consumer.md`
+18. `dpo/openroad_native_handoff.md`
+19. `case_evolution/micro_gain_trap_and_elite_donors.md`
+20. Relevant LEGALM card under `legalm/` only when changing legalization.
 
 ## Workflow
 
@@ -58,6 +59,11 @@ should act on it.
   with a proven consumer, and endpoint-level branch scoring only when final HPWL
   improves; it demotes legalize-only wins, guard-only, telemetry-only,
   mirror-only, threshold-only, passive-handoff, and random-tail polishing.
+- `case_evolution/cross_case_quality_mechanism_priority.md`: distills
+  fixed-source transfer evidence into mechanism-level guidance.  It separates
+  broad exact-consumer quality donors that are often runtime-heavy, balanced
+  producer-consumer donors, runtime-light feature-specific local closure donors,
+  and low-ROI zero-accept or stage-only patterns.
 - `case_evolution/dense_evolved_legalizer_routing.md`: dense-case evidence for
   using `evolved_legalm` as a stage-level legalizer prior, plus Teacher policy
   for first-round diversification and later route switching/hybridization.  This

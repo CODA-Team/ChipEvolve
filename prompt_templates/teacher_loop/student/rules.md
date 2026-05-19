@@ -40,11 +40,18 @@
    legalizer-DPO handoff, or bounded search scope. Do not spend the main trial
    only on constants, tie-breaks, or telemetry unless Teacher assigned a guard
    or repair.
+   Retunes, frontier metadata, guard parity, and counters are not enough for a
+   primary route unless they feed a real producer/consumer policy change and
+   cause nonzero accepts or stage-wise movement. If your patch preserves the
+   same start-basin `HPWLlg/HPWLimprove/HPWLfinal`, diagnose it as shallow
+   polish and propose a different mechanism in `## Next Teacher Handoff`.
    If Teacher assigned a guard route, do not assume it is no-op telemetry.
-   Unless Teacher explicitly says pure-control attribution, keep the guard
-   behavior but add one low-risk, bounded, independently revertible HPWL
-   improvement and prove with counters/full-flow metrics that the reference
-   behavior was not disturbed.
+   Keep the guard behavior, but still make one low-risk, bounded,
+   independently revertible HPWL attempt or adjacent-stage liveness hook that
+   can be evaluated. Do not finalize a zero-diff guard-only rerun unless the
+   source cannot be safely edited and you explain the concrete blocker in
+   `## Next Teacher Handoff`. Prove with counters/full-flow metrics that the
+   reference behavior was not disturbed.
    Your plan should name one dominant mechanism and one compatibility check
    for adjacent stages. For example, a legalizer route should explain why the
    output remains DPO-recoverable; a DPO route should explain why the input
@@ -68,11 +75,14 @@
 
 - Work on the generated dev branch in `private_dpl_evolve_source`; the generated
   iteration ref records the iteration-start commit. Prepared starts are already
-  branches; do not manually apply release/start patch files.
+  branches; they are source parents, not edit-scope restrictions. Do not
+  manually apply release/start patch files.
 - Use the workspace packet `Algorithm Entry Points` section as the preferred
   landing-zone map. Start from Teacher `first patch handles` when present, but
-  do not treat the named files as an exclusive whitelist when the same
-  mechanism clearly needs adjacent internal files or helper state.
+  do not treat the named files as an exclusive whitelist. You may modify any
+  file under `private_dpl_evolve_source` when the same mechanism needs adjacent
+  or deeper legalizer, DPO, handoff, objective, transaction, mirror, helper,
+  source-internal parameter, or telemetry support.
 - Do not start ordinary algorithm work from `src/Opendp.i`. That file is the
   top-level Tcl/SWIG command layer and stays stable unless Teacher explicitly
   assigns interface/plumbing work.
@@ -114,7 +124,9 @@
   paper, old-branch, or flow research during Student execution. If the first
   implementation path is clear, patch it and let evaluation drive the next
   question.
-- Before the first evaluator run, do not chase extra semantic details outside the first-patch handles unless the current patch is blocked by a concrete compile or correctness question.
+- Before the first evaluator run, use first-patch handles and the workspace
+  entry-point map to keep extra reading narrow. Expand only for adjacent
+  implementation support or a concrete compile/correctness blocker.
 - After `trial begin`, stop re-deriving the outer command/evaluator chain unless the current patch is blocked by an actual uncertainty about call order or artifact wiring. Assume the generated packet, Teacher assignment, and helper scripts are the source of truth for stage order and evaluation entrypoints.
 - After each evaluation, inspect `candidate_metrics_summary_md/json` first. Open raw `metrics.json`, `legalize_summary.json`, or the DPL log only when the summary is missing a needed counter or path. Report final HPWL, stage-wise HPWL movement, legality, displacement, runtime, and active counters.
 - The first evaluation after implementing Teacher's plan is not the final

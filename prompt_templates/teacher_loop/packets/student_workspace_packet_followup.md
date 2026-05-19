@@ -36,7 +36,7 @@ Primary flow:
 
 1. prepare source or assigned start:
    - `$prepare_source_script`
-   - `$prepare_start_source_script --kind <framework|diamond|evolved_diamond|evolved_legalm|evolved_negotiation>`
+   - `$prepare_start_source_script --kind <framework|diamond|default_negotiation|evolved_diamond|evolved_legalm|evolved_negotiation>`
 2. for each mechanism trial:
    - `$trial_source_script begin --label <short-mechanism>`
    - repair a prior kept/rejected ref when assigned: `$trial_source_script begin --label <repair-name> --from-ref <ref>`
@@ -87,7 +87,8 @@ to change the dev starting point.
   changes across legalization, DPO, and handoff are allowed when justified by
   Teacher guidance and source diagnosis. Keep the diff coherent, bounded,
   reviewable, and validated.
-- Prepared starts are branches. Do not manually apply release/start patch files.
+- Prepared starts are source-parent branches, not edit-scope restrictions. Do
+  not manually apply release/start patch files.
 - Use source-internal parameters/heuristics only; do not move tuning into Tcl,
   evaluator, ORFS, or baseline scripts.
 - If a live/correct mechanism remains extremely low ROI after a meaningful
@@ -111,13 +112,10 @@ to change the dev starting point.
   pause the iteration for ordinary uncertainty.
 - Prefer patch/build/eval over repeated broad reading once the current
   mechanism is understood.
-- If Teacher already provided `first patch handles`, keep the first edit/build/
-  eval loop inside that landing zone unless a concrete blocker forces one extra
-  support read.
-- Reuse the main workspace packet `Algorithm Entry Points` section; treat it as
-  a preferred landing-zone map, not a whitelist. Do not restudy the whole
-  module. Student-side research should stay narrow to the current landing zone,
-  nearby state, and any required OpenROAD interface/call site.
+- Reuse Teacher `first patch handles` and the main workspace packet `Algorithm
+  Entry Points` section as preferred landing zones, not whitelists. Keep
+  Student-side research narrow to the current mechanism, nearby state, adjacent
+  implementation support, and any required OpenROAD interface/call site.
 - Do not modify the top-level command interfaces for
   `detailed_placement_evolve`, `improve_placement_evolve`, or
   `optimize_mirroring_evolve`. Keep command names and outer invocation

@@ -2,11 +2,13 @@
 
 ## Principle
 
-Codex edits only the bounded `dpl_evolve` framework surface unless a task
-explicitly expands the scope.  The current Teacher/Student loop optimizes two
-active responsibilities: legalization/detailed placement and improve
-placement.  `optimize_mirroring_evolve` must remain callable but is not an
-active optimization target in this track.
+Codex edits only the bounded `private_dpl_evolve_source` module unless a task
+explicitly expands outside it.  Within that private `dpl_evolve` source repo,
+all files are available for coherent mechanism work: legalization/detailed
+placement, improve placement/DPO, handoff/frontier state, objectives,
+transactions, mirroring internals, helper classes, source-internal parameters,
+and telemetry.  A Teacher start branch or first-patch handle is an orientation
+hint, not a whitelist.
 
 ## Preferred Surfaces
 
@@ -23,8 +25,12 @@ module-relative paths:
 - detailed-improvement and objective files under
   `src/optimization/` and `src/objective/`
 - `src/Optdp.cpp`
-- existing `src/Place.cpp` or
-  `NegotiationLegalizer*` files only when borrowing a specific donor mechanism.
+- existing `src/Place.cpp` or `NegotiationLegalizer*` files when the selected
+  mechanism needs placement or negotiation/resource-allocation support.
+
+These are preferred entry points, not an edit-scope boundary. If a coherent
+mechanism needs other files under `private_dpl_evolve_source`, modify them and
+record why in the knowledge card.
 
 Do not edit classic `tools/OpenROAD/src/dpl/`.
 
@@ -129,12 +135,14 @@ packet and repo-local knowledge files are the evidence boundary.
   Never reuse donor line numbers or old hunk context as the patch anchor.
 - Run the generated source-preparation script before code inspection. If
   Teacher assigns a prepared start point (`framework`, `diamond`,
-  `evolved_diamond`, `evolved_legalm`, or `evolved_negotiation`), use
-  `prepare_start_source_script --kind <kind>` before edits. Do not launch
-  prepare and switch helpers in parallel. After reading the workspace packet,
-  required skills, and nearby Teacher-named symbols, patch a coherent mechanism
-  and move to generated build/evaluate scripts. If broader source inspection is
-  needed, keep it tied to the selected HPWL mechanism and stop once the
+  `default_negotiation`, `evolved_diamond`, `evolved_legalm`, or
+  `evolved_negotiation`), use `prepare_start_source_script --kind <kind>`
+  before edits. A prepared start is only the source parent; it never limits
+  which `dpl_evolve` files can be changed. Do not launch prepare and switch
+  helpers in parallel. After reading the workspace packet, required skills, and
+  nearby Teacher-named symbols, patch a coherent mechanism and move to
+  generated build/evaluate scripts. If broader source inspection is needed,
+  keep it tied to the selected HPWL mechanism and stop once the
   producer/consumer boundary is clear.
 - If you already ran `prepare_source_script` and still need to switch before
   edits, run `switch_start_branch_script` serially. Do not copy seed directories

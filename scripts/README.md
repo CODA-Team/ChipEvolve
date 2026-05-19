@@ -42,7 +42,7 @@ is experiment-specific, keep it under `experiments/launchers/` or
 | Script | Purpose | Called by | Stage |
 | --- | --- | --- | --- |
 | `scripts/run_place_batch.sh` | Produce reusable `3_4_place_resized.odb` snapshots for selected cases. | Human/Teacher before baseline/evolve gates. | Input snapshot generation. |
-| `scripts/calibrate_start_seeds.sh` | Build/evaluate prepared start-kind seeds such as `framework`, `evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` for one case, then write initial donor-evidence tables. | `optimize_case_with_codex.py --calibrate-start-seeds`, Human/Teacher. | Start donor calibration. |
+| `scripts/calibrate_start_seeds.sh` | Build/evaluate prepared start-kind seeds such as `framework`, `diamond`, `default_negotiation`, `evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` for one case, then write initial donor-evidence tables. | `optimize_case_with_codex.py --calibrate-start-seeds`, Human/Teacher. | Start donor calibration. |
 | `scripts/summarize_start_seed_calibration.py` | Summarize start-kind calibration candidate matrices into markdown/TSV stage-wise metrics. | `calibrate_start_seeds.sh`. | Result analysis. |
 | `scripts/run_candidate_matrix.sh` | Build one fixed candidate `dpl_evolve` source once, then evaluate that identical code across every enabled row in a TSV plan. | Human/Teacher after a promising exported student source commit exists. | Cross-case candidate validation. |
 | `scripts/run_round_candidate_matrices.sh` | Enumerate committed student source revisions from one Teacher round, export each revision, and run `run_candidate_matrix.sh` for each. | Human/Teacher after a completed round. | 4xN candidate validation. |

@@ -55,6 +55,12 @@ family inspired by a targeted skill query/card, or a repair of a current-run
 kept/rejected ref using the trial helper. Do not use cross-experiment donors as
 implementation starts.
 
+Guard routes should still do work.  A guard can preserve an elite donor as the
+fallback behavior, but Teacher should ask for one bounded new HPWL attempt,
+handoff/liveness hook, or small adjacent-stage consumer change.  Do not reward
+zero-diff guard finalize as a completed experiment unless the Student documents
+a source-safety blocker and a concrete next handoff.
+
 If a mechanism is live, correctly implemented, and still produces only
 negligible clean full-flow HPWL movement after a meaningful repair attempt, mark it
 `validated-low-ROI`. Preserve the lesson, then route Students to a different

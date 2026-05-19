@@ -18,7 +18,8 @@ choice needs it.
   producer/consumer repair only when it changes the mechanism.
 - Work on your generated dev branch under `private_dpl_evolve_source`; the
   generated iteration ref records this iteration's start commit. Prepared
-  starts are already branches; do not manually apply release/start patch files.
+  starts are already branches; they are source parents, not edit-scope
+  restrictions. Do not manually apply release/start patch files.
 - Plan the mechanism before editing, but keep that planning short and
   execution-oriented. Once the first coherent implementation path is clear,
   begin a real trial and land the first patch instead of extending diagnosis.
@@ -61,9 +62,10 @@ choice needs it.
 - Do not defer `trial begin` and the first patch behind long exploratory
   reading. Use targeted source reads, then execute the first patch/build/eval
   loop early.
-- If Teacher already gave a first-patch landing zone, stay inside those handles
-  until the first evaluator result unless a concrete compile or correctness
-  blocker forces one extra support read.
+- If Teacher already gave a first-patch landing zone, start there for reading
+  efficiency and expand only to adjacent implementation support needed by the
+  mechanism. It is not an allowed-file list; source-scope rules above still
+  apply.
 - After evaluation, inspect metrics/logs for HPWL stage movement, legality,
   runtime, liveness counters, accept/reject bottleneck, and source/binary/metric
   alignment.

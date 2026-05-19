@@ -34,6 +34,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "Initial dpl_evolve source seed for student variants. "
             "`framework` starts from the constrained top-level framework; "
             "`diamond` starts from the clean dpl_evolve/base implementation; "
+            "`default_negotiation` starts from a framework-compatible source "
+            "layout with negotiation enabled by default and without evolved "
+            "negotiation donors; "
             "`evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` "
             "start from materialized iter30 evolved legalizer seed sources. "
             "`evolved_legalm` is the default current LEGALM/global-differential "
@@ -186,6 +189,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         choices=[
             "framework",
             "diamond",
+            "default_negotiation",
             "evolved_diamond",
             "evolved_legalm",
             "evolved_negotiation",
@@ -194,7 +198,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help=(
             "Start-kind seed to include in --calibrate-start-seeds. "
             "Repeatable. Default: framework, evolved_diamond, "
-            "evolved_legalm, evolved_negotiation."
+            "evolved_legalm, evolved_negotiation, plus default Diamond and "
+            "default negotiation controls."
         ),
     )
     parser.add_argument("--dry-run", action="store_true")

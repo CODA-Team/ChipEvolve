@@ -16,6 +16,7 @@ PROMPT_TEMPLATE_DIR = AGENT_ROOT / "prompt_templates" / "teacher_loop"
 START_KINDS = (
     "framework",
     "diamond",
+    "default_negotiation",
     "evolved_diamond",
     "evolved_legalm",
     "evolved_negotiation",
@@ -23,7 +24,7 @@ START_KINDS = (
 )
 
 PREPARED_START_KIND_PATTERN = (
-    r"(?:framework|diamond|evolved_diamond|evolved_legalm|evolved_negotiation)"
+    r"(?:framework|diamond|default_negotiation|evolved_diamond|evolved_legalm|evolved_negotiation)"
 )
 
 CANONICAL_LINES = (

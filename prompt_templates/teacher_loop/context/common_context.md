@@ -79,10 +79,6 @@ they are not fixed recipes or mandatory donors.
   query `--stage legalization --q "diamond negotiation differential guidance liveness"`
   and name the route role: primary legalizer, guidance producer,
   repair/polish stage, or handoff consumer.
-- For mechanism inspiration, Teacher may query the skill index after stating
-  the observed bottleneck and mechanism hypothesis, then open the smallest
-  relevant card under `$algorithm_cards_dir`. Pseudocode cards are idea
-  contracts, not fixed recipes.
 - Weak-gain / over-cost escalation is a Teacher judgment, not an automatic
   controller rule.
   If current-run legal candidates show tiny HPWL movement, repeat one family,
@@ -133,10 +129,11 @@ they are not fixed recipes or mandatory donors.
   should assign a `mechanism-redesign` route that changes a deeper source
   mechanism under explicit complexity caps and liveness counters
 - weak-gain / over-cost escalation: when the current run is tiny-gain,
-  same-family, or too heavy for the HPWL gained, keep one guard route if useful,
-  but assign at least one aggressive route that changes the legalizer/DPO
-  composition, repairs a current-run ref, or tries a different algorithm family
-  from the pseudocode cards
+  same-family, or too heavy for the HPWL gained, follow the escalation rule in
+  LEGO-lite Skill Lookup: keep one guard route if useful, then assign at least
+  one aggressive route that changes the legalizer/DPO composition, repairs a
+  current-run ref, or tries a feature-matched algorithm family from the
+  pseudocode cards
 - low-ROI rule: when a mechanism is verified live/correct but still gives only
   extremely small full-flow HPWL movement after a meaningful repair attempt, preserve
   it as evidence and switch to a different HPWL source instead of stacking
@@ -201,8 +198,9 @@ they are not fixed recipes or mandatory donors.
   regression guard. A feature-matched donor is plausible because the current
   design has matching stage/physical features; it can be aggressively optimized
   for this case even if it may not transfer universally.
-- evolved donor seeds are materialized as prepared start branches:
-  `evolved_diamond`, `evolved_legalm`, and `evolved_negotiation`
+- prepared start branches include `framework`, `diamond`,
+  `default_negotiation`, `evolved_diamond`, `evolved_legalm`, and
+  `evolved_negotiation`
 - prior evidence makes `evolved_legalm` a strong first-round route on dense
   high-utilization standard-cell cases with large legalization HPWL inflation;
   still test Diamond and negotiation families when stage evidence supports them

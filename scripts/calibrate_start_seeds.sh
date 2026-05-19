@@ -12,7 +12,7 @@ OUTPUT_ROOT=""
 PLAN_FILE=""
 THREADS="10"
 MAX_PARALLEL="1"
-START_KINDS="framework,evolved_diamond,evolved_legalm,evolved_negotiation"
+START_KINDS="framework,diamond,default_negotiation,evolved_diamond,evolved_legalm,evolved_negotiation"
 SKIP_BASELINE=0
 SKIP_PLACE=1
 DRY_RUN=0
@@ -32,7 +32,7 @@ Options:
   --plan PATH            Optional candidate-matrix plan. If omitted, a one-row
                          plan for --case/--flow-variant is generated.
   --start-kinds LIST     Comma-separated start kinds. Default:
-                         framework,evolved_diamond,evolved_legalm,evolved_negotiation
+                         framework,diamond,default_negotiation,evolved_diamond,evolved_legalm,evolved_negotiation
   --threads N            OpenROAD build/eval threads. Default: 10.
   --max-parallel N       Parallel rows inside each candidate matrix. Default: 1.
   --skip-baseline        Reuse existing canonical baseline rows.
@@ -115,6 +115,7 @@ seed_for_kind() {
   case "$1" in
     framework) printf '%s\n' "${DPL_EVOLVE_STATE_ROOT}/seed_sources/framework_dpl_evolve" ;;
     diamond) printf '%s\n' "${DPL_EVOLVE_STATE_ROOT}/seed_sources/diamond_dpl_evolve" ;;
+    default_negotiation) printf '%s\n' "${DPL_EVOLVE_STATE_ROOT}/seed_sources/default_negotiation_dpl_evolve" ;;
     evolved_diamond) printf '%s\n' "${DPL_EVOLVE_STATE_ROOT}/seed_sources/evolved_diamond_dpl_evolve" ;;
     evolved_legalm) printf '%s\n' "${DPL_EVOLVE_STATE_ROOT}/seed_sources/evolved_legalm_dpl_evolve" ;;
     evolved_negotiation) printf '%s\n' "${DPL_EVOLVE_STATE_ROOT}/seed_sources/evolved_negotiation_dpl_evolve" ;;

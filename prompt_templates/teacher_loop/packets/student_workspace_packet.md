@@ -65,7 +65,7 @@ Primary flow:
 
 1. prepare source or assigned start:
    - `$prepare_source_script`
-   - `$prepare_start_source_script --kind <framework|diamond|evolved_diamond|evolved_legalm|evolved_negotiation>`
+   - `$prepare_start_source_script --kind <framework|diamond|default_negotiation|evolved_diamond|evolved_legalm|evolved_negotiation>`
 2. inspect status/context as needed:
    - `$source_status_script`
    - `$source_context_script <src/...> [symbol]`
@@ -111,8 +111,8 @@ a repairable rejected line by assigning that ref through `begin --from-ref
 ## Start Branch Contract
 
 - The private source repo contains prepared local branches `start/framework`,
-  `start/diamond`, `start/evolved_diamond`, `start/evolved_legalm`, and
-  `start/evolved_negotiation` after preparation.
+  `start/diamond`, `start/default_negotiation`, `start/evolved_diamond`,
+  `start/evolved_legalm`, and `start/evolved_negotiation` after preparation.
 - If Teacher assigns a prepared start, use `prepare_start_source_script --kind <kind>` before edits. Do not manually apply release/start patch files and do not copy source trees.
 - After preparation, implement and commit your mechanism on the dev branch `$source_branch`. The generated iteration ref marks the iteration-start commit for diffing and review.
 
@@ -120,8 +120,10 @@ a repairable rejected line by assigning that ref through `begin --from-ref
 
 Start algorithm work from internal implementation entry points, not from the
 top-level Tcl/SWIG command layer. These are preferred landing zones, not an
-exclusive whitelist. If one coherent mechanism needs adjacent internal files,
-state, or helpers, you may change them too.
+exclusive whitelist. The only source boundary is `private_dpl_evolve_source`;
+within that module, any file may be changed when one coherent mechanism needs
+adjacent or deeper legalizer, DPO, handoff, objective, transaction, mirror,
+helper, source-internal parameter, or telemetry support.
 
 - legalization / orchestration:
   - `src/StudentAlgorithm.cpp`
@@ -165,9 +167,10 @@ Before final answer:
   implementations, call sites, or assigned donor refs. If still ambiguous,
   choose the simplest coherent implementation of the assigned mechanism; do not
   pause the iteration for ordinary uncertainty.
-- Treat Teacher `first patch handles` as the initial landing zone. Do not widen
-  source reading before the first evaluator run unless that landing zone is
-  clearly wrong or blocked by a concrete compile/correctness question.
+- Use Teacher `first patch handles` and the entry-point map above to keep
+  pre-evaluation source reading narrow. Expand only for adjacent implementation
+  support, a clearly wrong landing zone, or a concrete compile/correctness
+  blocker.
 - Student-side research should stay narrow: confirm only the current landing
   zone, nearby state, and any required OpenROAD interface/call site. Do not do
   broad donor, paper, or flow research when the first implementation path is

@@ -342,6 +342,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.calibrate_start_seeds:
         calibration_start_kinds = args.calibration_start_kind or [
             "framework",
+            "diamond",
+            "default_negotiation",
             "evolved_diamond",
             "evolved_legalm",
             "evolved_negotiation",

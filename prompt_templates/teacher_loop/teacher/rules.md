@@ -23,19 +23,40 @@
 
 ## Mechanism Search Policy
 
-- Give each Student one primary HPWL-source hypothesis with a minimal first-patch landing zone, a falsifiable metric outcome, runtime tier, and liveness counters. The first patch landing zone should usually be 1-3 primary handles; supporting producer/handoff/consumer edits may name at most 2 extra support handles when they are necessary for the hypothesis.
+- Give each Student one primary HPWL-source hypothesis with a minimal first-patch
+  landing zone, a falsifiable metric outcome, runtime tier, and liveness
+  counters. The first patch landing zone should usually be 1-3 primary handles
+  for fast orientation, but those handles are not an allowed-file list. The
+  Student may modify any file under the private `dpl_evolve` source when the
+  mechanism requires coherent producer, handoff, consumer, objective,
+  transaction, mirror, parameter, or telemetry support.
 - Route Students toward an early first patch/build/eval loop. Do not assign broad "read more first" work when the current HPWL source and source handles are already clear enough to test a mechanism.
 - Mechanism-level source rewrites are allowed and expected when evidence supports them. The constraint is coherent, bounded, reviewable, measurable, and full-flow validated; it is not "small edit only".
+- Before sending Student packets, do a mechanism-combination diversity check.
+  For a normal multi-Student round, the route map should cover several
+  distinct producer/handoff/consumer combinations, not only several names for
+  the same donor. At minimum, keep separate slots for: legalizer producer
+  shaping with DPO recoverability, DPO move/scoring/acceptance redesign,
+  explicit legalizer-to-DPO handoff/frontier consumption, and one hybrid or
+  mechanism-redesign route when the case is not already clearly solved. Do not
+  assign more than two Students to the same mechanism combination unless it is
+  the proven elite continuation or a deliberate A/B implementation comparison.
+- A healthy primary mechanism changes the optimizer's reachable solution
+  space: placement-state production, candidate generation, move/scoring and
+  acceptance, transaction/rollback, producer-consumer handoff, or a bounded
+  search family. Frontier retunes, guard parity, constants, telemetry,
+  tie-breaks, and liveness hooks are support or diagnosis unless paired with a
+  real consumer/acceptance/policy change that moves stage metrics. Do not make
+  them the main route family for multiple Students.
 - Before assigning routes, state the dominant current HPWL source: legalizer
   producer quality, DPO consumer strength, handoff/frontier loss, final mirror
   interaction, or their composition. Most non-guard routes should attack that
   source through different mechanism families, not through unrelated balanced
   edits.
-- First-round route diversity matters. Spread Students across distinct
-  mechanism families such as legalizer composition, DPO kernel redesign, handoff
-  consumer, and aggressive bounded basin search when those are plausible for
-  the case. Later rounds may concentrate on the best family once evidence
-  supports it.
+- Diversity means different executable mechanism combinations. Different
+  constants, frontier thresholds, guard labels, telemetry, or source comments
+  are not diverse unless they feed different producer policies, consumer move
+  families, acceptance/scoring logic, or handoff consumption.
 - Every Student packet must label `route type` and `route action`. Use
   `continue` for at most one guard/repair route unless all other evidence is
   broken; otherwise use `switch`, `hybridize`, or `mechanism-redesign` when the
@@ -48,6 +69,11 @@
   HPWL source it attacks, the mechanism class it changes, and the expected
   stage-wise movement. A same-family route must change the mechanism class, not
   only constants, tie-breaks, or telemetry.
+- Do not overuse frontier/retune variants when metrics show identical
+  `HPWLlg/HPWLimprove/HPWLfinal`, zero accepts, or the same start-basin result
+  across Students. That evidence means the route is shallow or non-consuming;
+  pivot to a different legalizer producer, DPO move family, or explicit
+  producer-consumer redesign.
 - Route emphasis can be `legalizer-emphasis`, `DPO-emphasis`, or
   `co-optimization-emphasis`. This is only the priority label. Do not let a
   round collapse into only one segment of the flow. Across the Student roster,
@@ -83,7 +109,14 @@
 
 ## Starts, Knowledge, And Skills
 
-- Prepared starts are branch-only: `framework`, `diamond`, `evolved_diamond`, `evolved_legalm`, and `evolved_negotiation`. Do not ask Students to manually apply release/start patch files.
+- Prepared starts are branch-only source parents: `framework`, `diamond`,
+  `default_negotiation`, `evolved_diamond`, `evolved_legalm`, and
+  `evolved_negotiation`. A start branch never restricts edit scope. Any Student
+  line may modify any file in the private `dpl_evolve` module when the
+  mechanism requires it: legalization, DPO/improve placement, handoff/frontier
+  state, objective/scoring, transaction/rollback, mirror interaction,
+  source-internal parameters, helper classes, and telemetry. Do not ask
+  Students to manually apply release/start patch files.
 - Treat prior evolved starts as donor families and regression guards, not fixed answers. Exploration should choose the parent that best tests the current HPWL source.
 - Classify each donor used in routing as `general donor` or
   `feature-matched donor`. General donors are regression guards or reusable
@@ -98,9 +131,17 @@
 
 ## Source Scope
 
-- Assign source-level work in detailed placement/legalization and improve placement/DPO: candidate generation, objective/scoring, acceptance, transaction/rollback, source-internal parameters, local state, and handoff state.
+- Assign source-level work inside the private `dpl_evolve` module. Legalization,
+  improve placement/DPO, mirroring internals, candidate generation,
+  objective/scoring, acceptance, transaction/rollback, source-internal
+  parameters, local state, helper classes, and handoff state are all valid edit
+  surfaces when tied to the HPWL mechanism and validated by the full flow.
 - Do not route tuning through Tcl/flow-script knobs, ORFS scripts, evaluator scripts, or repeated external endpoint invocation.
-- Use function/state-level handles confirmed by targeted `rg`, not broad source-tree names or guessed paths. Do not hand Students a long reading list; route them to the first patch landing zone.
+- Use function/state-level handles confirmed by targeted `rg`, not broad
+  source-tree names or guessed paths. Do not hand Students a long reading list;
+  route them to the first patch landing zone while explicitly preserving their
+  freedom to edit adjacent or deeper `dpl_evolve` source needed by the
+  mechanism.
 - Handoff should use OpenROAD-native compact state where relevant: `odb::dbInst*`, `odb::dbNet*`, `odb::dbGroup*`, `odb::dbRegion*`, dense ids, vectors, bitsets, and current detailed-placement mappings. Avoid files, JSON, string-keyed hot maps, duplicated coordinates, and public Tcl/SWIG ABI changes for hot-path payloads.
 
 ## Runtime And Implementation Expectations
