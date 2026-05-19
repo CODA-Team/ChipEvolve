@@ -234,11 +234,14 @@ def best_candidate(
     clean = [row for row in candidates if row.legality == "clean"]
     if not clean:
         return None
+    def quality_key(row: CandidateRow) -> tuple[float, float]:
+        runtime = row.runtime_seconds if row.runtime_seconds is not None else float("inf")
+        return (row.hpwl_final, runtime)
     if baseline is not None and baseline.hpwl_final is not None:
         winners = [row for row in clean if row.hpwl_final < baseline.hpwl_final]
         if winners:
-            return min(winners, key=lambda row: row.hpwl_final)
-    return min(clean, key=lambda row: row.hpwl_final)
+            return min(winners, key=quality_key)
+    return min(clean, key=quality_key)
 
 
 def pct_delta(candidate: CandidateRow | None, baseline: stage_metrics.StageRow | None) -> float | None:

@@ -102,10 +102,11 @@ Run helpers that mutate the private source repo serially. Parallel reads are OK.
 artifacts; it does not modify your working tree.
 `trial_source_script` is the only helper for checkpoint/keep/reject source
 state. A rejected trial is pinned under `rejected/<run_tag>/...`, logged in
-`source_trials.jsonl`, and automatically restores the iteration branch to the
-trial-begin checkpoint so rejected code cannot accidentally become the final
-candidate. Teacher can later continue a repairable rejected line by assigning
-that ref through `begin --from-ref <ref>`.
+`source_trials.jsonl`, and remains checked out on the dev branch so the final
+diff preserves the Student's actual iteration edits. Teacher can later continue
+a repairable rejected line by assigning that ref through `begin --from-ref
+<ref>`. To change direction, use the explicit reset helper with `--ref` or
+`--kind`; reject itself does not reset the branch.
 
 ## Start Branch Contract
 
@@ -113,7 +114,7 @@ that ref through `begin --from-ref <ref>`.
   `start/diamond`, `start/evolved_diamond`, `start/evolved_legalm`, and
   `start/evolved_negotiation` after preparation.
 - If Teacher assigns a prepared start, use `prepare_start_source_script --kind <kind>` before edits. Do not manually apply release/start patch files and do not copy source trees.
-- After preparation, implement and commit your mechanism on the iteration branch `$source_branch`.
+- After preparation, implement and commit your mechanism on the dev branch `$source_branch`. The generated iteration ref marks the iteration-start commit for diffing and review.
 
 ## Algorithm Entry Points
 
@@ -146,13 +147,13 @@ re-reading the whole module.
 Before final answer:
 
 - source edits are only under `private_dpl_evolve_source`
-- current source branch is `$source_branch`
+- current dev branch is `$source_branch`
 - build produced `private_binary`
 - evaluation wrote `metrics`
 - evaluation wrote `candidate_metrics_summary_json/md`
-- best clean source state is committed and pinned to `stable_candidate_ref`
-- `implementation_diff` exists and describes the committed source
-- rejected branches are preserved before reverting any useful failed workbench
+- final source state is committed and pinned to `stable_candidate_ref`
+- `implementation_diff` exists and describes current iteration edits from the recorded iteration start to final dev HEAD
+- rejected branches are preserved and not hidden by automatic reset
 - `knowledge_card` maps source to evidence: route action, changed files/functions, mechanism class, counters/logs, stage metrics, rejected refs, and `## Next Teacher Handoff` when follow-up is needed
 - report includes final HPWL/runtime/displacement, stage-wise HPWL deltas, legality, active counters, metrics path, diff path, rejected refs if any, knowledge card path, source commit/ref, and next repair or pivot
 

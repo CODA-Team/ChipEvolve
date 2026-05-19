@@ -238,7 +238,7 @@ def student_workspace_paths(
         candidate_metrics_summary_md=artifact_dir / "candidate_metrics_summary.md",
         implementation_diff=artifact_dir / "implementation.diff",
         knowledge_card=artifact_dir / "knowledge_card.md",
-        source_branch=f"agent/{student_id}/{iter_name(iteration)}",
+        source_branch=f"dev/{student_id}",
         source_base_record=artifact_dir / "source_base_commit.txt",
         source_commit_record=artifact_dir / "source_commit.json",
         session_state=student_workspace / ".codex_session_state.json",

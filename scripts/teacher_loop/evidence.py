@@ -1701,8 +1701,13 @@ def child_artifact_status(
     source_trials_size = source_trials.stat().st_size if source_trials.exists() else 0
     source_trials_count = 0
     source_trial_actions: list[str] = []
+    source_trial_refs: list[str] = []
+    rejected_refs: list[str] = []
+    kept_refs: list[str] = []
     has_rejected_evidence = False
     has_kept_or_finalized = False
+    finalized_source = False
+    final_trial_status = "unmarked"
     if source_trials.exists():
         with source_trials.open(encoding="utf-8", errors="replace") as fh:
             for line in fh:
@@ -1717,9 +1722,21 @@ def child_artifact_status(
                 action = str(payload.get("action") or "").strip()
                 if action:
                     source_trial_actions.append(action)
+                ref = str(payload.get("ref") or payload.get("candidate_ref") or "").strip()
+                if ref:
+                    source_trial_refs.append(ref)
                 if action == "reject":
                     has_rejected_evidence = True
-                if action in {"keep", "finalize"}:
+                    if ref:
+                        rejected_refs.append(ref)
+                    final_trial_status = "reject"
+                if action == "keep":
+                    has_kept_or_finalized = True
+                    final_trial_status = "keep"
+                    if ref:
+                        kept_refs.append(ref)
+                if action == "finalize":
+                    finalized_source = True
                     has_kept_or_finalized = True
     last_message_size = child.last_message.stat().st_size if child.last_message.exists() else 0
     returncode = usage.get("returncode")
@@ -1740,23 +1757,25 @@ def child_artifact_status(
             problems.append("empty_last_message")
     if not child.private_binary.exists():
         problems.append("missing_private_binary")
-    rejected_only_workbench = (
-        has_rejected_evidence
-        and not has_kept_or_finalized
-        and not metrics_path.exists()
-    )
+    rejected_final_workbench = final_trial_status == "reject"
+    rejected_only_workbench = rejected_final_workbench and not metrics_path.exists()
     if not metrics_path.exists() and not rejected_only_workbench:
         problems.append("missing_metrics_json")
     if not child.implementation_diff.exists() and not rejected_only_workbench:
         problems.append("missing_implementation_diff")
     elif diff_size <= 0 and not rejected_only_workbench:
-        problems.append("empty_implementation_diff")
+        if source_trials_count > 0:
+            warnings.append("empty_final_diff_with_trial_evidence")
+        else:
+            problems.append("empty_implementation_diff")
     if not child.knowledge_card.exists():
         warnings.append("missing_knowledge_card")
     elif knowledge_size <= 0:
         warnings.append("empty_knowledge_card")
     if rejected_only_workbench:
         warnings.append("rejected_only_workbench")
+    elif rejected_final_workbench:
+        warnings.append("final_status_reject")
 
     status = "valid" if not problems else "invalid"
     return {
@@ -1779,8 +1798,14 @@ def child_artifact_status(
         "source_trials_size": source_trials_size,
         "source_trials_count": source_trials_count,
         "source_trial_actions": source_trial_actions,
+        "source_trial_refs": source_trial_refs,
+        "rejected_refs": rejected_refs,
+        "kept_refs": kept_refs,
         "has_rejected_evidence": has_rejected_evidence,
         "has_kept_or_finalized": has_kept_or_finalized,
+        "finalized_source": finalized_source,
+        "final_trial_status": final_trial_status,
+        "rejected_final_workbench": rejected_final_workbench,
         "rejected_only_workbench": rejected_only_workbench,
         "knowledge_card": child.knowledge_card,
         "knowledge_exists": child.knowledge_card.exists(),
@@ -1842,8 +1867,13 @@ def child_artifact_status_block(
             f"- source_trials_count: `{status['source_trials_count']}`",
             f"- source_trials_size: `{status['source_trials_size']}`",
             f"- source_trial_actions: `{','.join(status['source_trial_actions']) if status['source_trial_actions'] else 'none'}`",
+            f"- kept_refs: `{'; '.join(status['kept_refs']) if status['kept_refs'] else 'none'}`",
+            f"- rejected_refs: `{'; '.join(status['rejected_refs']) if status['rejected_refs'] else 'none'}`",
             f"- has_rejected_evidence: `{status['has_rejected_evidence']}`",
             f"- has_kept_or_finalized: `{status['has_kept_or_finalized']}`",
+            f"- finalized_source: `{status['finalized_source']}`",
+            f"- final_trial_status: `{status['final_trial_status']}`",
+            f"- rejected_final_workbench: `{status['rejected_final_workbench']}`",
             f"- rejected_only_workbench: `{status['rejected_only_workbench']}`",
             f"- knowledge_card: `{status['knowledge_card']}`",
             f"- knowledge_card_exists: `{status['knowledge_exists']}`",

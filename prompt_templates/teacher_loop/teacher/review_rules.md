@@ -38,7 +38,11 @@
   recoverability features.
 - Preserve stage donors when downstream erases a gain; the next route should repair the consumer/handoff rather than discard the producer mechanism.
 - Preserve an active workbench when counters are nonzero, legality is clean, runtime is bounded, and either stage-local HPWL improves or the final erase is diagnosable.
-- If the Student restored a better final source, check `source_trials.jsonl` for rejected or kept refs before losing the failed workbench as evidence. If a rejected ref is repairable, route the next Student to start from it with `25_trial_source.sh begin --from-ref <ref>`.
+- If the Student ended on a rejected or weak workbench, check
+  `source_trials.jsonl` for rejected or kept refs and inspect whether the code
+  is repairable evidence rather than method death. If repairable, route the
+  next Student to start from it with `25_trial_source.sh begin --from-ref
+  <ref>`.
 - Use this rejection taxonomy: implementation-bug means the idea may be sound but source/counters/logs show it did not execute correctly; composition/handoff issue means stage-local gain was erased downstream; method-low-ROI means the mechanism is live, legal, bounded, and still cannot move HPWL after a meaningful repair; non-promotable means build/eval/legality/timeout/stale-artifact failure.
 - If a live/correct mechanism still gives extremely small full-flow HPWL movement after a meaningful repair attempt, classify it as `validated-low-ROI` and stop assigning repeated variants of the same idea as primary routes.
 - If multiple candidates only extend one donor family with constants,

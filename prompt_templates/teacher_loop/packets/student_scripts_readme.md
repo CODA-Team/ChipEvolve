@@ -25,12 +25,12 @@ Minimal flow:
 
 The trial helper is a safety state machine. `reject` commits and pins a
 `rejected/<run_tag>/...` branch, writes diff/metrics evidence into
-`source_trials.jsonl`, restores the iteration branch to the begin checkpoint,
-and removes stale canonical metrics so the retained source must be evaluated
-again before finalization. `keep` pins a `kept/<run_tag>/...` ref and leaves the
-iteration branch at the kept source. `begin --from-ref` lets a later repair
-trial continue from a rejected/kept branch while still restoring to the current
-base if the repair is rejected.
+`source_trials.jsonl`, and leaves rejected code checked out on the dev branch
+so the final diff records the actual iteration edits. `keep` pins a
+`kept/<run_tag>/...` ref and leaves the dev branch at the kept source.
+`begin --from-ref` lets a later repair trial continue from a rejected/kept
+branch. Use `04_switch_start_branch.sh --ref <ref>` or `--kind <kind>` only
+when you intentionally reset the dev branch to a different starting point.
 
 Optional helpers:
 
@@ -41,6 +41,9 @@ Optional helpers:
   artifacts without changing your working tree.
 - `04_switch_start_branch.sh --kind <kind>`: switch start branch after
   `00_prepare_source.sh` when Teacher explicitly assigns a start.
+- `04_switch_start_branch.sh --ref <ref>`: reset the dev branch to a kept,
+  rejected, candidate, peer, or start ref when Teacher/Student intentionally
+  changes the code starting point.
 - `05_source_context.sh <src/...> [symbol]`: print current local source context
   for an edit anchor.
 - `08_query_knowledge.sh --stage <stage> --q <text>`: query one concise

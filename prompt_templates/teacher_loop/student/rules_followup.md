@@ -16,9 +16,9 @@ choice needs it.
   baseline-fast but HPWL-poor, first identify the missing HPWL source, then use
   bounded stronger candidate generation, exact scoring, local DP, or
   producer/consumer repair only when it changes the mechanism.
-- Work on your current iteration branch under `private_dpl_evolve_source`.
-  Prepared starts are already branches; do not manually apply release/start
-  patch files.
+- Work on your generated dev branch under `private_dpl_evolve_source`; the
+  generated iteration ref records this iteration's start commit. Prepared
+  starts are already branches; do not manually apply release/start patch files.
 - Plan the mechanism before editing, but keep that planning short and
   execution-oriented. Once the first coherent implementation path is clear,
   begin a real trial and land the first patch instead of extending diagnosis.

@@ -74,8 +74,11 @@ Run helpers that mutate the private source repo serially. Parallel reads are OK.
 `fetch_peer_source_script` fetches a local `peer/<label>` ref and writes diff
 artifacts; it does not modify your working tree.
 `trial_source_script` is the safe checkpoint/keep/reject state machine; reject
-preserves the rejected branch and restores the iteration branch automatically.
-Teacher can later continue a repairable rejected line with `begin --from-ref`.
+preserves the rejected branch and leaves rejected code checked out on the dev
+branch so the final diff still records this iteration's edits. Teacher can
+later continue a repairable rejected line with `begin --from-ref`. Use the
+explicit reset helper with `--ref` or `--kind` only when Teacher/Student decides
+to change the dev starting point.
 
 ## Mechanism Contract
 

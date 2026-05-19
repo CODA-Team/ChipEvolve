@@ -1006,6 +1006,7 @@ DPL_SRC={shlex.quote(str(paths.dpl_src))}
 PRIVATE_BINARY={shlex.quote(str(paths.private_binary))}
 ARTIFACT_DIR={shlex.quote(str(paths.artifact_dir))}
 SOURCE_BRANCH={shlex.quote(paths.source_branch)}
+ITERATION_BRANCH={shlex.quote(f"iteration/{run_tag}")}
 CANDIDATE_SOURCE_REF={shlex.quote(stable_candidate_ref(run_tag))}
 SOURCE_BASE_RECORD={shlex.quote(str(paths.source_base_record))}
 SOURCE_COMMIT_RECORD={shlex.quote(str(paths.source_commit_record))}
@@ -1039,7 +1040,7 @@ acquire_workspace_git_lock() {{
   exec 9>"$VARIANT_ROOT/.workspace_git.lock"
   if ! flock -n 9; then
     echo "[ERROR] another generated workspace helper is already mutating this private source." >&2
-    echo "[INFO] Run dependent helpers serially: prepare/switch/build/evaluate/checkpoint/preserve/commit/diff." >&2
+    echo "[INFO] Run dependent helpers serially: prepare/switch/build/evaluate/trial/finalize." >&2
     exit 2
   fi
 }}
@@ -1158,9 +1159,23 @@ prepare_start_branches() {{
 }}
 
 prepare_start_branches
-git -C "$DPL_SRC" rev-parse HEAD > "$SOURCE_BASE_RECORD"
+git -C "$DPL_SRC" switch -C "$SOURCE_BRANCH" >/dev/null
+if [[ -s "$SOURCE_BASE_RECORD" ]]; then
+  base_commit="$(head -n 1 "$SOURCE_BASE_RECORD")"
+  if git -C "$DPL_SRC" rev-parse --verify "$base_commit^{{commit}}" >/dev/null 2>&1; then
+    git -C "$DPL_SRC" branch -f "$ITERATION_BRANCH" "$base_commit" >/dev/null
+  else
+    echo "[WARN] recorded base commit is missing; refreshing iteration base" >&2
+    git -C "$DPL_SRC" branch -f "$ITERATION_BRANCH" HEAD >/dev/null
+    git -C "$DPL_SRC" rev-parse HEAD > "$SOURCE_BASE_RECORD"
+  fi
+else
+  git -C "$DPL_SRC" branch -f "$ITERATION_BRANCH" HEAD >/dev/null
+  git -C "$DPL_SRC" rev-parse HEAD > "$SOURCE_BASE_RECORD"
+fi
 echo "[INFO] source=$DPL_SRC"
-echo "[INFO] branch=$current_branch"
+echo "[INFO] dev_branch=$SOURCE_BRANCH"
+echo "[INFO] iteration_branch=$ITERATION_BRANCH"
 echo "[INFO] base_commit=$(cat "$SOURCE_BASE_RECORD")"
 		""",
     )
@@ -1243,10 +1258,16 @@ else
 fi
 echo "[INFO] source status:"
 git -C "$DPL_SRC" status --short
-echo "[INFO] iteration branches:"
-git -C "$DPL_SRC" for-each-ref --format='[INFO]   %(refname:short) %(objectname:short) %(subject)' "refs/heads/agent/" | tail -20 || true
+echo "[INFO] dev branches:"
+git -C "$DPL_SRC" for-each-ref --format='[INFO]   %(refname:short) %(objectname:short) %(subject)' "refs/heads/dev/" | tail -20 || true
+echo "[INFO] iteration refs:"
+git -C "$DPL_SRC" for-each-ref --format='[INFO]   %(refname:short) %(objectname:short) %(subject)' "refs/heads/iteration/" | tail -20 || true
 echo "[INFO] candidate refs:"
 git -C "$DPL_SRC" for-each-ref --format='[INFO]   %(refname:short) %(objectname:short) %(subject)' "refs/heads/candidate/" | tail -20 || true
+echo "[INFO] kept refs:"
+git -C "$DPL_SRC" for-each-ref --format='[INFO]   %(refname:short) %(objectname:short) %(subject)' "refs/heads/kept/" | tail -20 || true
+echo "[INFO] rejected refs:"
+git -C "$DPL_SRC" for-each-ref --format='[INFO]   %(refname:short) %(objectname:short) %(subject)' "refs/heads/rejected/" | tail -20 || true
 echo "[INFO] start branches:"
 git -C "$DPL_SRC" for-each-ref --format='[INFO]   %(refname:short) %(objectname:short) %(subject)' "refs/heads/start/" || true
 """,
@@ -1270,7 +1291,7 @@ Usage:
 Fetch another Student's evaluated source ref into this local repo as
 peer/<label>, then write a diff summary under this iteration's artifacts.
 This helper does not modify the working tree. Use it to inspect and migrate
-selected mechanisms onto the current iteration branch.
+selected mechanisms onto the current dev branch.
 USAGE
 }}
 
@@ -1379,18 +1400,24 @@ ensure_dpl_git_repo
 assert_no_git_index_lock
 
 kind=""
+target_ref=""
 usage() {{
   cat >&2 <<'USAGE'
 Usage:
   04_switch_start_branch.sh --kind <prepared-start-kind>
+  04_switch_start_branch.sh --ref <local-ref-or-commit>
 
-Reset the iteration source branch to one prepared local start branch. Examples:
+Reset the dev source branch to one prepared local start branch or any local
+kept/rejected/candidate/peer ref. Examples:
   framework
   diamond
   evolved_legalm
+  kept/<run_tag>/<label>
+  rejected/<run_tag>/<label>
 
 Run this after 00_prepare_source.sh and before source edits when Teacher
-assigns a different start point for this Student.
+assigns a different start point for this Student. This is intentionally the
+explicit hard-reset helper; reject itself does not reset dev.
 USAGE
 }}
 
@@ -1398,6 +1425,10 @@ while [[ "$#" -gt 0 ]]; do
   case "$1" in
     --kind)
       kind="$2"
+      shift 2
+      ;;
+    --ref)
+      target_ref="$2"
       shift 2
       ;;
     --help|-h)
@@ -1412,28 +1443,42 @@ while [[ "$#" -gt 0 ]]; do
   esac
 done
 
-if [[ -z "$kind" || "$kind" == */* ]]; then
-  echo "[ERROR] expected --kind to be one prepared start branch suffix without '/'" >&2
+if [[ -n "$kind" && -n "$target_ref" ]]; then
+  echo "[ERROR] use only one of --kind or --ref" >&2
   usage
   exit 2
 fi
-branch="start/$kind"
+if [[ -z "$kind" && -z "$target_ref" ]]; then
+  echo "[ERROR] expected --kind or --ref" >&2
+  usage
+  exit 2
+fi
+if [[ -n "$kind" ]]; then
+  if [[ "$kind" == */* ]]; then
+    echo "[ERROR] expected --kind to be one prepared start branch suffix without '/'" >&2
+    usage
+    exit 2
+  fi
+  target_ref="start/$kind"
+fi
 
 if [[ -n "$(git -C "$DPL_SRC" status --short)" ]]; then
-  echo "[ERROR] private source has uncommitted changes; switch start branch only before edits." >&2
+  echo "[ERROR] private source has uncommitted changes; commit/reject/keep/finalize before reset." >&2
   git -C "$DPL_SRC" status --short >&2
   exit 2
 fi
-if ! git -C "$DPL_SRC" show-ref --verify --quiet "refs/heads/$branch"; then
-  echo "[ERROR] missing prepared start branch $branch; run 00_prepare_source.sh first." >&2
-  echo "[INFO] existing start branches:" >&2
-  git -C "$DPL_SRC" for-each-ref --format='  %(refname:short)' refs/heads/start/ >&2 || true
+target_commit="$(git -C "$DPL_SRC" rev-parse --verify "$target_ref^{{commit}}" 2>/dev/null || true)"
+if [[ -z "$target_commit" ]]; then
+  echo "[ERROR] missing reset target ref: $target_ref" >&2
+  echo "[INFO] existing refs:" >&2
+  git -C "$DPL_SRC" for-each-ref --format='  %(refname:short) %(objectname:short)' refs/heads/start/ refs/heads/kept/ refs/heads/rejected/ refs/heads/candidate/ refs/heads/peer/ >&2 || true
   exit 2
 fi
 
-git -C "$DPL_SRC" switch -C "$SOURCE_BRANCH" "$branch" >/dev/null
+git -C "$DPL_SRC" switch -C "$SOURCE_BRANCH" "$target_commit" >/dev/null
+git -C "$DPL_SRC" branch -f "$ITERATION_BRANCH" "$target_commit" >/dev/null
 git -C "$DPL_SRC" rev-parse HEAD > "$SOURCE_BASE_RECORD"
-python3 - "$ARTIFACT_DIR/start_branch.json" "$kind" "$branch" "$(git -C "$DPL_SRC" rev-parse HEAD)" <<'PY'
+python3 - "$ARTIFACT_DIR/start_branch.json" "${{kind:-}}" "$target_ref" "$(git -C "$DPL_SRC" rev-parse HEAD)" <<'PY'
 import json
 import pathlib
 import sys
@@ -1442,12 +1487,30 @@ path = pathlib.Path(sys.argv[1])
 path.parent.mkdir(parents=True, exist_ok=True)
 payload = {{
     "active_start_kind": sys.argv[2],
-    "active_start_branch": sys.argv[3],
+    "active_start_ref": sys.argv[3],
     "active_start_commit": sys.argv[4],
 }}
 path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\\n", encoding="utf-8")
 PY
-echo "[INFO] switched source_branch=$SOURCE_BRANCH from $branch"
+RESET_TARGET_REF="$target_ref" RESET_TARGET_COMMIT="$(git -C "$DPL_SRC" rev-parse HEAD)" RESET_KIND="${{kind:-}}" python3 - "$ARTIFACT_DIR/source_trials.jsonl" <<'PY'
+import json
+import os
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+path.parent.mkdir(parents=True, exist_ok=True)
+payload = {{
+    "action": "reset_dev",
+    "ref": os.environ["RESET_TARGET_REF"],
+    "source_commit": os.environ["RESET_TARGET_COMMIT"],
+    "kind": os.environ.get("RESET_KIND") or None,
+}}
+with path.open("a", encoding="utf-8") as fh:
+    fh.write(json.dumps(payload, sort_keys=True) + "\\n")
+PY
+echo "[INFO] reset source_branch=$SOURCE_BRANCH from $target_ref"
+echo "[INFO] iteration_branch=$ITERATION_BRANCH"
 echo "[INFO] base_commit=$(cat "$SOURCE_BASE_RECORD")"
 """,
     )
@@ -1730,10 +1793,10 @@ Usage:
   25_trial_source.sh status
 
 begin  : checkpoint the current clean/base state and open one active trial.
-         With --from-ref, reset the iteration branch to that prior kept/rejected
-         ref as the trial workbench while preserving the current base for reject.
+         With --from-ref, reset the dev branch to that prior kept/rejected ref
+         as the trial workbench.
 reject : commit/pin current work as rejected evidence, snapshot diff/metrics,
-         restore the iteration branch to the begin checkpoint, and clear state.
+         keep the rejected code checked out on the dev branch, and clear state.
 keep   : commit/pin current work as kept evidence and clear state; branch stays
          at the kept source.
 status : print active trial state and source branch status.
@@ -1951,18 +2014,14 @@ PY
     diff_path="$TRIAL_DIR/${{stamp}}-${{TRIAL_SAFE_LABEL}}.rejected.diff"
     write_diff_for_commit "$TRIAL_BASE_COMMIT" "$rejected_commit" "$diff_path"
     metrics_snapshot="$(snapshot_metrics "${{stamp}}-${{TRIAL_SAFE_LABEL}}.rejected")"
-    if [[ -n "$metrics_snapshot" ]]; then
-      rm -f "$METRICS_PATH"
-      echo "[INFO] removed canonical metrics after rejected restore; rerun evaluation for the retained source before finalize."
-    fi
     append_trial_event "reject" "$rejected_ref" "$rejected_commit" "$reason" "$diff_path" "$metrics_snapshot"
-    git -C "$DPL_SRC" reset --hard "$TRIAL_BASE_COMMIT" >/dev/null
     rm -f "$TRIAL_STATE"
     echo "[INFO] rejected_commit=$rejected_commit"
     echo "[INFO] rejected_ref=$rejected_ref"
     echo "[INFO] rejected_diff=$diff_path"
     if [[ -n "$metrics_snapshot" ]]; then echo "[INFO] rejected_metrics_snapshot=$metrics_snapshot"; fi
-    echo "[INFO] restored_source_commit=$TRIAL_BASE_COMMIT"
+    echo "[INFO] current_source_commit=$rejected_commit"
+    echo "[INFO] rejected code remains checked out; use begin --from-ref or 04_switch_start_branch.sh --ref to choose a new dev starting point."
     echo "[INFO] source_trials=$TRIAL_LOG"
     ;;
   keep)
@@ -2059,17 +2118,71 @@ else
   SOURCE_BASE_COMMIT="$(git -C "$DPL_SRC" rev-list --max-parents=0 HEAD | tail -n 1)"
 fi
 mkdir -p "$ARTIFACT_DIR"
+
+FINAL_SOURCE_BRANCH="$current_branch" \
+FINAL_SOURCE_COMMIT="$commit" \
+FINAL_CANDIDATE_REF="$CANDIDATE_SOURCE_REF" \
+FINAL_DIFF="$IMPLEMENTATION_DIFF" \
+FINAL_KNOWLEDGE="$KNOWLEDGE_CARD" \
+DPL_SRC="$DPL_SRC" \
+RUN_TAG="$RUN_TAG" \
+python3 - "$TRIAL_LOG" <<'PY'
+import json
+import os
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+path.parent.mkdir(parents=True, exist_ok=True)
+payload = {{
+    "action": "finalize",
+    "branch": os.environ["FINAL_SOURCE_BRANCH"],
+    "candidate_ref": os.environ["FINAL_CANDIDATE_REF"],
+    "diff_path": os.environ["FINAL_DIFF"],
+    "knowledge_card": os.environ["FINAL_KNOWLEDGE"],
+    "run_tag": os.environ["RUN_TAG"],
+    "source_commit": os.environ["FINAL_SOURCE_COMMIT"],
+    "source_repo": os.environ["DPL_SRC"],
+}}
+with path.open("a", encoding="utf-8") as fh:
+    fh.write(json.dumps(payload, sort_keys=True) + "\\n")
+PY
+
+TRIAL_SUMMARY_MD="$ARTIFACT_DIR/source_trials_summary.md"
 SOURCE_COMMIT="$commit" \
 DIRTY_STATUS="$dirty" \
 CANDIDATE_SOURCE_REF="$CANDIDATE_SOURCE_REF" \
 DPL_SRC="$DPL_SRC" \
 SOURCE_BASE_COMMIT="$SOURCE_BASE_COMMIT" \
-python3 - "$SOURCE_COMMIT_RECORD" "$SOURCE_BRANCH" <<'PY'
+python3 - "$SOURCE_COMMIT_RECORD" "$SOURCE_BRANCH" "$TRIAL_LOG" "$TRIAL_SUMMARY_MD" <<'PY'
 import json
 import os
 import sys
+from pathlib import Path
 
-path, branch = sys.argv[1], sys.argv[2]
+path, branch, trial_log, trial_summary = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+trial_events = []
+kept_refs = []
+rejected_refs = []
+final_status = "unmarked"
+trial_log_path = Path(trial_log)
+if trial_log_path.exists():
+    for raw_line in trial_log_path.read_text(encoding="utf-8", errors="replace").splitlines():
+        if not raw_line.strip():
+            continue
+        try:
+            event = json.loads(raw_line)
+        except json.JSONDecodeError:
+            continue
+        trial_events.append(event)
+        action = event.get("action")
+        ref = event.get("ref") or event.get("candidate_ref")
+        if action == "keep" and ref:
+            kept_refs.append(ref)
+        elif action == "reject" and ref:
+            rejected_refs.append(ref)
+        if action in {"keep", "reject"}:
+            final_status = action
 payload = {{
     "source_base_commit": os.environ.get("SOURCE_BASE_COMMIT") or None,
     "source_candidate_ref": os.environ["CANDIDATE_SOURCE_REF"],
@@ -2078,10 +2191,49 @@ payload = {{
     "source_repo": os.environ.get("DPL_SRC"),
     "dirty_after_commit": bool(os.environ.get("DIRTY_STATUS", "")),
     "dirty_status": os.environ.get("DIRTY_STATUS", ""),
+    "source_trials": trial_log,
+    "kept_refs": kept_refs,
+    "rejected_refs": rejected_refs,
+    "final_status": final_status,
+    "trial_event_count": len(trial_events),
 }}
 with open(path, "w", encoding="utf-8") as fh:
     json.dump(payload, fh, indent=2, sort_keys=True)
     fh.write("\\n")
+summary_path = Path(trial_summary)
+summary_path.parent.mkdir(parents=True, exist_ok=True)
+lines = [
+    "# Source Trials Summary",
+    "",
+    f"- source_branch: `{{branch}}`",
+    f"- final_source_commit: `{{os.environ['SOURCE_COMMIT']}}`",
+    f"- candidate_ref: `{{os.environ['CANDIDATE_SOURCE_REF']}}`",
+    f"- trial_event_count: `{{len(trial_events)}}`",
+    f"- final_status: `{{final_status}}`",
+    f"- kept_refs: `{{len(kept_refs)}}`",
+    f"- rejected_refs: `{{len(rejected_refs)}}`",
+    "",
+]
+for event in trial_events:
+    action = event.get("action") or ""
+    ref = event.get("ref") or event.get("candidate_ref") or ""
+    commit = event.get("source_commit") or ""
+    reason = event.get("reason") or ""
+    diff = event.get("diff_path") or ""
+    metrics = event.get("metrics_snapshot") or ""
+    lines.append(f"## {{action}}")
+    if ref:
+        lines.append(f"- ref: `{{ref}}`")
+    if commit:
+        lines.append(f"- source_commit: `{{commit}}`")
+    if reason:
+        lines.append(f"- reason: {{reason}}")
+    if diff:
+        lines.append(f"- diff_path: `{{diff}}`")
+    if metrics:
+        lines.append(f"- metrics_snapshot: `{{metrics}}`")
+    lines.append("")
+summary_path.write_text("\\n".join(lines).rstrip() + "\\n", encoding="utf-8")
 PY
 
 git -C "$DPL_SRC" diff --no-ext-diff "$SOURCE_BASE_COMMIT".."$commit" \
@@ -2146,39 +2298,11 @@ if [[ ! -f "$KNOWLEDGE_CARD" ]]; then
 EOF_KNOWLEDGE
 fi
 
-FINAL_SOURCE_BRANCH="$current_branch" \
-FINAL_SOURCE_COMMIT="$commit" \
-FINAL_CANDIDATE_REF="$CANDIDATE_SOURCE_REF" \
-FINAL_DIFF="$IMPLEMENTATION_DIFF" \
-FINAL_KNOWLEDGE="$KNOWLEDGE_CARD" \
-DPL_SRC="$DPL_SRC" \
-RUN_TAG="$RUN_TAG" \
-python3 - "$TRIAL_LOG" <<'PY'
-import json
-import os
-import sys
-from pathlib import Path
-
-path = Path(sys.argv[1])
-path.parent.mkdir(parents=True, exist_ok=True)
-payload = {{
-    "action": "finalize",
-    "branch": os.environ["FINAL_SOURCE_BRANCH"],
-    "candidate_ref": os.environ["FINAL_CANDIDATE_REF"],
-    "diff_path": os.environ["FINAL_DIFF"],
-    "knowledge_card": os.environ["FINAL_KNOWLEDGE"],
-    "run_tag": os.environ["RUN_TAG"],
-    "source_commit": os.environ["FINAL_SOURCE_COMMIT"],
-    "source_repo": os.environ["DPL_SRC"],
-}}
-with path.open("a", encoding="utf-8") as fh:
-    fh.write(json.dumps(payload, sort_keys=True) + "\\n")
-PY
-
 echo "[INFO] source_commit=$commit"
 echo "[INFO] source_candidate_ref=$CANDIDATE_SOURCE_REF"
 echo "[INFO] source_commit_record=$SOURCE_COMMIT_RECORD"
 echo "[INFO] source_trials=$TRIAL_LOG"
+echo "[INFO] source_trials_summary=$TRIAL_SUMMARY_MD"
 echo "[INFO] knowledge_card=$KNOWLEDGE_CARD"
 if [[ -n "$dirty" ]]; then
   echo "[WARN] source repo still dirty after finalize:" >&2

@@ -51,8 +51,8 @@ route. Keep the review concise and action-bearing.
   source hypothesis; otherwise switch family or redesign composition.
 - Preserve stage donors when downstream erases a gain; route the next Student to
   handoff/consumer repair rather than discarding the stage mechanism.
-- If a Student restored a better final source, use `source_trials.jsonl` refs as
-  evidence for any useful rejected or kept workbench. If repairable, tell the
+- If a Student ended on a rejected or weak workbench, use `source_trials.jsonl`
+  refs as evidence for useful rejected or kept code. If repairable, tell the
   next Student to use `25_trial_source.sh begin --from-ref <ref>`.
 - When assigning a branch/ref switch, name the current-run source ref, new trial
   label, and preservation expectation. Do not import cross-experiment donors or

@@ -268,6 +268,49 @@ def current_branch(source: Path) -> str:
     return branch.stdout.strip() if branch.returncode == 0 else ""
 
 
+def source_trial_summary(trial_log: Path) -> dict[str, Any]:
+    """Summarize generated trial helper events without interpreting metrics."""
+    events: list[dict[str, Any]] = []
+    kept_refs: list[str] = []
+    rejected_refs: list[str] = []
+    reset_refs: list[str] = []
+    final_status = "unmarked"
+    if trial_log.exists():
+        with trial_log.open(encoding="utf-8", errors="replace") as fh:
+            for raw_line in fh:
+                line = raw_line.strip()
+                if not line:
+                    continue
+                try:
+                    event = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                events.append(event)
+                action = str(event.get("action") or "").strip()
+                ref = str(event.get("ref") or event.get("candidate_ref") or "").strip()
+                if action == "keep" and ref:
+                    kept_refs.append(ref)
+                elif action == "reject" and ref:
+                    rejected_refs.append(ref)
+                elif action == "reset_dev" and ref:
+                    reset_refs.append(ref)
+                if action in {"keep", "reject"}:
+                    final_status = action
+    return {
+        "source_trials": str(trial_log),
+        "trial_event_count": len(events),
+        "trial_actions": [
+            str(event.get("action") or "").strip()
+            for event in events
+            if str(event.get("action") or "").strip()
+        ],
+        "kept_refs": kept_refs,
+        "rejected_refs": rejected_refs,
+        "reset_refs": reset_refs,
+        "final_status": final_status,
+    }
+
+
 def commit_child_sources(
     *,
     child_rounds: list[ChildRound],
@@ -322,7 +365,11 @@ def commit_child_sources(
         candidate_ref = stable_candidate_ref(child.run_tag)
         _git(child.dpl_src, "check-ref-format", "--branch", candidate_ref)
         _git(child.dpl_src, "branch", "-f", candidate_ref, commit)
+        trial_log = child.implementation_diff.parent / "source_trials.jsonl"
+        existing_record = load_json(child.source_commit_record) or {}
+        trial_summary = source_trial_summary(trial_log)
         record = {
+            **existing_record,
             "student_id": child.student_id,
             "route_label": child.route_label,
             "operation_id": child.operation_id,
@@ -335,6 +382,7 @@ def commit_child_sources(
             "fallback_commit_created": changed,
             "commit_source": commit_source,
             "dirty_after_commit": dirty,
+            **trial_summary,
         }
         child.source_commit_record.parent.mkdir(parents=True, exist_ok=True)
         child.source_commit_record.write_text(
@@ -353,6 +401,9 @@ def commit_child_sources(
                 "source_commit_record": str(child.source_commit_record),
                 "fallback_commit_created": changed,
                 "source_dirty_after_commit": dirty,
+                "source_final_status": trial_summary["final_status"],
+                "source_kept_refs": trial_summary["kept_refs"],
+                "source_rejected_refs": trial_summary["rejected_refs"],
             },
         )
         print(

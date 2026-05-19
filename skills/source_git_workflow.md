@@ -9,8 +9,9 @@ Use this when a Student edits its private `dpl_evolve` source workspace.
   directly under `src/`, `src/optimization/`, and `src/objective/`; do not
   prepend `tools/OpenROAD/src/dpl_evolve/` inside the private repo.
 - It is a local git repository.
-- Work on the branch named `source_branch`, normally
-  `agent/<student_id>/<iter_name>`.
+- Work on the branch named `source_branch`, normally `dev/<student_id>`.
+  The generated `iteration/<run_tag>` ref records the current iteration start
+  commit.
 - Do not create copied source backup trees. Git refs record the lineage:
   checkpoint refs, `kept/<run_tag>/...`, `rejected/<run_tag>/...`, and the final
   stable candidate ref.
@@ -27,7 +28,7 @@ Use this when a Student edits its private `dpl_evolve` source workspace.
    `fetch_peer_source_script --peer-repo <source_repo> --peer-ref <source_ref>
    --label <short-name>`. This fetches a peer ref and writes diff artifacts
    without modifying your working tree. Inspect the diff and port only the
-   mechanism you understand onto your current iteration branch.
+   mechanism you understand onto your current dev branch.
 5. For each mechanism workbench, use the trial state machine:
    - `trial_source_script begin --label <short-mechanism>`
    - when Teacher asks to continue a repairable rejected/kept line, use
@@ -37,16 +38,17 @@ Use this when a Student edits its private `dpl_evolve` source workspace.
    - `trial_source_script reject --reason <why>` for a rejected mechanism
    - `trial_source_script keep --reason <why>` for a retained mechanism
 6. `reject` commits and pins the rejected code, snapshots diff/metrics into
-   `source_trials.jsonl`, removes stale canonical metrics, and restores the
-   iteration branch to the begin checkpoint. Re-run evaluation after a reject if
-   you will finalize the restored source. A rejected mechanism is not
-   necessarily abandoned; it can become a repair workbench through
-   `begin --from-ref` when Teacher classifies the issue as implementation or
-   handoff repairable.
-7. Before final answer, make the source tree match the best clean canonical
-   evaluation from this task and run `finalize_source_script`. Finalize pins the
-   stable candidate ref, writes `source_commit.json`, writes
-   `implementation.diff`, and creates the knowledge-card skeleton if missing.
+   `source_trials.jsonl`, and leaves that code checked out on the dev branch.
+   A rejected mechanism is not necessarily abandoned; it can become a repair
+   workbench through `begin --from-ref` when Teacher classifies the issue as
+   implementation or handoff repairable. To change direction, explicitly reset
+   the dev branch with `switch_start_branch_script --ref <ref>` or
+   `--kind <prepared-start-kind>`.
+7. Before final answer, make the source tree match the source state you want
+   Teacher to review and run `finalize_source_script`. Finalize pins the stable
+   candidate ref, writes `source_commit.json`, writes `implementation.diff`
+   from the iteration-start commit to current dev HEAD, and creates the
+   knowledge-card skeleton if missing.
 
 Generated workspace helpers that mutate the private source repo are serialized
 by a file lock and must not be run in one parallel tool call:
@@ -68,8 +70,9 @@ Student leaves uncommitted changes, the orchestrator may create a fallback
 commit, but that is a safety net, not the intended workflow.
 
 The final recorded commit, `implementation_diff`, metrics row, and knowledge
-card must describe the same code state. Do not report an earlier best run as
-the final result while leaving a later, worse source revision checked out.
+card must describe the same code state. If the final state is rejected evidence
+instead of a promotable result, say so explicitly; the code is still preserved
+for Teacher review and possible continuation.
 
 ## Report
 

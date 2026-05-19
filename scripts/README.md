@@ -32,7 +32,7 @@ is experiment-specific, keep it under `experiments/launchers/` or
 | `scripts/configure_openroad_core.sh` | Write common-core `core_env.sh` with build/install/binary paths. | Human/Teacher before common-core build. | Common-core configure. |
 | `scripts/build_openroad_core.sh` | Choose the common-core root and delegate the actual OpenROAD build. | Human/Teacher before variants. | Common-core build. |
 | `scripts/build_openroad_only.sh` | Single OpenROAD configure/build/install implementation.  Also used by evaluator `openroad_only` mode. | `build_openroad_core.sh`, evaluator, advanced manual builds. | Common-core or explicit OpenROAD build. |
-| `scripts/create_variant_start.sh` | Copy a `dpl_evolve` seed into one private variant source tree, initialize it as a local git repo, and optionally switch to the generated per-iteration branch. `--start-kind framework` starts from the constrained top framework; `--start-kind diamond` starts from the direct DPL/evolve base; `--start-kind evolved_diamond`, `evolved_legalm`, or `evolved_negotiation` starts from materialized iter30 evolved legalizer seeds; `--start-kind prepared` copies the current ORFS tree; `--seed-src` can start from an exported elite source commit. Preserves existing source unless `--force` is passed. | Human/Teacher/child agents. | Variant initialize. |
+| `scripts/create_variant_start.sh` | Copy a `dpl_evolve` seed into one private variant source tree, initialize it as a local git repo, and optionally switch to the generated source branch. `--start-kind framework` starts from the constrained top framework; `--start-kind diamond` starts from the direct DPL/evolve base; `--start-kind evolved_diamond`, `evolved_legalm`, or `evolved_negotiation` starts from materialized iter30 evolved legalizer seeds; `--start-kind prepared` copies the current ORFS tree; `--seed-src` can start from an exported elite source commit. Preserves existing source unless `--force` is passed. | Human/Teacher/child agents. | Variant initialize. |
 | `scripts/configure_openroad_variant_relink.sh` | Write `variant_env.sh` for a private candidate `dpl_evolve` source. | Human/Teacher/child agents. | Variant configure. |
 | `scripts/build_openroad_variant_relink.sh` | Thin shell wrapper around the Python relinker. | Human/Teacher/child agents. | Variant build. |
 | `scripts/build_openroad_variant_relink.py` | Recompile variant-owned `dpl_evolve` objects and relink a private OpenROAD binary from common-core link recipes. | `build_openroad_variant_relink.sh`. | Fast variant build. |
@@ -377,9 +377,10 @@ keeps editing one stable active source workspace by default:
 .dpl_evolve_state/<round>/teacher_rounds/students/student_XX/workspace/variant/dpl_evolve
 ```
 
-That source directory is a local git repository. Each launched iteration uses a
-fixed branch such as `agent/student_01/iter_03`; the student should commit its
-final source state. The orchestrator creates a fallback commit only when source
+That source directory is a local git repository. Each Student keeps a stable dev
+branch such as `dev/student_01`; each launched iteration records an
+`iteration/<run_tag>` ref as the diff base. The student should commit its final
+source state. The orchestrator creates a fallback commit only when source
 changes remain uncommitted, then records the revision at:
 
 ```text
@@ -390,12 +391,12 @@ The same commit is also pinned to a stable local branch such as
 `candidate/<round>_iter_03_student_01_<case>`. Later workspace reseeding keeps
 the git repository and these candidate refs, so elite continuation and matrix
 export can inherit the exact evaluated source instead of relying on a mutable
-iteration branch.
+dev branch.
 
 Generated workspaces include helper scripts for this branch workflow:
 
-- `00_prepare_source.sh` creates/reuses the private source repo and switches to
-  the iteration branch.
+- `00_prepare_source.sh` creates/reuses the private source repo, switches to the
+  generated Student dev branch, and records the iteration-start ref/base commit.
 - `01_prepare_start_source.sh --kind <kind>` atomically prepares and switches
   from a prepared start branch.
 - `02_source_status.sh` prints current branch, base commit, candidate refs, and
@@ -405,11 +406,14 @@ Generated workspaces include helper scripts for this branch workflow:
   working tree.
 - `25_trial_source.sh begin|keep|reject|status` owns checkpoint, kept, and
   rejected branch handling. `begin --from-ref <ref>` starts a repair trial from
-  a prior kept/rejected ref. Reject automatically restores the iteration branch
-  to the begin checkpoint and snapshots rejected diff/metrics evidence.
-- `30_finalize_source.sh` commits the final iteration source, pins the stable
+  a prior kept/rejected ref. Reject commits and pins rejected evidence but
+  leaves the code checked out on the dev branch; use
+  `04_switch_start_branch.sh --ref <ref>` or `--kind <kind>` for intentional
+  dev-branch resets.
+- `30_finalize_source.sh` commits the final dev source, pins the stable
   candidate ref used by elite continuation/export, writes the implementation
-  diff, and seeds the knowledge card skeleton if needed.
+  diff from iteration-start to final dev HEAD, and seeds the knowledge card
+  skeleton if needed.
 
 Per-iteration diffs, build logs, and eval logs still live under
 `students/student_XX/iter_XX/artifacts`.

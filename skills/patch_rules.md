@@ -94,7 +94,8 @@ packet and repo-local knowledge files are the evidence boundary.
   Expand to a deeper call-chain inspection only when exact-symbol lookup fails
   or the route is explicitly a `mechanism-redesign`. Do not drift into
   unrelated donor-source sweeps.
-- Use coherent, reviewable source diffs on the current iteration branch.
+- Use coherent, reviewable source diffs on the generated dev branch for the
+  Student; the generated iteration ref records the diff base.
   Mechanism-level rewrites are encouraged when they follow Teacher guidance,
   current source diagnosis, and a concrete validation plan. In Codex,
   `apply_patch`-style editing means changing current files with explicit hunks;

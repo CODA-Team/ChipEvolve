@@ -66,7 +66,9 @@
 
 ## Source And Branch Protocol
 
-- Work on the current iteration branch in `private_dpl_evolve_source`. Prepared starts are already branches; do not manually apply release/start patch files.
+- Work on the generated dev branch in `private_dpl_evolve_source`; the generated
+  iteration ref records the iteration-start commit. Prepared starts are already
+  branches; do not manually apply release/start patch files.
 - Use the workspace packet `Algorithm Entry Points` section as the preferred
   landing-zone map. Start from Teacher `first patch handles` when present, but
   do not treat the named files as an exclusive whitelist when the same
@@ -77,7 +79,7 @@
 - Edit current files directly with explicit, reviewable hunks or intentional path-limited scripts. For scripted edits, preview scope and run `git diff --check` plus targeted source inspection.
 - Confirm paths with `rg --files`, locate symbols with `rg -n`, and read current nearby source before nontrivial edits. Donor snippets and old line numbers are evidence, not patch context.
 - Use `03_fetch_peer_source.sh` only to fetch and inspect peer refs. Port understood mechanisms deliberately onto your branch; do not auto-apply peer diffs.
-- Use `25_trial_source.sh begin|keep|reject|status` as the only checkpoint/rejected-source state machine. Do not manually reset around rejected work unless the helper reports a blocking error.
+- Use `25_trial_source.sh begin|keep|reject|status` as the only checkpoint/rejected-source state machine. Reject preserves the code and leaves it checked out; use `04_switch_start_branch.sh --ref <ref>` or `--kind <kind>` only when intentionally changing the dev starting point.
 - If Teacher assigns a repairable rejected/kept ref, start that workbench with `25_trial_source.sh begin --label <repair-name> --from-ref <ref>` and then repair it as a normal trial.
 - Do not edit evaluator, ORFS, baseline scripts, workspace helpers, memories,
   rollout summaries, session archives, or event logs. Optimize mirroring must
