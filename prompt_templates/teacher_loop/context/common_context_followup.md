@@ -32,6 +32,9 @@ mechanism decision.
   read less and optimize the current case more sharply. Keep donor scope clear:
   `general donor` for guard/reusable kernels, `feature-matched donor` for
   mechanisms selected because this specific design feature suggests upside.
+- If the next decision needs a new feature-matched start kind or case-type
+  route, open the case-type quality route insight first, then refine from
+  current-run evidence.
 
 ## Current Evidence
 
@@ -52,6 +55,7 @@ $elite_text
 - start calibration: `$start_seed_calibration_path`
 - peer learning: `$peer_learning_path`
 - feature-to-mechanism strategy insight: `$strategy_inspiration_insight`
+- case-type quality route insight: `$case_type_quality_mechanism_insight`
 - DPO mechanism insight: `$dpo_source_mechanisms_insight`
 - OpenROAD-native handoff insight: `$openroad_native_handoff_insight`
 - skill query: `python3 $skill_query_script --stage <stage> --q "<bottleneck or mechanism>"`

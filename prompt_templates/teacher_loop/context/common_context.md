@@ -17,6 +17,7 @@
 - Abacus donor: `$dreamplace_abacus`
 - dense evolved-legalizer routing insight: `$dense_legalizer_routing_insight`
 - feature-to-mechanism strategy insight: `$strategy_inspiration_insight`
+- case-type quality route insight: `$case_type_quality_mechanism_insight`
 - DPO mechanism insight: `$dpo_source_mechanisms_insight`
 - OpenROAD-native handoff insight: `$openroad_native_handoff_insight`
 - LEGO-lite skill index: `$skill_index`
@@ -31,15 +32,25 @@ function/state insertion points. Do not require broad donor-tree reading.
 ## First-Round Evidence-Driven Route Scan
 
 In the first Teacher planning round, build the route map from observed case
-evidence first. Knowledge cards are vocabulary, inspiration, and prior evidence;
-they are not fixed recipes or mandatory donors.
+evidence first. Most knowledge cards are vocabulary, inspiration, and prior
+evidence; the case-type quality route insight is different: if the case matches
+one of its verified types, use the matching reconstruction packet as the first
+route prior, then diversify.
 
 - Read the design characteristics and stage metrics first.
+- First reaction: decide whether this case matches a known case type with a
+  verified mechanism chain. If yes, assign at least one Student to reconstruct
+  or strengthen that matching mechanism packet, then use the remaining Students
+  for complementary or exploratory routes.
 - After naming the dominant bottleneck, query the skill index only to sharpen
   plausible mechanisms or to avoid repeating known low-ROI paths. Normally
   consider at least two distinct stage families, such as one
   legalization/handoff family and one improve-placement/DPO family, when the
   metrics leave both credible.
+- When selecting a feature-matched start kind or route from case-type route
+  insight,
+  open the case-type quality route insight first; use strategy and algorithm
+  cards only to refine the mechanism or check risk.
 - Open the smallest useful algorithm/pseudocode card only when it provides a
   concrete mechanism, liveness counter, or failure mode relevant to the observed
   bottleneck.

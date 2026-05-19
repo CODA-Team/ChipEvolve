@@ -23,7 +23,7 @@ usage() {
 Usage: run_candidate_matrix.sh --matrix-id NAME --candidate-src PATH [options]
 
 Build one fixed dpl_evolve source once, then evaluate that same code across a
-TSV experiment plan.  This is the cross-case verification path for knowledge
+TSV experiment plan.  This is the fixed-source replay verification path for knowledge
 learned by Teacher/Student search.
 
 Options:

@@ -661,6 +661,11 @@ def common_context(
         / "insights"
         / "case_evolution"
         / "strategy_inspiration_by_design_feature.md",
+        case_type_quality_mechanism_insight=runtime.agent_root
+        / "knowledge"
+        / "insights"
+        / "case_evolution"
+        / "case_type_quality_mechanism_priority.md",
         dpo_source_mechanisms_insight=runtime.agent_root
         / "knowledge"
         / "insights"

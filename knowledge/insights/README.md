@@ -10,11 +10,13 @@ should act on it.
 1. `workflow/teacher_child_case_evolution.md`
 2. `workflow/cross_case_experiment_design.md`
 3. `workflow/metric_contract.md`
-4. `case_evolution/cross_case_transfer_matrix.md`
+4. `case_evolution/case_type_quality_mechanism_priority.md`
 5. `case_evolution/strategy_inspiration_by_design_feature.md`
 6. `case_evolution/runtime_light_final_hpwl_mechanism_priority.md`
 7. `case_evolution/evidence_weighted_mechanism_priority.md`
-8. `case_evolution/cross_case_quality_mechanism_priority.md`
+8. `case_evolution/fixed_source_replay_transfer_evidence.md` only when
+   Teacher needs provenance or robustness evidence after the mechanism route is
+   already selected
 9. `case_evolution/score_based_case_strategy_routing.md`
 10. `case_evolution/dense_evolved_legalizer_routing.md`
 11. `case_evolution/optdp_stage_cooptimization.md`
@@ -39,11 +41,12 @@ should act on it.
 
 ## Case Evolution Evidence
 
-- `case_evolution/cross_case_transfer_matrix.md`: fixed-source transfer matrix
-  synthesis across utilization classes, design scales, and technology settings.
+- `case_evolution/fixed_source_replay_transfer_evidence.md`: evidence archive
+  for provenance and robustness checks after a mechanism route has already been
+  selected.  Do not use it as the first Teacher routing card.
 - `case_evolution/score_based_case_strategy_routing.md`: feature-level `G_HR`
-  routing guidance distilled from single-design evolution, fixed-source replay,
-  and multi-design legalizer-line evaluation; use it to distinguish score
+  routing guidance distilled from single-design evolution, cross-source
+  evidence, and multi-design legalizer-line evaluation; use it to distinguish score
   elites from HPWL donors.
 - `case_evolution/strategy_inspiration_by_design_feature.md`: feature-level
   mechanism inspiration for staged source hybrids.  Use this before route
@@ -59,11 +62,16 @@ should act on it.
   with a proven consumer, and endpoint-level branch scoring only when final HPWL
   improves; it demotes legalize-only wins, guard-only, telemetry-only,
   mirror-only, threshold-only, passive-handoff, and random-tail polishing.
-- `case_evolution/cross_case_quality_mechanism_priority.md`: distills
-  fixed-source transfer evidence into mechanism-level guidance.  It separates
-  broad exact-consumer quality donors that are often runtime-heavy, balanced
-  producer-consumer donors, runtime-light feature-specific local closure donors,
-  and low-ROI zero-accept or stage-only patterns.
+- `case_evolution/case_type_quality_mechanism_priority.md`: maps observed
+  case/stage features to Teacher route guidance.  It maps design/stage features
+  to prepared start-kind priors, source-family handles, and prioritized
+  mechanisms: dense recoverable basins to producer-frontier plus exact DPO
+  consumers, row-local residue to source-edge or selected-segment exact
+  closure, conflict-heavy layouts to primary legalizer/resource repair, and
+  plateaued same-family routes to producer/consumer redesign.  It also contains
+  a route-and-modification playbook with Teacher route names, Student
+  modification ideas, real source implementation anchors, edit surfaces,
+  validation counters, and stop/pivot rules.
 - `case_evolution/dense_evolved_legalizer_routing.md`: dense-case evidence for
   using `evolved_legalm` as a stage-level legalizer prior, plus Teacher policy
   for first-round diversification and later route switching/hybridization.  This

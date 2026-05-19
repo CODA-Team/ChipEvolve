@@ -18,8 +18,8 @@ Default reading order:
    cost
 9. `insights/case_evolution/evidence_weighted_mechanism_priority.md` when
    choosing which prior mechanism families deserve active search budget
-10. `insights/case_evolution/cross_case_quality_mechanism_priority.md` when
-   using fixed-source transfer evidence to choose quality mechanisms without
+10. `insights/case_evolution/case_type_quality_mechanism_priority.md` when
+   mapping current case features to Student-ready quality mechanisms without
    turning old programs into benchmark-name rules
 11. `insights/dpo/source_level_mechanisms.md` when planning improve-placement
    source mechanisms
@@ -49,12 +49,12 @@ Current compact algorithm cards:
 - `insights/workflow/teacher_child_case_evolution.md`
 - `insights/workflow/cross_case_experiment_design.md`
 - `insights/workflow/metric_contract.md`
-- `insights/case_evolution/cross_case_transfer_matrix.md`
+- `insights/case_evolution/fixed_source_replay_transfer_evidence.md`
 - `insights/case_evolution/score_based_case_strategy_routing.md`
 - `insights/case_evolution/strategy_inspiration_by_design_feature.md`
 - `insights/case_evolution/runtime_light_final_hpwl_mechanism_priority.md`
 - `insights/case_evolution/evidence_weighted_mechanism_priority.md`
-- `insights/case_evolution/cross_case_quality_mechanism_priority.md`
+- `insights/case_evolution/case_type_quality_mechanism_priority.md`
 - `insights/case_evolution/micro_gain_trap_and_elite_donors.md`
 - `insights/case_evolution/full_flow_timeout_and_target_selection.md`
 - `skills/case/legalizer_dpo_handoff_triage.md`
@@ -125,19 +125,29 @@ specific repair path.  See
 `insights/case_evolution/runtime_light_final_hpwl_mechanism_priority.md` and
 `insights/case_evolution/evidence_weighted_mechanism_priority.md`.
 
-Use `insights/case_evolution/cross_case_quality_mechanism_priority.md` when
-Teacher wants to learn from fixed-source transfer results.  The reusable lesson
-is mechanism-level: broad exact consumers can be quality-strong but
-runtime-heavy; balanced producer-consumer chains are better first routes; local
-closure donors are feature-specific; zero-accept handoff, mirror-only priority,
-and legalize-only wins should be downweighted unless final HPWL improves.
+Use `insights/case_evolution/case_type_quality_mechanism_priority.md` when
+Teacher needs a first case-type route prior.  After Teacher states the observed
+stage pattern, the card suggests which prepared start kind is a good source
+basin, which mechanism route to assign, which source handles or current-run
+peer refs to inspect, and which counters prove liveness.  Dense recoverable
+basins favor legalizer frontier plus exact DPO consumers; row-local or
+edge-local residue favors source-edge or selected-segment exact closure;
+conflict-heavy or fragmented-row layouts need primary legalizer/resource-repair
+liveness; large row-rich cases can spend runtime on anchored row-window
+transactions; low-util slack usually prefers runtime-light local exact closure
+first.  Zero-accept handoff, mirror-only priority, same-family threshold
+variants, and legalize-only wins should be downweighted unless final HPWL
+improves.  The card includes concrete route playbooks and source implementation
+anchors for recoverability-shaped producer-consumer stacks, local residue exact
+closure, conflict-primary legal closure, runtime-disciplined quality donors,
+and plateau escape by mechanism redesign.
 
-One high-value replay pattern is a legalizer that slightly worsens `HPWLlg` but
-preserves a DPO-recoverable basin, followed by exact source-edge/global-swap
-consumers, edge-critical queues, selected-segment exact reorder, and bounded
-post-reorder polish.  Treat this as a co-optimization donor: the promotion
-evidence is clean final full-flow HPWL plus producer/consumer liveness, not
-legalization-stage HPWL alone.  See
+One high-value co-optimization pattern is a legalizer that slightly worsens
+`HPWLlg` but preserves a DPO-recoverable basin, followed by exact
+source-edge/global-swap consumers, edge-critical queues, selected-segment exact
+reorder, and bounded post-reorder polish.  Treat this as a co-optimization
+donor: the promotion evidence is clean final full-flow HPWL plus
+producer/consumer liveness, not legalization-stage HPWL alone.  See
 `insights/dpo/exact_source_edge_recoverability_consumer.md`.
 
 For `evolved_negotiation`, verify the negotiation-primary route signal before
