@@ -138,6 +138,15 @@ Use this packet when dense standard-cell pressure makes legalizer output
 important, but the winning evidence comes from downstream recoverability rather
 than legalize-only HPWL.
 
+Typical stage signature:
+
+- `HPWLlg` may be worse than global or worse than a legalize-only donor, while
+  `HPWLimprove` drops sharply after the exact consumer runs;
+- final HPWL tracks the DPO consumer's exact accepts and accepted delta more
+  than the legalizer-stage number;
+- a live but incomplete route often shows frontier/source-edge counters without
+  enough selected-segment, edge-critical, or post-consumer accepts.
+
 Student route language:
 
 Implement a recoverability-preserving producer rather than a pure displacement
@@ -148,10 +157,25 @@ of touched nets, dirty rows, target misses, and boundary-active cells.  Pair the
 producer with a bounded exact DPO consumer that probes top-ranked frontier
 cells and commits only exact affected-net HPWL wins.
 
+For datapath-like dense rows, rebuild the complete chain rather than only a
+single source-edge tweak:
+
+1. guidance or negotiation-compatible producer preserves recoverable relative
+   order, target misses, touched nets, and high-pressure frontier cells;
+2. primary legal closure makes the state legal without erasing the frontier;
+3. exact global-swap/source-edge consumer probes the frontier with affected-net
+   scoring and rollback;
+4. edge-critical queue and selected-segment exact reorder consume remaining
+   local residuals;
+5. bounded pair, endpoint, or local closure extracts the tail and stops by
+   accepted-gain rate.
+
 Required source orientation:
 
 - start from `evolved_legalm` when dense guidance is useful;
 - keep one `evolved_diamond`/`diamond` guard only when Diamond is already close;
+- use `evolved_negotiation` or `default_negotiation` when conflict closure is
+  the missing primary-legalizer link, not when negotiation is only a no-op tail;
 - inspect `src/LegalmGuidance.cpp`, `src/LegalmFullLegalization.cpp`,
   `src/StudentAlgorithm.cpp`, `src/Optdp.cpp`, and
   `knowledge/insights/dpo/exact_source_edge_recoverability_consumer.md`.
@@ -161,6 +185,20 @@ Required proof:
 - nonzero producer frontier, nonzero consumer probes and accepts, and a final
   HPWL win after improve placement.  If the producer is live but accepts are
   zero, repair consumer liveness before adding more metadata.
+- if `HPWLlg` worsens but exact accepts and final HPWL improve, treat the route
+  as a valid co-optimization win, not as a legalizer failure;
+- if exact accepts plateau at a small fixed count or final HPWL barely moves,
+  label it as a partial-chain hit and add the missing move family, selected
+  segment consumer, edge-critical queue, or producer-side recoverability repair.
+
+Teacher guidance:
+
+- send one Student to preserve and deepen the best live complete chain;
+- send other Students to change a missing link: producer objective, primary
+  closure timing, handoff mapping, DPO move family, exact scoring objective, or
+  post-consumer polish;
+- do not route all Students into more threshold edits, passive counters, or
+  guard-only tails once the complete-chain counters show a plateau.
 
 ### Packet: Row-Local Or Edge-Local Residual
 
@@ -252,6 +290,15 @@ Required proof:
 Use this packet when there is enough whitespace and the default/local basin is
 already close.
 
+Typical stage signature:
+
+- global and legalizer-stage HPWL are already close enough that broad target
+  reshaping is unnecessary;
+- final residue is concentrated in local row windows, source-edge cells,
+  selected segments, or a small set of touched nets;
+- runtime-light exact accepts can beat heavier broad guidance, but a guard line
+  may still spend bounded runtime on a real local quality mechanism.
+
 Student route language:
 
 Keep the stable legalizer.  Add source-edge top-K exact consumer or small
@@ -260,9 +307,17 @@ local moves, and stop by accepted-gain rate.  Do not spend the first route on
 heavy LSMC, restart, or broad global guidance unless local exact consumers are
 live and plateaued.
 
+The stronger local route is not mirror-only or telemetry-only.  It should
+combine a stable legalizer basin with one concrete exact consumer: top-K
+source-edge moves, selected-row reorder, adjacent-row pair swap, or endpoint
+closure.  If a guard protects a good existing result, it should still test a
+bounded quality-improving mechanism or a runtime rewrite of a live mechanism.
+
 Required source orientation:
 
 - start from `diamond` or `evolved_diamond`;
+- use a negotiation-family start only when conflict/resource counters are live
+  and the local closure consumes those recently resolved conflicts;
 - inspect local closure, detailed reorder, source-edge candidate extraction,
   and affected-net scoring code.
 
@@ -270,6 +325,9 @@ Required proof:
 
 - exact accepts and accepted gain are nonzero, final HPWL improves, and runtime
   remains controlled.
+- if local accepts are live but low-ROI after one meaningful repair, preserve
+  the branch as a guard and send non-guard Students to a different producer or
+  DPO move family rather than repeating small constant edits.
 
 ## Mechanism Class Calibration
 
@@ -294,6 +352,22 @@ The key evidence is final detailed-placement-flow HPWL, not stage-local HPWL.
 A legalizer may slightly worsen `HPWLlg` while preserving a basin that a later
 exact DPO consumer can repair strongly.  Conversely, a legalizer-stage win is
 weak evidence if after-improve or final HPWL does not improve.
+
+### Complete-Chain Check
+
+When a route appears to match a previously successful mechanism, check whether
+the full chain is live, not only whether the names are similar:
+
+- producer or legalizer policy creates a recoverable basin or compact frontier;
+- handoff maps that state into native detailed-placement objects;
+- DPO consumer probes a bounded but meaningful candidate set;
+- exact scoring and rollback decide acceptance;
+- post-consumer reorder, selected-segment polish, endpoint scoring, or local
+  closure extracts the remaining HPWL when counters show residual opportunity.
+
+If only a producer hint, frontier retune, or tiny tail consumer exists, classify
+it as a partial-chain hit.  Name the missing link and complete or replace it
+before declaring the mechanism family exhausted.
 
 ## Feature-Level Routing Map
 

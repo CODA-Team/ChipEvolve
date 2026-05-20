@@ -50,8 +50,11 @@
    bounded quality attempt or runtime rewrite that has a real HPWL source,
    caps/caches, counters, and rollback. Do not finalize a zero-diff guard-only
    rerun unless the source cannot be safely edited and you explain the concrete
-   blocker in `## Next Teacher Handoff`. Prove with counters/full-flow metrics
-   that the reference behavior was not disturbed.
+   blocker in `## Next Teacher Handoff`. Incremental guard improvement is
+   valid when it changes a real HPWL mechanism and improves full-flow HPWL. If
+   it only changes a small cap, threshold, counter, or parity fastpath and HPWL
+   stays flat, call it under-explored and propose the larger mechanism Teacher
+   should assign next.
    Your plan should name one dominant mechanism and one compatibility check
    for adjacent stages. For example, a legalizer route should explain why the
    output remains DPO-recoverable; a DPO route should explain why the input
@@ -150,6 +153,10 @@
   missing consumer, or wrong HPWL source, start one focused repair/pivot trial;
   otherwise keep/finalize the best clean source and report the limitation.
   Smoke runs may still bias toward one coherent patch and one closed result.
+- If the route targets a known strong mechanism chain, verify chain
+  completeness before judging it: producer, handoff, consumer, exact
+  acceptance, and post-consumer polish. If only a subset executed and final HPWL
+  is weak, report the missing link instead of marking the family low-ROI.
 - Separate algorithmic failure from implementation cost: zero counters, stale binary/source mismatch, acceptance too strict, legality rejects, fallback domination, duplicate endpoint work, broad rescans, poor cache reuse, missing parallelism, or timeout.
 - Do not reject just because the first evaluation fails. First diagnose whether
   the failure is a local implementation/integration issue that can be repaired
@@ -161,10 +168,11 @@
 
 ## Runtime And Performance
 
-- Use runtime only with a mechanism reason. If the current implementation is
-  fast but HPWL is weak, first identify the missing HPWL source, then try a
-  stronger bounded candidate search, exact scoring, local dynamic programming,
-  or producer/consumer repair.
+- Use runtime only with a mechanism reason. Low runtime is not success when
+  final HPWL is weak: spend headroom on one controlled quality mechanism inside
+  the hard budget, such as capped larger windows, more exact-scored candidates,
+  grouped transactions, endpoint/tail branch scoring, or deterministic parallel
+  scoring with counters and accepted-gain/gain-rate stops.
 - Any source-level search behavior is allowed when speed and quality remain controllable: broader scans, repeated subpasses, stronger DPO/legalizer loops, or randomized perturbations must have scope limits, counters, early-stop/gain-rate rules, and full-flow evidence.
 - Prefer handoff/frontier-guided targeting, compact candidate queues, dirty-edge/touched-net sets, row/segment caches, legality caches, per-net local boxes, thread-local score buffers, OpenMP/existing thread utilities, and deterministic reductions.
 - Plan high performance with the algorithm: name the cache/frontier/cap or

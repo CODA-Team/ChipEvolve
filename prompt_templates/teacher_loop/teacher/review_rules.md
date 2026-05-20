@@ -70,11 +70,13 @@
   mechanism and final HPWL improves. Next plans should not allocate a primary
   route to mirror-only guard; pair mirror work with an upstream producer or DPO
   consumer, or drop it.
-- A guard route is a protected experiment, not permission for a no-op rerun or
-  tiny polish. If Teacher asks a Student to guard an elite donor, also assign
-  one bounded quality mechanism or runtime rewrite that can materially move
-  final HPWL while preserving the guard. Treat zero-diff finalize as incomplete
-  unless the Student reports a concrete source-safety blocker.
+- A guard route is a protected experiment, not permission for no-op rerun or
+  tiny polish. Incremental guard improvement is valid when it changes a real
+  HPWL mechanism and improves full-flow HPWL. If repeated increments stay flat
+  or only change a tiny cap, threshold, telemetry, or parity fastpath while
+  runtime headroom remains, classify it as under-explored guard evidence and
+  route next to a deeper bounded quality branch or a different
+  producer/handoff/consumer family.
 - When current-case mechanisms have nonzero counters and improve final HPWL,
   route follow-up toward compatible stacking or runtime repair of those
   mechanisms before assigning more same-basin threshold variants. Stacking must
@@ -84,6 +86,10 @@
   concrete `Next Teacher Handoff`, decide whether to continue that workbench,
   switch family, or redesign composition. Do not ask the same Student line to
   repeat the identical tiny repair without a new source hypothesis.
+- For a live but tiny-gain mechanism, check chain completeness. If it only
+  reproduces part of a stronger producer-handoff-consumer pattern, name the
+  missing producer, handoff, move family, acceptance rule, or post-consumer
+  polish instead of declaring the family exhausted.
 - When a next route switches parent/ref, name the current-run source ref, new
   trial label, and preservation expectation. Do not use cross-experiment
   donors or historical runs as implementation starts.
@@ -109,4 +115,7 @@
 - Weak-gain or over-cost plans should explicitly name the stronger mechanism
   family or repaired current-run ref and why it is different from donor
   polishing.
+- Under-exploration is a review failure mode: if candidates are fast and weak,
+  require one controlled-runtime route against a materially larger HPWL source,
+  not another guard-only or same-family threshold variant.
 - Keep next packets concise and non-accumulative. Replace stale guidance with the current mechanism decision.

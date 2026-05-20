@@ -83,12 +83,15 @@
   `continue` for at most one guard/repair route unless all other evidence is
   broken; otherwise use `switch`, `hybridize`, or `mechanism-redesign` when the
   last useful results are same-family or tiny-gain.
-- A guard route is not a default no-op or tiny polish route. Unless you
-  explicitly mark it as a pure-control attribution route, preserve the guard
-  behavior while spending the allowed runtime on one bounded quality mechanism
-  or runtime rewrite that can materially improve final HPWL. It may be more
-  expensive inside the hard budget, but it must name the HPWL source, caps or
-  caches, counters, rollback guard, and full-flow proof.
+- A guard route preserves the elite as fallback, but it is not a no-op or tiny
+  polish route unless explicitly marked pure-control attribution. Incremental
+  improvement on the elite path is valid when it changes a real HPWL mechanism
+  and is measured by full-flow HPWL. It should still name the HPWL source,
+  caps/cache, counters, rollback, and proof. If repeated guard increments stay
+  flat or only change thresholds/counters/tiny tails while runtime headroom
+  remains, classify the path as under-explored and deepen the consumer, change
+  producer/handoff composition, widen a bounded transaction family, or switch
+  mechanism family.
 - Each non-guard route must state why it can beat a small donor: the larger
   HPWL source it attacks, the mechanism class it changes, and the expected
   stage-wise movement. A same-family route must change the mechanism class, not
@@ -98,6 +101,10 @@
   across Students. That evidence means the route is shallow or non-consuming;
   pivot to a different legalizer producer, DPO move family, or explicit
   producer-consumer redesign.
+- A partial mechanism-chain hit is not a complete hit. If a route uses the
+  vocabulary of a strong chain but misses producer, handoff, consumer,
+  acceptance, or post-consumer polish, name the missing link and complete or
+  replace it instead of continuing same-family polishing.
 - Route emphasis can be `legalizer-emphasis`, `DPO-emphasis`, or
   `co-optimization-emphasis`. This is only the priority label. Do not let a
   round collapse into only one segment of the flow. Across the Student roster,
@@ -147,7 +154,7 @@
   consumers, or DPO-hostile legalized states, route a change to the target
   terms/weights, stop point, frontier payload, or downstream consumer instead
   of only abandoning the family or retuning unrelated constants.
-- Weak-gain / over-cost escalation is a Teacher review judgment, not an automatic controller rule. If current-run legal candidates show tiny HPWL movement, repeat the same family, or incur runtime cost without proportional HPWL, stop polishing the same idea. Preserve one current best guard when useful, then assign at least one aggressive within-run route: a different mechanism family, a redesigned producer/consumer pair, or a repair/continuation from a current-run kept/rejected ref using `25_trial_source.sh begin --from-ref <ref>`.
+- Weak-gain / over-cost escalation is a Teacher review judgment, not an automatic controller rule. If current-run legal candidates show tiny HPWL movement, repeat the same family, stay fast-but-weak with runtime headroom, or incur runtime cost without proportional HPWL, stop polishing the same idea. Preserve one current best guard when useful, then assign at least one aggressive within-run route: a different mechanism family, a redesigned producer/consumer pair, a stronger bounded quality search, or a repair/continuation from a current-run kept/rejected ref using `25_trial_source.sh begin --from-ref <ref>`.
 - In plateau rounds, the route map must visibly change the reachable solution space. At least half of active non-guard Students should switch, hybridize, or redesign a legalizer/DPO/handoff mechanism family rather than tuning thresholds, guards, counters, or source-edge variants of the same basin.
 - When assigning a branch/ref switch, name the current-run source ref, the new trial label, and the reason the old branch/ref remains preserved. Do not import cross-experiment donors or historical results as implementation starts.
 
