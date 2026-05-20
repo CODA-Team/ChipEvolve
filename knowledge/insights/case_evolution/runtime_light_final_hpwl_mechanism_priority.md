@@ -7,9 +7,9 @@ does not encode benchmark names, local artifact paths, or historical program
 aliases.
 
 Use this card before Teacher spends a round on donor selection.  It is a
-priority map for mechanisms that have improved clean final HPWL while keeping
-runtime cost visible.  It supersedes stage-only or legalize-only interpretations
-when the cards disagree.
+feature-conditioned priority map for mechanisms that have improved clean final
+HPWL while keeping runtime cost visible.  It supersedes stage-only or
+legalize-only interpretations when the cards disagree.
 
 ## Promotion Standard
 
@@ -20,14 +20,23 @@ A mechanism is first-priority only when all of the following are true:
   default-flow reference;
 - source/log counters prove the changed producer, consumer, transaction, or
   scoring path executed;
-- runtime growth is either small or explained by accepted-gain counters,
-  caches, caps, or deterministic parallel work.
+- runtime growth is either small relative to the same-case default runtime or
+  explained by accepted-gain counters, caches, caps, or deterministic parallel
+  work.  Tens of seconds can be a valid quality spend on short/medium cases,
+  but if the default flow already takes hundreds of seconds, Teacher may still
+  spend more runtime only as a controlled quality investment: require caps,
+  gain-rate stops, cache/parallel repair, small-multiplier targets, and
+  accepted-gain evidence.
 
 Legalizer-only HPWL, guard-only preservation, telemetry-only summaries, and
 passive handoff metadata are not first-priority mechanisms.  They can be useful
 evidence, but Teacher should not allocate most Students to them.
 
-## First-Priority Mechanisms
+## Feature-Conditioned First Routes
+
+Teacher should not use a single global priority order.  First classify the
+case by stage metrics, physical pressure, default-flow runtime scale, and
+runtime headroom, then pick the matching route below.
 
 ### Recoverability-Shaped Legalizer Producer Plus Exact DPO Consumer
 
@@ -55,7 +64,7 @@ Required liveness:
 - DPO exact top-K probes and accepts are nonzero;
 - final HPWL improves, not only `HPWLlg`.
 
-Why this is high priority:
+Why this is high priority for this feature:
 
 This pattern has repeatedly produced large final-HPWL movement without relying
 on a broad random tail.  It is the strongest default route when the design has
@@ -88,7 +97,7 @@ Required liveness:
 - handoff replacement is conditional and logged;
 - final HPWL improves under the hard runtime budget.
 
-Why this is high priority:
+Why this is high priority for this feature:
 
 It converts an existing basin donor into a producer-consumer mechanism without
 adding unbounded search.  If runtime is slightly high, trim seed rows or exact
@@ -117,7 +126,7 @@ Required liveness:
 - mirror/final-stage handoff is only credited when it preserves accepted exact
   moves. Do not route mirror guard as a standalone optimizer.
 
-Why this is high priority:
+Why this is high priority for this feature:
 
 This is often the best runtime-light donor.  However, if ranking counters are
 nonzero but exact candidate/accept counters are zero, classify the result as
@@ -146,7 +155,7 @@ Required liveness:
 - the mechanism changes candidate generation or exact acceptance, not only
   thresholds or logs.
 
-Why this is high priority:
+Why this is high priority for this feature:
 
 It is cheap and stable.  It can plateau quickly, so keep at most one guard
 source.  That guard should still test a bounded quality mechanism or runtime
@@ -218,19 +227,24 @@ falls.
 ## Heavy Or Secondary Mechanisms
 
 Use these when stage evidence says the target cannot be reached by lighter
-mechanisms.  Do not present them as the first default route.
+mechanisms.  Do not present them as the first default route for every case.  Do
+not avoid them merely because they may take tens of seconds on short cases, but
+on cases whose default runtime is already hundreds of seconds, deeper search
+should still be allowed but must be capped, gain-rate stopped, or paired with
+runtime repair.
 
 - Scoped LSMC-style basin escape.  It is useful only after a deterministic
   descent kernel is live.  The loop must be `descent -> legal kick -> descent ->
-  canonical accept/rollback`.  Broad restarts, random tails, or increasing
-  restart count without accepted basin changes are low priority.
+  canonical accept/rollback`.  Broad restarts, random tails, uncapped runs on
+  already-slow cases, or increasing restart count without accepted basin changes
+  are low priority.
 - Endpoint-level branch scoring.  It can find a quality ceiling when multiple
   complete improve-placement branches conflict, but it is expensive.  Distill
   the winning branch into a source mechanism with counters instead of stacking
   repeated endpoints.
 - Residual diversity replay plus mirror-aware replay.  This can improve large
-  row-rich placements, but it is runtime-heavy and must be tied to accepted
-  row-window or exact frontier evidence.
+  row-rich placements, but it must be tied to accepted row-window or exact
+  frontier evidence; otherwise it becomes uncontrolled replay.
 - Broad global legalizer search.  Global/differential guidance is useful when
   it produces a recoverable frontier.  It is not a default replacement for
   local closure if full-flow final HPWL regresses or DPO cannot recover the
@@ -248,8 +262,9 @@ Teacher should explicitly demote these unless paired with a concrete repair:
 - mirror-only ordering without accepted exact moves to protect;
 - constant, threshold, or tie-break changes without a changed candidate
   generator, scoring function, transaction, or producer/consumer path;
-- broad random search, repeated endpoint-like passes, or large logs without
-  caps, counters, and accepted-gain evidence.
+- broad random search, repeated endpoint-like passes, uncontrolled search on
+  already-slow cases, or large logs without caps, counters, and accepted-gain
+  evidence.
 
 ## Teacher Query And Routing Rule
 
@@ -264,10 +279,13 @@ python3 scripts/query_knowledge.py --stage handoff --q "recoverability frontier 
 Then route Students as follows:
 
 - one guard only if an elite source must be preserved;
-- one light/medium final-HPWL route from the first-priority list;
+- one feature-matched final-HPWL route from the first-route list;
 - one adjacent-stage repair route when stage metrics disagree;
-- one heavier quality-donor route only if lighter routes plateau or runtime
-  headroom is clearly available.
+- one larger quality-spend route when lighter routes plateau, when accepted
+  gains justify it, or when runtime headroom is clearly available.  A
+  tens-of-seconds run is acceptable if final HPWL moves and the pass is capped;
+  for cases whose default runtime is already hundreds of seconds, require a
+  small runtime multiplier or an explicit cache/cap/runtime-repair plan.
 
 When a mechanism is live but weak, Teacher should decide whether it is a
 producer failure, consumer failure, runtime implementation problem, or low-ROI
