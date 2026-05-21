@@ -65,13 +65,15 @@ should act on it.
 - `case_evolution/case_type_quality_mechanism_priority.md`: maps observed
   case/stage features to Teacher route guidance.  It maps design/stage features
   to prepared start-kind priors, source-family handles, and prioritized
-  mechanisms: dense recoverable basins to producer-frontier plus exact DPO
-  consumers, row-local residue to source-edge or selected-segment exact
-  closure, conflict-heavy layouts to primary legalizer/resource repair, and
-  plateaued same-family routes to producer/consumer redesign.  It also contains
-  a route-and-modification playbook with Teacher route names, Student
-  modification ideas, real source implementation anchors, edit surfaces,
-  validation counters, and stop/pivot rules.
+  reconstruction routes: dense recoverable or row-local basins to
+  Diamond-basin source-edge exact descent, negotiation-compatible basins to
+  hot-segment exact consumer stacks, macro/memory-mixed basins to row-window
+  replay handoff, conflict-heavy layouts to primary legalizer/resource repair,
+  and plateaued same-family routes to producer/consumer redesign.  It also
+  contains minimum implementation steps, real source implementation anchors,
+  validation counters, and partial-route demotion rules so Teacher can ask
+  Students to reconstruct a cumulative mechanism chain rather than only cite an
+  idea or final guard commit.
 - `case_evolution/dense_evolved_legalizer_routing.md`: dense-case evidence for
   using `evolved_legalm` as a stage-level legalizer prior, plus Teacher policy
   for first-round diversification and later route switching/hybridization.  This

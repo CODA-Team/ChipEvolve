@@ -19,7 +19,7 @@ Default reading order:
 9. `insights/case_evolution/evidence_weighted_mechanism_priority.md` when
    choosing which prior mechanism families deserve active search budget
 10. `insights/case_evolution/case_type_quality_mechanism_priority.md` when
-   mapping current case features to Student-ready quality mechanisms without
+   mapping current case features to Student-ready reconstruction routes without
    turning old programs into benchmark-name rules
 11. `insights/dpo/source_level_mechanisms.md` when planning improve-placement
    source mechanisms
@@ -128,19 +128,25 @@ specific repair path.  See
 Use `insights/case_evolution/case_type_quality_mechanism_priority.md` when
 Teacher needs a first case-type route prior.  After Teacher states the observed
 stage pattern, the card suggests which prepared start kind is a good source
-basin, which mechanism route to assign, which source handles or current-run
-peer refs to inspect, and which counters prove liveness.  Dense recoverable
-basins favor legalizer frontier plus exact DPO consumers; row-local or
-edge-local residue favors source-edge or selected-segment exact closure;
-conflict-heavy or fragmented-row layouts need primary legalizer/resource-repair
-liveness; large row-rich cases can spend runtime on anchored row-window
-transactions; low-util slack usually prefers runtime-light local exact closure
-first.  Zero-accept handoff, mirror-only priority, same-family threshold
-variants, and legalize-only wins should be downweighted unless final HPWL
-improves.  The card includes concrete route playbooks and source implementation
-anchors for recoverability-shaped producer-consumer stacks, local residue exact
-closure, conflict-primary legal closure, runtime-disciplined quality donors,
-and plateau escape by mechanism redesign.
+basin, which reconstruction route to assign, which source handles or current-run
+peer refs to inspect, and which counters prove liveness.  A design can match
+multiple feature packets.  Dense recoverable basins should not receive only
+same-basin retuning: the card contains reproducible route packets for
+Diamond-basin source-edge exact descent, negotiation-start hot-segment exact
+consumer stacks, wrapper/macro row-window replay handoff, recoverable producer
+plus hot-segment exact consumer, adaptive transactional basin gain-rate, and
+negotiation-compatible residual transaction handoff.
+Macro/memory-mixed or hierarchical row-window basins favor evidence-targeted
+local-basin or producer-consumer routes; row-local or edge-local residue favors
+source-edge or selected-segment exact closure; conflict-heavy or fragmented-row
+layouts need primary legalizer/resource-repair liveness; large row-rich cases
+can spend controlled runtime on stronger local basin search; low-util slack
+usually prefers runtime-light local exact closure first.  Zero-accept handoff,
+mirror-only priority, same-family threshold variants, and legalize-only wins
+should be downweighted unless final HPWL improves.  The card includes concrete
+minimum implementation steps, source implementation anchors, liveness counters,
+and partial-implementation demotion rules so a Student can basically reconstruct
+the mechanism rather than only naming it.
 
 One high-value co-optimization pattern is a legalizer that slightly worsens
 `HPWLlg` but preserves a DPO-recoverable basin, followed by exact

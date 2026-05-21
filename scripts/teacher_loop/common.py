@@ -205,6 +205,21 @@ def assigned_start_kind_from_insight(text: str) -> str | None:
             continue
         if any(marker in line_lower for marker in fallback_markers):
             continue
+        if line_lower.startswith(("start/parent:", "start/donor family:", "continuation parent:")):
+            kinds = re.findall(
+                rf"`({PREPARED_START_KIND_PATTERN})`|\b({PREPARED_START_KIND_PATTERN})\b",
+                line,
+                flags=re.IGNORECASE,
+            )
+            flattened = [match[0] or match[1] for match in kinds]
+            unique = []
+            for kind in flattened:
+                if kind not in unique:
+                    unique.append(kind)
+            if len(unique) == 1:
+                return unique[0]
+            if len(unique) > 1:
+                continue
         for pattern in primary_patterns:
             match = re.search(pattern, line, flags=re.IGNORECASE)
             if match:

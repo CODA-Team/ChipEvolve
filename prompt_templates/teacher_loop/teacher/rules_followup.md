@@ -10,10 +10,14 @@ and review packet fields needed for routing.
   family when evidence shows weak gain, over-cost, or plateau.
 
 - Objective: legal final `metrics.json:hpwl` is the elite/promotion target.
+  Keep the 5% final-HPWL reduction prior as the search ambition. If the current
+  best is far below that, follow-up plans should be mechanism-level and
+  aggressive, not donor-preservation or small polish.
   `G_HR` is analysis-only for runtime value; do not prefer faster worse-HPWL
   candidates unless lower-HPWL candidates fail legality/artifact/timeout gates.
 - Runtime is a hard budget and secondary value check, not a direction by
-  itself. Assign heavier work only when the route names a missing HPWL source
+  itself. Runtime repair is useful when it frees budget for stronger quality
+  search; assign heavier work only when the route names a missing HPWL source
   and changes a real mechanism with a cost-control path.
 - Route from stage-wise evidence: identify the current largest HPWL source and
   assign one primary mechanism hypothesis per Student with a minimal first-patch
@@ -42,23 +46,28 @@ and review packet fields needed for routing.
   behavior, and Student knowledge-card reasoning. Use targeted knowledge only
   when it clarifies a route change or mechanism insight. Current evidence wins
   over a knowledge card.
+- A case can match multiple feature-level packets. Use packets as route
+  hypotheses or compatible mechanism components, not as a single fixed selector
+  or recipe.
 - Label every packet with `route type` and `route action`. If the previous
   useful results are same-family or tiny-gain, allow at most one `continue`
   guard/repair route; the other routes should `switch`, `hybridize`, or
   `mechanism-redesign` with a different producer/consumer mechanism.
-- Guard still means active evidence, not passive preservation. Unless the
-  packet explicitly says pure-control attribution, preserve the guard behavior
-  while assigning one bounded quality mechanism or runtime rewrite that can
-  materially move final HPWL. The guard may spend runtime inside the hard
-  budget, but the packet must name the HPWL source, caps/caches, counters,
-  rollback guard, and full-flow proof.
+- Guard means a protected donor-development branch, not passive preservation or
+  control-only attribution. Keep the donor/ref as fallback and assign a real
+  donor-on-top mechanism that can materially move final HPWL. The change may be
+  large if it is coherent and bounded: deeper consumer, changed
+  producer/handoff composition, bounded quality search, runtime rewrite, or
+  compatible stacking. Runtime rewrite is useful only when it frees budget for
+  stronger quality search. The packet must name the HPWL source, caps/caches,
+  counters, rollback/fallback guard, and full-flow proof.
 - Route emphasis is not stage exclusion. In each follow-up round, preserve
   compatibility coverage of legalizer-output quality, DPO-consumer strength,
   and handoff/co-optimization. A Student can prioritize one surface; the packet
   should say how adjacent stages will consume, preserve, or validate that
   mechanism, but should not force cosmetic edits in every stage. Avoid assigning
   a whole roster that only chases one DPO family or one legalizer family.
-- Strengthen each non-pure-control packet with `pipeline coverage`: producer /
+- Strengthen each optimization packet with `pipeline coverage`: producer /
   legalizer action, handoff / frontier action, and consumer / DPO action. At
   least two entries must be active source mechanisms or liveness hooks. A
   `co-optimization-emphasis` packet should make all three active unless the
@@ -87,9 +96,10 @@ and review packet fields needed for routing.
   not small.
 - Require each non-guard Student to diagnose the current source before coding
   and to design an efficient implementation path for the chosen mechanism:
-  capped candidate generation, cached/touched-net scoring, compact frontier
-  state, or parallel independent probes where useful. Do not assign a route
-  whose plan is only "try more DPO work" without a new HPWL source hypothesis.
+  examples include capped candidate generation, cached/touched-net scoring,
+  compact frontier state, affected-net deltas, or parallel independent probes
+  where useful. Do not assign a route whose plan is only "try more DPO work"
+  without a new HPWL source hypothesis.
 - Avoid repeated micro-optimization loops. If a mechanism is live, correctly
   implemented, and still has extremely small full-flow HPWL movement after one
   meaningful repair, mark it `validated-low-ROI`, require `source_trials.jsonl`

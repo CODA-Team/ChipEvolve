@@ -2,9 +2,10 @@
 
 This card maps observed detailed-placement case types to effective
 optimization mechanisms.  Teacher should read the current stage metrics first,
-classify the case type, then assign at least one Student to reconstruct or
-strengthen the matching mechanism packet.  The remaining Students should
-explore complementary producer, handoff, DPO, or alternative-start hypotheses.
+classify the case type, then assign Students to reconstruct, combine, or
+strengthen matching mechanism packets.  A design can match more than one
+feature-level packet; use multiple packets as route hypotheses instead of
+forcing a single selector.
 
 Use this card with `runtime_light_final_hpwl_mechanism_priority.md`: this card
 says which mechanism route matches the current case type, and the runtime-aware
@@ -13,10 +14,18 @@ budget.
 
 This card is not a numerical predictor.  Do not attach expected HPWL gains to a
 route and do not route by benchmark name.  Its job is stronger than generic
-inspiration: when the current case matches one of the observed case types
-below, Teacher should treat the corresponding mechanism chain as a
-high-confidence first route, then require same-case build, logs, legality,
-runtime, and final-HPWL proof.
+inspiration: when the current case matches one or more observed case types
+below, Teacher should treat the corresponding mechanism chains as
+high-confidence route priors, then require same-case build, logs, legality,
+runtime, and final-HPWL proof.  Packet mechanisms are not fixed recipes; they
+name useful source-level directions, examples, liveness evidence, and risk
+checks that Teacher and Student should adapt to the current code and logs.
+
+When a prior strong result is represented by a final guard or telemetry commit,
+do not treat that final diff as the mechanism.  Reconstruct the mechanism from
+the cumulative source diff between the start branch and the final retained
+source.  The useful evidence is the sequence of mechanism additions that changed
+final HPWL, not the last branch label.
 
 ## First Insight For Teacher
 
@@ -92,6 +101,269 @@ workspace.
   gain or accepted delta, rollback/reject count, and runtime for the bounded
   pass.
 
+## Verified Cumulative Mechanism Routes
+
+These routes are distilled from final retained sources by comparing each source
+against its prepared start branch.  They should be used as reproducible
+mechanism chains, not as benchmark-name selectors and not as old source states
+to import directly.
+
+### Route: Diamond-Basin Source-Edge Exact Descent
+
+Use this route when the case is locally recoverable, Diamond-style legal output
+is close enough to keep, and final HPWL still has source-edge or bbox-edge
+residue that normal detailed improvement does not consume.  It is also a strong
+route hypothesis for dense standard-cell or wrapper/macro-mixed cases whose
+stage metrics show legal HPWL disruption but meaningful DPO recovery.
+
+Start/source basin:
+
+- start from `evolved_diamond` or a Diamond-compatible branch;
+- preserve the Diamond legalizer as the primary legalizer unless stage evidence
+  proves it is the bottleneck;
+- spend runtime in bounded exact DPO search before adding unrelated legalizer or
+  mirror work.
+
+Cumulative reconstruction chain:
+
+1. Add one legal snapshot based basin kick after the normal improve-placement
+   sequence.  Use `src/Optdp.cpp` to save the best placement, run a bounded
+   `DetailedRandom` kick pass, validate legality, and either keep the lower-HPWL
+   endpoint or restore the snapshot.
+2. Extend `src/optimization/detailed_random.{h,cxx}` with a kick mode that can
+   accept a very small number of coarse basin moves.  Useful signals are
+   generated moves, accepted kicks, rejected moves, failed generates,
+   multi-row kicks, and window kicks.  This is a controlled basin escape, not a
+   random tail.
+3. Replace the weak wirelength-optimal fallback in
+   `src/optimization/detailed_global.cxx` with a source-edge exact descent
+   kernel.  For each source cell, generate a small ranked set of candidate
+   targets from median box, bbox edges, current row, nearby rows, and segment
+   availability.
+4. Exact-score both move and swap candidates with `DetailedHPWL::delta` and the
+   existing journal/rollback path.  Cheap proxy ranking may prune candidates,
+   but exact positive affected-net HPWL must decide the commit.
+5. Add source-edge liveness counters in `DetailedGlobalSwap`: source-edge cells,
+   candidate locations, prefilter skips, move/swap exact scores, replays,
+   commits, rejects, nonpositive best count, average best delta, and average
+   committed delta.
+6. Add or preserve a `DetailedHPWL::reject()`/rollback path if the current
+   source does not already expose a clean exact-score rejection API.
+
+Proof that the route is live:
+
+- basin search has a legal snapshot, at least one meaningful kick attempt, and
+  clean restore/accept behavior;
+- source-edge exact scoring reports nonzero source cells, locations, exact
+  scores, replays, and commits;
+- replay rejects stay low; a high reject rate means the exact replay path or
+  candidate target mapping is wrong;
+- final detailed-placement-flow HPWL improves, not only `HPWLimprove`.
+
+Common misleading reproductions:
+
+- implementing only the basin kick without the source-edge exact consumer;
+- adding source-edge telemetry without changing `generateWirelengthOptimalMove`
+  or exact-scoring candidates;
+- widening random moves instead of creating a bounded legal snapshot
+  transaction;
+- moving to mirror work before source-edge commits and final HPWL prove that the
+  DPO basin is saturated.
+
+### Route: Negotiation-Start Hot-Segment Exact Consumer Stack
+
+Use this route when the start branch is negotiation-compatible, legalization is
+legal but not HPWL-optimal, and downstream exact DPO can recover a large basin.
+This route is especially relevant for large row-rich or wrapper-like designs
+where `HPWLlg` can be worse than global while `HPWLimprove` drops sharply.
+
+Start/source basin:
+
+- start from `evolved_negotiation` or `default_negotiation` when conflict/legal
+  closure is useful;
+- keep the primary legalizer alive, but spend most new mechanism work in the
+  DPO consumers that recover the legal basin;
+- one Student can guard the best chain, but other Students should modify a
+  different stage of the chain rather than only adding telemetry.
+
+Cumulative reconstruction chain:
+
+1. Add or retain bounded exact global-swap frontier search in
+   `src/optimization/detailed_global_legacy.cxx`: candidate rows around bbox
+   center/edges, ranked segments, small exact-score caps, and affected-net
+   rollback scoring.
+2. Add bounded multi-row/high-degree vertical probes in
+   `src/optimization/detailed_vertical.cxx` when tall or high-degree cells create
+   vertical HPWL residue.  Require accepted delta counters.
+3. Add targeted hot-segment reorder in `src/optimization/detailed_reorder.cxx`
+   and manager support in `src/optimization/detailed_manager.{h,cxx}`.  The
+   reorderer should consume hot segments or edge-critical cells created by exact
+   DPO, not scan broad rows blindly.
+4. Fuse edge-critical global-swap evidence into the hot reorder consumer:
+   edge/frontier candidates that exact global-swap could not fully consume
+   should become selected reorder segments.
+5. Add bounded post-reorder polish in stages only after the previous consumer is
+   live: exact local polish, pair-swap polish, and endpoint move polish.  The
+   endpoint polish should rank high-distance endpoint cells, probe nearby
+   rows/segments, exact-score with journal rollback, and commit only positive
+   moves.
+6. Keep `src/objective/detailed_hpwl.cxx` exact affected-net delta as the
+   acceptance truth.  Post-polish gains are valid only when exact accepts are
+   nonzero and final HPWL improves.
+
+Proof that the route is live:
+
+- exact global/frontier search reports generated/top-K candidates, accepted
+  sites, and accepted delta;
+- vertical or multi-row probes, if present, report legal probes and positive
+  accepted delta;
+- selected-segment reorder has nonzero selected segments and accepts;
+- post-reorder exact/pair/endpoint polish reports attempts, nonpositive count,
+  accepts, replay failures, and accepted delta;
+- final HPWL follows the DPO consumer chain.  A better `HPWLlg` alone is not a
+  promotion reason.
+
+Common misleading reproductions:
+
+- implementing only endpoint or pair polish on top of a weak upstream consumer;
+- treating a final guard commit as the mechanism while omitting earlier
+  global-swap, vertical, and hot-reorder commits;
+- broadening reorder windows with zero selected-segment accepts;
+- using mirror-only work as the primary optimization before exact DPO consumers
+  are saturated.
+
+### Route: Wrapper/Macro Row-Window Replay And Handoff
+
+Use this route when macro, memory, hierarchy, or blockage structure fragments
+standard cells into repeated row-window basins.  This route is secondary to the
+two exact-consumer routes above when those match, but it is useful when logs show
+row-window replay, residual-focus replay, or mirror handoff are the only live
+consumers.
+
+Start/source basin:
+
+- use `evolved_legalm` when residual target or guidance state is already the
+  best producer;
+- use `evolved_diamond` when Diamond legalizer producer telemetry and endpoint
+  geometry are already live;
+- keep runtime controlled.  If the default flow already takes hundreds of
+  seconds, heavy replay is still allowed but must have caps, gain-rate stops,
+  and accepted-gain proof.
+
+Cumulative reconstruction chain:
+
+1. Build residual-focus replay in `src/Optdp.cpp`: collect compact residual
+   cells/nets from legalizer or DPO output, replay a few rounds, and stop by
+   exact positive gain.
+2. Add diversity or bucketed replay only when the first replay produces accepted
+   moves.  The useful implementation selects a bounded set of focus nets/cells,
+   tracks accepted buckets, rejected buckets, exact-positive rounds, and best
+   bucket gain.
+3. Add transactional row-window replay for fragmented local basins.  Generate
+   windows around anchor cells, exact-score swap/move/shift probes, keep only
+   accepted windows, and report changed cells/nets plus HPWL gain.
+4. If final mirroring is part of the remaining HPWL gap, pass only compact
+   accepted-window or replay-priority cells to `OptMirror`.  Cell-only mirror
+   handoff can be better than net-heavy handoff when net fanout dilutes the
+   signal.
+5. For Diamond-compatible wrapper routes, legalizer-side producer work can be
+   useful: frontier-strong producer, slack-biased Diamond source ordering, and
+   capped endpoint/critical-net source preferences.  Do not claim a subpath is
+   live unless its counters are nonzero; a final improvement can come from the
+   producer ordering even if a proposed endpoint-pair subcounter stays dead.
+
+Proof that the route is live:
+
+- residual replay reports focus cells/nets, rounds, accepts or accepted buckets,
+  stop reason, and HPWL gain;
+- row-window replay reports candidate rows/windows, probes, accepted windows,
+  rollback windows, changed cells/nets, best gain, and HPWL gain;
+- mirror handoff reports replay-priority and row-window-priority candidates and
+  mirrored counts separately;
+- final HPWL improves after the complete flow.  Handoff counters alone are not a
+  quality result.
+
+Common misleading reproductions:
+
+- treating compact handoff, mirror attribution, or telemetry as a standalone
+  optimization mechanism;
+- using broad replay without exact-positive gain;
+- adding net-heavy mirror priority when the effective path is cell-only
+  accepted-window handoff;
+- broadening a dead endpoint-pair producer instead of repairing why the
+  producer counter is zero.
+
+### Route: Top-Net Target-Source Repair And Mirror-Dependency Hybrid
+
+Use this route when final HPWL is dominated by a small set of high-impact nets
+or boundary-active net groups, or when a dense/high-utilization case shows large
+legalizer inflation followed by a strong but incomplete DPO recovery.  Baseline
+mirroring does not need to be good yet: a strong implementation can first make
+exact DPO, target/source repair, and critical-net micro-repack expose better
+candidates, then let a bounded mirror-dependency batch preserve or improve
+those accepted choices.  The useful signal is not "mirror work" by itself.  The
+useful mechanism is the cumulative producer/DPO/mirror-dependency chain.
+
+Start/source basin:
+
+- start from a Diamond-compatible or already exact-DPO-live source when the
+  stable legal basin is valuable;
+- start from `evolved_legalm` only when target shaping or high-impact target
+  source state is the missing producer;
+- do not assign mirror-only work as the primary route.  Mirror-dependency work
+  is valid only after exact DPO, top-net target/source repair, or critical-net
+  micro-repack has produced a better candidate set to preserve.
+
+Cumulative reconstruction chain:
+
+1. Add or verify an exact top-K DPO consumer in `src/Optdp.cpp` and
+   `src/optimization/detailed_global.cxx`.  Rank high-impact cells by affected
+   nets, source-edge residue, and boundary-active nets; exact-score only a
+   bounded candidate set with rollback.
+2. Add recoverability-shaped legalizer target/source repair in
+   `src/LegalmFullLegalization.cpp`, `src/Place.cpp`, and
+   `include/dpl_evolve/Opendp.h`.  Track high-impact source candidates, target
+   misses, source ordering, and repair outcomes.  The target/source repair is
+   useful only when it changes final HPWL or creates DPO accepts; legal-stage
+   improvement alone is weak evidence.
+3. Add residual handoff from producer to DPO: compact high-impact nets,
+   selected source cells, recently repaired cells, and critical segments.  Keep
+   native ids and bounded vectors; do not write bulky coordinate logs.
+4. Add critical-net segment micro-repack after the main DPO consumer.  Generate
+   small segment-local assignments around high-impact nets, exact-score them,
+   and commit only legal positive-gain packs.
+5. Add a bounded mirror-dependency hybrid in `include/dpl_evolve/OptMirror.h`
+   and `src/OptMirror.cpp` only after the preceding DPO/segment path is live.
+   Build dependency components over mirrored candidates that share important
+   nets, cap component size, exact-score each batch, and commit only positive
+   batches.  This is a final-flow composition repair, not an independent mirror
+   objective.
+
+Proof that the route is live:
+
+- exact top-K DPO reports nonzero ranked sources, exact-scored candidates,
+  accepts, rejects, accepted gain, and final-flow movement;
+- target/source repair reports high-impact candidates, selected sources,
+  repaired misses, and whether DPO consumed the resulting cells;
+- critical-net micro-repack reports candidate segments, scored assignments,
+  accepted packs, rollback count, and accepted HPWL gain;
+- mirror-dependency reports candidate mirrors, retained dependency components,
+  conflict-filtered cells, committed cells, exact batch gain, and global HPWL
+  before/after;
+- final detailed-placement-flow HPWL improves.  A live mirror counter with no
+  upstream exact-DPO or top-net repair gain is attribution, not promotion.
+
+Common misleading reproductions:
+
+- copying only the final mirror-dependency or guard diff while omitting earlier
+  exact top-K DPO, target/source repair, and critical-net micro-repack;
+- treating high-impact-net logs as proof when the exact consumer has zero
+  accepts;
+- expanding multi-row or mirror dependency batches before the top-K source
+  ranking and critical segment candidates are live;
+- promoting a route because mirroring changes HPWL even though the complete
+  detailed-placement flow is worse.
+
 ### Packet: Large Row-Rich Recoverable Basin
 
 Use this packet when the current design is large, row-rich, and shows a big
@@ -132,6 +404,71 @@ Required proof:
 - final detailed-placement-flow HPWL improves.  Legalization-only HPWL is not
   sufficient and may be worse if the recovered basin is better.
 
+### Packet: Macro-Mixed Row-Window Recoverable Basin
+
+Use this packet when a hierarchical or macro/memory-mixed placement fragments
+standard-cell logic into many local row-window basins.  The key signature is
+not a specific benchmark name: macros, blockages, or hierarchy create
+non-uniform local pressure; legalization may slightly disturb global HPWL; and
+improve placement shows that downstream exact consumers can recover a
+meaningful part of the loss but then plateau in repeated similar basins.
+
+Typical stage and design signals:
+
+- macro or memory cells occupy a noticeable part of the design and create
+  macro-edge, blockage-edge, or row-window residual neighborhoods;
+- standard-cell logic is still large enough that local exact search has many
+  possible alternatives;
+- `HPWLlg` is not the sole quality signal: a small legalization regression can
+  be acceptable if `HPWLimprove` and final HPWL show recoverability;
+- the default runtime is large enough that controlled quality spend is
+  reasonable, but not so large that uncapped search should be added casually;
+- early evolution can look flat because several Students only polish the same
+  source-edge or DPO basin instead of changing the reachable local windows.
+
+Student route language:
+
+Design an evidence-targeted HPWL search mechanism for fragmented local basins.
+Possible directions include node-anchored or row-window transactions,
+source-edge/frontier exact consumers, selected-segment reorder, controlled
+basin escape, macro-edge pressure repair, or another mechanism the Student can
+justify from source and logs.  The route should explain which local/global
+frontier is worth spending runtime on, how legality is protected, how accepted
+moves are scored and rolled back, and how adjacent stages preserve or consume
+the resulting placement state.
+
+Do not treat this packet as a command to implement one fixed algorithm.  The
+important behavior is to move beyond passive frontier telemetry and same-basin
+small DPO polish.  One Student may deepen a live high-quality chain; other
+Students should test different route hypotheses such as producer repair,
+handoff/frontier redesign, a different DPO move family, or a runtime rewrite of
+a heavy but promising mechanism.
+
+Required source orientation:
+
+- inspect `src/StudentAlgorithm.cpp` and `src/Optdp.cpp` for where the flow
+  composes legalizer output with improve-placement work;
+- inspect `src/optimization/detailed_manager.cxx`,
+  `src/optimization/detailed_global.cxx`,
+  `src/optimization/detailed_reorder.cxx`,
+  `src/optimization/detailed_random.cxx`, and
+  `src/objective/detailed_hpwl.cxx` for candidate generation, exact scoring,
+  transactions, basin search, and reorder/polish hooks;
+- inspect legalizer or handoff code only when the stage metrics indicate the
+  producer state or compact frontier is the bottleneck.
+
+Required proof:
+
+- final HPWL improves against the default detailed-placement flow, with clean
+  legality;
+- logs show a live mechanism, not only a route label: candidate/probe counts,
+  exact accepts or accepted gain, rollback/reject counts, and bounded runtime;
+- if runtime is spent, the report states whether it bought a stronger HPWL
+  search or exposed an efficiency bottleneck;
+- if the route is live but plateaus, Teacher must decide whether to spend more
+  controlled runtime on a different quality mechanism, repair implementation
+  efficiency, or pivot to another matching packet.
+
 ### Packet: Dense Recoverable Standard-Cell Pressure
 
 Use this packet when dense standard-cell pressure makes legalizer output
@@ -170,138 +507,300 @@ single source-edge tweak:
 5. bounded pair, endpoint, or local closure extracts the tail and stops by
    accepted-gain rate.
 
-Source-backed routes with the strongest same-case final-HPWL evidence:
+Source-backed reconstruction routes with the strongest final-HPWL evidence:
 
-- `adaptive transactional basin gain-rate`: use this when a dense design already
-  has a legal detailed-placement endpoint but DPO is stuck in a local basin.
-  The implementation lives in `src/optimization/detailed_random.cxx`,
-  `src/optimization/detailed_random.h`, `src/optimization/detailed_manager.cxx`,
-  `src/optimization/detailed_manager.h`, and `src/Optdp.cpp`.  The mechanism
-  runs normal DPO first, snapshots the legal placement, then tries bounded
-  kick-and-recover basin restarts.  Later refinements add adaptive coarse/fine
-  restarts, restore-path segment rebuild, and a gain-rate stop.  This is a
-  quality-spend mechanism: on a short baseline, tens of seconds can be
-  acceptable when final HPWL moves.  On a case whose default flow is already
-  hundreds of seconds, Teacher may still spend more runtime, but the spend must be controlled:
-  use explicit caps, gain-rate stops, cache repair, or small-multiplier targets,
-  and require accepted-gain evidence before extending the search further.
-- `hot-segment reorder plus endpoint polish`: use this when exact global or
-  vertical DPO accepts identify hot nets/segments but residual HPWL remains
-  after normal reorder.  The implementation lives mainly in
-  `src/optimization/detailed_reorder.cxx`,
-  `src/optimization/detailed_reorder.h`,
-  `src/optimization/detailed_global_legacy.cxx`,
-  `src/optimization/detailed_vertical.cxx`,
-  `src/optimization/detailed_manager.cxx`, and
-  `src/objective/detailed_hpwl.cxx`.  The mechanism marks hot segments from
-  accepted exact moves, fuses edge-critical uptake into targeted reorder, then
-  runs bounded post-reorder exact polish, pair-swap polish, and endpoint-move
-  polish.  Multi-row/high-degree vertical probes, broad exact frontier
-  expansion, pair swaps, and endpoint moves can cost real runtime; this is fine
-  on short or medium cases when hot-segment/reorder accepts are live and final
-  HPWL is moving, but not as a blind tail on a case whose default runtime is
-  already hundreds of seconds.
+#### Reconstruction route A: recoverable producer plus hot-segment exact consumer
 
-Feature-conditioned routing:
+Use this when a dense case shows a DPO-recoverable basin: `HPWLlg` may be worse
+than global or worse than a stage-only donor, but `HPWLimprove` drops sharply and
+final HPWL follows exact DPO accepts.  This route should be treated as a
+high-confidence reconstruction packet, not just a vague inspiration.
 
-- If the case is dense and the legal/full-flow endpoint is stable but repeated
-  DPO routes converge to the same local minimum, prefer `adaptive transactional
-  basin gain-rate`.
-- If the case already has exact global/vertical accepts, hot segments, or
-  selected-window reorder evidence, prefer `hot-segment reorder plus endpoint
-  polish`.
-- If the case is row-local, runtime-tight, already close to Diamond/local
-  default, or has a default runtime in the hundreds-of-seconds range, make any larger
-  basin restart or endpoint-polish route explicitly controlled with caps,
-  gain-rate stops, multiplier checks, and cache/cap repair.  Lightweight
-  source-edge/frontier-ranked exact consumers and local exact closure are good
-  first controlled variants, not mandatory replacements for deeper search.
-- If legalizer output damages global placement so much that DPO cannot recover,
-  repair producer recoverability or handoff first; do not spend runtime on a
-  downstream basin that has no accepted-gain evidence.
+Start/source basin:
 
-Secondary routes and diagnostic donors:
+- start from `evolved_legalm` when LEGALM/Differential target fields are already
+  the best way to expose target misses or row pressure;
+- start from `evolved_negotiation` or `default_negotiation` when conflict
+  closure is the better primary legalizer, but keep the same consumer idea;
+- keep at most one Diamond/local guard only if the default Diamond basin is
+  already very close.
 
-- `guidance-anchor exact stage3`, `negotiation-anchor hot-segment consumer`,
-  `local-basin transactional escape`, `gain-ordered frontier reorder relay`,
-  `residual-net objective-repair basin`, `mirror-aware multirow basin`, and
-  `diamond residual frontier handoff` are useful inspiration or warm-start
-  components, but they are not the primary high-confidence routes in this card.
-  Use them when their stage signature matches the current run, when they repair
-  a missing producer/consumer link of a primary route, or when Teacher needs a
-  secondary exploration branch.  Do not promote them above the two primary
-  routes unless the current same-case final HPWL and source/log evidence prove
-  they are stronger.
+Minimum implementation steps:
 
-Required source orientation:
+1. In `src/StudentAlgorithm.cpp`, make the flow explicit:
+   guidance or negotiation-compatible producer -> primary legal closure ->
+   improve-placement consumer.  Do not let a guidance-only route silently become
+   the legalizer.
+2. In `src/LegalmGuidance.cpp`, `src/LegalmFullLegalization.cpp`,
+   `src/EvolveNegotiationRepair.cpp`, or `src/NegotiationLegalizer.cpp`, preserve
+   a compact producer frontier: target misses, touched nets, dirty rows,
+   conflict-resolved cells, or high-pressure cells.  The payload should be stable
+   ids or native object-derived queues, not coordinates or log parsing.
+3. In `src/Optdp.cpp`, route the handoff into improve placement without changing
+   the top-level Tcl command contract.
+4. In `src/optimization/detailed_global.cxx` or
+   `src/optimization/detailed_global_legacy.cxx`, rank frontier/source-edge cells
+   and exact-score only a bounded top-K with affected-net HPWL and rollback.
+5. In `src/optimization/detailed_reorder.cxx` and
+   `src/objective/detailed_hpwl.cxx`, convert accepted exact moves into hot
+   segments or edge-critical queues, then run targeted selected-segment reorder.
+6. Add a bounded post-reorder tail only after the hot-segment consumer is live:
+   exact local polish, pair-swap polish, endpoint move polish, or another
+   Student-designed bounded consumer.  Stop by accepted-gain rate.
 
-- start from `evolved_legalm` when dense guidance is useful;
-- keep one `evolved_diamond`/`diamond` guard only when Diamond is already close;
-- use `evolved_negotiation` or `default_negotiation` when conflict closure is
-  the missing primary-legalizer link, not when negotiation is only a no-op tail;
-- inspect `src/LegalmGuidance.cpp`, `src/LegalmFullLegalization.cpp`,
-  `src/StudentAlgorithm.cpp`, `src/Optdp.cpp`, and
-  `knowledge/insights/dpo/exact_source_edge_recoverability_consumer.md`;
-- for the `negotiation-anchor hot-segment consumer`, also inspect
-  `src/optimization/detailed_global_legacy.cxx`,
-  `src/optimization/detailed_reorder.cxx`,
-  `src/optimization/detailed_vertical.cxx`,
-  `src/optimization/detailed_manager.cxx`, and
-  `src/objective/detailed_hpwl.cxx`;
-- for the `local-basin transactional escape`, also inspect
-  `src/optimization/detailed_global.cxx`,
-  `src/optimization/detailed_random.cxx`, and
-  `src/objective/detailed_hpwl.cxx`.
+Strong implementation skeleton observed in successful source variants:
+
+- `src/Place.cpp` / `include/dpl_evolve/Opendp.h`: add a compact
+  `recordRecoverableFrontier(...)` producer.  It should record row-cluster or
+  recoverability frontier cells during legalizer/local placement activity and
+  summarize produced cells, rows, and top edges.  This is a producer for DPO, not
+  a log-only feature.
+- `src/optimization/detailed_manager.{h,cxx}`: add a
+  `reportRecoverableFrontierConsumerTelemetry()`-style bridge or equivalent
+  in-manager state.  It should prove that the DPO-side manager imports or
+  reconstructs the compact frontier after DB import.
+- `src/optimization/detailed_reorder.cxx`: call the frontier telemetry near
+  reorder startup and make the reorder consumer capable of using frontier/hot
+  segment evidence.  A strong implementation reports many reorder probes and
+  nonzero accepts, not just the presence of a frontier.
+- `src/optimization/detailed_random.{h,cxx}`: add a
+  `runPostReorderLargeStepEscape()`-style post-reorder exact repair.  It ranks
+  frontier or residual sources, asks global-swap code for candidate targets,
+  exact-scores with legality checks, commits only positive moves, and reports
+  attempts, target probes, legal candidates, accepts, rejects, HPWL gain, and
+  runtime.
+- `src/optimization/detailed_global.{h,cxx}`: add
+  `rankLargeStepTargets(...)` and `generateLargeStepMove(...)` or equivalent.
+  The target policy should try a small set of meaningful large-step alternatives
+  for a ranked source, such as median-box, bbox edge, current-row, and nearby-row
+  targets.  Avoid logging once per probe; summarize the policy at the outer pass.
+- `src/objective/detailed_hpwl.cxx`: keep exact affected-net or journal HPWL as
+  the acceptance truth.  Cheap ranking may choose candidates, but exact positive
+  delta decides commits.
+
+Liveness counters that make this route credible:
+
+- producer frontier count and class breakdown;
+- exact/global candidates, exact-scored candidates, accepts, accepted delta, and
+  rollback/replay failures;
+- MIS or main-flow frontier consumer candidates, seeds, accepts, and rollbacks
+  when the route feeds a MIS-style consumer;
+- hot segment or edge-critical queue size;
+- selected-segment reorder windows, accepts, and accepted delta;
+- post-reorder exact/pair/endpoint attempts and accepts;
+- final full-flow HPWL and runtime.
+
+Partial implementations to demote:
+
+- only changing guidance weights or target-release constants without DPO accepts;
+- selected-window reorder that scans broad segments but has zero hot-segment
+  accepts;
+- endpoint or pair polish that runs without exact positive gain;
+- legalizer-stage HPWL improvement that is erased after improve placement.
+- an exact post-pass that creates `ranked` and `attempts` counters but no legal
+  candidates or no accepts; repair candidate target generation before widening
+  the pass.
+
+#### Reconstruction route B: high-impact-net target-source plus mirror-dependency hybrid
+
+Use this when a dense case has high-impact or boundary-active net residue, or
+when high utilization creates a large legalizer inflation that DPO can recover
+but not fully close.  Baseline mirroring may be neutral or even harmful; this
+route is still worth one Student when the case likely needs high-impact-net
+candidate generation before mirror dependency can help.  This is not a
+mirror-only route.  The reconstruction chain is: exact top-K DPO consumer ->
+high-impact target/source repair -> residual handoff or critical-net
+micro-repack -> bounded mirror-dependency hybrid.
+
+Start/source basin:
+
+- start from a Diamond-compatible or exact-DPO-live source if stable local DPO is
+  already the value path;
+- start from `evolved_legalm` if the missing link is high-impact target/source
+  repair or recoverability-shaped producer state;
+- do not start from a final guard or mirror-only branch label.  Rebuild the
+  cumulative producer/DPO/mirror-dependency chain.
+
+Minimum implementation steps:
+
+1. In `src/Optdp.cpp` and `src/optimization/detailed_global.cxx`, make exact
+   top-K source ranking live for high-impact nets, source-edge residue, or
+   boundary-active net groups.
+2. In `src/LegalmFullLegalization.cpp`, `src/Place.cpp`, and
+   `include/dpl_evolve/Opendp.h`, track and repair high-impact source/target
+   choices that DPO can consume.
+3. Pass compact high-impact cells, nets, repaired targets, and critical segments
+   into the DPO consumer with native ids or bounded vectors.
+4. Add critical-net segment micro-repack only when candidate segments are
+   nonzero and exact-scored.
+5. Add bounded `OptMirror` dependency batches only after upstream DPO or
+   target-source repair is live.  Cap components, exact-score the batch, and
+   commit only positive-gain batches.
 
 Required proof:
 
-- nonzero producer frontier, nonzero consumer probes and accepts, and a final
-  HPWL win after improve placement.  If the producer is live but accepts are
-  zero, repair consumer liveness before adding more metadata.
-- if `HPWLlg` worsens but exact accepts and final HPWL improve, treat the route
-  as a valid co-optimization win, not as a legalizer failure;
-- if exact accepts plateau at a small fixed count or final HPWL barely moves,
-  label it as a partial-chain hit and add the missing move family, selected
-  segment consumer, edge-critical queue, or producer-side recoverability repair.
-- for an adaptive transactional basin route, prove snapshot restore, legal
-  validation, basin trial count, accepted coarse/fine restarts, restore-path
-  segment rebuild, accepted gain, gain-rate stop, and recovered final HPWL.  A
-  random kick without rollback and recovery proof is not this mechanism.
-- for a hot-segment reorder plus endpoint-polish route, prove hot segments are
-  produced by accepted exact moves, consumed by targeted reorder, and further
-  improved by bounded post-reorder exact, pair-swap, or endpoint polish.  A
-  selected-window reorder that scans all segments, has zero hot-segment accepts,
-  or runs endpoint moves without exact positive gain is only a partial
-  implementation.
-- for a gain-ordered frontier relay, prove frontier-published count, active
-  exact subset, exact accepts/gain, reorder windows, reorder accepts, gap
-  accepts, pair accepts, and pair rollbacks.
-- for a residual-net objective-repair basin, prove recoverable frontier
-  cells/rows/top edges, residual nets ranked/probed/accepted, exact gain,
-  frontier-overlap gain, positive objective delta, and downstream frontier
-  replacement or deepening.
-- for a mirror-aware multirow basin, prove exact handoff accepts, second-stage
-  exact accepts, vertical-window accepts, assignment-window accepts, row-shift
-  or multi-row-transfer accepts, accepted basin restarts, and final-flow HPWL.
-- for a Diamond residual-frontier route, prove residual seed cells, capped
-  frontier cells/nets, exact consumer accepts/gain, and final-flow HPWL.  If the
-  route only improves legalize-only HPWL or has zero DPO accepts, demote it.
+- exact top-K DPO reports ranked sources, exact-scored candidates, accepts,
+  rejects, accepted gain, and final-flow movement;
+- target/source repair reports selected high-impact sources, repaired misses,
+  and DPO consumption;
+- critical-net micro-repack reports accepted packs or a clear zero-accept
+  reason;
+- mirror-dependency reports candidate mirrors, dependency components,
+  committed cells, exact batch gain, and global HPWL before/after;
+- final full-flow HPWL improves.  Mirror counters alone are attribution, not a
+  winning mechanism.
+
+Teacher routing rule:
+
+- For dense/high-utilization cases with large legalizer inflation and strong
+  DPO recovery, assign at least one Student to this route if no previous
+  same-run evidence has already disproved high-impact-net target/source repair.
+  Other Students should still cover the recoverable producer/hot-segment route,
+  source-edge exact descent, and basin escape.  This route is the one that
+  tests whether the missing win is a top-net/critical-net candidate-generation
+  problem rather than another generic DPO tail.
+
+#### Reconstruction route C: adaptive transactional basin gain-rate
+
+Use this when the placement is already legal and repeated exact/reorder/DPO
+routes converge to the same local minimum.  The goal is not a random tail.  The
+goal is a bounded legal snapshot -> perturb -> recover -> exact-accept
+transaction loop that can spend controlled runtime to escape a local HPWL basin.
+
+Start/source basin:
+
+- start from the current best legal final-HPWL donor in the same run;
+- use `evolved_legalm`, `evolved_negotiation`, or Diamond only as the source
+  basin that produced the best current legal endpoint;
+- do not import an old source state directly.  Reconstruct the mechanism in the
+  current Student workspace.
+
+Minimum implementation steps:
+
+1. In `src/Optdp.cpp`, run the normal improve-placement sequence first and then
+   call the basin consumer as an internal DPO stage under the same flow.
+2. In `src/optimization/detailed_manager.cxx` and
+   `src/optimization/detailed_manager.h`, expose or reuse a safe placement
+   snapshot/journal path that can restore a legal endpoint after a failed trial.
+3. In `src/optimization/detailed_random.cxx` and
+   `src/optimization/detailed_random.h`, replace broad random exploration with
+   candidate sets anchored on residual nets, accepted exact moves, dirty rows,
+   target misses, or high-pressure row windows.
+4. Score each trial with affected-net or journal HPWL through
+   `src/objective/detailed_hpwl.cxx`; commit only legal positive deltas and
+   rollback otherwise.
+5. Add adaptive coarse/fine behavior only after the simple loop is live: a coarse
+   kick proposes a different basin, a fine recovery pass restores legality and
+   local HPWL, and a restore-path segment rebuild repairs the path back to the
+   best snapshot.
+6. Stop by gain-rate, trial budget, and runtime multiplier.  Runtime repair means
+   cache/cap/parallelize the same mechanism so more quality search fits the
+   budget; it is not a standalone faster-but-worse objective.
+
+Liveness counters that make this route credible:
+
+- legal snapshot created and restored;
+- basin trials, coarse kicks, fine recoveries, legal validations, and rollbacks;
+- accepted basin moves, accepted gain, and best-snapshot HPWL;
+- gain-rate stop reason and runtime per basin stage;
+- final full-flow HPWL improves after the complete flow.
+
+Partial implementations to demote:
+
+- random moves without snapshot restore and legal replay;
+- trial counters without accepted basin gain;
+- improving runtime by disabling quality search;
+- repeating exact-source candidates already proven saturated.
+
+#### Reconstruction route C: negotiation-compatible residual transaction handoff
+
+Use this when negotiation or resource-aware closure creates a better recoverable
+basin than the current exact/reorder elite, but generic exact search over-consumes
+or destroys that basin.  This route is strongest when conflict or residual-net
+structure is visible and the stock DPO recovers a large fraction after
+negotiation.
+
+Start/source basin:
+
+- prefer `default_negotiation` or `evolved_negotiation`;
+- verify negotiation-primary liveness before tuning: the negotiation route must
+  be the actual legal closure, not a no-op after another legalizer already
+  succeeded.
+
+Minimum implementation steps:
+
+1. Keep the negotiation producer intact until it is proven live.  In
+   `src/EvolveNegotiationRepair.cpp`, `src/NegotiationLegalizer.cpp`,
+   `src/NegotiationLegalizerPass.cpp`, and `src/NegotiationLegalizer.h`, record
+   compact residual/conflict evidence: residual nets, conflict-resolved cells,
+   row-window spans, or source cells.
+2. Pass only bounded native ids or vectors through in-process state; use OpenROAD
+   `Node`, `Edge`, `Group`, `Network`, `Architecture`, `Grid`, row, and segment
+   concepts after DPO import instead of coordinate logs or string-keyed hot maps.
+3. In `src/Optdp.cpp`, feed the residual evidence into a specific DPO consumer,
+   not into another whole-flow replay.
+4. In `src/optimization/detailed_global.cxx`,
+   `src/optimization/detailed_global_legacy.cxx`,
+   `src/optimization/detailed_reorder.cxx`, and
+   `src/objective/detailed_hpwl.cxx`, consume residual-net or row-window queues
+   with journaled local transactions, exact affected-net scoring, and rollback.
+5. Widen the frontier only after counters show the first residual windows accept
+   real HPWL gain.  If widening produces the same final HPWL or worse, the issue
+   is candidate quality, not insufficient queue length.
+
+Liveness counters that make this route credible:
+
+- negotiation-primary route signal and conflict/resource counters;
+- residual nets/windows/frontier produced and consumed;
+- exact probes, transaction attempts, accepts, rollbacks, and accepted gain;
+- evidence that DPO consumes the negotiation basin rather than replacing it;
+- final full-flow HPWL improves.
+
+Partial implementations to demote:
+
+- producer-only recoverability rerank that stock DPO erases;
+- cell-count frontier widening with no additional accepted windows;
+- clean negotiation replay with no source diff;
+- handoff state that changes ABI/layout unsafely or survives across imports as
+  stale object pointers.
+
+Feature-conditioned routing:
+
+- If exact/global, vertical, selected-window, or accepted-edge evidence is live,
+  assign at least one Student to route A.
+- If legal endpoints are stable but all exact/reorder routes return to the same
+  basin, assign at least one Student to route B.
+- If negotiation or resource-aware closure is the best observed basin, assign at
+  least one Student to route C.
+- If the default runtime is already hundreds of seconds, routes A/B/C are still
+  allowed, but every extra search component needs caps, gain-rate stops,
+  multiplier awareness, and accepted-gain evidence.
+- If legalizer output damages the global placement so much that DPO has zero
+  accepted recovery, repair producer recoverability or handoff before spending
+  runtime on downstream basin search.
+
+Secondary routes and diagnostic donors:
+
+- `guidance-anchor exact stage3`, `gain-ordered frontier reorder relay`,
+  `residual-net objective-repair basin`, `mirror-aware multirow basin`, and
+  `diamond residual frontier handoff` are useful repair components.  Use them
+  when they fill a missing link of routes A/B/C or when current stage evidence
+  makes a primary route impossible.  Do not promote them above routes A/B/C
+  unless same-case final HPWL and liveness counters prove they are stronger.
 
 Teacher guidance:
 
 - send one Student to preserve and deepen the best live complete chain;
-- send other Students to change a missing link: producer objective, primary
-  closure timing, handoff mapping, DPO move family, exact scoring objective, or
-  post-consumer polish;
-- when dense/current evidence resembles a strong recoverable basin, assign at
-  least one route to `adaptive transactional basin gain-rate` or
-  `hot-segment reorder plus endpoint polish`, not only guidance retuning;
-- if the first wave already hits a live chain but final HPWL plateaus, keep one
-  guard on that chain and send other Students to either deepen the other
-  primary family or repair a missing producer/consumer link with one of the
-  secondary routes;
-- do not route all Students into more threshold edits, passive counters, or
-  guard-only tails once the complete-chain counters show a plateau.
+- send other Students to reconstruct at least one of routes A/B/C when the
+  feature signature matches, not only to retune thresholds, guards, or queue
+  depths;
+- after a plateau, keep one guard but force the other Students to change a real
+  link: producer objective, primary closure timing, handoff mapping, DPO move
+  family, exact scoring objective, transaction acceptance, or post-consumer
+  polish;
+- require the Student's knowledge card to state which reconstruction route was
+  attempted, which minimum implementation steps were completed, which counters
+  are live, and which missing step blocks reproduction.
 
 ### Packet: Row-Local Or Edge-Local Residual
 

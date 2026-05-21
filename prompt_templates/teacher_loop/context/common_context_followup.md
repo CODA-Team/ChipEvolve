@@ -15,6 +15,9 @@ mechanism decision.
 ## Current Objective
 
 - Promote only legal candidates by final `metrics.json:hpwl`.
+- Keep the 5% clean final-HPWL reduction prior as search ambition. It is not a
+  promotion gate, but far-below-5% candidates should trigger mechanism-level
+  plans instead of small polish.
 - Runtime is a `$student_runtime_multiplier`x hard budget and an analysis
   signal. `G_HR` explains whether an HPWL gain is worth its runtime; it is not
   the elite selector.
@@ -34,7 +37,14 @@ mechanism decision.
   mechanisms selected because this specific design feature suggests upside.
 - If the next decision needs a new feature-matched start kind or case-type
   route, open the case-type quality route insight first, then refine from
-  current-run evidence.
+  current-run evidence. A case may match multiple packets; use them as route
+  hypotheses or compatible combinations, not as a single fixed selector. If a
+  matching packet provides a reconstruction route, give at least one Student its
+  minimum implementation steps, source handles, counters, and partial-route
+  demotion tests.
+- For a prior strong donor, route from the cumulative start-branch-to-final-source
+  mechanism chain. Do not assign only the final guard, telemetry, or attribution
+  diff as if it were the quality mechanism.
 
 ## Current Evidence
 
@@ -80,9 +90,14 @@ or incur runtime cost without proportional HPWL, treat it as weak-gain/over-cost
 evidence. Keep a guard donor if useful, but route from the observed failure
 mode: use at most one broader stage/mechanism query or card to identify a
 different source-level hypothesis, then assign at least one stronger within-run
-route. Current-run kept/rejected refs may be repaired with
+route. If the case-type insight has a matching reconstruction route, prefer
+reconstructing or deepening that route over another same-basin queue-depth,
+threshold, or guard-only edit. Current-run kept/rejected refs may be repaired with
 `25_trial_source.sh begin --from-ref <ref>`; do not import cross-experiment
 donors or historical results as implementation starts.
+If a guard donor is used, it should still attempt quality improvement and
+efficiency release on top of the donor; runtime repair is useful to make room
+for more complex search, not as a standalone success.
 Before assigning a heavy donor, query
 `--stage teacher_review --q "runtime light final HPWL mechanism priority"` and
 prefer a lighter final-HPWL mechanism unless the stage evidence justifies the

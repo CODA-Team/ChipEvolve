@@ -38,10 +38,10 @@ one of its verified types, use the matching reconstruction packet as the first
 route prior, then diversify.
 
 - Read the design characteristics and stage metrics first.
-- First reaction: decide whether this case matches a known case type with a
-  verified mechanism chain. If yes, assign at least one Student to reconstruct
-  or strengthen that matching mechanism packet, then use the remaining Students
-  for complementary or exploratory routes.
+- First reaction: decide whether this case matches one or more known case types
+  with verified mechanism chains. If yes, assign Students across the matching
+  packets or compatible combinations, then use the remaining Students for
+  complementary or exploratory routes.
 - After naming the dominant bottleneck, query the skill index only to sharpen
   plausible mechanisms or to avoid repeating known low-ROI paths. Normally
   consider at least two distinct stage families, such as one
@@ -49,8 +49,23 @@ route prior, then diversify.
   metrics leave both credible.
 - When selecting a feature-matched start kind or route from case-type route
   insight,
-  open the case-type quality route insight first; use strategy and algorithm
+  open the case-type quality route insight first.  If it contains a matching
+  reconstruction route, assign at least one Student to reconstruct or strengthen
+  that route with its minimum implementation steps, source handles, liveness
+  counters, and partial-implementation failure tests; use strategy and algorithm
   cards only to refine the mechanism or check risk.
+- Short route digest for first-round matching:
+  dense recoverable pressure -> recoverable producer plus hot-segment/exact
+  DPO consumer; low-util or stable local residue -> Diamond-basin source-edge
+  exact descent; large row-rich recoverable basin -> producer/handoff plus exact
+  DPO or row-window transactions; high-utilization with large legalizer
+  inflation and incomplete DPO recovery -> include one high-impact-net
+  target/source repair plus bounded mirror-dependency hybrid route. Mirror work
+  is valid there only as the final step of a producer/DPO/critical-net chain,
+  not as a standalone route.
+- For a prior strong donor, route from the cumulative start-branch-to-final-source
+  mechanism chain. Do not assign only the final guard, telemetry, or attribution
+  diff as if it were the quality mechanism.
 - Open the smallest useful algorithm/pseudocode card only when it provides a
   concrete mechanism, liveness counter, or failure mode relevant to the observed
   bottleneck.
@@ -96,9 +111,11 @@ route prior, then diversify.
   or incur runtime cost without proportional HPWL, do not only polish the current
   donor. Use one broader stage/mechanism query or card only to find a different
   source-level hypothesis that matches the current evidence, then give at least
-  one Student a stronger within-run route. Current-run kept/rejected refs may be
-  repaired with `25_trial_source.sh begin --from-ref <ref>`; do not import
-  cross-experiment donors or historical results as implementation starts.
+  one Student a stronger within-run route. If the case-type insight has a
+  matching reconstruction route, prefer reconstructing or deepening that route
+  over another same-basin threshold/queue edit. Current-run kept/rejected refs
+  may be repaired with `25_trial_source.sh begin --from-ref <ref>`; do not
+  import cross-experiment donors or historical results as implementation starts.
   Query `--stage teacher_review --q "mechanism priority guard telemetry grouped window exact consumer"`
   when deciding which donor families to promote, guard, or demote.
   Query `--stage teacher_review --q "runtime light final HPWL mechanism priority"`
@@ -123,8 +140,11 @@ route prior, then diversify.
   reference-normalized final-HPWL gain to break even.
 - stage metrics: report `HPWLg`, `delta HPWLlg`, `delta HPWLip`,
   `delta HPWL final`, and final HPWL when available
-- research belief: clean canonical HPWL at least 5% below the OpenROAD DPL
-  default-flow reference is achievable; 5% is not a hard gate and not a ceiling
+- research belief: assume every case still has a plausible path to at least 5%
+  clean canonical HPWL reduction versus the OpenROAD DPL default-flow
+  reference. 5% is a search-ambition prior for plan scale, not a promotion gate
+  and not a ceiling. If current candidates are far below that, Teacher should
+  plan mechanism-level changes, not incremental polish.
 - algorithmic prior: global/differential guidance followed by source-level
   detailed repair should be able to outperform pure greedy legalization when
   the handoff and refinement are implemented correctly; weak final HPWL should
@@ -139,8 +159,10 @@ route prior, then diversify.
   candidate implementation, such as lightweight global guidance, native legal
   closure, local HPWL repair, and a DPO consumer.  Do not implement hybrid as a
   case-level selector among complete legalizers.
-- per-round stance: preserve best donors as guardrails, but assign at least one
-  route that can attack a larger HPWL source when wins are tiny or plateaued
+- per-round stance: preserve best donors as guardrails, but small fixes are not
+  the default. Assign aggressive mechanism-level routes that can attack larger
+  HPWL sources whenever wins are tiny, plateaued, or far from the 5% search
+  ambition.
 - plateau escape: when recent rounds repeat a donor with tiny gains, Teacher
   should assign a `mechanism-redesign` route that changes a deeper source
   mechanism under explicit complexity caps and liveness counters
@@ -188,10 +210,12 @@ route prior, then diversify.
   `metrics.json:runtime_seconds`; metrics/evaluator collection is not
   timeout-wrapped
 - runtime is a `${student_runtime_multiplier}x` hard budget and constrained
-  cost, not the objective. Extra runtime is justified only for bounded stronger
-  mechanisms: deeper legalizer scoring, broader capped candidates, donor
-  hybridization, parallel candidate evaluation, or better legalizer/improve
-  handoff. Do not waste it on repeated unchanged passes.
+  cost, not the objective. Runtime optimization is useful because it frees
+  budget for more complex quality search, not because runtime itself is the
+  target. Extra runtime is justified for bounded stronger mechanisms: deeper
+  legalizer scoring, broader capped candidates, donor hybridization, parallel
+  candidate evaluation, or better legalizer/improve handoff. Do not waste it on
+  repeated unchanged passes.
 - `bounded` means complexity-controlled and measurable, not small-scope; use
   caps, caches, thread-local scoring, and deterministic reductions to make
   larger searches practical

@@ -18,6 +18,10 @@
 
 - A candidate is not promotable if build/evaluator failed, metrics are missing, diff is missing/empty, agent message is missing, legality failed, source/binary/metrics are stale, or the DPL flow timed out.
 - Rank promotable candidates by legal final `metrics.json:hpwl`. Ignore bbox/proxy HPWL for promotion.
+- Review with a high-ambition prior: a case that remains far below 5% final
+  HPWL reduction is not solved. Preserve useful donors, but the next plan must
+  include aggressive mechanism-level attempts unless evidence proves the search
+  surface is exhausted.
 - Use `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref - P(runtime_sol / runtime_ref), where P(r)=0 for r <= 1.10 and P(2.0)=1.0 percentage point` only to explain runtime value and repair priority. A faster worse-HPWL candidate is not the headline elite unless lower-HPWL candidates fail validity gates.
 - Treat runtime and displacement as diagnostics: controlled cost, under-exploration, fixable implementation cost, or unsupported work. Do not over-reward baseline-like runtime that avoids a needed HPWL mechanism; when a legal candidate stays far under budget and HPWL is weak, first identify the missing HPWL source, then route a stronger bounded mechanism if justified.
 
@@ -70,12 +74,15 @@
   mechanism and final HPWL improves. Next plans should not allocate a primary
   route to mirror-only guard; pair mirror work with an upstream producer or DPO
   consumer, or drop it.
-- A guard route is a protected experiment, not permission for no-op rerun or
-  tiny polish. Incremental guard improvement is valid when it changes a real
-  HPWL mechanism and improves full-flow HPWL. If repeated increments stay flat
-  or only change a tiny cap, threshold, telemetry, or parity fastpath while
-  runtime headroom remains, classify it as under-explored guard evidence and
-  route next to a deeper bounded quality branch or a different
+- A guard route is a protected donor-development experiment, not permission for
+  no-op rerun, control-only attribution, or tiny polish. Guard can validly make
+  large coherent quality changes on top of the donor if the original donor/ref
+  remains recoverable and the new source has rollback, counters, and full-flow
+  evidence. Efficiency work is useful only when it frees time for a stronger
+  search on the same donor path. If repeated increments
+  stay flat or only change a tiny cap, threshold, telemetry, or parity fastpath
+  while runtime headroom remains, classify it as under-explored guard evidence
+  and route next to a deeper donor-on-top quality branch or a different
   producer/handoff/consumer family.
 - When current-case mechanisms have nonzero counters and improve final HPWL,
   route follow-up toward compatible stacking or runtime repair of those
@@ -111,7 +118,13 @@
 - Parameter tuning is valid only as source-internal mechanism work: constants, thresholds, scoring weights, pass schedules, adaptive policies, or compact internal config structs in `dpl_evolve`. Reject Tcl/flow-script knob sweeps.
 - Hybridize only as staged source-level mechanism composition inside one candidate implementation. Do not implement case/scenario selectors among complete legalizers or fallback-to-default success paths.
 - When feature-level insight suggests a strategy, translate it into source mechanisms and liveness counters. The feature card is inspiration, not a fixed route table.
-- Broader-search plans should state candidate/window bound, cache/reuse point, runtime tier, counters, and whether parallel scoring or deterministic reductions are appropriate. Extra runtime is acceptable only as controlled cost for a stronger identified HPWL mechanism.
+- A case may match multiple feature-level insights. Review should decide which
+  packets to test, combine, continue, or drop based on same-case evidence.
+- Broader-search plans should state bounded scope, runtime tier, counters, and
+  how cost is controlled. Candidate/window bounds, cache/reuse, affected-net
+  deltas, parallel scoring, and deterministic reductions are examples, not an
+  allowed-list. Extra runtime is acceptable only as controlled cost for a
+  stronger identified HPWL mechanism.
 - Weak-gain or over-cost plans should explicitly name the stronger mechanism
   family or repaired current-run ref and why it is different from donor
   polishing.

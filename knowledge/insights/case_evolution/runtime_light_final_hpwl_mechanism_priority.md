@@ -1,7 +1,7 @@
 # Runtime-Aware Final-HPWL Mechanism Priority
 
-Evidence type: synthesis from same-case source evolution, fixed-source replay,
-legalizer-line continuation, and DPO/handoff refinement experiments.  This card
+Evidence type: synthesis from same-case source evolution, cross-case mechanism
+validation, legalizer-line continuation, and DPO/handoff refinement experiments.  This card
 summarizes reusable mechanisms by design features and evidence strength.  It
 does not encode benchmark names, local artifact paths, or historical program
 aliases.
@@ -36,7 +36,9 @@ evidence, but Teacher should not allocate most Students to them.
 
 Teacher should not use a single global priority order.  First classify the
 case by stage metrics, physical pressure, default-flow runtime scale, and
-runtime headroom, then pick the matching route below.
+runtime headroom, then pick one or more matching route hypotheses below.  If a
+case matches multiple feature classes, spread Students across them or combine
+compatible mechanisms inside one coherent source flow.
 
 ### Recoverability-Shaped Legalizer Producer Plus Exact DPO Consumer
 
@@ -170,10 +172,13 @@ different HPWL source once gains flatten.
 Best feature match:
 
 - large row-rich or wrapper-like placements;
+- macro/memory-mixed or hierarchical placements where blockages fragment
+  standard-cell logic into several recoverable local basins;
 - residual replay or mirror handoff is live;
-- row-window accepted transactions exist, but window selection is fragile.
+- row-window, source-edge, macro-edge, or frontier-local accepted transactions
+  exist, but selection is fragile or plateaued.
 
-Reusable mechanism:
+Reusable mechanism examples:
 
 - anchor windows on high-score residual nodes, touched nets, or boundary-active
   cells rather than sliding uniformly;
@@ -181,10 +186,13 @@ Reusable mechanism:
 - keep accepted-window and rollback counters;
 - preserve mirror handoff only when it consumes accepted transaction evidence.
 
-Use after lighter frontier/top-K routes because runtime can be substantial.  It
-is a good quality donor when accepted-window gains are clear, but it should be
-rewritten with better caches, window caps, or parallel scoring before becoming
-the default route on a new case.
+Use this as an evidence-targeted quality-spend family, not as a mandatory
+algorithm.  A Student may instead design another local-basin or macro-edge
+consumer if source evidence justifies it.  Runtime can be substantial; if the
+mechanism moves final HPWL but costs too much, Teacher should ask for an
+implementation-efficiency repair.  Possible levers include better candidate
+selection, caches, caps, affected-net deltas, deterministic parallel scoring,
+or gain-rate stops, but these are examples rather than the only valid fixes.
 
 ### Critical Row-Window Matching
 
@@ -228,10 +236,10 @@ falls.
 
 Use these when stage evidence says the target cannot be reached by lighter
 mechanisms.  Do not present them as the first default route for every case.  Do
-not avoid them merely because they may take tens of seconds on short cases, but
-on cases whose default runtime is already hundreds of seconds, deeper search
-should still be allowed but must be capped, gain-rate stopped, or paired with
-runtime repair.
+not avoid them merely because they may take tens of seconds on short/medium
+cases.  On cases whose default runtime is already very large, deeper search is
+still allowed, but it must be controlled and evidence-targeted rather than an
+uncapped tail.
 
 - Scoped LSMC-style basin escape.  It is useful only after a deterministic
   descent kernel is live.  The loop must be `descent -> legal kick -> descent ->
@@ -279,13 +287,17 @@ python3 scripts/query_knowledge.py --stage handoff --q "recoverability frontier 
 Then route Students as follows:
 
 - one guard only if an elite source must be preserved;
-- one feature-matched final-HPWL route from the first-route list;
+- one or more feature-matched final-HPWL routes when the case matches multiple
+  packets;
 - one adjacent-stage repair route when stage metrics disagree;
 - one larger quality-spend route when lighter routes plateau, when accepted
   gains justify it, or when runtime headroom is clearly available.  A
-  tens-of-seconds run is acceptable if final HPWL moves and the pass is capped;
-  for cases whose default runtime is already hundreds of seconds, require a
-  small runtime multiplier or an explicit cache/cap/runtime-repair plan.
+  tens-of-seconds run is acceptable if final HPWL moves and the work is
+  bounded; for cases whose default runtime is already very large, require a
+  small runtime multiplier or an explicit controlled-search/runtime-repair
+  plan.  Runtime repair can use caches, caps, deltas, parallelism, better
+  frontiers, or any source-level efficiency improvement the Student justifies
+  from profiling/log evidence.
 
 When a mechanism is live but weak, Teacher should decide whether it is a
 producer failure, consumer failure, runtime implementation problem, or low-ROI

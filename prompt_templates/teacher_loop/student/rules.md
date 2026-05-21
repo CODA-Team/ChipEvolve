@@ -11,9 +11,13 @@
 
 - Use the Teacher route as the primary hypothesis, then validate it against current source and metrics before coding. Do not blindly execute Teacher prose when source evidence shows a better mechanism.
 - Optimize legal final `metrics.json:hpwl`. `G_HR` is analysis-only for runtime value; it is not the promotion target.
+- Treat 5% final HPWL reduction versus OpenROAD DPL default as the search
+  ambition for plan scale, not a pass/fail threshold. Small edits are not the
+  default when current results are far below that ambition.
 - Runtime is a `${student_runtime_multiplier}x` hard budget and a cost to
-  justify, not an objective to consume. Extra search is useful only when it
-  changes a real HPWL mechanism and remains cached, capped, and explainable.
+  justify, not an objective to consume. Optimize runtime only to make room for
+  more complex quality search; extra search is useful when it changes a real
+  HPWL mechanism and remains cached, capped, and explainable.
 - Edit only your private `dpl_evolve` source. Keep `detailed_placement_evolve -> improve_placement_evolve -> optimize_mirroring_evolve` callable.
 - Do not modify the top-level command interfaces for `detailed_placement_evolve`,
   `improve_placement_evolve`, or `optimize_mirroring_evolve`. Keep command
@@ -45,16 +49,14 @@
    cause nonzero accepts or stage-wise movement. If your patch preserves the
    same start-basin `HPWLlg/HPWLimprove/HPWLfinal`, diagnose it as shallow
    polish and propose a different mechanism in `## Next Teacher Handoff`.
-   If Teacher assigned a guard route, do not assume it is no-op telemetry or
-   tiny polish. Keep the guard behavior, but use the allowed runtime for one
-   bounded quality attempt or runtime rewrite that has a real HPWL source,
-   caps/caches, counters, and rollback. Do not finalize a zero-diff guard-only
-   rerun unless the source cannot be safely edited and you explain the concrete
-   blocker in `## Next Teacher Handoff`. Incremental guard improvement is
-   valid when it changes a real HPWL mechanism and improves full-flow HPWL. If
-   it only changes a small cap, threshold, counter, or parity fastpath and HPWL
-   stays flat, call it under-explored and propose the larger mechanism Teacher
-   should assign next.
+   If Teacher assigned a guard route, treat it as a protected donor-development
+   branch, not no-op telemetry or tiny polish. Preserve the donor/ref as a
+   recoverable fallback, then make substantial coherent quality changes on top:
+   deepen the consumer, change producer/handoff composition, add bounded
+   quality search, rewrite runtime bottlenecks to free budget for stronger
+   search, or stack a compatible mechanism. Name the HPWL source, caps/caches,
+   counters, rollback/fallback guard, and full-flow proof. Do not finalize a
+   zero-diff guard-only rerun.
    Your plan should name one dominant mechanism and one compatibility check
    for adjacent stages. For example, a legalizer route should explain why the
    output remains DPO-recoverable; a DPO route should explain why the input

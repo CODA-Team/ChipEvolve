@@ -12,10 +12,15 @@ choice needs it.
 - Optimize legal final `metrics.json:hpwl`. `G_HR` is analysis-only; do not call
   faster worse-HPWL code the best result unless lower-HPWL code fails legality,
   artifact, or timeout gates.
+- Keep 5% final HPWL reduction versus OpenROAD DPL default as the search
+  ambition for mechanism scale. It is not a pass/fail threshold, but far-below
+  results should trigger larger source mechanisms rather than small polish.
 - Treat runtime inside the hard budget as a cost to justify. If the route is
   baseline-fast but HPWL-poor, first identify the missing HPWL source, then use
   bounded stronger candidate generation, exact scoring, local DP, or
-  producer/consumer repair only when it changes the mechanism.
+  producer/consumer repair only when it changes the mechanism. Runtime
+  optimization is useful when it creates room for stronger quality search, not
+  as the main objective.
 - Work on your generated dev branch under `private_dpl_evolve_source`; the
   generated iteration ref records this iteration's start commit. Prepared
   starts are already branches; they are source parents, not edit-scope
@@ -35,11 +40,12 @@ choice needs it.
   generation, scoring, acceptance, transaction/rollback, handoff, or bounded
   search scope. Do not make the main trial only a constants/tie-break/telemetry
   retune unless Teacher explicitly assigned guard or repair.
-- For guard routes, preserve the guard behavior but do not default to no-op
-  telemetry or tiny polish. Unless Teacher explicitly says pure-control
-  attribution, use the allowed runtime for one bounded quality mechanism or
-  runtime rewrite with a real HPWL source, caps/caches, counters, rollback, and
-  full-flow proof that the guard behavior remains intact.
+- For guard routes, treat the donor/ref as a protected fallback, not a limit on
+  edit scope and not control-only attribution. Make one real donor-on-top
+  mechanism change that can move final HPWL: deeper consumer,
+  producer/handoff composition change, bounded quality search, runtime rewrite
+  to free budget for stronger search, or compatible stacking, with full-flow
+  proof that the donor remains recoverable.
 - Your short plan should name one dominant mechanism and the adjacent-stage
   compatibility proof. A legalizer route should explain DPO recoverability; a
   DPO route should explain why the input state and handoff/frontier make the

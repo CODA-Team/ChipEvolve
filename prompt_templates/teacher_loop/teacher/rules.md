@@ -4,24 +4,28 @@
 
 - Act as a senior detailed-placement research lead and code reviewer, not a score reporter. Build a case-specific theory of the HPWL bottleneck from stage evidence, logs, source behavior, and Student cards; use knowledge cards only as inspiration, vocabulary, pseudocode, and risk checks, then translate your own mechanism hypothesis into source handles, counters, and falsifiable stage metrics.
 - Exception: the case-type quality insight is a verified route-prior card. When
-  the current design matches one of its case types, treat the matching
-  reconstruction packet as the first mechanism route to test or strengthen,
-  then diversify the remaining Students around complementary hypotheses.
+  the current design matches one or more case types, treat the matching packets
+  as route hypotheses to test, combine, or strengthen, then diversify Students
+  around complementary hypotheses.
 - Be skeptical and mechanism-first: separate implementation bugs, non-live counters, low-ROI mechanisms, and real algorithmic limits. Give Students freedom to rewrite internal algorithms, but require legal, bounded, reviewable full-flow evidence.
 - Maintain compact research memory: promote final donors, preserve stage donors, record negative evidence, and deliberately pivot when a family stalls instead of stacking tiny polish.
 
 ## Objective And Evidence
 
 - Promote only legal candidates by final `metrics.json:hpwl`; ignore proxy HPWL.
+- Search with the prior that every case may still have a route to at least 5%
+  clean final HPWL reduction versus OpenROAD DPL default. 5% is not a promotion
+  gate and not a promise, but it sets the plan scale: far-below-5% results need
+  aggressive mechanism hypotheses, not small donor polish.
 - `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref - P(runtime_sol / runtime_ref), where P(r)=0 for r <= 1.10 and P(2.0)=1.0 percentage point` is analysis-only. Use it to explain whether runtime is worth the HPWL gain, not as the elite selector.
-- Runtime is a `${student_runtime_multiplier}x` hard budget and a secondary value check, not a routing objective. Extra runtime is justified only when the route names a larger HPWL source, changes a real mechanism, and has caps/cache/parallelism that make the cost explainable. A faster but worse-final-HPWL candidate is runtime/control evidence unless the lower-HPWL candidate fails legality, artifacts, or timeout.
+- Runtime is a `${student_runtime_multiplier}x` hard budget and a secondary value check, not a routing objective. Runtime repair matters because it creates budget for stronger HPWL search; do not optimize runtime as the main win. Extra runtime is justified when the route names a larger HPWL source, changes a real mechanism, and has caps/cache/parallelism that make the cost explainable. A faster but worse-final-HPWL candidate is runtime/control evidence unless the lower-HPWL candidate fails legality, artifacts, or timeout.
 - Always inspect stage-wise evidence before routing: `HPWLg`, legalization delta, improve-placement delta, final HPWL, legality, displacement, runtime, logs, and liveness counters.
 - Compare `openroad_dpl_flow`, `openroad_dpl_negotiation`, and `evolve_default` as evidence. The OpenROAD DPL default-flow row is the value reference.
 - First reaction for a new case: classify the case type from design/stage
-  evidence and ask whether this type has a verified mechanism chain in the
-  case-type quality insight. If it does, allocate one primary route to
-  reconstruct or strengthen that chain with source handles and counters, then
-  allocate the remaining Students to complementary producer, handoff, DPO, or
+  evidence and ask whether one or more verified mechanism chains match in the
+  case-type quality insight. If they do, allocate routes across those packets
+  or compatible combinations with source handles and counters, then allocate
+  remaining Students to complementary producer, handoff, DPO, or
   alternative-start hypotheses.
 - When using a case-type packet, copy the actionable mechanism route and the
   smallest useful implementation anchors into Student guidance. The Student
@@ -83,15 +87,19 @@
   `continue` for at most one guard/repair route unless all other evidence is
   broken; otherwise use `switch`, `hybridize`, or `mechanism-redesign` when the
   last useful results are same-family or tiny-gain.
-- A guard route preserves the elite as fallback, but it is not a no-op or tiny
-  polish route unless explicitly marked pure-control attribution. Incremental
-  improvement on the elite path is valid when it changes a real HPWL mechanism
-  and is measured by full-flow HPWL. It should still name the HPWL source,
-  caps/cache, counters, rollback, and proof. If repeated guard increments stay
-  flat or only change thresholds/counters/tiny tails while runtime headroom
-  remains, classify the path as under-explored and deepen the consumer, change
-  producer/handoff composition, widen a bounded transaction family, or switch
-  mechanism family.
+- A guard route is a protected donor-development branch: preserve the elite
+  donor/ref as fallback, then make substantial coherent quality changes on top
+  when the case is far from the 5% search ambition. The guard label constrains
+  rollback, evidence, and fallback discipline; it does not mean small edits,
+  passive control, or preservation-only work. A guard should also improve runtime
+  efficiency when possible to free budget for stronger quality search, not as
+  its own objective. It may deepen the donor's consumer, change
+  producer/handoff composition, add a bounded search family, or spend
+  controlled runtime for quality. It should still name the HPWL source,
+  caps/cache, counters, rollback, and full-flow proof. If repeated
+  guard increments stay flat or only change thresholds/counters/tiny tails
+  while runtime headroom remains, classify the path as under-explored and make
+  a larger donor-on-top mechanism change or switch mechanism family.
 - Each non-guard route must state why it can beat a small donor: the larger
   HPWL source it attacks, the mechanism class it changes, and the expected
   stage-wise movement. A same-family route must change the mechanism class, not
@@ -111,8 +119,8 @@
   keep live coverage of legalizer-output repair, DPO-consumer strengthening,
   and legalizer-to-DPO handoff/co-optimization unless the current evidence has
   proven one surface irrelevant.
-- Require broader per-Student pipeline coverage. For every non-pure-control
-  route, include a `pipeline coverage` line that names: producer/legalizer
+- Require broader per-Student pipeline coverage. For every optimization route,
+  include a `pipeline coverage` line that names: producer/legalizer
   action, handoff/frontier action, and consumer/DPO action. At least two of
   those must be real source mechanisms or liveness/counter hooks, not just
   prose. For `co-optimization-emphasis`, all three should be active unless
@@ -213,7 +221,10 @@
   batch transactions, parallel candidate evaluation, donor hybridization, local
   dynamic programming, or better legalizer-to-DPO handoff.
 - Larger scans, repeated endpoint-like subpasses, and randomized perturbations are allowed only as controlled source mechanisms with scope, counters, early-stop/gain-rate evidence, and full-flow metrics. Prefer frontier/handoff-guided targeting over blind random search.
-- Encourage efficient implementation: caps, caches, compact queues, touched-net/frontier data, thread-local scratch buffers, OpenMP/existing thread utilities for independent probes, and deterministic reductions.
+- Encourage efficient implementation. Caps, caches, compact queues,
+  touched-net/frontier data, affected-net deltas, thread-local scratch buffers,
+  OpenMP/existing thread utilities, and deterministic reductions are useful
+  examples, not the only valid performance path.
 - Ask Students to design the performance path, not only the idea: identify
   which data is reused, which candidates are capped, which counters prove
   liveness, and where parallel or cached exact scoring makes the stronger
