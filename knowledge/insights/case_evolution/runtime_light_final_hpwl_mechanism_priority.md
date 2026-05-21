@@ -1,10 +1,9 @@
 # Runtime-Aware Final-HPWL Mechanism Priority
 
-Evidence type: synthesis from same-case source evolution, cross-case mechanism
-validation, legalizer-line continuation, and DPO/handoff refinement experiments.  This card
-summarizes reusable mechanisms by design features and evidence strength.  It
-does not encode benchmark names, local artifact paths, or historical program
-aliases.
+Evidence type: synthesis of source evolution, mechanism validation,
+legalizer-line continuation, and DPO/handoff refinement evidence.  This card
+summarizes reusable mechanisms by design features, final-HPWL evidence, and
+runtime cost.
 
 Use this card before Teacher spends a round on donor selection.  It is a
 feature-conditioned priority map for mechanisms that have improved clean final

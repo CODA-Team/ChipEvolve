@@ -272,10 +272,24 @@ def should_auto_resume(summary: dict[str, Any], returncode: int) -> tuple[bool, 
     thread_id = str(summary.get("thread_id") or "").strip()
     if not thread_id:
         return False, "missing_thread_id"
-    if int(summary.get("agent_message_count", 0) or 0) <= 0:
-        return False, "missing_agent_messages"
     last_error = str(summary.get("last_error_message") or "").lower()
     last_event = str(summary.get("last_event_type") or "")
+    capacity_needles = (
+        "selected model is at capacity",
+        "model is at capacity",
+        "rate limit",
+        "rate_limit",
+        "too many requests",
+        "429",
+        "502 bad gateway",
+        "bad gateway",
+        "503 service unavailable",
+        "504 gateway timeout",
+    )
+    if any(needle in last_error for needle in capacity_needles):
+        return True, "transient_capacity_or_rate_limit"
+    if int(summary.get("agent_message_count", 0) or 0) <= 0:
+        return False, "missing_agent_messages"
     transient_needles = (
         "stream disconnected before completion",
         "stream closed before response.completed",

@@ -1,12 +1,11 @@
 # Evidence-Weighted Mechanism Priority
 
-Evidence type: synthesis from multiple prior source-evolution, fixed-source
-replay, legalizer-line, DPO-handoff, and robustness experiments.  This card
-intentionally uses design features rather than benchmark names or local paths.
+Evidence type: synthesis of source-evolution, transfer, legalizer-line,
+DPO-handoff, and robustness evidence into design-feature mechanism priorities.
 
-Use this card when Teacher has many plausible donors and must decide which
-mechanism families deserve search budget.  It ranks reusable mechanism patterns,
-not historical implementations.
+Use this card when Teacher has many plausible mechanism families and must decide
+which ones deserve search budget.  It ranks reusable mechanism patterns by
+feature fit and final-HPWL evidence.
 
 Pair this card with
 `runtime_light_final_hpwl_mechanism_priority.md` when choosing first routes.  If

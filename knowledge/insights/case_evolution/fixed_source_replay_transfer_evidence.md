@@ -60,9 +60,9 @@ Weak or risky:
 
 ## Feature-Level Lessons From Transfer
 
-Do not route by historical program identity.  Convert a successful transfer row
-into one of these feature-level hypotheses, then validate it on the current case
-with clean final HPWL.
+Use transfer evidence as feature-level mechanism guidance.  A useful row should
+be translated into a case feature, source mechanism, liveness signal, and
+current-case validation target.
 
 For actionable Teacher routing, use
 `case_type_quality_mechanism_priority.md` first.  That card turns the transfer
@@ -117,8 +117,7 @@ priors exist.
      candidates are anchored on residual nodes, row windows, touched nets, or
      boundary-active regions.
    - Start/route prior: continue from the best current-run live legalizer seed,
-     then add one deeper bounded DPO or residual-basin consumer rather than
-     switching by historical program identity.
+     then add one deeper bounded DPO or residual-basin consumer.
    - Try: node-anchored row-window transactions, residual-basin objective
      repair, deterministic parallel scoring for independent candidates.
    - Source families: detailed manager, detailed global transaction logic, HPWL
@@ -157,12 +156,15 @@ Do not promote a mechanism only because it wins one discovery row.  Freeze the
 same source state and run the transfer matrix before treating it as
 algorithm knowledge.
 
-Teacher should pass students:
+Teacher should pass students self-contained mechanism lessons:
 
-- the best aggregate donor source,
-- the safer adjacent donor source,
-- the simple donor that transfers well on large or row-rich designs,
-- failed tags to avoid,
+- the mechanism class that transferred well;
+- the case features where it helped or failed;
+- the source files and functions in the current workspace where the mechanism
+  should be rebuilt;
+- liveness counters and stage metrics that prove the mechanism is actually
+  active;
+- failed tags or failure modes to avoid;
 - whether the next round optimizes discovery-line maximum or transfer.
 
 Students should still make larger algorithmic changes when stuck:

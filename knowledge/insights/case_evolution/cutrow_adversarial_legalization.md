@@ -2,8 +2,9 @@
 
 Use this card when a Teacher/Student round targets cutRow-generated difficult
 legalization inputs instead of ordinary ORFS `3_4_place_resized.odb` snapshots.
-Default Teacher context should reason from input features, not from benchmark
-names or local artifact paths.
+Default Teacher context should reason from input features: removed-row pattern,
+available whitespace, fragmented legal rows, conflict pressure, and whether
+default legalizers fail or time out.
 
 ## Feature-Level Evidence
 

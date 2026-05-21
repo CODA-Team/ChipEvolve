@@ -136,8 +136,7 @@ and review packet fields needed for routing.
   legalizer/DPO/handoff family rather than retuning thresholds, counters,
   guards, or same-basin source-edge variants.
 - If assigning a branch/ref switch, name the source ref and new trial label, and
-  require trial-helper branch preservation. Do not import cross-experiment
-  donors or historical results as implementation starts.
+  require trial-helper branch preservation.
 - Prepared starts are branch-only source parents: `framework`, `diamond`,
   `default_negotiation`, `evolved_diamond`, `evolved_legalm`, and
   `evolved_negotiation`. A start branch never restricts edit scope. Any route

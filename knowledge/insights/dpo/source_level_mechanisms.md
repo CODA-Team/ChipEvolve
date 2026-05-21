@@ -1,9 +1,8 @@
 # DPO Source-Level Mechanism Lessons
 
-Evidence type: generalized observations from prior source-level DPO
-experiments. This card intentionally avoids benchmark names, local paths, and
-old implementation aliases. Use it to select mechanisms, not to transplant
-code.
+Evidence type: generalized source-level DPO mechanism observations.  Use this
+card to select and adapt mechanisms from current case features, stage metrics,
+and liveness logs.
 
 For legalization-to-DPO state transfer, pair this card with
 `knowledge/insights/dpo/openroad_native_handoff.md`.  Handoff records should be

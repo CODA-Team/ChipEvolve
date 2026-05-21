@@ -55,8 +55,7 @@ route. Keep the review concise and action-bearing.
   refs as evidence for useful rejected or kept code. If repairable, tell the
   next Student to use `25_trial_source.sh begin --from-ref <ref>`.
 - When assigning a branch/ref switch, name the current-run source ref, new trial
-  label, and preservation expectation. Do not import cross-experiment donors or
-  historical results as implementation starts.
+  label, and preservation expectation.
 - Before next routing, combine current metrics, logs/counters, source behavior,
   and Student knowledge-card reasoning. Use a knowledge/algorithm handle only
   as inspiration or a risk check when it helps; when changing route family,

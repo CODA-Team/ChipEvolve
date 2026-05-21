@@ -21,11 +21,10 @@ runtime, and final-HPWL proof.  Packet mechanisms are not fixed recipes; they
 name useful source-level directions, examples, liveness evidence, and risk
 checks that Teacher and Student should adapt to the current code and logs.
 
-When a prior strong result is represented by a final guard or telemetry commit,
-do not treat that final diff as the mechanism.  Reconstruct the mechanism from
-the cumulative source diff between the start branch and the final retained
-source.  The useful evidence is the sequence of mechanism additions that changed
-final HPWL, not the last branch label.
+When a retained source ends with a guard, telemetry, or reporting-only edit, do
+not treat that last edit as the quality mechanism.  The useful evidence is the
+sequence of source-level mechanism additions that changed final HPWL, not the
+last branch label.
 
 ## First Insight For Teacher
 
@@ -101,12 +100,11 @@ workspace.
   gain or accepted delta, rollback/reject count, and runtime for the bounded
   pass.
 
-## Verified Cumulative Mechanism Routes
+## Cumulative Mechanism Routes
 
-These routes are distilled from final retained sources by comparing each source
-against its prepared start branch.  They should be used as reproducible
-mechanism chains, not as benchmark-name selectors and not as old source states
-to import directly.
+These routes describe source-level mechanism chains that have produced strong
+final detailed-placement-flow HPWL.  They should be used as reproducible
+mechanism plans, not as benchmark-name selectors.
 
 ### Route: Diamond-Basin Source-Edge Exact Descent
 
@@ -116,57 +114,188 @@ residue that normal detailed improvement does not consume.  It is also a strong
 route hypothesis for dense standard-cell or wrapper/macro-mixed cases whose
 stage metrics show legal HPWL disruption but meaningful DPO recovery.
 
+This packet is primarily a DPO-consumer route, not a Diamond-frontier handoff
+route.  The core mechanism preserves a Diamond-compatible legal basin and then
+changes the improve-placement/global-swap consumer so bbox-edge and source-edge
+residue is exact-scored through the existing journal.  Its smallest useful
+implementation footprint is `src/Optdp.cpp`,
+`src/optimization/detailed_global.cxx`, and
+`src/optimization/detailed_global.h`; a robust implementation may also touch
+`src/objective/detailed_hpwl.cxx` for affected-edge bookkeeping and
+`src/optimization/detailed_random.{h,cxx}` when adding the optional basin kick.
+
+Feature signature that should trigger this packet:
+
+- standard-cell utilization is low or moderate, but density/logs still show many
+  local legal DPO opportunities;
+- Diamond-style legalization is legal and does not badly damage the global
+  placement basin;
+- `HPWLlg` is close to `HPWLg` or only modestly worse, while `HPWLimprove`
+  shows that exact DPO can recover a much larger basin;
+- the current best routes are making small changes around LEGALM,
+  negotiation, mirror, frontier thresholds, or telemetry but not changing the
+  source-edge exact consumer;
+- the default or current detailed-improvement path appears to leave many
+  bbox-edge/source-edge candidates unconsumed.
+
+In this signature, Teacher should assign at least one Student to this complete
+chain in the first route map.  A partial assignment that only adds a frontier,
+only changes mirror, or only tweaks a legalizer does not count as a hit.  The
+Student plan should explicitly preserve a Diamond-compatible legal basin and
+then rebuild the exact-positive source-edge DPO consumer.  If a Student proposes
+only Diamond-native frontier records, changed-cell handoff metadata, or
+coordinate-style producer logs without the `DetailedGlobalSwap` exact
+source-edge kernel below, classify that as a partial control route rather than
+the main quality route.
+
+Evaluation signal for this packet:
+
+- on a low-util standard-cell target, this mechanism reached
+  `HPWLg=188569.2`, `HPWLlg=188051.6`, `HPWLimprove=171053.9`, and
+  `HPWLfinal=168768.6`;
+- relative to the OpenROAD default final HPWL `176845.1`, the final reduction
+  was `-8076.5` or `-4.567%`, at about `2.745x` runtime;
+- the useful mechanism was not a legalize-only win: legalization changed HPWL
+  only slightly, while two source-edge exact DPO passes reported thousands of
+  exact-positive commits and zero replay rejects.
+
+Implementation fingerprint:
+
+- source diff shape: `src/optimization/detailed_global.cxx` is the dominant
+  change, with only a small `src/Optdp.cpp` dispatch change and a header update;
+- the implementation should emit a log string equivalent to
+  `Source-edge exact DPO: cells=...,
+  locations=..., proxy_skips=..., move_scores=..., swap_scores=..., replays=...,
+  commits=..., rejects=..., no_positive_best=..., avg_best_delta=...,
+  avg_commit_delta=...`;
+- if the current implementation produces `HPWLlg` close to the strong basin but
+  `HPWLimprove` is still near the default DPO result, the legal basin is present
+  but this exact DPO consumer has not been reproduced.
+
 Start/source basin:
 
 - start from `evolved_diamond` or a Diamond-compatible branch;
+- if the current workspace start is not Diamond-compatible, use the prepared
+  branch/ref management scripts to create a route branch from a Diamond-compatible
+  source before implementing this mechanism;
 - preserve the Diamond legalizer as the primary legalizer unless stage evidence
-  proves it is the bottleneck;
+  proves it is the bottleneck.  Do not replace it with LEGALM or negotiation
+  just because those starts are available;
 - spend runtime in bounded exact DPO search before adding unrelated legalizer or
   mirror work.
 
+Teacher route packet:
+
+- Route label: `Diamond-compatible source-edge exact DPO consumer`.
+- Primary HPWL source: post-legal source-edge and bbox-edge residue left by the
+  default detailed improvement.
+- Start kind: prefer `evolved_diamond`; use a Diamond-compatible branch when
+  the current start is `evolved_legalm` or negotiation but stage metrics show a
+  stable Diamond basin would be useful.
+- Student objective: keep legalization stable, force the enhanced DPO path to
+  execute, replace the median-box-only global-swap target with a bounded
+  source-edge exact target generator, and accept only exact-positive journaled
+  move/swap transactions.
+- First files to inspect: `src/Optdp.cpp`,
+  `src/optimization/detailed_global.h`, and
+  `src/optimization/detailed_global.cxx`.
+- Optional second-stage files after the exact DPO kernel is live:
+  `src/objective/detailed_hpwl.cxx` for affected-edge state cleanup and
+  `src/optimization/detailed_random.{h,cxx}` for a controlled basin kick.
+- Stop/pivot rule: if source-edge counters stay zero, fix dispatch/liveness; if
+  replays are high but commits are low, fix proxy filtering and replay target
+  legality; if commits are high but final HPWL does not improve, add canonical
+  basin snapshot acceptance or a selected-segment exact tail.
+
+Important negative example:
+
+- adding Diamond-native changed-cell/frontier records and importing them into
+  DPO can be live and legal but still fail to improve final HPWL.  The typical
+  failure is that `HPWLlg` matches a good Diamond basin while `HPWLimprove`
+  stays weak because the consumer only ranks coarse cells.  Do not continue that
+  path unless it is explicitly paired with the exact source-edge kernel and
+  shows stronger `HPWLimprove`.
+
 Cumulative reconstruction chain:
 
-1. Add one legal snapshot based basin kick after the normal improve-placement
-   sequence.  Use `src/Optdp.cpp` to save the best placement, run a bounded
-   `DetailedRandom` kick pass, validate legality, and either keep the lower-HPWL
-   endpoint or restore the snapshot.
-2. Extend `src/optimization/detailed_random.{h,cxx}` with a kick mode that can
-   accept a very small number of coarse basin moves.  Useful signals are
-   generated moves, accepted kicks, rejected moves, failed generates,
-   multi-row kicks, and window kicks.  This is a controlled basin escape, not a
-   random tail.
-3. Replace the weak wirelength-optimal fallback in
-   `src/optimization/detailed_global.cxx` with a source-edge exact descent
-   kernel.  For each source cell, generate a small ranked set of candidate
-   targets from median box, bbox edges, current row, nearby rows, and segment
-   availability.
-4. Exact-score both move and swap candidates with `DetailedHPWL::delta` and the
-   existing journal/rollback path.  Cheap proxy ranking may prune candidates,
-   but exact positive affected-net HPWL must decide the commit.
-5. Add source-edge liveness counters in `DetailedGlobalSwap`: source-edge cells,
-   candidate locations, prefilter skips, move/swap exact scores, replays,
-   commits, rejects, nonpositive best count, average best delta, and average
-   committed delta.
-6. Add or preserve a `DetailedHPWL::reject()`/rollback path if the current
-   source does not already expose a clean exact-score rejection API.
+1. In `src/Optdp.cpp`, make the improve-placement path execute the enhanced
+   DPO/global-swap consumer.  A small but critical dispatch change is to ensure
+   the enhanced DPO path remains active even when low-utilization scoring would
+   otherwise fall back to legacy global swap.  Do not spend the route on a new
+   legalizer before this DPO kernel is live.
+2. In `src/optimization/detailed_global.h`, add the exact-source-edge state used
+   by `DetailedGlobalSwap`: a live `DetailedHPWL*` during global swap,
+   `last_move_from_source_edge_`, `last_move_exact_delta_`, and counters for
+   cells, locations, proxy skips, move exact scores, swap exact scores, replays,
+   commits, rejects, nonpositive bests, best-delta sum, and committed-delta sum.
+3. In `DetailedGlobalSwap::globalSwap`, construct a `DetailedHPWL hpwlObj`,
+   assign it to the temporary member pointer before the candidate loop, and
+   restore the previous pointer after the pass.  Around every generated move,
+   use `hpwlObj.delta(mgr_->getJournal())` for acceptance and call
+   `hpwlObj.accept()` only when the move is committed.  If the source-edge move
+   is rejected, update the source-edge reject counter.
+4. In `DetailedGlobalSwap::generateWirelengthOptimalMove`, replace the weak
+   wirelength-optimal fallback with the exact source-edge candidate generator:
+   build ranked x/y target candidates from median pin coordinates, bbox edges
+   excluding the source cell, current row/position, nearby legal rows, and
+   segment availability.  Keep this bounded, for example by pruning to a small
+   top set such as `kMaxExactLocations = 8`.
+5. For each target location, first compute a cheap source-edge proxy delta to
+   discard clearly bad targets.  Then exact-score both direct move and swap
+   variants through the existing journal path.  Immediately reject the trial
+   move after scoring, retain the best exact-positive candidate, then replay and
+   commit only that candidate.
+6. Tie-break exact candidates by exact HPWL delta first, then proxy delta,
+   support score, and distance.  Do not commit a move whose best exact delta is
+   nonpositive.  A route that accepts by proxy delta alone is not this mechanism.
+7. Print the source-edge exact DPO summary at the end of the run and require
+   nonzero exact scores, replays, and commits.  Strong reproductions should have
+   low replay rejects; a high reject rate points to a bad replay target or
+   journal/rollback bug.
+8. Optional basin kick or selected-segment tail can be added only after the
+   source-edge exact kernel is live.  It is a secondary amplifier, not the core
+   quality mechanism.
+9. If adding basin search in `src/Optdp.cpp`, capture and restore left, bottom,
+   placed state, and orientation for all movable nodes; call `adjustNodesOrient`
+   before comparing internal and canonical HPWL; rebuild segment/grid state on
+   restore; and accept a basin only when canonical HPWL improves under legality.
+   This prevents an internally good basin from being erased by DB update or
+   orientation mismatch.
 
 Proof that the route is live:
 
 - basin search has a legal snapshot, at least one meaningful kick attempt, and
   clean restore/accept behavior;
+- logs show the enhanced DPO path is active even when the intensity score is
+  low; a useful signal is a line equivalent to "source-edge HPWL mode" rather
+  than a silent legacy fallback;
 - source-edge exact scoring reports nonzero source cells, locations, exact
-  scores, replays, and commits;
+  scores, replays, and commits.  A strong implementation should have many
+  exact-positive commits and low replay rejects;
 - replay rejects stay low; a high reject rate means the exact replay path or
   candidate target mapping is wrong;
 - final detailed-placement-flow HPWL improves, not only `HPWLimprove`.
 
+Expected log shape:
+
+- early broad source-edge scoring can show many replays but too many rejects;
+  repair it with proxy filtering, exact-positive gating, and replay-target
+  cleanup rather than accepting proxy-positive moves;
+- a strong bounded implementation should report thousands of source-edge exact
+  commits across the main passes, many nonpositive candidates filtered out, and
+  near-zero replay rejects;
+- if the source-edge counters are zero, the dispatch path is wrong or the
+  generator is not connected to the active global-swap pass.
+
 Common misleading reproductions:
 
 - implementing only the basin kick without the source-edge exact consumer;
-- adding source-edge telemetry without changing `generateWirelengthOptimalMove`
-  or exact-scoring candidates;
+- adding source-edge telemetry, Diamond frontier records, or handoff counters
+  without changing `generateWirelengthOptimalMove` and exact-scoring candidates;
 - widening random moves instead of creating a bounded legal snapshot
   transaction;
+- ranking only producer/frontier cells while leaving the legacy global-swap
+  target generator unchanged;
 - moving to mirror work before source-edge commits and final HPWL prove that the
   DPO basin is saturated.
 
@@ -507,11 +636,12 @@ single source-edge tweak:
 5. bounded pair, endpoint, or local closure extracts the tail and stops by
    accepted-gain rate.
 
-If this packet also matches a large row-rich recoverable basin, and a
-negotiation-style seed shows stronger downstream DPO recovery but worse final
-HPWL because legal-stage inflation or runtime dominates, do not split the idea
-into unrelated producer-only, negotiation-only, and DPO-only routes.  Assign one
-Student to reconstruct the cumulative mechanism chain in one private source:
+If this packet also matches a large row-rich or datapath-like recoverable basin,
+and stage metrics show that downstream DPO recovery is the main reason final
+HPWL improves, do not route the case as only a Diamond-stable local-consumer
+problem.  A pure Diamond/source-edge exact route can be useful as a complementary
+guard, but the first quality route should reconstruct the cumulative mechanism
+chain in one private source:
 
 ```
 Differential/LEGALM-style guidance producer
@@ -524,10 +654,11 @@ Differential/LEGALM-style guidance producer
 
 This chain is a feature-matched route, not a benchmark-name rule.  It is most
 appropriate when the case has enough row richness for DPO recovery, legalizer
-output is recoverable but not final-quality-optimal, and final HPWL is known to
-follow exact DPO accepts more than legalize-only HPWL.  Other Students should
-still cover complementary mechanisms, but at least one route should try to make
-the complete producer/closure/consumer/reorder/polish stack live and measurable.
+output is recoverable but not final-quality-optimal, baseline runtime is large
+enough to justify bounded exact consumers, and final HPWL follows exact DPO
+accepts more than legalize-only HPWL.  Other Students should still cover
+complementary mechanisms, but at least one route should try to make the complete
+producer/closure/consumer/reorder/polish stack live and measurable.
 
 Source-backed reconstruction routes with the strongest final-HPWL evidence:
 
@@ -710,8 +841,8 @@ Start/source basin:
 - start from the current best legal final-HPWL donor in the same run;
 - use `evolved_legalm`, `evolved_negotiation`, or Diamond only as the source
   basin that produced the best current legal endpoint;
-- do not import an old source state directly.  Reconstruct the mechanism in the
-  current Student workspace.
+- rebuild the mechanism in the current Student workspace rather than treating a
+  complete program label as the mechanism.
 
 Minimum implementation steps:
 
@@ -918,7 +1049,7 @@ Required source orientation:
   `src/optimization/detailed_global.cxx`,
   `src/objective/detailed_hpwl.cxx`, and
   `knowledge/insights/dpo/frontier_guided_basin_consumer.md`;
-- use a current-run verified donor source ref if one exists.
+- use a current-run peer source ref if it contains a live compatible mechanism.
 
 Required proof:
 
@@ -1033,14 +1164,14 @@ evidence wins.
 Classify the current case by stage evidence, then use these routing priors to
 assign Students.  The table says which source basin and mechanism family should
 be tested first for each feature pattern; it is not a benchmark-name selector
-and not a claim that one old source state is universal.
+and not a claim that one complete program is universal.
 
 | observed feature pattern | high-confidence start kind | first route to assign | source families to inspect |
 | --- | --- | --- | --- |
 | Dense pressure with a DPO-recoverable basin | `evolved_legalm` when guidance/closure is the anchor; `evolved_negotiation` when legal closure/conflict is the anchor | recoverability-shaped producer -> compact frontier -> exact DPO consumer | `src/LegalmGuidance.cpp`, `src/LegalmFullLegalization.cpp`, `src/StudentAlgorithm.cpp`, `src/Optdp.cpp`, `src/optimization/detailed_global.cxx` |
 | Row-local or edge-local residue after a stable legalizer | `evolved_diamond` or `diamond` | local residue exact closure and selected-segment/source-edge reorder | `src/Place.cpp`, `src/optimization/detailed_reorder.cxx`, `src/optimization/detailed_global.cxx`, `src/objective/detailed_hpwl.cxx` |
 | Conflict-heavy, fragmented-row, or scarce-row legality pressure | `default_negotiation` or `evolved_negotiation` | negotiation-primary conflict closure -> compact conflict frontier -> exact DPO repair | `src/NegotiationLegalizer.cpp`, `src/EvolveNegotiationRepair.cpp`, `src/StudentAlgorithm.cpp`, `include/dpl_evolve/Opendp.h`, `src/Optdp.cpp` |
-| Large row-rich design with post-DPO plateau | best live legalizer route in the current run, plus one verified producer/consumer donor source if available | runtime-disciplined row-window or residual-basin transaction | `src/optimization/detailed_manager.cxx`, `src/optimization/detailed_global.cxx`, `src/objective/detailed_hpwl.cxx`, DPO exact-consumer cards |
+| Large row-rich design with post-DPO plateau | best live legalizer route in the current run, plus one compatible current-run producer/consumer source if available | runtime-disciplined row-window or residual-basin transaction | `src/optimization/detailed_manager.cxx`, `src/optimization/detailed_global.cxx`, `src/objective/detailed_hpwl.cxx`, DPO exact-consumer cards |
 | Same-family plateau across Students | one elite continuation plus different prepared starts matched to the observed failure mode | mechanism redesign: change producer policy, handoff mapping, DPO move family, objective, or transaction rule | current-run peer source refs, Student mechanism cards, then the relevant start-branch source family |
 
 Teacher should include the start kind in the packet because it controls the

@@ -29,13 +29,20 @@
 Use these paths as search handles only when they help identify concrete
 function/state insertion points. Do not require broad donor-tree reading.
 
+The case-evolution and strategy insight files are validated case-feature method
+warm starts.  Use them to recognize a design pattern, choose a plausible start
+family, and give Students a concrete mechanism route; then verify the route on
+the current case with stage metrics, liveness counters, legality, runtime, and
+final HPWL.
+
 ## First-Round Evidence-Driven Route Scan
 
 In the first Teacher planning round, build the route map from observed case
 evidence first. Most knowledge cards are vocabulary, inspiration, and prior
-evidence; the case-type quality route insight is different: if the case matches
-one of its verified types, use the matching reconstruction packet as the first
-route prior, then diversify.
+evidence; the case-type quality route insight is different: it contains
+case-feature method warm starts with reconstruction packets.  If the case
+matches one of those feature types, use the matching packet as the first route
+prior, then diversify.
 
 - Read the design characteristics and stage metrics first.
 - First reaction: decide whether this case matches one or more known case types
@@ -55,23 +62,39 @@ route prior, then diversify.
   counters, and partial-implementation failure tests; use strategy and algorithm
   cards only to refine the mechanism or check risk.
 - Short route digest for first-round matching:
-  dense recoverable pressure -> recoverable producer plus hot-segment/exact
-  DPO consumer; low-util or stable local residue -> Diamond-basin source-edge
-  exact descent; large row-rich recoverable basin -> producer/handoff plus exact
-  DPO or row-window transactions; high-utilization with large legalizer
-  inflation and incomplete DPO recovery -> include one high-impact-net
-  target/source repair plus bounded mirror-dependency hybrid route. Mirror work
-  is valid there only as the final step of a producer/DPO/critical-net chain,
-  not as a standalone route.
+  large row-rich or datapath-like recoverable basin with strong improve-stage
+  recovery, nontrivial default runtime, and final HPWL dominated by DPO accepts
+  rather than legalize-only HPWL -> assign one cumulative producer/closure/DPO
+  chain before pure local-consumer routes:
+  Differential/LEGALM-style producer -> negotiation-compatible legal closure ->
+  exact source-edge/global-swap consumer -> edge-critical or selected-segment
+  reorder -> bounded post-reorder exact/pair/endpoint polish.  A pure
+  Diamond/source-edge route can be a complementary route, but it is not the main
+  warm-start mechanism for this signature.
+  low-util or Diamond-stable local residue with large improve-stage
+  recoverability -> assign one complete Diamond-basin source-edge exact descent
+  route: preserve a Diamond-compatible legal basin, force the enhanced DPO path,
+  and implement the `DetailedGlobalSwap` exact source-edge kernel described in
+  the case-type insight: bounded source-edge target generation, exact move/swap
+  scoring with `DetailedHPWL::delta`, replay through journal/rollback, and
+  source-edge cells/locations/exact-scores/replays/commits/rejects counters.
+  Diamond-native frontier records alone do not count as this route; dense
+  recoverable pressure -> recoverable producer plus hot-segment/exact DPO
+  consumer; large row-rich recoverable basin -> producer/handoff plus exact DPO
+  or row-window transactions; high-utilization with large legalizer inflation
+  and incomplete DPO recovery -> include one high-impact-net target/source
+  repair plus bounded mirror-dependency hybrid route. Mirror work is valid there
+  only as the final step of a producer/DPO/critical-net chain, not as a
+  standalone route.
 - When dense recoverable pressure and large row-rich recoverability both match,
   and negotiation-style evidence shows strong DPO recovery but poor final
   closure, assign one Student to the cumulative stack from the case-type insight:
   Differential/LEGALM-style producer -> negotiation-compatible legal closure ->
   exact source-edge/global-swap consumer -> edge-critical/selected reorder ->
   bounded post-reorder exact/pair/endpoint polish.
-- For a prior strong donor, route from the cumulative start-branch-to-final-source
-  mechanism chain. Do not assign only the final guard, telemetry, or attribution
-  diff as if it were the quality mechanism.
+- For a strong retained route, route from the cumulative mechanism chain. Do not
+  assign only the final guard, telemetry, or attribution diff as if it were the
+  quality mechanism.
 - Open the smallest useful algorithm/pseudocode card only when it provides a
   concrete mechanism, liveness counter, or failure mode relevant to the observed
   bottleneck.
@@ -120,8 +143,7 @@ route prior, then diversify.
   one Student a stronger within-run route. If the case-type insight has a
   matching reconstruction route, prefer reconstructing or deepening that route
   over another same-basin threshold/queue edit. Current-run kept/rejected refs
-  may be repaired with `25_trial_source.sh begin --from-ref <ref>`; do not
-  import cross-experiment donors or historical results as implementation starts.
+  may be repaired with `25_trial_source.sh begin --from-ref <ref>`.
   Query `--stage teacher_review --q "mechanism priority guard telemetry grouped window exact consumer"`
   when deciding which donor families to promote, guard, or demote.
   Query `--stage teacher_review --q "runtime light final HPWL mechanism priority"`

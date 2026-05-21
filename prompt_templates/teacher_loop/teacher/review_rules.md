@@ -98,8 +98,7 @@
   missing producer, handoff, move family, acceptance rule, or post-consumer
   polish instead of declaring the family exhausted.
 - When a next route switches parent/ref, name the current-run source ref, new
-  trial label, and preservation expectation. Do not use cross-experiment
-  donors or historical runs as implementation starts.
+  trial label, and preservation expectation.
 
 ## Next-Plan Requirements
 

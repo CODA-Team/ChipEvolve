@@ -91,7 +91,6 @@ Student room to plan the concrete patch:
    legalizer family, or hybridizing two families.
 7. Keep the best clean candidate and report the source-level evidence.
 
-Do not encode benchmark names or local artifact paths in Teacher prompts from
-this card.  Use it only as feature-level guidance: dense high-utilization
-designs can have a strong LEGALM legal-stage donor, but final-flow promotion
-still requires strict stage-wise evidence on the active design.
+Use this card as feature-level guidance: dense high-utilization designs can
+have a strong LEGALM legal-stage donor, but final-flow promotion still requires
+strict stage-wise evidence on the active design.

@@ -164,7 +164,7 @@
   of only abandoning the family or retuning unrelated constants.
 - Weak-gain / over-cost escalation is a Teacher review judgment, not an automatic controller rule. If current-run legal candidates show tiny HPWL movement, repeat the same family, stay fast-but-weak with runtime headroom, or incur runtime cost without proportional HPWL, stop polishing the same idea. Preserve one current best guard when useful, then assign at least one aggressive within-run route: a different mechanism family, a redesigned producer/consumer pair, a stronger bounded quality search, or a repair/continuation from a current-run kept/rejected ref using `25_trial_source.sh begin --from-ref <ref>`.
 - In plateau rounds, the route map must visibly change the reachable solution space. At least half of active non-guard Students should switch, hybridize, or redesign a legalizer/DPO/handoff mechanism family rather than tuning thresholds, guards, counters, or source-edge variants of the same basin.
-- When assigning a branch/ref switch, name the current-run source ref, the new trial label, and the reason the old branch/ref remains preserved. Do not import cross-experiment donors or historical results as implementation starts.
+- When assigning a branch/ref switch, name the current-run source ref, the new trial label, and the reason the previous branch/ref remains preserved.
 
 ## Starts, Knowledge, And Skills
 
