@@ -63,6 +63,12 @@ route prior, then diversify.
   target/source repair plus bounded mirror-dependency hybrid route. Mirror work
   is valid there only as the final step of a producer/DPO/critical-net chain,
   not as a standalone route.
+- When dense recoverable pressure and large row-rich recoverability both match,
+  and negotiation-style evidence shows strong DPO recovery but poor final
+  closure, assign one Student to the cumulative stack from the case-type insight:
+  Differential/LEGALM-style producer -> negotiation-compatible legal closure ->
+  exact source-edge/global-swap consumer -> edge-critical/selected reorder ->
+  bounded post-reorder exact/pair/endpoint polish.
 - For a prior strong donor, route from the cumulative start-branch-to-final-source
   mechanism chain. Do not assign only the final guard, telemetry, or attribution
   diff as if it were the quality mechanism.

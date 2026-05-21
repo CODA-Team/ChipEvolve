@@ -507,6 +507,28 @@ single source-edge tweak:
 5. bounded pair, endpoint, or local closure extracts the tail and stops by
    accepted-gain rate.
 
+If this packet also matches a large row-rich recoverable basin, and a
+negotiation-style seed shows stronger downstream DPO recovery but worse final
+HPWL because legal-stage inflation or runtime dominates, do not split the idea
+into unrelated producer-only, negotiation-only, and DPO-only routes.  Assign one
+Student to reconstruct the cumulative mechanism chain in one private source:
+
+```
+Differential/LEGALM-style guidance producer
+  -> negotiation-primary or negotiation-compatible legal closure
+  -> exact global-swap/source-edge DPO consumer
+  -> edge-critical queue
+  -> selected-segment exact reorder
+  -> bounded post-reorder exact/pair/endpoint polish
+```
+
+This chain is a feature-matched route, not a benchmark-name rule.  It is most
+appropriate when the case has enough row richness for DPO recovery, legalizer
+output is recoverable but not final-quality-optimal, and final HPWL is known to
+follow exact DPO accepts more than legalize-only HPWL.  Other Students should
+still cover complementary mechanisms, but at least one route should try to make
+the complete producer/closure/consumer/reorder/polish stack live and measurable.
+
 Source-backed reconstruction routes with the strongest final-HPWL evidence:
 
 #### Reconstruction route A: recoverable producer plus hot-segment exact consumer
@@ -515,6 +537,13 @@ Use this when a dense case shows a DPO-recoverable basin: `HPWLlg` may be worse
 than global or worse than a stage-only donor, but `HPWLimprove` drops sharply and
 final HPWL follows exact DPO accepts.  This route should be treated as a
 high-confidence reconstruction packet, not just a vague inspiration.
+
+For the dense-plus-row-rich signature above, route A should normally be the full
+cumulative stack, not only a LEGALM frontier or a source-edge DPO patch.  The
+minimum credible plan must name the producer, the primary legal closure, the
+handoff payload, the exact DPO consumer, and the post-consumer tail.  If any of
+those pieces is intentionally omitted, the Teacher should label the route as a
+partial donor/control route rather than the main quality route.
 
 Start/source basin:
 
@@ -547,6 +576,15 @@ Minimum implementation steps:
 6. Add a bounded post-reorder tail only after the hot-segment consumer is live:
    exact local polish, pair-swap polish, endpoint move polish, or another
    Student-designed bounded consumer.  Stop by accepted-gain rate.
+
+For the cumulative dense-plus-row-rich chain, the preferred first implementation
+order is: expose target-miss/high-pressure frontier from Differential/LEGALM-style
+guidance; close legality with negotiation-primary or negotiation-compatible
+repair while preserving that frontier; import the frontier into `Optdp`; run a
+bounded exact global-swap/source-edge consumer; convert accepted sources or
+critical nets into selected segments; then run a bounded exact/pair/endpoint
+tail.  The Student may redesign details, but the report must prove whether each
+link is live.
 
 Strong implementation skeleton observed in successful source variants:
 
