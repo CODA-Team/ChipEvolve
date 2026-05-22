@@ -437,6 +437,7 @@ def main(argv: list[str] | None = None) -> int:
         resume_thread_id = str(summary.get("thread_id") or "").strip()
         if not resume_thread_id:
             break
+        time.sleep(20)
         command = build_command(args, root, last_message_path, resume_thread_id)
         returncode = run_codex_process(
             command=command,
