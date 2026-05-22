@@ -13,6 +13,17 @@ and review packet fields needed for routing.
   Keep the 5% final-HPWL reduction prior as the search ambition. If the current
   best is far below that, follow-up plans should be mechanism-level and
   aggressive, not donor-preservation or small polish.
+- The best route is not a guard lane. Even when it is the current winner or
+  only barely improves over OpenROAD default/current elite, route it to keep
+  chasing a larger final-HPWL source until the mechanism evidence is clearly
+  saturated. Preservation is only rollback discipline; the assigned work must
+  still be a quality-expansion mechanism.
+- Follow-up must state where the next material HPWL gain should come from:
+  producer/legalizer state, handoff/frontier transfer, DPO move/scoring and
+  acceptance, post-consumer polish, or their composition. If the case is still
+  weak by iteration 3-4, or clearly below the matched case-type potential,
+  diagnose which link prevented the strong mechanism from expressing itself and
+  route stronger mechanisms rather than more local polish.
   `G_HR` is analysis-only for runtime value; do not prefer faster worse-HPWL
   candidates unless lower-HPWL candidates fail legality/artifact/timeout gates.
 - Runtime is a hard budget and secondary value check, not a direction by
@@ -46,21 +57,47 @@ and review packet fields needed for routing.
   behavior, and Student knowledge-card reasoning. Use targeted knowledge only
   when it clarifies a route change or mechanism insight. Current evidence wins
   over a knowledge card.
-- A case can match multiple feature-level packets. Use packets as route
+- Do not send Students into broad knowledge-base reading by default. If a
+  follow-up route needs knowledge, name the specific card/blueprint/query and
+  the exact mechanism question it answers. Otherwise Students should use the
+  Teacher packet, current source, generated workspace entry points, metrics, and
+  logs.
+- Teacher may assign a Student to inspect another Student's source ref when
+  peer code can materially improve the current route. Name the peer ref,
+  mechanism to borrow, and expected adaptation; require a brief peer-mechanism
+  summary before porting, not automatic diff application.
+- Nonzero counters and accepted-delta prove execution, not quality sufficiency.
+  If final HPWL still only weakly improves over OpenROAD default/current elite
+  or is far from the 5% ambition, treat the current mechanism as incomplete or
+  final-effect insufficient and route a stronger chain link or a different HPWL
+  source.
+- Low-yield donor escalation: after one meaningful repair/continuation of a
+  legal donor, weak final-HPWL movement requires at least one next Student on a
+  complete strong-chain reconstruction or alternate start basin.  The packet
+  must include producer/legalizer basin, handoff/frontier payload, DPO consumer,
+  exact acceptance/rollback truth, post-consumer proof target, and counters.
+  Do not fill the roster with guard, late polish, or same-family threshold work.
+- The current best is still an optimization route.  If continued, route it as
+  `elite-expand` with a material donor-on-top mechanism, not preservation:
+  stronger exact consumer, alternate producer/handoff, bounded quality search,
+  runtime compression that enables quality work, or compatible stacking.
+- A case can match multiple feature-level blueprints. Use blueprints as route
   hypotheses or compatible mechanism components, not as a single fixed selector
   or recipe.
 - Label every packet with `route type` and `route action`. If the previous
-  useful results are same-family or tiny-gain, allow at most one `continue`
-  guard/repair route; the other routes should `switch`, `hybridize`, or
-  `mechanism-redesign` with a different producer/consumer mechanism.
-- Guard means a protected donor-development branch, not passive preservation or
-  control-only attribution. Keep the donor/ref as fallback and assign a real
-  donor-on-top mechanism that can materially move final HPWL. The change may be
-  large if it is coherent and bounded: deeper consumer, changed
+  useful results are same-family or tiny-gain, route the current best as
+  `elite-expand` only if it names a stronger mechanism; use `repair` only for
+  implementation or handoff bugs. Other routes should `switch`, `hybridize`,
+  or `mechanism-redesign` with a different producer/consumer mechanism.
+- The current best should not be routed as preservation-only work. Route it as
+  `elite-expansion`: keep the donor/ref recoverable, then make a real
+  donor-on-top mechanism change that can materially move final HPWL. The change
+  may be large if coherent and bounded: deeper consumer, changed
   producer/handoff composition, bounded quality search, runtime rewrite, or
   compatible stacking. Runtime rewrite is useful only when it frees budget for
-  stronger quality search. The packet must name the HPWL source, caps/caches,
-  counters, rollback/fallback guard, and full-flow proof.
+  stronger quality search. The packet must name the HPWL source, mechanism
+  strength, caps/caches, counters, rollback/fallback discipline, and full-flow
+  proof.
 - Route emphasis is not stage exclusion. In each follow-up round, preserve
   compatibility coverage of legalizer-output quality, DPO-consumer strength,
   and handoff/co-optimization. A Student can prioritize one surface; the packet
@@ -77,7 +114,7 @@ and review packet fields needed for routing.
   slots for different HPWL sources: legalizer producer repair, placement
   shaping that preserves downstream recoverability, compact native handoff, or
   a genuinely new bounded DPO move family.
-- Do not continue mirror guard as its own optimization family. If mirror
+- Do not continue mirror preservation as its own optimization family. If mirror
   attribution matters, pair it with a concrete upstream mechanism: an exact DPO
   consumer, selected-segment reorder, accepted-move protection, or handoff
   consumer. Otherwise keep mirroring callable and spend the route on
@@ -85,16 +122,21 @@ and review packet fields needed for routing.
 - After the first wave, prefer same-case mechanism stacking when evidence shows
   real final-HPWL movement: combine a live producer with a consumer, add compact
   handoff to a proven exact move family, or rewrite a strong heavy donor for
-  bounded runtime. Do not spend follow-up routes on mirror-only, guard-only,
-  threshold-only, or another same-basin variant when compatible live mechanisms
-  can be combined.
-- Each non-guard route must say why it can beat a small donor by attacking a
-  larger HPWL source. Same-family follow-up is valid only when it changes the
-  mechanism class, not just thresholds, tie-breaks, counters, or local polish.
+  bounded runtime. Do not spend follow-up routes on mirror-only,
+  preservation-only, threshold-only, or another same-basin variant when
+  compatible live mechanisms can be combined.
+- Each route that is not pure repair must say why it can beat a small donor by
+  attacking a larger HPWL source. Same-family follow-up is valid only when it
+  changes the mechanism class, not just thresholds, tie-breaks, counters, or
+  local polish.
+- Each route, including elite expansion, must include an expected stage-wise
+  proof target: what should happen to `HPWLlg`, `HPWLimprove`, `HPWLfinal`, and
+  which counters should prove the mechanism executed. If the expected proof is
+  only "same final HPWL with lower runtime", it is not a quality route.
 - Encourage coherent mechanism-level source rewrites when justified by Teacher
   evidence and source diagnosis; the constraint is bounded/reviewable/measured,
   not small.
-- Require each non-guard Student to diagnose the current source before coding
+- Require each non-repair Student to diagnose the current source before coding
   and to design an efficient implementation path for the chosen mechanism:
   examples include capped candidate generation, cached/touched-net scoring,
   compact frontier state, affected-net deltas, or parallel independent probes
@@ -113,28 +155,40 @@ and review packet fields needed for routing.
   at most one reconstruction route from valid current-run artifacts, diffs,
   logs, and Student cards, and keep the remaining Students on broad
   producer/handoff/consumer mechanism search.
-- Keep one best donor as regression guard, but do not make every route a donor
-  polish. Tiny-gain, over-cost, or plateau rounds need `mechanism-redesign`,
-  stage co-optimization, or a different legalizer/DPO/handoff hypothesis.
+- Keep useful donor refs as regression guardrails, but do not make every route
+  donor polish. Tiny-gain, over-cost, or plateau rounds need `elite-expand`,
+  `mechanism-redesign`, stage co-optimization, or a different
+  legalizer/DPO/handoff hypothesis.
 - For Differential/LEGALM-style guidance, the target objective itself can be
   heuristic. If logs show zero useful moves, missing frontier consumption, or
   final-HPWL damage after DPO, change the guidance target/weights, stop point,
   handoff payload, or downstream consumer rather than only repeating the same
   objective or discarding the whole guidance family.
-- Keep donor scope explicit: `general donor` means guard/reusable kernel;
+- Keep donor scope explicit: `general donor` means fallback/reusable kernel;
   `feature-matched donor` means selected for this case's physical/stage
   features. Follow-up decisions should optimize this specific case first and
   record transferability as secondary evidence.
 - Weak-gain / over-cost escalation is a review judgment, not a hard field. If
   current-run candidates are legal but tiny-gain, same-family, or too heavy for
-  the HPWL gained, keep at most one guard route and assign at least one
-  aggressive within-run route: switch mechanism family, redesign the
-  producer/consumer pair, or continue from a current-run kept/rejected ref with
-  `25_trial_source.sh begin --from-ref <ref>`.
+  the HPWL gained, preserve useful donor refs for rollback and assign
+  aggressive within-run routes: elite-expand the current best with a stronger
+  mechanism, switch mechanism family, redesign the producer/consumer pair, or
+  continue from a current-run kept/rejected ref with `25_trial_source.sh begin
+  --from-ref <ref>`.
+- If the best legal result is still weak in the visible early iterations, do
+  not wait for many more same-family rounds. Preserve evidence, then assign
+  routes that can access a larger HPWL source: a different legalizer basin,
+  explicit producer-to-DPO handoff, stronger exact DPO consumer, wider but
+  bounded search, or a repaired incomplete strong chain.
 - In plateau rounds, visibly change reachable solution space. At least half of
-  active non-guard Students should switch, hybridize, or redesign a
+  active non-repair Students should switch, hybridize, elite-expand with a
+  stronger mechanism, or redesign a
   legalizer/DPO/handoff family rather than retuning thresholds, counters,
-  guards, or same-basin source-edge variants.
+  preservation wrappers, or same-basin source-edge variants.
+- Multiple Students may pursue the same promising blueprint when they test
+  different source hypotheses, such as different start basins, handoff payloads,
+  consumer objectives, or runtime-compressed implementations.  Do not interpret
+  diversity as forcing every Student onto a weak unrelated micro-route.
 - If assigning a branch/ref switch, name the source ref and new trial label, and
   require trial-helper branch preservation.
 - Prepared starts are branch-only source parents: `framework`, `diamond`,

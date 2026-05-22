@@ -7,12 +7,21 @@ route. Keep the review concise and action-bearing.
   must be clean before a candidate can be promoted.
 - Rank by legal final `metrics.json:hpwl`; use `G_HR` only to explain runtime
   value or runtime-repair priority.
+- When reading `candidate_metrics_summary_md`, use `Headline Versus OpenROAD
+  Default` for OpenROAD-default comparison and 5% ambition tracking. Use
+  `Stage Metrics` only to explain producer/consumer attribution, not to decide
+  whether a candidate beat OpenROAD default.
 - Runtime below the hard budget is not a reason by itself to add work. If a
   candidate is legal but HPWL-poor and baseline-fast, identify the missing HPWL
   source first; route stronger bounded search only when it changes the
   mechanism rather than rewarding runtime use.
 - Identify the real mechanism and whether counters/logs prove it executed. Zero
   counters or stale source/binary/metrics means non-executed/negative evidence.
+- Treat nonzero counters, accept counts, and large accepted-delta as liveness
+  proof only. If legal final HPWL barely moves versus OpenROAD default/current
+  elite or remains far from the 5% ambition, classify the route as
+  final-effect insufficient until the review names the missing producer,
+  handoff, consumer, acceptance, or post-consumer link.
 - Use each knowledge card as the source-to-evidence map. A useful card should
   name changed files/functions, route action, executed counters, stage movement,
   and `Next Teacher Handoff`; vague cards should trigger tighter next-packet
@@ -42,10 +51,11 @@ route. Keep the review concise and action-bearing.
   not another small donor polish.
 - If current-run legal candidates are tiny-gain, same-family, or too heavy for
   the HPWL gained, treat it as a weak-gain/over-cost review signal. The next
-  packets should keep at most one guard donor and include one aggressive
-  within-run route: switch family, redesign producer/consumer composition, or
-  repair a current-run kept/rejected ref with
-  `25_trial_source.sh begin --from-ref <ref>`.
+  packets should preserve useful donor refs for rollback, but route the best
+  line as elite expansion rather than preservation-only work. Include aggressive
+  within-run routes: switch family, redesign producer/consumer composition, or
+  repair a current-run kept/rejected ref with `25_trial_source.sh begin
+  --from-ref <ref>`.
 - If a Student completed one self-diagnosis/strengthening loop and left a
   concrete `Next Teacher Handoff`, continue that workbench only with a new
   source hypothesis; otherwise switch family or redesign composition.
@@ -64,7 +74,25 @@ route. Keep the review concise and action-bearing.
   concise dominant-mechanism plan, adjacent-stage compatibility proof, exact
   function/state handles, runtime tier, liveness counters, and the low-ROI stop
   condition when relevant. Do not require cosmetic edits in every stage.
+- If the current best is continued, its route action should be `elite-expand`
+  and it must name a stronger HPWL mechanism on top of the donor, not only
+  fallback preservation.
+- A best-so-far result that only weakly improves over OpenROAD default/current
+  elite or is still far from the 5% search ambition is not a completion signal.
+  Preserve its source ref, but review it as a platform for the next stronger
+  quality mechanism: deeper producer/consumer composition, explicit handoff,
+  wider bounded exact search, or a redesigned legalizer/DPO interaction.
 - If the next packet set would only polish the same donor family while still
   behind baseline, add one broader new-family route from the observed failure
   mode. The first-round route map or an algorithm card may inspire it, but
   should not be the reason by itself.
+- If a legal donor has already received one meaningful repair/continuation and
+  still produces only weak final-HPWL movement, the review must force at least
+  one next route to rebuild the complete strong chain or switch to an alternate
+  start basin.  The review should name the missing link: producer/legalizer
+  basin, handoff/frontier payload, DPO consumer, exact acceptance/rollback,
+  post-consumer preservation, or runtime bottleneck.
+- Do not let the current best become a frozen guard.  If it remains in the
+  roster, review it as `elite-expand` and require a material HPWL mechanism on
+  top of it.  Multiple Students may target the same promising mechanism family
+  when their source hypotheses differ.

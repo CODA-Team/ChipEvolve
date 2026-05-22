@@ -11,24 +11,26 @@ should act on it.
 2. `workflow/cross_case_experiment_design.md`
 3. `workflow/metric_contract.md`
 4. `case_evolution/case_type_quality_mechanism_priority.md`
-5. `case_evolution/strategy_inspiration_by_design_feature.md`
-6. `case_evolution/runtime_light_final_hpwl_mechanism_priority.md`
-7. `case_evolution/evidence_weighted_mechanism_priority.md`
-8. `case_evolution/fixed_source_replay_transfer_evidence.md` only when
+5. `case_evolution/mechanism_reconstruction_roadmap.md` only after a
+   case-type blueprint is selected
+6. `case_evolution/strategy_inspiration_by_design_feature.md`
+7. `case_evolution/runtime_light_final_hpwl_mechanism_priority.md`
+8. `case_evolution/evidence_weighted_mechanism_priority.md`
+9. `case_evolution/fixed_source_replay_transfer_evidence.md` only when
    Teacher needs provenance or robustness evidence after the mechanism route is
    already selected
-9. `case_evolution/score_based_case_strategy_routing.md`
-10. `case_evolution/dense_evolved_legalizer_routing.md`
-11. `case_evolution/optdp_stage_cooptimization.md`
-12. `../skills/case/legalizer_dpo_handoff_triage.md`
-13. `legalization/algorithm_role_liveness_basics.md`
-14. `dpo/source_level_mechanisms.md`
-15. `dpo/exact_source_edge_recoverability_consumer.md`
-16. `dpo/lightweight_post_dpo_basin.md`
-17. `dpo/frontier_guided_basin_consumer.md`
-18. `dpo/openroad_native_handoff.md`
-19. `case_evolution/micro_gain_trap_and_elite_donors.md`
-20. Relevant LEGALM card under `legalm/` only when changing legalization.
+10. `case_evolution/score_based_case_strategy_routing.md`
+11. `case_evolution/dense_evolved_legalizer_routing.md`
+12. `case_evolution/optdp_stage_cooptimization.md`
+13. `../skills/case/legalizer_dpo_handoff_triage.md`
+14. `legalization/algorithm_role_liveness_basics.md`
+15. `dpo/source_level_mechanisms.md`
+16. `dpo/exact_source_edge_recoverability_consumer.md`
+17. `dpo/lightweight_post_dpo_basin.md`
+18. `dpo/frontier_guided_basin_consumer.md`
+19. `dpo/openroad_native_handoff.md`
+20. `case_evolution/micro_gain_trap_and_elite_donors.md`
+21. Relevant LEGALM card under `legalm/` only when changing legalization.
 
 ## Workflow
 
@@ -62,18 +64,18 @@ should act on it.
   with a proven consumer, and endpoint-level branch scoring only when final HPWL
   improves; it demotes legalize-only wins, guard-only, telemetry-only,
   mirror-only, threshold-only, passive-handoff, and random-tail polishing.
-- `case_evolution/case_type_quality_mechanism_priority.md`: maps observed
-  case/stage features to Teacher route guidance.  It maps design/stage features
-  to prepared start-kind priors, source-family handles, and prioritized
-  reconstruction routes: dense recoverable or row-local basins to
-  Diamond-basin source-edge exact descent, negotiation-compatible basins to
-  hot-segment exact consumer stacks, macro/memory-mixed basins to row-window
-  replay handoff, conflict-heavy layouts to primary legalizer/resource repair,
-  and plateaued same-family routes to producer/consumer redesign.  It also
-  contains minimum implementation steps, real source implementation anchors,
-  validation counters, and partial-route demotion rules so Teacher can ask
-  Students to reconstruct a cumulative mechanism chain rather than only cite an
-  idea or final guard commit.
+- `case_evolution/case_type_quality_mechanism_priority.md`: short case-feature
+  route outline.  It maps stage/design features to prepared start-kind priors
+  and blueprint names.  Teacher should read it first for routing, then open the
+  roadmap below for implementation details.
+- `case_evolution/mechanism_reconstruction_roadmap.md`: detailed
+  implementation roadmap for the blueprints selected by the route outline.  It
+  contains source anchors, implementation order, validation counters, and
+  partial-route demotion rules for source-edge exact DPO, hot-segment exact
+  consumers, row-window replay, top-net target/source repair, recoverable
+  producer/consumer stacks, transactional basin escape, negotiation residual
+  handoff, row-local exact closure, conflict-primary closure, and plateau
+  redesign.
 - `case_evolution/dense_evolved_legalizer_routing.md`: dense-case evidence for
   using `evolved_legalm` as a stage-level legalizer prior, plus Teacher policy
   for first-round diversification and later route switching/hybridization.  This

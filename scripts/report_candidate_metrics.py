@@ -20,6 +20,11 @@ def parse_args() -> argparse.Namespace:
         description="Summarize one candidate run from canonical evaluator artifacts."
     )
     parser.add_argument("--metrics", required=True, type=Path)
+    parser.add_argument(
+        "--reference-metrics",
+        type=Path,
+        help="OpenROAD default-flow metrics.json for headline candidate-vs-default comparison.",
+    )
     parser.add_argument("--output-json", type=Path)
     parser.add_argument("--output-md", type=Path)
     parser.add_argument(
@@ -67,6 +72,12 @@ def fmt_pct(value: float | None, digits: int = 3) -> str:
     if value is None:
         return "missing"
     return f"{value:+.{digits}f}%"
+
+
+def fmt_ratio(value: float | None, digits: int = 3) -> str:
+    if value is None:
+        return "missing"
+    return f"{value:.{digits}f}x"
 
 
 def last_float(pattern: str, text: str) -> float | None:
@@ -204,7 +215,11 @@ def summarize_log_counters(log_path: Path | None, limit: int) -> list[str]:
     return lines
 
 
-def build_summary(metrics_path: Path, limit_log_counters: int) -> dict[str, Any]:
+def build_summary(
+    metrics_path: Path,
+    limit_log_counters: int,
+    reference_metrics_path: Path | None = None,
+) -> dict[str, Any]:
     data = load_json(metrics_path)
     if not data:
         raise SystemExit(f"[ERROR] failed to parse metrics json: {metrics_path}")
@@ -224,6 +239,12 @@ def build_summary(metrics_path: Path, limit_log_counters: int) -> dict[str, Any]
     stages = hpwl_stage_summary(metrics_path, data, hpwl)
     log_path = resolve_path(metrics_path.parent, hpwl.get("log"))
     counter_lines = summarize_log_counters(log_path, limit_log_counters)
+    headline = headline_vs_openroad_default(
+        metrics_path=metrics_path,
+        candidate_hpwl=as_float(hpwl.get("after_micron")),
+        candidate_runtime=as_float(data.get("runtime_seconds")),
+        reference_metrics_path=reference_metrics_path,
+    )
 
     violations = str(legality.get("placement_violations", ""))
     legality_status = "clean" if violations.strip() == "" else violations
@@ -244,6 +265,7 @@ def build_summary(metrics_path: Path, limit_log_counters: int) -> dict[str, Any]
             "max_displacement_micron": as_float(disp.get("max_displacement_micron")),
             "legality": legality_status,
         },
+        "headline_vs_openroad_default": headline,
         "stages": stages,
         "paths": {
             "metrics_json": str(metrics_path),
@@ -281,8 +303,134 @@ def build_summary(metrics_path: Path, limit_log_counters: int) -> dict[str, Any]
     return summary
 
 
+def headline_vs_openroad_default(
+    *,
+    metrics_path: Path,
+    candidate_hpwl: float | None,
+    candidate_runtime: float | None,
+    reference_metrics_path: Path | None = None,
+) -> dict[str, Any]:
+    """Return the paper-style candidate-vs-default comparison for this case.
+
+    Stage deltas explain how the detailed-placement flow changed HPWL from the
+    input global placement.  They are not the headline improvement metric.  The
+    headline comparison is against the OpenROAD default final HPWL for the same
+    case and flow variant, which is available as a sibling baseline-probe run.
+    """
+    result: dict[str, Any] = {
+        "reference_line": "openroad_dpl_flow",
+        "reference_metrics_json": None,
+        "reference_final_hpwl_micron": None,
+        "reference_runtime_seconds": None,
+        "delta_hpwl_micron": None,
+        "delta_hpwl_percent": None,
+        "hpwl_reduction_percent": None,
+        "runtime_ratio": None,
+        "status": "missing_reference",
+    }
+    if candidate_hpwl is None:
+        result["status"] = "missing_candidate_hpwl"
+        return result
+
+    if reference_metrics_path is not None and reference_metrics_path.is_file():
+        payload = load_json(reference_metrics_path)
+        baseline_hpwl = canonical_hpwl(payload or {})
+        baseline_after = as_float(baseline_hpwl.get("after_micron"))
+        baseline_runtime = as_float((payload or {}).get("runtime_seconds"))
+        if baseline_after is not None:
+            return headline_from_reference(
+                baseline_path=reference_metrics_path,
+                baseline_after=baseline_after,
+                baseline_runtime=baseline_runtime,
+                candidate_hpwl=candidate_hpwl,
+                candidate_runtime=candidate_runtime,
+            )
+
+    baseline_root = metrics_path.parent.parent
+    if not baseline_root.is_dir():
+        return result
+
+    candidates: list[tuple[float, Path, dict[str, Any], dict[str, Any]]] = []
+    for path in baseline_root.glob("*baseline_probe_openroad_dpl_flow/metrics.json"):
+        if "_student_" in path.parent.name or "_iter_" in path.parent.name:
+            continue
+        payload = load_json(path)
+        if not payload:
+            continue
+        baseline_hpwl = canonical_hpwl(payload)
+        baseline_after = as_float(baseline_hpwl.get("after_micron"))
+        if baseline_after is None:
+            continue
+        try:
+            mtime = path.stat().st_mtime
+        except OSError:
+            mtime = 0.0
+        candidates.append((mtime, path, payload, baseline_hpwl))
+
+    if not candidates:
+        return result
+
+    _mtime, baseline_path, baseline_payload, baseline_hpwl = sorted(candidates)[-1]
+    baseline_after = as_float(baseline_hpwl.get("after_micron"))
+    baseline_runtime = as_float(baseline_payload.get("runtime_seconds"))
+    if baseline_after is None:
+        return result
+    return headline_from_reference(
+        baseline_path=baseline_path,
+        baseline_after=baseline_after,
+        baseline_runtime=baseline_runtime,
+        candidate_hpwl=candidate_hpwl,
+        candidate_runtime=candidate_runtime,
+    )
+
+
+def headline_from_reference(
+    *,
+    baseline_path: Path,
+    baseline_after: float,
+    baseline_runtime: float | None,
+    candidate_hpwl: float,
+    candidate_runtime: float | None,
+) -> dict[str, Any]:
+    result: dict[str, Any] = {
+        "reference_line": "openroad_dpl_flow",
+        "reference_metrics_json": None,
+        "reference_final_hpwl_micron": None,
+        "reference_runtime_seconds": None,
+        "delta_hpwl_micron": None,
+        "delta_hpwl_percent": None,
+        "hpwl_reduction_percent": None,
+        "runtime_ratio": None,
+        "status": "missing_reference",
+    }
+    result.update(
+        {
+            "reference_metrics_json": str(baseline_path),
+            "reference_final_hpwl_micron": baseline_after,
+            "reference_runtime_seconds": baseline_runtime,
+        }
+    )
+    if baseline_after == 0.0:
+        return result
+
+    delta = candidate_hpwl - baseline_after
+    delta_pct = delta / baseline_after * 100.0
+    result.update(
+        {
+            "delta_hpwl_micron": delta,
+            "delta_hpwl_percent": delta_pct,
+            "hpwl_reduction_percent": -delta_pct,
+            "status": "ok",
+        }
+    )
+    if baseline_runtime not in (None, 0.0) and candidate_runtime not in (None, 0.0):
+        result["runtime_ratio"] = candidate_runtime / baseline_runtime
+    return result
+
+
 def render_markdown(summary: dict[str, Any]) -> str:
     canonical = summary["canonical"]
+    headline = summary.get("headline_vs_openroad_default") or {}
     stages = summary["stages"]
     paths = summary["paths"]
     lines = [
@@ -293,13 +441,29 @@ def render_markdown(summary: dict[str, Any]) -> str:
         f"- engine: `{summary.get('engine')}`",
         f"- legality: `{canonical.get('legality')}`",
         f"- final_hpwl_micron: `{fmt_float(canonical.get('final_hpwl_micron'), 3)}`",
-        f"- hpwl_delta_micron: `{fmt_float(canonical.get('hpwl_delta_micron'), 3)}`",
-        f"- hpwl_delta_percent: `{fmt_pct(canonical.get('hpwl_delta_percent'), 3)}`",
         f"- runtime_seconds: `{fmt_float(canonical.get('runtime_seconds'), 3)}`",
         f"- avg_displacement_micron: `{fmt_float(canonical.get('avg_displacement_micron'), 4)}`",
         f"- max_displacement_micron: `{fmt_float(canonical.get('max_displacement_micron'), 4)}`",
         "",
+        "## Headline Versus OpenROAD Default",
+        "",
+        "Use this section for OpenROAD-default comparison and keep/reject judgment. "
+        "Stage deltas below are diagnostic only.",
+        "",
+        f"- reference_line: `{headline.get('reference_line', 'openroad_dpl_flow')}`",
+        f"- reference_final_hpwl_micron: `{fmt_float(headline.get('reference_final_hpwl_micron'), 3)}`",
+        f"- reference_runtime_seconds: `{fmt_float(headline.get('reference_runtime_seconds'), 3)}`",
+        f"- delta_hpwl_vs_default_micron: `{fmt_float(headline.get('delta_hpwl_micron'), 3)}`",
+        f"- delta_hpwl_vs_default_percent: `{fmt_pct(headline.get('delta_hpwl_percent'), 3)}`",
+        f"- hpwl_reduction_vs_default_percent: `{fmt_pct(headline.get('hpwl_reduction_percent'), 3)}`",
+        f"- runtime_ratio_vs_default: `{fmt_ratio(headline.get('runtime_ratio'), 3)}`",
+        f"- headline_status: `{headline.get('status', 'missing_reference')}`",
+        "",
         "## Stage Metrics",
+        "",
+        "These deltas are within this candidate flow from global/input HPWL to "
+        "legalize/improve/final HPWL. Do not use them as the headline default "
+        "comparison.",
         "",
         f"- HPWLg: `{fmt_float(stages.get('global_micron'), 3)}`",
         f"- HPWLlg: `{fmt_float(stages.get('legalized_micron'), 3)}`",
@@ -311,6 +475,8 @@ def render_markdown(summary: dict[str, Any]) -> str:
         f"- delta_HPWL_legalization_percent: `{fmt_pct(stages.get('delta_legalization_percent'), 3)}`",
         f"- delta_HPWL_improve_percent: `{fmt_pct(stages.get('delta_improve_percent'), 3)}`",
         f"- delta_HPWL_final_percent: `{fmt_pct(stages.get('delta_final_percent'), 3)}`",
+        f"- flow_internal_delta_hpwl_micron: `{fmt_float(canonical.get('hpwl_delta_micron'), 3)}`",
+        f"- flow_internal_delta_hpwl_percent: `{fmt_pct(canonical.get('hpwl_delta_percent'), 3)}`",
         "",
         "## Canonical Paths",
         "",
@@ -336,7 +502,12 @@ def main() -> int:
         print(f"[ERROR] metrics json not found: {metrics_path}", file=sys.stderr)
         return 2
 
-    summary = build_summary(metrics_path, args.limit_log_counters)
+    reference_metrics_path = args.reference_metrics.resolve() if args.reference_metrics else None
+    summary = build_summary(
+        metrics_path,
+        args.limit_log_counters,
+        reference_metrics_path=reference_metrics_path,
+    )
     if args.output_json:
         args.output_json.parent.mkdir(parents=True, exist_ok=True)
         args.output_json.write_text(

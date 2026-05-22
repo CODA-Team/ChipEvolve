@@ -18,16 +18,32 @@
 
 - A candidate is not promotable if build/evaluator failed, metrics are missing, diff is missing/empty, agent message is missing, legality failed, source/binary/metrics are stale, or the DPL flow timed out.
 - Rank promotable candidates by legal final `metrics.json:hpwl`. Ignore bbox/proxy HPWL for promotion.
+- When reading `candidate_metrics_summary_md`, use `Headline Versus OpenROAD
+  Default` for OpenROAD-default comparison and 5% ambition tracking. Treat
+  `Stage Metrics` / `flow_internal_delta_*` as attribution only; a large
+  `HPWLg -> HPWLfinal` delta is not evidence that the candidate beat the
+  OpenROAD default final HPWL.
 - Review with a high-ambition prior: a case that remains far below 5% final
   HPWL reduction is not solved. Preserve useful donors, but the next plan must
   include aggressive mechanism-level attempts unless evidence proves the search
   surface is exhausted.
+- If the visible early iterations are weak or remain far below the matched
+  case-type potential, review this as a search-loop problem unless a strong
+  mechanism route is still executing. Diagnose the missing HPWL source before
+  writing the next plan: producer/legalizer, handoff/frontier, DPO
+  move/scoring/acceptance, post-consumer polish, runtime bottleneck, or
+  incomplete chain reconstruction.
 - Use `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref - P(runtime_sol / runtime_ref), where P(r)=0 for r <= 1.10 and P(2.0)=1.0 percentage point` only to explain runtime value and repair priority. A faster worse-HPWL candidate is not the headline elite unless lower-HPWL candidates fail validity gates.
 - Treat runtime and displacement as diagnostics: controlled cost, under-exploration, fixable implementation cost, or unsupported work. Do not over-reward baseline-like runtime that avoids a needed HPWL mechanism; when a legal candidate stays far under budget and HPWL is weak, first identify the missing HPWL source, then route a stronger bounded mechanism if justified.
 
 ## Review Focus
 
 - Identify the real executed mechanism, not only the claimed mechanism. Zero counters or stale artifacts mean non-executed/negative evidence even if inherited code produced acceptable metrics.
+- Treat nonzero counters, accept counts, and large accepted-delta as liveness
+  proof only. If legal final HPWL barely moves versus OpenROAD default/current
+  elite or remains far from the 5% ambition, classify the route as
+  final-effect insufficient until the review names the missing producer,
+  handoff, consumer, acceptance, or post-consumer link.
 - Use the knowledge card as a source-to-evidence map. Prefer cards that name
   changed files/functions, route action, executed counters, stage movement, and
   `Next Teacher Handoff`; treat vague cards as incomplete review evidence even
@@ -36,11 +52,16 @@
 - Treat `reject` as "not the final candidate for this trial", not as automatic method death. Inspect the source diff, counters, stage movement, and logs before deciding whether the failure is implementation, handoff/composition, or method-level.
 - Attribute stage movement across legalization, improve placement/DPO, handoff,
   final mirror contribution, runtime, and counters. Treat mirror contribution
-  as diagnostic/support evidence; do not promote a mirror-only guard as a
+  as diagnostic/support evidence; do not promote mirror-only preservation as a
   standalone optimization mechanism.
+- For every promising or weak candidate, answer: did final HPWL movement come
+  from the mechanism the Student intended? If not, classify whether the claimed
+  mechanism was non-live, only stage-local, erased downstream, too shallow, or
+  missing a chain link. Use this answer to route the next mechanism, not only
+  to rank candidates.
 - Classify each result as `final donor`, `stage donor`, `active mechanism workbench`, `validated-low-ROI`, `non-executed route`, or `negative evidence`.
 - Also classify donor scope when useful: `general donor` if it is a reusable
-  guard/kernel, or `feature-matched donor` if it appears useful because this
+  fallback/kernel, or `feature-matched donor` if it appears useful because this
   design has matching density, row-fragmentation, conflict, macro-edge, or DPO
   recoverability features.
 - Preserve stage donors when downstream erases a gain; the next route should repair the consumer/handoff rather than discard the producer mechanism.
@@ -59,31 +80,30 @@
 - If multiple Students have identical stage-wise tuples or fall back to the
   same start-basin HPWL, treat that as evidence the assigned variants did not
   change the reachable solution space. Do not route another main plan to
-  frontier retune, guard parity, or liveness-only edits; require a mechanism
+  frontier retune, fallback parity, or liveness-only edits; require a mechanism
   that changes producer policy, consumer acceptance/move family, or their
   composition.
 - Separate algorithmic failure from implementation cost: timeout, broad untargeted scans, low accept rate, legality rejects, fallback domination, duplicate endpoint work, weak cache reuse, or missing parallelism.
 - If current-run legal candidates are tiny-gain, same-family, or too heavy for
   the HPWL gained, diagnose whether the issue is implementation cost,
   producer/consumer composition, or a weak mechanism. The next plan should
-  preserve at most one guard and include a more aggressive within-run route:
+  preserve useful donor refs for rollback and include more aggressive
+  within-run routes: elite-expand the current best with a stronger mechanism,
   switch family, redesign the mechanism, or repair a current-run kept/rejected
   ref with `25_trial_source.sh begin --from-ref <ref>`.
 - If a candidate only changes mirror/orientation behavior, classify it as
   support evidence unless it preserves a named accepted DPO/reorder/handoff
   mechanism and final HPWL improves. Next plans should not allocate a primary
-  route to mirror-only guard; pair mirror work with an upstream producer or DPO
+  route to mirror-only preservation; pair mirror work with an upstream producer or DPO
   consumer, or drop it.
-- A guard route is a protected donor-development experiment, not permission for
-  no-op rerun, control-only attribution, or tiny polish. Guard can validly make
-  large coherent quality changes on top of the donor if the original donor/ref
-  remains recoverable and the new source has rollback, counters, and full-flow
-  evidence. Efficiency work is useful only when it frees time for a stronger
-  search on the same donor path. If repeated increments
+- The best route should be reviewed as elite expansion, not preservation-only work.
+  Preserving the donor/ref is fallback discipline only. If the best-line work
+  does not attempt a stronger HPWL mechanism, classify it as under-explored
+  even if it preserves quality. Efficiency work is useful only when it frees
+  budget for a stronger search on the same donor path. If repeated increments
   stay flat or only change a tiny cap, threshold, telemetry, or parity fastpath
-  while runtime headroom remains, classify it as under-explored guard evidence
-  and route next to a deeper donor-on-top quality branch or a different
-  producer/handoff/consumer family.
+  while runtime headroom remains, route next to a deeper donor-on-top quality
+  branch or a different producer/handoff/consumer family.
 - When current-case mechanisms have nonzero counters and improve final HPWL,
   route follow-up toward compatible stacking or runtime repair of those
   mechanisms before assigning more same-basin threshold variants. Stacking must
@@ -97,6 +117,12 @@
   reproduces part of a stronger producer-handoff-consumer pattern, name the
   missing producer, handoff, move family, acceptance rule, or post-consumer
   polish instead of declaring the family exhausted.
+- When review sees an incomplete strong chain, the next plan should repair or
+  complete the missing link before abandoning the case-type route. Examples:
+  legalizer created a frontier but DPO did not consume it; DPO probed but
+  accepted zero moves; exact accepts happened but post-consumer polish erased or
+  failed to preserve gains; runtime caps stopped before the quality source was
+  reached.
 - When a next route switches parent/ref, name the current-run source ref, new
   trial label, and preservation expectation.
 
@@ -108,6 +134,10 @@
   knowledge/algorithm handle only as inspiration or a risk check when it helps
   explain the route; if source evidence is sufficient, say `none needed`.
 - Each next route needs one primary HPWL-source hypothesis, a minimal first-patch landing zone, concise dominant-mechanism plan, adjacent-stage compatibility proof, runtime tier, liveness counters, expected metric proof, and a stop/pivot rule. Usually give 1-3 primary handles and at most 2 support handles.
+- For each next route, include `expected HPWL source`, `mechanism strength`,
+  and `stage-wise proof target`. The proof target must be concrete enough that
+  the next review can tell whether the route reached the intended source of
+  quality improvement.
 - Review whether the route mix is too narrow. If all next routes would polish
   one donor family while the case still trails baseline, require one broader
   new-family route justified by the observed failure mode. Knowledge cards may
@@ -129,5 +159,5 @@
   polishing.
 - Under-exploration is a review failure mode: if candidates are fast and weak,
   require one controlled-runtime route against a materially larger HPWL source,
-  not another guard-only or same-family threshold variant.
+  not another preservation-only or same-family threshold variant.
 - Keep next packets concise and non-accumulative. Replace stale guidance with the current mechanism decision.

@@ -41,8 +41,10 @@ Primary flow:
    - `$trial_source_script begin --label <short-mechanism>`
    - repair a prior kept/rejected ref when assigned: `$trial_source_script begin --label <repair-name> --from-ref <ref>`
    - start the first real trial as soon as the current mechanism path is clear; do not spend long in pre-edit diagnosis
+   - before editing, state the HPWL-source hypothesis: expected producer, handoff, DPO consumer, post-consumer, or composition gain; why the mechanism is strong enough; and what stage/counter proof should change
    - edit source, then run `$build_variant_script` and `$evaluate_candidate_script`
-   - read `$candidate_metrics_summary_md`, self-diagnose the first result, make one strengthened modification, then rerun `$build_variant_script` and `$evaluate_candidate_script`
+   - read `$candidate_metrics_summary_md`; self-diagnose whether HPWL movement came from the intended source, using actual DPL log counters when the summary cannot prove liveness, accept/reject behavior, stop reason, or mechanism-local runtime
+   - if weak with runtime headroom, make one strengthened modification toward the missing quality source, then rerun `$build_variant_script` and `$evaluate_candidate_script`
    - if the strengthened result still needs follow-up, write `## Next Teacher Handoff` in `$knowledge_card`
    - decide keep/reject only after the strengthened evaluation, unless the first result proves no plausible repair exists
    - rejected path: `$trial_source_script reject --reason <why-rejected>`
@@ -54,7 +56,9 @@ Primary flow:
 Optional helpers:
 
 - status/refs: `$source_status_script`
-- peer mechanism diff only: `$fetch_peer_source_script --peer-repo <repo> --peer-ref <ref> --label <name>`
+- peer mechanism diff only when Teacher assigns a peer Student mechanism or a
+  concrete donor comparison is needed:
+  `$fetch_peer_source_script --peer-repo <repo> --peer-ref <ref> --label <name>`
 - switch prepared start after prepare: `$switch_start_branch_script --kind <kind>`
 - source context: `$source_context_script <src/...> [symbol]`
 - knowledge query, only when Teacher names a card/skill, the mechanism role is
@@ -70,9 +74,15 @@ For Diamond/negotiation/LEGALM/Differential Guidance mixtures, query
 `--stage legalization --q "diamond negotiation differential guidance liveness"`
 before editing and keep producer/consumer counters aligned with the route role.
 
+If Teacher assigns a case-type blueprint, use these handles only for the
+assigned mechanism section rather than broad reading:
+
+- focused matched blueprint packet: `$optional_matched_blueprint_packet`
+
 Run helpers that mutate the private source repo serially. Parallel reads are OK.
 `fetch_peer_source_script` fetches a local `peer/<label>` ref and writes diff
-artifacts; it does not modify your working tree.
+artifacts; it does not modify your working tree. Summarize the peer idea before
+porting it, and port the mechanism deliberately rather than auto-applying diffs.
 `trial_source_script` is the safe checkpoint/keep/reject state machine; reject
 preserves the rejected branch and leaves rejected code checked out on the dev
 branch so the final diff still records this iteration's edits. Teacher can
@@ -94,6 +104,10 @@ to change the dev starting point.
 - If a live/correct mechanism remains extremely low ROI after a meaningful
   repair attempt, record `validated-low-ROI`, preserve the rejected branch or
   clean checkpoint, and pivot to a different HPWL source.
+- For the protected best-so-far source, preservation is fallback discipline
+  only. Treat the trial as elite expansion: keep rollback available, but use
+  the iteration to attack a larger final-HPWL source rather than only guarding
+  or retuning the donor.
 - New algorithms or handoff paths should emit compact counters/logs for
   producer/consumer liveness, accept/reject behavior, HPWL movement, and
   pass/runtime cost.
@@ -106,6 +120,9 @@ to change the dev starting point.
 - Fill the knowledge card as a source-to-evidence map: route action, changed
   files/functions, mechanism class, counters/logs, stage metrics, rejected
   refs, and `## Next Teacher Handoff` when follow-up is needed.
+- The knowledge card should also state expected HPWL source, mechanism
+  strength, stage-wise proof target, measured HPWL-source attribution, and
+  whether the first result came from the intended mechanism.
 - Resolve ordinary code uncertainty with targeted source inspection of nearby
   implementations, call sites, or assigned donor refs. If still ambiguous,
   choose the simplest coherent implementation of the assigned mechanism; do not
@@ -122,10 +139,12 @@ to change the dev starting point.
   contract stable; do not edit `src/Opendp.i` unless Teacher explicitly assigns
   command-interface work.
 - After the first legal evaluator result, do not finalize immediately. Diagnose
-  the bottleneck from metrics/logs/counters, make one strengthened modification,
-  and re-evaluate before keep/finalize. Close the active trial before broader
-  donor reading; use broader knowledge only when current evidence shows the
-  assigned hypothesis is low-ROI or wrong.
+  the bottleneck from metrics/logs/counters, including actual DPL log lines when
+  needed to prove liveness, accept/reject causes, stop reason, or
+  mechanism-local runtime. Make one strengthened modification and re-evaluate
+  before keep/finalize. Close the active trial before broader donor reading; use
+  broader knowledge only when current evidence shows the assigned hypothesis is
+  low-ROI or wrong.
 
 ## Report Fields
 

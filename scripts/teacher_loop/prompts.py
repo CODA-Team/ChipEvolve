@@ -32,6 +32,7 @@ from scripts.teacher_loop.evidence import (
     candidate_artifact_status_text,
     child_artifact_status_block,
     design_characteristics_block,
+    discover_case_metrics,
     discover_round_candidate_metrics,
     expected_metrics_path,
     hpwl_runtime_gain,
@@ -39,6 +40,7 @@ from scripts.teacher_loop.evidence import (
     metric_table,
     operation_artifact_block,
     parse_candidate_tag,
+    runtime_ratio,
     stage_donor_signal,
     summarize_metrics,
     value_reference_anchor,
@@ -318,6 +320,12 @@ def peer_briefing(
                 run_tag=run_tag,
             )
         )
+    if not baseline_metrics.get("openroad_dpl_flow"):
+        baseline_metrics = discover_case_metrics(
+            orfs_root=runtime.orfs_root,
+            case_id=case_id,
+            flow_variant=flow_variant,
+        )
     _baseline_label, baseline = value_reference_anchor(baseline_metrics)
     metrics_by_student: dict[str, MetricSummary] = {}
     invalid_rows: list[tuple[str, MetricSummary, list[str]]] = []
@@ -392,6 +400,18 @@ def peer_briefing(
         gain_text = "" if gain_factors is None else f"{gain_factors['score']:.3f}"
         h_text = "" if gain_factors is None else f"{gain_factors['H']:.4f}"
         r_text = "" if gain_factors is None else f"{gain_factors['R']:.4f}"
+        delta_vs_ref = (
+            None
+            if baseline is None
+            or baseline.hpwl_after is None
+            or summary.hpwl_after is None
+            else summary.hpwl_after - baseline.hpwl_after
+        )
+        delta_vs_ref_text = "" if delta_vs_ref is None else f"{delta_vs_ref:.3f}"
+        runtime_ratio_value = runtime_ratio(summary, baseline)
+        runtime_ratio_text = (
+            "" if runtime_ratio_value is None else f"{runtime_ratio_value:.2f}x"
+        )
         stage_pct = " / ".join(
             [
                 "lg:"
@@ -416,7 +436,8 @@ def peer_briefing(
         )
         lines.append(
             "- {student} ({label}): analysis G_HR `{score}` HPWL_gain/runtime_penalty_pp `{h}/{r}`, "
-            "HPWL `{hpwl}`, runtime `{runtime_s}`, "
+            "HPWL `{hpwl}`, delta_vs_default `{delta_vs_ref}`, runtime `{runtime_s}` "
+            "({runtime_ratio}), "
             "avg/max disp `{avg_disp}/{max_disp}`, legality `{violations}`; "
             "stage `{stage_pct}`, signal `{signal}`".format(
                 student=student_id,
@@ -425,7 +446,9 @@ def peer_briefing(
                 h=h_text,
                 r=r_text,
                 hpwl=hpwl,
+                delta_vs_ref=delta_vs_ref_text,
                 runtime_s=runtime_s,
+                runtime_ratio=runtime_ratio_text,
                 avg_disp=avg_disp,
                 max_disp=max_disp,
                 violations=violations,
@@ -516,6 +539,7 @@ def write_teacher_routing_context(
     round_id: str,
     iteration: int,
     full_context_path: Path,
+    matched_blueprint_packet_path: Path,
     manual_teacher_guidance_path: Path | None = None,
 ) -> Path:
     context_dir = iteration_dir / "context"
@@ -531,6 +555,7 @@ def write_teacher_routing_context(
             round_id=round_id,
             iteration_name=iter_name(iteration),
             full_context_path=full_context_path,
+            matched_blueprint_packet_path=matched_blueprint_packet_path,
             manual_teacher_guidance_path=(
                 manual_teacher_guidance_path
                 if manual_teacher_guidance_path is not None
@@ -576,6 +601,338 @@ def build_packet(
     return packet_dir / "current_run_packet.md"
 
 
+BLUEPRINT_NAMES = {
+    "A": "Diamond-Basin Source-Edge Exact DPO",
+    "B": "Negotiation-Start Hot-Segment Exact Consumer Stack",
+    "C": "Wrapper/Macro Row-Window Replay And Handoff",
+    "D": "Top-Net Target-Source Repair And Mirror-Dependency Hybrid",
+    "E": "Recoverable Producer Plus Hot-Segment Exact Consumer",
+    "F": "Adaptive Transactional Basin Gain-Rate",
+    "G": "Negotiation-Compatible Residual Transaction Handoff",
+    "H": "Row-Local Or Edge-Local Exact Closure",
+    "I": "Conflict-Primary Legal Closure With DPO Consumer",
+    "J": "Plateau Escape By Mechanism Redesign",
+}
+
+
+def _float_value(value: Any) -> float | None:
+    try:
+        if value is None or value == "":
+            return None
+        value = float(value)
+    except (TypeError, ValueError):
+        return None
+    if math.isnan(value) or math.isinf(value):
+        return None
+    return value
+
+
+def _read_json(path: Path) -> dict[str, Any]:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _markdown_section(text: str, heading_prefix: str) -> str:
+    lines = text.splitlines()
+    start: int | None = None
+    for idx, line in enumerate(lines):
+        if line.startswith(heading_prefix):
+            start = idx
+            break
+    if start is None:
+        return ""
+    end = len(lines)
+    for idx in range(start + 1, len(lines)):
+        line = lines[idx]
+        if line.startswith("## ") and not line.startswith("### "):
+            end = idx
+            break
+    return "\n".join(lines[start:end]).strip()
+
+
+def _outline_row(outline_text: str, letter: str) -> str:
+    marker = f"`{letter}."
+    for line in outline_text.splitlines():
+        if marker in line:
+            cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+            if len(cells) >= 5:
+                return "\n".join(
+                    [
+                        f"- observed feature pattern: {cells[0]}",
+                        f"- primary blueprint: {cells[1]}",
+                        f"- preferred start basin: {cells[2]}",
+                        f"- first Student assignment: {cells[3]}",
+                        f"- proof target: {cells[4]}",
+                    ]
+                )
+            return line
+    return f"- blueprint: `{letter}. {BLUEPRINT_NAMES.get(letter, '')}`"
+
+
+def _add_blueprint_score(
+    scores: dict[str, tuple[float, list[str]]],
+    letter: str,
+    score: float,
+    reason: str,
+) -> None:
+    current, reasons = scores.get(letter, (0.0, []))
+    reasons.append(reason)
+    scores[letter] = (current + score, reasons)
+
+
+def matched_blueprints_for_case(
+    *,
+    case_id: str,
+    flow_variant: str,
+    metrics: dict[str, MetricSummary | None],
+    iteration: int,
+) -> list[tuple[str, float, list[str]]]:
+    """Return feature-matched blueprints using only current case evidence.
+
+    This is a context filter, not a selector that constrains Teacher.  It keeps
+    the prompt focused by surfacing likely route blueprints first; Teacher can
+    still open the full outline when the focused packet is insufficient.
+    """
+    anchor_label, anchor = value_reference_anchor(metrics)
+    anchor_data = _read_json(anchor.metrics_path) if anchor is not None else {}
+    design = anchor_data.get("design_metrics", {})
+    disp = anchor_data.get("displacement", {})
+    summary_data = (
+        _read_json(anchor.metrics_path.parent / "legalize_summary.json")
+        if anchor is not None
+        else {}
+    )
+    fixed_count = _float_value(summary_data.get("fixed_instance_count"))
+    placed_count = _float_value(summary_data.get("placed_instance_count"))
+    utilization = _float_value(design.get("utilization"))
+    movable = _float_value(disp.get("movable_instance_count"))
+    runtime = _float_value(anchor.runtime_seconds if anchor is not None else None)
+    lg_pct = _float_value(
+        anchor.hpwl_stage_delta_legalization_percent if anchor is not None else None
+    )
+    ip_pct = _float_value(
+        anchor.hpwl_stage_delta_improve_percent if anchor is not None else None
+    )
+    final_pct = _float_value(
+        anchor.hpwl_stage_delta_final_percent if anchor is not None else None
+    )
+    negotiation = metrics.get("openroad_dpl_negotiation")
+    negotiation_clean = negotiation is not None and negotiation.hpwl_after is not None
+    case_text = f"{case_id} {flow_variant}".lower()
+
+    recoverable = ip_pct is not None and ip_pct <= -1.0
+    strong_recoverable = ip_pct is not None and ip_pct <= -3.0
+    legal_worse = lg_pct is not None and lg_pct >= 0.2
+    legal_inflated = lg_pct is not None and lg_pct >= 0.8
+    stable_legal = lg_pct is not None and abs(lg_pct) <= 0.5
+    low_or_mid_util = utilization is not None and utilization <= 0.65
+    dense = utilization is not None and utilization >= 0.65
+    large_row_rich = (movable is not None and movable >= 50000) or (
+        runtime is not None and runtime >= 25.0
+    )
+    many_fixed = fixed_count is not None and fixed_count >= 50
+    hierarchy_or_macro_hint = many_fixed or any(
+        token in case_text for token in ("wrapper", "macro", "sram", "memory", "bp")
+    )
+    conflict_hint = any(
+        token in case_text for token in ("cut", "band", "fragment", "scarce")
+    )
+
+    scores: dict[str, tuple[float, list[str]]] = {}
+    if stable_legal and (low_or_mid_util or recoverable):
+        _add_blueprint_score(
+            scores,
+            "A",
+            4.0,
+            "stable legalization with remaining improve-placement/source-edge opportunity",
+        )
+    if stable_legal and not large_row_rich:
+        _add_blueprint_score(
+            scores,
+            "H",
+            2.5,
+            "stable legal basin suggests row-local or edge-local exact closure",
+        )
+    if negotiation_clean and (recoverable or large_row_rich or legal_worse):
+        _add_blueprint_score(
+            scores,
+            "B",
+            3.5,
+            "negotiation-compatible baseline exists and downstream recovery is plausible",
+        )
+    if negotiation_clean and (legal_worse or large_row_rich):
+        _add_blueprint_score(
+            scores,
+            "G",
+            3.0,
+            "negotiation/resource-aware closure may need residual transaction handoff",
+        )
+    if hierarchy_or_macro_hint:
+        _add_blueprint_score(
+            scores,
+            "C",
+            3.0,
+            "fixed/hierarchical or macro-like structure suggests row-window replay",
+        )
+    if dense and (legal_worse or recoverable):
+        _add_blueprint_score(
+            scores,
+            "E",
+            4.0,
+            "dense pressure with DPO recovery suggests recoverable producer plus exact consumer",
+        )
+    if dense or legal_inflated:
+        _add_blueprint_score(
+            scores,
+            "D",
+            2.5,
+            "dense/high-impact residue may need target-source repair before mirror protection",
+        )
+    if strong_recoverable and (runtime is None or runtime < 120.0):
+        _add_blueprint_score(
+            scores,
+            "F",
+            2.0,
+            "strong improve-stage recovery and runtime headroom can justify bounded basin search",
+        )
+    if conflict_hint or (legal_inflated and negotiation_clean):
+        _add_blueprint_score(
+            scores,
+            "I",
+            2.5,
+            "conflict or inflated legalization suggests conflict-primary closure plus DPO consumer",
+        )
+    if iteration > 1 and (
+        final_pct is None or final_pct > -5.0 or len(scores) <= 2
+    ):
+        _add_blueprint_score(
+            scores,
+            "J",
+            1.5,
+            "follow-up route may need plateau escape if same-family gains stay small",
+        )
+
+    if not scores:
+        _add_blueprint_score(
+            scores,
+            "A",
+            1.0,
+            f"fallback focused route because `{anchor_label or 'baseline'}` lacks a clear feature match",
+        )
+        _add_blueprint_score(
+            scores,
+            "J",
+            0.5,
+            "fallback redesign route if first evidence shows same-family plateau",
+        )
+
+    ranked = sorted(
+        ((letter, score, reasons) for letter, (score, reasons) in scores.items()),
+        key=lambda row: (-row[1], row[0]),
+    )
+    return ranked[:4]
+
+
+def write_matched_blueprint_packet(
+    *,
+    path: Path,
+    agent_root: Path,
+    case_id: str,
+    flow_variant: str,
+    metrics: dict[str, MetricSummary | None],
+    iteration: int,
+) -> Path:
+    """Write a focused packet with only case-matched blueprint roadmaps."""
+    outline_path = (
+        agent_root
+        / "knowledge"
+        / "insights"
+        / "case_evolution"
+        / "case_type_quality_mechanism_priority.md"
+    )
+    roadmap_path = (
+        agent_root
+        / "knowledge"
+        / "insights"
+        / "case_evolution"
+        / "mechanism_reconstruction_roadmap.md"
+    )
+    outline_text = outline_path.read_text(encoding="utf-8", errors="replace")
+    roadmap_text = roadmap_path.read_text(encoding="utf-8", errors="replace")
+    shared_anchors = _markdown_section(roadmap_text, "## Shared Source Anchors")
+    matched = matched_blueprints_for_case(
+        case_id=case_id,
+        flow_variant=flow_variant,
+        metrics=metrics,
+        iteration=iteration,
+    )
+    anchor_label, anchor = value_reference_anchor(metrics)
+    lines = [
+        "# Focused Case-Type Blueprint Packet",
+        "",
+        "This generated packet filters the case-type outline and mechanism roadmap",
+        "to the blueprints that match the current case evidence.  Use this as the",
+        "default route-prior entry point. Open the full outline or roadmap only if",
+        "this focused packet is insufficient for the current evidence.",
+        "",
+        "## Current Evidence Used For Matching",
+        "",
+        f"- case: `{case_id}`",
+        f"- flow_variant: `{flow_variant}`",
+        f"- iteration: `{iter_name(iteration)}`",
+        f"- value reference: `{anchor_label or 'missing'}`",
+    ]
+    if anchor is not None:
+        lines.extend(
+            [
+                f"- HPWLg: `{anchor.hpwl_global}`",
+                f"- delta HPWLlg%: `{anchor.hpwl_stage_delta_legalization_percent}`",
+                f"- delta HPWLimprove%: `{anchor.hpwl_stage_delta_improve_percent}`",
+                f"- delta HPWLfinal%: `{anchor.hpwl_stage_delta_final_percent}`",
+                f"- runtime_seconds: `{anchor.runtime_seconds}`",
+            ]
+        )
+    lines.extend(
+        [
+            "",
+            "## Matched Blueprints",
+            "",
+        ]
+    )
+    for letter, score, reasons in matched:
+        heading = f"## Blueprint {letter}:"
+        roadmap_section = _markdown_section(roadmap_text, heading)
+        lines.extend(
+            [
+                f"### Blueprint {letter}: {BLUEPRINT_NAMES.get(letter, '')}",
+                "",
+                f"- match score: `{score:.2f}`",
+                "- match reasons:",
+            ]
+        )
+        lines.extend(f"  - {reason}" for reason in reasons)
+        lines.extend(
+            [
+                "",
+                "#### Route Outline",
+                "",
+                _outline_row(outline_text, letter),
+                "",
+                "#### Implementation Roadmap",
+                "",
+                roadmap_section or f"`{heading}` not found in `{roadmap_path}`.",
+                "",
+            ]
+        )
+    if shared_anchors:
+        lines.extend(["## Shared Source Anchors", "", shared_anchors, ""])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines), encoding="utf-8")
+    return path
+
+
 def common_context(
     *,
     case_id: str,
@@ -585,6 +942,7 @@ def common_context(
     runtime: Any,
     metrics: dict[str, MetricSummary | None],
     packet_path: Path,
+    matched_blueprint_packet_path: Path,
     baseline_artifacts_path: Path,
     start_seed_calibration_path: Path,
     design_characteristics_path: Path,
@@ -621,6 +979,7 @@ def common_context(
         agent_root=runtime.agent_root,
         state_root=runtime.state_root,
         packet_path=packet_path,
+        matched_blueprint_packet=matched_blueprint_packet_path,
         design_characteristics=design_characteristics_block(
             case_id=case_id,
             flow_variant=flow_variant,
@@ -666,6 +1025,11 @@ def common_context(
         / "insights"
         / "case_evolution"
         / "case_type_quality_mechanism_priority.md",
+        mechanism_reconstruction_roadmap=runtime.agent_root
+        / "knowledge"
+        / "insights"
+        / "case_evolution"
+        / "mechanism_reconstruction_roadmap.md",
         dpo_source_mechanisms_insight=runtime.agent_root
         / "knowledge"
         / "insights"
@@ -980,6 +1344,7 @@ def write_student_workspace_scripts(
     parent_src: Path,
     use_seed_override: bool,
     timeout_seconds: int | None,
+    baseline_metrics: dict[str, MetricSummary | None] | None = None,
 ) -> dict[str, Path]:
     """Write fixed helper scripts into the Student workspace.
 
@@ -994,6 +1359,11 @@ def write_student_workspace_scripts(
         flow_variant=flow_variant,
         run_tag=run_tag,
     )
+    baseline_metrics_path = ""
+    if baseline_metrics is not None:
+        baseline_summary = baseline_metrics.get("openroad_dpl_flow")
+        if baseline_summary is not None:
+            baseline_metrics_path = str(baseline_summary.metrics_path)
     seed_lines = (
         '  --seed-src "$PARENT_SRC" \\\n'
         '  --force \\\n'
@@ -1028,6 +1398,7 @@ RUN_TAG={shlex.quote(run_tag)}
 START_KIND={shlex.quote(start_kind)}
 PARENT_SRC={shlex.quote(str(parent_src))}
 METRICS_PATH={shlex.quote(str(metrics_path))}
+BASELINE_METRICS_PATH={shlex.quote(baseline_metrics_path)}
 
 ensure_dpl_git_repo() {{
   local top
@@ -1759,6 +2130,7 @@ if [[ ! -f "$METRICS_PATH" ]]; then
 fi
 python3 "$AGENT_ROOT/scripts/report_candidate_metrics.py" \\
   --metrics "$METRICS_PATH" \\
+  $([[ -f "$BASELINE_METRICS_PATH" ]] && printf '%s %q' --reference-metrics "$BASELINE_METRICS_PATH") \\
   --output-json "$METRICS_SUMMARY_JSON" \\
   --output-md "$METRICS_SUMMARY_MD" >/dev/null
 echo "[INFO] metrics_summary_json=$METRICS_SUMMARY_JSON"
@@ -2266,6 +2638,9 @@ if [[ ! -f "$KNOWLEDGE_CARD" ]]; then
 
 - route action:
 - HPWL source:
+- expected HPWL source:
+- mechanism strength:
+- stage-wise proof target:
 - expected stage movement:
 
 ## Source Map
@@ -2278,6 +2653,8 @@ if [[ ! -f "$KNOWLEDGE_CARD" ]]; then
 ## Execution Evidence
 
 - counters/log signals:
+- measured HPWL-source attribution:
+- first-result diagnosis:
 - source/binary/metrics alignment:
 - rejected refs:
 
@@ -2399,6 +2776,7 @@ def write_child_workspace_packet(
         parent_src=parent_src,
         use_seed_override=use_seed_override,
         timeout_seconds=timeout_seconds,
+        baseline_metrics=baseline_metrics,
     )
     lineage_path = round_dir / "students" / student_id / "lineage.json"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -2454,6 +2832,18 @@ def write_child_workspace_packet(
             / "insights"
             / "case_evolution"
             / "strategy_inspiration_by_design_feature.md",
+            optional_matched_blueprint_packet=path.parent
+            / "matched_blueprint_packet.md",
+            optional_case_type_quality_mechanism_insight=agent_root
+            / "knowledge"
+            / "insights"
+            / "case_evolution"
+            / "case_type_quality_mechanism_priority.md",
+            optional_mechanism_reconstruction_roadmap=agent_root
+            / "knowledge"
+            / "insights"
+            / "case_evolution"
+            / "mechanism_reconstruction_roadmap.md",
             optional_openroad_native_handoff_insight=agent_root
             / "knowledge"
             / "insights"

@@ -194,13 +194,15 @@ def packet_markdown(packet: dict[str, Any]) -> str:
     primary_handles = packet.get("primary_handles", [])
     secondary_handles = packet.get("secondary_handles", [])
     reference_shelf = packet.get("reference_shelf", packet["reference_files"])
+    registry_objective = packet["problem"]["objective"].get("primary", "")
     lines = [
         "# Current Run Packet",
         "",
         f"- problem: {packet['problem']['name']}",
         f"- design/platform: {packet['problem']['design']} / {packet['problem']['platform']}",
         f"- track: {packet['problem']['evaluation_track']}",
-        f"- primary objective: {packet['problem']['objective']['primary']}",
+        "- primary objective: final canonical HPWL after the complete detailed-placement flow",
+        f"- registry objective field: {registry_objective} (legacy label; do not optimize legalization HPWL alone)",
         f"- selected surface: {surface['symbol']} in {surface['file']}",
         "- seed policy: use the Student workspace packet for the actual "
         "`start_kind` and parent source; this packet is seed-neutral",

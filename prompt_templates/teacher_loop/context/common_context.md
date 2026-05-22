@@ -17,7 +17,7 @@
 - Abacus donor: `$dreamplace_abacus`
 - dense evolved-legalizer routing insight: `$dense_legalizer_routing_insight`
 - feature-to-mechanism strategy insight: `$strategy_inspiration_insight`
-- case-type quality route insight: `$case_type_quality_mechanism_insight`
+- focused matched blueprint packet: `$matched_blueprint_packet`
 - DPO mechanism insight: `$dpo_source_mechanisms_insight`
 - OpenROAD-native handoff insight: `$openroad_native_handoff_insight`
 - LEGO-lite skill index: `$skill_index`
@@ -39,10 +39,10 @@ final HPWL.
 
 In the first Teacher planning round, build the route map from observed case
 evidence first. Most knowledge cards are vocabulary, inspiration, and prior
-evidence; the case-type quality route insight is different: it contains
-case-feature method warm starts with reconstruction packets.  If the case
-matches one of those feature types, use the matching packet as the first route
-prior, then diversify.
+evidence. The focused matched blueprint packet is different: it is the first
+case-feature route map filtered for this case. If it contains a matching
+blueprint, use that blueprint as the first route prior, use the included
+roadmap section for implementation details, then diversify.
 
 - Read the design characteristics and stage metrics first.
 - First reaction: decide whether this case matches one or more known case types
@@ -54,13 +54,12 @@ prior, then diversify.
   consider at least two distinct stage families, such as one
   legalization/handoff family and one improve-placement/DPO family, when the
   metrics leave both credible.
-- When selecting a feature-matched start kind or route from case-type route
-  insight,
-  open the case-type quality route insight first.  If it contains a matching
-  reconstruction route, assign at least one Student to reconstruct or strengthen
-  that route with its minimum implementation steps, source handles, liveness
-  counters, and partial-implementation failure tests; use strategy and algorithm
-  cards only to refine the mechanism or check risk.
+- When selecting a feature-matched start kind or route, open the focused
+  matched blueprint packet first. If it contains a matching blueprint, assign
+  at least one Student to reconstruct or strengthen the route with the included
+  implementation order, source handles, liveness counters, and
+  partial-implementation failure tests; use strategy cards and algorithm cards
+  only to refine the mechanism or check risk.
 - Short route digest for first-round matching:
   large row-rich or datapath-like recoverable basin with strong improve-stage
   recovery, nontrivial default runtime, and final HPWL dominated by DPO accepts
@@ -75,9 +74,11 @@ prior, then diversify.
   recoverability -> assign one complete Diamond-basin source-edge exact descent
   route: preserve a Diamond-compatible legal basin, force the enhanced DPO path,
   and implement the `DetailedGlobalSwap` exact source-edge kernel described in
-  the case-type insight: bounded source-edge target generation, exact move/swap
-  scoring with `DetailedHPWL::delta`, replay through journal/rollback, and
-  source-edge cells/locations/exact-scores/replays/commits/rejects counters.
+  the focused matched blueprint packet or mechanism reconstruction roadmap:
+  bounded source-edge target generation,
+  exact move/swap scoring with `DetailedHPWL::delta`, replay through
+  journal/rollback, and source-edge
+  cells/locations/exact-scores/replays/commits/rejects counters.
   Diamond-native frontier records alone do not count as this route; dense
   recoverable pressure -> recoverable producer plus hot-segment/exact DPO
   consumer; large row-rich recoverable basin -> producer/handoff plus exact DPO
@@ -88,13 +89,14 @@ prior, then diversify.
   standalone route.
 - When dense recoverable pressure and large row-rich recoverability both match,
   and negotiation-style evidence shows strong DPO recovery but poor final
-  closure, assign one Student to the cumulative stack from the case-type insight:
-  Differential/LEGALM-style producer -> negotiation-compatible legal closure ->
-  exact source-edge/global-swap consumer -> edge-critical/selected reorder ->
-  bounded post-reorder exact/pair/endpoint polish.
+  closure, assign one Student to the cumulative stack from the focused
+  blueprint packet or mechanism roadmap: Differential/LEGALM-style producer ->
+  negotiation-compatible legal closure -> exact source-edge/global-swap
+  consumer -> edge-critical/selected reorder -> bounded post-reorder
+  exact/pair/endpoint polish.
 - For a strong retained route, route from the cumulative mechanism chain. Do not
-  assign only the final guard, telemetry, or attribution diff as if it were the
-  quality mechanism.
+  assign only the final preservation, telemetry, or attribution diff as if it
+  were the quality mechanism.
 - Open the smallest useful algorithm/pseudocode card only when it provides a
   concrete mechanism, liveness counter, or failure mode relevant to the observed
   bottleneck.
@@ -140,12 +142,13 @@ prior, then diversify.
   or incur runtime cost without proportional HPWL, do not only polish the current
   donor. Use one broader stage/mechanism query or card only to find a different
   source-level hypothesis that matches the current evidence, then give at least
-  one Student a stronger within-run route. If the case-type insight has a
-  matching reconstruction route, prefer reconstructing or deepening that route
-  over another same-basin threshold/queue edit. Current-run kept/rejected refs
-  may be repaired with `25_trial_source.sh begin --from-ref <ref>`.
-  Query `--stage teacher_review --q "mechanism priority guard telemetry grouped window exact consumer"`
-  when deciding which donor families to promote, guard, or demote.
+  one Student a stronger within-run route. If the case-type outline has a
+  matching blueprint, prefer the full mechanism chain from the focused packet
+  over another same-basin threshold/queue edit. Current-run
+  kept/rejected refs may be repaired with `25_trial_source.sh begin --from-ref
+  <ref>`.
+  Query `--stage teacher_review --q "mechanism priority telemetry grouped window exact consumer"`
+  when deciding which donor families to promote, preserve as fallback, or demote.
   Query `--stage teacher_review --q "runtime light final HPWL mechanism priority"`
   before spending a route on a heavy donor.
 
@@ -187,20 +190,22 @@ prior, then diversify.
   candidate implementation, such as lightweight global guidance, native legal
   closure, local HPWL repair, and a DPO consumer.  Do not implement hybrid as a
   case-level selector among complete legalizers.
-- per-round stance: preserve best donors as guardrails, but small fixes are not
-  the default. Assign aggressive mechanism-level routes that can attack larger
-  HPWL sources whenever wins are tiny, plateaued, or far from the 5% search
-  ambition.
+- per-round stance: preserve best donors as rollback guardrails, but do not
+  route the best line as a preservation task. The best line should be
+  elite-expansion: use the donor as a parent and attack a larger HPWL source.
+  Assign aggressive mechanism-level routes whenever wins are tiny, plateaued,
+  or far from the 5% search ambition.
 - plateau escape: when recent rounds repeat a donor with tiny gains, Teacher
   should assign a `mechanism-redesign` route that changes a deeper source
   mechanism under explicit complexity caps and liveness counters
 - weak-gain / over-cost escalation: when the current run is tiny-gain,
-  same-family, or too heavy for the HPWL gained, follow the escalation rule in
-  LEGO-lite Skill Lookup: keep one guard route if useful, then assign at least
-  one aggressive route that changes the legalizer/DPO composition, repairs a
-  current-run ref, or tests a different feature-matched mechanism hypothesis
-  derived from the observed failure mode. Pseudocode cards may inspire the
-  implementation, but they are not the reason for the route.
+  same-family, or too heavy for the HPWL gained, preserve useful donors as
+  rollback refs but route the work as elite-expansion, repair, switch,
+  hybridize, or mechanism-redesign. Assign aggressive routes that change the
+  legalizer/DPO composition, repair a current-run ref, or test a different
+  feature-matched mechanism hypothesis derived from the observed failure mode.
+  Pseudocode cards may inspire the implementation, but they are not the reason
+  for the route.
 - low-ROI rule: when a mechanism is verified live/correct but still gives only
   extremely small full-flow HPWL movement after a meaningful repair attempt, preserve
   it as evidence and switch to a different HPWL source instead of stacking
@@ -264,7 +269,7 @@ prior, then diversify.
   donor/start-point choices
 - donor taxonomy: distinguish `general donor` from `feature-matched donor` in
   Teacher output. A general donor is reusable across many cases or works as a
-  regression guard. A feature-matched donor is plausible because the current
+  rollback fallback. A feature-matched donor is plausible because the current
   design has matching stage/physical features; it can be aggressively optimized
   for this case even if it may not transfer universally.
 - prepared start branches include `framework`, `diamond`,

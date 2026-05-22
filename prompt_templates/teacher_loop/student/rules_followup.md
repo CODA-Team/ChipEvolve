@@ -12,9 +12,18 @@ choice needs it.
 - Optimize legal final `metrics.json:hpwl`. `G_HR` is analysis-only; do not call
   faster worse-HPWL code the best result unless lower-HPWL code fails legality,
   artifact, or timeout gates.
+- In `candidate_metrics_summary_md`, use `Headline Versus OpenROAD Default`
+  for OpenROAD-default comparison, keep/reject judgment, and 5% ambition tracking.
+  Use `Stage Metrics` only to diagnose where the candidate gained or lost HPWL
+  inside the detailed-placement flow.
 - Keep 5% final HPWL reduction versus OpenROAD DPL default as the search
   ambition for mechanism scale. It is not a pass/fail threshold, but far-below
   results should trigger larger source mechanisms rather than small polish.
+- Before coding, restate the intended HPWL source: producer/legalizer state,
+  handoff/frontier consumption, DPO move/scoring and acceptance,
+  post-consumer polish, or their composition. Also state why this mechanism is
+  strong enough to move final HPWL materially instead of only preserving,
+  retuning, or diagnosing the current donor.
 - Treat runtime inside the hard budget as a cost to justify. If the route is
   baseline-fast but HPWL-poor, first identify the missing HPWL source, then use
   bounded stronger candidate generation, exact scoring, local DP, or
@@ -33,25 +42,38 @@ choice needs it.
   donor refs; if still ambiguous, choose the simplest coherent implementation
   of the assigned mechanism, record the assumption in the knowledge card, and
   evaluate.
+- Do not reread broad knowledge-base, paper, donor, or flow context by default.
+  Use current source, Teacher guidance, metrics, and logs first. Open knowledge
+  only when Teacher names a specific card/blueprint, the assigned mechanism is
+  unclear, or your own log diagnosis shows the route needs a pivot.
 - Mechanism-level rewrites and direct producer/consumer support changes are
   encouraged when Teacher guidance and source diagnosis justify them; keep the
   diff coherent, reviewable, bounded, and validated.
-- For non-guard routes, change a real mechanism class such as candidate
-  generation, scoring, acceptance, transaction/rollback, handoff, or bounded
-  search scope. Do not make the main trial only a constants/tie-break/telemetry
-  retune unless Teacher explicitly assigned guard or repair.
-- For guard routes, treat the donor/ref as a protected fallback, not a limit on
+- Except for explicit implementation repair, change a real mechanism class such
+  as candidate generation, scoring, acceptance, transaction/rollback, handoff,
+  or bounded search scope. Do not make the main trial only a
+  constants/tie-break/telemetry retune.
+- If Teacher assigns the current best, treat it as elite expansion rather than
+  preservation-only work. The donor/ref is a recoverable fallback, not a limit on
   edit scope and not control-only attribution. Make one real donor-on-top
   mechanism change that can move final HPWL: deeper consumer,
   producer/handoff composition change, bounded quality search, runtime rewrite
   to free budget for stronger search, or compatible stacking, with full-flow
   proof that the donor remains recoverable.
+- Do not treat being best-so-far, barely improving over OpenROAD default/current
+  elite, or preserving legality as enough. If final HPWL is still far from the
+  5% ambition and runtime remains inside the hard gate, spend the iteration on
+  a stronger HPWL mechanism rather than guard-only, attribution-only, or
+  runtime-only work.
 - Your short plan should name one dominant mechanism and the adjacent-stage
   compatibility proof. A legalizer route should explain DPO recoverability; a
   DPO route should explain why the input state and handoff/frontier make the
   search targeted; a handoff route should name both producer and consumer.
   Also name concrete success criteria: legality, expected stage-wise HPWL
   movement, liveness counters/logs, and runtime guard.
+  Include a concrete stage-wise proof target: expected `HPWLlg`,
+  `HPWLimprove`, `HPWLfinal`, and counter behavior that will prove the intended
+  HPWL source executed.
 - If the Teacher packet includes `pipeline coverage`, implement the primary
   mechanism plus at least one real adjacent-stage support mechanism or liveness
   hook. For `co-optimization-emphasis`, try to make producer, handoff/frontier,
@@ -69,9 +91,18 @@ choice needs it.
   producer/handoff/consumer source flow using the named refs or mechanisms.
   Do not turn it into a selector among complete algorithms. Add counters for
   each live part of the stack and evaluate the complete flow.
+- If Teacher assigns a complete strong-chain reconstruction or alternate start
+  basin, do not shrink it into guard, late polish, telemetry, or a single
+  retune.  Implement the material chain links Teacher named: legalizer/start
+  basin, handoff/frontier payload or liveness hook, exact DPO consumer,
+  acceptance/rollback truth, and post-consumer proof.  If one link cannot be
+  implemented in the iteration, report that missing link explicitly in
+  `## Next Teacher Handoff`.
 - Use generated helpers instead of reconstructing commands: prepare/start,
   trial begin/keep/reject, build, evaluate, and finalization. Use
-  `03_fetch_peer_source.sh` only to inspect peer refs; port mechanisms
+  `03_fetch_peer_source.sh` only when Teacher assigns a peer Student
+  ref/mechanism or your current trial needs a concrete donor comparison. First
+  summarize the peer mechanism in 2-3 lines, then port the understood idea
   deliberately onto your branch. If Teacher assigns a repairable rejected/kept
   ref, start it with `25_trial_source.sh begin --from-ref <ref>`.
 - Do not defer `trial begin` and the first patch behind long exploratory
@@ -84,6 +115,11 @@ choice needs it.
 - After evaluation, inspect metrics/logs for HPWL stage movement, legality,
   runtime, liveness counters, accept/reject bottleneck, and source/binary/metric
   alignment.
+- Counters and accepted-delta only prove liveness. Do not call a route
+  successful if final HPWL barely improves over OpenROAD default/current elite
+  or stays far from the 5% ambition. In that case, use the required
+  strengthened modification to repair the missing producer, handoff, consumer,
+  acceptance, or post-consumer link rather than only increasing counters.
 - Treat the first evaluation after Teacher-plan implementation as diagnosis,
   not finalization. Before finalizing, make one strengthened modification and
   re-run build/evaluation. Strengthen by fixing liveness, retargeting bounded
@@ -92,6 +128,13 @@ choice needs it.
   only when the first result shows no plausible repair or a fundamental route
   failure. This is the bounded self-repair cycle for the iteration; do not keep
   stacking unreviewed repairs after it.
+- The self-diagnosis must answer whether the measured HPWL movement came from
+  the intended mechanism, using concrete generated-summary fields or actual DPL
+  log counters such as producer count, consumer attempts, accepts/rejects,
+  accepted delta, stop reason, and mechanism-local runtime. If the candidate is
+  legal but weak and still has runtime headroom, use the strengthened patch to
+  attack the missing quality source rather than only reduce runtime, preserve
+  the donor, or add counters.
 - New algorithms or handoff paths need minimal useful counters/logs: producer
   count, consumer attempts, accepts/rejects, HPWL gain or loss, and pass/runtime
   cost where applicable.
@@ -100,10 +143,10 @@ choice needs it.
   implementation/integration bug, diagnose it and try one coherent same-route
   repair before rejecting.
 - After the first legal evaluator result of a trial, close that trial before
-  any broader donor archaeology. Decide `keep` or `reject` from the current
-  trial evidence first, then finalize or start a focused repair/pivot trial
-  from the preserved ref; do not leave an active trial open while fetching
-  prepared-start diffs or broad donor context.
+  any broader donor or knowledge archaeology. Decide `keep` or `reject` from
+  the current trial evidence first, then finalize or start a focused
+  repair/pivot trial from the preserved ref; do not leave an active trial open
+  while fetching prepared-start diffs or broad donor context.
 - If the current trial is legal but weak, do not mechanically finalize only
   because it ran. Continue only when metrics expose a concrete same-route
   implementation bug, missing consumer, or wrong HPWL source; otherwise keep

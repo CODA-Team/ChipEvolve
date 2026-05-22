@@ -33,20 +33,19 @@ mechanism decision.
   to a different HPWL source.
 - Follow-up rounds should use the first-round global route map as memory, then
   read less and optimize the current case more sharply. Keep donor scope clear:
-  `general donor` for guard/reusable kernels, `feature-matched donor` for
-  mechanisms selected because this specific design feature suggests upside.
+  `general donor` for reusable kernels/fallback guardrails, `feature-matched
+  donor` for mechanisms selected because this specific design feature suggests
+  upside.
 - If the next decision needs a new feature-matched start kind or case-type
-  route, open the case-type quality route insight first.  Those insight files
-  are validated case-feature method warm starts: use them to recognize the
-  design pattern, choose a plausible start family, and assign a concrete
-  mechanism route, then refine from current-run evidence. A case may match
-  multiple packets; use them as route hypotheses or compatible combinations,
-  not as a single fixed selector. If a matching packet provides a reconstruction
-  route, give at least one Student its minimum implementation steps, source
-  handles, counters, and partial-route demotion tests.
+  route, open the focused matched blueprint packet first. It is the validated
+  case-feature route map filtered for this case: use it to recognize the design
+  pattern, choose a plausible start family, and select a concrete blueprint.
+  Use the included roadmap section before writing Student guidance. A case may
+  match multiple blueprints; use them as route hypotheses or compatible
+  combinations, not as a single fixed selector.
 - For a strong retained route, route from the cumulative mechanism chain. Do not
-  assign only the final guard, telemetry, or attribution diff as if it were the
-  quality mechanism.
+  assign only the final preservation, telemetry, or attribution diff as if it
+  were the quality mechanism.
 
 ## Current Evidence
 
@@ -67,7 +66,7 @@ $elite_text
 - start calibration: `$start_seed_calibration_path`
 - peer learning: `$peer_learning_path`
 - feature-to-mechanism strategy insight: `$strategy_inspiration_insight`
-- case-type quality route insight: `$case_type_quality_mechanism_insight`
+- focused matched blueprint packet: `$matched_blueprint_packet`
 - DPO mechanism insight: `$dpo_source_mechanisms_insight`
 - OpenROAD-native handoff insight: `$openroad_native_handoff_insight`
 - skill query: `python3 $skill_query_script --stage <stage> --q "<bottleneck or mechanism>"`
@@ -89,21 +88,22 @@ card when they conflict.
 
 If current-run legal candidates show tiny HPWL movement, repeat the same family,
 or incur runtime cost without proportional HPWL, treat it as weak-gain/over-cost
-evidence. Keep a guard donor if useful, but route from the observed failure
-mode: use at most one broader stage/mechanism query or card to identify a
-different source-level hypothesis, then assign at least one stronger within-run
-route. If the case-type insight has a matching reconstruction route, prefer
-the full mechanism chain over a single-stage subset.  For large row-rich or
-datapath-like recoverable basins where final HPWL follows downstream DPO accepts,
-the primary route should normally be a cumulative producer/closure/DPO/reorder
-chain; pure Diamond source-edge work is a complementary guard or local-consumer
-route, not the only main route.
+evidence. Preserve the best donor/ref as rollback if useful, but route from the
+observed failure mode: use at most one broader stage/mechanism query or card to
+identify a different source-level hypothesis, then assign stronger within-run
+routes. If the focused matched blueprint packet has a matching blueprint,
+prefer the full mechanism chain from that packet over a single-stage subset.
+For large row-rich or
+datapath-like recoverable basins where final HPWL follows downstream DPO
+accepts, the primary route should normally be a cumulative
+producer/closure/DPO/reorder chain; pure Diamond source-edge work is a
+complementary local-consumer route, not the only main route. Prefer
 reconstructing or deepening that route over another same-basin queue-depth,
-threshold, or guard-only edit. Current-run kept/rejected refs may be repaired with
-`25_trial_source.sh begin --from-ref <ref>`.
-If a guard donor is used, it should still attempt quality improvement and
-efficiency release on top of the donor; runtime repair is useful to make room
-for more complex search, not as a standalone success.
+threshold, or preservation-only edit. Current-run kept/rejected refs may be
+repaired with `25_trial_source.sh begin --from-ref <ref>`.
+If the best donor is continued, it should be an elite-expansion route: attempt
+quality improvement and efficiency release on top of the donor; runtime repair
+is useful to make room for more complex search, not as a standalone success.
 Before assigning a heavy donor, query
 `--stage teacher_review --q "runtime light final HPWL mechanism priority"` and
 prefer a lighter final-HPWL mechanism unless the stage evidence justifies the

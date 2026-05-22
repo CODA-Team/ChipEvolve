@@ -1,10 +1,12 @@
 ### student_XX
 - route: <short mechanism label>
 - route type: <legalizer-emphasis | DPO-emphasis | co-optimization-emphasis>
-- route action: <continue | switch | hybridize | mechanism-redesign | guard>
+- route action: <elite-expand | continue | switch | hybridize | mechanism-redesign | repair>
 - start/parent: <prepared branch or donor/workbench>
-- donor scope: <general donor | feature-matched donor | new mechanism | guard>
-- HPWL source: <stage and mechanism being attacked>
+- donor scope: <general donor | feature-matched donor | new mechanism | fallback-preserved donor>
+- expected HPWL source: <producer, handoff, DPO consumer, post-consumer polish, or composition being attacked>
+- mechanism strength: <why this mechanism can materially move final HPWL, not only preserve or retune a donor>
+- stage-wise proof target: <expected HPWLlg/HPWLimprove/HPWLfinal movement and liveness counters>
 - why this can beat a small donor: <larger HPWL source, mechanism novelty, and expected stage movement>
 - pipeline coverage: <producer/legalizer action; handoff/frontier action; consumer/DPO action. At least two should be active source mechanisms or liveness hooks; co-optimization should normally make all three active>
 - first patch handles: <1-3 primary functions/state/files for the first patch>

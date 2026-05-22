@@ -58,6 +58,12 @@ mechanisms, not blind patch commands. It should make the route emphasis explicit
 `legalizer-emphasis`, `DPO-emphasis`, or `co-optimization-emphasis`; this is a
 priority label, not a restriction to one stage.
 
+Teacher should not route Students into broad knowledge-base reading by default.
+When knowledge is needed, Teacher names the specific card, blueprint, or query
+and the mechanism question it answers. Teacher may also assign a Student to
+inspect another Student's source ref when peer code is useful; in that case,
+name the peer ref, mechanism to borrow, and expected adaptation.
+
 ### Evolve Student Agent
 
 The Student Agent is created by the evolve loop. Its job is to implement one
@@ -91,6 +97,14 @@ workbench branches safely, finalize the best clean evaluated source, and write
 the final report. Students should not edit external evaluator scripts, ORFS flow
 scripts, or repository-level prompt templates during an evolve run.
 
+Students should not read the broad knowledge base, papers, or donor trees by
+default. They should use the Teacher packet, workspace entry points, current
+source, canonical metrics, and DPL logs first. They open knowledge only when
+Teacher names a card/blueprint, the assigned mechanism is unclear, or their own
+log diagnosis shows the route needs a pivot. If Teacher assigns peer-code reuse,
+Students inspect the peer ref with the generated helper, summarize the mechanism
+briefly, and port the idea deliberately rather than auto-applying diffs.
+
 Students should not stop for ordinary implementation uncertainty. They should
 inspect nearby source patterns, call sites, or assigned donor refs, choose a
 coherent implementation of the assigned mechanism, evaluate it, and record
@@ -106,6 +120,11 @@ $DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/students/student_XX/iter_XX/art
 Teacher review reads that section with `source_trials.jsonl` and decides
 whether the next round should continue the workbench, switch family, or
 redesign producer/consumer composition.
+
+Student self-diagnosis must use generated metrics summaries plus actual DPL
+log/counter evidence when needed to prove whether the mechanism fired, why
+candidates were accepted or rejected, what stopped the pass, and whether the
+accepted delta or stage movement matches the intended HPWL source.
 
 ## Runtime Layout Contract
 

@@ -19,27 +19,30 @@ Default reading order:
 9. `insights/case_evolution/evidence_weighted_mechanism_priority.md` when
    choosing which prior mechanism families deserve active search budget
 10. `insights/case_evolution/case_type_quality_mechanism_priority.md` when
-   mapping current case features to Student-ready reconstruction routes without
-   turning old programs into benchmark-name rules
-11. `insights/dpo/source_level_mechanisms.md` when planning improve-placement
+   mapping current case features to blueprint route choices without turning old
+   programs into benchmark-name rules
+11. `insights/case_evolution/mechanism_reconstruction_roadmap.md` after a
+   case-type blueprint is selected and Teacher needs source anchors, counters,
+   and implementation order for Student guidance
+12. `insights/dpo/source_level_mechanisms.md` when planning improve-placement
    source mechanisms
-12. `insights/dpo/exact_source_edge_recoverability_consumer.md` when a legal
+13. `insights/dpo/exact_source_edge_recoverability_consumer.md` when a legal
    but not HPWL-optimal state may have a large DPO-recoverable basin
-13. `insights/dpo/openroad_native_handoff.md` when passing legalization
+14. `insights/dpo/openroad_native_handoff.md` when passing legalization
    frontier state into improve placement
-14. `insights/dpo/lightweight_post_dpo_basin.md` when a stable legalizer still
+15. `insights/dpo/lightweight_post_dpo_basin.md` when a stable legalizer still
     leaves post-DPO HPWL residue
-15. `skills/case/legalizer_dpo_handoff_triage.md` when stage evidence is
+16. `skills/case/legalizer_dpo_handoff_triage.md` when stage evidence is
    ambiguous and Teacher must decide whether to repair legalizer output,
    strengthen DPO, or improve handoff
-16. `insights/dpo/frontier_guided_basin_consumer.md` when a producer frontier
+17. `insights/dpo/frontier_guided_basin_consumer.md` when a producer frontier
     should be consumed by exact basin search
-17. `insights/legalization/algorithm_role_liveness_basics.md` before routing
+18. `insights/legalization/algorithm_role_liveness_basics.md` before routing
    Diamond, negotiation, LEGALM, or Differential Guidance families
-18. `skills/legalization/differential_guidance_stop_target.md` when using
+19. `skills/legalization/differential_guidance_stop_target.md` when using
    LEGALM/differential guidance as a seed/frontier instead of a full legalizer
-19. one relevant file under `algorithm_cards/` or `insights/`
-20. paper PDFs and source notes under `reference/` only if needed
+20. one relevant file under `algorithm_cards/` or `insights/`
+21. paper PDFs and source notes under `reference/` only if needed
 
 Current compact algorithm cards:
 
@@ -55,6 +58,7 @@ Current compact algorithm cards:
 - `insights/case_evolution/runtime_light_final_hpwl_mechanism_priority.md`
 - `insights/case_evolution/evidence_weighted_mechanism_priority.md`
 - `insights/case_evolution/case_type_quality_mechanism_priority.md`
+- `insights/case_evolution/mechanism_reconstruction_roadmap.md`
 - `insights/case_evolution/micro_gain_trap_and_elite_donors.md`
 - `insights/case_evolution/full_flow_timeout_and_target_selection.md`
 - `skills/case/legalizer_dpo_handoff_triage.md`
@@ -128,25 +132,18 @@ specific repair path.  See
 Use `insights/case_evolution/case_type_quality_mechanism_priority.md` when
 Teacher needs a first case-type route prior.  After Teacher states the observed
 stage pattern, the card suggests which prepared start kind is a good source
-basin, which reconstruction route to assign, which source handles or current-run
-peer refs to inspect, and which counters prove liveness.  A design can match
-multiple feature packets.  Dense recoverable basins should not receive only
-same-basin retuning: the card contains reproducible route packets for
-Diamond-basin source-edge exact descent, negotiation-start hot-segment exact
-consumer stacks, wrapper/macro row-window replay handoff, recoverable producer
-plus hot-segment exact consumer, adaptive transactional basin gain-rate, and
-negotiation-compatible residual transaction handoff.
-Macro/memory-mixed or hierarchical row-window basins favor evidence-targeted
-local-basin or producer-consumer routes; row-local or edge-local residue favors
-source-edge or selected-segment exact closure; conflict-heavy or fragmented-row
-layouts need primary legalizer/resource-repair liveness; large row-rich cases
-can spend controlled runtime on stronger local basin search; low-util slack
-usually prefers runtime-light local exact closure first.  Zero-accept handoff,
-mirror-only priority, same-family threshold variants, and legalize-only wins
-should be downweighted unless final HPWL improves.  The card includes concrete
-minimum implementation steps, source implementation anchors, liveness counters,
-and partial-implementation demotion rules so a Student can basically reconstruct
-the mechanism rather than only naming it.
+basin and which blueprint route to assign.  A design can match multiple
+blueprints.  Dense recoverable basins should not receive only same-basin
+retuning; row-local or edge-local residue favors source-edge or selected-segment
+exact closure; conflict-heavy or fragmented-row layouts need primary
+legalizer/resource-repair liveness; plateaued routes should change a real
+producer, handoff, DPO move family, scoring objective, or transaction rule.
+
+Use `insights/case_evolution/mechanism_reconstruction_roadmap.md` immediately
+after selecting a case-type blueprint.  That file contains the detailed source
+implementation order, source anchors, liveness counters, and partial-route
+demotion rules needed for Student guidance.  Keep the route outline compact and
+use the roadmap only for the selected blueprint, not as a broad reading task.
 
 One high-value co-optimization pattern is a legalizer that slightly worsens
 `HPWLlg` but preserves a DPO-recoverable basin, followed by exact

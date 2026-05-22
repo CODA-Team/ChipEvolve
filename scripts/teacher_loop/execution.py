@@ -426,7 +426,19 @@ def teacher_insight_for_student(
             global_part = text.split(marker, 1)[0]
             break
     global_lines = [line.strip() for line in global_part.splitlines() if line.strip()]
-    global_excerpt = "\n".join(global_lines[:4]).strip()
+    global_keep_prefixes = (
+        "Design read:",
+        "Global diagnosis:",
+        "Runtime/search stance:",
+        "Mechanism knowledge used:",
+        "Case-type prior:",
+        "HPWL source target:",
+    )
+    global_kept: list[str] = []
+    for line in global_lines:
+        if any(line.startswith(prefix) for prefix in global_keep_prefixes):
+            global_kept.append(line)
+    global_excerpt = "\n".join(global_kept[:6] or global_lines[:4]).strip()
 
     def zero_based_alias(student: str) -> str | None:
         prefix = "student_"
@@ -498,6 +510,13 @@ def compact_teacher_child_insight(text: str, *, max_chars: int) -> str:
         "- start/parent:",
         "- donor scope:",
         "- HPWL source:",
+        "- expected HPWL source:",
+        "- mechanism strength:",
+        "- stage-wise proof target:",
+        "- measured HPWL-source attribution:",
+        "- first-result diagnosis:",
+        "HPWL source target:",
+        "- HPWL-source diagnosis:",
         "- first patch handles:",
         "- support handles:",
         "- mechanism plan:",

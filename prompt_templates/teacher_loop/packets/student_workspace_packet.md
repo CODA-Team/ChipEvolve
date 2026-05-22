@@ -38,15 +38,20 @@ packet for mechanism intent.
 
 ## Knowledge Handles
 
-Open only what the current mechanism and observed bottleneck need. Knowledge is
-for inspiration, vocabulary, liveness checks, and known failure modes; do not
-copy a card mechanically when local source evidence points elsewhere.
+Open knowledge only when Teacher assigns a specific card/blueprint, the
+mechanism role is unclear, or metrics/logs show the current route needs a pivot.
+Knowledge is for inspiration, vocabulary, liveness checks, and known failure
+modes; do not copy a card mechanically when local source evidence points
+elsewhere. If Teacher assigns a case-type blueprint, read the focused matched
+blueprint packet first and use only the assigned section unless local source
+evidence requires a different feature-level route.
 
 - reference index: `$optional_reference_index`
 - LEGALM reference: `$optional_legalm_reference`
 - Diamond reference: `$optional_diamond_reference`
 - negotiation reference: `$optional_negotiation_reference`
 - strategy insight: `$optional_strategy_inspiration_insight`
+- focused matched blueprint packet: `$optional_matched_blueprint_packet`
 - DPO mechanism insight: `$optional_dpo_source_mechanisms_insight`
 - native handoff insight: `$optional_openroad_native_handoff_insight`
 - skill index: `$skill_index`
@@ -76,9 +81,11 @@ Primary flow:
    - `$trial_source_script begin --label <short-mechanism>`
    - repair a prior kept/rejected ref when assigned: `$trial_source_script begin --label <repair-name> --from-ref <ref>`
    - after a short targeted diagnosis, start the first real trial early; do not delay `begin` behind broad code reading
+   - before editing, write down the trial's HPWL-source hypothesis in your own notes/report: expected producer, handoff, DPO consumer, post-consumer, or composition gain; why the mechanism is strong enough; and what stage/counter proof should change
    - edit source, then run `$build_variant_script` and `$evaluate_candidate_script`
    - canonical result summary is generated automatically; read `$candidate_metrics_summary_md`
-   - self-diagnose the first result, make one strengthened modification, then rerun `$build_variant_script` and `$evaluate_candidate_script`
+   - self-diagnose whether the measured HPWL movement came from the intended source; use actual DPL log counters when the summary cannot prove liveness, accept/reject behavior, stop reason, or mechanism-local runtime
+   - if weak with runtime headroom, make one strengthened modification toward the missing quality source, then rerun `$build_variant_script` and `$evaluate_candidate_script`
    - if the strengthened result still needs follow-up, write `## Next Teacher Handoff` in `$knowledge_card`
    - decide keep/reject only after the strengthened evaluation, unless the first result proves the route has no plausible repair
    - rejected path: `$trial_source_script reject --reason <why-rejected>`
@@ -89,7 +96,7 @@ Primary flow:
 
 Optional helpers:
 
-- peer mechanism diff only: `$fetch_peer_source_script --peer-repo <repo> --peer-ref <ref> --label <name>`
+- peer mechanism diff only when Teacher assigns a peer Student mechanism or a concrete donor comparison is needed: `$fetch_peer_source_script --peer-repo <repo> --peer-ref <ref> --label <name>`
 - switch prepared start after prepare: `$switch_start_branch_script --kind <kind>`
 - trial state/status: `$trial_source_script status`
 - metrics summary on demand: `$report_candidate_metrics_script`
@@ -99,7 +106,8 @@ Optional helpers:
 
 Run helpers that mutate the private source repo serially. Parallel reads are OK.
 `fetch_peer_source_script` fetches a local `peer/<label>` ref and writes diff
-artifacts; it does not modify your working tree.
+artifacts; it does not modify your working tree. Summarize the peer idea before
+porting it, and port the mechanism deliberately rather than auto-applying diffs.
 `trial_source_script` is the only helper for checkpoint/keep/reject source
 state. A rejected trial is pinned under `rejected/<run_tag>/...`, logged in
 `source_trials.jsonl`, and remains checked out on the dev branch so the final
@@ -157,6 +165,9 @@ Before final answer:
 - `implementation_diff` exists and describes current iteration edits from the recorded iteration start to final dev HEAD
 - rejected branches are preserved and not hidden by automatic reset
 - `knowledge_card` maps source to evidence: route action, changed files/functions, mechanism class, counters/logs, stage metrics, rejected refs, and `## Next Teacher Handoff` when follow-up is needed
+- `knowledge_card` states expected HPWL source, mechanism strength, measured
+  HPWL-source attribution, stage-wise proof target, and whether the first
+  result came from the intended mechanism
 - report includes final HPWL/runtime/displacement, stage-wise HPWL deltas, legality, active counters, metrics path, diff path, rejected refs if any, knowledge card path, source commit/ref, and next repair or pivot
 
 ## Execution Bias
@@ -179,7 +190,9 @@ Before final answer:
   unless the current landing zone is blocked by a concrete call-order or
   artifact-wiring uncertainty. Use the generated packet and helper scripts as
   the authoritative stage-order reference.
-- Read raw logs only when the generated metrics summary cannot answer the current keep/reject or repair question.
+- Read raw logs when the generated metrics summary cannot answer the current
+  keep/reject or repair question, or when you need to prove whether your
+  mechanism actually fired and why candidates were accepted/rejected.
 - New algorithms or handoff paths should emit compact counters/logs that prove
   producer/consumer liveness, accept/reject behavior, HPWL movement, and
   pass/runtime cost.
@@ -191,6 +204,10 @@ Before final answer:
   strengthened modification, and re-evaluate before keep/finalize. Close the
   active trial before any broader donor reading; use broader knowledge only if
   the strengthened result shows the current hypothesis is low-ROI or wrong.
+- For the protected best-so-far source, treat preservation as fallback
+  discipline only. The trial objective is elite expansion: attack a larger
+  final-HPWL source on top of the best donor, with rollback available if the
+  stronger mechanism fails.
 
 ## Evaluation Timeout
 

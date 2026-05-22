@@ -753,9 +753,10 @@ def round_scoreboard(
         "this is an analysis metric only. The evolve optimization target and "
         "elite continuation key are strict final HPWL inside legality/artifact/"
         "runtime gates. Use G_HR only to identify HPWL donors that need runtime "
-        "repair.",
+        "repair. Use `HPWL_gain%`/`delta_vs_ref` for default-baseline comparison; "
+        "`stage_dHPWL*` columns are diagnostic flow-internal movement only.",
         "",
-        "| iter | student | route_label | artifact_gate | G_HR | HPWL_gain% | runtime_penalty_pp | HPWLg | dHPWLlg% | dHPWLip% | dHPWLfinal% | HPWL final | delta_vs_ref | value_gt_ref | gap_to_5pct_target | runtime_s | runtime_ratio | avg_disp | max_disp | violations | metrics |",
+        "| iter | student | route_label | artifact_gate | G_HR | HPWL_gain% | runtime_penalty_pp | HPWLg | stage_dHPWLlg% | stage_dHPWLip% | stage_dHPWLfinal% | HPWL final | delta_vs_ref | value_gt_ref | gap_to_5pct_target | runtime_s | runtime_ratio | avg_disp | max_disp | violations | metrics |",
         "|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---:|---:|---:|---:|---:|---|---|",
     ]
     best: MetricSummary | None = None

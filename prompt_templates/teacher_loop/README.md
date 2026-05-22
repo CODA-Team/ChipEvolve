@@ -54,6 +54,13 @@ Rules:
   select relevant stage skills/cards only when they clarify the current
   evidence; Student reports should prove the adapted mechanism with source,
   metrics, and log evidence.
+- Students should not read broad knowledge by default. Teacher names the
+  specific card/blueprint/query when it is needed; otherwise Students use the
+  Teacher packet, workspace entry points, current source, canonical metrics, and
+  DPL logs first.
+- Teacher may route peer-code reuse by naming a peer Student source ref and the
+  mechanism to borrow. Student prompts should require a short mechanism summary
+  before porting and should forbid blind diff application.
 - Prompts should favor controllable algorithm complexity, bounded candidates,
   cached touched data, and direct HPWL mechanisms.
 - Keep the NoPUA-style coaching signal in `skills/teacher_peer_coaching.md`:
