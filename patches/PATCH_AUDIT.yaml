@@ -2,7 +2,7 @@ schema_version: 1
 purpose: >
   Human and agent-facing inventory of tracked patch artifacts.  Files listed
   here are the only tracked patch/delta artifacts that should be considered in
-  normal work.  Retired local archives are not repo dependencies and are not
+  normal work.  Local runtime archives are not repo dependencies and are not
   default context.
 
 prepare_patches:
@@ -24,6 +24,9 @@ prepare_patches:
       Adds the constrained EvolveLegalizer top-level framework, student-owned
       algorithm hook, telemetry, LEGALM-style guidance/legalization, and
       Abacus-enabled negotiation repair on top of the clean dpl_evolve base.
+      The framework also carries compact LEGALM frontier state into bounded
+      DPO handoff consumption so Students can optimize producer/consumer
+      composition from a coherent default source.
       Baseline collection is handled by the control repo, and child agents
       modify a private variant implementation after reading source references
       and measured case evidence.  prepare_workspace.sh snapshots this state
@@ -49,16 +52,6 @@ reference_deltas:
       algorithm implementation.
 
 evolved_legalizer_patches:
-  - path: patches/evolved_legalizers/openroad_dpl_evolve_legalm_iter30_from_clean.patch
-    status: active_evolved_candidate_patch
-    source_commit: 7f71b2f
-    source_tag: candidate/legalm_20iter_001_iter_30_final_target_release_probes
-    meaning: >
-      Standalone clean-anchor OpenROAD patch preserving the final LEGALM/global
-      differential legalization-only evolve line.
-    apply_target: clean OpenROAD anchor from metadata/anchors.json
-    verification: git_apply_check_ok
-
   - path: patches/evolved_legalizers/openroad_dpl_evolve_negotiation_iter30_from_clean.patch
     status: active_evolved_candidate_patch
     source_commit: tracked_patch
@@ -79,15 +72,6 @@ evolved_legalizer_patches:
       Standalone clean-anchor OpenROAD patch preserving the final Diamond /
       local-greedy legalization-only evolve line.
     apply_target: clean OpenROAD anchor from metadata/anchors.json
-    verification: git_apply_check_ok
-
-  - path: patches/evolved_legalizers/openroad_dpl_evolve_legalm_iter30_framework_delta.patch
-    status: active_review_delta
-    source_commit: 7f71b2f
-    meaning: >
-      Review-sized delta from the prepared dpl_evolve framework to the final
-      LEGALM/global differential line.
-    apply_target: prepared OpenROAD after base and framework patches
     verification: git_apply_check_ok
 
   - path: patches/evolved_legalizers/openroad_dpl_evolve_negotiation_iter30_framework_delta.patch

@@ -12,7 +12,7 @@ THREADS="10"
 CHILDREN="4"
 ITERATIONS="12"
 MAX_PARALLEL="4"
-START_KIND="evolved_legalm"
+START_KIND="framework"
 TEACHER_MODEL="gpt-5.5"
 TEACHER_REASONING_EFFORT="xhigh"
 STUDENT_MODEL="gpt-5.4"
@@ -52,10 +52,10 @@ Options:
   --children N                  Student agents per round. Default: 4.
   --iterations N                Iterations per case/utilization. Default: 12.
   --max-parallel N              Parallel students inside one round. Default: 4.
-  --start-kind KIND             framework, diamond,
-                                evolved_diamond, evolved_legalm,
-                                evolved_negotiation, or prepared.
-                                Default: evolved_legalm.
+  --start-kind KIND             framework, diamond, default_negotiation,
+                                evolved_diamond, evolved_negotiation,
+                                or prepared.
+                                Default: framework.
   --teacher-model NAME          Default: gpt-5.5.
   --teacher-reasoning-effort E  Default: xhigh.
   --student-model NAME          Default: gpt-5.4.
@@ -95,7 +95,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "${START_KIND}" in
-  diamond|framework|evolved_diamond|evolved_legalm|evolved_negotiation|prepared) ;;
+  diamond|framework|default_negotiation|evolved_diamond|evolved_negotiation|prepared) ;;
   *)
     echo "[ERROR] Unsupported --start-kind: ${START_KIND}" >&2
     exit 1

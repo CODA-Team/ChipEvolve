@@ -135,8 +135,8 @@ packet and repo-local knowledge files are the evidence boundary.
   Never reuse donor line numbers or old hunk context as the patch anchor.
 - Run the generated source-preparation script before code inspection. If
   Teacher assigns a prepared start point (`framework`, `diamond`,
-  `default_negotiation`, `evolved_diamond`, `evolved_legalm`, or
-  `evolved_negotiation`), use `prepare_start_source_script --kind <kind>`
+  `default_negotiation`, `evolved_diamond`, or `evolved_negotiation`), use
+  `prepare_start_source_script --kind <kind>`
   before edits. A prepared start is only the source parent; it never limits
   which `dpl_evolve` files can be changed. Do not launch prepare and switch
   helpers in parallel. After reading the workspace packet, required skills, and

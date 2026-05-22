@@ -32,7 +32,7 @@ is experiment-specific, keep it under `experiments/launchers/` or
 | `scripts/configure_openroad_core.sh` | Write common-core `core_env.sh` with build/install/binary paths. | Human/Teacher before common-core build. | Common-core configure. |
 | `scripts/build_openroad_core.sh` | Choose the common-core root and delegate the actual OpenROAD build. | Human/Teacher before variants. | Common-core build. |
 | `scripts/build_openroad_only.sh` | Single OpenROAD configure/build/install implementation.  Also used by evaluator `openroad_only` mode. | `build_openroad_core.sh`, evaluator, advanced manual builds. | Common-core or explicit OpenROAD build. |
-| `scripts/create_variant_start.sh` | Copy a `dpl_evolve` seed into one private variant source tree, initialize it as a local git repo, and optionally switch to the generated source branch. `--start-kind framework` starts from the constrained top framework; `--start-kind diamond` starts from the direct DPL/evolve base; `--start-kind evolved_diamond`, `evolved_legalm`, or `evolved_negotiation` starts from materialized iter30 evolved legalizer seeds; `--start-kind prepared` copies the current ORFS tree; `--seed-src` can start from an exported elite source commit. Preserves existing source unless `--force` is passed. | Human/Teacher/child agents. | Variant initialize. |
+| `scripts/create_variant_start.sh` | Copy a `dpl_evolve` seed into one private variant source tree, initialize it as a local git repo, and optionally switch to the generated source branch. `--start-kind framework` starts from the constrained top framework; `--start-kind diamond` starts from the direct DPL/evolve base; `--start-kind evolved_diamond` or `evolved_negotiation` starts from materialized evolved legalizer seeds; `--start-kind prepared` copies the current ORFS tree; `--seed-src` can start from an exported elite source commit. Preserves existing source unless `--force` is passed. | Human/Teacher/child agents. | Variant initialize. |
 | `scripts/configure_openroad_variant_relink.sh` | Write `variant_env.sh` for a private candidate `dpl_evolve` source. | Human/Teacher/child agents. | Variant configure. |
 | `scripts/build_openroad_variant_relink.sh` | Thin shell wrapper around the Python relinker. | Human/Teacher/child agents. | Variant build. |
 | `scripts/build_openroad_variant_relink.py` | Recompile variant-owned `dpl_evolve` objects and relink a private OpenROAD binary from common-core link recipes. | `build_openroad_variant_relink.sh`. | Fast variant build. |
@@ -42,7 +42,7 @@ is experiment-specific, keep it under `experiments/launchers/` or
 | Script | Purpose | Called by | Stage |
 | --- | --- | --- | --- |
 | `scripts/run_place_batch.sh` | Produce reusable `3_4_place_resized.odb` snapshots for selected cases. | Human/Teacher before baseline/evolve gates. | Input snapshot generation. |
-| `scripts/calibrate_start_seeds.sh` | Build/evaluate prepared start-kind seeds such as `framework`, `diamond`, `default_negotiation`, `evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` for one case, then write initial donor-evidence tables. | `optimize_case_with_codex.py --calibrate-start-seeds`, Human/Teacher. | Start donor calibration. |
+| `scripts/calibrate_start_seeds.sh` | Build/evaluate prepared start-kind seeds such as `framework`, `diamond`, `default_negotiation`, `evolved_diamond`, and `evolved_negotiation` for one case, then write initial donor-evidence tables. | `optimize_case_with_codex.py --calibrate-start-seeds`, Human/Teacher. | Start donor calibration. |
 | `scripts/summarize_start_seed_calibration.py` | Summarize start-kind calibration candidate matrices into markdown/TSV stage-wise metrics. | `calibrate_start_seeds.sh`. | Result analysis. |
 | `scripts/run_candidate_matrix.sh` | Build one fixed candidate `dpl_evolve` source once, then evaluate that identical code across every enabled row in a TSV plan. | Human/Teacher after a promising exported student source commit exists. | Cross-case candidate validation. |
 | `scripts/run_round_candidate_matrices.sh` | Enumerate committed student source revisions from one Teacher round, export each revision, and run `run_candidate_matrix.sh` for each. | Human/Teacher after a completed round. | 4xN candidate validation. |
@@ -304,16 +304,14 @@ available from a clean anchor:
 $DPL_EVOLVE_STATE_ROOT/seed_sources/diamond_dpl_evolve
 $DPL_EVOLVE_STATE_ROOT/seed_sources/framework_dpl_evolve
 $DPL_EVOLVE_STATE_ROOT/seed_sources/evolved_diamond_dpl_evolve
-$DPL_EVOLVE_STATE_ROOT/seed_sources/evolved_legalm_dpl_evolve
 $DPL_EVOLVE_STATE_ROOT/seed_sources/evolved_negotiation_dpl_evolve
 ```
 
-Use the orchestrator default `--start-kind evolved_legalm` for the current
-LEGALM/global-differential source line. Use `--start-kind framework` when a
-round should explicitly restart from the constrained clean framework. Use
+Use the orchestrator default `--start-kind framework` for the current
+constrained source framework. Use
 `--start-kind diamond` only as an explicit contrast or ablation against the
 framework start point. Use `--start-kind evolved_diamond`,
-`--start-kind evolved_legalm`, or `--start-kind evolved_negotiation` when the
+or `--start-kind evolved_negotiation` when the
 Teacher wants a prior iter30 evolved legalizer donor as the actual start point
 for the current case.
 

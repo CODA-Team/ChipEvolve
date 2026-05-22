@@ -37,6 +37,12 @@ and review packet fields needed for routing.
   private `dpl_evolve` source when the mechanism requires coherent producer,
   handoff, consumer, objective, transaction, mirror, source-internal parameter,
   helper, or telemetry support.
+- Treat `HPWLlg` as diagnostic, not a standalone target. A follow-up legalizer
+  repair must preserve or improve the complete handoff state: final HPWL,
+  legality, average/max displacement, DPO recoverability, and exact DPO
+  accepted gain. If `HPWLlg` improves while final HPWL worsens, displacement
+  tails grow, or DPO accepts/accepted_delta drop, classify the route as
+  proxy-repair negative evidence and route a recoverability or handoff fix.
 - Treat branch choice, mechanism composition, guidance objective, heuristic
   weights, internal parameters, stop/activation policy, candidate caps,
   handoff payload, DPO scoring, and accept/rollback rules as searchable
@@ -132,7 +138,9 @@ and review packet fields needed for routing.
 - Each route, including elite expansion, must include an expected stage-wise
   proof target: what should happen to `HPWLlg`, `HPWLimprove`, `HPWLfinal`, and
   which counters should prove the mechanism executed. If the expected proof is
-  only "same final HPWL with lower runtime", it is not a quality route.
+  only "same final HPWL with lower runtime", it is not a quality route. For a
+  legalizer route, the proof target must also say what happens to avg/max
+  displacement and downstream DPO accepted gain.
 - Encourage coherent mechanism-level source rewrites when justified by Teacher
   evidence and source diagnosis; the constraint is bounded/reviewable/measured,
   not small.
@@ -192,8 +200,8 @@ and review packet fields needed for routing.
 - If assigning a branch/ref switch, name the source ref and new trial label, and
   require trial-helper branch preservation.
 - Prepared starts are branch-only source parents: `framework`, `diamond`,
-  `default_negotiation`, `evolved_diamond`, `evolved_legalm`, and
-  `evolved_negotiation`. A start branch never restricts edit scope. Any route
+  `default_negotiation`, `evolved_diamond`, and `evolved_negotiation`. A start
+  branch never restricts edit scope. Any route
   may modify any private `dpl_evolve` file when the mechanism requires
   legalizer, DPO, handoff, objective, transaction, mirror, source-internal
   parameter, helper, or telemetry changes. Do not ask Students to manually

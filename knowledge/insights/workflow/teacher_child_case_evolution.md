@@ -43,7 +43,7 @@ Child Agent:
 2. Teacher reads the current packet, the baseline metrics table, and the
    explicit report/log/result paths for those baseline rows.
 3. Teacher starts children with non-overlapping hypotheses:
-   - an optional `evolved_legalm` dense-prior diagnostic route when design
+   - an optional `framework` dense-prior diagnostic route when design
      evidence shows high utilization, standard-cell density, or large
      global-to-legal HPWL disturbance, unless current full-flow HPWL evidence
      says that case archetype should prefer another route,

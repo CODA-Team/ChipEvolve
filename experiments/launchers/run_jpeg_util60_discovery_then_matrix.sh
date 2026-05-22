@@ -16,7 +16,7 @@ ITERATIONS="12"
 MAX_PARALLEL="4"
 BASELINE_PARALLEL="9"
 MATRIX_ROW_PARALLEL="6"
-START_KIND="evolved_legalm"
+START_KIND="framework"
 TEACHER_MODEL="gpt-5.5"
 TEACHER_REASONING_EFFORT="xhigh"
 STUDENT_MODEL="gpt-5.4"
@@ -51,10 +51,10 @@ Options:
   --max-parallel N             Parallel students inside one round. Default: 4.
   --baseline-parallel N        Parallel baseline matrix rows. Default: 9.
   --matrix-row-parallel N      Parallel rows per fixed-candidate matrix. Default: 6.
-  --start-kind KIND            framework, diamond,
-                               evolved_diamond, evolved_legalm,
-                               evolved_negotiation, or prepared.
-                               Default: evolved_legalm.
+  --start-kind KIND            framework, diamond, default_negotiation,
+                               evolved_diamond, evolved_negotiation,
+                               or prepared.
+                               Default: framework.
   --teacher-model NAME         Default: gpt-5.5.
   --teacher-reasoning-effort E Default: xhigh.
   --student-model NAME         Default: gpt-5.4.

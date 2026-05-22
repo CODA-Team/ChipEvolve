@@ -74,9 +74,9 @@ priors exist.
    - Useful transfer signal: a legalizer may intentionally preserve a
      recoverable but not stage-optimal basin; the quality win comes from later
      exact DPO accepts.
-   - Start/route prior: assign a guidance-capable legalizer seed such as
-     `evolved_legalm` when stage evidence suggests a recoverable basin; keep a
-     Diamond-family guard only if the baseline basin is already close.
+   - Start/route prior: assign `framework` when stage evidence suggests a
+     recoverable guidance/frontier basin; keep a Diamond-family guard only if
+     the baseline basin is already close.
    - Try: recoverability-shaped legalizer producer, compact frontier handoff,
      exact source-edge or selected-segment consumer.
    - Source families: LEGALM guidance/closure, Student dispatch, Optdp exact

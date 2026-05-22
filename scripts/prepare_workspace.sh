@@ -476,9 +476,6 @@ materialize_evolved_seed \
   "evolved_diamond_dpl_evolve" \
   "${evolved_patch_dir}/openroad_dpl_evolve_diamond_iter30_framework_delta.patch"
 materialize_evolved_seed \
-  "evolved_legalm_dpl_evolve" \
-  "${evolved_patch_dir}/openroad_dpl_evolve_legalm_iter30_framework_delta.patch"
-materialize_evolved_seed \
   "evolved_negotiation_dpl_evolve" \
   "${evolved_patch_dir}/openroad_dpl_evolve_negotiation_iter30_framework_delta.patch"
 

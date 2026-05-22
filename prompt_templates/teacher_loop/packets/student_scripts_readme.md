@@ -6,7 +6,7 @@ instead of reconstructing build, evaluator, git, or diff commands.
 Minimal flow:
 
 1. If Teacher assigns a prepared start point, run
-   `01_prepare_start_source.sh --kind <framework|diamond|default_negotiation|evolved_diamond|evolved_legalm|evolved_negotiation>`
+   `01_prepare_start_source.sh --kind <framework|diamond|default_negotiation|evolved_diamond|evolved_negotiation>`
    before edits. Otherwise run `00_prepare_source.sh` once.
 2. For each mechanism trial:
   - `25_trial_source.sh begin --label <short-mechanism>`

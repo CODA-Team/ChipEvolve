@@ -108,24 +108,27 @@ strategy guidance.  Do not put local experiment paths, result-table filenames,
 or benchmark-specific result rows in default knowledge.  Keep those in external
 experiment archives and translate only the reusable lesson back into knowledge.
 
-Prepared evolved start branches are active donor inventory.
-`evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` are prior
-iter30 legalizer donor seeds with measured wins on some design archetypes, not
-universal defaults. Improve-placement knowledge should be expressed as
-mechanism guidance: bounded source-edge scoring, exact top-K candidate
-evaluation, transaction rollback, bounded staged descent, scoped LSMC basin
-escape, and legalizer-to-DPO handoff consumers. Teacher should assign
+Prepared start branches are active donor inventory.  `framework` contains the
+current LEGALM-style producer/frontier base plus bounded DPO handoff support;
+`evolved_diamond` and `evolved_negotiation` are route-specific donor seeds.
+None of these starts is a universal answer. Improve-placement knowledge should
+be expressed as mechanism guidance: bounded source-edge scoring, exact top-K
+candidate evaluation, transaction rollback, bounded staged descent, scoped LSMC
+basin escape, and legalizer-to-DPO handoff consumers. Teacher should assign
 those mechanisms directly in the current private source and validate them
 against stage-wise evidence.
 
 Do not give equal priority to every observed donor.  A mechanism is strong only
 when the same-case final `metrics.json:hpwl` improves with clean legality and
-source/log liveness.  The strongest repeated final-HPWL pattern is
-legalizer-produced frontier/residual state consumed by exact DPO transactions or
-grouped windows.  Stage-only legalizer wins, DPO-only tails, guard-only
-preservation, telemetry-only edits, mirror-only ordering, and threshold/tie-break
-polishing are lower-priority evidence unless the current stage metrics expose a
-specific repair path.  See
+source/log liveness.  `HPWLlg` is diagnostic, not a standalone objective:
+legalization-side improvements must also preserve avg/max displacement, a
+DPO-recoverable local order, handoff usefulness, and downstream exact accepted
+gain.  The strongest repeated final-HPWL pattern is legalizer-produced
+frontier/residual state consumed by exact DPO transactions or grouped windows.
+Stage-only legalizer wins, `HPWLlg`-only proxy repairs, DPO-only tails,
+guard-only preservation, telemetry-only edits, mirror-only ordering, and
+threshold/tie-break polishing are lower-priority evidence unless the current
+stage metrics expose a specific repair path.  See
 `insights/case_evolution/runtime_light_final_hpwl_mechanism_priority.md` and
 `insights/case_evolution/evidence_weighted_mechanism_priority.md`.
 

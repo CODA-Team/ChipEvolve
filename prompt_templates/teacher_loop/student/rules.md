@@ -12,6 +12,11 @@
 
 - Use the Teacher route as the primary hypothesis, then validate it against current source and metrics before coding. Do not blindly execute Teacher prose when source evidence shows a better mechanism.
 - Optimize legal final `metrics.json:hpwl`. `G_HR` is analysis-only for runtime value; it is not the promotion target.
+- Treat `HPWLlg` as a stage diagnosis signal, not a standalone optimization
+  target. Legalizer-side repairs should reduce harmful displacement and produce
+  a DPO-recoverable handoff. If a patch lowers or changes `HPWLlg` but worsens
+  final HPWL, increases avg/max displacement tails, or reduces DPO exact
+  accepts/accepted_delta, report it as negative proxy evidence.
 - Treat 5% final HPWL reduction versus OpenROAD DPL default as the search
   ambition for plan scale, not a pass/fail threshold. Small edits are not the
   default when current results are far below that ambition.
@@ -48,6 +53,9 @@
    Include an explicit `HPWL-source hypothesis`: which stage or stage
    composition should improve, how the code change exposes that quality source,
    and what counter or stage tuple would prove it executed.
+   For legalizer/output-repair routes, include avg/max displacement and DPO
+   recoverability in the success criteria; do not declare success from
+   `HPWLlg` movement alone.
    Except for explicit implementation repair, the patch should change a real
    mechanism class such as candidate generation, scoring, acceptance,
    transaction/rollback, legalizer-DPO handoff, or bounded search scope. Do not
@@ -164,6 +172,10 @@
   accept/reject bottlenecks, stop reasons, or runtime cost. Report final HPWL,
   stage-wise HPWL movement, legality, displacement, runtime, active counters,
   and whether the logs support your HPWL-source hypothesis.
+- When diagnosing a legalizer-side change, explicitly compare `HPWLlg` with
+  avg/max displacement, handoff/frontier counters, DPO exact accepts,
+  accepted_delta, and final HPWL. A legal-stage proxy improvement that hurts
+  downstream recovery should be rejected or handed off as negative evidence.
 - In `candidate_metrics_summary_md`, use `Headline Versus OpenROAD Default`
   for OpenROAD-default comparison, keep/reject judgment, and 5% ambition tracking.
   Treat `Stage Metrics` / `flow_internal_delta_*` as diagnostic attribution

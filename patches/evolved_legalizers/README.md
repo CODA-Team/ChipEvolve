@@ -1,15 +1,13 @@
 # Evolved Legalizer Patches
 
-This directory preserves the final code from the three legalization-only
-evolve tracks:
+This directory preserves route-specific donor patches that can be materialized
+as prepared start branches:
 
-- `legalm`: global differential / LEGALM-oriented line.
 - `negotiation`: negotiation-primary NBLG/resource-allocation-oriented line.
 - `diamond`: Diamond/local-greedy-oriented line.
 
-Use the stable line names and patch paths below. Do not ask Agents to check
-out historical workbench commits or tags; those came from private evolve
-workspaces and are not portable release identifiers.
+Use the stable line names and patch paths below as the portable interface for
+these donor sources.
 
 The clean OpenROAD target is the `openroad_base_commit` in
 `../../metadata/anchors.json`, currently
@@ -19,7 +17,6 @@ The clean OpenROAD target is the `openroad_base_commit` in
 
 | line | stable start kind | apply to clean OpenROAD | apply to base+framework |
 | --- | --- | --- | --- |
-| `legalm` | `evolved_legalm` | `openroad_dpl_evolve_legalm_iter30_from_clean.patch` | `openroad_dpl_evolve_legalm_iter30_framework_delta.patch` |
 | `negotiation` | `evolved_negotiation` | `openroad_dpl_evolve_negotiation_iter30_from_clean.patch` | `openroad_dpl_evolve_negotiation_iter30_framework_delta.patch` |
 | `diamond` | `evolved_diamond` | `openroad_dpl_evolve_diamond_iter30_from_clean.patch` | `openroad_dpl_evolve_diamond_iter30_framework_delta.patch` |
 
@@ -41,15 +38,14 @@ state, conflicts or misleading partial application are expected.
 
 ## Agent-Facing Meaning
 
-These files are active donor/start-point artifacts, not stale backups.  The
-`legalm`, `negotiation`, and `diamond` lines are prior iter30 evolved legalizer
-starts with measured wins on some case archetypes.  They are not universal
-defaults.  When a Teacher assigns a route, it should decide whether the Student
-should start from:
+These files are active donor/start-point artifacts.  The `negotiation` and
+`diamond` lines are evolved legalizer starts with measured wins on some case
+archetypes.  They are not universal defaults.  When a Teacher assigns a route,
+it should decide whether the Student should start from:
 
 - a clean route seed such as `diamond` or `framework`,
 - the matching materialized evolved seed, such as `evolved_diamond`,
-  `evolved_legalm`, or `evolved_negotiation`, or
+  or `evolved_negotiation`, or
 - another start kind while borrowing only a specific evolved mechanism.
 
 `evolved_negotiation` is intentionally negotiation-primary.  It may use
@@ -65,8 +61,7 @@ For normal Teacher/Student rounds, do not ask Students to manually apply these
 OpenROAD-root patch files inside their private source tree.  Run
 `scripts/prepare_workspace.sh` to materialize the corresponding seed sources
 under `.dpl_evolve_state/seed_sources/`, then launch with
-`--start-kind evolved_diamond`, `--start-kind evolved_legalm`, or
-`--start-kind evolved_negotiation`.
+`--start-kind evolved_diamond` or `--start-kind evolved_negotiation`.
 
 ## Usage
 
@@ -74,7 +69,7 @@ Apply one standalone line to clean OpenROAD:
 
 ```bash
 git -C /path/to/OpenROAD checkout d14d526a6f8ce5388e2a8dc30da88a0189df2f46
-git -C /path/to/OpenROAD apply /path/to/dpl_evolve_agent/patches/evolved_legalizers/openroad_dpl_evolve_legalm_iter30_from_clean.patch
+git -C /path/to/OpenROAD apply /path/to/dpl_evolve_agent/patches/evolved_legalizers/openroad_dpl_evolve_negotiation_iter30_from_clean.patch
 ```
 
 Review or port only the evolved delta on top of the prepared framework:
@@ -82,7 +77,7 @@ Review or port only the evolved delta on top of the prepared framework:
 ```bash
 git -C /path/to/OpenROAD apply /path/to/dpl_evolve_agent/patches/openroad_dpl_evolve_base.patch
 git -C /path/to/OpenROAD apply /path/to/dpl_evolve_agent/patches/openroad_dpl_evolve_framework.patch
-git -C /path/to/OpenROAD apply /path/to/dpl_evolve_agent/patches/evolved_legalizers/openroad_dpl_evolve_legalm_iter30_framework_delta.patch
+git -C /path/to/OpenROAD apply /path/to/dpl_evolve_agent/patches/evolved_legalizers/openroad_dpl_evolve_negotiation_iter30_framework_delta.patch
 ```
 
 `generation_manifest.tsv` records stable start kinds and patch paths.

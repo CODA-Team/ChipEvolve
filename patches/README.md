@@ -21,8 +21,8 @@ Patch status is tracked in:
   Applies the constrained top-level `dpl_evolve` framework on top of the clean
   base. The primary evolved placement command remains `detailed_placement_evolve`; the patch
   introduces framework telemetry, the student-owned algorithm hook, a
-  LEGALM-style guidance/legalization starting path, and Abacus-enabled
-  negotiation repair as a downstream repair stage. Child agents implement
+  LEGALM-style producer/frontier path, bounded DPO handoff support, and
+  Abacus-enabled negotiation repair as a downstream repair stage. Child agents implement
   case-specific behavior by modifying this private `dpl_evolve` source after
   the orchestrator has collected baseline evidence. During
   `prepare_workspace.sh`, this state is snapshotted as the `framework`
@@ -32,15 +32,15 @@ Patch status is tracked in:
   strict baseline wrappers can pass `RUN_OPENROAD_ARGS` and `RUN_SCRIPT_ARGS`
   through the shared ORFS `run` target.
 - `evolved_legalizers/`
-  Preserves the final evolved legalizer variants from the legalization-only
-  evolve runs.  The `*_from_clean.patch` files apply directly to the recorded
+  Contains route-specific evolved legalizer donor variants.  The
+  `*_from_clean.patch` files apply directly to the recorded
   clean OpenROAD anchor and include the base, framework, and one evolved
   legalizer line.  The `*_framework_delta.patch` files apply after
   `openroad_dpl_evolve_base.patch` and `openroad_dpl_evolve_framework.patch`
   and are intended for review or porting.  These patches are also active
   Teacher/Student donor evidence: `prepare_workspace.sh` materializes
-  `evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` seed sources
-  from the framework deltas when the patch files are present.
+  `evolved_diamond` and `evolved_negotiation` seed sources from the framework
+  deltas when the patch files are present.
   `evolved_negotiation` is negotiation-primary by contract.  It may use
   differential guidance as a seed/frontier, but the successful primary
   legalization route must execute negotiation/resource allocation.

@@ -147,7 +147,7 @@ python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py" \
   --case ibex_nangate45 \
   --flow-variant "$FLOW_VARIANT" \
   --round-id ibex_framework_2x2_$(date +%Y%m%d_%H%M%S) \
-  --start-kind evolved_legalm \
+  --start-kind framework \
   --children 2 \
   --iterations 2 \
   --max-parallel 2 \
@@ -252,7 +252,7 @@ Generate a reviewable round without calling Codex:
 python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py" \
   --case jpeg_nangate45 \
   --flow-variant <FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB> \
-  --start-kind evolved_legalm \
+  --start-kind framework \
   --children 4 \
   --iterations 2 \
   --dry-run \
@@ -266,7 +266,7 @@ python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py" \
   --case jpeg_nangate45 \
   --flow-variant <FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB> \
   --round-id jpeg_test_2x2 \
-  --start-kind evolved_legalm \
+  --start-kind framework \
   --children 2 \
   --iterations 2 \
   --max-parallel 2 \
@@ -366,19 +366,16 @@ resource limit for parallel Student implementation/evaluation.
 `--start-kind` chooses the initial private source seed for each student:
 
 ```text
-framework             constrained top-level dpl_evolve framework; clean framework restart
+framework             constrained top-level dpl_evolve framework with LEGALM-style producer/frontier and bounded DPO handoff support
 diamond               direct/default DPL-style evolve seed; useful as a contrast line
 evolved_diamond       prior iter30 Diamond/local-greedy evolved donor seed
-evolved_legalm        current default; prior iter30 LEGALM/global-differential evolved donor seed
 evolved_negotiation   prior iter30 negotiation-primary evolved donor seed; can use differential guidance only as seed/frontier
 prepared              copy the current ORFS dpl_evolve source; useful for local debug only
 ```
 
-`evolved_legalm` is the CLI default because it starts from the current
-LEGALM/global-differential evolved source line. Use `framework` when a round
-should explicitly restart from the constrained clean framework. Use
-`evolved_negotiation` as a conflict/resource-allocation donor, not as a
-universal HPWL winner; route logs should prove negotiation-primary execution.
+`framework` is the CLI default. Use `evolved_negotiation` as a
+conflict/resource-allocation donor, not as a universal HPWL winner; route logs
+should prove negotiation-primary execution.
 
 The evolved seeds are materialized by `scripts/prepare_workspace.sh` from
 `patches/evolved_legalizers/*_framework_delta.patch`.  The standalone
@@ -389,8 +386,8 @@ private source tree.
 Before a new case-specific round, `--calibrate-start-seeds` can compile and
 run the prepared start-kind seed branches on the target case.  The generated
 `start_seed_calibration.md` packet gives Teacher initial stage-wise evidence
-for `framework`, `evolved_diamond`, `evolved_legalm`, and
-`evolved_negotiation` before Student routes are assigned.
+for `framework`, `evolved_diamond`, and `evolved_negotiation` before Student
+routes are assigned.
 
 ### Where More Details Live
 

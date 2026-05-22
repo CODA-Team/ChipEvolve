@@ -273,11 +273,10 @@ roadmap section for implementation details, then diversify.
   design has matching stage/physical features; it can be aggressively optimized
   for this case even if it may not transfer universally.
 - prepared start branches include `framework`, `diamond`,
-  `default_negotiation`, `evolved_diamond`, `evolved_legalm`, and
-  `evolved_negotiation`
-- prior evidence makes `evolved_legalm` a strong first-round route on dense
-  high-utilization standard-cell cases with large legalization HPWL inflation;
-  still test Diamond and negotiation families when stage evidence supports them
+  `default_negotiation`, `evolved_diamond`, and `evolved_negotiation`
+- `framework` contains the current LEGALM-style producer/frontier base plus
+  bounded DPO handoff support. Treat it as a normal editable source parent, not
+  as proof that legalization-only changes are sufficient.
 - Student private source trees use materialized seed sources and prepared git
   start branches. Student start-point switches are branch-only.
 
@@ -330,7 +329,7 @@ $metric_table
 - start-kind donor calibration packet: `$start_seed_calibration_path`
 - If this packet contains rows, Teacher should use it as initial source-level
   donor evidence before assigning Student routes.  Compare `framework`,
-  `evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` stage-wise
+  `evolved_diamond`, and `evolved_negotiation` stage-wise
   results, but do not treat the best initial seed as the only exploration
   parent.  A stage donor can still be useful when its final HPWL is not best.
 

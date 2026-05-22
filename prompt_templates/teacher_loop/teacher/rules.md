@@ -29,6 +29,11 @@
 - `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref - P(runtime_sol / runtime_ref), where P(r)=0 for r <= 1.10 and P(2.0)=1.0 percentage point` is analysis-only. Use it to explain whether runtime is worth the HPWL gain, not as the elite selector.
 - Runtime is a `${student_runtime_multiplier}x` hard budget and a secondary value check, not a routing objective. Runtime repair matters because it creates budget for stronger HPWL search; do not optimize runtime as the main win. Extra runtime is justified when the route names a larger HPWL source, changes a real mechanism, and has caps/cache/parallelism that make the cost explainable. A faster but worse-final-HPWL candidate is runtime/control evidence unless the lower-HPWL candidate fails legality, artifacts, or timeout.
 - Always inspect stage-wise evidence before routing: `HPWLg`, legalization delta, improve-placement delta, final HPWL, legality, displacement, runtime, logs, and liveness counters.
+- Do not optimize `HPWLlg` as an isolated objective. Legalization-side work is
+  useful only when it improves the full handoff state: final HPWL, legality,
+  average/max displacement, DPO recoverability, and downstream exact accepts.
+  A lower `HPWLlg` that increases displacement tails, reduces DPO accepted
+  delta, or worsens final HPWL is negative evidence, not a legalizer win.
 - Compare `openroad_dpl_flow`, `openroad_dpl_negotiation`, and `evolve_default` as evidence. The OpenROAD DPL default-flow row is the value reference.
 - First reaction for a new case: classify the case type from design/stage
   evidence and ask whether one or more verified mechanism blueprints match in
@@ -128,6 +133,9 @@
   The proof target should state which stage tuple should change, for example
   better `HPWLlg` without hurting `HPWLimprove`, worse `HPWLlg` but much larger
   DPO recovery, or nonzero exact accepts/accepted_delta that lower final HPWL.
+  For legalizer/output-repair routes, require displacement-tail and
+  recoverability proof: avg/max displacement should stay controlled, and DPO
+  exact accepts or accepted delta should not collapse.
 - Nonzero counters and accepted-delta prove execution, not quality sufficiency.
   If final HPWL only weakly improves over OpenROAD default/current elite or
   remains far from the 5% ambition, route the mechanism as
@@ -223,8 +231,8 @@
 ## Starts, Knowledge, And Skills
 
 - Prepared starts are branch-only source parents: `framework`, `diamond`,
-  `default_negotiation`, `evolved_diamond`, `evolved_legalm`, and
-  `evolved_negotiation`. A start branch never restricts edit scope. Any Student
+  `default_negotiation`, `evolved_diamond`, and `evolved_negotiation`. A start
+  branch never restricts edit scope. Any Student
   line may modify any file in the private `dpl_evolve` module when the
   mechanism requires it: legalization, DPO/improve placement, handoff/frontier
   state, objective/scoring, transaction/rollback, mirror interaction,

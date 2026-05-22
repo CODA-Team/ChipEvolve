@@ -20,6 +20,7 @@ study this code, then port or replace bounded mechanisms in the live
   source reference; the default command does not expose a separate negotiation
   flag.
 - `source/StudentAlgorithm.cpp`: top-level stage composition.
+- `source/Optdp.cpp`: bounded frontier consumer inside improve placement.
 - `source/CMakeLists.txt`: active dpl_evolve source list required by the
   relink build.
 - `source/Opendp.h`: top-level DPL-Evolve state and method declarations.

@@ -15,7 +15,7 @@ orfs_root="${DEFAULT_ORFS_ROOT}"
 variant_root="${DEFAULT_STATE_ROOT}/variants/default"
 dpl_src=""
 seed_src_override=""
-start_kind="evolved_legalm"
+start_kind="framework"
 force=0
 git_branch=""
 
@@ -33,7 +33,6 @@ This copies one prepared seed source:
                 framework-compatible source layout with negotiation enabled
                 by default; this is not the evolved_negotiation donor.
   evolved_diamond:     $DPL_EVOLVE_STATE_ROOT/seed_sources/evolved_diamond_dpl_evolve
-  evolved_legalm:      $DPL_EVOLVE_STATE_ROOT/seed_sources/evolved_legalm_dpl_evolve
   evolved_negotiation: $DPL_EVOLVE_STATE_ROOT/seed_sources/evolved_negotiation_dpl_evolve
   prepared:     $ORFS_ROOT/tools/OpenROAD/src/dpl_evolve
 
@@ -53,9 +52,9 @@ Options:
                          Default: <variant-root>/dpl_evolve.
   --start-kind KIND      Seed type: framework, diamond,
                          default_negotiation,
-                         evolved_diamond, evolved_legalm,
-                         evolved_negotiation, or prepared.
-                         Default: evolved_legalm.
+                         evolved_diamond, evolved_negotiation,
+                         or prepared.
+                         Default: framework.
   --seed-src PATH        Source dpl_evolve tree to copy instead of the prepared
                          ORFS root seed.  Useful for continuing from a
                          best-so-far elite source commit export.
@@ -191,9 +190,6 @@ else
     evolved_diamond)
       seed_src="${state_root}/seed_sources/evolved_diamond_dpl_evolve"
       ;;
-    evolved_legalm)
-      seed_src="${state_root}/seed_sources/evolved_legalm_dpl_evolve"
-      ;;
     evolved_negotiation)
       seed_src="${state_root}/seed_sources/evolved_negotiation_dpl_evolve"
       ;;
@@ -202,7 +198,7 @@ else
       ;;
     *)
       echo "[ERROR] Unsupported --start-kind: ${start_kind}" >&2
-      echo "[ERROR] Expected one of: framework, diamond, default_negotiation, evolved_diamond, evolved_legalm, evolved_negotiation, prepared" >&2
+      echo "[ERROR] Expected one of: framework, diamond, default_negotiation, evolved_diamond, evolved_negotiation, prepared" >&2
       exit 1
       ;;
   esac
@@ -217,7 +213,7 @@ if [[ "${start_kind}" == "framework" && -z "${seed_src_override}" && ! -f "${see
   echo "[ERROR] Prepared seed source lacks EvolveLegalizer.cpp: ${seed_src}" >&2
   exit 1
 fi
-if [[ ("${start_kind}" == "framework" || "${start_kind}" == "evolved_diamond" || "${start_kind}" == "evolved_legalm" || "${start_kind}" == "evolved_negotiation") && -z "${seed_src_override}" && ! -f "${seed_src}/src/LegalmGuidance.cpp" ]]; then
+if [[ ("${start_kind}" == "framework" || "${start_kind}" == "evolved_diamond" || "${start_kind}" == "evolved_negotiation") && -z "${seed_src_override}" && ! -f "${seed_src}/src/LegalmGuidance.cpp" ]]; then
   echo "[ERROR] Prepared seed source lacks LegalmGuidance.cpp: ${seed_src}" >&2
   exit 1
 fi
@@ -233,11 +229,6 @@ if [[ -z "${seed_src_override}" ]]; then
       validate_evolved_seed \
         "evolved_diamond_dpl_evolve" \
         "${AGENT_ROOT}/patches/evolved_legalizers/openroad_dpl_evolve_diamond_iter30_framework_delta.patch"
-      ;;
-    evolved_legalm)
-      validate_evolved_seed \
-        "evolved_legalm_dpl_evolve" \
-        "${AGENT_ROOT}/patches/evolved_legalizers/openroad_dpl_evolve_legalm_iter30_framework_delta.patch"
       ;;
     evolved_negotiation)
       validate_evolved_seed \

@@ -241,8 +241,8 @@ standard-cell logic into repeated row-window basins.
 ### Implementation Order
 
 1. Start from the source basin that already exposes the strongest residual
-   signal: `evolved_legalm` for residual target/guidance state or
-   `evolved_diamond` for stable endpoint geometry.
+   signal: `framework` for residual target/frontier state or `evolved_diamond`
+   for stable endpoint geometry.
 2. In `src/Optdp.cpp`, collect compact residual cells and nets from legalizer or
    DPO output.  Run a few residual-focus replay rounds and stop by exact
    positive gain.

@@ -7,10 +7,9 @@ family-tree tuning to a constrained `detailed_placement_evolve` framework.
 
 - The evolved command remains `detailed_placement_evolve`.
 - The active source patch is `patches/openroad_dpl_evolve_framework.patch`.
-- Prepared evolved start branches preserve active donor/start seeds from prior
-  legalization-only evolve runs: `evolved_diamond`, `evolved_legalm`, and
-  `evolved_negotiation` are prior iter30 donor starts that need case-specific
-  validation.
+- Prepared start branches preserve active donor/source parents:
+  `framework`, `evolved_diamond`, and `evolved_negotiation` need
+  case-specific validation.
 - `EvolveLegalizer` is a stage scaffold, not a fixed final algorithm.
 - Student experiments use private `dpl_evolve` source trees plus lightweight
   variant relink.
@@ -28,8 +27,8 @@ family-tree tuning to a constrained `detailed_placement_evolve` framework.
   `metrics.json:hpwl`.  The legacy bbox proxy is a debug field only.
 - OpenROAD diamond remains a local-search donor and prepass reference, not a
   standalone canonical baseline runner in the current harness.
-- The `evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` prepared
-  start branches are active route-specific donor starts with prior wins.
+- The `framework`, `evolved_diamond`, and `evolved_negotiation` prepared
+  start branches are active route-specific donor starts.
   Teacher should consider whether the matching evolved seed is the better start
   point before assigning a student to a clean route seed, but must use current
   case evidence to justify that choice.

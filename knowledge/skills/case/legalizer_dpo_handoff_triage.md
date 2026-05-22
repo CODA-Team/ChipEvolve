@@ -14,6 +14,14 @@ runtime on local moves while never reaching the basin that a better legalizer
 could have exposed. A stronger DPO can help, but it is not a substitute for
 fixing the producer state or making the producer-consumer handoff informative.
 
+Do not optimize legalization HPWL (`HPWLlg`) alone. Legalization repair is
+valuable only when it improves the complete handoff state: final HPWL, legality,
+average displacement, maximum displacement, local row/order recoverability,
+handoff/frontier usefulness, and downstream DPO exact accepted gain. A patch
+that lowers `HPWLlg` by pulling targets toward a proxy objective but increases
+displacement tails, reduces DPO exact accepts, or worsens final HPWL is negative
+evidence.
+
 Also do not let legalization destroy the useful structure of the global
 placement too early. Global placement already contains approximate net-length,
 density, and region information. A legalizer that chases local legality by
@@ -62,9 +70,10 @@ Mechanism directions:
 
 Proof:
 
-- `HPWLlg` or recoverability improves;
+- recoverability improves without uncontrolled avg/max displacement growth;
 - `HPWLimprove` and final HPWL improve, not only legal-stage HPWL;
-- DPO accept counters remain healthy or improve after the legalizer change.
+- DPO accept counters and accepted delta remain healthy or improve after the
+  legalizer change.
 
 ### 2. Strengthen DPO Consumer
 
@@ -156,3 +165,8 @@ The report must include stage metrics and counters that prove the chosen route
 ran. If a DPO-only change gives tiny or zero gain, Student should diagnose
 whether the remaining problem is actually upstream legalizer recoverability or
 missing handoff, not only retune DPO thresholds.
+
+For a legalizer-output route, the report must state whether any `HPWLlg` change
+also preserved avg/max displacement and DPO accepted gain. If not, classify the
+result as a proxy or stage-only failure and propose a recoverability/handoff
+repair instead of more `HPWLlg` tuning.

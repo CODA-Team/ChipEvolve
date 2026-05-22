@@ -70,7 +70,7 @@ Primary flow:
 
 1. prepare source or assigned start:
    - `$prepare_source_script`
-   - `$prepare_start_source_script --kind <framework|diamond|default_negotiation|evolved_diamond|evolved_legalm|evolved_negotiation>`
+   - `$prepare_start_source_script --kind <framework|diamond|default_negotiation|evolved_diamond|evolved_negotiation>`
 2. inspect status/context as needed:
    - `$source_status_script`
    - `$source_context_script <src/...> [symbol]`
@@ -120,7 +120,7 @@ a repairable rejected line by assigning that ref through `begin --from-ref
 
 - The private source repo contains prepared local branches `start/framework`,
   `start/diamond`, `start/default_negotiation`, `start/evolved_diamond`,
-  `start/evolved_legalm`, and `start/evolved_negotiation` after preparation.
+  and `start/evolved_negotiation` after preparation.
 - If Teacher assigns a prepared start, use `prepare_start_source_script --kind <kind>` before edits. Do not manually apply release/start patch files and do not copy source trees.
 - After preparation, implement and commit your mechanism on the dev branch `$source_branch`. The generated iteration ref marks the iteration-start commit for diffing and review.
 

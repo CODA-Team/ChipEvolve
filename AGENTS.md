@@ -58,6 +58,12 @@ mechanisms, not blind patch commands. It should make the route emphasis explicit
 `legalizer-emphasis`, `DPO-emphasis`, or `co-optimization-emphasis`; this is a
 priority label, not a restriction to one stage.
 
+Teacher must not treat `HPWLlg` as an isolated objective. Legalization-side
+routes are useful only when they improve the complete handoff state: final HPWL,
+legality, avg/max displacement, DPO recoverability, and downstream exact
+accepted gain. `HPWLlg` movement that worsens those signals is negative
+evidence.
+
 Teacher should not route Students into broad knowledge-base reading by default.
 When knowledge is needed, Teacher names the specific card, blueprint, or query
 and the mechanism question it answers. Teacher may also assign a Student to
@@ -125,6 +131,9 @@ Student self-diagnosis must use generated metrics summaries plus actual DPL
 log/counter evidence when needed to prove whether the mechanism fired, why
 candidates were accepted or rejected, what stopped the pass, and whether the
 accepted delta or stage movement matches the intended HPWL source.
+For legalizer-side changes, Students must diagnose `HPWLlg` together with
+avg/max displacement, handoff/frontier liveness, DPO exact accepts,
+accepted_delta, and final HPWL; `HPWLlg` improvement alone is not success.
 
 ## Runtime Layout Contract
 

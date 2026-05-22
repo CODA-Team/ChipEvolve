@@ -18,13 +18,12 @@ START_KINDS = (
     "diamond",
     "default_negotiation",
     "evolved_diamond",
-    "evolved_legalm",
     "evolved_negotiation",
     "prepared",
 )
 
 PREPARED_START_KIND_PATTERN = (
-    r"(?:framework|diamond|default_negotiation|evolved_diamond|evolved_legalm|evolved_negotiation)"
+    r"(?:framework|diamond|default_negotiation|evolved_diamond|evolved_negotiation)"
 )
 
 CANONICAL_LINES = (

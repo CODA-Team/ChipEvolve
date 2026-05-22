@@ -7,6 +7,9 @@ when Teacher needs the exact metrics/log checklist.
 ## Extra Guidance
 
 - Start every route decision from the stage table, not from final HPWL alone.
+- Treat `HPWLlg` as attribution, not a standalone objective. A legal-stage
+  improvement is only useful when final HPWL, legality, avg/max displacement,
+  and downstream DPO recovery agree with it.
 - Check whether legalization destroys too much of the global-placement basin:
   a large `HPWLg -> HPWLlg` disruption plus weak DPO recovery is evidence that
   the legalizer output may need repair before adding more DPO polish.
@@ -18,6 +21,8 @@ when Teacher needs the exact metrics/log checklist.
   route to repair the consumer or handoff.
 - Treat runtime-only wins as evidence only if HPWL, displacement, and legality
   stay comparable.
+- Treat `HPWLlg`-only wins as stage evidence only if avg/max displacement and
+  DPO exact accepted gain do not show a worse handoff state.
 
 ## Common Failure
 

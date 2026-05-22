@@ -1,35 +1,35 @@
-# Dense Legalizer Routing Insight
+# Dense Producer/Consumer Routing Insight
 
 ## Evidence Type
 
-Measured legalization-only evidence from the prior evolved-legalizer workspaces.
-Use this as a stage-level routing prior for Teacher plans, not as a final-flow
-rule.  For current full-flow promotion and case routing, read
+Measured stage evidence for dense standard-cell cases.  Use this as a
+stage-level routing prior for Teacher plans, not as a final-flow rule.  For
+current full-flow promotion and case routing, read
 `case_evolution/score_based_case_strategy_routing.md` first.
 
 ## Observation
 
-On some high-utilization, standard-cell-dense placements, `evolved_legalm` was
-the best measured legalization-stage donor among the three evolved legalizer
-starts.  It reduced global-to-legal HPWL disturbance relative to the other
-legalizer starts and to the clean local-greedy baseline.
+On some high-utilization, standard-cell-dense placements, LEGALM-style
+guidance/frontier production is useful as a legalization-stage mechanism.  It
+can reduce global-to-legal HPWL disturbance or create a recoverable basin for
+downstream exact DPO consumers.
 
-The mechanism evidence in the LEGALM trace was not a tiny metadata change.  The
-run activated high-pressure tail refinement and endpoint HPWL anchors:
-frontier attempts, accepted interval/swap/chain moves, and exact HPWL gain
-counters.
+The mechanism evidence is not a tiny metadata change.  The useful route
+activates high-pressure refinement or residual frontier production, then
+requires downstream counters: frontier attempts, accepted interval/swap/chain
+moves, exact DPO accepts, and accepted HPWL-gain counters.
 
-The same evolved legalizer ordering did not hold for all design archetypes, and
-later full-flow evidence showed that even dense designs can prefer local closure
-plus DPO or handoff repair.  Treat `evolved_legalm` as a dense-standard-cell
-legalization prior, not as the default first parent and not as a final-flow
-winner until strict final HPWL proves it on the active design.
+The same mechanism ordering does not hold for all design archetypes, and
+full-flow evidence showed that even dense designs can prefer local closure plus
+DPO or handoff repair.  Treat LEGALM-style guidance/frontier as a
+dense-standard-cell mechanism prior inside `framework`, not as proof that
+legalization-stage quality alone is enough.
 
 Important calibration: this card is about legalization-stage behavior.  Later
 full-flow rescoring showed that some high-utilization dense designs can regress
 after LEGALM or NEGOTIATION even when a legal-stage metric looks better.  On
-those features, `evolved_legalm` is a diagnostic or HPWL-stage donor unless
-strict full-flow metrics prove it improves final HPWL. Prefer current
+those features, the guidance/frontier producer is diagnostic unless strict
+full-flow metrics prove it improves final HPWL. Prefer current
 full-flow HPWL evidence when it names a different route such as
 Diamond/local-DPO repair.
 
@@ -37,10 +37,11 @@ Diamond/local-DPO repair.
 
 Iteration 1 should intentionally diversify legalizer hypotheses:
 
-- optionally assign one diagnostic dense-prior route from `evolved_legalm` when
-  the case is high-utilization, standard-cell dense, or shows large legalization
+- optionally assign one diagnostic dense-prior route from `framework` when the
+  case is high-utilization, standard-cell dense, or shows large legalization
   HPWL inflation from the global placement, unless current full-flow evidence
-  already shows that LEGALM damages final HPWL for that case archetype,
+  already shows that guidance/frontier production damages final HPWL for that
+  case archetype,
 - assign another route from `evolved_diamond` or Diamond-local behavior when
   the case has larger row/macro structure or needs local greedy closure,
 - assign another route from `evolved_negotiation` when the case shows conflict
@@ -92,5 +93,5 @@ Student room to plan the concrete patch:
 7. Keep the best clean candidate and report the source-level evidence.
 
 Use this card as feature-level guidance: dense high-utilization designs can
-have a strong LEGALM legal-stage donor, but final-flow promotion still requires
-strict stage-wise evidence on the active design.
+benefit from LEGALM-style producer/frontier mechanisms, but final-flow
+promotion still requires strict stage-wise evidence on the active design.

@@ -6,7 +6,7 @@ evolved improve-placement step. Agents should evolve a coherent
 legalize/improve mechanism in private `dpl_evolve` source while using archived
 algorithms only as donors. The private source seed is selected by the
 orchestrator (`framework`, `diamond`, `evolved_diamond`,
-`evolved_legalm`, `evolved_negotiation`, or `prepared`), so this packet must
+`evolved_negotiation`, or `prepared`), so this packet must
 stay seed-neutral. Downstream optimize-mirroring may remain in
 evaluation, but it is not part of the active patch surface.
 """
@@ -213,7 +213,7 @@ def packet_markdown(packet: dict[str, Any]) -> str:
         "- Use reference algorithms as donors, then implement a clean, high-performance mechanism in `dpl_evolve`.",
         "- Treat the stage flow as a scaffold; implementation details must be justified by canonical evaluator evidence.",
         "- Treat design-feature strategy notes as mechanism inspiration, not route selectors or case-name rules.",
-        "- Treat `evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` as materialized start branches/seed sources with measured wins on some archetypes, not universal defaults.",
+        "- Treat `evolved_diamond` and `evolved_negotiation` as materialized start branches/seed sources with measured wins on some archetypes, not universal defaults.",
         "- Use DPO source-level mechanism cards for improve-placement work: bounded source-edge scoring, transaction rollback, bounded staged descent, scoped LSMC, and handoff consumers. Implement in current source; do not rely on code transplant.",
         "- Implement handoff with OpenROAD-native in-process state: compact ids/vectors and `odb`/DetailedMgr mappings, not log/file/string payloads.",
         "- Use `knowledge/index/skill_cards.jsonl` and `scripts/query_knowledge.py` as the first-stage LEGO-lite skill lookup before opening one matched skill note.",

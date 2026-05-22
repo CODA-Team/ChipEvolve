@@ -28,6 +28,9 @@ shows:
 Legalization-stage HPWL improvement alone is not a strong mechanism.  If
 `HPWLlg` improves but `HPWLfinal` does not, classify it as `stage donor` or
 `consumer failure`, then route the next work to DPO/handoff repair.
+Also check avg/max displacement and DPO exact accepted gain: a lower `HPWLlg`
+with larger displacement tails or weaker DPO accepted_delta is a proxy-repair
+failure, not a legalizer donor.
 
 ## Final-HPWL-Proven Mechanism Patterns
 
@@ -96,6 +99,8 @@ Failure lessons:
 
 - legal-stage HPWL wins can become final-flow losses if the resulting placement
   is DPO-hostile,
+- legalizer proxy repairs that reduce `HPWLlg` but increase displacement tails
+  or reduce downstream exact accepts should be demoted immediately,
 - candidate ordering alone is often too weak; the consumer must use tags in
   scoring, exact probes, or acceptance.
 

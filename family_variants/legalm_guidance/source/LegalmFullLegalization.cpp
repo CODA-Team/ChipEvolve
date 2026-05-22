@@ -2,6 +2,7 @@
 // Copyright (c) 2018-2025, The OpenROAD Authors
 
 #include <atomic>
+#include <cmath>
 #include <mutex>
 
 #include "LegalmCommon.h"
@@ -1194,6 +1195,65 @@ bool Opendp::runLegalmFullLegalization(const EvolveContext& context)
     }
   }
 
+  int frontier_eligible_cells = 0;
+  int frontier_cells = 0;
+  int frontier_row_residual_cells = 0;
+  int frontier_max_residual_sites = 0;
+  int frontier_max_residual_rows = 0;
+  double frontier_total_residual_sites = 0.0;
+  double frontier_total_score = 0.0;
+  clearLegalmFrontier();
+  if (failed_cells == 0) {
+    for (int idx = 0; idx < static_cast<int>(cells.size()); ++idx) {
+      const LegalmPlaceCell& item = cells[idx];
+      if (item.cell == nullptr || item.cell->getDbInst() == nullptr
+          || !item.cell->isPlaced() || current_rows[idx] < 0
+          || current_sites[idx] < 0) {
+        continue;
+      }
+      ++frontier_eligible_cells;
+      const int residual_sites = current_sites[idx] - item.desired_site;
+      const int residual_rows = current_rows[idx] - item.desired_row;
+      const int original_disp_sites
+          = std::abs(current_sites[idx] - item.original_site)
+            + row_equiv_sites
+                  * std::abs(current_rows[idx] - item.original_row);
+      const int residual_norm_sites
+          = std::abs(residual_sites)
+            + row_equiv_sites * std::abs(residual_rows);
+      if (residual_norm_sites < 2 && original_disp_sites < 4) {
+        continue;
+      }
+      const double score = static_cast<double>(residual_norm_sites)
+                           + 0.25
+                                 * static_cast<double>(original_disp_sites);
+      const DbuX current_x = gridToDbu(GridX{current_sites[idx]}, site_width);
+      const DbuY current_y = grid_->gridYToDbu(GridY{current_rows[idx]});
+      const DbuX target_x = gridToDbu(GridX{item.desired_site}, site_width);
+      const DbuY target_y = grid_->gridYToDbu(GridY{item.desired_row});
+      const DbuX original_x = gridToDbu(GridX{item.original_site}, site_width);
+      const DbuY original_y = grid_->gridYToDbu(GridY{item.original_row});
+      recordLegalmFrontierCell(item.cell->getDbInst(),
+                               current_x,
+                               current_y,
+                               target_x,
+                               target_y,
+                               original_x,
+                               original_y,
+                               residual_sites,
+                               residual_rows,
+                               score);
+      ++frontier_cells;
+      frontier_row_residual_cells += residual_rows != 0 ? 1 : 0;
+      frontier_max_residual_sites
+          = std::max(frontier_max_residual_sites, std::abs(residual_sites));
+      frontier_max_residual_rows
+          = std::max(frontier_max_residual_rows, std::abs(residual_rows));
+      frontier_total_residual_sites += residual_norm_sites;
+      frontier_total_score += score;
+    }
+  }
+
   const bool ok = failed_cells == 0;
   logger_->metric("dpl_evolve__legalm_full__status", ok ? 1 : 0);
   logger_->metric("dpl_evolve__legalm_full__eligible_cells",
@@ -1301,11 +1361,32 @@ bool Opendp::runLegalmFullLegalization(const EvolveContext& context)
   logger_->metric("dpl_evolve__legalm_stage3__max_site_improvement",
                   stage3_max_improvement.load());
   logger_->metric("dpl_evolve__legalm_stage3__lambda_infinity_bgd", 1);
+  logger_->metric("dpl_evolve__legalm_frontier__eligible_cells",
+                  frontier_eligible_cells);
+  logger_->metric("dpl_evolve__legalm_frontier__cells", frontier_cells);
+  logger_->metric("dpl_evolve__legalm_frontier__row_residual_cells",
+                  frontier_row_residual_cells);
+  logger_->metric("dpl_evolve__legalm_frontier__max_residual_sites",
+                  frontier_max_residual_sites);
+  logger_->metric("dpl_evolve__legalm_frontier__max_residual_rows",
+                  frontier_max_residual_rows);
+  logger_->metric("dpl_evolve__legalm_frontier__avg_residual_sites",
+                  frontier_cells == 0
+                      ? 0.0
+                      : frontier_total_residual_sites
+                            / static_cast<double>(frontier_cells));
+  logger_->metric("dpl_evolve__legalm_frontier__avg_score",
+                  frontier_cells == 0
+                      ? 0.0
+                      : frontier_total_score
+                            / static_cast<double>(frontier_cells));
+  logger_->metric("dpl_evolve__legalm_frontier__producer_consumer_handoff",
+                  frontier_cells > 0 ? 1 : 0);
   logger_->info(DPL,
                 1214,
                 "LEGALM full legalization placed {} / {} cells self-legally "
                 "(guided {}, row escapes {}, failures {}, stage3 moved {}, "
-                "stage3 row moves {}, stage3 evals {}).",
+                "stage3 row moves {}, stage3 evals {}, frontier {}).",
                 placed_cells,
                 cells.size(),
                 guided_placed,
@@ -1313,7 +1394,8 @@ bool Opendp::runLegalmFullLegalization(const EvolveContext& context)
                 failed_cells,
                 stage3_moved,
                 stage3_row_moves,
-                stage3_candidate_evals);
+                stage3_candidate_evals,
+                frontier_cells);
 
   if (ok) {
     reportEvolvePlacementMetrics("legalm_full");

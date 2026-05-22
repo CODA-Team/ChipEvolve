@@ -12,6 +12,11 @@ choice needs it.
 - Optimize legal final `metrics.json:hpwl`. `G_HR` is analysis-only; do not call
   faster worse-HPWL code the best result unless lower-HPWL code fails legality,
   artifact, or timeout gates.
+- Treat `HPWLlg` as diagnostic, not a standalone target. Legalizer-side changes
+  must preserve or improve final HPWL, legality, avg/max displacement,
+  DPO-recoverability, and exact accepted gain. A lower `HPWLlg` with worse final
+  HPWL, larger displacement tails, or weaker DPO accepted_delta is negative
+  proxy evidence.
 - In `candidate_metrics_summary_md`, use `Headline Versus OpenROAD Default`
   for OpenROAD-default comparison, keep/reject judgment, and 5% ambition tracking.
   Use `Stage Metrics` only to diagnose where the candidate gained or lost HPWL
@@ -73,7 +78,8 @@ choice needs it.
   movement, liveness counters/logs, and runtime guard.
   Include a concrete stage-wise proof target: expected `HPWLlg`,
   `HPWLimprove`, `HPWLfinal`, and counter behavior that will prove the intended
-  HPWL source executed.
+  HPWL source executed. For legalizer routes, also include avg/max displacement
+  and downstream DPO accept/accepted_delta expectations.
 - If the Teacher packet includes `pipeline coverage`, implement the primary
   mechanism plus at least one real adjacent-stage support mechanism or liveness
   hook. For `co-optimization-emphasis`, try to make producer, handoff/frontier,
@@ -115,6 +121,10 @@ choice needs it.
 - After evaluation, inspect metrics/logs for HPWL stage movement, legality,
   runtime, liveness counters, accept/reject bottleneck, and source/binary/metric
   alignment.
+- For legalizer-side routes, diagnose `HPWLlg` together with avg/max
+  displacement, handoff/frontier counters, DPO exact accepts, accepted_delta,
+  and final HPWL. Do not finalize a legalizer proxy repair as successful if it
+  damages the downstream recoverable basin.
 - Counters and accepted-delta only prove liveness. Do not call a route
   successful if final HPWL barely improves over OpenROAD default/current elite
   or stays far from the 5% ambition. In that case, use the required

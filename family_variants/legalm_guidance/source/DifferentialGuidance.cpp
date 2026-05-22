@@ -5,6 +5,16 @@
 
 namespace dpl_evolve {
 
+namespace {
+
+std::vector<Opendp::LegalmFrontierCell>& legalmFrontierStore()
+{
+  static std::vector<Opendp::LegalmFrontierCell> store;
+  return store;
+}
+
+}  // namespace
+
 // Guided initial-location storage helpers shared by LEGALM-style stages.
 void Opendp::clearGuidedInitialLocations()
 {
@@ -17,6 +27,42 @@ void Opendp::clearGuidedInitialLocations()
   legalm_stage2_final_overflow_bins_ = 0;
   legalm_stage2_final_max_density_ = 0.0;
   legalm_stage2_overflow_free_ = false;
+}
+
+void Opendp::clearLegalmFrontier()
+{
+  legalmFrontierStore().clear();
+}
+
+void Opendp::recordLegalmFrontierCell(odb::dbInst* inst,
+                                      const DbuX current_x,
+                                      const DbuY current_y,
+                                      const DbuX target_x,
+                                      const DbuY target_y,
+                                      const DbuX original_x,
+                                      const DbuY original_y,
+                                      const int residual_sites,
+                                      const int residual_rows,
+                                      const double score)
+{
+  if (inst == nullptr) {
+    return;
+  }
+  legalmFrontierStore().push_back({inst->getName(),
+                                   current_x.v,
+                                   current_y.v,
+                                   target_x.v,
+                                   target_y.v,
+                                   original_x.v,
+                                   original_y.v,
+                                   residual_sites,
+                                   residual_rows,
+                                   score});
+}
+
+const std::vector<Opendp::LegalmFrontierCell>& Opendp::legalmFrontier() const
+{
+  return legalmFrontierStore();
 }
 
 bool Opendp::hasGuidedInitialLocation(const Node* cell) const

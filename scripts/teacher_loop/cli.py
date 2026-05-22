@@ -29,18 +29,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--start-kind",
         choices=START_KINDS,
-        default="evolved_legalm",
+        default="framework",
         help=(
             "Initial dpl_evolve source seed for student variants. "
-            "`framework` starts from the constrained top-level framework; "
+            "`framework` starts from the constrained top-level framework with "
+            "LEGALM-style producer/frontier support and bounded DPO handoff; "
             "`diamond` starts from the clean dpl_evolve/base implementation; "
             "`default_negotiation` starts from a framework-compatible source "
             "layout with negotiation enabled by default and without evolved "
             "negotiation donors; "
-            "`evolved_diamond`, `evolved_legalm`, and `evolved_negotiation` "
-            "start from materialized iter30 evolved legalizer seed sources. "
-            "`evolved_legalm` is the default current LEGALM/global-differential "
-            "seed; "
+            "`evolved_diamond` and `evolved_negotiation` start from "
+            "materialized evolved legalizer seed sources; "
             "`prepared` copies the current prepared ORFS dpl_evolve source."
         ),
     )
@@ -191,15 +190,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "diamond",
             "default_negotiation",
             "evolved_diamond",
-            "evolved_legalm",
             "evolved_negotiation",
         ],
         default=[],
         help=(
             "Start-kind seed to include in --calibrate-start-seeds. "
             "Repeatable. Default: framework, evolved_diamond, "
-            "evolved_legalm, evolved_negotiation, plus default Diamond and "
-            "default negotiation controls."
+            "evolved_negotiation, plus default Diamond and default negotiation "
+            "controls."
         ),
     )
     parser.add_argument("--dry-run", action="store_true")

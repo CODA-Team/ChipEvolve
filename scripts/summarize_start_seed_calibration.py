@@ -2,7 +2,7 @@
 """Summarize start-kind calibration candidate matrices.
 
 The calibration runner evaluates prepared `dpl_evolve` seed sources such as
-`framework`, `evolved_legalm`, and `evolved_negotiation` before a Teacher round.
+`framework`, `evolved_diamond`, and `evolved_negotiation` before a Teacher round.
 This helper turns the generated candidate-matrix results into a compact table
 that Teacher can use as initial donor evidence.
 """

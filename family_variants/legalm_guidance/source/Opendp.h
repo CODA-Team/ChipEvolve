@@ -41,6 +41,7 @@ struct Pixel;
 class DplObserver;
 class Grid;
 class GridInfo;
+class DetailedMgr;
 class Padding;
 class PixelPt;
 class PlacementDRC;
@@ -94,6 +95,20 @@ struct GlobalSwapParams
 class Opendp
 {
  public:
+  struct LegalmFrontierCell
+  {
+    std::string inst_name;
+    int current_x = 0;
+    int current_y = 0;
+    int target_x = 0;
+    int target_y = 0;
+    int original_x = 0;
+    int original_y = 0;
+    int residual_sites = 0;
+    int residual_rows = 0;
+    double score = 0.0;
+  };
+
   Opendp(odb::dbDatabase* db, utl::Logger* logger);
   ~Opendp();
 
@@ -254,6 +269,19 @@ class Opendp
   void runRowAssignmentGuidance(const EvolveContext& context);
   bool runLegalmFullLegalization(const EvolveContext& context);
   bool runEvolveNegotiationRepair(bool run_abacus);
+  void clearLegalmFrontier();
+  void recordLegalmFrontierCell(odb::dbInst* inst,
+                                DbuX current_x,
+                                DbuY current_y,
+                                DbuX target_x,
+                                DbuY target_y,
+                                DbuX original_x,
+                                DbuY original_y,
+                                int residual_sites,
+                                int residual_rows,
+                                double score);
+  const std::vector<LegalmFrontierCell>& legalmFrontier() const;
+  int runLegalmFrontierDpo(DetailedMgr& mgr);
   void reportEvolvePlacementMetrics(const char* stage_name) const;
   void clearGuidedInitialLocations();
   int commitGuidedInitialLocationsToDb();

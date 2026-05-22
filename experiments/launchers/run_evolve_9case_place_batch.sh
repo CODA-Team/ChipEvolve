@@ -10,7 +10,7 @@ CASE_SET="${EVOLVE_CASE_SET:-evolve_9case}"
 FLOW_VARIANT="${EVOLVE_FLOW_VARIANT:-place_batch_20260421_220319}"
 RUN_STAMP="$(date +%Y%m%d_%H%M%S)"
 RUN_PREFIX="${EVOLVE_RUN_PREFIX:-evolve_9case_place_batch_${RUN_STAMP}}"
-START_KIND="${EVOLVE_START_KIND:-evolved_legalm}"
+START_KIND="${EVOLVE_START_KIND:-framework}"
 CHILDREN="${EVOLVE_CHILDREN:-4}"
 ITERATIONS="${EVOLVE_ITERATIONS:-15}"
 MAX_PARALLEL="${EVOLVE_MAX_PARALLEL:-4}"
@@ -41,7 +41,7 @@ Defaults:
   iterations:      15
   teacher:         gpt-5.4 / xhigh
   student:         gpt-5.4 / xhigh
-  start kind:      evolved_legalm
+  start kind:      framework
   case concurrency 3
 
 Options:
@@ -49,8 +49,8 @@ Options:
   --case ID                    Run one case. May be repeated. Overrides case set.
   --flow-variant NAME          Default: place_batch_20260421_220319.
   --run-prefix NAME            Round-id prefix. Default includes launch stamp.
-  --start-kind KIND            framework, diamond, evolved_diamond,
-                               evolved_legalm, evolved_negotiation, prepared.
+  --start-kind KIND            framework, diamond, default_negotiation,
+                               evolved_diamond, evolved_negotiation, prepared.
   --children N                 Student count per iteration. Default: 4.
   --iterations N               Iterations per case. Default: 15.
   --max-parallel N             Parallel students inside one case. Default: 4.
@@ -105,7 +105,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "${START_KIND}" in
-  framework|diamond|evolved_diamond|evolved_legalm|evolved_negotiation|prepared) ;;
+  framework|diamond|default_negotiation|evolved_diamond|evolved_negotiation|prepared) ;;
   *) echo "[ERROR] Unsupported --start-kind: ${START_KIND}" >&2; exit 1 ;;
 esac
 

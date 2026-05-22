@@ -22,7 +22,7 @@ enabled case core_utilization flow_variant round_id start_kind notes
 - `flow_variant`: stable ORFS placement snapshot name.
 - `round_id`: stable Teacher/Student output directory name.
 - `start_kind`: `framework`, `diamond`,
-  `evolved_diamond`, `evolved_legalm`, `evolved_negotiation`, or `prepared`.
+  `evolved_diamond`, `evolved_negotiation`, or `prepared`.
   `evolved_*` rows use prepared seed sources created by
   `scripts/prepare_workspace.sh`.
 - `notes`: short human intent for this experiment point.

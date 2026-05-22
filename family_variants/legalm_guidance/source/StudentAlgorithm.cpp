@@ -11,6 +11,7 @@ namespace dpl_evolve {
 bool Opendp::runStudentAlgorithm(const EvolveContext& context)
 {
   clearGuidedInitialLocations();
+  clearLegalmFrontier();
   logger_->metric("dpl_evolve__student_algorithm__pipeline_version", 1);
   logger_->info(DPL,
                 1220,

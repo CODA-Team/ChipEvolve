@@ -36,7 +36,7 @@ Primary flow:
 
 1. prepare source or assigned start:
    - `$prepare_source_script`
-   - `$prepare_start_source_script --kind <framework|diamond|default_negotiation|evolved_diamond|evolved_legalm|evolved_negotiation>`
+   - `$prepare_start_source_script --kind <framework|diamond|default_negotiation|evolved_diamond|evolved_negotiation>`
 2. for each mechanism trial:
    - `$trial_source_script begin --label <short-mechanism>`
    - repair a prior kept/rejected ref when assigned: `$trial_source_script begin --label <repair-name> --from-ref <ref>`

@@ -77,7 +77,7 @@ should act on it.
   handoff, row-local exact closure, conflict-primary closure, and plateau
   redesign.
 - `case_evolution/dense_evolved_legalizer_routing.md`: dense-case evidence for
-  using `evolved_legalm` as a stage-level legalizer prior, plus Teacher policy
+  using the framework LEGALM-style producer/frontier as a stage-level prior, plus Teacher policy
   for first-round diversification and later route switching/hybridization.  This
   card is subordinate to current full-flow score evidence when they disagree.
 - `case_evolution/optdp_stage_cooptimization.md`: useful and harmful
