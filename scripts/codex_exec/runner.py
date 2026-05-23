@@ -426,7 +426,8 @@ def main(argv: list[str] | None = None) -> int:
     auto_resumed = False
     auto_resume_attempts = 0
     auto_resume_reasons: list[str] = []
-    for _ in range(2):
+    max_attempts = max(0, int(args.auto_resume_max_attempts or 0))
+    for _ in range(max_attempts):
         resume_ok, resume_reason = should_auto_resume(summary, returncode)
         if not resume_ok:
             auto_resume_reasons.append(resume_reason)
@@ -437,7 +438,11 @@ def main(argv: list[str] | None = None) -> int:
         resume_thread_id = str(summary.get("thread_id") or "").strip()
         if not resume_thread_id:
             break
-        time.sleep(20)
+        delay = max(0.0, float(args.auto_resume_backoff_seconds or 0.0))
+        if delay:
+            # Spread repeated proxy-capacity retries instead of immediately
+            # re-entering the same failing backend window.
+            time.sleep(delay * auto_resume_attempts)
         command = build_command(args, root, last_message_path, resume_thread_id)
         returncode = run_codex_process(
             command=command,

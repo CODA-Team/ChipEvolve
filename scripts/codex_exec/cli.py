@@ -78,6 +78,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Do not auto-resume from --session-state even if it has a thread id.",
     )
+    parser.add_argument(
+        "--auto-resume-max-attempts",
+        type=int,
+        default=8,
+        help="Maximum wrapper-level retries for transient Codex/API failures.",
+    )
+    parser.add_argument(
+        "--auto-resume-backoff-seconds",
+        type=float,
+        default=45.0,
+        help="Base delay before retrying a transient Codex/API failure.",
+    )
     parser.add_argument("--input-price-per-1m", type=float)
     parser.add_argument("--cached-input-price-per-1m", type=float)
     parser.add_argument("--output-price-per-1m", type=float)
