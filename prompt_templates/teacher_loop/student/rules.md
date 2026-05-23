@@ -94,10 +94,11 @@
    If Teacher assigns a complete strong-chain reconstruction or alternate start
    basin, do not shrink it into guard, late polish, telemetry, or a single
    retune.  Implement the material chain links Teacher named: legalizer/start
-   basin, handoff/frontier payload or liveness hook, exact DPO consumer,
-   acceptance/rollback truth, and post-consumer proof.  If one link cannot be
-   implemented in the iteration, report that missing link explicitly in
-   `## Next Teacher Handoff`.
+   basin, explicit component/window/frontier payload, handoff state that keeps
+   the payload live through later passes, exact DPO consumer with larger-grain
+   transactions, acceptance/rollback truth, and post-consumer proof.  If one
+   link cannot be implemented in the iteration, report that missing link
+   explicitly in `## Next Teacher Handoff`.
 5. Patch source, build, run the canonical full-flow evaluator, read the generated candidate metrics summary first, then inspect the actual DPL log/counters needed to prove whether your mechanism fired and why it accepted/rejected candidates. Do not rely on metrics alone when judging mechanism liveness or failure.
 6. Before finalization, run one self-diagnosis and strengthening loop. Diagnose whether the first result exposed an implementation bug, zero/non-live counter, weak accept rate, missing producer/consumer handoff, wrong HPWL source, excessive runtime, or stage-local gain erased downstream. Then make one coherent strengthened modification and re-run build/evaluation, unless the first result failed so fundamentally that the route must be rejected. This is the bounded self-repair cycle for the iteration; do not keep stacking unreviewed repairs after it.
    The self-diagnosis must explicitly answer whether HPWL movement came from
@@ -106,6 +107,11 @@
    stop reason, and mechanism-local runtime. If final HPWL is weak but runtime
    headroom remains, strengthen the mechanism toward the missing quality source
    instead of only lowering runtime or preserving the current result.
+   For plateau or runtime-for-quality routes, also report
+   `accepted_delta_per_runtime` or enough accepted-delta and pass-runtime fields
+   for Teacher to compute it. More probes, accepts, or raw accepted delta without
+   final HPWL movement means the payload quality, consumer granularity,
+   post-consumer preservation, or gain-rate control still needs repair.
 7. After the strengthened evaluation, decide keep/reject/finalize from the best clean source. Use `25_trial_source.sh reject` only after preserving evidence when the path has no clear repair, stays non-executed, is validated-low-ROI, or worsens HPWL while also adding unjustified runtime. Keep the best clean evaluated source. If the route still needs follow-up, write the exact next repair or pivot into `## Next Teacher Handoff` in the generated knowledge card so Teacher can decide the next round.
 8. Run finalization for the final source state and make sure source commit/ref, binary, metrics, diff, and report all describe the same code.
 

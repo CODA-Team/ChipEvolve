@@ -100,9 +100,10 @@ choice needs it.
 - If Teacher assigns a complete strong-chain reconstruction or alternate start
   basin, do not shrink it into guard, late polish, telemetry, or a single
   retune.  Implement the material chain links Teacher named: legalizer/start
-  basin, handoff/frontier payload or liveness hook, exact DPO consumer,
-  acceptance/rollback truth, and post-consumer proof.  If one link cannot be
-  implemented in the iteration, report that missing link explicitly in
+  basin, explicit component/window/frontier payload, handoff state that keeps
+  the payload live through later passes, exact DPO consumer with larger-grain
+  transactions, acceptance/rollback truth, and post-consumer proof.  If one link
+  cannot be implemented in the iteration, report that missing link explicitly in
   `## Next Teacher Handoff`.
 - Use generated helpers instead of reconstructing commands: prepare/start,
   trial begin/keep/reject, build, evaluate, and finalization. Use
@@ -145,6 +146,12 @@ choice needs it.
   legal but weak and still has runtime headroom, use the strengthened patch to
   attack the missing quality source rather than only reduce runtime, preserve
   the donor, or add counters.
+- For plateau or runtime-for-quality routes, also report
+  `accepted_delta_per_runtime` or enough accepted-delta and pass-runtime fields
+  for Teacher to compute it.  A route that increases probes, accepts, or raw
+  accepted delta but barely moves final HPWL should be diagnosed as missing
+  payload quality, consumer granularity, post-consumer preservation, or gain-rate
+  control before finalization.
 - New algorithms or handoff paths need minimal useful counters/logs: producer
   count, consumer attempts, accepts/rejects, HPWL gain or loss, and pass/runtime
   cost where applicable.

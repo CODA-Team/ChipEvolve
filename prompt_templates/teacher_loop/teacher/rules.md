@@ -142,12 +142,16 @@
   incomplete/final-effect insufficient and assign work to repair the missing
   producer, handoff, consumer, acceptance, or post-consumer link.
 - Low-yield donor escalation: once a legal donor has had one meaningful repair
-  or continuation and still gives only a small final-HPWL move, the next plan
-  must allocate at least one Student to a complete strong-chain reconstruction
-  or an alternate start basin.  That route must name the producer/legalizer
-  basin, handoff/frontier payload, DPO consumer, acceptance/rollback truth, and
-  post-consumer proof target.  It must not be guard-only, late-polish-only, or
-  same-family threshold tuning.
+  or continuation and still gives only a small final-HPWL move, or spends more
+  runtime without proportional final gain, the next plan must allocate at least
+  one Student to a complete strong-chain reconstruction or an alternate start
+  basin.  That route must name the producer/legalizer basin, explicit
+  component/window/frontier payload, handoff state that preserves payload
+  lifetime, DPO consumer, larger-grain exact transaction, acceptance/rollback
+  truth, and post-consumer proof target.  It must not be guard-only,
+  late-polish-only, runtime-repair-only, or same-family threshold tuning.  Its
+  proof target must include final HPWL and `accepted_delta_per_runtime`, not only
+  `HPWLlg`, accept count, or raw accepted delta.
 - The current best route also participates in aggressive search.  If continued,
   label it `elite-expand` and add a material donor-on-top mechanism: deeper
   exact consumer, alternate producer/handoff, stronger bounded quality search,
@@ -219,7 +223,7 @@
   the strong HPWL source: missing producer, missing handoff, missing consumer,
   too strict acceptance, insufficient search depth, runtime bottleneck, or
   wrong case-type route. Then assign stronger routes accordingly.
-- In plateau rounds, the route map must visibly change the reachable solution space. At least half of active Students that are not explicit repair tasks should switch, hybridize, elite-expand with a stronger mechanism, or redesign a legalizer/DPO/handoff family rather than tuning thresholds, preservation wrappers, counters, or source-edge variants of the same basin.
+- In plateau rounds, the route map must visibly change the reachable solution space. At least half of active Students that are not explicit repair tasks should switch, hybridize, elite-expand with a stronger mechanism, or redesign a legalizer/DPO/handoff family rather than tuning thresholds, preservation wrappers, counters, or source-edge variants of the same basin. At least one route must rebuild a complete producer/handoff/consumer chain when runtime has grown but final HPWL is flat.
 - Teacher may intentionally assign multiple Students to the same highly
   promising blueprint when the variants are genuinely different source
   hypotheses, such as different start basins, different producer/handoff

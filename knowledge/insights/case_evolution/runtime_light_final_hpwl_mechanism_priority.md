@@ -179,6 +179,12 @@ Best feature match:
 
 Reusable mechanism examples:
 
+- if residual target-miss or stage3-repair evidence exists, build a compact
+  residual payload first, then consume it with residual-focus replay, residual
+  diversity replay, and transactional row-window replay;
+- if source-edge or endpoint residue dominates, keep a stable Diamond-like
+  legal basin and use exact source-edge/global-swap scoring, selected hot
+  segments, post-reorder exact polish, pair polish, and endpoint polish;
 - anchor windows on high-score residual nodes, touched nets, or boundary-active
   cells rather than sliding uniformly;
 - probe bounded row windows with exact transactional move/swap scoring;
@@ -192,6 +198,9 @@ mechanism moves final HPWL but costs too much, Teacher should ask for an
 implementation-efficiency repair.  Possible levers include better candidate
 selection, caches, caps, affected-net deltas, deterministic parallel scoring,
 or gain-rate stops, but these are examples rather than the only valid fixes.
+Do not demote this family merely because it costs tens of seconds on a
+short/medium case.  Demote it when exact accepts or final-flow preservation are
+missing, or when accepted delta per runtime is poor and not being repaired.
 
 ### Critical Row-Window Matching
 

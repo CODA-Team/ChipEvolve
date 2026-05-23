@@ -123,6 +123,12 @@
   accepted zero moves; exact accepts happened but post-consumer polish erased or
   failed to preserve gains; runtime caps stopped before the quality source was
   reached.
+- When runtime grows but final HPWL is flat, do not treat raw accept count or
+  large accepted delta as sufficient.  Review whether the accepted delta was
+  useful per unit runtime and preserved to final flow.  The next plan should
+  include `accepted_delta_per_runtime` or an equivalent pass-local
+  gain-per-second diagnosis, plus at least one route that rebuilds the complete
+  producer/payload-handoff/larger-grain-exact-consumer chain.
 - When a next route switches parent/ref, name the current-run source ref, new
   trial label, and preservation expectation.
 

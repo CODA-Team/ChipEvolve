@@ -87,11 +87,15 @@ route. Keep the review concise and action-bearing.
   mode. The first-round route map or an algorithm card may inspire it, but
   should not be the reason by itself.
 - If a legal donor has already received one meaningful repair/continuation and
-  still produces only weak final-HPWL movement, the review must force at least
-  one next route to rebuild the complete strong chain or switch to an alternate
-  start basin.  The review should name the missing link: producer/legalizer
-  basin, handoff/frontier payload, DPO consumer, exact acceptance/rollback,
-  post-consumer preservation, or runtime bottleneck.
+  still produces only weak final-HPWL movement, or spends more runtime without
+  proportional final gain, the review must force at least one next route to
+  rebuild the complete strong chain or switch to an alternate start basin.  The
+  review should name the missing link: producer/legalizer basin, explicit
+  component/window/frontier payload, payload lifetime through handoff, DPO
+  consumer, larger-grain exact transaction, exact acceptance/rollback,
+  post-consumer preservation, or runtime bottleneck.  Judge the repair by final
+  HPWL and `accepted_delta_per_runtime`, not only `HPWLlg`, accept count, or raw
+  accepted delta.
 - Do not let the current best become a frozen guard.  If it remains in the
   roster, review it as `elite-expand` and require a material HPWL mechanism on
   top of it.  Multiple Students may target the same promising mechanism family

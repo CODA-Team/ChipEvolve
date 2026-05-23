@@ -80,6 +80,17 @@ Failure lessons:
   pricing hints rather than hard targets,
 - published-but-unaccepted windows should not receive downstream protection.
 
+For hierarchical wrapper-like cases, treat residual grouped windows as a full
+producer-consumer route, not as passive handoff.  The strong form is:
+legalizer residual cells/nets/components -> DPO focus import -> residual-focus
+or diversity replay -> transactional row-window exact replay -> optional
+mirror/final protection of accepted replay/window cells.  The alternative
+strong form for the same feature class is a stable legal basin plus exact
+source-edge or edge-critical DPO, selected-segment reorder, and post-reorder
+exact/pair/endpoint polish.  Teacher should route at least one of these strong
+forms when wrapper-like cases plateau; otherwise the result is usually a weak
+guard or marker-only donor.
+
 ### 3. Resource Or Row-Segment Reservation As A Stage Donor
 
 Reservation, interval auction, segment ownership, or scarce-row pricing can

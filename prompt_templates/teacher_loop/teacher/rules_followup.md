@@ -78,11 +78,16 @@ and review packet fields needed for routing.
   final-effect insufficient and route a stronger chain link or a different HPWL
   source.
 - Low-yield donor escalation: after one meaningful repair/continuation of a
-  legal donor, weak final-HPWL movement requires at least one next Student on a
-  complete strong-chain reconstruction or alternate start basin.  The packet
-  must include producer/legalizer basin, handoff/frontier payload, DPO consumer,
-  exact acceptance/rollback truth, post-consumer proof target, and counters.
-  Do not fill the roster with guard, late polish, or same-family threshold work.
+  legal donor, weak final-HPWL movement or higher runtime without proportional
+  final gain requires at least one next Student on a complete strong-chain
+  reconstruction or alternate start basin.  This route is not guard or runtime
+  repair.  The packet must include producer/legalizer basin, an explicit
+  component/window/frontier payload, handoff state that preserves payload
+  lifetime, a DPO consumer with larger-grain exact transactions, exact
+  acceptance/rollback truth, post-consumer proof target, and counters.  Diagnose
+  with final HPWL plus `accepted_delta_per_runtime`, not only `HPWLlg`, accept
+  count, or raw accepted delta.  Do not fill the roster with guard, late polish,
+  or same-family threshold work.
 - The current best is still an optimization route.  If continued, route it as
   `elite-expand` with a material donor-on-top mechanism, not preservation:
   stronger exact consumer, alternate producer/handoff, bounded quality search,

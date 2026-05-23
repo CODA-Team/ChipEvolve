@@ -46,7 +46,9 @@ Student workspace.
 
 Every route should emit compact counters: produced frontier count,
 consumed/probed count, exact accepts, accepted HPWL gain or accepted delta,
-rollback/reject count, and runtime for each bounded pass.
+rollback/reject count, runtime for each bounded pass, and
+`accepted_delta_per_runtime` or enough accepted-delta/runtime fields to compute
+it.
 
 ## Blueprint A: Diamond-Basin Source-Edge Exact DPO
 
@@ -238,6 +240,60 @@ Demote these partial hits:
 Use when macro, memory, hierarchy, blockage, or wrapper structure fragments
 standard-cell logic into repeated row-window basins.
 
+### Cross-Case Validated Wrapper Routes
+
+For wrapper-like cases, the first plan should not be only a guard or a small
+mirror/reorder tweak.  Two mechanism chains have the strongest evidence for
+this feature class.  Teacher can assign both in parallel when the stage metrics
+show both residual/window structure and source-edge residue.
+
+Route C1: residual-window producer plus row-window consumer.
+
+1. Start from `framework` when the legalizer exposes residual target misses,
+   stage3-repaired cells, or compact residual cells/nets after legalization.
+2. In the legalizer/guidance code, keep a recoverable producer live rather than
+   optimizing `HPWLlg` alone.  Useful producer payloads are target-miss cells,
+   stage3-repaired cells, residual nets, compact components, and current-net or
+   target-correction anchors.
+3. In `src/Optdp.cpp`, import a bounded residual payload into improve placement
+   and enable the enhanced DPO path.  Prove the import with focus-cell,
+   focus-net, backfill, and priority counters.
+4. Consume the payload with residual-focus replay first.  Then add residual
+   diversity or bucketed replay only if the focus route has exact-positive
+   accepts.  Bucket actions should be keep/reject by exact HPWL gain, not by
+   marker count.
+5. Add transactional row-window replay around the accepted residual cells/nets:
+   generate bounded row windows, exact-score swap/move/shift probes, commit
+   only positive windows, and report accepted windows, changed cells/nets,
+   best gain, total gain, and rollback count.
+6. Mirror or later endpoint handling may consume only accepted replay/window
+   cells.  Do not make mirror priority the primary optimizer.
+
+Route C2: endpoint/source-edge exact consumer stack.
+
+1. Start from `evolved_diamond` or `diamond` when the legal basin is stable and
+   the remaining HPWL looks like endpoint, source-edge, or bbox-edge residue.
+2. In `src/Optdp.cpp`, force the enhanced improve-placement path to execute;
+   do not silently bypass it through a low-utilization or legacy fallback.
+3. In `src/optimization/detailed_global.cxx` or the active global-swap source,
+   collect source-edge/frontier cells, generate candidate rows/sites from bbox
+   interval centers and edges, exact-score a bounded top-K of move and swap
+   trials with journal or affected-net HPWL, and replay only positive bests.
+4. Convert accepted exact moves into hot or edge-critical segments in native
+   detailed-placement state.
+5. In `src/optimization/detailed_reorder.cxx`, consume selected segments first,
+   then run bounded post-reorder exact polish, pair polish, and endpoint polish
+   around touched nodes/edges.  Each tail must exact-score and commit only
+   positive candidates.
+6. If a run has many candidates but weak final movement, repair candidate
+   quality or accepted-delta preservation before widening the queue.
+
+The two routes can be stacked only when counters show both producers are live.
+If C1 creates residual payload but C2-style exact consumers have zero accepts,
+the failure is consumer mapping or candidate quality.  If C2 accepts moves but
+final HPWL is flat, the failure is final-flow preservation, selected-segment
+consumption, or accepted-delta-per-runtime.
+
 ### Implementation Order
 
 1. Start from the source basin that already exposes the strongest residual
@@ -262,12 +318,20 @@ standard-cell logic into repeated row-window basins.
 
 ### Required Counters
 
-- residual replay focus cells/nets, rounds, accepts or accepted buckets, stop
-  reason, and HPWL gain;
+- legalizer residual target-miss cells, stage3-repaired cells, residual cells,
+  residual nets, compact components, and DPO focus handoff counts;
+- residual replay focus cells/nets, rounds, accepts or accepted buckets,
+  rejected buckets, stop reason, exact-positive rounds, and HPWL gain;
 - row-window candidates, probes, accepted windows, rollback windows, changed
   cells/nets, best gain, and HPWL gain;
+- source-edge or edge-critical generated candidates, top-K candidates,
+  exact-scored candidates, accepts, replay failures, and accepted delta when
+  the endpoint/source-edge route is selected;
+- selected-segment reorder and post-reorder exact/pair/endpoint probes,
+  accepts, replay failures, accepted delta, and pass runtime;
 - mirror handoff replay-priority and row-window-priority counts if mirror is
   used;
+- accepted delta per runtime for the bounded replay/exact stages;
 - final HPWL improvement after the full flow.
 
 ### Partial Routes To Demote
@@ -276,7 +340,10 @@ standard-cell logic into repeated row-window basins.
 - broad replay without exact-positive gain;
 - net-heavy mirror priority when cell-only accepted-window handoff is the live
   signal;
-- broadening a dead endpoint-pair producer instead of repairing why it is zero.
+- broadening a dead endpoint-pair producer instead of repairing why it is zero;
+- preserving a weak wrapper donor unchanged after plateau instead of testing a
+  residual-window chain, an endpoint/source-edge exact consumer chain, or a
+  coherent stack of both.
 
 ## Blueprint D: Top-Net Target-Source Repair And Mirror-Dependency Hybrid
 
@@ -521,19 +588,26 @@ passive metadata.
 ### Implementation Order
 
 1. Keep one rollback-preserved elite-expansion route if the current best is
-   meaningfully better than the reference.
-2. Send other Students to a different source mechanism: producer policy,
+   meaningfully better than the reference, but do not freeze it as guard-only.
+   Expand it with a stronger quality mechanism.
+2. If runtime increased without proportional final-HPWL movement, assign at
+   least one Student to rebuild the complete chain: producer creates an explicit
+   component/window/frontier payload, handoff preserves payload lifetime through
+   later passes, and DPO consumes it with a larger-grain exact transaction.
+3. Send other Students to a different source mechanism: producer policy,
    handoff payload and remapping, DPO move family, exact scoring objective,
    transaction acceptance, or post-consumer polish.
-3. Use current-run peer packets and Student mechanism cards first; use this
+4. Use current-run peer packets and Student mechanism cards first; use this
    roadmap to choose a different mechanism family only after naming the observed
    failure mode.
-4. Require new counters proving a different path executed and a stage tuple that
-   differs from the plateau family.
+5. Require new counters proving a different path executed, the payload was
+   produced and consumed, and the stage tuple differs from the plateau family.
 
 ### Required Counters
 
-- the new mechanism's producer/consumer/acceptance counters;
+- the new mechanism's producer, payload-handoff, consumer, and acceptance
+  counters;
+- accepted delta, mechanism/pass runtime, and `accepted_delta_per_runtime`;
 - stage-wise HPWL movement different from the plateau family;
 - final HPWL improvement or clear classification as stage donor, implementation
   bug, consumer failure, or low ROI.
@@ -543,7 +617,9 @@ passive metadata.
 - repeated threshold or queue-depth edits;
 - preservation-only best route;
 - different names for the same DPO or legalizer family;
-- runtime-only improvement without a quality mechanism.
+- runtime-only improvement without a quality mechanism;
+- more accepts or raw accepted delta without final-flow preservation or
+  gain-per-runtime diagnosis.
 
 ## Complete-Chain Check
 
