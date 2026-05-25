@@ -26,9 +26,10 @@ Use this file as the Teacher context entry point for initial routing.
   accepts rather than legalize-only HPWL. For that signature, open
   `matched_blueprint_packet` first and route at least one Student to reconstruct
   the complete stack:
-  Differential/LEGALM-style producer -> negotiation-compatible legal closure ->
-  exact source-edge/global-swap consumer -> edge-critical/selected reorder ->
-  bounded post-reorder exact/pair/endpoint polish.
+  recoverable producer or stable legal basin -> exact source-edge/global-swap
+  consumer -> edge-critical/selected reorder -> bounded post-reorder
+  exact/pair/endpoint polish. Use framework guidance or negotiation closure
+  only when current evidence says that producer/basin is actually consumed.
 - For low-util or Diamond-stable local residue without the large row-rich
   cumulative-chain signature, open `matched_blueprint_packet` first and route
   at least one Student to the complete chain: preserve a Diamond-compatible

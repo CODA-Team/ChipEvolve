@@ -654,20 +654,28 @@ def _markdown_section(text: str, heading_prefix: str) -> str:
 
 def _outline_row(outline_text: str, letter: str) -> str:
     marker = f"`{letter}."
+    matches: list[str] = []
     for line in outline_text.splitlines():
         if marker in line:
             cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
             if len(cells) >= 5:
-                return "\n".join(
-                    [
-                        f"- observed feature pattern: {cells[0]}",
-                        f"- primary blueprint: {cells[1]}",
-                        f"- preferred start basin: {cells[2]}",
-                        f"- first Student assignment: {cells[3]}",
-                        f"- proof target: {cells[4]}",
-                    ]
+                matches.append(
+                    "\n".join(
+                        [
+                            f"- observed feature pattern: {cells[0]}",
+                            f"- primary blueprint: {cells[1]}",
+                            f"- preferred start basin: {cells[2]}",
+                            f"- first Student assignment: {cells[3]}",
+                            f"- proof target: {cells[4]}",
+                        ]
+                    )
                 )
-            return line
+            else:
+                matches.append(line)
+    if matches:
+        return "\n\n".join(
+            [f"Matched route outline {idx + 1}:\n{match}" for idx, match in enumerate(matches)]
+        )
     return f"- blueprint: `{letter}. {BLUEPRINT_NAMES.get(letter, '')}`"
 
 

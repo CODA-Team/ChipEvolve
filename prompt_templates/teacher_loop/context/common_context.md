@@ -69,12 +69,12 @@ roadmap section for implementation details, then diversify.
   large row-rich or datapath-like recoverable basin with strong improve-stage
   recovery, nontrivial default runtime, and final HPWL dominated by DPO accepts
   rather than legalize-only HPWL -> assign one cumulative producer/closure/DPO
-  chain before pure local-consumer routes:
-  Differential/LEGALM-style producer -> negotiation-compatible legal closure ->
-  exact source-edge/global-swap consumer -> edge-critical or selected-segment
-  reorder -> bounded post-reorder exact/pair/endpoint polish.  A pure
-  Diamond/source-edge route can be a complementary route, but it is not the main
-  warm-start mechanism for this signature.
+  chain before pure local-consumer routes.  The producer may be the current
+  Diamond basin, negotiation/resource closure, or framework guidance only when
+  stage evidence supports it.  The strong route is the complete chain:
+  recoverable producer or stable basin -> exact source-edge/global-swap
+  consumer -> edge-critical or selected-segment reorder -> bounded
+  post-reorder exact/pair/endpoint polish.
   low-util or Diamond-stable local residue with large improve-stage
   recoverability -> assign one complete Diamond-basin source-edge exact descent
   route: preserve a Diamond-compatible legal basin, force the enhanced DPO path,
@@ -95,10 +95,11 @@ roadmap section for implementation details, then diversify.
 - When dense recoverable pressure and large row-rich recoverability both match,
   and negotiation-style evidence shows strong DPO recovery but poor final
   closure, assign one Student to the cumulative stack from the focused
-  blueprint packet or mechanism roadmap: Differential/LEGALM-style producer ->
+  blueprint packet or mechanism roadmap: recoverable producer or
   negotiation-compatible legal closure -> exact source-edge/global-swap
   consumer -> edge-critical/selected reorder -> bounded post-reorder
-  exact/pair/endpoint polish.
+  exact/pair/endpoint polish. Use framework guidance only when it creates a
+  consumed payload; do not assume it is the primary route.
 - For a strong retained route, route from the cumulative mechanism chain. Do not
   assign only the final preservation, telemetry, or attribution diff as if it
   were the quality mechanism.

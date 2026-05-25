@@ -45,67 +45,60 @@ last guard or attribution commit.
 
 | feature signature | validated warm-start route | blueprint | first start basin | expected HPWL source | first proof check |
 | --- | --- | --- | --- | --- | --- |
-| Row-rich stdcell design, `HPWLlg` can inflate, `HPWLimprove` has large recovery, source-edge/hot frontier counters exist | negotiation-compatible producer -> exact source-edge GS -> hot reorder/micro-pack -> accepted-window replay -> post-`ro` top-net endpoint/source exact consumer | `B` then `D`/`E` | `evolved_negotiation` or another negotiation-compatible donor with live source-edge/hot frontier | downstream DPO consumer, not legalization | `DPL-0926`, `DPL-0931`, `DPL-0937`, then `DPL-0938 handoff=on` with endpoint accepts and accepted gain |
-| Large row-rich design with stable Diamond-like legal basin and huge exact-DPO frontier | micro-start producer reshape -> critical-net chain assignment -> exact local closure -> bounded multi-row residual consumer -> segment-local residual swap/polish | `A` then `F`/`H` | `evolved_diamond` | exact DPO chain plus bounded residual consumers | source-topK accepts/accepted delta, micro-start/chain/closure/multi-row counters, final HPWL movement |
-| Small or moderate low-utilization design where exact source-edge DPO is already live but final mirror loses some gain | assignment-journal handoff -> boundary-local exact pair/endpoint consumer, or endpoint-escape ordered-pair exact repair with runtime-safe journal caching | `A`/`H` with `F` when plateaued | current exact-DPO-live donor, `evolved_diamond`, or `diamond` | post-consumer exact local closure and preservation | assignment journal or endpoint-escape counters stay live, exact boundary accepts are nonzero, final HPWL improves or runtime is reduced without counter drift |
-| Wrapper, true macro/SRAM, hierarchy, or large-blockage/row-fragmentation evidence splits logic into repeated row-window basins | framework residual/frontier producer -> LEGALM/DPO frontier handoff -> late broad exact capture -> component/beam or focused pair/endpoint replay around accepted DPO footprint | `C` then `J` | `framework` when frontier/residual producer is useful; `evolved_diamond` when endpoint/source-edge geometry dominates | richer handoff payload plus late exact DPO post-consumer | frontier consumed count, late touched cells/nets, component/beam trials, exact accepts, accepted-delta-per-runtime |
-| Low-residual, queue-sensitive image/control or local-residue design where broad queue reranking changes many accepts but hurts final flow | preserve exact source-edge queue breadth or vertical-frontier donor, then change only one downstream consumer with exact final-flow proof | `A`/`H`, sometimes `C2` | current exact source-edge/vertical-frontier donor | candidate quality and final-flow preservation, not broader queue activity | `DPL-0926` source-edge queue, vertical/frontier accepts, selected-segment accepts, final HPWL; demote preview rerank if final worsens |
+| Low/moderate-utilization row-rich stdcell placement, stable legal basin, local source-edge/bbox-edge residue, and short-to-medium default runtime | Diamond/source-edge basin route: keep the legal basin, force enhanced exact DPO, generate source-edge move/swap targets, exact-score and replay only positive candidates, then preserve accepted basin with canonical replay checks | `A` | `evolved_diamond` or a current Diamond-compatible basin donor | improve-placement DPO and canonical basin preservation | `DPL-0926` source-edge cells/locations/proxy skips/replays/commits, low replay rejects, `HPWLimprove` and final HPWL both move |
+| Large row-rich design with stable Diamond-like legality, large DPO recovery, and runtime where broad exact candidates are affordable but must stay bounded | Critical-frontier Diamond-DPO route: source-topK exact GS -> hot-segment/critical-frontier handoff -> critical-row micro-start -> critical-net chain assignment -> exact local closure -> multi-row residual transaction -> small residual swap/polish | `A` then `H`/`F` if plateaued | `evolved_diamond` | exact DPO chain plus bounded residual consumers | `DPL-0926` and `DPL-0927` live; micro-start, chain, closure, multi-row, residual counters are nonzero; final HPWL improves with controlled runtime |
+| Negotiation-compatible or row-rich placement where legal HPWL may inflate but DPO can recover a large basin, especially when hot/edge-critical segments are visible | Negotiation hot-segment exact consumer stack: negotiation-compatible legal basin -> exact global-swap source/edge candidates -> edge-critical/hot segment queue -> selected-segment reorder -> post-reorder exact/pair/endpoint polish | `B` | `evolved_negotiation` or `default_negotiation` when conflict/resource closure is useful; otherwise use Diamond-compatible start and the same exact consumer | downstream DPO consumer, not legalization alone | exact/global accepts and accepted delta, hot/edge segments consumed by reorder, post-reorder exact/pair/endpoint accepts; final HPWL improves |
+| Dense or high-utilization image/control placement with high-impact net residue, legalization inflation, and final mirror composition sensitivity | Top-net target/source repair route: repair high-impact target/source choices, consume with exact DPO or critical-net segment micro-repack, then use mirror dependency only as a downstream batch consumer | `D` | exact-DPO-live donor, `evolved_diamond`, or `framework` only when target shaping is needed | target/source repair plus DPO/mirror composition | top-net/source counters, critical segment micro-repack accepts, optional mirror dependency batch gain, final HPWL improves |
+| True macro/SRAM, hierarchy, large blockage, or row-fragmentation evidence splits standard cells into repeated row-window basins | Wrapper/macro row-window route: compact residual/window producer -> DPO handoff -> transactional row-window/component/beam consumer, or exact source-edge route when endpoint geometry dominates | `C` then `J` if plateaued | `framework` for real residual/frontier producer; `evolved_diamond` for stable endpoint/source-edge geometry | richer handoff payload plus larger exact consumer | true macro/large-blockage evidence, produced payload is consumed, exact accepts and accepted-delta-per-runtime are reported, final HPWL improves |
+| Low-residual, queue-sensitive image/control or local-residue design where broad queue reranking changes many accepts but hurts final flow | Preserve the exact source-edge or vertical-frontier donor, then change only one downstream consumer with exact final-flow proof | `A`/`H`, sometimes `C2` | current exact source-edge/vertical-frontier donor | candidate quality and final-flow preservation, not broader queue activity | source-edge or vertical/frontier accepts stay live, selected-segment accepts stay aligned, final HPWL does not regress |
 
 ## Route Map
 
 | observed feature pattern | primary blueprint | preferred start basin | first Student assignment | proof target |
 | --- | --- | --- | --- | --- |
-| Low/moderate-utilization placement with stable Diamond legal state and remaining source-edge or bbox-edge residue | `A. Diamond-basin source-edge exact DPO` | `evolved_diamond` or `diamond` | preserve the Diamond-compatible legal basin, force enhanced DPO dispatch, rebuild exact source-edge/global-swap scoring | `HPWLlg` remains stable, `HPWLimprove` improves, source-edge exact scores/replays/commits are nonzero, final HPWL improves |
-| Negotiation-compatible or row-rich placement where legal HPWL is not best but DPO can recover a large basin | `B. Negotiation-start hot-segment exact consumer stack` | `evolved_diamond` or `diamond` for stable source-edge residue; `evolved_negotiation` or `default_negotiation` for conflict/resource closure | keep a DPO-recoverable legal basin live, force enhanced exact source-edge/global-swap dispatch, then consume accepted evidence with hot-segment reorder and bounded post-reorder polish | exact source-edge/global/frontier accepts, hot segments, selected reorder accepts, post-reorder accepted delta, final HPWL improves |
-| True macro, memory/SRAM, hierarchy, large-blockage, or row-fragmentation evidence splits cells into repeated row-window basins | `C. Wrapper/macro row-window replay and handoff` | `framework` when residual target/frontier state is useful; `evolved_diamond` or `diamond` when endpoint/source-edge geometry is useful | assign at least one cross-case validated wrapper route: either residual-focus/diversity replay plus transactional row-window handoff, or exact source-edge/edge-critical DPO plus selected-segment and endpoint polish | residual/focus/window counters or edge-critical/source-edge counters, exact accepts, accepted delta per runtime, final HPWL improves |
-| Dense or high-utilization case with high-impact or boundary-active net residue and incomplete DPO recovery | `D. Top-net target-source repair and mirror-dependency hybrid` | exact-DPO-live source, `evolved_diamond`, or `framework` when target shaping is needed | rank high-impact nets/source cells, repair target/source choices, run exact DPO/critical segment consumer, use mirror only as downstream dependency protection | top-net sources, exact accepts, critical segment accepts, optional mirror batch gain, final HPWL improves |
-| Dense row pressure where legalization may worsen HPWL but creates a DPO-recoverable basin | `E. Recoverable producer plus hot-segment exact consumer` | `framework`; use negotiation-compatible closure when conflict repair is the anchor | create a recoverability-shaped producer, keep compact frontier/handoff, consume it with exact DPO and selected-segment reorder | producer frontier, handoff consumed count, exact accepts, reorder accepts, final HPWL follows DPO recovery |
-| Stable legal endpoint repeatedly returns to same local minimum and runtime headroom exists | `F. Adaptive transactional basin gain-rate` | current best legal source in the same run | snapshot legal placement, run bounded kick/recover trials, exact-accept only legal positive basins, stop by gain rate | snapshots/restores, basin trials, accepted basin gain, legality validation, final HPWL improves |
-| Negotiation/resource-aware closure creates a useful recoverable basin, but generic exact search erases or misses it | `G. Negotiation-compatible residual transaction handoff` | `default_negotiation` or `evolved_negotiation` | record compact residual/conflict evidence from negotiation, import it into DPO, exact-score local transactions | negotiation-primary signal, residual windows produced/consumed, exact transaction accepts, final HPWL improves |
-| Legalizer is already stable and residual HPWL is row-local or edge-local | `H. Row-local or edge-local exact closure` | `evolved_diamond`, `diamond`, or the current best stable source | build small same-row/adjacent-row exact windows around dirty rows, source-edge cells, selected segments, or boundary-active nets | selected windows, exact-scored candidates, accepts, accepted gain, final HPWL improves |
-| Conflict-heavy, scarce-row, fragmented-row, or cut-row-like constraints dominate legality | `I. Conflict-primary legal closure with DPO consumer` | `default_negotiation` or `evolved_negotiation` | prove the conflict/resource legalizer is primary, stop guidance before it erases the conflict route, hand off resolved conflicts to exact DPO | primary legalizer liveness, conflict closure, DPO probes/accepts around conflict frontier, final legal HPWL improves |
-| Multiple Students return same stage tuple, tiny same-family gains, or higher runtime without proportional final-HPWL movement | `J. Plateau escape by mechanism redesign` | one elite continuation plus different matched starts | rebuild at least one complete producer/payload-handoff/larger-grain-exact-consumer chain; do not retune only thresholds, guards, or late polish | explicit payload is produced and consumed, `accepted_delta_per_runtime` improves or explains the bottleneck, and final HPWL changes |
+| Stable Diamond legal basin plus source-edge/bbox-edge residue | `A. Diamond-basin source-edge exact DPO` | `evolved_diamond` or current Diamond-compatible donor | force enhanced DPO dispatch, rebuild source-edge exact move/swap scoring, and add canonical basin replay/restore if accepted gain is lost | source-edge exact commits plus final-flow HPWL movement |
+| Large row-rich stable basin with broad DPO recovery and hot-frontier evidence | `A. Validated large row-rich critical-frontier route` | `evolved_diamond` | build source-topK, critical-frontier, micro-start, chain, exact-closure, multi-row, and residual-swap links as one chain | all chain counters live and final HPWL moves, not only a guard label |
+| Negotiation/resource closure gives a useful legal state but quality comes from DPO recovery | `B. Negotiation-start hot-segment exact consumer stack` | `evolved_negotiation` or `default_negotiation` | keep negotiation primary only when useful, then consume hot/edge-critical evidence with exact GS, selected reorder, and post-reorder exact/pair/endpoint polish | accepted delta appears in DPO and selected/post consumers, final HPWL improves |
+| True macro/SRAM/hierarchy/large-blockage or row-fragmented wrapper features | `C. Wrapper/macro row-window replay and handoff` | `framework` if residual payload is real; `evolved_diamond` if endpoint/source-edge geometry dominates | create a compact residual/window payload and consume it with transactional row-window/component/beam or exact source-edge route | payload produced and consumed, exact accepts nonzero, accepted-delta-per-runtime meaningful |
+| Dense/high-util or high-impact-net case where final mirror composition matters | `D. Top-net target-source repair and mirror-dependency hybrid` | exact-DPO-live source, `evolved_diamond`, or target-shaping `framework` | repair top-net target/source choices, use critical-net micro-repack, then mirror dependency batch only after upstream DPO is live | top-net/source and micro-repack counters live; mirror batch is downstream and final HPWL improves |
+| Exact/reorder family is live but same stage tuple repeats | `J. Plateau escape by mechanism redesign` | one elite continuation plus one different matched start | change producer policy, handoff payload, move family, exact objective, transaction granularity, or preservation contract; do not retune only caps/guards | a different producer-consumer path executes and final HPWL changes |
 
 ## Blueprint Selection Rules
 
-- If `HPWLlg` worsens but `HPWLimprove` recovers strongly, do not judge the
-  route by legalization HPWL alone.  Prefer a producer/handoff/consumer
-  blueprint such as `E`, `B`, or `G`.
-- If the legalizer is stable and final residue is local, prefer `A` or `H`
-  before heavy whole-design search.
-- If exact/reorder routes are live but plateau, keep one elite-expansion route
-  and assign another Student to `F` or `J`.
-- If a hierarchical wrapper-like case has repeated row-window basins and
-  current final HPWL moves only weakly, do not keep all Students on small
-  guard, mirror, or threshold edits.  Assign at least one Student to the
-  `C` residual-window handoff chain and at least one Student to the `B`/`A`
-  source-edge exact consumer chain when both feature signals are plausible.
-  These routes are cross-case validated for this feature class; the Student
-  should reconstruct the mechanism from the roadmap and prove liveness with
-  exact accepts and final-flow movement.
-- If runtime grows but final HPWL is flat, do not continue only guard or runtime
-  repair.  Assign at least one `J` route that creates a consumable
-  component/window/frontier payload, preserves it through handoff, and consumes
-  it with a larger-grain exact DPO transaction.  Require
-  `accepted_delta_per_runtime`, not only accept count or `HPWLlg`.
-- If a low/moderate-utilization row-rich case gets only a weak final move from
-  negotiation, residual reorder, guard, or late polish after one repair, treat
-  that donor as an incomplete chain.  The next plan must include at least one
-  `B` full-chain reconstruction or alternate start-basin route that changes the
-  legal basin plus exact DPO consumer stack, not only the donor's thresholds.
-- If negotiation/resource closure is the best observed basin, assign at least
-  one Student to `G` or `I` and require negotiation-primary liveness.
-- If final mirror interaction matters, use it only as a downstream consumer or
-  protection step in `C` or `D`; do not assign mirror-only optimization.
-- If a route has frontier counters but zero DPO accepts, the missing link is
-  consumer liveness, id mapping, candidate quality, or exact acceptance.  Do
-  not widen passive metadata.
-- It is valid to assign multiple Students to the same promising case-type
-  blueprint when they test different reconstruction hypotheses, for example
-  Diamond-compatible start plus exact source-edge descent, negotiation-compatible
-  closure plus the same exact consumer, and runtime-compressed exact consumer
-  with stronger post-reorder repair.  Do not spend all slots on guard,
-  mirror-only work, or same-family micro-polish.
+- If `HPWLlg` worsens but `HPWLimprove` recovers strongly, treat the legalizer
+  as a producer.  Route to a producer/handoff/consumer chain (`A`, `B`, `C`, or
+  `D`) instead of rejecting it as a legalize-only loss.
+- If the case has stable Diamond-like legality and source-edge or bbox-edge
+  residue, assign at least one Student to the validated exact source-edge basin
+  route.  The first implementation must prove enhanced DPO dispatch, exact
+  replay-only-positive commits, and final-flow HPWL movement before adding
+  mirror or guard work.
+- If the design is large and row-rich with broad DPO recovery, the fast stable
+  route is the critical-frontier Diamond-DPO chain: source-topK exact GS,
+  hot/critical frontier handoff, micro-start, chain assignment, exact closure,
+  multi-row residual, and small residual swap.  A final guard commit is not the
+  mechanism; Teacher must route from the cumulative chain.
+- If a negotiation donor or post-reorder endpoint route gives only weak final
+  movement, do not keep widening endpoint/source caps or replay halos.  Repair
+  the missing link: start basin, exact source-edge objective, native handoff,
+  selected-segment consumer, canonical replay/restore, or a larger transaction
+  family.
+- If a wrapper-like or hierarchy-like case is suspected, first prove it with
+  physical evidence: true macro/SRAM or large blockage geometry, row
+  fragmentation, repeated row-window basins, or residual/window payloads.
+  Fixed instance count alone is not macro evidence.
+- If top-net/source repair and mirror dependency are selected, mirror is only a
+  downstream consumer of accepted DPO or critical-net repair.  Do not assign
+  mirror-only work or mirror-aware objective logs as the main quality route.
+- If runtime grows but final HPWL is flat, keep one elite-expansion Student and
+  route at least one other Student to a different mechanism family.  Runtime
+  repair should free budget for stronger exact search, not become the quality
+  objective.
+- It is valid to assign multiple Students to the same promising blueprint when
+  they test different reconstruction hypotheses, such as Diamond source-edge
+  exact DPO versus negotiation-compatible hot-segment consumer versus top-net
+  target/source repair.  Do not spend all slots on guards, telemetry, constants,
+  or same-family micro-polish.
 
 ## Student Packet Requirements
 
