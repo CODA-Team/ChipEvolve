@@ -13,7 +13,7 @@ Measured stage evidence for dense standard-cell cases.  Use this as
 stage-level mechanism support, not as a first-route selector.  For current
 full-flow promotion and case routing, read
 `case_evolution/case_type_quality_mechanism_priority.md` first and open this
-card only after the selected blueprint needs dense-producer detail.
+card only after the Teacher-selected route needs dense-producer detail.
 
 ## Observation
 

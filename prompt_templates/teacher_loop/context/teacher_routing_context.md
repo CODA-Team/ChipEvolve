@@ -7,7 +7,7 @@
 - round_id: `$round_id`
 - iteration: `$iteration_name`
 - full_context: `$full_context_path`
-- matched_blueprint_packet: `$matched_blueprint_packet_path`
+- case_feature_route_insight_packet: `$case_feature_route_insight_packet_path`
 - manual_teacher_guidance: `$manual_teacher_guidance_path`
 
 Use this file as the Teacher context entry point for initial routing.
@@ -15,24 +15,26 @@ Use this file as the Teacher context entry point for initial routing.
 - Start from `current_run_packet.md`, `design_characteristics.md`,
   `baseline_routing_note.md`, `peer_learning_routing_note.md`, and
   `start_seed_calibration.md`.
-- Treat `matched_blueprint_packet` as the only direct case-feature route map.
-  It is generated from the core case-type outline and reconstruction roadmap.
-  Other case-evolution/strategy cards are secondary inspiration after a
-  blueprint or bottleneck is selected; they must not override this map.
+- Treat `case_feature_route_insight_packet` as current evidence plus a compact
+  route-insight index. It does not rank or select routes in Python. Teacher must
+  classify the case from stage metrics and physical features, then choose and
+  justify the route hypotheses. Other case-evolution/strategy cards are
+  secondary inspiration after a route or bottleneck is selected.
 - Before assigning routes, check whether the stage metrics match a verified
-  case-type blueprint in `matched_blueprint_packet`. First check whether the case is a large row-rich or
+  case-type route signature in `case_feature_route_insight_packet`. First check whether the case is a large row-rich or
   datapath-like recoverable basin: large movable count, strong improve-stage
   recovery, nontrivial runtime, and final HPWL controlled by downstream exact
   accepts rather than legalize-only HPWL. For that signature, open
-  `matched_blueprint_packet` first and route at least one Student to reconstruct
+  `case_feature_route_insight_packet` first and route at least one Student to reconstruct
   the complete stack:
   recoverable producer or stable legal basin -> exact source-edge/global-swap
   consumer -> edge-critical/selected reorder -> bounded post-reorder
   exact/pair/endpoint polish. Use framework guidance or negotiation closure
   only when current evidence says that producer/basin is actually consumed.
 - For low-util or Diamond-stable local residue without the large row-rich
-  cumulative-chain signature, open `matched_blueprint_packet` first and route
-  at least one Student to the complete chain: preserve a Diamond-compatible
+  cumulative-chain signature, open `case_feature_route_insight_packet` first and route
+  at least one Student to the complete chain when the evidence supports it:
+  preserve a Diamond-compatible
   legal basin, force the
   enhanced DPO path, and implement the exact source-edge kernel in
   `DetailedGlobalSwap`: bounded source-edge target generation, exact move/swap

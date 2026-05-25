@@ -70,16 +70,16 @@ Optional helpers:
 - one-shot after the strengthened legal kept result: `$keep_and_finalize_script --reason <why-kept>`
 - one-shot after edits with no active trial: `$after_edit_script`
 
-For Diamond/negotiation/LEGALM/Differential Guidance mixtures, use the assigned
-blueprint packet section first. Query
+For Diamond/negotiation/LEGALM/Differential Guidance mixtures, use the
+Teacher-assigned route insight or roadmap section first. Query
 `--stage legalization --q "diamond negotiation differential guidance liveness"`
 only to refine role/liveness details, then keep producer/consumer counters
 aligned with the route role.
 
-If Teacher assigns a case-type blueprint, use these handles only for the
-assigned mechanism section rather than broad reading:
+If Teacher assigns a case-type route, use these handles only for the assigned
+mechanism section rather than broad reading:
 
-- focused matched blueprint packet: `$optional_matched_blueprint_packet`
+- case feature route insight packet: `$optional_case_feature_route_insight_packet`
 
 Run helpers that mutate the private source repo serially. Parallel reads are OK.
 `fetch_peer_source_script` fetches a local `peer/<label>` ref and writes diff

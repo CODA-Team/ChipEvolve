@@ -539,7 +539,7 @@ def write_teacher_routing_context(
     round_id: str,
     iteration: int,
     full_context_path: Path,
-    matched_blueprint_packet_path: Path,
+    case_feature_route_insight_packet_path: Path,
     manual_teacher_guidance_path: Path | None = None,
 ) -> Path:
     context_dir = iteration_dir / "context"
@@ -555,7 +555,7 @@ def write_teacher_routing_context(
             round_id=round_id,
             iteration_name=iter_name(iteration),
             full_context_path=full_context_path,
-            matched_blueprint_packet_path=matched_blueprint_packet_path,
+            case_feature_route_insight_packet_path=case_feature_route_insight_packet_path,
             manual_teacher_guidance_path=(
                 manual_teacher_guidance_path
                 if manual_teacher_guidance_path is not None
@@ -601,20 +601,6 @@ def build_packet(
     return packet_dir / "current_run_packet.md"
 
 
-BLUEPRINT_NAMES = {
-    "A": "Diamond-Basin Source-Edge Exact DPO",
-    "B": "Negotiation-Start Hot-Segment Exact Consumer Stack",
-    "C": "Wrapper/Macro Row-Window Replay And Handoff",
-    "D": "Top-Net Target-Source Repair And Mirror-Dependency Hybrid",
-    "E": "Recoverable Producer Plus Hot-Segment Exact Consumer",
-    "F": "Adaptive Transactional Basin Gain-Rate",
-    "G": "Negotiation-Compatible Residual Transaction Handoff",
-    "H": "Row-Local Or Edge-Local Exact Closure",
-    "I": "Conflict-Primary Legal Closure With DPO Consumer",
-    "J": "Plateau Escape By Mechanism Redesign",
-}
-
-
 def _float_value(value: Any) -> float | None:
     try:
         if value is None or value == "":
@@ -652,282 +638,7 @@ def _markdown_section(text: str, heading_prefix: str) -> str:
     return "\n".join(lines[start:end]).strip()
 
 
-def _outline_row(outline_text: str, letter: str) -> str:
-    marker = f"`{letter}."
-    matches: list[str] = []
-    for line in outline_text.splitlines():
-        if marker in line:
-            cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-            if len(cells) >= 5:
-                matches.append(
-                    "\n".join(
-                        [
-                            f"- observed feature pattern: {cells[0]}",
-                            f"- primary blueprint: {cells[1]}",
-                            f"- preferred start basin: {cells[2]}",
-                            f"- first Student assignment: {cells[3]}",
-                            f"- proof target: {cells[4]}",
-                        ]
-                    )
-                )
-            else:
-                matches.append(line)
-    if matches:
-        return "\n\n".join(
-            [f"Matched route outline {idx + 1}:\n{match}" for idx, match in enumerate(matches)]
-        )
-    return f"- blueprint: `{letter}. {BLUEPRINT_NAMES.get(letter, '')}`"
-
-
-def _add_blueprint_priority(
-    priorities: dict[str, tuple[float, list[str]]],
-    letter: str,
-    priority: float,
-    reason: str,
-) -> None:
-    current, reasons = priorities.get(letter, (0.0, []))
-    reasons.append(reason)
-    priorities[letter] = (current + priority, reasons)
-
-
-def matched_blueprints_for_case(
-    *,
-    case_id: str,
-    flow_variant: str,
-    metrics: dict[str, MetricSummary | None],
-    iteration: int,
-) -> list[tuple[str, float, list[str]]]:
-    """Return feature-matched blueprints using only current case evidence.
-
-    This is a context filter, not a selector that constrains Teacher.  It keeps
-    the prompt focused by surfacing likely route blueprints first; Teacher can
-    still open the full outline when the focused packet is insufficient.
-    """
-    anchor_label, anchor = value_reference_anchor(metrics)
-    anchor_data = _read_json(anchor.metrics_path) if anchor is not None else {}
-    design = anchor_data.get("design_metrics", {})
-    disp = anchor_data.get("displacement", {})
-    summary_data = (
-        _read_json(anchor.metrics_path.parent / "legalize_summary.json")
-        if anchor is not None
-        else {}
-    )
-    fixed_count = _float_value(summary_data.get("fixed_instance_count"))
-    placed_count = _float_value(summary_data.get("placed_instance_count"))
-    utilization = _float_value(design.get("utilization"))
-    movable = _float_value(disp.get("movable_instance_count"))
-    runtime = _float_value(anchor.runtime_seconds if anchor is not None else None)
-    lg_pct = _float_value(
-        anchor.hpwl_stage_delta_legalization_percent if anchor is not None else None
-    )
-    ip_pct = _float_value(
-        anchor.hpwl_stage_delta_improve_percent if anchor is not None else None
-    )
-    final_pct = _float_value(
-        anchor.hpwl_stage_delta_final_percent if anchor is not None else None
-    )
-    negotiation = metrics.get("openroad_dpl_negotiation")
-    negotiation_clean = negotiation is not None and negotiation.hpwl_after is not None
-    case_text = f"{case_id} {flow_variant}".lower()
-
-    recoverable = ip_pct is not None and ip_pct <= -1.0
-    strong_recoverable = ip_pct is not None and ip_pct <= -3.0
-    very_strong_recoverable = ip_pct is not None and ip_pct <= -5.0
-    legal_worse = lg_pct is not None and lg_pct >= 0.2
-    legal_inflated = lg_pct is not None and lg_pct >= 0.8
-    extreme_legal_inflated = lg_pct is not None and lg_pct >= 15.0
-    stable_legal = lg_pct is not None and abs(lg_pct) <= 0.5
-    low_or_mid_util = utilization is not None and utilization <= 0.65
-    dense = utilization is not None and utilization >= 0.65
-    large_row_rich = (movable is not None and movable >= 50000) or (
-        runtime is not None and runtime >= 25.0
-    )
-    hierarchy_or_large_block_hint = any(
-        token in case_text
-        for token in (
-            "wrapper",
-            "hierarchy",
-            "macro",
-            "sram",
-            "memory",
-            "blockage",
-            "bp",
-        )
-    )
-    conflict_hint = any(
-        token in case_text for token in ("cut", "band", "fragment", "scarce")
-    )
-
-    priorities: dict[str, tuple[float, list[str]]] = {}
-    # Low/mid-util cases can still be source-edge/DPO cases even when
-    # legalization increases HPWL; strong improve-stage recovery is the signal.
-    if (stable_legal and (low_or_mid_util or recoverable)) or (
-        low_or_mid_util and strong_recoverable
-    ):
-        _add_blueprint_priority(
-            priorities,
-            "A",
-            4.0,
-            "low/mid-util or stable basin with strong improve-placement/source-edge opportunity",
-        )
-    if stable_legal and not large_row_rich:
-        _add_blueprint_priority(
-            priorities,
-            "H",
-            2.5,
-            "stable legal basin suggests row-local or edge-local exact closure",
-        )
-    elif low_or_mid_util and recoverable:
-        _add_blueprint_priority(
-            priorities,
-            "H",
-            2.2,
-            "low/mid-util recoverable residue should keep a row-local or edge-local exact closure route visible",
-        )
-    negotiation_beats_ref = (
-        negotiation_clean
-        and anchor is not None
-        and negotiation is not None
-        and negotiation.hpwl_after is not None
-        and anchor.hpwl_after is not None
-        and negotiation.hpwl_after < anchor.hpwl_after
-    )
-    negotiation_recoverable_match = negotiation_clean and (
-        negotiation_beats_ref
-        or (
-            large_row_rich
-            and recoverable
-            and lg_pct is not None
-            and lg_pct <= 3.0
-        )
-        or (hierarchy_or_large_block_hint and recoverable)
-    )
-    diamond_frontier_recoverable_match = (
-        legal_inflated
-        and very_strong_recoverable
-        and not negotiation_recoverable_match
-        and not extreme_legal_inflated
-    )
-    legalm_low_residual_match = extreme_legal_inflated and recoverable
-    if diamond_frontier_recoverable_match:
-        _add_blueprint_priority(
-            priorities,
-            "A",
-            4.8,
-            "feature/stage match: inflated legalization with broad DPO recovery but weak negotiation evidence should test the critical-frontier exact DPO chain",
-        )
-        _add_blueprint_priority(
-            priorities,
-            "H",
-            2.7,
-            "frontier route needs row-local or edge-local exact closure after accepted DPO state",
-        )
-    if negotiation_clean and (
-        negotiation_recoverable_match
-        or large_row_rich
-        or negotiation_beats_ref
-        or (legal_worse and recoverable)
-    ):
-        negotiation_priority = 1.5
-        if negotiation_beats_ref or (
-            large_row_rich and lg_pct is not None and lg_pct <= 3.0
-        ):
-            negotiation_priority = 3.5
-        if (
-            legal_worse
-            and strong_recoverable
-            and (negotiation_beats_ref or negotiation_recoverable_match)
-        ):
-            negotiation_priority = max(negotiation_priority, 3.8)
-        if negotiation_recoverable_match:
-            negotiation_priority = max(negotiation_priority, 5.2)
-        _add_blueprint_priority(
-            priorities,
-            "B",
-            negotiation_priority,
-            "feature/stage match: negotiation-compatible recoverable basin should test recoverability producer plus exact hot-segment endpoint/source consumer",
-        )
-    if negotiation_clean and (negotiation_beats_ref or large_row_rich):
-        _add_blueprint_priority(
-            priorities,
-            "G",
-            3.0 if negotiation_beats_ref else 2.0,
-            "negotiation/resource-aware closure may need residual transaction handoff",
-        )
-    if hierarchy_or_large_block_hint:
-        _add_blueprint_priority(
-            priorities,
-            "C",
-            4.5 if (large_row_rich or recoverable) else 3.5,
-            "hierarchy, macro/SRAM, or large-blockage structure suggests row-window replay",
-        )
-    if dense and (legal_worse or recoverable):
-        _add_blueprint_priority(
-            priorities,
-            "E",
-            4.5 if legalm_low_residual_match else 4.0,
-            "dense pressure with DPO recovery suggests recoverable producer plus exact consumer",
-        )
-    if dense or legal_inflated:
-        _add_blueprint_priority(
-            priorities,
-            "D",
-            4.2 if legalm_low_residual_match else 2.5,
-            "dense/high-impact residue may need target-source repair before mirror protection",
-        )
-    if legalm_low_residual_match:
-        _add_blueprint_priority(
-            priorities,
-            "H",
-            2.2,
-            "extreme legalizer target disturbance needs selected residual exact closure after producer handoff",
-        )
-    if strong_recoverable and (runtime is None or runtime < 120.0):
-        _add_blueprint_priority(
-            priorities,
-            "F",
-            2.0,
-            "strong improve-stage recovery and runtime headroom can justify bounded basin search",
-        )
-    if conflict_hint or (legal_inflated and negotiation_clean):
-        _add_blueprint_priority(
-            priorities,
-            "I",
-            2.5,
-            "conflict or inflated legalization suggests conflict-primary closure plus DPO consumer",
-        )
-    if iteration > 1 and (
-        final_pct is None or final_pct > -5.0 or len(priorities) <= 2
-    ):
-        _add_blueprint_priority(
-            priorities,
-            "J",
-            1.5,
-            "follow-up route may need plateau escape if same-family gains stay small",
-        )
-
-    if not priorities:
-        _add_blueprint_priority(
-            priorities,
-            "A",
-            1.0,
-            f"fallback focused route because `{anchor_label or 'baseline'}` lacks a clear feature match",
-        )
-        _add_blueprint_priority(
-            priorities,
-            "J",
-            0.5,
-            "fallback redesign route if first evidence shows same-family plateau",
-        )
-
-    ranked = sorted(
-        ((letter, priority, reasons) for letter, (priority, reasons) in priorities.items()),
-        key=lambda row: (-row[1], row[0]),
-    )
-    return ranked[:4]
-
-
-def write_matched_blueprint_packet(
+def write_case_feature_route_insight_packet(
     *,
     path: Path,
     agent_root: Path,
@@ -936,7 +647,7 @@ def write_matched_blueprint_packet(
     metrics: dict[str, MetricSummary | None],
     iteration: int,
 ) -> Path:
-    """Write a focused packet with only case-matched blueprint roadmaps."""
+    """Write current evidence plus route insight without preselecting a route."""
     outline_path = (
         agent_root
         / "knowledge"
@@ -953,18 +664,11 @@ def write_matched_blueprint_packet(
     )
     outline_text = outline_path.read_text(encoding="utf-8", errors="replace")
     roadmap_text = roadmap_path.read_text(encoding="utf-8", errors="replace")
-    case_type_signatures = _markdown_section(
-        outline_text, "## Case-Type Route Signatures"
-    )
-    if case_type_signatures.startswith("## Case-Type Route Signatures"):
-        case_type_signatures = case_type_signatures.split("\n", 1)[1].lstrip()
+    feature_map = _markdown_section(outline_text, "### Feature-Mechanism Map")
+    route_map = _markdown_section(outline_text, "## Route Map")
+    selection_rules = _markdown_section(outline_text, "## Blueprint Selection Rules")
+    student_requirements = _markdown_section(outline_text, "## Student Packet Requirements")
     shared_anchors = _markdown_section(roadmap_text, "## Shared Source Anchors")
-    matched = matched_blueprints_for_case(
-        case_id=case_id,
-        flow_variant=flow_variant,
-        metrics=metrics,
-        iteration=iteration,
-    )
     anchor_label, anchor = value_reference_anchor(metrics)
     anchor_data = _read_json(anchor.metrics_path) if anchor is not None else {}
     design = anchor_data.get("design_metrics", {})
@@ -978,15 +682,18 @@ def write_matched_blueprint_packet(
     movable = _float_value(disp.get("movable_instance_count"))
     fixed_count = _float_value(summary_data.get("fixed_instance_count"))
     placed_count = _float_value(summary_data.get("placed_instance_count"))
+    negotiation = metrics.get("openroad_dpl_negotiation")
+
     lines = [
-        "# Focused Case-Type Blueprint Packet",
+        "# Case Feature Evidence And Route Insight Packet",
         "",
-        "This generated packet filters the case-type outline and mechanism roadmap",
-        "to the blueprints that match the current case evidence.  Use this as the",
-        "default route-prior entry point. Open the full outline or roadmap only if",
-        "this focused packet is insufficient for the current evidence.",
+        "This generated packet does not score, rank, or preselect blueprints.",
+        "Teacher must compare the current metrics and physical features below",
+        "against the case-type insight tables, then choose the start basin and",
+        "mechanism route explicitly in the plan.  Treat all route rows as candidate",
+        "mechanism insights, not as code-enforced assignments.",
         "",
-        "## Current Evidence Used For Matching",
+        "## Current Evidence For Teacher Classification",
         "",
         f"- case: `{case_id}`",
         f"- flow_variant: `{flow_variant}`",
@@ -1009,71 +716,52 @@ def write_matched_blueprint_packet(
                 f"- runtime_seconds: `{anchor.runtime_seconds}`",
             ]
         )
-    lines.append("")
-    if case_type_signatures:
+    if negotiation is not None:
         lines.extend(
             [
-                "## Case-Type Route Signatures",
-                "",
-                case_type_signatures,
-                "",
+                f"- negotiation final HPWL: `{negotiation.hpwl_after}`",
+                f"- negotiation runtime_seconds: `{negotiation.runtime_seconds}`",
             ]
         )
     lines.extend(
         [
-            "## Matched Blueprints",
+            "",
+            "## Teacher Classification Checklist",
+            "",
+            "- Decide whether the dominant HPWL source is legalizer producer quality,",
+            "  handoff lifetime, DPO exact-consumer strength, post-DPO closure, or",
+            "  canonical preservation.",
+            "- Decide from evidence whether negotiation is actually the useful producer;",
+            "  do not infer a negotiation start only from large improve-stage recovery.",
+            "- Compare density, movable count, runtime, true macro/large-blockage or",
+            "  row-fragmentation evidence, and stage-wise HPWL movement against the",
+            "  route tables below.",
+            "- Assign at least one Student to the strongest feature-matched full",
+            "  producer-handoff-consumer chain, plus diversity routes when evidence is",
+            "  ambiguous or the current route has plateaued.",
             "",
         ]
     )
-    detail_limit = 3
-    detailed = matched[:detail_limit]
-    additional = matched[detail_limit:]
-    for letter, priority, reasons in detailed:
-        heading = f"## Blueprint {letter}:"
-        roadmap_section = _markdown_section(roadmap_text, heading)
-        lines.extend(
-            [
-                f"### Blueprint {letter}: {BLUEPRINT_NAMES.get(letter, '')}",
-                "",
-                "- matched feature evidence:",
-            ]
-        )
-        lines.extend(f"  - {reason}" for reason in reasons)
-        lines.extend(
-            [
-                "",
-                "#### Route Outline",
-                "",
-                _outline_row(outline_text, letter),
-                "",
-                "#### Implementation Roadmap",
-                "",
-                roadmap_section or f"`{heading}` not found in `{roadmap_path}`.",
-                "",
-            ]
-        )
-    if additional:
-        lines.extend(
-            [
-                "## Additional Matched Blueprints",
-                "",
-                "These are secondary route hypotheses. Use them for diversity or a pivot",
-                "only after the primary detailed blueprints are considered against",
-                "current-stage evidence. Open the roadmap section only if Teacher",
-                "explicitly assigns that blueprint.",
-                "",
-            ]
-        )
-        for letter, priority, reasons in additional:
-            lines.extend(
-                [
-                    f"### Blueprint {letter}: {BLUEPRINT_NAMES.get(letter, '')}",
-                    "",
-                    "- matched feature evidence:",
-                ]
-            )
-            lines.extend(f"  - {reason}" for reason in reasons)
-            lines.extend(["", _outline_row(outline_text, letter), ""])
+    for title, content in (
+        ("Feature-Mechanism Map", feature_map),
+        ("Route Map", route_map),
+        ("Blueprint Selection Rules", selection_rules),
+        ("Student Packet Requirements", student_requirements),
+    ):
+        if content:
+            lines.extend([f"## {title}", "", content, ""])
+    lines.extend(
+        [
+            "## Detailed Roadmap Access",
+            "",
+            f"- roadmap file: `{roadmap_path}`",
+            "- Teacher should open or query only the roadmap section for the route it",
+            "  selects after reading the evidence above.",
+            "- Student should use the Teacher-assigned route section for concrete source",
+            "  handles, implementation order, counters, proof criteria, and first repair.",
+            "",
+        ]
+    )
     if shared_anchors:
         lines.extend(["## Shared Source Anchors", "", shared_anchors, ""])
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -1090,7 +778,7 @@ def common_context(
     runtime: Any,
     metrics: dict[str, MetricSummary | None],
     packet_path: Path,
-    matched_blueprint_packet_path: Path,
+    case_feature_route_insight_packet_path: Path,
     baseline_artifacts_path: Path,
     start_seed_calibration_path: Path,
     design_characteristics_path: Path,
@@ -1127,7 +815,7 @@ def common_context(
         agent_root=runtime.agent_root,
         state_root=runtime.state_root,
         packet_path=packet_path,
-        matched_blueprint_packet=matched_blueprint_packet_path,
+        case_feature_route_insight_packet=case_feature_route_insight_packet_path,
         design_characteristics=design_characteristics_block(
             case_id=case_id,
             flow_variant=flow_variant,
@@ -3029,8 +2717,8 @@ def write_child_workspace_packet(
             / "insights"
             / "case_evolution"
             / "strategy_inspiration_by_design_feature.md",
-            optional_matched_blueprint_packet=path.parent
-            / "matched_blueprint_packet.md",
+            optional_case_feature_route_insight_packet=path.parent
+            / "case_feature_route_insight_packet.md",
             optional_case_type_quality_mechanism_insight=agent_root
             / "knowledge"
             / "insights"

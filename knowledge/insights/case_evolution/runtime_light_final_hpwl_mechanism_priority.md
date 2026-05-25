@@ -13,7 +13,7 @@ without demoting HPWL to a runtime-only objective.
 
 Use this card after Teacher has selected a route from the core blueprint map.
 It can refine caps, cache plans, and runtime-spend decisions, but it must not
-replace the matched blueprint or become the first route selector.
+replace the Teacher-selected route or become the first route selector.
 
 ## Promotion Standard
 

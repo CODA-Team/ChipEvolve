@@ -12,11 +12,12 @@ case-evolution files:
 1. `insights/case_evolution/case_type_quality_mechanism_priority.md`
 2. `insights/case_evolution/mechanism_reconstruction_roadmap.md`
 
-The generated `matched_blueprint_packet.md` is the normal entry point because it
-filters those two files to the current case. Other insight files are inspiration,
+The generated `case_feature_route_insight_packet.md` is the normal entry point
+because it combines current case evidence with the core route-insight tables.
+It does not score or preselect a route. Other insight files are inspiration,
 mechanism support, evidence archives, or workflow contracts. They may refine a
-selected blueprint or diagnose a failure, but they must not directly replace the
-core route map.
+Teacher-selected route or diagnose a failure, but they must not directly replace
+the evidence-driven route decision.
 
 ## Default Reading Order
 
@@ -26,11 +27,11 @@ core route map.
 4. `../baseline/canonical_lines.yaml`
 5. `../family_variants/REFERENCE_INDEX.yaml`
 6. `insights/README.md` for file roles and insight hygiene
-7. generated `matched_blueprint_packet.md` in the current Teacher round packet
+7. generated `case_feature_route_insight_packet.md` in the current Teacher round packet
 8. `insights/case_evolution/case_type_quality_mechanism_priority.md` only when
    the generated packet is insufficient
 9. `insights/case_evolution/mechanism_reconstruction_roadmap.md` only for the
-   selected blueprint section
+   Teacher-selected route section
 10. `index/skill_cards.jsonl` through `../scripts/query_knowledge.py` only to
     sharpen a selected stage mechanism, liveness check, or failure diagnosis
 11. one relevant `insights/dpo/`, `insights/legalization/`, `insights/legalm/`,
@@ -58,21 +59,16 @@ core route map.
 
 ## Core Mechanism Families
 
-The core roadmap merges repeated ideas into mechanism families instead of
-letting many cards describe near-duplicates:
+The core roadmap merges repeated ideas into three warm-start mechanism families
+instead of letting many cards describe near-duplicates:
 
-- Diamond/source-edge exact DPO with canonical replay/restore;
-- large row-rich critical-frontier Diamond-DPO chain;
-- negotiation hot-segment exact consumer stack;
-- wrapper/macro row-window replay and handoff;
-- top-net target/source repair with mirror only as downstream consumer;
-- recoverable producer plus hot-segment exact consumer;
-- adaptive transactional basin escape;
-- negotiation-compatible residual transaction handoff;
-- row-local or edge-local exact closure;
-- conflict-primary legal closure with DPO consumer;
-- plateau escape by changing producer, payload, move family, objective,
-  transaction granularity, or preservation contract.
+- runtime-balanced critical-frontier exact DPO stack;
+- endpoint-source handoff exact consumer stack;
+- low-residual current-net / vertical-frontier consumer.
+
+Older source-edge, row-window, residual transaction, mirror, and closure ideas
+should be interpreted as submechanisms inside these three families unless
+current evidence proves they should become a separate route.
 
 ## Support Areas
 

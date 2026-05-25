@@ -9,31 +9,34 @@ can directly steer Teacher route assignment.
 - Direct case-type route mapping uses only:
   - `case_evolution/case_type_quality_mechanism_priority.md`
   - `case_evolution/mechanism_reconstruction_roadmap.md`
-  - the generated `matched_blueprint_packet.md`, which is filtered from those
-    two files for the current case.
+  - the generated `case_feature_route_insight_packet.md`, which combines
+    current case evidence with route-insight excerpts from those two files.
 - Other files are inspiration, support, evidence archives, or workflow contracts.
-  They can refine a selected blueprint, explain a failure mode, or provide a
-  source-level mechanism, but they must not override the core blueprint map.
-- Similar ideas should be treated as one mechanism family in the core roadmap:
-  source-edge exact DPO, hot-segment exact consumer, row-window/component replay,
-  top-net target/source repair, recoverable producer/consumer handoff,
-  transactional basin escape, negotiation residual handoff, row-local exact
-  closure, conflict-primary closure, and plateau redesign.
+  They can refine a Teacher-selected route, explain a failure mode, or provide a
+  source-level mechanism, but they must not override the evidence-driven route
+  decision.
+- Similar ideas should be merged into the three core mechanism families:
+  runtime-balanced critical-frontier exact DPO, endpoint-source handoff exact
+  consumer, and low-residual current-net / vertical-frontier consumer.  Older
+  source-edge, row-window, residual transaction, mirror, and closure notes are
+  submechanism support unless current evidence demands a new route.
 - Teacher should classify the current case by concrete features: size/runtime,
   utilization, legalization HPWL movement, DPO recovery, true macro/SRAM or
   large-blockage geometry, row fragmentation, live counters, and final HPWL.
   Benchmark names, old program ids, raw result rows, and source-history labels
   are not route selectors.
-- Student should read only the assigned blueprint section or focused packet,
-  then inspect current source/log evidence and implement a coherent mechanism.
+- Student should read only the Teacher-assigned route section or route insight
+  packet, then inspect current source/log evidence and implement a coherent
+  mechanism.
 
 ## Reading Order
 
 1. `workflow/metric_contract.md` for metric truth when reporting or comparing.
 2. `workflow/teacher_child_case_evolution.md` for Teacher/Student loop rules.
 3. `case_evolution/case_type_quality_mechanism_priority.md` for first route map.
-4. `case_evolution/mechanism_reconstruction_roadmap.md` only for the selected
-   blueprint, preferably through generated `matched_blueprint_packet.md`.
+4. `case_evolution/mechanism_reconstruction_roadmap.md` only for the
+   Teacher-selected route, preferably through generated
+   `case_feature_route_insight_packet.md`.
 5. One relevant DPO, legalization, LEGALM, or case-evolution support card only
    after current evidence identifies the needed mechanism detail.
 

@@ -42,16 +42,16 @@ Open knowledge only when Teacher assigns a specific card/blueprint, the
 mechanism role is unclear, or metrics/logs show the current route needs a pivot.
 Knowledge is for inspiration, vocabulary, liveness checks, and known failure
 modes; do not copy a card mechanically when local source evidence points
-elsewhere. If Teacher assigns a case-type blueprint, read the focused matched
-blueprint packet first and use only the assigned section unless local source
-evidence requires a different feature-level route.
+elsewhere. If Teacher assigns a case-type route, read the case feature route
+insight packet or the named roadmap section first and use only the assigned
+section unless local source evidence requires a different feature-level route.
 
 - reference index: `$optional_reference_index`
 - LEGALM reference: `$optional_legalm_reference`
 - Diamond reference: `$optional_diamond_reference`
 - negotiation reference: `$optional_negotiation_reference`
 - strategy insight: `$optional_strategy_inspiration_insight` (secondary inspiration only)
-- focused matched blueprint packet: `$optional_matched_blueprint_packet`
+- case feature route insight packet: `$optional_case_feature_route_insight_packet`
 - DPO mechanism insight: `$optional_dpo_source_mechanisms_insight`
 - native handoff insight: `$optional_openroad_native_handoff_insight`
 - skill index: `$skill_index`
@@ -60,7 +60,8 @@ evidence requires a different feature-level route.
 - knowledge query helper: `$query_knowledge_script`
 
 If your assigned mechanism mixes Diamond, negotiation, LEGALM, or Differential
-Guidance, first use the assigned blueprint section from the focused packet. Query
+Guidance, first use the Teacher-assigned route section from the route insight
+packet or roadmap. Query
 `--stage legalization --q "diamond negotiation differential guidance liveness"`
 only to refine role/liveness details, then log both producer and consumer
 liveness when guidance is involved.

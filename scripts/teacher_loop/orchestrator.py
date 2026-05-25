@@ -76,7 +76,7 @@ from scripts.teacher_loop.prompts import (
     validate_start_kind_seed,
     write_child_workspace_packet,
     write_iteration_context,
-    write_matched_blueprint_packet,
+    write_case_feature_route_insight_packet,
     write_teacher_routing_context,
     write_review_artifacts_packet,
     write_round_readme,
@@ -513,8 +513,8 @@ def main(argv: list[str] | None = None) -> int:
                 / f"{iter_name(iteration)}_elite"
                 / "dpl_evolve",
             )
-        matched_blueprint_packet = write_matched_blueprint_packet(
-            path=packet_dir / "matched_blueprint_packet.md",
+        case_feature_route_insight_packet = write_case_feature_route_insight_packet(
+            path=packet_dir / "case_feature_route_insight_packet.md",
             agent_root=runtime.agent_root,
             case_id=args.case,
             flow_variant=args.flow_variant,
@@ -529,7 +529,7 @@ def main(argv: list[str] | None = None) -> int:
             runtime=runtime,
             metrics=metrics,
             packet_path=packet_path,
-            matched_blueprint_packet_path=matched_blueprint_packet,
+            case_feature_route_insight_packet_path=case_feature_route_insight_packet,
             baseline_artifacts_path=baseline_artifacts_path,
             start_seed_calibration_path=start_seed_calibration_packet,
             design_characteristics_path=design_characteristics_path,
@@ -564,7 +564,7 @@ def main(argv: list[str] | None = None) -> int:
             round_id=round_id,
             iteration=iteration,
             full_context_path=full_context_path,
-            matched_blueprint_packet_path=matched_blueprint_packet,
+            case_feature_route_insight_packet_path=case_feature_route_insight_packet,
             manual_teacher_guidance_path=manual_teacher_guidance_path,
         )
         # Iteration 1 should build a global mechanism map from the knowledge

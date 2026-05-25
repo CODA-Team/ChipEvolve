@@ -15,7 +15,7 @@
 - OpenROAD DPL default-flow reference: `$openroad_diamond`
 - negotiation donor: `$openroad_negotiation_nblg`
 - Abacus donor: `$dreamplace_abacus`
-- focused matched blueprint packet: `$matched_blueprint_packet`
+- case feature route insight packet: `$case_feature_route_insight_packet`
 - secondary inspiration only, not direct route maps:
   - dense evolved-legalizer note: `$dense_legalizer_routing_insight`
   - feature-to-mechanism strategy note: `$strategy_inspiration_insight`
@@ -30,21 +30,20 @@
 Use these paths as search handles only when they help identify concrete
 function/state insertion points. Do not require broad donor-tree reading.
 
-Only the focused matched blueprint packet is the direct case-feature route map.
-It is generated from `case_type_quality_mechanism_priority.md` and
-`mechanism_reconstruction_roadmap.md`. Other insight files are support material:
-use them only after a blueprint or bottleneck is selected, and never as a
-parallel route selector.
+The case feature route insight packet is evidence plus a compact route-insight
+index generated from `case_type_quality_mechanism_priority.md` and
+`mechanism_reconstruction_roadmap.md`. It is not a Python-selected route.
+Teacher must classify the current case from evidence, then use the packet to
+choose and justify concrete route hypotheses.
 
 ## First-Round Evidence-Driven Route Scan
 
 In the first Teacher planning round, build the route map from observed case
 evidence first. Most knowledge cards are vocabulary, inspiration, and prior
-evidence. The focused matched blueprint packet is different: it is the first
-case-feature route map filtered for this case. If it contains a matching
-blueprint, use that blueprint as the route prior, use the included roadmap
-section for implementation details, then diversify only through compatible
-mechanism variants or a clearly justified alternative blueprint.
+evidence. The case feature route insight packet is the compact entry point for
+case-type method insights, but it does not filter or rank routes. Use it to
+compare the observed case against the route signatures, then choose one or more
+mechanism hypotheses and implementation roadmap sections.
 
 - Read the design characteristics and stage metrics first.
 - First reaction: decide whether this case matches one or more known case types
@@ -57,12 +56,12 @@ mechanism variants or a clearly justified alternative blueprint.
   combinations, then use the remaining Students for complementary or
   exploratory routes.
 - After naming the dominant bottleneck, query the skill index only to sharpen
-  the selected blueprint, check a known failure mode, or diagnose low ROI. Do
-  not query broad secondary cards to replace the blueprint map.
-- When selecting a feature-matched start kind or route, open the focused
-  matched blueprint packet first. If it contains a matching blueprint, assign
-  at least one Student to reconstruct or strengthen the route with the included
-  implementation order, source handles, liveness counters, and
+  the selected route, check a known failure mode, or diagnose low ROI. Do not
+  query broad secondary cards to replace evidence-driven route selection.
+- When selecting a feature-matched start kind or route, open the case feature
+  route insight packet first. If a route signature matches current evidence,
+  assign at least one Student to reconstruct or strengthen the full route with
+  the included implementation order, source handles, liveness counters, and
   partial-implementation failure tests; use strategy cards and algorithm cards
   only to refine the mechanism or check risk.
 - Short route digest for first-round matching:
@@ -79,7 +78,7 @@ mechanism variants or a clearly justified alternative blueprint.
   recoverability -> assign one complete Diamond-basin source-edge exact descent
   route: preserve a Diamond-compatible legal basin, force the enhanced DPO path,
   and implement the `DetailedGlobalSwap` exact source-edge kernel described in
-  the focused matched blueprint packet or mechanism reconstruction roadmap:
+  the case feature route insight packet or mechanism reconstruction roadmap:
   bounded source-edge target generation,
   exact move/swap scoring with `DetailedHPWL::delta`, replay through
   journal/rollback, and source-edge
@@ -95,7 +94,7 @@ mechanism variants or a clearly justified alternative blueprint.
 - When dense recoverable pressure and large row-rich recoverability both match,
   and negotiation-style evidence shows strong DPO recovery but poor final
   closure, assign one Student to the cumulative stack from the focused
-  blueprint packet or mechanism roadmap: recoverable producer or
+  route insight packet or mechanism roadmap: recoverable producer or
   negotiation-compatible legal closure -> exact source-edge/global-swap
   consumer -> edge-critical/selected reorder -> bounded post-reorder
   exact/pair/endpoint polish. Use framework guidance only when it creates a

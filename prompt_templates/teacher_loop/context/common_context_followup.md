@@ -37,17 +37,17 @@ mechanism decision.
   source` for mechanisms selected because this specific design feature suggests
   upside.
 - If the next decision needs a new feature-matched start kind or case-type
-  route, open the focused matched blueprint packet first. It is the
-  case-feature insight packet filtered for this case: use it to recognize the design
-  pattern from concrete features: size/runtime scale, density/utilization,
+  route, open the case feature route insight packet first. It is an evidence
+  packet plus route-insight index, not a preselected route list: use it to
+  recognize the design pattern from concrete features: size/runtime scale,
+  density/utilization,
   legalization HPWL movement, DPO/improve-placement recovery,
   true macro/SRAM/large-blockage/hierarchy or row-fragmentation evidence, and
   live counters. Fixed instance count alone is not macro evidence; macro means
   a physically large instance. Then choose a plausible start family and select
-  a concrete blueprint. Use the included roadmap section before writing Student
-  guidance. A case may match multiple
-  blueprints; use them as route hypotheses or compatible combinations, not as a
-  single fixed selector.
+  concrete route hypotheses. Use the relevant roadmap section before writing
+  Student guidance. A case may match multiple routes; use them as hypotheses or
+  compatible combinations, not as a single fixed selector.
 - For a strong retained route, route from the cumulative mechanism chain. Do not
   assign only the final preservation, telemetry, or attribution diff as if it
   were the quality mechanism.
@@ -70,7 +70,7 @@ $elite_text
 
 - start calibration: `$start_seed_calibration_path`
 - peer learning: `$peer_learning_path`
-- focused matched blueprint packet: `$matched_blueprint_packet`
+- case feature route insight packet: `$case_feature_route_insight_packet`
 - secondary feature inspiration only: `$strategy_inspiration_insight`
 - DPO mechanism insight: `$dpo_source_mechanisms_insight`
 - OpenROAD-native handoff insight: `$openroad_native_handoff_insight`
@@ -96,8 +96,9 @@ or incur runtime cost without proportional HPWL, treat it as weak-gain/over-cost
 evidence. Preserve the best donor/ref as rollback if useful, but route from the
 observed failure mode: use at most one broader stage/mechanism query or card to
 identify a different source-level hypothesis, then assign stronger within-run
-routes. If the focused matched blueprint packet has a matching blueprint,
-prefer the full mechanism chain from that packet over a single-stage subset.
+routes. If the case feature route insight packet contains a route signature that
+matches current evidence, prefer the full mechanism chain from that packet over
+a single-stage subset.
 For large row-rich or
 datapath-like recoverable basins where final HPWL follows downstream DPO
 accepts, the primary route should normally be a cumulative
@@ -109,7 +110,7 @@ repaired with `25_trial_source.sh begin --from-ref <ref>`.
 If the best donor is continued, it should be an elite-expansion route: attempt
 quality improvement and efficiency release on top of the donor; runtime repair
 is useful to make room for more complex search, not as a standalone success.
-Before assigning a heavy donor, first check whether the selected blueprint has a
+Before assigning a heavy donor, first check whether the selected route has a
 lighter reconstruction or runtime-repair path. Query secondary runtime cards
 only to refine cost control after the blueprint is chosen.
 
