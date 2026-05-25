@@ -22,7 +22,8 @@ can directly steer Teacher route assignment.
 - Teacher should classify the current case by concrete features: size/runtime,
   utilization, legalization HPWL movement, DPO recovery, true macro/SRAM or
   large-blockage geometry, row fragmentation, live counters, and final HPWL.
-  Benchmark names, old program ids, and raw result rows are not route selectors.
+  Benchmark names, old program ids, raw result rows, and source-history labels
+  are not route selectors.
 - Student should read only the assigned blueprint section or focused packet,
   then inspect current source/log evidence and implement a coherent mechanism.
 
@@ -45,12 +46,12 @@ can directly steer Teacher route assignment.
 | `case_evolution/cutrow_adversarial_legalization.md` | cutRow stress evidence and adversarial legality inspiration | no |
 | `case_evolution/dense_evolved_legalizer_routing.md` | Dense legalizer producer inspiration and caution | no |
 | `case_evolution/evidence_weighted_mechanism_priority.md` | Mechanism evidence/risk weighting after core route selection | no |
-| `case_evolution/fixed_source_replay_transfer_evidence.md` | Transfer evidence archive and robustness lessons | no |
+| `case_evolution/mechanism_robustness_support.md` | Mechanism robustness lessons | no |
 | `case_evolution/full_flow_timeout_and_target_selection.md` | Runtime/timeout policy and target-selection context | no |
 | `case_evolution/micro_gain_trap_and_elite_donors.md` | Weak-gain/guard trap diagnosis | no |
 | `case_evolution/optdp_stage_cooptimization.md` | Improve-placement/legalizer handoff mechanism notes | no |
 | `case_evolution/runtime_light_final_hpwl_mechanism_priority.md` | Runtime-cost refinement after route choice | no |
-| `case_evolution/score_based_case_strategy_routing.md` | G_HR and score interpretation, not HPWL promotion | no |
+| `case_evolution/runtime_value_support.md` | Runtime-value interpretation, not HPWL promotion | no |
 | `case_evolution/strategy_inspiration_by_design_feature.md` | Feature-to-mechanism inspiration after core classification | no |
 | `dpo/aggressive_basin_schedule.md` | DPO runtime-spend support for a selected DPO route | no |
 | `dpo/exact_source_edge_recoverability_consumer.md` | Exact source-edge DPO mechanism support | no |

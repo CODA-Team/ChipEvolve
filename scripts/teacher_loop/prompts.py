@@ -679,15 +679,15 @@ def _outline_row(outline_text: str, letter: str) -> str:
     return f"- blueprint: `{letter}. {BLUEPRINT_NAMES.get(letter, '')}`"
 
 
-def _add_blueprint_score(
-    scores: dict[str, tuple[float, list[str]]],
+def _add_blueprint_priority(
+    priorities: dict[str, tuple[float, list[str]]],
     letter: str,
-    score: float,
+    priority: float,
     reason: str,
 ) -> None:
-    current, reasons = scores.get(letter, (0.0, []))
+    current, reasons = priorities.get(letter, (0.0, []))
     reasons.append(reason)
-    scores[letter] = (current + score, reasons)
+    priorities[letter] = (current + priority, reasons)
 
 
 def matched_blueprints_for_case(
@@ -732,8 +732,10 @@ def matched_blueprints_for_case(
 
     recoverable = ip_pct is not None and ip_pct <= -1.0
     strong_recoverable = ip_pct is not None and ip_pct <= -3.0
+    very_strong_recoverable = ip_pct is not None and ip_pct <= -5.0
     legal_worse = lg_pct is not None and lg_pct >= 0.2
     legal_inflated = lg_pct is not None and lg_pct >= 0.8
+    extreme_legal_inflated = lg_pct is not None and lg_pct >= 15.0
     stable_legal = lg_pct is not None and abs(lg_pct) <= 0.5
     low_or_mid_util = utilization is not None and utilization <= 0.65
     dense = utilization is not None and utilization >= 0.65
@@ -756,24 +758,31 @@ def matched_blueprints_for_case(
         token in case_text for token in ("cut", "band", "fragment", "scarce")
     )
 
-    scores: dict[str, tuple[float, list[str]]] = {}
+    priorities: dict[str, tuple[float, list[str]]] = {}
     # Low/mid-util cases can still be source-edge/DPO cases even when
     # legalization increases HPWL; strong improve-stage recovery is the signal.
     if (stable_legal and (low_or_mid_util or recoverable)) or (
         low_or_mid_util and strong_recoverable
     ):
-        _add_blueprint_score(
-            scores,
+        _add_blueprint_priority(
+            priorities,
             "A",
             4.0,
             "low/mid-util or stable basin with strong improve-placement/source-edge opportunity",
         )
     if stable_legal and not large_row_rich:
-        _add_blueprint_score(
-            scores,
+        _add_blueprint_priority(
+            priorities,
             "H",
             2.5,
             "stable legal basin suggests row-local or edge-local exact closure",
+        )
+    elif low_or_mid_util and recoverable:
+        _add_blueprint_priority(
+            priorities,
+            "H",
+            2.2,
+            "low/mid-util recoverable residue should keep a row-local or edge-local exact closure route visible",
         )
     negotiation_beats_ref = (
         negotiation_clean
@@ -783,88 +792,136 @@ def matched_blueprints_for_case(
         and anchor.hpwl_after is not None
         and negotiation.hpwl_after < anchor.hpwl_after
     )
+    negotiation_recoverable_match = negotiation_clean and (
+        negotiation_beats_ref
+        or (
+            large_row_rich
+            and recoverable
+            and lg_pct is not None
+            and lg_pct <= 3.0
+        )
+        or (hierarchy_or_large_block_hint and recoverable)
+    )
+    diamond_frontier_recoverable_match = (
+        legal_inflated
+        and very_strong_recoverable
+        and not negotiation_recoverable_match
+        and not extreme_legal_inflated
+    )
+    legalm_low_residual_match = extreme_legal_inflated and recoverable
+    if diamond_frontier_recoverable_match:
+        _add_blueprint_priority(
+            priorities,
+            "A",
+            4.8,
+            "feature/stage match: inflated legalization with broad DPO recovery but weak negotiation evidence should test the critical-frontier exact DPO chain",
+        )
+        _add_blueprint_priority(
+            priorities,
+            "H",
+            2.7,
+            "frontier route needs row-local or edge-local exact closure after accepted DPO state",
+        )
     if negotiation_clean and (
-        large_row_rich or negotiation_beats_ref or (legal_worse and recoverable)
+        negotiation_recoverable_match
+        or large_row_rich
+        or negotiation_beats_ref
+        or (legal_worse and recoverable)
     ):
-        negotiation_score = 2.0
-        if negotiation_beats_ref or large_row_rich:
-            negotiation_score = 3.5
-        if legal_worse and strong_recoverable:
-            negotiation_score = max(negotiation_score, 3.8)
-        _add_blueprint_score(
-            scores,
+        negotiation_priority = 1.5
+        if negotiation_beats_ref or (
+            large_row_rich and lg_pct is not None and lg_pct <= 3.0
+        ):
+            negotiation_priority = 3.5
+        if (
+            legal_worse
+            and strong_recoverable
+            and (negotiation_beats_ref or negotiation_recoverable_match)
+        ):
+            negotiation_priority = max(negotiation_priority, 3.8)
+        if negotiation_recoverable_match:
+            negotiation_priority = max(negotiation_priority, 5.2)
+        _add_blueprint_priority(
+            priorities,
             "B",
-            negotiation_score,
-            "negotiation-compatible evidence suggests useful closure plus downstream recovery",
+            negotiation_priority,
+            "feature/stage match: negotiation-compatible recoverable basin should test recoverability producer plus exact hot-segment endpoint/source consumer",
         )
     if negotiation_clean and (negotiation_beats_ref or large_row_rich):
-        _add_blueprint_score(
-            scores,
+        _add_blueprint_priority(
+            priorities,
             "G",
             3.0 if negotiation_beats_ref else 2.0,
             "negotiation/resource-aware closure may need residual transaction handoff",
         )
     if hierarchy_or_large_block_hint:
-        _add_blueprint_score(
-            scores,
+        _add_blueprint_priority(
+            priorities,
             "C",
             4.5 if (large_row_rich or recoverable) else 3.5,
             "hierarchy, macro/SRAM, or large-blockage structure suggests row-window replay",
         )
     if dense and (legal_worse or recoverable):
-        _add_blueprint_score(
-            scores,
+        _add_blueprint_priority(
+            priorities,
             "E",
-            4.0,
+            4.5 if legalm_low_residual_match else 4.0,
             "dense pressure with DPO recovery suggests recoverable producer plus exact consumer",
         )
     if dense or legal_inflated:
-        _add_blueprint_score(
-            scores,
+        _add_blueprint_priority(
+            priorities,
             "D",
-            2.5,
+            4.2 if legalm_low_residual_match else 2.5,
             "dense/high-impact residue may need target-source repair before mirror protection",
         )
+    if legalm_low_residual_match:
+        _add_blueprint_priority(
+            priorities,
+            "H",
+            2.2,
+            "extreme legalizer target disturbance needs selected residual exact closure after producer handoff",
+        )
     if strong_recoverable and (runtime is None or runtime < 120.0):
-        _add_blueprint_score(
-            scores,
+        _add_blueprint_priority(
+            priorities,
             "F",
             2.0,
             "strong improve-stage recovery and runtime headroom can justify bounded basin search",
         )
     if conflict_hint or (legal_inflated and negotiation_clean):
-        _add_blueprint_score(
-            scores,
+        _add_blueprint_priority(
+            priorities,
             "I",
             2.5,
             "conflict or inflated legalization suggests conflict-primary closure plus DPO consumer",
         )
     if iteration > 1 and (
-        final_pct is None or final_pct > -5.0 or len(scores) <= 2
+        final_pct is None or final_pct > -5.0 or len(priorities) <= 2
     ):
-        _add_blueprint_score(
-            scores,
+        _add_blueprint_priority(
+            priorities,
             "J",
             1.5,
             "follow-up route may need plateau escape if same-family gains stay small",
         )
 
-    if not scores:
-        _add_blueprint_score(
-            scores,
+    if not priorities:
+        _add_blueprint_priority(
+            priorities,
             "A",
             1.0,
             f"fallback focused route because `{anchor_label or 'baseline'}` lacks a clear feature match",
         )
-        _add_blueprint_score(
-            scores,
+        _add_blueprint_priority(
+            priorities,
             "J",
             0.5,
             "fallback redesign route if first evidence shows same-family plateau",
         )
 
     ranked = sorted(
-        ((letter, score, reasons) for letter, (score, reasons) in scores.items()),
+        ((letter, priority, reasons) for letter, (priority, reasons) in priorities.items()),
         key=lambda row: (-row[1], row[0]),
     )
     return ranked[:4]
@@ -896,9 +953,11 @@ def write_matched_blueprint_packet(
     )
     outline_text = outline_path.read_text(encoding="utf-8", errors="replace")
     roadmap_text = roadmap_path.read_text(encoding="utf-8", errors="replace")
-    validated_signatures = _markdown_section(
-        outline_text, "## Validated Case-Type Route Signatures"
+    case_type_signatures = _markdown_section(
+        outline_text, "## Case-Type Route Signatures"
     )
+    if case_type_signatures.startswith("## Case-Type Route Signatures"):
+        case_type_signatures = case_type_signatures.split("\n", 1)[1].lstrip()
     shared_anchors = _markdown_section(roadmap_text, "## Shared Source Anchors")
     matched = matched_blueprints_for_case(
         case_id=case_id,
@@ -951,12 +1010,12 @@ def write_matched_blueprint_packet(
             ]
         )
     lines.append("")
-    if validated_signatures:
+    if case_type_signatures:
         lines.extend(
             [
-                "## Validated Route Signatures",
+                "## Case-Type Route Signatures",
                 "",
-                validated_signatures,
+                case_type_signatures,
                 "",
             ]
         )
@@ -966,18 +1025,17 @@ def write_matched_blueprint_packet(
             "",
         ]
     )
-    detail_limit = 2
+    detail_limit = 3
     detailed = matched[:detail_limit]
     additional = matched[detail_limit:]
-    for letter, score, reasons in detailed:
+    for letter, priority, reasons in detailed:
         heading = f"## Blueprint {letter}:"
         roadmap_section = _markdown_section(roadmap_text, heading)
         lines.extend(
             [
                 f"### Blueprint {letter}: {BLUEPRINT_NAMES.get(letter, '')}",
                 "",
-                f"- match score: `{score:.2f}`",
-                "- match reasons:",
+                "- matched feature evidence:",
             ]
         )
         lines.extend(f"  - {reason}" for reason in reasons)
@@ -1006,13 +1064,12 @@ def write_matched_blueprint_packet(
                 "",
             ]
         )
-        for letter, score, reasons in additional:
+        for letter, priority, reasons in additional:
             lines.extend(
                 [
                     f"### Blueprint {letter}: {BLUEPRINT_NAMES.get(letter, '')}",
                     "",
-                    f"- match score: `{score:.2f}`",
-                    "- match reasons:",
+                    "- matched feature evidence:",
                 ]
             )
             lines.extend(f"  - {reason}" for reason in reasons)

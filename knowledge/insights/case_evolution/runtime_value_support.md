@@ -1,4 +1,4 @@
-# Score-Based Case Strategy Routing
+# Runtime Value Support
 
 ## Agent Use
 
@@ -9,14 +9,13 @@
 
 ## Evidence Type
 
-Measured score interpretation and support policy.  This card explains runtime
-tradeoff reporting; it does not choose the case route.
+Measured runtime-value interpretation and support policy.  This card explains runtime tradeoff reporting; it does not choose the case route.
 
 This card summarizes three experiment families that were previously reported
 separately but should be interpreted together:
 
 - single-design evolution, which shows how far a case-specific route can move,
-- fixed-source cross replay, which separates robust mechanisms from overfit
+- feature-diverse source replay, which separates robust mechanisms from overfit
   case tuning,
 - multi-design legalizer-line evaluation, which shows whether a legalizer family
   still helps after the full DPL flow.
@@ -48,9 +47,7 @@ baseline and still discourages runaway runtime.  A candidate with negative
 `G_HR` can still be a useful HPWL donor, but the next step should either add a
 new HPWL source or rewrite the mechanism for bounded runtime before promotion.
 
-The same source snapshot can look strong on its discovery design and weak in a
-transfer matrix.  Treat discovery-line winners as mechanisms to distill, then
-rerun unchanged source on feature-diverse designs before writing a global rule.
+The same source snapshot can look strong on one design and weak on another feature class.  Treat a winner as a mechanism to distill, then check it on feature-diverse designs before writing a global rule.
 
 ## Strategy Inspiration By Design Feature
 
@@ -92,7 +89,7 @@ Macro, cut-row, fence, or fragmented-row stress:
   ordinary legalizer quality.  Do not train Teacher policy on broken cutRow
   construction.
 
-Unknown or transfer-oriented designs:
+Unknown or mixed-feature designs:
 
 - Prefer the robust bounded donor family: mechanisms with modest HPWL gain,
   legal completion across diverse features, and near-baseline runtime.

@@ -32,13 +32,13 @@ mechanism decision.
   a meaningful repair attempt, preserve it as `validated-low-ROI` evidence and pivot
   to a different HPWL source.
 - Follow-up rounds should use the first-round global route map as memory, then
-  read less and optimize the current case more sharply. Keep donor scope clear:
-  `general donor` for reusable kernels/fallback guardrails, `feature-matched
-  donor` for mechanisms selected because this specific design feature suggests
+  read less and optimize the current case more sharply. Keep source scope clear:
+  `general source` for reusable kernels/fallback guardrails, `feature-matched
+  source` for mechanisms selected because this specific design feature suggests
   upside.
 - If the next decision needs a new feature-matched start kind or case-type
-  route, open the focused matched blueprint packet first. It is the validated
-  case-feature route map filtered for this case: use it to recognize the design
+  route, open the focused matched blueprint packet first. It is the
+  case-feature insight packet filtered for this case: use it to recognize the design
   pattern from concrete features: size/runtime scale, density/utilization,
   legalization HPWL movement, DPO/improve-placement recovery,
   true macro/SRAM/large-blockage/hierarchy or row-fragmentation evidence, and

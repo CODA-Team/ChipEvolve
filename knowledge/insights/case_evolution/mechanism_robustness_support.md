@@ -1,4 +1,4 @@
-# Transfer Mechanism Support
+# Mechanism Robustness Support
 
 ## Agent Use
 
@@ -9,12 +9,12 @@
 ## Evidence Type
 
 Mechanism robustness evidence.  This card keeps only reusable lessons from
-evaluating unchanged evolved source states on multiple design features.  It is
-not a case-name lookup table and not a list of donor program ids.
+feature-diverse mechanism validation.  It is not a case-name lookup table and
+not a source-history selector.
 
 Teacher should use the core route map first.  Use this card only after a
 blueprint has been selected and the question is whether the selected mechanism
-looks robust, expensive, or likely overfit.
+looks robust, expensive, or likely over-specialized.
 
 ## Reusable Lessons
 
@@ -28,7 +28,7 @@ looks robust, expensive, or likely overfit.
 2. A legalizer-stage win is not enough.  If `HPWLlg` improves but final HPWL
    does not, treat the route as a stage donor or DPO-consumer failure.  Check
    avg/max displacement, payload liveness, exact accepts, and accepted delta.
-3. Some mechanisms transfer broadly because they are source-local and exact:
+3. Some mechanisms apply broadly because they are source-local and exact:
    source-edge top-K DPO, selected-segment exact reorder, affected-net scoring,
    component/window replay, and canonical replay/restore.
 4. Some mechanisms are valid but costly: scoped basin escape, broad component
