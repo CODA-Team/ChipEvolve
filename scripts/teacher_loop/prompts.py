@@ -861,6 +861,9 @@ def write_matched_blueprint_packet(
     )
     outline_text = outline_path.read_text(encoding="utf-8", errors="replace")
     roadmap_text = roadmap_path.read_text(encoding="utf-8", errors="replace")
+    validated_signatures = _markdown_section(
+        outline_text, "## Validated Case-Type Route Signatures"
+    )
     shared_anchors = _markdown_section(roadmap_text, "## Shared Source Anchors")
     matched = matched_blueprints_for_case(
         case_id=case_id,
@@ -869,6 +872,18 @@ def write_matched_blueprint_packet(
         iteration=iteration,
     )
     anchor_label, anchor = value_reference_anchor(metrics)
+    anchor_data = _read_json(anchor.metrics_path) if anchor is not None else {}
+    design = anchor_data.get("design_metrics", {})
+    disp = anchor_data.get("displacement", {})
+    summary_data = (
+        _read_json(anchor.metrics_path.parent / "legalize_summary.json")
+        if anchor is not None
+        else {}
+    )
+    utilization = _float_value(design.get("utilization"))
+    movable = _float_value(disp.get("movable_instance_count"))
+    fixed_count = _float_value(summary_data.get("fixed_instance_count"))
+    placed_count = _float_value(summary_data.get("placed_instance_count"))
     lines = [
         "# Focused Case-Type Blueprint Packet",
         "",
@@ -883,6 +898,10 @@ def write_matched_blueprint_packet(
         f"- flow_variant: `{flow_variant}`",
         f"- iteration: `{iter_name(iteration)}`",
         f"- value reference: `{anchor_label or 'missing'}`",
+        f"- case size / movable cells: `{movable if movable is not None else 'unknown'}`",
+        f"- density / utilization: `{utilization if utilization is not None else 'unknown'}`",
+        f"- fixed or macro-like instances: `{fixed_count if fixed_count is not None else 'unknown'}`",
+        f"- placed instances: `{placed_count if placed_count is not None else 'unknown'}`",
     ]
     if anchor is not None:
         lines.extend(
@@ -894,9 +913,18 @@ def write_matched_blueprint_packet(
                 f"- runtime_seconds: `{anchor.runtime_seconds}`",
             ]
         )
+    lines.append("")
+    if validated_signatures:
+        lines.extend(
+            [
+                "## Validated Route Signatures",
+                "",
+                validated_signatures,
+                "",
+            ]
+        )
     lines.extend(
         [
-            "",
             "## Matched Blueprints",
             "",
         ]

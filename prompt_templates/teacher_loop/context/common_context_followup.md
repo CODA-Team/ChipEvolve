@@ -39,10 +39,13 @@ mechanism decision.
 - If the next decision needs a new feature-matched start kind or case-type
   route, open the focused matched blueprint packet first. It is the validated
   case-feature route map filtered for this case: use it to recognize the design
-  pattern, choose a plausible start family, and select a concrete blueprint.
-  Use the included roadmap section before writing Student guidance. A case may
-  match multiple blueprints; use them as route hypotheses or compatible
-  combinations, not as a single fixed selector.
+  pattern from concrete features: size/runtime scale, density/utilization,
+  legalization HPWL movement, DPO/improve-placement recovery,
+  macro/fixed/hierarchy structure, and live counters. Then choose a plausible
+  start family and select a concrete blueprint. Use the included roadmap
+  section before writing Student guidance. A case may match multiple
+  blueprints; use them as route hypotheses or compatible combinations, not as a
+  single fixed selector.
 - For a strong retained route, route from the cumulative mechanism chain. Do not
   assign only the final preservation, telemetry, or attribution diff as if it
   were the quality mechanism.

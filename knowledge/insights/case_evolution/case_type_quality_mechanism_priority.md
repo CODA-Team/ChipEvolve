@@ -14,7 +14,10 @@ hypotheses rather than forcing one selector.
 1. State the observed stage pattern: `HPWLg`, legalization delta,
    improve-placement delta, final HPWL, legality, runtime, and any live
    counters.
-2. Classify the case by design/stage features using the table below.
+2. Classify the case by observed features, not benchmark name: design size
+   (movable cells / runtime scale), density or utilization, legalization HPWL
+   movement, DPO/improve-placement HPWL recovery, macro/fixed/hierarchy
+   structure, and live source-level counters.
 3. Pick one or more matching blueprints and prepared start kinds.
 4. Open `mechanism_reconstruction_roadmap.md` for the matching blueprint details.
 5. Give each Student a concrete mechanism packet: start kind, expected HPWL
@@ -28,6 +31,22 @@ final HPWL, runtime, stage attribution, and mechanism liveness decide promotion.
 When a retained source ends with preservation, telemetry, or reporting-only
 edits, do not treat that final edit as the quality mechanism.  Route from the
 complete cumulative mechanism chain that produced final HPWL movement.
+
+## Validated Case-Type Route Signatures
+
+Use these signatures as warm-start method priors.  They are not benchmark-name
+selectors: match the current stage tuple, physical structure, counters, and
+runtime scale, then assign the matching blueprint plus one diverse alternative.
+The route label names the cumulative mechanism chain to reconstruct, not the
+last guard or attribution commit.
+
+| feature signature | validated warm-start route | blueprint | first start basin | expected HPWL source | first proof check |
+| --- | --- | --- | --- | --- | --- |
+| Row-rich stdcell design, `HPWLlg` can inflate, `HPWLimprove` has large recovery, source-edge/hot frontier counters exist | negotiation-compatible producer -> exact source-edge GS -> hot reorder/micro-pack -> accepted-window replay -> post-`ro` top-net endpoint/source exact consumer | `B` then `D`/`E` | `evolved_negotiation` or another negotiation-compatible donor with live source-edge/hot frontier | downstream DPO consumer, not legalization | `DPL-0926`, `DPL-0931`, `DPL-0937`, then `DPL-0938 handoff=on` with endpoint accepts and accepted gain |
+| Large row-rich design with stable Diamond-like legal basin and huge exact-DPO frontier | micro-start producer reshape -> critical-net chain assignment -> exact local closure -> bounded multi-row residual consumer -> segment-local residual swap/polish | `A` then `F`/`H` | `evolved_diamond` | exact DPO chain plus bounded residual consumers | source-topK accepts/accepted delta, micro-start/chain/closure/multi-row counters, final HPWL movement |
+| Small or moderate low-utilization design where exact source-edge DPO is already live but final mirror loses some gain | assignment-journal handoff -> boundary-local exact pair/endpoint consumer, or endpoint-escape ordered-pair exact repair with runtime-safe journal caching | `A`/`H` with `F` when plateaued | current exact-DPO-live donor, `evolved_diamond`, or `diamond` | post-consumer exact local closure and preservation | assignment journal or endpoint-escape counters stay live, exact boundary accepts are nonzero, final HPWL improves or runtime is reduced without counter drift |
+| Wrapper, macro/SRAM, hierarchy, or fixed-blockage structure fragments logic into repeated row-window basins | framework residual/frontier producer -> LEGALM/DPO frontier handoff -> late broad exact capture -> component/beam or focused pair/endpoint replay around accepted DPO footprint | `C` then `J` | `framework` when frontier/residual producer is useful; `evolved_diamond` when endpoint/source-edge geometry dominates | richer handoff payload plus late exact DPO post-consumer | frontier consumed count, late touched cells/nets, component/beam trials, exact accepts, accepted-delta-per-runtime |
+| Low-residual, queue-sensitive image/control or local-residue design where broad queue reranking changes many accepts but hurts final flow | preserve exact source-edge queue breadth or vertical-frontier donor, then change only one downstream consumer with exact final-flow proof | `A`/`H`, sometimes `C2` | current exact source-edge/vertical-frontier donor | candidate quality and final-flow preservation, not broader queue activity | `DPL-0926` source-edge queue, vertical/frontier accepts, selected-segment accepts, final HPWL; demote preview rerank if final worsens |
 
 ## Route Map
 

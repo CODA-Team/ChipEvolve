@@ -46,9 +46,12 @@ roadmap section for implementation details, then diversify.
 
 - Read the design characteristics and stage metrics first.
 - First reaction: decide whether this case matches one or more known case types
-  with verified mechanism chains. If yes, assign Students across the matching
-  packets or compatible combinations, then use the remaining Students for
-  complementary or exploratory routes.
+  with verified mechanism chains. Base that classification on concrete case
+  features: size/runtime scale, density/utilization, legalization HPWL movement,
+  DPO/improve-placement recovery, macro/fixed/hierarchy structure, and live
+  source-level counters. If yes, assign Students across the matching packets or
+  compatible combinations, then use the remaining Students for complementary or
+  exploratory routes.
 - After naming the dominant bottleneck, query the skill index only to sharpen
   plausible mechanisms or to avoid repeating known low-ROI paths. Normally
   consider at least two distinct stage families, such as one
