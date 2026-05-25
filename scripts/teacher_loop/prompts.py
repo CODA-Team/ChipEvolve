@@ -732,9 +732,17 @@ def matched_blueprints_for_case(
     large_row_rich = (movable is not None and movable >= 50000) or (
         runtime is not None and runtime >= 25.0
     )
-    many_fixed = fixed_count is not None and fixed_count >= 50
-    hierarchy_or_macro_hint = many_fixed or any(
-        token in case_text for token in ("wrapper", "macro", "sram", "memory", "bp")
+    hierarchy_or_large_block_hint = any(
+        token in case_text
+        for token in (
+            "wrapper",
+            "hierarchy",
+            "macro",
+            "sram",
+            "memory",
+            "blockage",
+            "bp",
+        )
     )
     conflict_hint = any(
         token in case_text for token in ("cut", "band", "fragment", "scarce")
@@ -769,12 +777,12 @@ def matched_blueprints_for_case(
             3.0,
             "negotiation/resource-aware closure may need residual transaction handoff",
         )
-    if hierarchy_or_macro_hint:
+    if hierarchy_or_large_block_hint:
         _add_blueprint_score(
             scores,
             "C",
             3.0,
-            "fixed/hierarchical or macro-like structure suggests row-window replay",
+            "hierarchy, macro/SRAM, or large-blockage structure suggests row-window replay",
         )
     if dense and (legal_worse or recoverable):
         _add_blueprint_score(
@@ -900,7 +908,9 @@ def write_matched_blueprint_packet(
         f"- value reference: `{anchor_label or 'missing'}`",
         f"- case size / movable cells: `{movable if movable is not None else 'unknown'}`",
         f"- density / utilization: `{utilization if utilization is not None else 'unknown'}`",
-        f"- fixed or macro-like instances: `{fixed_count if fixed_count is not None else 'unknown'}`",
+        f"- fixed instances: `{fixed_count if fixed_count is not None else 'unknown'}` "
+        "(not a macro count; fixed cells may include taps/endcaps/fillers or true "
+        "large blockages; macro means physically large instance)",
         f"- placed instances: `{placed_count if placed_count is not None else 'unknown'}`",
     ]
     if anchor is not None:

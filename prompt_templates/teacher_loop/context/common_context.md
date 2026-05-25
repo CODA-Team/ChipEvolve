@@ -48,9 +48,11 @@ roadmap section for implementation details, then diversify.
 - First reaction: decide whether this case matches one or more known case types
   with verified mechanism chains. Base that classification on concrete case
   features: size/runtime scale, density/utilization, legalization HPWL movement,
-  DPO/improve-placement recovery, macro/fixed/hierarchy structure, and live
-  source-level counters. If yes, assign Students across the matching packets or
-  compatible combinations, then use the remaining Students for complementary or
+  DPO/improve-placement recovery, true macro/SRAM/large-blockage/hierarchy or
+  row-fragmentation evidence, and live source-level counters. Fixed instance
+  count alone is not macro evidence; macro means a physically large instance.
+  If yes, assign Students across the matching packets or compatible
+  combinations, then use the remaining Students for complementary or
   exploratory routes.
 - After naming the dominant bottleneck, query the skill index only to sharpen
   plausible mechanisms or to avoid repeating known low-ROI paths. Normally

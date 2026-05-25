@@ -41,9 +41,11 @@ mechanism decision.
   case-feature route map filtered for this case: use it to recognize the design
   pattern from concrete features: size/runtime scale, density/utilization,
   legalization HPWL movement, DPO/improve-placement recovery,
-  macro/fixed/hierarchy structure, and live counters. Then choose a plausible
-  start family and select a concrete blueprint. Use the included roadmap
-  section before writing Student guidance. A case may match multiple
+  true macro/SRAM/large-blockage/hierarchy or row-fragmentation evidence, and
+  live counters. Fixed instance count alone is not macro evidence; macro means
+  a physically large instance. Then choose a plausible start family and select
+  a concrete blueprint. Use the included roadmap section before writing Student
+  guidance. A case may match multiple
   blueprints; use them as route hypotheses or compatible combinations, not as a
   single fixed selector.
 - For a strong retained route, route from the cumulative mechanism chain. Do not

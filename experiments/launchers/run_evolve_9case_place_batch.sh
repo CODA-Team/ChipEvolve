@@ -25,6 +25,7 @@ PREPARE_WORKSPACE=0
 PREPARE_FORCE=0
 SKIP_CORE_BUILD=0
 REFRESH_BASELINES=0
+TEACHER_ONLY=0
 DRY_RUN=0
 CASES=()
 
@@ -65,6 +66,7 @@ Options:
   --prepare-force              Pass --force to prepare_workspace.sh.
   --skip-core-build            Do not configure/build common OpenROAD core.
   --refresh-baselines          Refresh canonical 3-line baselines per case.
+  --teacher-only               Launch only Teacher planning; skip Student and review.
   --dry-run                    Print optimize commands without launching agents.
   --help                       Show this message.
 
@@ -98,6 +100,7 @@ while [[ $# -gt 0 ]]; do
     --prepare-force) PREPARE_FORCE=1; shift ;;
     --skip-core-build) SKIP_CORE_BUILD=1; shift ;;
     --refresh-baselines) REFRESH_BASELINES=1; shift ;;
+    --teacher-only) TEACHER_ONLY=1; shift ;;
     --dry-run) DRY_RUN=1; shift ;;
     --help|-h) usage; exit 0 ;;
     *) echo "[ERROR] Unknown argument: $1" >&2; usage >&2; exit 1 ;;
@@ -237,6 +240,9 @@ run_case() {
     --skip-core-build
     --launch
   )
+  if [[ "${TEACHER_ONLY}" -eq 1 ]]; then
+    cmd+=(--teacher-only)
+  fi
   if [[ "${DRY_RUN}" -eq 1 ]]; then
     cmd+=(--dry-run)
   fi
@@ -271,6 +277,7 @@ echo "  children x iterations: ${CHILDREN} x ${ITERATIONS}"
 echo "  teacher              : ${TEACHER_MODEL} / ${TEACHER_REASONING_EFFORT}"
 echo "  student              : ${STUDENT_MODEL} / ${STUDENT_REASONING_EFFORT}"
 echo "  max_concurrent_cases : ${MAX_CONCURRENT_CASES}"
+echo "  teacher_only         : ${TEACHER_ONLY}"
 echo "  batch_root           : ${BATCH_ROOT}"
 echo
 

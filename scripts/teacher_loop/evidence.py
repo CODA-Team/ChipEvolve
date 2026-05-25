@@ -230,7 +230,13 @@ def discover_case_metrics(
         / "dpl_evolve_baseline"
     )
     candidates = sorted(
-        report_root.glob("*/metrics.json"), key=lambda path: path.stat().st_mtime
+        (
+            path
+            for line in CANONICAL_LINES
+            for path in report_root.glob(f"*baseline_probe_{line}*/metrics.json")
+            if "_student_" not in path.parent.name and "_iter_" not in path.parent.name
+        ),
+        key=lambda path: path.stat().st_mtime,
     )
     summaries = [item for path in candidates if (item := summarize_metrics(path))]
 
@@ -1619,6 +1625,9 @@ def design_characteristics_block(
             fixed=fixed_count if fixed_count is not None else "",
             placed=placed_count if placed_count is not None else "",
         ),
+        "- fixed-count note: fixed instances are not macro evidence by themselves; "
+        "they may include taps/endcaps/fillers or true large fixed blockages. "
+        "Treat a macro as a physically large instance proven by geometry/source evidence.",
         "- baseline flow: `{seq}`".format(seq=legalize.get("stage_sequence", "")),
         "- baseline displacement: avg={avg}um, max={maxd}um, moved={moved}".format(
             avg=_fmt_float(disp.get("average_displacement_micron"), 4),
