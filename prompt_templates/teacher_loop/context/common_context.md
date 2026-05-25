@@ -15,9 +15,10 @@
 - OpenROAD DPL default-flow reference: `$openroad_diamond`
 - negotiation donor: `$openroad_negotiation_nblg`
 - Abacus donor: `$dreamplace_abacus`
-- dense evolved-legalizer routing insight: `$dense_legalizer_routing_insight`
-- feature-to-mechanism strategy insight: `$strategy_inspiration_insight`
 - focused matched blueprint packet: `$matched_blueprint_packet`
+- secondary inspiration only, not direct route maps:
+  - dense evolved-legalizer note: `$dense_legalizer_routing_insight`
+  - feature-to-mechanism strategy note: `$strategy_inspiration_insight`
 - DPO mechanism insight: `$dpo_source_mechanisms_insight`
 - OpenROAD-native handoff insight: `$openroad_native_handoff_insight`
 - LEGO-lite skill index: `$skill_index`
@@ -29,11 +30,11 @@
 Use these paths as search handles only when they help identify concrete
 function/state insertion points. Do not require broad donor-tree reading.
 
-The case-evolution and strategy insight files are validated case-feature method
-warm starts.  Use them to recognize a design pattern, choose a plausible start
-family, and give Students a concrete mechanism route; then verify the route on
-the current case with stage metrics, liveness counters, legality, runtime, and
-final HPWL.
+Only the focused matched blueprint packet is the direct case-feature route map.
+It is generated from `case_type_quality_mechanism_priority.md` and
+`mechanism_reconstruction_roadmap.md`. Other insight files are support material:
+use them only after a blueprint or bottleneck is selected, and never as a
+parallel route selector.
 
 ## First-Round Evidence-Driven Route Scan
 
@@ -41,8 +42,9 @@ In the first Teacher planning round, build the route map from observed case
 evidence first. Most knowledge cards are vocabulary, inspiration, and prior
 evidence. The focused matched blueprint packet is different: it is the first
 case-feature route map filtered for this case. If it contains a matching
-blueprint, use that blueprint as the first route prior, use the included
-roadmap section for implementation details, then diversify.
+blueprint, use that blueprint as the route prior, use the included roadmap
+section for implementation details, then diversify only through compatible
+mechanism variants or a clearly justified alternative blueprint.
 
 - Read the design characteristics and stage metrics first.
 - First reaction: decide whether this case matches one or more known case types
@@ -55,10 +57,8 @@ roadmap section for implementation details, then diversify.
   combinations, then use the remaining Students for complementary or
   exploratory routes.
 - After naming the dominant bottleneck, query the skill index only to sharpen
-  plausible mechanisms or to avoid repeating known low-ROI paths. Normally
-  consider at least two distinct stage families, such as one
-  legalization/handoff family and one improve-placement/DPO family, when the
-  metrics leave both credible.
+  the selected blueprint, check a known failure mode, or diagnose low ROI. Do
+  not query broad secondary cards to replace the blueprint map.
 - When selecting a feature-matched start kind or route, open the focused
   matched blueprint packet first. If it contains a matching blueprint, assign
   at least one Student to reconstruct or strengthen the route with the included

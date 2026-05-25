@@ -1,5 +1,12 @@
 # Optdp Stage Co-Optimization Evidence
 
+## Agent Use
+
+- Role: inspiration/support only. This card must not directly select a case route or override the core blueprint map.
+- First map the case through `case_type_quality_mechanism_priority.md`; then use this card only to refine a selected mechanism, risk, or failure diagnosis.
+- If this card repeats a core idea, treat the core blueprint as authoritative and keep this card as background evidence.
+
+
 This card summarizes reusable evidence from dense placement evolution runs at
 different utilization levels.  The exact design ids are not the lesson; the
 transferable lesson is that final HPWL depends on how

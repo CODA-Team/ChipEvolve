@@ -1,5 +1,11 @@
 # LEGALM Large-Case Runtime
 
+## Agent Use
+
+- Role: LEGALM reference/support. Open only when the selected route uses LEGALM-style guidance or the legalizer is the diagnosed bottleneck.
+- Treat paper alignment and LEGALM tuning as support for a full-flow mechanism, not as a route selector by itself.
+
+
 ## Context
 
 Large placement instances expose constant-factor mistakes in the evolved

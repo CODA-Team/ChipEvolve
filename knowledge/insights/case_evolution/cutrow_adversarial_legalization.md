@@ -1,5 +1,12 @@
 # cutRow Adversarial Legalization Insight
 
+## Agent Use
+
+- Role: inspiration/support only. This card must not directly select a case route or override the core blueprint map.
+- First map the case through `case_type_quality_mechanism_priority.md`; then use this card only to refine a selected mechanism, risk, or failure diagnosis.
+- If this card repeats a core idea, treat the core blueprint as authoritative and keep this card as background evidence.
+
+
 Use this card when a Teacher/Student round targets cutRow-generated difficult
 legalization inputs instead of ordinary ORFS `3_4_place_resized.odb` snapshots.
 Default Teacher context should reason from input features: removed-row pattern,

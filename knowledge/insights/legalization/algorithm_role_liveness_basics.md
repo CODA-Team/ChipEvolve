@@ -1,5 +1,11 @@
 # Algorithm Role And Liveness Basics
 
+## Agent Use
+
+- Role: legalization mechanism support. Open after a selected route needs legalizer behavior, liveness, or repair detail.
+- Do not optimize legalization-stage HPWL alone; final flow HPWL and DPO recoverability remain decisive.
+
+
 This card gives baseline semantics for the main legalization families used by
 DPL-Evolve.  Use it before routing a Student to Diamond, negotiation, LEGALM, or
 Differential Guidance so the plan names what is expected to legalize, what is

@@ -1,5 +1,11 @@
 # Aggressive Basin Schedule After A Valid Light Donor
 
+## Agent Use
+
+- Role: DPO mechanism support. Open after Teacher or current logs identify an improve-placement/DPO bottleneck.
+- Use it to design source-local consumers, counters, and repair checks; do not use it as a case-type route selector.
+
+
 Evidence type: measured mechanism refinement.  This card captures how to
 strengthen a validated post-DPO basin donor without losing control.
 

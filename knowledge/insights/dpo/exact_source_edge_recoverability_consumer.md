@@ -1,5 +1,11 @@
 # Exact Source-Edge Recoverability Consumer
 
+## Agent Use
+
+- Role: DPO mechanism support. Open after Teacher or current logs identify an improve-placement/DPO bottleneck.
+- Use it to design source-local consumers, counters, and repair checks; do not use it as a case-type route selector.
+
+
 Evidence type: measured mechanism insight from clean full-flow replay.  This is
 not a benchmark-name rule and not a source patch.  Use it when stage metrics
 show that legalization may be legal but not HPWL-optimal, while improve

@@ -1,5 +1,11 @@
 # Lightweight Post-DPO Basin Search
 
+## Agent Use
+
+- Role: DPO mechanism support. Open after Teacher or current logs identify an improve-placement/DPO bottleneck.
+- Use it to design source-local consumers, counters, and repair checks; do not use it as a case-type route selector.
+
+
 Evidence type: measured cross-case mechanism observation.  This card describes
 a reusable improve-placement donor pattern, not a universal default.
 

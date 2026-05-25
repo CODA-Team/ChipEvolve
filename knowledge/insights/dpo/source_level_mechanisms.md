@@ -1,5 +1,11 @@
 # DPO Source-Level Mechanism Lessons
 
+## Agent Use
+
+- Role: DPO mechanism support. Open after Teacher or current logs identify an improve-placement/DPO bottleneck.
+- Use it to design source-local consumers, counters, and repair checks; do not use it as a case-type route selector.
+
+
 Evidence type: generalized source-level DPO mechanism observations.  Use this
 card to select and adapt mechanisms from current case features, stage metrics,
 and liveness logs.

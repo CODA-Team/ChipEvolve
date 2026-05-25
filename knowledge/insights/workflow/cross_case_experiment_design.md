@@ -1,5 +1,11 @@
 # Cross-Case Experiment Design
 
+## Agent Use
+
+- Role: workflow or metric contract. Use to keep experiments and reporting consistent, not to choose an algorithmic route.
+- Route selection still starts from the core case-type blueprint map and current metrics.
+
+
 Single-case Teacher/Student evolution is useful for finding mechanisms, but it
 is not enough to prove that a DPL change is valuable.  Use an outer experiment
 matrix to separate three questions:

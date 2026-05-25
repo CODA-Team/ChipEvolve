@@ -1,5 +1,12 @@
 # Full-Flow Timeout And Target Selection
 
+## Agent Use
+
+- Role: inspiration/support only. This card must not directly select a case route or override the core blueprint map.
+- First map the case through `case_type_quality_mechanism_priority.md`; then use this card only to refine a selected mechanism, risk, or failure diagnosis.
+- If this card repeats a core idea, treat the core blueprint as authoritative and keep this card as background evidence.
+
+
 ## Repository State
 
 The active project line is the constrained `detailed_placement_evolve`

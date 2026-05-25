@@ -1,5 +1,12 @@
 # Micro-Gain Trap And Elite Donors
 
+## Agent Use
+
+- Role: inspiration/support only. This card must not directly select a case route or override the core blueprint map.
+- First map the case through `case_type_quality_mechanism_priority.md`; then use this card only to refine a selected mechanism, risk, or failure diagnosis.
+- If this card repeats a core idea, treat the core blueprint as authoritative and keep this card as background evidence.
+
+
 Small strict-metric improvements are useful evidence, but they are not proof
 that the DPL algorithmic framework has meaningfully improved.  Preserve them
 as elite donors; do not let Teacher or students become trapped in local tuning.

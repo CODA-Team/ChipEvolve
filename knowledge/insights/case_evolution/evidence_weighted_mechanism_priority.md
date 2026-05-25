@@ -1,17 +1,20 @@
 # Evidence-Weighted Mechanism Priority
 
-Evidence type: synthesis of source-evolution, transfer, legalizer-line,
-DPO-handoff, and robustness evidence into design-feature mechanism priorities.
+## Agent Use
 
-Use this card when Teacher has many plausible mechanism families and must decide
-which ones deserve search budget.  It ranks reusable mechanism patterns by
-feature fit and final-HPWL evidence.
+- Role: inspiration/support only. This card must not directly select a case route or override the core blueprint map.
+- First map the case through `case_type_quality_mechanism_priority.md`; then use this card only to refine a selected mechanism, risk, or failure diagnosis.
+- If this card repeats a core idea, treat the core blueprint as authoritative and keep this card as background evidence.
 
-Pair this card with
-`runtime_light_final_hpwl_mechanism_priority.md` when choosing first routes.  If
-a mechanism appears here as a quality donor but the runtime-aware card marks it
-as heavy or secondary, assign it only after a lighter final-HPWL mechanism or a
-concrete runtime-rewrite plan.
+
+Evidence type: support notes for weighing a selected mechanism by liveness,
+final-HPWL evidence, and risk.  It is not a first-route selector.
+
+Use this card after the core blueprint map has produced one or more route
+hypotheses.  It helps decide whether a partial mechanism should be continued,
+repaired, or demoted.  Pair it with
+`runtime_light_final_hpwl_mechanism_priority.md` only to refine runtime control
+for the selected route.
 
 ## Evidence Gate
 

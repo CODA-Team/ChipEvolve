@@ -1,141 +1,84 @@
 # Insights Index
 
-This directory stores compact lessons that guide DPL-Evolve agents.  Keep
-source-of-truth scripts and raw run artifacts outside this directory; insight
-cards should summarize what changed, what was measured, and how future agents
-should act on it.
+This directory stores compact lessons that guide DPL-Evolve agents. Insight
+cards are not equal. The routing contract below is the source of truth for what
+can directly steer Teacher route assignment.
+
+## Routing Contract
+
+- Direct case-type route mapping uses only:
+  - `case_evolution/case_type_quality_mechanism_priority.md`
+  - `case_evolution/mechanism_reconstruction_roadmap.md`
+  - the generated `matched_blueprint_packet.md`, which is filtered from those
+    two files for the current case.
+- Other files are inspiration, support, evidence archives, or workflow contracts.
+  They can refine a selected blueprint, explain a failure mode, or provide a
+  source-level mechanism, but they must not override the core blueprint map.
+- Similar ideas should be treated as one mechanism family in the core roadmap:
+  source-edge exact DPO, hot-segment exact consumer, row-window/component replay,
+  top-net target/source repair, recoverable producer/consumer handoff,
+  transactional basin escape, negotiation residual handoff, row-local exact
+  closure, conflict-primary closure, and plateau redesign.
+- Teacher should classify the current case by concrete features: size/runtime,
+  utilization, legalization HPWL movement, DPO recovery, true macro/SRAM or
+  large-blockage geometry, row fragmentation, live counters, and final HPWL.
+  Benchmark names, old program ids, and raw result rows are not route selectors.
+- Student should read only the assigned blueprint section or focused packet,
+  then inspect current source/log evidence and implement a coherent mechanism.
 
 ## Reading Order
 
-1. `workflow/teacher_child_case_evolution.md`
-2. `workflow/cross_case_experiment_design.md`
-3. `workflow/metric_contract.md`
-4. `case_evolution/case_type_quality_mechanism_priority.md`
-5. `case_evolution/mechanism_reconstruction_roadmap.md` only after a
-   case-type blueprint is selected
-6. `case_evolution/strategy_inspiration_by_design_feature.md`
-7. `case_evolution/runtime_light_final_hpwl_mechanism_priority.md`
-8. `case_evolution/evidence_weighted_mechanism_priority.md`
-9. `case_evolution/fixed_source_replay_transfer_evidence.md` only when
-   Teacher needs provenance or robustness evidence after the mechanism route is
-   already selected
-10. `case_evolution/score_based_case_strategy_routing.md`
-11. `case_evolution/dense_evolved_legalizer_routing.md`
-12. `case_evolution/optdp_stage_cooptimization.md`
-13. `../skills/case/legalizer_dpo_handoff_triage.md`
-14. `legalization/algorithm_role_liveness_basics.md`
-15. `dpo/source_level_mechanisms.md`
-16. `dpo/exact_source_edge_recoverability_consumer.md`
-17. `dpo/lightweight_post_dpo_basin.md`
-18. `dpo/frontier_guided_basin_consumer.md`
-19. `dpo/openroad_native_handoff.md`
-20. `case_evolution/micro_gain_trap_and_elite_donors.md`
-21. Relevant LEGALM card under `legalm/` only when changing legalization.
+1. `workflow/metric_contract.md` for metric truth when reporting or comparing.
+2. `workflow/teacher_child_case_evolution.md` for Teacher/Student loop rules.
+3. `case_evolution/case_type_quality_mechanism_priority.md` for first route map.
+4. `case_evolution/mechanism_reconstruction_roadmap.md` only for the selected
+   blueprint, preferably through generated `matched_blueprint_packet.md`.
+5. One relevant DPO, legalization, LEGALM, or case-evolution support card only
+   after current evidence identifies the needed mechanism detail.
 
-## Workflow
+## File Roles
 
-- `workflow/teacher_child_case_evolution.md`: Teacher/Student loop contract,
-  promotion rules, peer learning, and elite preservation.
-- `workflow/cross_case_experiment_design.md`: outer matrix design for testing
-  one generated program across many cases and utilization points.
-- `workflow/metric_contract.md`: canonical HPWL source, comparable experiment
-  classes, and reporting requirements.
-
-## Case Evolution Evidence
-
-- `case_evolution/fixed_source_replay_transfer_evidence.md`: evidence archive
-  for provenance and robustness checks after a mechanism route has already been
-  selected.  Do not use it as the first Teacher routing card.
-- `case_evolution/score_based_case_strategy_routing.md`: feature-level `G_HR`
-  routing guidance distilled from single-design evolution, cross-source
-  evidence, and multi-design legalizer-line evaluation; use it to distinguish score
-  elites from HPWL donors.
-- `case_evolution/strategy_inspiration_by_design_feature.md`: feature-level
-  mechanism inspiration for staged source hybrids.  Use this before route
-  assignment to avoid turning empirical lessons into benchmark-name selectors.
-- `case_evolution/runtime_light_final_hpwl_mechanism_priority.md`: ranks
-  final-HPWL-proven mechanisms by runtime/value.  Prefer recoverability-shaped
-  legalizer producers plus exact DPO consumers, residual-basin objective repair,
-  source-edge/frontier-ranked exact consumers, and local exact closure before
-  heavier LSMC, endpoint, or broad replay donors.
-- `case_evolution/evidence_weighted_mechanism_priority.md`: ranks mechanism
-  families by same-case final-HPWL evidence.  It promotes producer frontier plus
-  exact consumer, residual grouped-window transactions, resource/row reservation
-  with a proven consumer, and endpoint-level branch scoring only when final HPWL
-  improves; it demotes legalize-only wins, guard-only, telemetry-only,
-  mirror-only, threshold-only, passive-handoff, and random-tail polishing.
-- `case_evolution/case_type_quality_mechanism_priority.md`: short case-feature
-  route outline.  It maps stage/design features to prepared start-kind priors
-  and blueprint names.  Teacher should read it first for routing, then open the
-  roadmap below for implementation details.
-- `case_evolution/mechanism_reconstruction_roadmap.md`: detailed
-  implementation roadmap for the blueprints selected by the route outline.  It
-  contains source anchors, implementation order, validation counters, and
-  partial-route demotion rules for source-edge exact DPO, hot-segment exact
-  consumers, row-window replay, top-net target/source repair, recoverable
-  producer/consumer stacks, transactional basin escape, negotiation residual
-  handoff, row-local exact closure, conflict-primary closure, and plateau
-  redesign.
-- `case_evolution/dense_evolved_legalizer_routing.md`: dense-case evidence for
-  using the framework LEGALM-style producer/frontier as a stage-level prior, plus Teacher policy
-  for first-round diversification and later route switching/hybridization.  This
-  card is subordinate to current full-flow score evidence when they disagree.
-- `case_evolution/optdp_stage_cooptimization.md`: useful and harmful
-  mechanisms for legalization, `Optdp`, and their source-level handoff.
-- `case_evolution/micro_gain_trap_and_elite_donors.md`: why tiny HPWL wins are
-  donors, not proof of a strategic algorithmic improvement.
-- `case_evolution/full_flow_timeout_and_target_selection.md`: full-flow timeout
-  discovery-target selection, bad execution patterns, and the configured
-  baseline-runtime promotion gate.
-
-## DPO And Handoff Notes
-
-- `../skills/case/legalizer_dpo_handoff_triage.md`: stage triage rule for
-  deciding whether weak final HPWL should be attacked by legalizer-output
-  repair, DPO-consumer strengthening, handoff repair, or co-optimization.
-- `dpo/source_level_mechanisms.md`: source-level improve-placement mechanisms
-  to reimplement directly in current `Optdp`/`Detailed*` code.
-- `dpo/exact_source_edge_recoverability_consumer.md`: co-optimization pattern
-  where a legal but not HPWL-optimal state is preserved for exact
-  source-edge/global-swap, edge-critical, selected-reorder, and bounded polish
-  consumers.  Use it when final HPWL responds strongly after improve placement.
-- `dpo/lightweight_post_dpo_basin.md`: when a stable legalizer still leaves
-  local DPO residue and one bounded basin cleanup pass is a good donor.
-- `dpo/aggressive_basin_schedule.md`: when a validated light basin donor should
-  allocate more controlled runtime cost to stronger exact local search.
-- `dpo/frontier_guided_basin_consumer.md`: handoff-aware DPO consumer pattern
-  that uses producer frontiers to rank and probe exact basin candidates.
-- `dpo/openroad_native_handoff.md`: efficient OpenROAD-native producer/consumer
-  data structures for legalization-to-DPO frontier handoff.
-
-## Legalization Role Notes
-
-- `legalization/algorithm_role_liveness_basics.md`: baseline roles for Diamond,
-  negotiation, LEGALM-style full legalization, and Differential Guidance.  Use
-  it to distinguish primary legalizers from heuristic producers and to choose
-  liveness counters before implementing a route.
-
-## LEGALM Notes
-
-- `legalm/paper_code_alignment.md`: formula/pseudocode-to-code map for
-  checking that LEGALM edits preserve the paper flow.
-- `legalm/paper_faithful_legalization_integration.md`: separation between
-  paper-faithful legalizer work and full-flow integration.
-- `legalm/legalm_self_legal_closure.md`: LEGALM self-legal closure milestone and
-  remaining quality warning.
-- `legalm/legalm_paper_cost_tuning.md`: paper-detail tuning history and
-  evidence.  This is a long reference, not a default prompt payload.
-- `legalm/legalm_large_case_runtime.md`: large-case runtime bottleneck notes.
-- `legalm/search_space_and_hpwl_objective.md`: why larger candidate stencils
-  can saturate, and when to switch to bounded local HPWL-aware candidate
-  scoring.
+| file | role | direct route selector? |
+| --- | --- | --- |
+| `case_evolution/case_type_quality_mechanism_priority.md` | Core case-feature to blueprint map | yes |
+| `case_evolution/mechanism_reconstruction_roadmap.md` | Core selected-blueprint implementation roadmap | yes, after blueprint selection |
+| `case_evolution/cutrow_adversarial_legalization.md` | cutRow stress evidence and adversarial legality inspiration | no |
+| `case_evolution/dense_evolved_legalizer_routing.md` | Dense legalizer producer inspiration and caution | no |
+| `case_evolution/evidence_weighted_mechanism_priority.md` | Mechanism evidence/risk weighting after core route selection | no |
+| `case_evolution/fixed_source_replay_transfer_evidence.md` | Transfer evidence archive and robustness lessons | no |
+| `case_evolution/full_flow_timeout_and_target_selection.md` | Runtime/timeout policy and target-selection context | no |
+| `case_evolution/micro_gain_trap_and_elite_donors.md` | Weak-gain/guard trap diagnosis | no |
+| `case_evolution/optdp_stage_cooptimization.md` | Improve-placement/legalizer handoff mechanism notes | no |
+| `case_evolution/runtime_light_final_hpwl_mechanism_priority.md` | Runtime-cost refinement after route choice | no |
+| `case_evolution/score_based_case_strategy_routing.md` | G_HR and score interpretation, not HPWL promotion | no |
+| `case_evolution/strategy_inspiration_by_design_feature.md` | Feature-to-mechanism inspiration after core classification | no |
+| `dpo/aggressive_basin_schedule.md` | DPO runtime-spend support for a selected DPO route | no |
+| `dpo/exact_source_edge_recoverability_consumer.md` | Exact source-edge DPO mechanism support | no |
+| `dpo/frontier_guided_basin_consumer.md` | Frontier-to-DPO consumer support | no |
+| `dpo/lightweight_post_dpo_basin.md` | Light post-DPO basin repair support | no |
+| `dpo/openroad_native_handoff.md` | Native handoff data-structure support | no |
+| `dpo/source_level_mechanisms.md` | Improve-placement source mechanism vocabulary | no |
+| `legalization/algorithm_role_liveness_basics.md` | Legalizer role/liveness support | no |
+| `legalization/legalizer_algorithm_flow_review.md` | Legalizer flow review support | no |
+| `legalm/legalm_large_case_runtime.md` | LEGALM runtime support | no |
+| `legalm/legalm_paper_cost_tuning.md` | LEGALM paper-cost tuning reference | no |
+| `legalm/legalm_self_legal_closure.md` | LEGALM self-legal closure reference | no |
+| `legalm/paper_code_alignment.md` | LEGALM paper/code alignment reference | no |
+| `legalm/paper_faithful_legalization_integration.md` | LEGALM paper-faithful integration reference | no |
+| `legalm/search_space_and_hpwl_objective.md` | LEGALM search-space support | no |
+| `workflow/cross_case_experiment_design.md` | Cross-case experiment design workflow | no |
+| `workflow/metric_contract.md` | Canonical metric contract | no |
+| `workflow/teacher_child_case_evolution.md` | Teacher/Student workflow and evidence discipline | no |
 
 ## Hygiene Rules
 
-- Do not add dates to filenames unless the date is part of an external artifact
-  id that cannot be renamed.
-- Do not duplicate raw logs here.  Link or summarize artifact paths instead.
-- Mark observations as evidence, hypothesis, or policy.  Do not write measured
+- Do not add local experiment paths, run-state paths, old program ids, or raw
+  benchmark result rows to default insights. Translate them into feature,
+  mechanism, liveness signal, and failure-mode language.
+- Keep route logic in the two core case-evolution files. If a support card
+  repeats a route idea, collapse the route into the core blueprint and leave the
+  support card as background evidence.
+- Mark observations as evidence, hypothesis, or policy. Do not write measured
   results as universal rules.
-- Prefer one concise card per insight theme.  If a file grows into a run log,
-  split it into an artifact and a summary.
+- Prefer one concise card per support theme. If a card grows into a run log,
+  move raw detail to an external archive and keep only the reusable lesson here.

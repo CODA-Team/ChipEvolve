@@ -1,5 +1,11 @@
 # LEGALM Paper-Cost Tuning
 
+## Agent Use
+
+- Role: LEGALM reference/support. Open only when the selected route uses LEGALM-style guidance or the legalizer is the diagnosed bottleneck.
+- Treat paper alignment and LEGALM tuning as support for a full-flow mechanism, not as a route selector by itself.
+
+
 This card summarizes the useful conclusions from the long LEGALM tuning log.
 Raw run tags and case-specific artifact names are intentionally omitted from
 default insight context; use archived experiment artifacts only when exact

@@ -1,5 +1,11 @@
 # LEGALM Paper-To-Code Alignment
 
+## Agent Use
+
+- Role: LEGALM reference/support. Open only when the selected route uses LEGALM-style guidance or the legalizer is the diagnosed bottleneck.
+- Treat paper alignment and LEGALM tuning as support for a full-flow mechanism, not as a route selector by itself.
+
+
 This note maps the current OpenROAD `dpl_evolve` LEGALM implementation to the
 LEGALM 2.0 paper so future edits do not silently replace the paper flow with
 unrelated heuristics.

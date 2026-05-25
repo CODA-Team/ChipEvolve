@@ -1,5 +1,11 @@
 # Metric Contract For Evolution
 
+## Agent Use
+
+- Role: workflow or metric contract. Use to keep experiments and reporting consistent, not to choose an algorithmic route.
+- Route selection still starts from the core case-type blueprint map and current metrics.
+
+
 ## Evidence Type
 
 `contract`

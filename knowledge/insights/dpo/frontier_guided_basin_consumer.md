@@ -1,5 +1,11 @@
 # Frontier-Guided Basin Consumer
 
+## Agent Use
+
+- Role: DPO mechanism support. Open after Teacher or current logs identify an improve-placement/DPO bottleneck.
+- Use it to design source-local consumers, counters, and repair checks; do not use it as a case-type route selector.
+
+
 Evidence type: source-level co-optimization insight.  This card captures a
 handoff-aware improve-placement mechanism rather than a complete legalizer.
 

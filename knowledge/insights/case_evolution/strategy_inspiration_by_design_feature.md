@@ -1,5 +1,12 @@
 # Strategy Inspiration By Design Feature
 
+## Agent Use
+
+- Role: inspiration/support only. This card must not directly select a case route or override the core blueprint map.
+- First map the case through `case_type_quality_mechanism_priority.md`; then use this card only to refine a selected mechanism, risk, or failure diagnosis.
+- If this card repeats a core idea, treat the core blueprint as authoritative and keep this card as background evidence.
+
+
 ## Evidence Type
 
 Measured observation distilled into feature-level guidance.  This card is not a

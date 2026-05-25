@@ -70,8 +70,8 @@ $elite_text
 
 - start calibration: `$start_seed_calibration_path`
 - peer learning: `$peer_learning_path`
-- feature-to-mechanism strategy insight: `$strategy_inspiration_insight`
 - focused matched blueprint packet: `$matched_blueprint_packet`
+- secondary feature inspiration only: `$strategy_inspiration_insight`
 - DPO mechanism insight: `$dpo_source_mechanisms_insight`
 - OpenROAD-native handoff insight: `$openroad_native_handoff_insight`
 - skill query: `python3 $skill_query_script --stage <stage> --q "<bottleneck or mechanism>"`
@@ -109,10 +109,9 @@ repaired with `25_trial_source.sh begin --from-ref <ref>`.
 If the best donor is continued, it should be an elite-expansion route: attempt
 quality improvement and efficiency release on top of the donor; runtime repair
 is useful to make room for more complex search, not as a standalone success.
-Before assigning a heavy donor, query
-`--stage teacher_review --q "runtime light final HPWL mechanism priority"` and
-prefer a lighter final-HPWL mechanism unless the stage evidence justifies the
-extra runtime.
+Before assigning a heavy donor, first check whether the selected blueprint has a
+lighter reconstruction or runtime-repair path. Query secondary runtime cards
+only to refine cost control after the blueprint is chosen.
 
 Do not over-optimize for universal donors in follow-up rounds. The target is
 the best legal final HPWL for this specific case under the runtime gate; transfer

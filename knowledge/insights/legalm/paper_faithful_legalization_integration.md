@@ -1,5 +1,11 @@
 # Insight: Paper-Faithful Legalization vs Flow Integration
 
+## Agent Use
+
+- Role: LEGALM reference/support. Open only when the selected route uses LEGALM-style guidance or the legalizer is the diagnosed bottleneck.
+- Treat paper alignment and LEGALM tuning as support for a full-flow mechanism, not as a route selector by itself.
+
+
 ## Claim
 
 For the next `detailed_placement_evolve` mainline, the algorithm stage should

@@ -1,14 +1,19 @@
 # Runtime-Aware Final-HPWL Mechanism Priority
 
-Evidence type: synthesis of source evolution, mechanism validation,
-legalizer-line continuation, and DPO/handoff refinement evidence.  This card
-summarizes reusable mechanisms by design features, final-HPWL evidence, and
-runtime cost.
+## Agent Use
 
-Use this card before Teacher spends a round on donor selection.  It is a
-feature-conditioned priority map for mechanisms that have improved clean final
-HPWL while keeping runtime cost visible.  It supersedes stage-only or
-legalize-only interpretations when the cards disagree.
+- Role: inspiration/support only. This card must not directly select a case route or override the core blueprint map.
+- First map the case through `case_type_quality_mechanism_priority.md`; then use this card only to refine a selected mechanism, risk, or failure diagnosis.
+- If this card repeats a core idea, treat the core blueprint as authoritative and keep this card as background evidence.
+
+
+Evidence type: support notes on runtime cost and gain-rate for already selected
+mechanism routes.  This card summarizes how to keep quality mechanisms bounded
+without demoting HPWL to a runtime-only objective.
+
+Use this card after Teacher has selected a route from the core blueprint map.
+It can refine caps, cache plans, and runtime-spend decisions, but it must not
+replace the matched blueprint or become the first route selector.
 
 ## Promotion Standard
 
@@ -34,10 +39,11 @@ evidence, but Teacher should not allocate most Students to them.
 ## Feature-Conditioned First Routes
 
 Teacher should not use a single global priority order.  First classify the
-case by stage metrics, physical pressure, default-flow runtime scale, and
-runtime headroom, then pick one or more matching route hypotheses below.  If a
-case matches multiple feature classes, spread Students across them or combine
-compatible mechanisms inside one coherent source flow.
+case through `case_type_quality_mechanism_priority.md`; then use the notes
+below to decide whether the selected mechanism should spend more runtime on
+quality search, add caches/caps, or pivot away from a low-gain tail.  If a case
+matches multiple feature classes, the core blueprint map decides the route
+spread.
 
 ### Recoverability-Shaped Legalizer Producer Plus Exact DPO Consumer
 
@@ -68,8 +74,9 @@ Required liveness:
 Why this is high priority for this feature:
 
 This pattern has repeatedly produced large final-HPWL movement without relying
-on a broad random tail.  It is the strongest default route when the design has
-a recoverable frontier and the existing DPO can consume exact candidates.
+on a broad random tail.  It is a strong support pattern after the core blueprint
+map has identified a recoverable frontier and the existing DPO can consume
+exact candidates.
 
 ### Residual-Basin Objective Repair With Frontier-Aligned Mirror Handoff
 

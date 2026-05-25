@@ -15,10 +15,10 @@ Use this file as the Teacher context entry point for initial routing.
 - Start from `current_run_packet.md`, `design_characteristics.md`,
   `baseline_routing_note.md`, `peer_learning_routing_note.md`, and
   `start_seed_calibration.md`.
-- Treat case-evolution and strategy insight files as validated case-feature
-  method warm starts.  Use them to recognize the current design pattern and
-  route Students to concrete source mechanisms; validate every route on the
-  current case.
+- Treat `matched_blueprint_packet` as the only direct case-feature route map.
+  It is generated from the core case-type outline and reconstruction roadmap.
+  Other case-evolution/strategy cards are secondary inspiration after a
+  blueprint or bottleneck is selected; they must not override this map.
 - Before assigning routes, check whether the stage metrics match a verified
   case-type blueprint in `matched_blueprint_packet`. First check whether the case is a large row-rich or
   datapath-like recoverable basin: large movable count, strong improve-stage

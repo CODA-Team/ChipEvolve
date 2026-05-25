@@ -1,8 +1,16 @@
 # Score-Based Case Strategy Routing
 
+## Agent Use
+
+- Role: inspiration/support only. This card must not directly select a case route or override the core blueprint map.
+- First map the case through `case_type_quality_mechanism_priority.md`; then use this card only to refine a selected mechanism, risk, or failure diagnosis.
+- If this card repeats a core idea, treat the core blueprint as authoritative and keep this card as background evidence.
+
+
 ## Evidence Type
 
-Measured observation and Teacher routing policy.
+Measured score interpretation and support policy.  This card explains runtime
+tradeoff reporting; it does not choose the case route.
 
 This card summarizes three experiment families that were previously reported
 separately but should be interpreted together:
@@ -13,9 +21,10 @@ separately but should be interpreted together:
 - multi-design legalizer-line evaluation, which shows whether a legalizer family
   still helps after the full DPL flow.
 
-Default Teacher context should use the feature-level lessons below.  Concrete
-benchmark ids, program ids, numeric tables, and file paths should stay outside
-default knowledge.
+Teacher should use the core blueprint map for route choice, then use the
+feature-level lessons below only to decide whether a route is an HPWL elite, a
+runtime-repair donor, or a failed path.  Concrete benchmark ids, program ids,
+numeric tables, and file paths should stay outside default knowledge.
 
 `G_HR = HPWL_gain_percent - runtime_penalty_pp`.
 

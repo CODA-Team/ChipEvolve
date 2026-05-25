@@ -50,7 +50,7 @@ evidence requires a different feature-level route.
 - LEGALM reference: `$optional_legalm_reference`
 - Diamond reference: `$optional_diamond_reference`
 - negotiation reference: `$optional_negotiation_reference`
-- strategy insight: `$optional_strategy_inspiration_insight`
+- strategy insight: `$optional_strategy_inspiration_insight` (secondary inspiration only)
 - focused matched blueprint packet: `$optional_matched_blueprint_packet`
 - DPO mechanism insight: `$optional_dpo_source_mechanisms_insight`
 - native handoff insight: `$optional_openroad_native_handoff_insight`
@@ -60,9 +60,10 @@ evidence requires a different feature-level route.
 - knowledge query helper: `$query_knowledge_script`
 
 If your assigned mechanism mixes Diamond, negotiation, LEGALM, or Differential
-Guidance, query `--stage legalization --q "diamond negotiation differential guidance liveness"`
-before editing and log both producer and consumer liveness when guidance is
-involved.
+Guidance, first use the assigned blueprint section from the focused packet. Query
+`--stage legalization --q "diamond negotiation differential guidance liveness"`
+only to refine role/liveness details, then log both producer and consumer
+liveness when guidance is involved.
 
 ## Helpers
 

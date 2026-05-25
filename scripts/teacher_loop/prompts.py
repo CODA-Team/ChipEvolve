@@ -757,12 +757,16 @@ def matched_blueprints_for_case(
     )
 
     scores: dict[str, tuple[float, list[str]]] = {}
-    if stable_legal and (low_or_mid_util or recoverable):
+    # Low/mid-util cases can still be source-edge/DPO cases even when
+    # legalization increases HPWL; strong improve-stage recovery is the signal.
+    if (stable_legal and (low_or_mid_util or recoverable)) or (
+        low_or_mid_util and strong_recoverable
+    ):
         _add_blueprint_score(
             scores,
             "A",
             4.0,
-            "stable legalization with remaining improve-placement/source-edge opportunity",
+            "low/mid-util or stable basin with strong improve-placement/source-edge opportunity",
         )
     if stable_legal and not large_row_rich:
         _add_blueprint_score(
@@ -771,25 +775,40 @@ def matched_blueprints_for_case(
             2.5,
             "stable legal basin suggests row-local or edge-local exact closure",
         )
-    if negotiation_clean and (recoverable or large_row_rich or legal_worse):
+    negotiation_beats_ref = (
+        negotiation_clean
+        and anchor is not None
+        and negotiation is not None
+        and negotiation.hpwl_after is not None
+        and anchor.hpwl_after is not None
+        and negotiation.hpwl_after < anchor.hpwl_after
+    )
+    if negotiation_clean and (
+        large_row_rich or negotiation_beats_ref or (legal_worse and recoverable)
+    ):
+        negotiation_score = 2.0
+        if negotiation_beats_ref or large_row_rich:
+            negotiation_score = 3.5
+        if legal_worse and strong_recoverable:
+            negotiation_score = max(negotiation_score, 3.8)
         _add_blueprint_score(
             scores,
             "B",
-            3.5,
-            "negotiation-compatible baseline exists and downstream recovery is plausible",
+            negotiation_score,
+            "negotiation-compatible evidence suggests useful closure plus downstream recovery",
         )
-    if negotiation_clean and (legal_worse or large_row_rich):
+    if negotiation_clean and (negotiation_beats_ref or large_row_rich):
         _add_blueprint_score(
             scores,
             "G",
-            3.0,
+            3.0 if negotiation_beats_ref else 2.0,
             "negotiation/resource-aware closure may need residual transaction handoff",
         )
     if hierarchy_or_large_block_hint:
         _add_blueprint_score(
             scores,
             "C",
-            3.0,
+            4.5 if (large_row_rich or recoverable) else 3.5,
             "hierarchy, macro/SRAM, or large-blockage structure suggests row-window replay",
         )
     if dense and (legal_worse or recoverable):
@@ -947,7 +966,10 @@ def write_matched_blueprint_packet(
             "",
         ]
     )
-    for letter, score, reasons in matched:
+    detail_limit = 2
+    detailed = matched[:detail_limit]
+    additional = matched[detail_limit:]
+    for letter, score, reasons in detailed:
         heading = f"## Blueprint {letter}:"
         roadmap_section = _markdown_section(roadmap_text, heading)
         lines.extend(
@@ -972,6 +994,29 @@ def write_matched_blueprint_packet(
                 "",
             ]
         )
+    if additional:
+        lines.extend(
+            [
+                "## Additional Matched Blueprints",
+                "",
+                "These are secondary route hypotheses. Use them for diversity or a pivot",
+                "only after the primary detailed blueprints are considered against",
+                "current-stage evidence. Open the roadmap section only if Teacher",
+                "explicitly assigns that blueprint.",
+                "",
+            ]
+        )
+        for letter, score, reasons in additional:
+            lines.extend(
+                [
+                    f"### Blueprint {letter}: {BLUEPRINT_NAMES.get(letter, '')}",
+                    "",
+                    f"- match score: `{score:.2f}`",
+                    "- match reasons:",
+                ]
+            )
+            lines.extend(f"  - {reason}" for reason in reasons)
+            lines.extend(["", _outline_row(outline_text, letter), ""])
     if shared_anchors:
         lines.extend(["## Shared Source Anchors", "", shared_anchors, ""])
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -2048,9 +2093,63 @@ fi
     write_executable_script(
         scripts["query_knowledge"],
         f"""#!/usr/bin/env bash
-set -euo pipefail
+	set -euo pipefail
 {common_vars}
-exec python3 "$AGENT_ROOT/scripts/query_knowledge.py" "$@"
+json_mode=0
+query_text=""
+orig_args=("$@")
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    --json)
+      json_mode=1
+      shift
+      ;;
+    --q)
+      query_text="$2"
+      shift 2
+      ;;
+    --q=*)
+      query_text="${{1#--q=}}"
+      shift
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+if [[ "$json_mode" -eq 0 && -n "$query_text" ]]; then
+  BLUEPRINT_QUERY="$query_text" BLUEPRINT_ROADMAP="$AGENT_ROOT/knowledge/insights/case_evolution/mechanism_reconstruction_roadmap.md" python3 - <<'PY'
+import os
+import re
+from pathlib import Path
+
+query = os.environ.get("BLUEPRINT_QUERY", "")
+roadmap = Path(os.environ["BLUEPRINT_ROADMAP"])
+match = re.search(r"\\bblueprint\\s+([A-J])\\b", query, re.IGNORECASE)
+if not match:
+    match = re.search(r"\\b([A-J])\\s*\\.\\s*[A-Z][A-Za-z-]", query)
+if match and roadmap.exists():
+    letter = match.group(1).upper()
+    text = roadmap.read_text(encoding="utf-8", errors="replace")
+    heading = f"## Blueprint {{letter}}:"
+    lines = text.splitlines()
+    start = None
+    for idx, line in enumerate(lines):
+        if line.startswith(heading):
+            start = idx
+            break
+    if start is not None:
+        end = len(lines)
+        for idx in range(start + 1, len(lines)):
+            if lines[idx].startswith("## Blueprint ") or lines[idx].startswith("## Complete-Chain"):
+                end = idx
+                break
+        print(f"[INFO] selected_blueprint_roadmap=Blueprint {{letter}}")
+        print("\\n".join(lines[start:end]).strip())
+        print()
+PY
+fi
+exec python3 "$AGENT_ROOT/scripts/query_knowledge.py" "${{orig_args[@]}}"
 """,
     )
 

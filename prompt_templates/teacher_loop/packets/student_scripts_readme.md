@@ -47,7 +47,8 @@ Optional helpers:
 - `05_source_context.sh <src/...> [symbol]`: print current local source context
   for an edit anchor.
 - `08_query_knowledge.sh --stage <stage> --q <text>`: query one concise
-  mechanism card or skill id.
+  mechanism card or skill id; explicit `Blueprint X` queries also print the
+  selected reconstruction roadmap section.
 - `11_build_variant_fresh.sh`: use only when the normal build script fails or
   leaves the private binary missing.
 - `21_report_candidate_metrics.sh`: regenerate the canonical candidate metrics

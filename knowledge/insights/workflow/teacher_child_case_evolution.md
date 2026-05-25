@@ -1,5 +1,11 @@
 # Teacher/Child Case Evolution Loop
 
+## Agent Use
+
+- Role: workflow or metric contract. Use to keep experiments and reporting consistent, not to choose an algorithmic route.
+- Route selection still starts from the core case-type blueprint map and current metrics.
+
+
 The current DPL-Evolve direction is no longer "grow many family variants."
 The stable entrypoint is `detailed_placement_evolve`, and the algorithmic
 implementation inside `tools/OpenROAD/src/dpl_evolve` is intentionally

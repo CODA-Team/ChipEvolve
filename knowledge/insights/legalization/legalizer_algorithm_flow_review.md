@@ -1,5 +1,11 @@
 # Legalizer Algorithm Flow Review Card
 
+## Agent Use
+
+- Role: legalization mechanism support. Open after a selected route needs legalizer behavior, liveness, or repair detail.
+- Do not optimize legalization-stage HPWL alone; final flow HPWL and DPO recoverability remain decisive.
+
+
 Purpose: when Teacher reviews a legalizer-evolution iteration, it must connect
 stage-wise metrics to a concrete legalizer algorithm family, not only to local
 constant tuning.  Students should read this card before planning a mechanism and

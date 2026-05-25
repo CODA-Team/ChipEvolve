@@ -1,11 +1,19 @@
 # Dense Producer/Consumer Routing Insight
 
+## Agent Use
+
+- Role: inspiration/support only. This card must not directly select a case route or override the core blueprint map.
+- First map the case through `case_type_quality_mechanism_priority.md`; then use this card only to refine a selected mechanism, risk, or failure diagnosis.
+- If this card repeats a core idea, treat the core blueprint as authoritative and keep this card as background evidence.
+
+
 ## Evidence Type
 
-Measured stage evidence for dense standard-cell cases.  Use this as a
-stage-level routing prior for Teacher plans, not as a final-flow rule.  For
-current full-flow promotion and case routing, read
-`case_evolution/score_based_case_strategy_routing.md` first.
+Measured stage evidence for dense standard-cell cases.  Use this as
+stage-level mechanism support, not as a first-route selector.  For current
+full-flow promotion and case routing, read
+`case_evolution/case_type_quality_mechanism_priority.md` first and open this
+card only after the selected blueprint needs dense-producer detail.
 
 ## Observation
 
@@ -35,7 +43,8 @@ Diamond/local-DPO repair.
 
 ## Teacher Policy
 
-Iteration 1 should intentionally diversify legalizer hypotheses:
+When the core route map selects a dense producer/consumer route, diversify the
+concrete hypotheses:
 
 - optionally assign one diagnostic dense-prior route from `framework` when the
   case is high-utilization, standard-cell dense, or shows large legalization

@@ -1,5 +1,11 @@
 # OpenROAD-Native Legalizer-To-DPO Handoff
 
+## Agent Use
+
+- Role: DPO mechanism support. Open after Teacher or current logs identify an improve-placement/DPO bottleneck.
+- Use it to design source-local consumers, counters, and repair checks; do not use it as a case-type route selector.
+
+
 ## Evidence Type
 
 Source-structure guidance for implementing legalizer-to-DPO handoff inside
