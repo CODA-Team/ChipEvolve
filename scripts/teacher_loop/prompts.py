@@ -664,7 +664,7 @@ def write_case_feature_route_insight_packet(
     )
     outline_text = outline_path.read_text(encoding="utf-8", errors="replace")
     roadmap_text = roadmap_path.read_text(encoding="utf-8", errors="replace")
-    feature_map = _markdown_section(outline_text, "### Feature-Mechanism Map")
+    feature_map = _markdown_section(outline_text, "## Feature-Mechanism Map")
     route_map = _markdown_section(outline_text, "## Route Map")
     selection_rules = _markdown_section(outline_text, "## Blueprint Selection Rules")
     student_requirements = _markdown_section(outline_text, "## Student Packet Requirements")

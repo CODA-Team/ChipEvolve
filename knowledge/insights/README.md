@@ -15,9 +15,10 @@ can directly steer Teacher route assignment.
   They can refine a Teacher-selected route, explain a failure mode, or provide a
   source-level mechanism, but they must not override the evidence-driven route
   decision.
-- Similar ideas should be merged into the three core mechanism families:
+- Similar ideas should be merged into the four core mechanism families:
   runtime-balanced critical-frontier exact DPO, endpoint-source handoff exact
-  consumer, and low-residual current-net / vertical-frontier consumer.  Older
+  consumer, low-residual current-net / vertical-frontier consumer, and
+  Diamond source-edge ordered-pair / endpoint-escape exact DPO.  Older
   source-edge, row-window, residual transaction, mirror, and closure notes are
   submechanism support unless current evidence demands a new route.
 - Teacher should classify the current case by concrete features: size/runtime,
