@@ -739,6 +739,10 @@ def write_case_feature_route_insight_packet(
             "- Assign at least one Student to the strongest feature-matched full",
             "  producer-handoff-consumer chain, plus diversity routes when evidence is",
             "  ambiguous or the current route has plateaued.",
+            "- For every selected blueprint, include a complete-chain audit in the",
+            "  Student packet: start basin, producer payload, handoff state, exact",
+            "  consumer, post-consumer closure, required counters, already-live links,",
+            "  missing links, and the link this Student will implement or repair.",
             "",
         ]
     )
@@ -759,6 +763,10 @@ def write_case_feature_route_insight_packet(
             "  selects after reading the evidence above.",
             "- Student should use the Teacher-assigned route section for concrete source",
             "  handles, implementation order, counters, proof criteria, and first repair.",
+            "- For an explicit Blueprint A/B/C/D assignment, Student should query the",
+            "  exact section with `08_query_knowledge.sh --stage detailed_placement",
+            "  --q \"Blueprint <letter>\"` before editing and report the completeness",
+            "  audit after evaluation.",
             "",
         ]
     )

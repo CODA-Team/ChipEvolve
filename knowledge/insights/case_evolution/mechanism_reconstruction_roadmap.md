@@ -10,6 +10,12 @@
   producer-handoff-consumer logic and prove liveness with counters.
 - Strong routes are cumulative.  Reconstruct the stack, not the last guard or
   last small patch.
+- Before coding a selected blueprint, write a compact completeness audit:
+  chosen start basin, required producer payload, handoff state, exact consumer,
+  post-consumer closure, counters, which links already exist in the current
+  source, and which links this iteration will implement or repair.  A route
+  that implements only the final polish link is partial evidence, not a full
+  blueprint hit.
 
 ## Shared Source Anchors
 
@@ -98,6 +104,29 @@ endpoint/source negotiation payload.
 7. Exact-score each closure link with rollback.  The residual swap or guard pass
    is not the mechanism unless the earlier source-topK, accepted-node handoff,
    micro-start/chain, and multi-row links are live.
+
+### Complete-Chain Reconstruction Checklist
+
+Treat Blueprint A as live only when the implementation has all of these links:
+
+- exact source-topK/global-swap is reachable from `improvePlacement` and cannot
+  silently fall back to weak legacy DPO when source/topK or critical-frontier
+  residue is visible;
+- exact accepted moves are captured before rollback/journal state is cleared
+  and exported as native accepted nodes, touched nets, source/topK cells, hot
+  segments, and critical-frontier nodes;
+- any legalizer/frontier producer reshapes only payload that the exact consumer
+  can later score, instead of optimizing legal HPWL in isolation;
+- the post-DPO stack consumes that payload in order: critical-row micro-start,
+  critical-net chain assignment, exact local closure, multi-row residual
+  transaction, then segment-local residual swap;
+- every link reports candidates, exact scores, accepts, accepted gain/delta,
+  pass runtime, and final-flow stage movement.
+
+Demote the route to partial if it only enables source-topK, only adds a
+critical-frontier mask, only changes a cap, or only adds a residual/guard pass.
+If first results are weak but counters show an early link live, the next repair
+should fill the first missing downstream link rather than retune the same link.
 
 ### Reconstruction Sketch
 
@@ -217,6 +246,37 @@ endpoint caps alone, or a late guard alone should not be promoted.
    random, broad GS, mirror, or reorder passes should not wash out the accepted
    footprint unless their exact gain is positive.
 
+### Complete-Chain Reconstruction Checklist
+
+Treat Blueprint B as live only when the implementation has all of these links:
+
+- `default_negotiation` or compatible negotiation resource closure is the start
+  basin, and the negotiation producer creates bounded endpoint/source
+  recoverability pressure on high-span/top-impact nets with displacement and
+  slack damping;
+- exact source-edge/global-swap consumes the negotiation legal state, scores
+  source-edge/boundary cells with rollback/replay, accepts positive moves, and
+  exports accepted nodes, source-edge hot-cell masks, and hot segments;
+- hot-segment selected reorder and hot micro-pack run over the accepted
+  frontier, not over unrelated generic segments;
+- accepted reorder/micro-pack windows are stored as replay seeds, then a
+  residual replay and a second cascade pass exact-score neighborhoods around
+  accepted seeds;
+- post-reorder endpoint/source repair imports the incoming handoff before hot
+  state is cleared, derives first/second-extreme endpoint targets on top nets,
+  and exact-scores endpoint/source moves;
+- if single-cell endpoint moves are live but final HPWL remains flat, bounded
+  pair or small-cluster endpoint/source transactions score the whole unit with
+  rollback instead of only widening single-cell caps;
+- later cleanup preserves the accepted footprint unless it proves exact
+  positive gain.
+
+Demote the route to partial if it only changes negotiation weights, only adds
+source-edge exact GS, only adds pair/cluster transactions, or only guards the
+current donor.  A partial pair/cluster implementation is especially easy to
+misread: without recoverability producer, accepted hot handoff, replay/cascade,
+and endpoint/source repair, it is not the strong Blueprint B route.
+
 ### Reconstruction Sketch
 
 ```text
@@ -234,7 +294,8 @@ negotiation_endpoint_stack():
   rank top nets touching frontier and build endpoint-derived targets
   exact-score endpoint/source moves
   add pair/small-cluster exact transactions only if single-cell endpoint accepts
-  do not move final HPWL
+  do not let later generic passes erase final-HPWL gains unless they prove exact
+  positive
   preserve accepted footprint unless a later pass proves exact positive gain
 ```
 
@@ -336,6 +397,32 @@ cases and should not be used as the default for generic DPO-recoverable cases.
    segments.
 8. Protect exact scoring by clearing stale affected-net state at the beginning
    of each `DetailedHPWL::delta` call.
+
+### Complete-Chain Reconstruction Checklist
+
+Treat Blueprint C as live only when the implementation has all of these links:
+
+- `framework` LEGALM/full-guidance code acts as a recoverable producer and
+  publishes target rows, target sites, valid flags, exact-anchor flags,
+  target-miss cells, and stage3 handoff cells;
+- stage3 exact/current-net refinement uses target rows/sites, current-net
+  anchors, target-miss cells, nearby rows, and displacement-aware legality to
+  accept only exact-positive producer moves;
+- `improvePlacement` imports the producer state and builds a compact frontier
+  from moved cells, exact anchors, row-miss cells, same-row residual cells,
+  dirty segments, and target-miss cells;
+- targeted exact global and vertical wrappers consume that frontier with
+  rollback/replay and report exact accepted gain;
+- selected-segment reorder ranks residual segments by exact-anchor count and
+  residual magnitude, then exact-scores local windows or transactions on those
+  segments;
+- affected-net delta state is reset per probe so stale scoring cannot create a
+  false gain.
+
+Demote the route to partial if it only changes LEGALM target costs, only lowers
+`HPWLlg`, only adds vertical/frontier guards, or only preserves a previous
+selected-segment donor.  If legal HPWL improves but final flow worsens, repair
+the current-net/target-miss consumer path before widening legalizer search.
 
 ### Reconstruction Sketch
 
@@ -453,6 +540,31 @@ This route is exact DPO activation, not LEGALM and not negotiation.
 8. Runtime guards may reuse scratch buffers, cache affected-net deltas, or skip
    saturated cells only after the exact source-topK/source-edge accepts and
    selected-segment reorder remain semantically identical.
+
+### Complete-Chain Reconstruction Checklist
+
+Treat Blueprint D as live only when the implementation has all of these links:
+
+- `diamond` is the start basin and source-edge/source-topK evidence is the
+  intended DPO recovery source, not a LEGALM or negotiation producer;
+- source-edge hot-cell marking or source-topK ranking produces bounded native
+  hot tags/candidates before detailed global swap;
+- detailed global swap explicitly prevents low-density/intensity fallback from
+  bypassing the exact source-topK/source-edge path;
+- bounded median, bbox-edge, current/nearby-row, segment-center, and swap
+  probes are exact-scored with rollback and only positive trials are replayed;
+- accepted nodes and old/new segments are captured before journal cleanup and
+  preserved in manager state until selected-segment reorder consumes them;
+- selected-segment reorder runs immediately on accepted hot segments and reports
+  windows, accepts, and gain;
+- only after single-cell exact accepts are live, ordered-pair and endpoint-escape
+  transactions score overlapping affected-net units with audit-safe cached
+  deltas.
+
+Demote the route to partial if it only marks hot cells, only adds vacancy or
+guided legal ordering, only changes the intensity floor, only optimizes the
+cache, or only adds endpoint-escape guards.  If logs still show legacy global
+swap, the blueprint did not execute regardless of final metrics.
 
 ### Reconstruction Sketch
 

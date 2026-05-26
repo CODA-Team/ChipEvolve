@@ -45,6 +45,10 @@ modes; do not copy a card mechanically when local source evidence points
 elsewhere. If Teacher assigns a case-type route, read the case feature route
 insight packet or the named roadmap section first and use only the assigned
 section unless local source evidence requires a different feature-level route.
+For an explicit Blueprint A/B/C/D assignment, run the knowledge query helper
+for that exact blueprint before editing, then write a pre-edit complete-chain
+audit: start basin, producer, handoff, exact consumer, post-consumer closure,
+counters, already-live links, missing links, and the link you will implement.
 
 - reference index: `$optional_reference_index`
 - LEGALM reference: `$optional_legalm_reference`
@@ -79,6 +83,9 @@ Primary flow:
    - `$query_knowledge_script --stage <stage> --q <text>` only when Teacher
      names a card/skill, the mechanism role is unclear, or metrics/logs suggest
      a pivot
+   - for an assigned case-type blueprint, use
+     `$query_knowledge_script --stage detailed_placement --q "Blueprint <letter>"`
+     and keep the selected roadmap checklist beside your source plan
 3. for each mechanism trial:
    - `$trial_source_script begin --label <short-mechanism>`
    - repair a prior kept/rejected ref when assigned: `$trial_source_script begin --label <repair-name> --from-ref <ref>`

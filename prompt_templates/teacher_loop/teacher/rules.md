@@ -47,6 +47,11 @@
   reconstruction roadmap into Student guidance. The Student should be able to
   start from concrete files/functions rather than broad research or evidence
   provenance.
+- For every assigned blueprint, include a `complete-chain audit` in the Student
+  packet: selected blueprint and start basin, producer payload, handoff state,
+  exact consumer, post-consumer closure, required counters, already-live links,
+  missing links, and the link this Student must implement or repair. Tell the
+  Student to query the selected roadmap section before editing.
 - First-round Teacher planning should spend real effort on a global mechanism
   scan driven by design features, stage attribution, logs, and source structure.
   Query knowledge only to sharpen or challenge those hypotheses with prior

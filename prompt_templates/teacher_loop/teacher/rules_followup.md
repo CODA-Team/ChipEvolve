@@ -95,6 +95,12 @@ and review packet fields needed for routing.
 - A case can match multiple feature-level blueprints. Use blueprints as route
   hypotheses or compatible mechanism components, not as a single fixed selector
   or recipe.
+- When a follow-up route keeps or switches to a blueprint, include a
+  `complete-chain audit`: selected blueprint/start basin, producer payload,
+  handoff state, exact consumer, post-consumer closure, required counters,
+  already-live links, missing links, and this Student's repair target. If the
+  last result was weak, name the first missing chain link rather than assigning
+  another guard, local polish, or same-link threshold retune.
 - Label every packet with `route type` and `route action`. If the previous
   useful results are same-family or tiny-gain, route the current best as
   `elite-expand` only if it names a stronger mechanism; use `repair` only for

@@ -64,6 +64,9 @@ Optional helpers:
 - knowledge query, only when Teacher names a card/skill, the mechanism role is
   unclear, or metrics/logs suggest a pivot:
   `$query_knowledge_script --stage <stage> --q <text>`
+- for an assigned case-type Blueprint A/B/C/D, query that exact roadmap section
+  before editing:
+  `$query_knowledge_script --stage detailed_placement --q "Blueprint <letter>"`
 - metrics summary on demand: `$report_candidate_metrics_script`
 - trial state/status: `$trial_source_script status`
 - fresh build only if normal build fails: `$fresh_build_script`
@@ -80,6 +83,10 @@ If Teacher assigns a case-type route, use these handles only for the assigned
 mechanism section rather than broad reading:
 
 - case feature route insight packet: `$optional_case_feature_route_insight_packet`
+- mechanism reconstruction roadmap: `$optional_mechanism_reconstruction_roadmap`
+- pre-edit complete-chain audit: start basin, producer, handoff, exact
+  consumer, post-consumer closure, counters, already-live links, missing links,
+  and the link this iteration implements or repairs
 
 Run helpers that mutate the private source repo serially. Parallel reads are OK.
 `fetch_peer_source_script` fetches a local `peer/<label>` ref and writes diff

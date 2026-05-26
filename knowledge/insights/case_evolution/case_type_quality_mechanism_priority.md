@@ -12,6 +12,11 @@
 - After selecting a route, open only the matching section in
   `mechanism_reconstruction_roadmap.md` and put that concrete packet in the
   Student plan.
+- Every selected blueprint needs a completeness audit in the Teacher plan:
+  start basin, producer payload, handoff lifetime, exact consumer,
+  post-consumer closure, liveness counters, which links already exist, and which
+  missing link each Student will implement.  A partial route is useful evidence,
+  but should not be reported as the full warm-start mechanism.
 
 This card is intentionally a compact route map.  The implementation roadmaps
 live in `mechanism_reconstruction_roadmap.md`.
@@ -67,6 +72,10 @@ HPWL; do not freeze it into guard-only, attribution-only, or runtime-only work.
 - Treat each blueprint as a complete mechanism chain.  A plan that names only a
   guard, local polish pass, cap change, or telemetry is not a reconstruction
   route.
+- If Teacher assigns Blueprint A/B/C/D, the plan must name the matching roadmap
+  section and tell Student to query that exact section before editing.  The
+  Student packet should contain the route summary, but the selected roadmap
+  section is the source-level checklist for implementation and self-diagnosis.
 - Do not infer negotiation from large `HPWLimprove` alone.  Use Blueprint B when
   endpoint/source/top-net residue and a recoverable negotiation-like basin are
   visible or worth testing.
@@ -95,6 +104,10 @@ HPWL; do not freeze it into guard-only, attribution-only, or runtime-only work.
 - If a route plateaus after one or two rounds, Teacher review must reopen this
   feature map and explicitly decide whether the missing link is producer,
   handoff, consumer, objective, move family, or preservation.
+- If a Student claims a blueprint but the result is weak, review the code and
+  counters against the selected roadmap checklist.  Continue or repair the route
+  only when the missing link is named; otherwise switch start basin or mechanism
+  family rather than repeating the same partial implementation.
 
 ## Student Packet Requirements
 
@@ -102,6 +115,11 @@ When Teacher selects a blueprint, the Student plan must include:
 
 - route label and blueprint letter;
 - start basin and why current evidence supports it;
+- selected roadmap query, e.g. `08_query_knowledge.sh --stage detailed_placement
+  --q "Blueprint B"`;
+- complete-chain audit: producer, handoff, exact consumer, post-consumer
+  closure, counters, already-live links, missing links, and this iteration's
+  repair target;
 - full producer-handoff-consumer chain, not one late polish pass;
 - first source files/functions to inspect and edit;
 - required counters and log names;

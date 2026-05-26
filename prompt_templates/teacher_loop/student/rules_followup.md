@@ -51,6 +51,11 @@ choice needs it.
   Use current source, Teacher guidance, metrics, and logs first. Open knowledge
   only when Teacher names a specific card/blueprint, the assigned mechanism is
   unclear, or your own log diagnosis shows the route needs a pivot.
+- If Teacher assigns Blueprint A/B/C/D, query that exact roadmap section before
+  editing and write a compact complete-chain audit: start basin, producer
+  payload, handoff state, exact consumer, post-consumer closure, counters,
+  already-live links, missing links, and the link this iteration implements or
+  repairs.
 - Mechanism-level rewrites and direct producer/consumer support changes are
   encouraged when Teacher guidance and source diagnosis justify them; keep the
   diff coherent, reviewable, bounded, and validated.
@@ -105,6 +110,9 @@ choice needs it.
   transactions, acceptance/rollback truth, and post-consumer proof.  If one link
   cannot be implemented in the iteration, report that missing link explicitly in
   `## Next Teacher Handoff`.
+  If the Teacher packet names a blueprint but omits details, open the selected
+  roadmap section and reconstruct the missing checklist yourself before coding;
+  do not reduce the route to an isolated guard, telemetry patch, or late polish.
 - Use generated helpers instead of reconstructing commands: prepare/start,
   trial begin/keep/reject, build, evaluate, and finalization. Use
   `03_fetch_peer_source.sh` only when Teacher assigns a peer Student

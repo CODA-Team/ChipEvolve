@@ -6,6 +6,7 @@ Write a compact review only:
 - result table: final HPWL/runtime/legality plus `G_HR`, HPWL_gain%, runtime_penalty_pp
 - stage attribution: where legalization, DPO, or handoff helped or erased gains
 - HPWL-source diagnosis: whether final HPWL movement came from the intended mechanism; if weak, name the missing producer, handoff, consumer, acceptance, polish, runtime, or case-type link
+- complete-chain audit: for any assigned blueprint, classify full-chain/partial-chain/non-live and name the first missing link
 - mechanism classification: final donor, stage donor, workbench, validated-low-ROI, non-executed, or negative evidence
 - mechanism reasoning check: whether the Student explained source changes, liveness evidence, and repair/pivot thinking
 - knowledge synthesis: which knowledge/algorithm idea supports or rejects the next route

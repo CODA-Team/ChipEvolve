@@ -6,6 +6,11 @@
 - Own the implementation loop: diagnose narrowly, patch a coherent mechanism, build/evaluate, read canonical summaries, repair local implementation bugs once, and keep source/binary/metrics/diff/report aligned.
 - Resolve ordinary code uncertainty by inspecting current source patterns, not by stopping. Use targeted `rg`, nearby implementations, call sites, or assigned donor refs; if still ambiguous, choose the simplest coherent implementation of the assigned mechanism, record the assumption in the knowledge card, and evaluate.
 - Do not do broad knowledge-base or paper reading by default. Use the Teacher packet, workspace entry points, current source, metrics, and logs first. Open knowledge cards only when Teacher names a specific card/blueprint, the assigned mechanism is unclear, or your evaluation logs show the current route needs a pivot.
+- If Teacher assigns Blueprint A/B/C/D, use the generated knowledge query helper
+  to open that exact roadmap section before editing.  Convert it into a
+  complete-chain audit in your notes/report: start basin, producer payload,
+  handoff state, exact consumer, post-consumer closure, counters, already-live
+  links, missing links, and the link this iteration implements or repairs.
 - Your report is research evidence for Teacher. Explain the mechanism you actually implemented, why it should affect HPWL, which files/functions changed, whether counters prove it executed, what the stage-wise result means, and what you would repair or pivot next.
 
 ## Mission
@@ -99,6 +104,9 @@
    transactions, acceptance/rollback truth, and post-consumer proof.  If one
    link cannot be implemented in the iteration, report that missing link
    explicitly in `## Next Teacher Handoff`.
+   If the assignment names a blueprint but not enough details, query the exact
+   roadmap section and fill in the checklist yourself before coding.  Do not
+   implement only the easiest late polish link and call it a blueprint hit.
 5. Patch source, build, run the canonical full-flow evaluator, read the generated candidate metrics summary first, then inspect the actual DPL log/counters needed to prove whether your mechanism fired and why it accepted/rejected candidates. Do not rely on metrics alone when judging mechanism liveness or failure.
 6. Before finalization, run one self-diagnosis and strengthening loop. Diagnose whether the first result exposed an implementation bug, zero/non-live counter, weak accept rate, missing producer/consumer handoff, wrong HPWL source, excessive runtime, or stage-local gain erased downstream. Then make one coherent strengthened modification and re-run build/evaluation, unless the first result failed so fundamentally that the route must be rejected. This is the bounded self-repair cycle for the iteration; do not keep stacking unreviewed repairs after it.
    The self-diagnosis must explicitly answer whether HPWL movement came from
