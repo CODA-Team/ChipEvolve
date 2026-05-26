@@ -59,6 +59,9 @@ endpoint/source negotiation payload.
 
 ### Start Basin
 
+- Start from `diamond` when the main missing link is that a Diamond-style legal
+  basin exists but the source-topK/exact global-swap kernel is disabled by
+  dispatch, density, or intensity gating.
 - Start from `evolved_diamond` when source-topK or exact DPO already executes
   and the missing work is downstream frontier closure.
 - Start from `framework` when the route needs producer/frontier payload from
@@ -71,14 +74,18 @@ endpoint/source negotiation payload.
 ### Cumulative Mechanism Chain
 
 1. Keep exact source-topK/global-swap live in the normal improve flow.  Do not
-   let density/intensity heuristics silently fall back to weak legacy DPO when
-   source-topK, source-edge, or critical-net residue is visible.
+   let dispatch, density, or intensity heuristics silently fall back to weak
+   legacy DPO when source-topK, source-edge, or critical-net residue is
+   visible.  If the log says an exact path was enabled but intensity is zero and
+   legacy global swap was used, the mechanism did not execute.
 2. Rank cells by affected-net HPWL, bbox-edge contribution, fanout-normalized
    span, displacement risk, and recent DPO movement.  Generate bounded row/site
    and swap targets from medians, bbox edges, current row, nearby rows, legal
    segment centers, and source-edge candidates.
 3. Exact-score every trial with `DetailedHPWL` or a touched-net journal.  Roll
-   back all probes and replay only positive candidates.
+   back all probes and replay only positive candidates.  Clear per-probe
+   affected-net state before each exact delta so rejected probes cannot pollute
+   later scoring.
 4. Convert accepted DPO moves into native manager state: accepted nodes, touched
    nets, source/topK cells, hot segments, and critical-frontier nodes.  This
    native handoff is the producer payload for the post-DPO chain.
@@ -96,6 +103,8 @@ endpoint/source negotiation payload.
 
 ```text
 source_topk_exact_pass():
+  make the exact global-swap kernel reachable even when density/intensity
+  heuristics would otherwise choose legacy global swap
   rank movable cells by affected-net HPWL, edge contribution, span, displacement,
   and recent movement
   generate bounded target rows/sites/swaps from medians, bbox edges, legal
@@ -117,8 +126,8 @@ critical_frontier_stack():
 ### Source Handles
 
 - `src/optimization/detailed_global.cxx`: source-topK/global-swap candidate
-  generation, exact scoring, rollback/replay, accepted-node capture, hot-segment
-  export, source-topK counters.
+  generation, dispatch/intensity gating, exact scoring, rollback/replay,
+  accepted-node capture, hot-segment export, source-topK counters.
 - `src/optimization/detailed_manager.{h,cxx}`: accepted nodes, hot segments,
   critical-frontier nodes, source/topK masks, and native handoff lifetime.
 - `src/Optdp.cpp::Opendp::improvePlacement`: schedule source-topK and the
@@ -145,6 +154,9 @@ critical_frontier_stack():
 
 ### Self-Diagnosis And Repair
 
+- No source-topK/global-swap counter lines: repair pass selection, extra-DPL
+  enablement, and intensity fallback first.  Do not score this as a low-ROI
+  mechanism until the exact kernel is live.
 - Producer live but consumer accepts zero: repair native handoff state or exact
   candidate generation before changing weights.
 - Exact accepts live but final HPWL flat: repair candidate quality, transaction
@@ -392,45 +404,55 @@ low_residual_frontier_consumer():
 - Legal HPWL improves but final worsens: treat the legalizer as producing a
   bad basin; repair downstream consumability rather than promoting `HPWLlg`.
 
-## Blueprint D: Diamond Source-Edge Ordered-Pair And Endpoint-Escape Exact DPO
+## Blueprint D: Diamond Source-TopK/Source-Edge Exact DPO Activation
 
-Use when Diamond/source-edge placement already provides high-span boundary or
-source-edge hot-cell signal, but improve placement underuses it because low
-intensity falls back to weak legacy search or only single-cell exact moves are
-tried.  This route is source-edge exact DPO, not LEGALM and not negotiation.
+Use when a Diamond-style legal basin is clean but improve placement underuses
+the available source/topK or source-edge cells because low density/intensity
+falls back to weak legacy search.  Legal HPWL may be neutral or worse; the
+quality source is exact global-swap acceptance and the selected-segment reorder
+that consumes accepted hot segments.  Ordered-pair and endpoint-escape work are
+repairs after the first exact lane is live, not prerequisites for the first win.
+This route is exact DPO activation, not LEGALM and not negotiation.
 
 ### Start Basin
 
-- Start from `diamond` when the plain Diamond producer creates the source-edge
-  hot tags and legal state.
-- Start from `evolved_diamond` only when it keeps the same source-edge hot-cell
-  producer while adding useful exact-DPO infrastructure.
+- Start from `diamond` when the plain Diamond legal basin is clean and the first
+  missing link is an always-reachable exact source-topK/global-swap consumer.
+- Start from `evolved_diamond` only when it keeps the same exact-DPO activation
+  surface while adding useful frontier or hot-segment infrastructure.
 - Do not use this blueprint when the main evidence is negotiation
   endpoint/source recoverability; use Blueprint B for that.
 
 ### Cumulative Mechanism Chain
 
-1. In placement/legal closure, identify source-edge hot cells from high-span nets
-   and bbox-edge contribution before detailed global swap runs.
-2. Preserve source-edge hot tags through placement and legalization state reset.
-   Expose compact counters for hot cells, guided legal candidates, reranked
-   candidates, and optional vacancy attempts.
-3. In detailed global swap, prevent low-intensity settings from disabling the
-   exact source-edge path.  An HPWL-only exact mode should still use exact
-   affected-net scoring and rollback.
-4. Generate source-edge target probes from bbox-edge medians, left/right edge
-   targets, current/nearby rows, segment centers, and source-edge partner cells.
-5. Add ordered-pair transactions: exact-score the first move, cache its affected
-   nets, then exact-score a coupled second move/swap over overlapping source-edge
-   nets before replaying the pair as a unit.
-6. Add endpoint-escape partners: find high-impact nets where a source-edge cell
-   is trapped at an endpoint, generate escape partners/rows/sites, exact-score
-   the coupled move, and accept only positive unit deltas.
-7. Cache affected-net deltas for runtime, but keep an audit gap counter so cached
-   decisions cannot silently diverge from exact `DetailedHPWL` scoring.
-8. Runtime guards may reuse scratch buffers or skip zero-weight bookkeeping only
-   after the exact source-edge/ordered-pair/endpoint-escape accepts remain
-   semantically identical.
+1. Ensure the improve-placement schedule calls the exact global-swap
+   implementation in the normal flow.  If a branch has an extra-DPL enable knob,
+   the route must turn it on for this lane.
+2. In detailed global swap, prevent low-density/intensity settings from
+   disabling the exact path.  Use a small nonzero intensity floor or an explicit
+   source-topK/source-edge override, but keep random exploration conservative.
+   A log line that reports legacy global swap after intensity zero means this
+   route failed to execute.
+3. Generate bounded source-topK probes for each movable source cell from
+   median/bbox-edge anchors, projected source position, current/nearby rows,
+   legal segment centers, and legal same-width swap partners.
+4. Exact-score a small top-K set with `DetailedHPWL::delta` over the journal.
+   Clear affected-edge state before each delta, rollback every probe, replay the
+   best positive move/swap, and reject nonpositive replay.
+5. On every accepted source-topK move, capture the moved node and old/new
+   segments from the accepted journal before the journal is cleared.  Store them
+   as native manager state: accepted nodes, hot segments, and optional
+   source/topK masks.
+6. Run selected-segment reorder immediately after global swap.  Consume the hot
+   segments first, exact-score local reorder windows, and record windows,
+   accepts, and gain.  This selected reorder is the first downstream consumer;
+   without it, the source-topK pass is easy to wash out.
+7. If single-cell exact accepts are live but final HPWL plateaus, add
+   ordered-pair transactions over overlapping affected nets, then endpoint-escape
+   partners.  Score each pair/escape as one rollback-safe transaction.
+8. Runtime guards may reuse scratch buffers, cache affected-net deltas, or skip
+   saturated cells only after the exact source-topK/source-edge accepts and
+   selected-segment reorder remain semantically identical.
 
 ### Reconstruction Sketch
 
@@ -443,16 +465,19 @@ source_edge_producer():
   but keep this bounded and rollback-safe
 
 source_edge_exact_consumer():
-  force exact HPWL-only source-edge GS when source-edge hot tags are present
-  for each hot cell:
-    generate edge, row, segment, and partner probes
-    exact-score single-cell move; rollback
-    build ordered-pair candidates from overlapping affected nets
-    exact-score the pair as one transaction; rollback
-    build endpoint-escape partners for trapped endpoints
-    exact-score the escape transaction; rollback
-  replay only positive single/pair/escape transactions
-  log accepted deltas and audit gap for cached scoring
+  force exact source-topK/source-edge GS to execute when the Diamond basin is
+  clean and DPO recovery is the likely HPWL source
+  for each movable source or hot cell:
+    generate median, bbox-edge, current-row, nearby-row, segment-center, and
+    swap probes
+    exact-score bounded top-K single-cell move/swap trials; rollback each probe
+    replay only the best positive trial
+    record accepted node and old/new segments before clearing the journal
+  run selected-segment reorder on accepted hot segments
+  if single-cell exact accepts are live but flat:
+    exact-score ordered-pair and endpoint-escape transactions as one unit
+  log exact-scored probes, accepts, accepted_delta, hot segments, reorder
+  windows/accepts, and audit gap for cached scoring
 ```
 
 ### Source Handles
@@ -462,10 +487,16 @@ source_edge_exact_consumer():
 - `include/dpl_evolve/Opendp.h` and `src/Opendp.cpp`: source-edge hot-cell state,
   guided/vacancy counters, reset/report/metric plumbing.
 - `src/optimization/detailed_global.{h,cxx}`: exact HPWL-only source-edge path,
+  source-topK candidate generation, intensity/legacy fallback control,
   ordered-pair transaction generation, endpoint-escape partner generation,
   rollback/replay, and accepted counters.
-- `src/objective/detailed_hpwl.{h,cxx}`: affected-net delta cache, cache replay,
-  and audit gap comparison.
+- `src/optimization/detailed_manager.{h,cxx}`: accepted-node state, hot segment
+  storage, optional source/topK masks, and handoff lifetime until reorder
+  consumes it.
+- `src/optimization/detailed_reorder.{h,cxx}`: selected-segment reorder over
+  hot segments, accepted-window logging, and follow-up exact local windows.
+- `src/objective/detailed_hpwl.{h,cxx}`: affected-net delta reset, optional
+  cache replay, and audit gap comparison.
 - `src/optimization/detailed.cxx` and `src/Optdp.cpp`: ensure pass selection and
   intensity do not bypass the source-edge exact consumer when hot tags exist.
 
@@ -473,9 +504,11 @@ source_edge_exact_consumer():
 
 - source-edge producer hot cells, guided cells, guided legal candidates,
   reranked candidates, vacancy attempts/commits/rollbacks, and vacancy bonus;
-- exact source-edge cells, raw candidates, generated candidates, exact scored,
-  accepted moves, accepted delta, hot generated, hot accepted, and hot accepted
-  delta;
+- exact source/topK cells, raw candidates, generated candidates, exact scored,
+  replays, replay failures, rollbacks, accepted moves, accepted delta, hot
+  generated, hot accepted, and hot accepted delta;
+- selected-segment reorder frontier segments, windows, accepts, and accepted
+  gain;
 - ordered-pair stage1 exact probes, pair candidates, scored pairs, cached
   overlap edges, promoted pairs, accepted pairs, accepted delta, and audit gap;
 - endpoint-escape edges, partners, candidates, scored, cached overlap edges,
@@ -485,9 +518,14 @@ source_edge_exact_consumer():
 ### Self-Diagnosis And Repair
 
 - Hot tags zero: repair `Place.cpp` source-edge producer and state reset before
-  editing detailed global swap.
+  editing detailed global swap if this route relies on source-edge tags.  If
+  the route is source-topK-first, hot tags may be zero, but source-topK
+  candidates and exact-score counters must be nonzero.
 - Hot tags live but exact scored zero: repair pass scheduling/intensity fallback
   and exact-source-edge candidate generation.
+- Exact source-topK counters absent and the log reports legacy global swap:
+  repair the extra-DPL enable path and intensity fallback; do not pivot to
+  LEGALM, negotiation, or guard work.
 - Single-cell exact accepts live but final HPWL flat: add ordered-pair and
   endpoint-escape unit transactions, not another single-cell cap increase.
 - Cached scoring improves runtime but changes HPWL: fix audit gap before keeping
