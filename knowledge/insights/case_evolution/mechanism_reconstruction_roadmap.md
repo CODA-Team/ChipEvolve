@@ -141,16 +141,21 @@ critical_frontier_stack():
 ## Blueprint B: Endpoint-Source Handoff Exact Consumer Stack
 
 Use when endpoint/source residue and top-net imbalance are visible and
-negotiation/resource closure is the useful legal producer.  This is a high-HPWL
-quality route for short or medium cases with enough runtime headroom.  It is not
-a generic response to large improve-stage recovery; if negotiation is not the
-producer, use Blueprint A.
+negotiation/resource closure is the useful legal producer.  This is the primary
+route when negotiation is already the best final-HPWL reference while framework,
+LEGALM-frontier, or legalize-only routes are worse.  It is not a generic
+response to large improve-stage recovery; if negotiation is not the producer,
+use Blueprint A.
 
 ### Start Basin
 
 - Start from `default_negotiation` or `evolved_negotiation` when current stage
   evidence shows negotiation/resource closure leaves a better recoverable legal
   basin.
+- If negotiation is the only reference that beats the default final HPWL, start
+  at least one lane from clean `default_negotiation` and another lane from the
+  closest negotiation/handoff workbench.  Do not begin by repairing a
+  framework/LEGALM frontier donor unless it is a separate diagnostic lane.
 - If continuing an existing donor, preserve the complete accepted-window replay
   chain rather than restarting from a guard or attribution commit.
 
@@ -171,9 +176,13 @@ producer, use Blueprint A.
    ranks high-HPWL nets touching the frontier, prioritizes endpoint/source
    cells, builds endpoint-derived targets, exact-scores them, and commits only
    replay-positive moves.
-7. If this route plateaus, replace the last single-cell endpoint repair with a
-   bounded pair or small-cluster exact transaction over the same handed-off
-   top-net frontier.
+7. Add a bounded endpoint/source pair or small-cluster transaction over the same
+   handed-off top-net frontier.  This is part of the strong route for cases
+   where single-cell source-edge accepts are live but final HPWL is flat; do not
+   postpone it to a later iteration if the first single-cell replay is weak.
+8. Preserve accepted-window value through canonical downstream passes.  Generic
+   random, broad GS, mirror, or reorder passes should not wash out the accepted
+   footprint unless their exact gain is positive.
 
 ### Reconstruction Sketch
 
@@ -191,6 +200,12 @@ endpoint_source_consumer():
   replay accepted windows with exact positive checks
   after reorder, run handoff-aware exact GS over top nets touching the frontier
   and endpoint-derived targets
+  if single-cell endpoint accepts do not move final HPWL, build connected
+  endpoint/source pairs or small clusters from the same top-net frontier,
+  exact-score the transaction as a unit, rollback, and replay only positive
+  transactions
+  protect the accepted footprint from later generic passes unless those passes
+  prove additional exact positive gain
 ```
 
 ### Source Handles
@@ -204,9 +219,11 @@ endpoint_source_consumer():
 - `src/optimization/detailed_manager.{h,cxx}`: source-edge hot-cell mask,
   accepted nodes, and hot segment storage.
 - `src/optimization/detailed_reorder.{h,cxx}`: selected hot reorder,
-  micro-pack, and accepted-window replay.
+  micro-pack, accepted-window replay, and connected endpoint/source pair or
+  small-cluster closure over hot segments.
 - `src/Optdp.cpp::Opendp::improvePlacement`: pass order, including the
-  post-reorder handoff-aware exact consumer.
+  post-reorder handoff-aware exact consumer and preservation of accepted
+  windows through the remaining canonical flow.
 
 ### Required Counters
 
@@ -219,6 +236,12 @@ endpoint_source_consumer():
 - handoff-aware endpoint/source repair: handoff on/off, frontier segments,
   source cells, prioritized cells, endpoint targets, endpoint accepts, endpoint
   gain;
+- endpoint/source pair or small-cluster transactions: candidates, legal
+  transactions, accepts, exact transaction gain, replay rejects, and gain per
+  runtime;
+- preservation attribution: accepted-window HPWL before/after generic passes,
+  whether later broad/random/mirror/reorder passes kept or washed out accepted
+  gain, and exact gain required to allow overwrite;
 - final full-flow HPWL, legality, avg/max displacement, and runtime.
 
 ### Self-Diagnosis And Repair
@@ -229,10 +252,15 @@ endpoint_source_consumer():
 - Source-edge accepts live but post-reorder endpoint repair zero: confirm the
   post-reorder pass imports the incoming hot/source-edge state instead of
   clearing it.
-- Endpoint accepts live but final HPWL flat: switch to pair/small-cluster exact
-  transactions over the same top-net frontier; do not only widen endpoint caps.
+- Endpoint accepts live but final HPWL flat: immediately add pair/small-cluster
+  exact transactions and preservation over the same top-net frontier; do not
+  only widen endpoint caps or report accepted count without accepted gain.
 - Displacement tail grows sharply: damp recoverability bonus and make endpoint
   repair reject high-displacement extensions unless exact gain is strong.
+- If the result still trails the clean negotiation reference after these links
+  are live, demote the specific move family, not the negotiation producer.  Keep
+  the recoverable negotiation basin and change transaction shape, objective, or
+  post-reorder preservation.
 
 ## Blueprint C: Low-Residual Current-Net / Vertical-Frontier Consumer
 

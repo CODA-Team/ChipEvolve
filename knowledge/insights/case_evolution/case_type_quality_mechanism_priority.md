@@ -45,7 +45,7 @@ the best route must keep chasing stronger final HPWL.
 | current evidence pattern | primary warm-start method | blueprint | first start basin | first Student packet |
 | --- | --- | --- | --- | --- |
 | Broad DPO recovery dominates final quality: legalization may be mildly better or worse, improve placement recovers a large part of the stage loss, and hot/critical segments or source-topK exact accepts can be made live.  This includes large row-rich/control/datapath or wrapper-fragmented cases, and smaller runtime-sensitive cases whose final HPWL responds to exact DPO. | Runtime-balanced critical-frontier exact DPO stack | `A` | `framework` when producer/frontier payload must be shaped; `evolved_diamond` when source-topK exact DPO is already live | Keep exact source-topK/global-swap scoring live, store accepted nodes and hot/critical segments as native manager state, then run critical-row micro-start, critical-net chain assignment, exact local closure, multi-row residual transactions, and segment-local residual swaps. |
-| Short or medium runtime case with high-HPWL endpoint/source residue, top-net endpoint imbalance, and evidence that negotiation/resource closure is actually the useful producer.  Legal HPWL alone is not the proof; the route is valid only if exact DPO consumes the negotiation-produced residue. | Endpoint-source handoff exact consumer stack | `B` | `default_negotiation` or `evolved_negotiation` only when negotiation is the useful producer; otherwise use `A` | Add bounded recoverability bias in negotiation, preserve source-edge/hot-segment handoff, run exact source-edge/global-swap, hot reorder, micro-pack, accepted-window replay, then add a post-reorder handoff-aware endpoint/source exact consumer. |
+| Short or medium runtime case where the negotiation reference already beats the default final HPWL, or is the only preflight/reference flow with useful final HPWL, while framework/LEGALM-frontier or legalize-only routes are worse.  The signature is low or moderate utilization, no true macro blocker evidence, large improve-stage recovery from a worse legal HPWL, and remaining endpoint/source or top-net residue. | Endpoint-source handoff exact consumer stack | `B` | `default_negotiation` first; `evolved_negotiation` only if it preserves the same producer behavior | Rebuild the complete negotiation-produced chain: recoverability-ranked endpoint/source payload, native handoff lifetime, exact source-edge/global-swap, hot reorder/micro-pack, accepted-window replay, then post-reorder endpoint/source pair or small-cluster exact transactions.  Do not treat LEGALM frontier repair as a primary route for this pattern unless Blueprint B first proves handoff/consumer failure. |
 | Extreme dense/high-utilization standard-cell case with large legalization HPWL inflation, low-residual target-miss or current-net anchors, and stage3 exact handoff cells that selected segments or vertical moves can consume. | Low-residual current-net / vertical-frontier consumer | `C` | `framework` | Keep LEGALM/full-guidance as a recoverable producer, publish target rows/sites/valid flags and stage3 exact target-miss cells, build balanced row-miss/same-row frontier in improve placement, then consume with exact targeted global/vertical moves and selected-segment reorder. |
 
 ## Route Map
@@ -53,7 +53,7 @@ the best route must keep chasing stronger final HPWL.
 | blueprint | method name | use first when | use as alternative when | do not use when |
 | --- | --- | --- | --- | --- |
 | `A` | Runtime-balanced critical-frontier exact DPO stack | DPO recovery, source-topK exact accepts, hot/critical segments, or row-rich/wrapper-like recoverable frontier dominate final HPWL | a short/medium case has endpoint residue but negotiation is not proven; a dense case has no low-residual target-miss handoff | the only evidence is legalizer HPWL improvement with no exact DPO accepted gain |
-| `B` | Endpoint-source handoff exact consumer stack | negotiation/resource closure is the useful producer and top-net endpoint/source residue remains for exact DPO | a short case can spend runtime on aggressive endpoint/source exact transactions after Blueprint A plateaus | negotiation is not the producer, handoff is passive, or endpoint accepts are saturated with flat final HPWL |
+| `B` | Endpoint-source handoff exact consumer stack | negotiation/resource closure is the useful producer, especially when negotiation is already the best final-HPWL reference and LEGALM/frontier lines are worse | a short case can spend runtime on aggressive endpoint/source exact transactions after Blueprint A plateaus | negotiation is not the producer, handoff is passive, or endpoint accepts are saturated with flat final HPWL after pair/small-cluster repair |
 | `C` | Low-residual current-net / vertical-frontier consumer | extreme dense target-miss/current-net/stage3 handoff evidence exists and improve placement can consume it | a dense case needs one producer-consumer diagnostic lane while another Student tries Blueprint A | density is high but target-miss/current-net/vertical frontier evidence is absent |
 
 ## Blueprint Selection Rules
@@ -61,6 +61,17 @@ the best route must keep chasing stronger final HPWL.
 - Do not infer negotiation from large `HPWLimprove` alone.  Use Blueprint B only
   when current evidence says negotiation/resource closure produces a uniquely
   useful legal state or endpoint/source residue that DPO can consume.
+- When the negotiation reference is the only reference that beats the default
+  final HPWL on a short or medium case, make Blueprint B the primary route for
+  at least two Students.  One may preserve the clean negotiation basin while
+  another changes the move family; do not spend most lanes repairing
+  LEGALM/frontier workbenches that are still worse than both default and
+  negotiation.
+- If a Blueprint B lane has exact accepts but final HPWL stays worse than the
+  negotiation reference, the next repair is not another single-cell cap change.
+  Use post-reorder endpoint/source pair or small-cluster exact transactions,
+  accepted-window replay, and canonical preservation over the accepted
+  footprint.
 - Do not infer macro behavior from fixed-instance count.  Route as macro or
   large-blockage only after geometry or row-fragmentation evidence is present;
   otherwise use the row-rich/frontier evidence in Blueprint A.
