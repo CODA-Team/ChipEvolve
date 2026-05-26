@@ -625,12 +625,12 @@ def _markdown_section(text: str, heading_prefix: str) -> str:
     start: int | None = None
     for idx, line in enumerate(lines):
         if line.startswith(heading_prefix):
-            start = idx
+            start = idx + 1
             break
     if start is None:
         return ""
     end = len(lines)
-    for idx in range(start + 1, len(lines)):
+    for idx in range(start, len(lines)):
         line = lines[idx]
         if line.startswith("## ") and not line.startswith("### "):
             end = idx
@@ -1871,9 +1871,11 @@ while [[ "$#" -gt 0 ]]; do
   esac
 done
 if [[ "$json_mode" -eq 0 && -n "$query_text" ]]; then
+  set +e
   BLUEPRINT_QUERY="$query_text" BLUEPRINT_ROADMAP="$AGENT_ROOT/knowledge/insights/case_evolution/mechanism_reconstruction_roadmap.md" python3 - <<'PY'
 import os
 import re
+import sys
 from pathlib import Path
 
 query = os.environ.get("BLUEPRINT_QUERY", "")
@@ -1900,7 +1902,15 @@ if match and roadmap.exists():
         print(f"[INFO] selected_blueprint_roadmap=Blueprint {{letter}}")
         print("\\n".join(lines[start:end]).strip())
         print()
+        sys.exit(42)
 PY
+  blueprint_rc=$?
+  set -e
+  if [[ "$blueprint_rc" -eq 42 ]]; then
+    exit 0
+  elif [[ "$blueprint_rc" -ne 0 ]]; then
+    exit "$blueprint_rc"
+  fi
 fi
 exec python3 "$AGENT_ROOT/scripts/query_knowledge.py" "${{orig_args[@]}}"
 """,
