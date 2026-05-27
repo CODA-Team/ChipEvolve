@@ -105,6 +105,49 @@ endpoint/source negotiation payload.
    is not the mechanism unless the earlier source-topK, accepted-node handoff,
    micro-start/chain, and multi-row links are live.
 
+### Reconstruction Tuning Profile
+
+This blueprint is easy to underbuild.  A useful reconstruction should preserve
+the following concrete structure before inventing new move families:
+
+- Keep the exact global-swap producer reachable even on low or uneven density.
+  A small exact-lane intensity floor is acceptable for this route; random
+  exploration should remain conservative.  Export only the top critical
+  accepted footprint, for example a bounded few hundred critical nodes plus
+  old/new hot segments.
+- `DetailedMgr` should own the native handoff: accepted DPO nodes,
+  hot segments, critical-frontier nodes, and masks for de-duplication.  Do not
+  rebuild this state from logs or names.
+- In `improvePlacement`, the order matters: run the normal DPO script, then
+  critical-row micro-start, critical-net chain assignment, exact local closure,
+  multi-row residual transactions, and segment-local residual swaps before
+  clearing the handoff.
+- Critical-row micro-start should rank critical-frontier nodes first and fall
+  back to accepted nodes only when no critical frontier exists.  It should only
+  use currently hot segments, skip fixed/multi-height/non-single-segment cells,
+  rank by displacement, try current/adjacent rows and left/center/right bbox
+  anchors, and accept only exact-positive journal deltas after a risk penalty.
+  A proven bounded profile is roughly 48 seeds, four candidates per seed, an
+  early stop around 192 exact scores with no accepts, row-risk around hundreds
+  of dbu, a much larger hot-only segment penalty, a smaller source-escape bonus,
+  and a critical-target preference slack so a near-tied critical target wins.
+  Accepted micro-start moves should append affected nodes and segments back into
+  the native frontier.
+- Exact local closure should run window-size-four reorder on windows touching
+  accepted/critical nodes and hot segments.  Prioritize windows around displaced
+  frontier cells, boost edge-touching windows, include hot-segment edge windows
+  only as bounded fallback, cap total windows to a few hundred, and stop after a
+  long no-accept streak rather than scanning the whole design.
+- Critical-net chain assignment should not be a pair-only swap.  Build
+  rollback-safe two- or three-step chains: seed to bbox/median target, local
+  partner to seed vacancy, and optional follower to partner vacancy.  Keep a
+  small number of move candidates, partners, followers, windows, and accepted
+  moves per seed; reject nonpositive replay.
+- Multi-row residual transactions should use the same exact-positive rule over
+  current/nearby rows, bbox left/center/right anchors, and nearby partner cells.
+  Segment-local residual swaps should then try only local neighbors around the
+  accepted footprint.  These two late links are quality links, not guard links.
+
 ### Complete-Chain Reconstruction Checklist
 
 Treat Blueprint A as live only when the implementation has all of these links:
@@ -210,8 +253,8 @@ endpoint caps alone, or a late guard alone should not be promoted.
   producer.
 - Start from `evolved_negotiation` only if it preserves the same recoverability
   producer behavior and the exact consumers can still import its payload.
-- If continuing an existing donor, preserve the complete accepted-window replay
-  chain.  Do not restart from a guard, attribution commit, or isolated cap
+- If continuing an existing implementation, preserve the complete accepted-window replay
+  chain.  Do not restart from a guard, attribution-only change, or isolated cap
   change.
 
 ### Cumulative Mechanism Chain
@@ -237,7 +280,7 @@ endpoint caps alone, or a late guard alone should not be promoted.
 6. Run post-reorder endpoint/source repair.  Import incoming hot segments and
    source-edge masks before they are cleared, rank top nets touching that
    frontier, derive endpoint hints from first/second extrema, build endpoint and
-   source targets, exact-score them, and commit only replay-positive moves.
+   source targets, exact-score them, and apply only replay-positive moves.
 7. If single-cell endpoint repair is live but final HPWL is flat, add bounded
    endpoint/source pair or small-cluster exact transactions over the same
    frontier, scored as a unit with rollback.  This is a follow-up repair, not a
@@ -245,6 +288,61 @@ endpoint caps alone, or a late guard alone should not be promoted.
 8. Preserve accepted-window value through canonical downstream passes.  Generic
    random, broad GS, mirror, or reorder passes should not wash out the accepted
    footprint unless their exact gain is positive.
+
+### Reconstruction Tuning Profile
+
+This blueprint is not a negotiation-weight tweak.  A useful reconstruction
+should rebuild the endpoint/source producer, then prove that DPO and reorder
+consume it:
+
+- Keep the legalizer producer focused on moderate-degree high-span nets.  Rank
+  nets by current HPWL impact, ignore trivial and very high fanout nets, and
+  mark cells that sit on first/second bbox extrema in x or y.  Accumulate a
+  recoverability weight from net rank plus endpoint hits, then keep only the
+  highest-value endpoint/source cells.
+- Apply the producer as a bounded target-selection bonus inside
+  `findBestLocation`, not as an unconditional displacement increase.  Compute
+  local slack near the candidate site, scale the bonus by endpoint weight and
+  slack, damp it when candidate displacement crosses the max-displacement
+  threshold, and revert the biased choice when it grows displacement much more
+  than the raw best location.  The expected log signature is nonzero scored
+  recoverability candidates, selected cells, and some damped or reverted
+  choices; zero reverts with large displacement tail is suspicious.
+- Run source-edge/global-swap exact DPO after the negotiation legal state and
+  before the hot reorder stack.  The pass should rank source-edge and accepted
+  boundary cells, generate bbox-edge, median, current/nearby-row, segment, and
+  swap probes, exact-score a small top set, rollback every probe, replay only
+  positive candidates, and immediately export accepted nodes plus old/new hot
+  segments into `DetailedMgr`.
+- Preserve two native handoff masks until the post-DPO consumers finish:
+  accepted hot segments and source-edge hot cells.  Do not rebuild these from
+  string logs or top-net names.  Handoff must be imported before endpoint/source
+  repair and cleared only after replay, cascade, and endpoint repair consume it.
+- Hot selected-segment reorder should start from accepted hot segments, expand
+  to adjacent segments only as a bounded fallback, and use a larger exact
+  window than generic reorder.  It should store accepted windows as replay
+  seeds with endpoint/source-edge counts and accepted delta, because those seeds
+  are the payload for residual replay.
+- Hot micro-pack is a local exact consumer, not a broad reorder.  Build compact
+  windows around endpoint/source-edge cells, favor boundary source-edge windows,
+  try small shifts/permutations, exact-score each window, and record accepted
+  delta.  Its accepted windows should enter the same replay seed buffer with a
+  micro-pack flag.
+- Accepted-window replay should run in two phases.  First replay bounded local
+  windows around the best hot and micro-pack seeds.  Then create cascade seeds
+  from accepted replay windows and expand only strong seeds with a slightly
+  larger halo/window.  Penalize displacement in the replay score and reject
+  low-conversion windows instead of counting them as progress.
+- Endpoint/source repair should import the still-live handoff, rank top nets
+  touching frontier cells, derive first/second-extreme endpoint hints, and build
+  a bounded target set from endpoint hints plus source-edge anchors.  Apply
+  only exact-positive endpoint moves.  If single-cell endpoint accepts are live
+  but final HPWL is flat, add pair/small-cluster transactions over the same
+  touched-net frontier instead of widening single-cell caps.
+- Runtime-heavy expansions are acceptable only when accepted gain per runtime
+  rises.  Use cached touched-net or bbox summaries, compact top-net/frontier
+  caps, and no-accept stops; do not replace the producer-consumer chain with
+  global scans.
 
 ### Complete-Chain Reconstruction Checklist
 
@@ -273,7 +371,7 @@ Treat Blueprint B as live only when the implementation has all of these links:
 
 Demote the route to partial if it only changes negotiation weights, only adds
 source-edge exact GS, only adds pair/cluster transactions, or only guards the
-current donor.  A partial pair/cluster implementation is especially easy to
+current implementation.  A partial pair/cluster implementation is especially easy to
 misread: without recoverability producer, accepted hot handoff, replay/cascade,
 and endpoint/source repair, it is not the strong Blueprint B route.
 
@@ -390,13 +488,72 @@ cases and should not be used as the default for generic DPO-recoverable cases.
    and same-row residual cells.  Balance row-miss and same-row queues so one
    does not starve the other.
 6. Run targeted exact global and vertical wrappers over this frontier.  Score
-   with `DetailedHPWL`, rollback every non-improving probe, and commit only
+   with `DetailedHPWL`, rollback every non-improving probe, and apply only
    positive moves.
 7. Rank residual segments by exact-anchor count and residual magnitude, then run
    selected-segment exact reorder and optional local transactions only on those
    segments.
 8. Protect exact scoring by clearing stale affected-net state at the beginning
    of each `DetailedHPWL::delta` call.
+
+### Reconstruction Tuning Profile
+
+This blueprint works when LEGALM/full guidance creates a low-residual target
+field that detailed placement can consume.  A useful reconstruction should keep
+the legalizer and DPO tied by native target state:
+
+- In full legalization, distinguish low-residual overflow from high-pressure
+  overflow.  For low-residual cases, keep target-row search narrow, spend
+  effort on target correction/current-net anchors, and avoid broad legalizer
+  moves that lower `HPWLlg` while destroying the final DPO basin.
+- During assignment and stage2 handoff, store target row/site/valid state for
+  each movable cell.  Include target-row, desired-site, original-site,
+  midpoint, and a small number of HPWL projection anchors, but use maintained
+  interval/free-site checks and `canBePlaced` before publishing a target.
+- Stage3 exact refinement should build incident-net summaries with first and
+  second bbox extrema, skip very high-fanout nets, and form a frontier from
+  changed cells plus target-miss cells.  Rank by target distance, displacement,
+  and HPWL regression risk; cap the frontier and stop after a long no-move
+  streak rather than scanning all cells.
+- Current-net anchors are the important quality source.  For each frontier
+  cell, project bbox-extreme pins back inside the other pins' bbox, convert the
+  projected pin center to a legal grid point, and also try a shadow point part
+  way toward that projection.  Keep only a small number of anchors with positive
+  projected gain, reject anchors that add displacement without target relief,
+  and tag accepted target rows/sites as exact anchors.
+- Candidate generation should mix target repair and current-net repair:
+  current row/site, target row/site, original row/site, midpoints, nearby rows,
+  anchor row/site, old row with anchor site, target row with anchor site,
+  anchor row with old site, and a few adjacent/toward-target expansions.
+  Exact-score only the best bounded candidates by proxy score.
+- Acceptance must combine exact HPWL, displacement, and target recovery.  Accept
+  moves that improve exact HPWL, recover displacement without HPWL loss, or
+  recover target distance with bounded HPWL/tail cost.  Reject moves that grow
+  max-displacement tail unless exact HPWL gain clearly pays for it.  After a
+  move, update target row/site/valid, mark exact-anchor state, and recompute
+  touched net summaries.
+- Low-residual target correction/release is a supporting producer repair.  It
+  should repair missed targets using free slots, swaps, and blocker release only
+  when exact HPWL, displacement, and target-distance deltas stay bounded.  Track
+  blockers, probes, exact-score caps, rejects, HPWL gain, displacement gain, and
+  target gain separately so Teacher can see whether the producer became more
+  consumable.
+- In `improvePlacement`, split the imported target field into row-miss and
+  same-row residual queues.  Give each queue quota so same-row residual cells
+  with exact anchors are not starved by row-miss cells.  Score vertical moves
+  first for row-miss cells, then targeted global moves; rollback all
+  nonpositive probes.
+- Selected-segment reorder should rank segments by exact-anchor count, weighted
+  target residual, anchor count, and max residual.  Run a bounded selected
+  reorder on those segments, then only arm pair/cycle transactions when
+  stage3 exact handoff cells and exact residual anchor cells are both nonzero.
+  Pairs should swap nearby same-width anchors; cycles should rotate a short
+  local chain.  Guard-only vertical or selected-segment attribution is not the
+  mechanism.
+- Required liveness is the full chain: stage3 exact/current-net anchors produce
+  exact-anchor target state; improve placement imports that state; targeted
+  vertical/global accepts or selected-segment accepts are nonzero; final-flow
+  HPWL moves in the same direction as accepted exact gain.
 
 ### Complete-Chain Reconstruction Checklist
 
@@ -421,7 +578,7 @@ Treat Blueprint C as live only when the implementation has all of these links:
 
 Demote the route to partial if it only changes LEGALM target costs, only lowers
 `HPWLlg`, only adds vertical/frontier guards, or only preserves a previous
-selected-segment donor.  If legal HPWL improves but final flow worsens, repair
+selected-segment state.  If legal HPWL improves but final flow worsens, repair
 the current-net/target-miss consumer path before widening legalizer search.
 
 ### Reconstruction Sketch
@@ -431,7 +588,7 @@ legalm_stage3_producer():
   for candidate cells near target-miss/current-net anchors:
     generate legal row/site candidates from target row/site, current row,
     nearby rows, current-net anchors, adjacent rows, and toward-target sites
-    exact-score legal candidates; commit only positive/refined moves
+    exact-score legal candidates; apply only positive/refined moves
     mark target valid, exact-anchor, target miss, stage3 handoff, and
     current-net counters
 
@@ -541,6 +698,51 @@ This route is exact DPO activation, not LEGALM and not negotiation.
    saturated cells only after the exact source-topK/source-edge accepts and
    selected-segment reorder remain semantically identical.
 
+### Reconstruction Tuning Profile
+
+This blueprint is a narrow Diamond/source-edge activation route.  It should not
+be selected merely because a design is low-utilization; select it when the
+source-edge or source-topK exact lane itself is the missing DPO source.  A
+useful reconstruction should include these details:
+
+- Source-edge hotness should be computed before Diamond legal placement from
+  high-span, moderate-degree nets.  A proven bounded profile ignores very large
+  nets, keeps only a small hot-cell set such as `max(64, cells/64)` capped at a
+  few hundred cells, stores hotness directly on the native node/instance, and
+  restores that native state before improve placement.
+- Diamond producer guidance should be bounded: source-edge hot cells may choose
+  among several legal candidate sites by estimated weighted HPWL gain minus a
+  modest displacement penalty.  Vacancy probing is optional and must be small:
+  a few blocked probes, at most a couple of blockers, reject cases where evicted
+  blockers are comparably hot, and require a clear score margin after blocker
+  displacement penalty.  This is only producer shaping; the exact DPO consumer
+  decides quality.
+- The exact source-edge/global-swap lane must run even when density-derived
+  intensity is zero.  Low intensity should disable congestion/random extras, not
+  fall back to legacy global swap.  Logs must explicitly show HPWL-only
+  source-edge or sourceTopK exact scoring rather than legacy-only search.
+- For each source cell, generate candidate rows from current row, bbox-center
+  row, and bbox-edge rows, then cap to the nearest few rows.  Generate
+  left-edge, center, and right-edge anchors and exact-score only a small top-K
+  set, e.g. six probes.  Try move first, then same-width swap if needed.  Use
+  `DetailedHPWL` journal delta/cache, rollback every probe, and replay only the
+  best positive journal.
+- Ordered-pair repair should be attached to a live single-cell exact probe, not
+  run as a separate polish pass.  Rank same-net standard-cell partners by
+  bounded pin degree and distance to the source vacancy, keep only a handful of
+  partners, score a few partner probes into the source vacancy/current row, and
+  promote the combined stage1+stage2 journal only when it beats the stage1
+  profit.  Audit cached affected-net delta periodically and reject nonzero audit
+  drift before trusting runtime gains.
+- Endpoint-escape repair is a later, smaller fallback for hot source-edge
+  anchors.  Rank one or a few positive-residual edges, one or a few endpoint
+  partners, and one or a few probes; score the combined journal as a unit.  It
+  should improve a live source-edge route, not replace the source-edge exact lane.
+- Required liveness is stronger than counters existing: hot cells, generated
+  exact probes, exact scores, accepted single-cell moves, accepted pair or
+  escape transactions if enabled, zero or explained audit gap, and final-flow
+  HPWL movement.
+
 ### Complete-Chain Reconstruction Checklist
 
 Treat Blueprint D as live only when the implementation has all of these links:
@@ -615,7 +817,7 @@ source_edge_exact_consumer():
 ### Required Counters
 
 - source-edge producer hot cells, guided cells, guided legal candidates,
-  reranked candidates, vacancy attempts/commits/rollbacks, and vacancy bonus;
+  reranked candidates, vacancy attempts/applies/rollbacks, and vacancy bonus;
 - exact source/topK cells, raw candidates, generated candidates, exact scored,
   replays, replay failures, rollbacks, accepted moves, accepted delta, hot
   generated, hot accepted, and hot accepted delta;
