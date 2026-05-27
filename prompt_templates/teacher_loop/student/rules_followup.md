@@ -29,6 +29,13 @@ choice needs it.
   post-consumer polish, or their composition. Also state why this mechanism is
   strong enough to move final HPWL materially instead of only preserving,
   retuning, or diagnosing the current donor.
+- Also restate the failure bucket you are testing or repairing: non-executed or
+  stale implementation, producer payload quality, handoff lifetime, DPO
+  consumer zero/low accepts, acceptance/scoring too strict or too local,
+  accepted-delta washout, post-consumer preservation, runtime/cap bottleneck,
+  wrong start/case-type route, or `none yet` for first exploration. Your first
+  patch should directly affect that bucket; if it does not, change the patch
+  plan before editing.
 - Treat runtime inside the hard budget as a cost to justify. If the route is
   baseline-fast but HPWL-poor, first identify the missing HPWL source, then use
   bounded stronger candidate generation, exact scoring, local DP, or
@@ -154,6 +161,14 @@ choice needs it.
   legal but weak and still has runtime headroom, use the strengthened patch to
   attack the missing quality source rather than only reduce runtime, preserve
   the donor, or add counters.
+- If final HPWL is flat or worse, do not summarize only that the route is
+  low-ROI. Open the relevant changed source and DPL log/metrics, classify the
+  failure bucket, and use the one strengthened modification to repair that
+  bucket when plausible: fix non-execution, improve producer payload, preserve
+  handoff lifetime, make the DPO consumer accept exact-positive transactions,
+  relax/retarget acceptance, prevent accepted-delta washout, add
+  post-consumer preservation, or cap/cache the runtime bottleneck. Record the
+  exact bucket and evidence in `## Next Teacher Handoff`.
 - For plateau or runtime-for-quality routes, also report
   `accepted_delta_per_runtime` or enough accepted-delta and pass-runtime fields
   for Teacher to compute it.  A route that increases probes, accepts, or raw

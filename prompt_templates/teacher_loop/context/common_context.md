@@ -64,44 +64,16 @@ mechanism hypotheses and implementation roadmap sections.
   the included implementation order, source handles, liveness counters, and
   partial-implementation failure tests; use strategy cards and algorithm cards
   only to refine the mechanism or check risk.
-- Short route digest for first-round matching:
-  large row-rich or datapath-like recoverable basin with strong improve-stage
-  recovery, nontrivial default runtime, and final HPWL dominated by DPO accepts
-  rather than legalize-only HPWL -> assign one cumulative producer/closure/DPO
-  chain before pure local-consumer routes.  The producer may be the current
-  Diamond basin, negotiation/resource closure, or framework guidance only when
-  stage evidence supports it.  The strong route is the complete chain:
-  recoverable producer or stable basin -> exact source-edge/global-swap
-  consumer -> edge-critical or selected-segment reorder -> bounded
-  post-reorder exact/pair/endpoint polish.
-  low-util or Diamond-stable local residue with large improve-stage
-  recoverability -> assign one complete Diamond-basin source-edge exact descent
-  route: preserve a Diamond-compatible legal basin, force the enhanced DPO path,
-  and implement the `DetailedGlobalSwap` exact source-edge kernel described in
-  the case feature route insight packet or mechanism reconstruction roadmap:
-  bounded source-edge target generation,
-  exact move/swap scoring with `DetailedHPWL::delta`, replay through
-  journal/rollback, and source-edge
-  cells/locations/exact-scores/replays/commits/rejects counters.
-  Diamond-native frontier records alone do not count as this route; dense
-  recoverable pressure -> recoverable producer plus hot-segment/exact DPO
-  consumer; large row-rich recoverable basin -> producer/handoff plus exact DPO
-  or row-window transactions; high-utilization with large legalizer inflation
-  and incomplete DPO recovery -> include one high-impact-net target/source
-  repair plus bounded mirror-dependency hybrid route. Mirror work is valid there
-  only as the final step of a producer/DPO/critical-net chain, not as a
-  standalone route.
-- When dense recoverable pressure and large row-rich recoverability both match,
-  and negotiation-style evidence shows strong DPO recovery but poor final
-  closure, assign one Student to the cumulative stack from the focused
-  route insight packet or mechanism roadmap: recoverable producer or
-  negotiation-compatible legal closure -> exact source-edge/global-swap
-  consumer -> edge-critical/selected reorder -> bounded post-reorder
-  exact/pair/endpoint polish. Use framework guidance only when it creates a
-  consumed payload; do not assume it is the primary route.
-- For a strong retained route, route from the cumulative mechanism chain. Do not
-  assign only the final preservation, telemetry, or attribution diff as if it
-  were the quality mechanism.
+- Use the route packet/roadmap for the detailed case-type blueprints. Match
+  current features to complete producer -> handoff -> exact-consumer ->
+  post-consumer chains, not to benchmark names or single late patches. Typical
+  matches include row-rich recoverable basins, low-util Diamond-stable residue,
+  dense recoverable pressure, macro/fragmentation pressure, and high-utilization
+  legalizer inflation with incomplete DPO recovery.
+- For any matched strong route, assign at least one Student to the cumulative
+  chain from the packet. Do not treat final preservation, telemetry,
+  attribution, native frontier records, or mirror-only work as the quality
+  mechanism unless it protects a named accepted producer/DPO/reorder gain.
 - Open the smallest useful algorithm/pseudocode card only when it provides a
   concrete mechanism, liveness counter, or failure mode relevant to the observed
   bottleneck.
@@ -119,125 +91,41 @@ mechanism hypotheses and implementation roadmap sections.
 
 ## LEGO-lite Skill Lookup
 
-- Use the skill index as a targeted evidence database after the stage metrics
-  and logs identify a bottleneck. Do not choose a route just because a card
-  exists.
-- Fast command pattern:
-  `python3 $skill_query_script --stage <stage> --q "<bottleneck or mechanism>"`
-- Stage names: `case_diagnosis`, `start_selection`, `legalization`,
+- Use the skill index only after stage metrics/logs identify a bottleneck:
+  `python3 $skill_query_script --stage <stage> --q "<bottleneck or mechanism>"`.
+  Stage names include `case_diagnosis`, `start_selection`, `legalization`,
   `improve_placement`, `handoff`, `build_eval_log_diagnosis`, and
   `teacher_review`.
-- A selected skill is guidance, not a cage. Teacher should name the skill id,
-  expected stage transition, done criteria, and log signals; Student should
-  adapt or reject the mechanism when current source evidence contradicts the
-  card.
-- Keep skill selection small: one primary mechanism skill, one auxiliary
-  handoff/objective skill, and one optional diagnosis skill is the normal upper
-  bound for a Student route.
-- Treat strategy cards as design-feature inspiration, not case-level algorithm
-  selectors.  Teacher should translate them into a staged source mechanism and
-  require liveness counters rather than assigning a fixed route by name.
-- When mixing Diamond, negotiation, LEGALM, or Differential Guidance, first
-  query `--stage legalization --q "diamond negotiation differential guidance liveness"`
-  and name the route role: primary legalizer, guidance producer,
-  repair/polish stage, or handoff consumer.
-- Weak-gain / over-cost escalation is a Teacher judgment, not an automatic
-  controller rule.
-  If current-run legal candidates show tiny HPWL movement, repeat one family,
-  or incur runtime cost without proportional HPWL, do not only polish the current
-  donor. Use one broader stage/mechanism query or card only to find a different
-  source-level hypothesis that matches the current evidence, then give at least
-  one Student a stronger within-run route. If the case-type outline has a
-  matching blueprint, prefer the full mechanism chain from the focused packet
-  over another same-basin threshold/queue edit. Current-run
-  kept/rejected refs may be repaired with `25_trial_source.sh begin --from-ref
-  <ref>`.
-  Query `--stage teacher_review --q "mechanism priority telemetry grouped window exact consumer"`
-  when deciding which donor families to promote, preserve as fallback, or demote.
-  Query `--stage teacher_review --q "runtime light final HPWL mechanism priority"`
-  before spending a route on a heavy donor.
+- A selected skill is guidance, not a cage. Keep selection small: normally one
+  primary mechanism skill, one auxiliary handoff/objective skill, and one
+  optional diagnosis skill per Student route.
+- Strategy and algorithm cards are inspiration/risk checks. Translate them into
+  staged source mechanisms, liveness counters, and failure tests driven by
+  current evidence.
 
 ## Objective And Boundaries
 
-- canonical metric: `metrics.json:hpwl` from OpenROAD/DPL pin-based logs;
-  ignore `hpwl_proxy` for promotion
-- primary research target remains canonical HPWL reduction. Use
-  `G_HR = 100 * (HPWL_ref - HPWL_sol) / HPWL_ref - P(runtime_sol / runtime_ref), where P(r)=0 for r <= 1.10 and P(2.0)=1.0 percentage point`
-  against the OpenROAD DPL default-flow (`openroad_dpl_flow`, Diamond-search)
-  reference as an analysis metric only. The evolve optimization target,
-  promotion target, and elite/default-parent selector are legal final HPWL under
-  the hard runtime budget. Use `G_HR` only to explain whether the HPWL gain needs
-  runtime repair.
-  A faster but worse-final-HPWL result is runtime/control evidence, not the
-  headline elite, unless the lower-HPWL result fails legality, artifact gates, or
-  the hard timeout budget.
-  The runtime term has a deadband: runtime improvements and <=1.10x
-  runtime noise receive no bonus; 2x runtime needs 1.0 percentage point of
-  reference-normalized final-HPWL gain to break even.
-- stage metrics: report `HPWLg`, `delta HPWLlg`, `delta HPWLip`,
-  `delta HPWL final`, and final HPWL when available
-- research belief: assume every case still has a plausible path to at least 5%
-  clean canonical HPWL reduction versus the OpenROAD DPL default-flow
-  reference. 5% is a search-ambition prior for plan scale, not a promotion gate
-  and not a ceiling. If current candidates are far below that, Teacher should
-  plan mechanism-level changes, not incremental polish.
-- algorithmic prior: global/differential guidance followed by source-level
-  detailed repair should be able to outperform pure greedy legalization when
-  the handoff and refinement are implemented correctly; weak final HPWL should
-  trigger handoff/improve-placement diagnosis, not immediate abandonment of the
-  global route
-- source-search prior: the Teacher may optimize branch choice, mechanism
-  ordering, differential/guidance objectives, heuristic weights, stop schedules,
-  internal parameters, handoff payloads, and DPO scoring/acceptance policies.
-  These are source-level search variables. Use logs and stage-wise evidence to
-  decide what to change; promote only by legal full-flow final HPWL.
-- hybrid-source prior: useful hybrids are staged algorithms inside one
-  candidate implementation, such as lightweight global guidance, native legal
-  closure, local HPWL repair, and a DPO consumer.  Do not implement hybrid as a
-  case-level selector among complete legalizers.
-- per-round stance: preserve best donors as rollback guardrails, but do not
-  route the best line as a preservation task. The best line should be
-  elite-expansion: use the donor as a parent and attack a larger HPWL source.
-  Assign aggressive mechanism-level routes whenever wins are tiny, plateaued,
-  or far from the 5% search ambition.
-- plateau escape: when recent rounds repeat a donor with tiny gains, Teacher
-  should assign a `mechanism-redesign` route that changes a deeper source
-  mechanism under explicit complexity caps and liveness counters
-- weak-gain / over-cost escalation: when the current run is tiny-gain,
-  same-family, or too heavy for the HPWL gained, preserve useful donors as
-  rollback refs but route the work as elite-expansion, repair, switch,
-  hybridize, or mechanism-redesign. Assign aggressive routes that change the
-  legalizer/DPO composition, repair a current-run ref, or test a different
-  feature-matched mechanism hypothesis derived from the observed failure mode.
-  Pseudocode cards may inspire the implementation, but they are not the reason
-  for the route.
-- low-ROI rule: when a mechanism is verified live/correct but still gives only
-  extremely small full-flow HPWL movement after a meaningful repair attempt, preserve
-  it as evidence and switch to a different HPWL source instead of stacking
-  micro-variants
-- callable flow: `detailed_placement_evolve -> improve_placement_evolve ->
-  optimize_mirroring_evolve`
-- editable patch surface: source-level detailed placement/legalization and
-  improve placement, including their internal flow, candidate generation,
-  objective, parameterization, state, and handoff
-- locked surface: external evaluator/ORFS/workspace helper scripts and the
-  top-level command interfaces. Optimize mirroring must stay callable and is
-  normally evaluation/control evidence; edit its internals only if Teacher
-  explicitly assigns a mirror mechanism with concrete source handles.
-- parameter search is allowed only as source-level implementation work: change
-  constants, heuristic thresholds, scoring weights, pass schedules,
-  data-dependent policies, or small internal config structs inside
-  `private_dpl_evolve_source`, then rebuild and evaluate the binary. Do not
-  route parameter tuning through Tcl command options, ORFS flow scripts,
-  evaluator scripts, or repeated external endpoint invocation.
-- final HPWL is judged as legalization/improve-placement interaction; useful
-  routes should create legal states that improve placement can consume
-- route emphasis can be `legalizer-emphasis`, `DPO-emphasis`, or
-  `co-optimization-emphasis`. This is not a mutually exclusive permission to
-  ignore adjacent-stage compatibility. Student should understand how the
-  emphasized mechanism interacts with legalization, improve placement, and
-  handoff, but should not make cosmetic edits across all stages. The emphasis
-  names the primary HPWL source for the round.
+- Promote only legal final `metrics.json:hpwl`; `hpwl_proxy` is debug-only.
+  Report `HPWLg`, `delta HPWLlg`, `delta HPWLip`, `delta HPWL final`, and final
+  HPWL when available.
+- `G_HR` is analysis-only for runtime value. A faster but worse-final-HPWL
+  candidate is not the elite unless lower-HPWL candidates fail legality,
+  artifacts, or hard timeout.
+- Treat 5% clean final HPWL reduction versus OpenROAD default as a search-scale
+  prior, not a promotion gate. Tiny/plateaued/over-cost results should trigger
+  mechanism-level routes, not preservation-only polish.
+- Search variables include start branch, mechanism order, guidance objectives,
+  heuristic weights, stop schedules, internal parameters, handoff payloads, DPO
+  scoring, and accept/rollback policies. Implement parameter changes inside
+  source; do not move tuning to Tcl, ORFS, evaluator scripts, or repeated
+  external endpoint invocation.
+- Useful candidates are staged source mechanisms whose legal output is
+  DPO-recoverable. Hybrid means a coherent source flow, not a selector among
+  complete algorithms.
+- Callable flow stays `detailed_placement_evolve -> improve_placement_evolve ->
+  optimize_mirroring_evolve`. External evaluator/ORFS/workspace helpers and
+  top-level command interfaces are locked. Mirror internals are support only
+  when Teacher names a concrete accepted DPO/reorder/handoff gain to preserve.
 
 ## Runtime And Performance
 

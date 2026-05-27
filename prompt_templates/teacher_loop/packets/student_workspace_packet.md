@@ -91,9 +91,11 @@ Primary flow:
    - repair a prior kept/rejected ref when assigned: `$trial_source_script begin --label <repair-name> --from-ref <ref>`
    - after a short targeted diagnosis, start the first real trial early; do not delay `begin` behind broad code reading
    - before editing, write down the trial's HPWL-source hypothesis in your own notes/report: expected producer, handoff, DPO consumer, post-consumer, or composition gain; why the mechanism is strong enough; and what stage/counter proof should change
+   - also name the failure bucket being tested or repaired: non-executed/stale code, producer payload, handoff lifetime, DPO consumer zero/low accepts, acceptance/scoring too strict/local, accepted-delta washout, post-consumer preservation, runtime/cap bottleneck, wrong start/case-type route, or `none yet`
    - edit source, then run `$build_variant_script` and `$evaluate_candidate_script`
    - canonical result summary is generated automatically; read `$candidate_metrics_summary_md`
    - self-diagnose whether the measured HPWL movement came from the intended source; use actual DPL log counters when the summary cannot prove liveness, accept/reject behavior, stop reason, or mechanism-local runtime
+   - if final HPWL is flat/weak/worse, classify the failure bucket from changed source plus metrics/log counters before deciding keep/reject
    - if weak with runtime headroom, make one strengthened modification toward the missing quality source, then rerun `$build_variant_script` and `$evaluate_candidate_script`
    - if the strengthened result still needs follow-up, write `## Next Teacher Handoff` in `$knowledge_card`
    - decide keep/reject only after the strengthened evaluation, unless the first result proves the route has no plausible repair
@@ -173,7 +175,7 @@ Before final answer:
 - final source state is committed and pinned to `stable_candidate_ref`
 - `implementation_diff` exists and describes current iteration edits from the recorded iteration start to final dev HEAD
 - rejected branches are preserved and not hidden by automatic reset
-- `knowledge_card` maps source to evidence: route action, changed files/functions, mechanism class, counters/logs, stage metrics, rejected refs, and `## Next Teacher Handoff` when follow-up is needed
+- `knowledge_card` maps source to evidence: route action, changed files/functions, mechanism class, counters/logs, stage metrics, failure bucket if weak/flat, rejected refs, and `## Next Teacher Handoff` when follow-up is needed
 - `knowledge_card` states expected HPWL source, mechanism strength, measured
   HPWL-source attribution, stage-wise proof target, and whether the first
   result came from the intended mechanism

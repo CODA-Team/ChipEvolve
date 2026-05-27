@@ -63,6 +63,16 @@ and review packet fields needed for routing.
   behavior, and Student knowledge-card reasoning. Use targeted knowledge only
   when it clarifies a route change or mechanism insight. Current evidence wins
   over a knowledge card.
+- Weak-result diagnosis is mandatory before the next route map. If final HPWL
+  is flat/weak, stage tuples repeat, or runtime grows without gain, classify the
+  blocking bucket: non-executed/stale code, producer payload, handoff lifetime,
+  DPO consumer zero/low accepts, strict/local acceptance, accepted-delta
+  washout, post-consumer preservation, runtime/cap bottleneck, or wrong
+  start/case-type route. The next packets must repair or refute the bucket, not
+  assign same-family polish.
+- If a Student card/message lacks source inspection plus metrics/log counter
+  diagnosis, treat it as under-diagnosed and require code/log diagnosis or a
+  concrete missing-chain repair before promotion.
 - Do not send Students into broad knowledge-base reading by default. If a
   follow-up route needs knowledge, name the specific card/blueprint/query and
   the exact mechanism question it answers. Otherwise Students should use the
@@ -88,10 +98,6 @@ and review packet fields needed for routing.
   with final HPWL plus `accepted_delta_per_runtime`, not only `HPWLlg`, accept
   count, or raw accepted delta.  Do not fill the roster with guard, late polish,
   or same-family threshold work.
-- The current best is still an optimization route.  If continued, route it as
-  `elite-expand` with a material donor-on-top mechanism, not preservation:
-  stronger exact consumer, alternate producer/handoff, bounded quality search,
-  runtime compression that enables quality work, or compatible stacking.
 - A case can match multiple feature-level blueprints. Use blueprints as route
   hypotheses or compatible mechanism components, not as a single fixed selector
   or recipe.
@@ -168,48 +174,16 @@ and review packet fields needed for routing.
 - If a rejected mechanism is implementation-bug or handoff-repairable rather
   than method-low-ROI, assign a repair trial from its ref with
   `25_trial_source.sh begin --from-ref <ref>`.
-- If the best final-HPWL metric row is non-promotable only because its source
-  object is missing, do not silently downgrade the research direction to a
-  weaker surviving candidate. Treat it as lost-source donor evidence: assign
-  at most one reconstruction route from valid current-run artifacts, diffs,
-  logs, and Student cards, and keep the remaining Students on broad
-  producer/handoff/consumer mechanism search.
-- Keep useful donor refs as regression guardrails, but do not make every route
-  donor polish. Tiny-gain, over-cost, or plateau rounds need `elite-expand`,
-  `mechanism-redesign`, stage co-optimization, or a different
-  legalizer/DPO/handoff hypothesis.
 - For Differential/LEGALM-style guidance, the target objective itself can be
   heuristic. If logs show zero useful moves, missing frontier consumption, or
   final-HPWL damage after DPO, change the guidance target/weights, stop point,
   handoff payload, or downstream consumer rather than only repeating the same
   objective or discarding the whole guidance family.
-- Keep donor scope explicit: `general donor` means fallback/reusable kernel;
-  `feature-matched donor` means selected for this case's physical/stage
-  features. Follow-up decisions should optimize this specific case first and
-  record transferability as secondary evidence.
-- Weak-gain / over-cost escalation is a review judgment, not a hard field. If
-  current-run candidates are legal but tiny-gain, same-family, or too heavy for
-  the HPWL gained, preserve useful donor refs for rollback and assign
-  aggressive within-run routes: elite-expand the current best with a stronger
-  mechanism, switch mechanism family, redesign the producer/consumer pair, or
-  continue from a current-run kept/rejected ref with `25_trial_source.sh begin
-  --from-ref <ref>`.
-- If the best legal result is still weak in the visible early iterations, do
-  not wait for many more same-family rounds. Preserve evidence, then assign
-  routes that can access a larger HPWL source: a different legalizer basin,
-  explicit producer-to-DPO handoff, stronger exact DPO consumer, wider but
-  bounded search, or a repaired incomplete strong chain.
 - In plateau rounds, visibly change reachable solution space. At least half of
   active non-repair Students should switch, hybridize, elite-expand with a
   stronger mechanism, or redesign a
   legalizer/DPO/handoff family rather than retuning thresholds, counters,
   preservation wrappers, or same-basin source-edge variants.
-- Multiple Students may pursue the same promising blueprint when they test
-  different source hypotheses, such as different start basins, handoff payloads,
-  consumer objectives, or runtime-compressed implementations.  Do not interpret
-  diversity as forcing every Student onto a weak unrelated micro-route.
-- If assigning a branch/ref switch, name the source ref and new trial label, and
-  require trial-helper branch preservation.
 - Prepared starts are branch-only source parents: `framework`, `diamond`,
   `default_negotiation`, `evolved_diamond`, and `evolved_negotiation`. A start
   branch never restricts edit scope. Any route

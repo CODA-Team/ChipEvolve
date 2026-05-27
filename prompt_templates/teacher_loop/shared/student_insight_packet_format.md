@@ -6,6 +6,7 @@
 - donor scope: <general donor | feature-matched donor | new mechanism | fallback-preserved donor>
 - blueprint audit: <if assigning Blueprint A/B/C/D, name selected roadmap query, start basin, already-live links, missing links, and the link this Student implements; otherwise `none`>
 - expected HPWL source: <producer, handoff, DPO consumer, post-consumer polish, or composition being attacked>
+- failure bucket to test: <non-executed/stale implementation | producer payload | handoff lifetime | DPO consumer zero/low accepts | acceptance/scoring too strict or local | accepted-delta washout | post-consumer preservation | runtime/cap bottleneck | wrong start/case-type route | none yet>
 - mechanism strength: <why this mechanism can materially move final HPWL, not only preserve or retune a donor>
 - stage-wise proof target: <expected HPWLlg/HPWLimprove/HPWLfinal movement and liveness counters>
 - why this can beat a small donor: <larger HPWL source, mechanism novelty, and expected stage movement>
@@ -15,6 +16,7 @@
 - mechanism plan: <dominant mechanism plus adjacent-stage compatibility proof; name legalizer recoverability, DPO consumption, or handoff only where it matters>
 - skills/cards: <only selected ids or none>
 - expected proof: <stage metrics, counters/logs, legality/runtime evidence>
+- self-diagnosis trigger: <which metric/log/source signal forces repair, pivot, or stronger chain reconstruction after first evaluation>
 - runtime/complexity: <fast|explore|aggressive plus caps/cache/parallelism>
 - stop/pivot: <low-ROI, failure, or repair condition>
 - record: <diff/metrics/knowledge evidence plus Student mechanism reasoning to preserve; if one self-repair was insufficient, require `## Next Teacher Handoff` in the knowledge_card>

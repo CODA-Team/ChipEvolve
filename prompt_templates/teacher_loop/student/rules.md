@@ -42,86 +42,30 @@
 
 ## Required Workflow
 
-1. Open the workspace packet, then use generated helpers for prepare/start, trial begin/keep/reject, build, evaluate, and finalization.
-2. Do short focused source diagnosis: current HPWL source, active functions/state, likely legality/runtime bottleneck, and why the mechanism can move more than a tiny donor polish. Do not turn diagnosis into a long reading pass.
-   Before coding, decide whether the bottleneck is producer-side legalization,
-   DPO consumer strength, handoff/frontier loss, or their composition. Teacher
-   guidance is a hypothesis; use current source evidence to choose the concrete
-   mechanism and implementation shape.
-   If an API, state owner, or data-structure choice is unclear, inspect 1-3
-   nearby implementations/call sites before coding; do not pause the iteration
-   for ordinary uncertainty.
-3. Start the first real trial early. After a short diagnosis and one concrete mechanism plan, run `25_trial_source.sh begin --label <name>` and land the first coherent patch before doing more broad reading.
-4. Plan the source mechanism before editing, but keep the plan execution-oriented. Large mechanism-level rewrites and implementation-local helper files are allowed when they are coherent, bounded, reviewable, and validated.
-   Before editing, name concrete success criteria: legality, expected
-   stage-wise HPWL movement, liveness counters/logs, and runtime guard.
-   Include an explicit `HPWL-source hypothesis`: which stage or stage
-   composition should improve, how the code change exposes that quality source,
-   and what counter or stage tuple would prove it executed.
-   For legalizer/output-repair routes, include avg/max displacement and DPO
-   recoverability in the success criteria; do not declare success from
-   `HPWLlg` movement alone.
-   Except for explicit implementation repair, the patch should change a real
-   mechanism class such as candidate generation, scoring, acceptance,
-   transaction/rollback, legalizer-DPO handoff, or bounded search scope. Do not
-   spend the main trial only on constants, tie-breaks, or telemetry.
-   Retunes, frontier metadata, fallback parity, and counters are not enough for a
-   primary route unless they feed a real producer/consumer policy change and
-   cause nonzero accepts or stage-wise movement. If your patch preserves the
-   same start-basin `HPWLlg/HPWLimprove/HPWLfinal`, diagnose it as shallow
-   polish and propose a different mechanism in `## Next Teacher Handoff`.
-   If Teacher assigns the current best, treat it as an elite-expansion branch,
-   not no-op telemetry, preservation-only work, or tiny polish. Preserve the
-   donor/ref as recoverable fallback, then make substantial coherent quality
-   changes on top: deepen the consumer, change producer/handoff composition,
-   add bounded quality search, rewrite runtime bottlenecks to free budget for
-   stronger search, or stack a compatible mechanism. Name the HPWL source,
-   caps/caches, counters, rollback/fallback discipline, and full-flow proof.
-   Do not finalize a zero-diff preservation-only rerun.
-   Your plan should name one dominant mechanism and one compatibility check
-   for adjacent stages. For example, a legalizer route should explain why the
-   output remains DPO-recoverable; a DPO route should explain why the input
-   state and any handoff/frontier make the search targeted. Do not make
-   cosmetic edits to legalizer, DPO, and handoff just to satisfy a checklist.
-   If Teacher provides `pipeline coverage`, implement the primary mechanism and
-   at least one real adjacent-stage support mechanism or liveness hook unless
-   current source evidence proves it unsafe. For `co-optimization-emphasis`,
-   try to make producer, handoff/frontier, and consumer all execute in the same
-   source variant; if one stays unchanged, justify it with source evidence and
-   counters.
-   If the route is DPO-emphasis, avoid simply adding more post-DPO work. State
-   how the legalizer or handoff will make the DPO search targeted, or why a new
-   DPO move/scoring family attacks a different HPWL source.
-   If Teacher asks you to stack current-case mechanisms, implement one coherent
-   producer/handoff/consumer flow. Port the mechanism deliberately onto your
-   branch and add counters that prove the stack executes; do not implement a
-   case selector among whole algorithms or another threshold-only variant.
-   If Teacher assigns a complete strong-chain reconstruction or alternate start
-   basin, do not shrink it into guard, late polish, telemetry, or a single
-   retune.  Implement the material chain links Teacher named: legalizer/start
-   basin, explicit component/window/frontier payload, handoff state that keeps
-   the payload live through later passes, exact DPO consumer with larger-grain
-   transactions, acceptance/rollback truth, and post-consumer proof.  If one
-   link cannot be implemented in the iteration, report that missing link
-   explicitly in `## Next Teacher Handoff`.
-   If the assignment names a blueprint but not enough details, query the exact
-   roadmap section and fill in the checklist yourself before coding.  Do not
-   implement only the easiest late polish link and call it a blueprint hit.
-5. Patch source, build, run the canonical full-flow evaluator, read the generated candidate metrics summary first, then inspect the actual DPL log/counters needed to prove whether your mechanism fired and why it accepted/rejected candidates. Do not rely on metrics alone when judging mechanism liveness or failure.
-6. Before finalization, run one self-diagnosis and strengthening loop. Diagnose whether the first result exposed an implementation bug, zero/non-live counter, weak accept rate, missing producer/consumer handoff, wrong HPWL source, excessive runtime, or stage-local gain erased downstream. Then make one coherent strengthened modification and re-run build/evaluation, unless the first result failed so fundamentally that the route must be rejected. This is the bounded self-repair cycle for the iteration; do not keep stacking unreviewed repairs after it.
-   The self-diagnosis must explicitly answer whether HPWL movement came from
-   the intended mechanism, citing concrete summary fields or DPL log counters
-   such as producer count, consumer attempts, accepts/rejects, accepted delta,
-   stop reason, and mechanism-local runtime. If final HPWL is weak but runtime
-   headroom remains, strengthen the mechanism toward the missing quality source
-   instead of only lowering runtime or preserving the current result.
-   For plateau or runtime-for-quality routes, also report
-   `accepted_delta_per_runtime` or enough accepted-delta and pass-runtime fields
-   for Teacher to compute it. More probes, accepts, or raw accepted delta without
-   final HPWL movement means the payload quality, consumer granularity,
-   post-consumer preservation, or gain-rate control still needs repair.
-7. After the strengthened evaluation, decide keep/reject/finalize from the best clean source. Use `25_trial_source.sh reject` only after preserving evidence when the path has no clear repair, stays non-executed, is validated-low-ROI, or worsens HPWL while also adding unjustified runtime. Keep the best clean evaluated source. If the route still needs follow-up, write the exact next repair or pivot into `## Next Teacher Handoff` in the generated knowledge card so Teacher can decide the next round.
-8. Run finalization for the final source state and make sure source commit/ref, binary, metrics, diff, and report all describe the same code.
+1. Open the workspace packet and use its generated helpers for source prep,
+   trial begin/keep/reject, build, evaluate, and finalization.
+2. Do short source diagnosis, then start a real trial early. Name the
+   HPWL-source hypothesis, failure bucket, success metrics, liveness counters,
+   and runtime guard before the first patch.
+3. Patch a real mechanism class unless doing explicit implementation repair:
+   producer/legalizer state, handoff/frontier state, DPO candidate generation,
+   scoring, acceptance, transactions/rollback, post-consumer preservation, or a
+   bounded search family. Constants, counters, telemetry, and late polish are
+   support unless they feed that mechanism.
+4. For blueprint or strong-chain routes, implement the material links Teacher
+   named: start basin, producer payload, handoff lifetime, exact consumer,
+   acceptance/rollback truth, and post-consumer proof. If a link cannot be done,
+   record the missing link in `## Next Teacher Handoff`.
+5. Build/evaluate with the canonical helpers. Read the generated metrics summary
+   first, then open DPL logs/counters when liveness, accept/reject behavior,
+   stop reason, or runtime cost is unclear.
+6. Treat the first evaluator result as diagnosis, not finalization. Make one
+   strengthened repair or controlled pivot when there is a plausible bug,
+   zero/non-live counter, weak accept rate, missing producer/consumer handoff,
+   wrong HPWL source, runtime bottleneck, or stage-local gain erased downstream.
+7. Decide keep/reject/finalize from the best clean evaluated source after that
+   bounded self-repair. Preserve rejected code with the trial helper and keep
+   source commit/ref, binary, metrics, diff, and report aligned.
 
 ## Source And Branch Protocol
 
@@ -173,19 +117,20 @@
 
 - Do not stay in diagnosis mode once the first implementation path is clear. If Teacher already gave a first-patch landing zone and you can name the first modified function/state, move to `trial begin -> patch -> build -> evaluate` immediately.
 - Keep pre-edit reading narrow: use a few targeted `rg`/`sed` inspections around the assigned mechanism. Avoid broad cross-tree tours before the first patch unless the current source handle is clearly wrong.
-- Outside of necessary OpenROAD interface/call-site checks, avoid broad
-  knowledge, donor, paper, old-branch, or flow research during Student
-  execution. If the first implementation path is clear, patch it and let
-  evaluation drive the next question.
-- Before the first evaluator run, use first-patch handles and the workspace
-  entry-point map to keep extra reading narrow. Expand only for adjacent
-  implementation support or a concrete compile/correctness blocker.
 - After `trial begin`, stop re-deriving the outer command/evaluator chain unless the current patch is blocked by an actual uncertainty about call order or artifact wiring. Assume the generated packet, Teacher assignment, and helper scripts are the source of truth for stage order and evaluation entrypoints.
 - After each evaluation, inspect `candidate_metrics_summary_md/json` first,
   then open the actual DPL log when needed to diagnose mechanism liveness,
   accept/reject bottlenecks, stop reasons, or runtime cost. Report final HPWL,
   stage-wise HPWL movement, legality, displacement, runtime, active counters,
   and whether the logs support your HPWL-source hypothesis.
+- If final HPWL is flat, worse, or only weakly better, classify the concrete
+  failure bucket before finalization: non-executed or stale implementation,
+  producer payload quality, handoff lifetime, DPO consumer zero/low accepts,
+  acceptance/scoring too strict or too local, accepted-delta washout,
+  post-consumer preservation loss, runtime/cap bottleneck, or wrong
+  start/case-type route. Use the changed source plus metrics/log counters to
+  justify the classification, then use the required strengthened modification
+  to repair the bucket when plausible.
 - When diagnosing a legalizer-side change, explicitly compare `HPWLlg` with
   avg/max displacement, handoff/frontier counters, DPO exact accepts,
   accepted_delta, and final HPWL. A legal-stage proxy improvement that hurts
@@ -195,45 +140,14 @@
   Treat `Stage Metrics` / `flow_internal_delta_*` as diagnostic attribution
   only; a large `HPWLg -> HPWLfinal` stage delta does not mean the candidate
   beat OpenROAD default.
-- Counters and accepted-delta only prove liveness. Do not call a route
-  successful if final HPWL barely improves over OpenROAD default/current elite
-  or stays far from the 5% ambition. In that case, use the required
-  strengthened modification to repair the missing producer, handoff, consumer,
-  acceptance, or post-consumer link rather than only increasing counters.
-- The first evaluation after implementing Teacher's plan is not the final
-  stopping point. Use it as diagnosis input, then perform one strengthened
-  modification and re-evaluation before finalizing. The strengthened patch may
-  fix liveness, widen or retarget a bounded candidate set, add a missing
-  consumer, repair handoff, improve cache/caps, or pivot within the same HPWL
-  source.
-- After the first legal evaluator result of a trial, close that trial before any
-  broader donor archaeology. Decide `keep` or `reject` from the current trial
-  evidence first, then either finalize or start a focused new trial from the
-  preserved ref. Do not fetch prepared-start diffs or compare broad donor
-  branches while an active trial is still open.
-- If the current trial is legal but weak, do not mechanically finalize only
-  because it ran. If metrics expose a concrete same-route implementation bug,
-  missing consumer, or wrong HPWL source, start one focused repair/pivot trial;
-  otherwise keep/finalize the best clean source and report the limitation.
-  Smoke runs may still bias toward one coherent patch and one closed result.
 - If the route targets a known strong mechanism chain, verify chain
   completeness before judging it: producer, handoff, consumer, exact
   acceptance, and post-consumer polish. If only a subset executed and final HPWL
   is weak, report the missing link instead of marking the family low-ROI.
-- If the case only weakly improves over OpenROAD default/current elite or
-  remains far below the matched case-type potential, do not stop at a clean
-  weak candidate unless the assigned route has no plausible repair after the
-  required self-diagnosis. Use the one strengthened modification to repair the
-  missing chain link, widen a bounded exact search, retarget the handoff, or
-  change the acceptance/scoring source.
-- Separate algorithmic failure from implementation cost: zero counters, stale binary/source mismatch, acceptance too strict, legality rejects, fallback domination, duplicate endpoint work, broad rescans, poor cache reuse, missing parallelism, or timeout.
-- Do not reject just because the first evaluation fails. First diagnose whether
-  the failure is a local implementation/integration issue that can be repaired
-  inside the current route. Reject after a failed repair attempt, no plausible
-  repair, non-execution, validated-low-ROI, or HPWL regression plus unjustified
-  runtime cost.
-- If a mechanism is live and correct but full-flow HPWL remains extremely small after a meaningful repair attempt, record `validated-low-ROI`, preserve it through the trial helper, and propose a different HPWL source instead of stacking tiny variants.
-- If a stage-local gain is erased downstream, keep the stage donor evidence and diagnose the consumer/handoff repair.
+- Counters and accepted-delta prove liveness, not quality sufficiency. If final
+  HPWL stays weak after one meaningful repair, record the failure bucket or
+  `validated-low-ROI`, preserve the source, and propose the next missing-chain
+  repair or different HPWL source.
 
 ## Runtime And Performance
 

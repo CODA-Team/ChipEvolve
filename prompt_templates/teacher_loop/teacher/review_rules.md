@@ -150,6 +150,14 @@
   and `stage-wise proof target`. The proof target must be concrete enough that
   the next review can tell whether the route reached the intended source of
   quality improvement.
+- For weak, flat, over-cost, or surprising results, verify the Student's
+  explanation against concrete source changes and concrete metrics/log evidence
+  before planning the next route. Convert the result into a failure bucket:
+  non-executed/stale implementation, producer payload quality, handoff lifetime
+  loss, DPO consumer zero/low accepts, acceptance/scoring too strict or too
+  local, accepted-delta washout, post-consumer preservation loss, runtime/cap
+  bottleneck, or wrong case-type/start-basin route. At least one next route
+  should directly repair or refute the named bucket.
 - Review whether the route mix is too narrow. If all next routes would polish
   one donor family while the case still trails baseline, require one broader
   new-family route justified by the observed failure mode. Knowledge cards may

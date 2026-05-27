@@ -29,6 +29,19 @@ route. Keep the review concise and action-bearing.
 - Read order for mechanism reasoning is the artifact packet first, then each
   relevant `knowledge_card`, then `source_trials.jsonl` or diff/logs only if a
   card is vague, inconsistent, or marks a repairable rejected ref.
+- For any weak, flat, over-cost, or surprising result, verify the Student's
+  explanation against at least one concrete source artifact and one concrete
+  metrics/log artifact before planning the next route. Use the diff or changed
+  files to confirm the intended mechanism exists, and use candidate metrics or
+  DPL counters to confirm whether producer, handoff, consumer, acceptance, and
+  post-consumer links executed. Do not let a plausible narrative substitute for
+  source/log evidence.
+- The review must convert weak evidence into an actionable failure bucket:
+  non-executed/stale implementation, producer payload quality, handoff lifetime
+  loss, DPO consumer zero/low accepts, acceptance/scoring too strict or too
+  local, accepted-delta washout, post-consumer preservation loss, runtime/cap
+  bottleneck, or wrong case-type/start-basin route. The next packet set must
+  contain at least one route that directly attacks the named bucket.
 - When a candidate is weak, rejected, or repairable, read `## Next Teacher
   Handoff` in the Student `knowledge_card` as its bounded self-diagnosis before
   assigning the next packet; verify it against metrics, refs, counters, and
