@@ -45,6 +45,9 @@ modes; do not copy a card mechanically when local source evidence points
 elsewhere. If Teacher assigns a case-type route, read the case feature route
 insight packet or the named roadmap section first and use only the assigned
 section unless local source evidence requires a different feature-level route.
+Other knowledge handles are useful only after a concrete route or bottleneck is
+named: use diagnosis/algorithm/skill cards to design a source-level mechanism,
+liveness counter, repair test, or bounded cost-control change.
 For an explicit Blueprint A/B/C/D assignment, run the knowledge query helper
 for that exact blueprint before editing, then write a pre-edit complete-chain
 audit: start basin, producer, handoff, exact consumer, post-consumer closure,

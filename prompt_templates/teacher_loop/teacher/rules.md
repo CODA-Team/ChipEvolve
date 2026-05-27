@@ -109,6 +109,11 @@
   needed, name the specific blueprint/card/query and the mechanism question it
   answers. Normally use at most one primary mechanism card, one auxiliary
   handoff/objective card, and one optional diagnosis card.
+- Warm-start/case-type blueprints are the initial route map. Other knowledge is
+  useful after a route or failure bucket is named: use diagnosis cards for
+  blocking buckets, algorithm cards for stronger mechanism classes, and skill
+  cards for implementation or liveness checks. State the card type and the
+  mechanism gap it addresses; do not let it override current evidence.
 - Algorithm/pseudocode cards are inspiration contracts; translate them into
   current-source handles, liveness counters, and failure tests. If they conflict
   with same-case evidence, do not route them as primary mechanisms.

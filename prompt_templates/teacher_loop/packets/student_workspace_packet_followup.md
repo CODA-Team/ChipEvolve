@@ -80,6 +80,9 @@ Teacher-assigned route insight or roadmap section first. Query
 `--stage legalization --q "diamond negotiation differential guidance liveness"`
 only to refine role/liveness details, then keep producer/consumer counters
 aligned with the route role.
+For plateau, weak-gain, or over-cost routes, query only the named diagnosis,
+algorithm, or skill card that answers the current mechanism gap; convert it into
+a patch target, liveness counter, and proof criterion before editing.
 
 If Teacher assigns a case-type route, use these handles only for the assigned
 mechanism section rather than broad reading:

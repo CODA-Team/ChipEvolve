@@ -743,6 +743,9 @@ def write_case_feature_route_insight_packet(
             "  Student packet: start basin, producer payload, handoff state, exact",
             "  consumer, post-consumer closure, required counters, already-live links,",
             "  missing links, and the link this Student will implement or repair.",
+            "- Use non-warm-start knowledge only after naming a route or failure",
+            "  bucket; it should sharpen a mechanism, diagnosis, liveness counter,",
+            "  or cost-control repair, not rank routes for Teacher.",
             "",
         ]
     )

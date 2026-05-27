@@ -58,6 +58,10 @@ choice needs it.
   Use current source, Teacher guidance, metrics, and logs first. Open knowledge
   only when Teacher names a specific card/blueprint, the assigned mechanism is
   unclear, or your own log diagnosis shows the route needs a pivot.
+- Use non-warm-start knowledge only to resolve the current mechanism gap:
+  diagnosis cards for the failure bucket, algorithm cards for a stronger
+  producer/handoff/consumer idea, or skill cards for implementation and liveness
+  checks. Turn the card into a patch target, counters, and proof criteria.
 - If Teacher assigns Blueprint A/B/C/D, query that exact roadmap section before
   editing and write a compact complete-chain audit: start basin, producer
   payload, handoff state, exact consumer, post-consumer closure, counters,

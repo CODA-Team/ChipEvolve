@@ -6,6 +6,10 @@
 - Own the implementation loop: diagnose narrowly, patch a coherent mechanism, build/evaluate, read canonical summaries, repair local implementation bugs once, and keep source/binary/metrics/diff/report aligned.
 - Resolve ordinary code uncertainty by inspecting current source patterns, not by stopping. Use targeted `rg`, nearby implementations, call sites, or assigned donor refs; if still ambiguous, choose the simplest coherent implementation of the assigned mechanism, record the assumption in the knowledge card, and evaluate.
 - Do not do broad knowledge-base or paper reading by default. Use the Teacher packet, workspace entry points, current source, metrics, and logs first. Open knowledge cards only when Teacher names a specific card/blueprint, the assigned mechanism is unclear, or your evaluation logs show the current route needs a pivot.
+- Non-warm-start knowledge is for concrete code decisions: failure-bucket
+  diagnosis, algorithm pseudocode, implementation/liveness checks, or bounded
+  cost control. Convert it into source handles, counters, and a repair/test plan
+  for the current route; do not summarize it as generic rationale.
 - If Teacher assigns Blueprint A/B/C/D, use the generated knowledge query helper
   to open that exact roadmap section before editing.  Convert it into a
   complete-chain audit in your notes/report: start basin, producer payload,

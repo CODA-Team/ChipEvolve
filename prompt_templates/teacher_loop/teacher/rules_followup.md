@@ -63,6 +63,11 @@ and review packet fields needed for routing.
   behavior, and Student knowledge-card reasoning. Use targeted knowledge only
   when it clarifies a route change or mechanism insight. Current evidence wins
   over a knowledge card.
+- After plateau, weak gain, or over-cost, non-warm-start knowledge is useful as
+  targeted mechanism-upgrade support: first name the failure bucket, then use at
+  most one diagnosis/algorithm/skill card to propose a stronger source-level
+  producer, handoff, consumer, counter, or cost-control repair. Name that
+  question in the Student packet instead of asking for broad reading.
 - Weak-result diagnosis is mandatory before the next route map. If final HPWL
   is flat/weak, stage tuples repeat, or runtime grows without gain, classify the
   blocking bucket: non-executed/stale code, producer payload, handoff lifetime,
