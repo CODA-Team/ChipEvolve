@@ -109,6 +109,49 @@ names, benchmark lookups, or hard-coded selections.
 | `D+A` | One-student Diamond sourceTopK core chain | large row-rich/control/datapath case needs the strong warm-up method from a fast clean Diamond basin and only one Student is assigned; sourceTopK may be absent, gated, or weak, but the Student must implement producer activation, hot-segment handoff, and selected reorder before optional continuation consumers | multi-Student rounds may still assign another lane, but the strongest route should remain this fused chain until counters prove the missing link | endpoint/source recoverability is the named payload (use B), low-residual current-net anchors are the named payload (use C), or the exact D+A chain is already fully live and only a small local repair is needed |
 | `D` | Diamond sourceTopK/source-edge exact DPO activation | sourceTopK/source-edge search is absent, gated off, or weak and the task explicitly scopes only producer activation | a low-utilization row-rich/control/datapath case needs an exact DPO lane independent of LEGALM or negotiation; ordered-pair and endpoint-escape are later repairs after single-cell exact accepts are live | one-student warm-up on the large row-rich Diamond/sourceTopK signature; use Blueprint D+A so the Student does not stop before post-DPO consumers |
 
+### Route-Level Parameter Adjustment Map
+
+Use these rules after selecting the route.  They are not hard-coded case
+selectors; they tell Teacher and Student which knobs to inspect when the route is
+correct but runtime or search efficiency is wrong.
+
+- `D+A`: tune the exact-lane dispatch floor, full-source coverage, per-source
+  candidate pool, exact top-K, target-row radius, bbox-left/center/right anchor
+  set, move-before-swap fallback, pass elapsed/gain-rate stop, hot-segment
+  lifetime, and selected-reorder hot/fallback budgets.  If runtime grows before
+  reorder/final reporting, shrink per-source candidates, target-row radius,
+  fallback swap probes, and low-yield fallback reorder while keeping broad source
+  traversal.  If counters are large but final HPWL is weak, do not widen caps
+  first; tighten source ranking toward outside-bbox reduction, legal target-row
+  feasibility, accepted-delta density, and consumer preservation.
+- `A`: tune accepted/critical frontier size, hot segment selection, micro-start
+  seeds, per-seed candidate count, chain partners/followers, exact-closure
+  windows, multi-row residual probes, and residual-swap scope.  If the producer
+  is live but final HPWL is flat, spend more budget on higher-granularity
+  transactions over the same frontier.  If runtime grows without quality, cut
+  broad closure windows and low-gain residual swaps before cutting the strongest
+  critical-chain consumers.
+- `B`: tune negotiation top-net/top-cell breadth, recoverability bonus scale and
+  cap, slack halo, displacement damping, negotiation search windows, source-edge
+  exact target breadth, hot micro-pack windows, accepted-window replay seed caps,
+  replay halo/shift candidates, cascade breadth, and endpoint/source repair
+  breadth.  If displacement tails or legal damage grow, lower the bonus or
+  strengthen damping rather than removing the endpoint producer.  If the payload
+  is too small, widen recoverability top nets/cells or source-edge targets before
+  adding unrelated DPO work.
+- `C`: tune LEGALM/current-net producer strength, stage3 exact-refinement
+  frontier, target-valid/exact-anchor thresholds, row-miss and same-row quotas,
+  vertical/global score caps, accept caps, and selected residual-segment windows.
+  If producer counters are zero, relax the handoff/frontier criteria and repair
+  target/current-net publication.  If runtime grows, cap frontier breadth and
+  selected residual windows while preserving exact anchors and target-miss cells.
+- `D`: tune exact `gs` reachability, source-edge hot-cell tagging, source
+  traversal breadth, per-source row/segment probes, exact top-K, ordered-pair
+  search, endpoint-escape targets, and hot-segment export.  If sourceTopK is
+  absent or tiny, repair dispatch and source traversal.  If exact accepts are
+  live but local, add ordered-pair or endpoint-escape over the accepted footprint
+  before switching start basins.
+
 ## Blueprint Selection Rules
 
 - Treat each blueprint as a complete mechanism chain.  A plan that names only a

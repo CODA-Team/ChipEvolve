@@ -246,6 +246,41 @@ exact GS profiling is not a completed warm-up method.  Use this structure:
    guard, and gain-rate stop.  Do not pivot to guard work or add continuation
    consumers before the core flow completes.
 
+### Parameter Tuning Rules
+
+Tune this route around search efficiency, not around a fixed constant set.
+Preserve the mechanism chain: broad sourceTopK producer -> native handoff ->
+selected reorder -> optional exact residual consumers.
+
+- Keep broad source traversal.  Runtime should be controlled by per-source
+  candidate pool size, per-source exact top-K, target-row radius, segment
+  pruning, move-before-swap replay, pass elapsed guards, and accepted-delta per
+  runtime stops.  Do not solve runtime by reducing the source pass to a tiny
+  global sampler, because that removes the mechanism that creates the value.
+- If the exact `gs` path is missing or counters are tiny, raise the exact-lane
+  dispatch floor and repair the `gs` call path before changing candidate caps.
+- If generated/exact-scored counts are high but replay attempts or accepts are
+  low, widen or reshape target rows and bbox anchors, fix `alignPos`, and verify
+  move-before-swap replay semantics.  Increasing selected reorder budget cannot
+  repair a producer that has no positive accepted payload.
+- If accepts and accepted delta are large but final HPWL is weak, tighten
+  candidate ranking: prefer sources outside the median/bbox band, legal target
+  rows with real segment feasibility, bbox-left/center/right anchors that reduce
+  outside-bbox distance, lower move distance for equal expected gain, and
+  accepted-delta density.  Do not widen caps until accepted-delta washout is
+  diagnosed.
+- If runtime grows before downstream stages complete, first reduce low-yield
+  exact probes: smaller per-source top-K, fewer adjacent target rows, fewer swap
+  fallbacks, earlier gain-rate stop, and smaller fallback reorder budget.  Keep
+  the hot-frontier selected reorder and at least one final HPWL report.
+- If hot-frontier reorder sees few windows despite many accepts, the tuning knob
+  is handoff lifetime, not reorder width.  Accumulate old/new segment ids from
+  every accepted journal and dedupe after accumulation.
+- If selected reorder is live but the remaining residual is localized, add exact
+  local closure or Blueprint A continuation consumers over accepted nodes/hot
+  segments.  Increase these budgets only when their own accepted-gain counters
+  justify the runtime.
+
 ### Acceptance-Critical SourceTopK Details
 
 The common failed reconstruction is a producer that visits many cells but never
@@ -582,6 +617,27 @@ first activation path for a missing sourceTopK producer; use Blueprint D+A when 
 - `segmentLocalResidualSwaps`: try only local neighbors around the accepted or
   critical footprint to preserve and extend earlier DPO gains.
 
+### Parameter Tuning Rules
+
+- Treat frontier breadth and transaction depth as the main quality/runtime
+  controls.  Tune critical-frontier node cap, hot-segment cap, micro-start seed
+  count, per-seed target candidates, chain partner/follower counts, exact-closure
+  window count, multi-row residual probes, and segment-local residual-swap scope.
+- If producer counters are live but final HPWL is flat, increase transaction
+  granularity before adding unrelated producers: two/three-step chains,
+  multi-row residual transactions, or pair repair over the same
+  accepted/critical footprint.
+- If micro-start accepts exist but chain/closure adds little, retune ranking
+  toward critical-net span, accepted-delta density, displaced cells, and hot
+  segments touched by the producer.  Avoid expanding broad windows that are not
+  connected to the native frontier.
+- If runtime grows without final HPWL, keep the highest-gain exact consumer and
+  shrink lower-yield work first: broad exact closure windows, residual swaps far
+  from the frontier, and fallback windows with low accepted gain per runtime.
+- If a continuation consumer has zero accepts, first verify handoff lifetime and
+  native id mapping.  Increasing caps on an empty or stale frontier only wastes
+  runtime.
+
 ### Counters And Diagnosis
 
 - Required counters: sourceTopK/global-swap generated/exact-scored/replayed/
@@ -671,6 +727,31 @@ reorder, replay, and endpoint/source repair consume.
 - `Optdp.cpp`: pass order and preservation of incoming handoff through
   source-edge GS, reorder, micro-pack, replay, endpoint repair, and cleanup.
 
+### Parameter Tuning Rules
+
+- The producer knobs are negotiation top-net breadth, candidate-cell breadth,
+  recoverability bonus scale/cap, slack halo, displacement-growth guard,
+  displacement damping, search-window size, and negotiation phase effort.  Use
+  them to create a recoverable endpoint/source payload, not to optimize legal
+  HPWL alone.
+- If recoverability counters are tiny, widen top-net/top-cell selection or slack
+  halo and make sure endpoint/source cells are actually marked.  If preferred
+  locations are often reverted, reduce the bonus, strengthen displacement
+  damping, or require more local slack.
+- The DPO consumer knobs are source-edge target breadth, endpoint target
+  construction, exact top-K/probe budget, hot-segment and source-edge hot-cell
+  handoff, hot micro-pack windows, accepted-window replay seed cap, replay halo,
+  shift-candidate count, cascade breadth, and endpoint/source repair breadth.
+- If source-edge exact accepts are zero, repair source-edge candidate generation
+  and exact replay before increasing negotiation weights.  If hot reorder or
+  micro-pack sees no windows, repair hot-segment/source-edge mask handoff.
+- If runtime grows, cap replay seeds, cascade breadth, endpoint top nets, and
+  broad micro-pack windows first.  Keep the negotiation producer, source-edge
+  exact consumer, and at least one endpoint/source repair pass alive.
+- If single-cell endpoint repair is live but final HPWL is flat, do not keep
+  retuning the bonus only.  Add pair or small-cluster exact transactions over
+  the same top-net endpoint/source frontier.
+
 ### Counters And Diagnosis
 
 - Required counters: negotiation recoverability top nets/cells/scored/selected/
@@ -687,6 +768,29 @@ reorder, replay, and endpoint/source repair consume.
   transactions over the same top-net frontier.
 - Displacement tail grows sharply: damp recoverability bonus and reject endpoint
   extensions unless exact gain pays for them.
+
+### Reconstruction Sketch
+
+```text
+negotiation_legalizer:
+  rank high-span moderate-degree nets
+  mark first/second extrema endpoint/source cells
+  score candidate legal sites with overflow/history + recoverability bonus
+  damp or revert bonus when displacement growth outruns local slack
+  publish recoverability counters and legal state
+
+improvePlacement:
+  run exact source-edge global swap on the negotiation legal state
+    prioritize frontier/source-edge cells and endpoint hints
+    exact-score bounded move/swap candidates
+    replay positives through the normal accept path
+    export accepted nodes, source-edge hot cells, hot segments, accepted delta
+  selected hot-segment reorder
+  hot micro-pack on endpoint/source-edge windows
+  accepted-window residual replay and cascade
+  endpoint/source exact repair over top nets touching the frontier
+  optional pair/small-cluster exact transactions when single-cell repair is live
+```
 
 ## Blueprint C: Low-Residual Current-Net / Vertical-Frontier Consumer
 
@@ -739,6 +843,26 @@ intentionally rebuilt low-residual target/current-net payload.
 - `detailed_reorder.{h,cxx}`: selected-segment exact reorder and anchor-local
   transactions.
 
+### Parameter Tuning Rules
+
+- The producer knobs are LEGALM/full-guidance strength, stage3 exact-refinement
+  breadth, target-row/site publication, target-valid/exact-anchor thresholds,
+  target-miss marking, current-net anchor scoring, and moved/stage3 handoff cell
+  retention.
+- If producer counters are zero, relax target-valid or exact-anchor criteria,
+  broaden row-miss/same-row quotas, and verify that target rows/sites and
+  current-net anchors survive into `Opendp`.
+- The consumer knobs are frontier cap, row-miss versus same-row quota,
+  vertical/global score cap, accept cap, nearby-row radius, selected
+  residual-segment count, reorder window count, and anchor-local transaction
+  scope.
+- If exact moves score but accept zero, retune target rows/sites and current-net
+  anchors before increasing residual reorder.  If legal HPWL improves but final
+  HPWL worsens, reduce legalizer-only pressure and improve DPO consumability.
+- If runtime grows, shrink frontier breadth, selected residual windows, and
+  nearby-row radius first while preserving exact anchors, target-miss cells, and
+  one vertical/global exact consumer lane.
+
 ### Counters And Diagnosis
 
 - Required counters: stage3 exact refinement enabled/frontier/scored/accepts;
@@ -753,6 +877,24 @@ intentionally rebuilt low-residual target/current-net payload.
   objective.
 - Legal HPWL improves but final worsens: the legalizer produced a DPO-hostile
   basin; repair downstream consumability rather than promoting `HPWLlg`.
+
+### Reconstruction Sketch
+
+```text
+LEGALM/full_guidance:
+  compute target rows/sites and current-net anchor terms
+  mark target-valid, exact-anchor, target-miss, moved/stage3 handoff cells
+  run bounded stage3 exact refinement only when exact gain is positive
+  publish row-miss, same-row residual, current-net, and exact-anchor counters
+
+improvePlacement:
+  import target/current-net state from Opendp
+  build compact row-miss and same-row frontier queues
+  exact-score targeted global and vertical moves with rollback/replay
+  accept only positive moves and append affected residual segments
+  selected-segment reorder on exact-anchor/residual segments
+  optional anchor-local transactions when residual segments remain concentrated
+```
 
 ## Blueprint D: Diamond SourceTopK/Source-Edge Exact DPO Activation
 
@@ -824,6 +966,27 @@ not the complete strong-chain route by itself.
 - `detailed.cxx`: confirm the normal DPO script calls the global-swap
   implementation containing this sourceTopK kernel.
 
+### Parameter Tuning Rules
+
+- The producer knobs are exact `gs` dispatch, source-edge/hot-cell marking,
+  source traversal breadth, per-source row and segment probes, bbox-anchor set,
+  exact top-K, move-before-swap fallback, ordered-pair candidate count,
+  endpoint-escape target breadth, pass elapsed guard, and accepted-delta per
+  runtime stop.
+- If sourceTopK/source-edge counters are absent or tiny, repair dispatch,
+  intensity fallback, and source traversal first.  Do not spend the iteration on
+  late closure or legalizer scoring while the exact producer is not live.
+- If accepts are live but too local, add ordered-pair or endpoint-escape probes
+  over the accepted/source-edge footprint.  Keep exact rollback/replay and reject
+  nonpositive transactions.
+- If runtime grows, reduce per-source probes, ordered-pair breadth, endpoint
+  target breadth, swap fallback, and fallback reorder before reducing the source
+  pass to a tiny global sample.
+- If final HPWL remains weak after producer activation, either extend to
+  Blueprint D+A selected-reorder/critical-frontier consumers or switch to
+  Blueprint B/C only when the observed payload is endpoint/source recoverability
+  or current-net/target-miss state.
+
 ### Counters And Diagnosis
 
 - Required stage tuple: `HPWLg`, `HPWLlg`, `HPWLimprove`, `HPWLfinal`, legality,
@@ -854,3 +1017,19 @@ not the complete strong-chain route by itself.
 - If most code changes are LEGALM, negotiation, mirror, telemetry, guard, or
   cap-only while sourceTopK counters remain absent/small, the implementation has
   drifted away from Blueprint D.
+
+### Reconstruction Sketch
+
+```text
+improvePlacement:
+  preserve Diamond legal basin
+  force enhanced exact gs path reachable from the normal DPO script
+  scan broad single-height source list
+    derive source-edge and bbox/median target anchors
+    exact-score bounded move-before-swap probes
+    replay best positive move through normal global-swap acceptance
+    export accepted nodes, source-edge hot cells, old/new hot segments
+  selected-segment reorder on the accepted hot frontier
+  if accepts are local, add ordered-pair or endpoint-escape exact probes over
+  the same source-edge footprint
+```
