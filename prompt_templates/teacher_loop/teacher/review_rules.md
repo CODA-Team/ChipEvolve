@@ -117,7 +117,7 @@
   reproduces part of a stronger producer-handoff-consumer pattern, name the
   missing producer, handoff, move family, acceptance rule, or post-consumer
   polish instead of declaring the family exhausted.
-- If the route was assigned from Blueprint A/B/C/D, compare the implemented
+- If the route was assigned from Blueprint A/B/C/D or D+A, compare the implemented
   code and counters against the selected roadmap checklist. Classify it as
   `full-chain`, `partial-chain`, or `non-live`. A partial-chain result should
   route the next packet to the first missing producer/handoff/consumer/

@@ -100,7 +100,7 @@ For large cases:
   mirroring timing,
 - treat detailed-improvement attempt-count reductions as quality-risk
   experiments, not default runtime fixes; lower random attempt factors can save
-  seconds but may lose enough HPWL to erase the evolved legalizer's advantage,
+  seconds but may lose enough HPWL to erase the legalizer-quality advantage,
 - only add richer scoring after the bounded probe path is already efficient.
 
 If quality regresses, improve target scoring or commit criteria around bounded

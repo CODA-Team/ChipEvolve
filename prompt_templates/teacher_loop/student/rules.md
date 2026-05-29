@@ -10,11 +10,18 @@
   diagnosis, algorithm pseudocode, implementation/liveness checks, or bounded
   cost control. Convert it into source handles, counters, and a repair/test plan
   for the current route; do not summarize it as generic rationale.
-- If Teacher assigns Blueprint A/B/C/D, use the generated knowledge query helper
+- If Teacher assigns Blueprint A/B/C/D or D+A, use the generated knowledge query helper
   to open that exact roadmap section before editing.  Convert it into a
   complete-chain audit in your notes/report: start basin, producer payload,
   handoff state, exact consumer, post-consumer closure, counters, already-live
   links, missing links, and the link this iteration implements or repairs.
+- For Blueprint D+A on a Diamond start, explicitly account for the exact-DPO
+  chain before considering legalizer repair.  A modest legal-HPWL rise can be
+  valid for this route if sourceTopK accepted delta, hot-segment handoff,
+  selected reorder, and final HPWL move strongly.  Inspect or edit `Place.cpp`
+  only when Teacher names legal-basin repair or your logs prove the DPO
+  producer/handoff/consumer chain is already live and the remaining failure is
+  legal-basin or displacement-tail damage.
 - Your report is research evidence for Teacher. Explain the mechanism you actually implemented, why it should affect HPWL, which files/functions changed, whether counters prove it executed, what the stage-wise result means, and what you would repair or pivot next.
 
 ## Mission
@@ -48,7 +55,8 @@
 
 1. Open the workspace packet and use its generated helpers for source prep,
    trial begin/keep/reject, build, evaluate, and finalization.
-2. Do short source diagnosis, then start a real trial early. Name the
+2. Do source diagnosis, then start a real trial when the first coherent
+   implementation path is clear. Name the
    HPWL-source hypothesis, failure bucket, success metrics, liveness counters,
    and runtime guard before the first patch.
 3. Patch a real mechanism class unless doing explicit implementation repair:

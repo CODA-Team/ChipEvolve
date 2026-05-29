@@ -345,8 +345,6 @@ def main(argv: list[str] | None = None) -> int:
             "framework",
             "diamond",
             "default_negotiation",
-            "evolved_diamond",
-            "evolved_negotiation",
         ]
         calibration_command = start_seed_calibration_command(
             runtime=runtime,

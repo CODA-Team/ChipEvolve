@@ -189,9 +189,8 @@ and review packet fields needed for routing.
   stronger mechanism, or redesign a
   legalizer/DPO/handoff family rather than retuning thresholds, counters,
   preservation wrappers, or same-basin source-edge variants.
-- Prepared starts are branch-only source parents: `framework`, `diamond`,
-  `default_negotiation`, `evolved_diamond`, and `evolved_negotiation`. A start
-  branch never restricts edit scope. Any route
+- Prepared starts are branch-only source parents: `framework`, `diamond`, and
+  `default_negotiation`. A start branch never restricts edit scope. Any route
   may modify any private `dpl_evolve` file when the mechanism requires
   legalizer, DPO, handoff, objective, transaction, mirror, source-internal
   parameter, helper, or telemetry changes. Do not ask Students to manually

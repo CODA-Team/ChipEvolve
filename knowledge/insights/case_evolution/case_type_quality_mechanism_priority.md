@@ -50,29 +50,71 @@ HPWL; do not freeze it into guard-only, attribution-only, or runtime-only work.
 
 ## Feature-Mechanism Map
 
+### Validated Warm-Start Bundles
+
+Teacher should first classify the case by observable features, then map to one
+or more of these mechanism bundles.  These are method insights, not donor
+names, benchmark lookups, or hard-coded selections.
+
+- Endpoint/source negotiation quality stack: use when a standard-cell,
+  control/datapath, wrapper, or large row-rich case has recoverable high-span
+  endpoint/source residue after legalization or early DPO.  Start from
+  `default_negotiation` for first reconstruction.  Rebuild the whole Blueprint B
+  chain: recoverability-ranked negotiation producer, source-edge exact global
+  swap, hot-segment reorder, hot micro-pack, accepted-window replay/cascade,
+  endpoint/source repair, and pair/small-cluster exact transactions when
+  single-cell endpoint repair is live but too local.
+- Diamond sourceTopK exact DPO value stack: use when clean Diamond legalization
+  is fast/clean but may increase legal HPWL, and improve placement shows a
+  broad recoverable basin.  The strong one-shot route starts from `diamond` and
+  first makes DPO, not the legalizer, do the large HPWL work: force the enhanced
+  exact `gs` path live, scan the full single-height source list, build compact
+  per-source bbox/median target rows and left/center/right anchors, exact-score
+  only a small top-K with move-before-swap replay, accept through the normal
+  global-swap objective, export hot segments from every accepted journal, and
+  immediately consume them with selected-segment reorder.  Legal HPWL rising by
+  a small amount is acceptable for this signature if the sourceTopK accepted
+  delta and final HPWL move strongly.  Do not send the first one-student route
+  to `Place.cpp` legalizer repair unless exact-GS dispatch, sourceTopK replay,
+  hot-segment handoff, and selected reorder are already live and the remaining
+  diagnosis explicitly points to legal-basin damage.
+- Low-residual current-net/vertical-frontier stack: use when dense placement
+  exposes target-miss/current-net/exact-anchor state that detailed placement can
+  consume.  Start from `framework` and reconstruct Blueprint C: LEGALM/full
+  guidance as a recoverable producer, stage3 current-net anchors, target
+  rows/sites/valid flags, targeted exact global/vertical moves, and
+  selected-segment residual reorder.
+- Small-control Diamond ordered-pair escape stack: use as a secondary route for
+  small low-utilization control/datapath cases when Diamond exact producer
+  counters are live but single-cell accepts are too local.  Start from
+  `diamond` and add ordered-pair, endpoint-escape, and accepted-footprint
+  arbitration over the same exact sourceTopK journals.
+
 | current evidence pattern | primary warm-start method | blueprint | first start basin | first Student packet |
 | --- | --- | --- | --- | --- |
-| Short/medium standard-cell or control/datapath case with little true macro geometry, visible top-net endpoint/source residue after legal closure or early DPO, and enough runtime budget for a quality lane.  Legal HPWL may be neutral or worse; the useful signal is that endpoint/source cells on high-span nets can be turned into exact accepted moves and preserved through downstream passes. | Negotiation recoverability plus endpoint/source exact consumer stack | `B` | `default_negotiation` first; `evolved_negotiation` only if it preserves the same producer behavior | Rebuild the full chain: source-edge exact global swap -> hot-segment reorder -> hot micro-pack -> recoverability-ranked negotiation producer -> accepted-window replay/cascade -> endpoint/source target repair.  If single-cell endpoint repair is live but flat, add bounded pair/small-cluster exact transactions over the same frontier. |
-| Large row-rich/control/datapath or runtime-sensitive case where improve placement recovers most legalizer damage, exact source-topK/global-swap accepts are plausible, and the residue is a critical frontier rather than only endpoint/source payload.  Low utilization alone does not imply Blueprint D; if the useful signal is accepted-node/hot-critical frontier conversion, this is Blueprint A. | Runtime-balanced critical-frontier exact DPO stack | `A` | `evolved_diamond` or `diamond` when the exact DPO surface is the useful basin; `framework` only when a recoverable LEGALM/frontier producer is the missing link | Rebuild the cumulative exact-consumer chain: source-topK/global-swap exact accept journal -> accepted-node and hot/critical-segment native handoff -> critical-row micro-start -> critical-net chain assignment -> exact local closure -> multi-row residual transactions -> segment-local residual swaps.  The reconstruction should include concrete bounded caps, risk penalties, critical-target preference, and accepted-delta logging from the roadmap; do not stop at a sourceTopK activation or a generic frontier closure. |
+| Short/medium standard-cell or control/datapath case with little true macro geometry, visible top-net endpoint/source residue after legal closure or early DPO, and enough runtime budget for a quality lane.  Legal HPWL may be neutral or worse; the useful signal is that endpoint/source cells on high-span nets can be turned into exact accepted moves and preserved through downstream passes. | Negotiation recoverability plus endpoint/source exact consumer stack | `B` | `default_negotiation` | Rebuild the full chain: source-edge exact global swap -> hot-segment reorder -> hot micro-pack -> recoverability-ranked negotiation producer -> accepted-window replay/cascade -> endpoint/source target repair.  If single-cell endpoint repair is live but flat, add bounded pair/small-cluster exact transactions over the same frontier. |
+| Large row-rich/control/datapath or runtime-sensitive case with little true macro evidence, nontrivial default runtime, clean Diamond legalization that is fast/clean but may raise legal HPWL, and very large improve-stage recovery.  The decisive first question is whether one Student can turn that Diamond basin into a broad exact-DPO value chain.  If Diamond legalization is much faster than default or negotiation and DPO has room to recover, treat this as a Diamond value-lane signature rather than a negotiation or legalizer-repair signature. | One-student Diamond sourceTopK core chain | `D+A` fused; `B` only as a secondary quality lane when multiple Students are available and endpoint/source residue is explicitly visible | `diamond` for the first Student; do not use `default_negotiation` as the only route for a one-Student first shot | Query `Blueprint D+A` and implement the core chain from `diamond` before optional consumers: force exact sourceTopK/global-swap lane live -> broad full-source pass with ranked per-source bbox/median target rows and bbox-left/center/right anchors -> bounded exact top-K replay with move-before-swap probing -> rollback/replay positive transactions through the normal accept path -> cumulative hot-segment handoff from every accepted journal -> selected-segment reorder over the hot frontier with bounded fallback.  Raw accept count is only liveness; if accepted delta is large but final HPWL regresses, repair producer ranking, accepted-delta washout, handoff lifetime, or selected-reorder consumption before widening consumers. Add critical-row/critical-net/multi-row/residual-swap continuation only after the core builds, evaluates, and exposes usable counters. |
+| Large row-rich/control/datapath or runtime-sensitive case where source-topK/global-swap exact accepts are already live with large accepted delta, but final HPWL still has a hot/critical frontier after improve placement.  This is a continuation route after the exact DPO producer is proven live; if sourceTopK is absent, gated, or weak and only one Student is assigned, use Blueprint D+A rather than a downstream-only continuation. | Runtime-balanced critical-frontier exact DPO continuation stack | `A` | `diamond` when the exact DPO producer already runs and the missing work is residual frontier conversion; `framework` only when a recoverable LEGALM/frontier producer is explicitly the missing link | Continue the cumulative exact-consumer chain after the producer is live: accepted-node and hot/critical-segment native handoff -> critical-row micro-start -> critical-net chain assignment -> exact local closure -> multi-row residual transactions -> segment-local residual swaps.  Do not use this continuation route to replace a missing sourceTopK producer. |
 | Dense/high-utilization case where legalization exposes low-residual target-miss or current-net anchors, and downstream improve placement can consume target rows/sites, exact anchors, moved cells, row-miss cells, or selected residual segments.  Density alone is not enough; the low-residual handoff must be visible or intentionally rebuilt. | Low-residual current-net / vertical-frontier consumer | `C` | `framework` | Keep LEGALM/full guidance as a recoverable producer, publish target rows/sites/valid flags and stage3 current-net anchors, build a compact row-miss/same-row residual frontier, then consume with targeted exact global/vertical moves and selected-segment reorder. |
-| Low-utilization, row-rich, or Diamond-friendly case where the observed missing source is specifically source-edge/sourceTopK exact DPO activation: low-density/intensity dispatch disables the exact lane, or source-edge hot tags/endpoint residue are visible and the selected-segment consumer is absent. | Diamond sourceTopK/source-edge exact DPO activation stack | `D` | `diamond` first when the plain Diamond legal basin is clean and source-edge/sourceTopK is the route source; `evolved_diamond` only when it keeps the same exact-DPO activation surface | Force sourceTopK/source-edge exact global swap to run even under low-intensity conditions; exact-score bounded row/site/swap probes with rollback/replay; export accepted nodes and hot segments; consume them with selected-segment reorder.  If single-cell exact accepts are live but final HPWL plateaus, add ordered-pair and endpoint-escape transactions with cached affected-net audit.  If the residue is instead hot-critical frontier conversion, use Blueprint A. |
-| Hierarchical wrapper / macro- or SRAM-heavy / fragmented-row case where legalizer HPWL rises but improve placement recovers a large fraction. | Assign both a quality lane and a value lane | `B` plus `A` | `default_negotiation` for the endpoint/source quality lane; `evolved_diamond` or `framework` for the critical-frontier value lane | Use Blueprint B if endpoint/source residue on top nets is visible; use Blueprint A if the visible residue is accepted-node/hot-critical frontier.  Do not overfit to fixed-instance count; use geometry and row fragmentation. |
+| Low-utilization, row-rich, Diamond-friendly, or large-control/datapath case where clean Diamond legalization may be neutral/worse but improve placement has a broad recoverable basin, and sourceTopK/global-swap counters are absent, gated, or too small.  The decisive signal is missing exact-DPO producer/consumer activation, not macro count or legal HPWL alone. | Diamond sourceTopK/source-edge exact DPO activation stack | `D` | `diamond` is the preferred reconstruction basin for the strong route. | Rebuild the exact sourceTopK/global-swap producer first: force the exact lane live, enumerate bounded row/segment/bbox-anchor move probes with swap only as fallback, exact-score top-K with rollback/replay, export accepted nodes plus old/new hot segments, and immediately consume them with selected-segment reorder.  Treat post-DPO closure, endpoint escape, pair repair, or critical-frontier chains as secondary repairs only after sourceTopK counters and accepted delta are large. |
+| Hierarchical wrapper / macro- or SRAM-heavy / fragmented-row case where legalizer HPWL rises but improve placement recovers a large fraction. | Assign both a quality lane and a value lane | `B` plus `A`; use `D` only for missing exact-producer activation | `default_negotiation` for the endpoint/source quality lane; `diamond` for the value lane, either with live sourceTopK/global-swap or with producer activation from scratch | Use Blueprint B if endpoint/source residue on top nets is visible.  Use Blueprint A when accepted-node or hot-critical frontier state is already live and needs downstream conversion.  Use Blueprint D only when sourceTopK/global-swap counters are absent, gated, or tiny.  A same-basin late-consumer value route is acceptable for wrapper-like cases only when it expands an already proven broad touched-net footprint with grouped exact replay, not when it replaces the producer.  Do not overfit to fixed-instance count; use geometry and row fragmentation. |
 
 ## Route Map
 
 | blueprint | method name | use first when | use as alternative when | do not use when |
 | --- | --- | --- | --- | --- |
-| `A` | Runtime-balanced critical-frontier exact DPO stack | DPO recovery, source-topK exact accepts, hot/critical segments, or a recoverable critical frontier dominate final HPWL | endpoint/source residue exists but negotiation producer evidence is weak, or the case needs a faster exact-consumer lane beside a heavier quality lane; use the Diamond activation sub-route first if exact DPO is gated off | endpoint/source residue is the main unconsumed signal and no Blueprint B lane is assigned; exact accepts are not live and no producer can create a frontier |
+| `A` | Runtime-balanced critical-frontier exact DPO continuation stack | source-topK exact accepts are already live and the assignment is explicitly downstream-only; residual hot/critical segments or accepted-node frontier dominate final HPWL | endpoint/source residue exists but negotiation producer evidence is weak, or the case needs a frontier-consumer lane beside a heavier quality lane | one-student first-shot warm-up or absent/gated/tiny sourceTopK; use Blueprint D+A rather than building closure around an empty producer |
 | `B` | Negotiation recoverability plus endpoint/source exact consumer stack | endpoint/source residue is visible and a negotiation-like legal basin can produce recoverable top-net payload | row-rich/control/wrapper-like cases can spend quality runtime on this full chain beside Blueprint A | the plan only changes negotiation weights without downstream exact consumers, or the handoff is passive metadata never consumed by DPO/reorder |
 | `C` | Low-residual current-net / vertical-frontier consumer | target-miss/current-net/stage3 handoff evidence exists or can be rebuilt in the current `framework` producer | a dense case needs one producer-consumer diagnostic lane while another Student tries Blueprint A | density is high but target-miss/current-net/vertical-frontier evidence is absent |
-| `D` | Diamond sourceTopK/source-edge exact DPO activation | sourceTopK/source-edge search is gated off or weak under a clean Diamond-style legal basin and source-edge/hot-tag evidence is the intended DPO source | a compact or low-utilization case needs an exact DPO lane independent of LEGALM or negotiation; ordered-pair and endpoint-escape are later repairs after single-cell exact accepts are live | the desired mechanism is endpoint/source recoverability from negotiation (use Blueprint B), the useful signal is downstream hot-critical frontier conversion (use Blueprint A), or the exact sourceTopK/global-swap kernel already runs and only post-consumer closure is missing (use Blueprint A continuation) |
+| `D+A` | One-student Diamond sourceTopK core chain | large row-rich/control/datapath case needs the strong warm-up method from a fast clean Diamond basin and only one Student is assigned; sourceTopK may be absent, gated, or weak, but the Student must implement producer activation, hot-segment handoff, and selected reorder before optional continuation consumers | multi-Student rounds may still assign another lane, but the strongest route should remain this fused chain until counters prove the missing link | endpoint/source recoverability is the named payload (use B), low-residual current-net anchors are the named payload (use C), or the exact D+A chain is already fully live and only a small local repair is needed |
+| `D` | Diamond sourceTopK/source-edge exact DPO activation | sourceTopK/source-edge search is absent, gated off, or weak and the task explicitly scopes only producer activation | a low-utilization row-rich/control/datapath case needs an exact DPO lane independent of LEGALM or negotiation; ordered-pair and endpoint-escape are later repairs after single-cell exact accepts are live | one-student warm-up on the large row-rich Diamond/sourceTopK signature; use Blueprint D+A so the Student does not stop before post-DPO consumers |
 
 ## Blueprint Selection Rules
 
 - Treat each blueprint as a complete mechanism chain.  A plan that names only a
   guard, local polish pass, cap change, or telemetry is not a reconstruction
   route.
-- If Teacher assigns Blueprint A/B/C/D, the plan must name the matching roadmap
+- If Teacher assigns Blueprint A/B/C/D or D+A, the plan must name the matching roadmap
   section and tell Student to query that exact section before editing.  The
   Student packet should contain the route summary, but the selected roadmap
   section is the source-level checklist for implementation and self-diagnosis.
@@ -82,18 +124,44 @@ HPWL; do not freeze it into guard-only, attribution-only, or runtime-only work.
 - When endpoint/source residue is visible on a short/medium or fragmented-row
   case, allocate at least one Blueprint B lane to the full cumulative chain even
   if Blueprint A is also plausible.
-- When DPO recovery is broad and the residue is accepted-node/hot-critical
-  frontier rather than endpoint/source payload, allocate at least one Blueprint
-  A lane and keep its exact accepted-delta path live.
+- For large row-rich/control/datapath cases where Diamond legalization is fast
+  and clean but final HPWL is dominated by improve-placement recovery, the first
+  one-Student warm-up route should be Blueprint D+A from `diamond`: the Student
+  must reconstruct exact sourceTopK producer activation, export cumulative
+  hot-segment/accepted-footprint state, consume it with selected-segment reorder,
+  and only then add exact local closure or continuation consumers.  A small
+  legal-HPWL rise is not by itself a reason to abandon this route or force a
+  `Place.cpp` legalizer rewrite.  Do not choose `default_negotiation` as the
+  sole initial route just because negotiation also has improve-stage recovery.
+  Negotiation is secondary unless endpoint/source residue is explicitly the
+  missing payload.
+- For large row-rich/control/datapath cases after sourceTopK/global-swap is live
+  but the warm-up method is not complete, keep the same Student or route on
+  Blueprint D+A completion rather than splitting responsibility unnecessarily.
+  Blueprint A continuation from `diamond` is only a continuation packet
+  when the core chain is already proven live: critical-row micro-start,
+  critical-net chain assignment, multi-row residual transactions, and
+  segment-local residual swaps over the same accepted/hot footprint.  Do not let
+  late closure, guard work, or cap retuning crowd out producer-handoff-consumer
+  reconstruction.
+- For this feature class, local accepted-footprint closure alone is only one
+  late consumer link.  It must be attached to the sourceTopK producer and native
+  handoff; add heavier critical-frontier consumers only after the core chain
+  builds, evaluates, and identifies the residual frontier.
+- When DPO recovery is broad but sourceTopK/global-swap counters are absent,
+  gated, or tiny, allocate Blueprint D+A for a one-student warm-up so the same
+  Student activates the producer and immediately consumes its native frontier.
+  Allocate standalone Blueprint A only after exact producer liveness is already
+  proven and the route is explicitly downstream-only.
 - When the exact global-swap/source-topK lane is blocked by an intensity or
   dispatch fallback, treat the route as not executed.  Repair the gate before
   concluding the mechanism is weak.
 - When low-residual target-miss/current-net anchors are visible, Blueprint C is
   the producer-consumer route.  Do not use it as a generic dense-case default.
-- When Diamond/source-edge hot tags are the main signal, Blueprint D is the
-  source-topK/source-edge exact route.  Do not replace it with LEGALM or
-  negotiation unless current counters show those producers are active and
-  consumed.
+- When Diamond/source-edge hot tags or missing sourceTopK counters are the main
+  signal, Blueprint D is the source-topK/source-edge exact route.  Do not
+  replace it with LEGALM, negotiation, Blueprint A closure, or guard work unless
+  current counters show those producers are active, consumed, and stronger.
 - If a route has exact accepts but final HPWL is flat, do not only widen caps.
   Repair candidate quality, native handoff lifetime, transaction granularity,
   or canonical replay/restore.
@@ -108,6 +176,12 @@ HPWL; do not freeze it into guard-only, attribution-only, or runtime-only work.
   counters against the selected roadmap checklist.  Continue or repair the route
   only when the missing link is named; otherwise switch start basin or mechanism
   family rather than repeating the same partial implementation.
+- If the first or second wave on a validated case type remains far below the
+  expected mechanism scale, Teacher must ask whether the Student implemented the
+  complete warm-start bundle in one route packet.  Common failures are starting Blueprint A before
+  Blueprint D makes the sourceTopK producer live, starting from negotiation but
+  omitting the endpoint/source replay stack, and treating accepted counters as a
+  win when final HPWL does not move.
 
 ## Student Packet Requirements
 
@@ -121,6 +195,25 @@ When Teacher selects a blueprint, the Student plan must include:
   closure, counters, already-live links, missing links, and this iteration's
   repair target;
 - full producer-handoff-consumer chain, not one late polish pass;
+- for Blueprint D+A, the packet must list the core first-pass links explicitly:
+  fast clean Diamond start, broad full-source per-source top-K exact sourceTopK/global-swap producer,
+  rollback/replay positive transactions through the normal accept path,
+  cumulative native hot-segment/accepted-footprint handoff, and hot-frontier
+  selected-segment reorder with bounded fallback.  Exact local closure and
+  critical-frontier consumers are follow-on repairs unless the source surface is
+  already ready.  The plan must state that exact replay is broad but
+  bounded per source: full-source traversal, small ranked candidate pools,
+  exact-probe caps, target-segment pruning, and gain-rate stop so the full
+  detailed-placement flow reaches final HPWL.  The plan must also state that many exact accepts with a
+  one-node/two-segment surviving frontier is a broken handoff lifetime, not a
+  validated consumer.  Critical-row,
+  critical-net, multi-row, and residual-swap consumers are continuation links;
+  assign them only after the core builds/evaluates or when the current source
+  already exposes a clean implementation surface;
+- for Blueprint A continuation, the packet must state that sourceTopK/global-swap
+  accepts and hot/critical state are already live; then it can target
+  critical-row micro-start, critical-net chain assignment, multi-row residual
+  transaction, and segment-local residual swap over that existing footprint;
 - first source files/functions to inspect and edit;
 - required counters and log names;
 - self-diagnosis rule after build/evaluation;

@@ -36,11 +36,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "LEGALM-style producer/frontier support and bounded DPO handoff; "
             "`diamond` starts from the clean dpl_evolve/base implementation; "
             "`default_negotiation` starts from a framework-compatible source "
-            "layout with negotiation enabled by default and without evolved "
-            "negotiation donors; "
-            "`evolved_diamond` and `evolved_negotiation` start from "
-            "materialized evolved legalizer seed sources; "
-            "`prepared` copies the current prepared ORFS dpl_evolve source."
+            "layout with negotiation enabled by default. "
+            "Only these three prepared start branches are active for normal "
+            "Teacher/Student workspaces."
         ),
     )
     parser.add_argument(
@@ -189,15 +187,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "framework",
             "diamond",
             "default_negotiation",
-            "evolved_diamond",
-            "evolved_negotiation",
         ],
         default=[],
         help=(
             "Start-kind seed to include in --calibrate-start-seeds. "
-            "Repeatable. Default: framework, evolved_diamond, "
-            "evolved_negotiation, plus default Diamond and default negotiation "
-            "controls."
+            "Repeatable. Default: framework, diamond, and default_negotiation."
         ),
     )
     parser.add_argument("--dry-run", action="store_true")

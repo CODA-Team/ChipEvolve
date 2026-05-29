@@ -51,9 +51,9 @@ concrete hypotheses:
   HPWL inflation from the global placement, unless current full-flow evidence
   already shows that guidance/frontier production damages final HPWL for that
   case archetype,
-- assign another route from `evolved_diamond` or Diamond-local behavior when
+- assign another route from `diamond` or Diamond-local behavior when
   the case has larger row/macro structure or needs local greedy closure,
-- assign another route from `evolved_negotiation` when the case shows conflict
+- assign another route from `default_negotiation` when the case shows conflict
   or residual-overlap patterns that may need negotiation-style resolution,
 - keep one route free for a hybrid or improve-placement-primary hypothesis when
   stage evidence says final HPWL is dominated by after-legal recovery.

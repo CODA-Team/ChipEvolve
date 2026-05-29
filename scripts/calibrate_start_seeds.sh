@@ -12,7 +12,7 @@ OUTPUT_ROOT=""
 PLAN_FILE=""
 THREADS="10"
 MAX_PARALLEL="1"
-START_KINDS="framework,diamond,default_negotiation,evolved_diamond,evolved_negotiation"
+START_KINDS="framework,diamond,default_negotiation"
 SKIP_BASELINE=0
 SKIP_PLACE=1
 DRY_RUN=0
@@ -23,7 +23,7 @@ Usage: calibrate_start_seeds.sh --case ID --flow-variant NAME --round-id ID [opt
 
 Build and evaluate prepared start-kind seed sources before a Teacher/Student
 round.  The output is a compact initial donor-evidence packet that lets Teacher
-compare framework and evolved legalizer seed branches before assigning routes.
+compare framework, diamond, and default-negotiation starts before assigning routes.
 
 Options:
   --case ID              Case id under problems/.
@@ -32,7 +32,7 @@ Options:
   --plan PATH            Optional candidate-matrix plan. If omitted, a one-row
                          plan for --case/--flow-variant is generated.
   --start-kinds LIST     Comma-separated start kinds. Default:
-                         framework,diamond,default_negotiation,evolved_diamond,evolved_negotiation
+                         framework,diamond,default_negotiation
   --threads N            OpenROAD build/eval threads. Default: 10.
   --max-parallel N       Parallel rows inside each candidate matrix. Default: 1.
   --skip-baseline        Reuse existing canonical baseline rows.
@@ -116,8 +116,6 @@ seed_for_kind() {
     framework) printf '%s\n' "${DPL_EVOLVE_STATE_ROOT}/seed_sources/framework_dpl_evolve" ;;
     diamond) printf '%s\n' "${DPL_EVOLVE_STATE_ROOT}/seed_sources/diamond_dpl_evolve" ;;
     default_negotiation) printf '%s\n' "${DPL_EVOLVE_STATE_ROOT}/seed_sources/default_negotiation_dpl_evolve" ;;
-    evolved_diamond) printf '%s\n' "${DPL_EVOLVE_STATE_ROOT}/seed_sources/evolved_diamond_dpl_evolve" ;;
-    evolved_negotiation) printf '%s\n' "${DPL_EVOLVE_STATE_ROOT}/seed_sources/evolved_negotiation_dpl_evolve" ;;
     *)
       echo "[ERROR] Unsupported start kind for calibration: $1" >&2
       return 1

@@ -30,7 +30,7 @@ not treat every note as a rule.
 - OpenROAD negotiation/NBLG is a repair and mechanism donor. Prior local runs
   showed useful speed work but also exposed that negotiation alone is not the
   root answer for every case.
-- The tracked `evolved_negotiation` donor is negotiation-primary by contract:
+- The `default_negotiation` source parent is negotiation-primary by contract:
   Teacher should require route logs or counters proving negotiation executed as
   the primary legalizer, not merely as a fallback after another legalizer.
 - Differential/LEGALM-style guidance is allowed as a seed/frontier producer in

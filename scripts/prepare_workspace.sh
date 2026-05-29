@@ -94,7 +94,6 @@ orfs_make_patch="${AGENT_ROOT}/patches/orfs_make_overlay.patch"
 openroad_patch="${AGENT_ROOT}/patches/openroad_dpl_evolve_base.patch"
 openroad_framework_patch="${AGENT_ROOT}/patches/openroad_dpl_evolve_framework.patch"
 default_negotiation_patch="${AGENT_ROOT}/patches/openroad_dpl_evolve_default_negotiation_seed.patch"
-evolved_patch_dir="${AGENT_ROOT}/patches/evolved_legalizers"
 
 if ! git -C "${workspace_root}" rev-parse --git-dir >/dev/null 2>&1; then
   echo "[ERROR] workspace root is not a git repository: ${workspace_root}" >&2
@@ -303,67 +302,6 @@ snapshot_dpl_seed() {
   echo "[INFO] Snapshotted ${seed_name}: ${target_dir}"
 }
 
-materialize_evolved_seed() {
-  local seed_name="$1"
-  local framework_delta_patch="$2"
-  local source_dir="${seed_root}/framework_dpl_evolve"
-  local target_dir="${seed_root}/${seed_name}"
-  local patch_sha
-
-  if [[ ! -f "${framework_delta_patch}" ]]; then
-    echo "[WARN] Cannot materialize ${seed_name}; missing patch: ${framework_delta_patch}" >&2
-    return
-  fi
-  if [[ ! -f "${source_dir}/CMakeLists.txt" ]]; then
-    echo "[WARN] Cannot materialize ${seed_name}; missing framework seed: ${source_dir}" >&2
-    return
-  fi
-
-  rm -rf "${target_dir}"
-  rsync -a --delete \
-    --exclude '.git/' \
-    --exclude '__pycache__/' \
-    --exclude '*.pyc' \
-    --exclude '*.o' \
-    --exclude '*.a' \
-    --exclude '*.so' \
-    --exclude 'CMakeFiles/' \
-    "${source_dir}/" "${target_dir}/"
-
-  git init "${target_dir}" >/dev/null
-  git -C "${target_dir}" config user.email "dpl-evolve-agent@example.invalid"
-  git -C "${target_dir}" config user.name "dpl-evolve-agent"
-  git -C "${target_dir}" add -A
-  git -C "${target_dir}" commit -m "Seed framework dpl_evolve source" >/dev/null
-
-  if git -C "${target_dir}" apply --whitespace=nowarn --check -p3 "${framework_delta_patch}" >/dev/null 2>&1; then
-    git -C "${target_dir}" apply --whitespace=nowarn -p3 "${framework_delta_patch}"
-    git -C "${target_dir}" add -A
-    git -C "${target_dir}" commit -m "Apply ${seed_name} evolved legalizer patch" >/dev/null
-    patch_sha="$(file_sha256 "${framework_delta_patch}")"
-    python3 - "${target_dir}/.dpl_evolve_seed_manifest.json" "${seed_name}" "${framework_delta_patch}" "${patch_sha}" <<'PY'
-import json
-import pathlib
-import sys
-
-path = pathlib.Path(sys.argv[1])
-payload = {
-    "seed_name": sys.argv[2],
-    "patch_path": sys.argv[3],
-    "patch_sha256": sys.argv[4],
-    "apply_base": "framework_dpl_evolve",
-    "status": "materialized",
-}
-path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-PY
-    echo "[INFO] Materialized ${seed_name}: ${target_dir}"
-  else
-    echo "[ERROR] Cannot apply evolved framework delta to ${target_dir}: ${framework_delta_patch}" >&2
-    rm -rf "${target_dir}"
-    exit 1
-  fi
-}
-
 materialize_default_negotiation_seed() {
   local seed_name="default_negotiation_dpl_evolve"
   local source_dir="${seed_root}/framework_dpl_evolve"
@@ -472,12 +410,6 @@ snapshot_dpl_seed "diamond_dpl_evolve" "0"
 materialize_default_negotiation_seed
 apply_patch_if_needed "${workspace_root}/tools/OpenROAD" "${openroad_framework_patch}" "OpenROAD"
 snapshot_dpl_seed "framework_dpl_evolve" "1"
-materialize_evolved_seed \
-  "evolved_diamond_dpl_evolve" \
-  "${evolved_patch_dir}/openroad_dpl_evolve_diamond_iter30_framework_delta.patch"
-materialize_evolved_seed \
-  "evolved_negotiation_dpl_evolve" \
-  "${evolved_patch_dir}/openroad_dpl_evolve_negotiation_iter30_framework_delta.patch"
 
 commit_if_dirty "${workspace_root}/tools/OpenROAD" "Prepare constrained dpl_evolve framework"
 commit_if_dirty "${workspace_root}" "Prepare ORFS overlay for dpl_evolve_agent" flow/Makefile

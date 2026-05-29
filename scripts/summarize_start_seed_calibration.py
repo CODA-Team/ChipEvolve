@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Summarize start-kind calibration candidate matrices.
 
-The calibration runner evaluates prepared `dpl_evolve` seed sources such as
-`framework`, `evolved_diamond`, and `evolved_negotiation` before a Teacher round.
+The calibration runner evaluates active prepared `dpl_evolve` seed sources:
+`framework`, `diamond`, and `default_negotiation` before a Teacher round.
 This helper turns the generated candidate-matrix results into a compact table
 that Teacher can use as initial donor evidence.
 """
@@ -272,7 +272,7 @@ def write_markdown(path: Path, rows: list[dict[str, Any]], *, detail_paths: bool
         "",
         "- A lower `HPWLfinal` than Diamond is useful initial quality evidence.",
         "- A better `HPWLlg` that does not survive to `HPWLfinal` is a stage donor or handoff clue.",
-        "- `evolved_negotiation` should show negotiation-primary route evidence in its logs before use as that donor.",
+        "- `default_negotiation` should show negotiation-primary route evidence in its logs before use as that donor.",
     ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 

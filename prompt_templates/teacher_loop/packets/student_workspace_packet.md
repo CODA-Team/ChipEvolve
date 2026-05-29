@@ -48,7 +48,7 @@ section unless local source evidence requires a different feature-level route.
 Other knowledge handles are useful only after a concrete route or bottleneck is
 named: use diagnosis/algorithm/skill cards to design a source-level mechanism,
 liveness counter, repair test, or bounded cost-control change.
-For an explicit Blueprint A/B/C/D assignment, run the knowledge query helper
+For an explicit Blueprint A/B/C/D or D+A assignment, run the knowledge query helper
 for that exact blueprint before editing, then write a pre-edit complete-chain
 audit: start basin, producer, handoff, exact consumer, post-consumer closure,
 counters, already-live links, missing links, and the link you will implement.
@@ -79,7 +79,7 @@ Primary flow:
 
 1. prepare source or assigned start:
    - `$prepare_source_script`
-   - `$prepare_start_source_script --kind <framework|diamond|default_negotiation|evolved_diamond|evolved_negotiation>`
+   - `$prepare_start_source_script --kind <framework|diamond|default_negotiation>`
 2. inspect status/context as needed:
    - `$source_status_script`
    - `$source_context_script <src/...> [symbol]`
@@ -87,12 +87,13 @@ Primary flow:
      names a card/skill, the mechanism role is unclear, or metrics/logs suggest
      a pivot
    - for an assigned case-type blueprint, use
-     `$query_knowledge_script --stage detailed_placement --q "Blueprint <letter>"`
+     `$query_knowledge_script --stage detailed_placement --q "Blueprint <letter|D+A>"`
      and keep the selected roadmap checklist beside your source plan
 3. for each mechanism trial:
    - `$trial_source_script begin --label <short-mechanism>`
    - repair a prior kept/rejected ref when assigned: `$trial_source_script begin --label <repair-name> --from-ref <ref>`
-   - after a short targeted diagnosis, start the first real trial early; do not delay `begin` behind broad code reading
+   - inspect enough source and logs to understand the mechanism path, then start
+     a real trial when the implementation plan is coherent
    - before editing, write down the trial's HPWL-source hypothesis in your own notes/report: expected producer, handoff, DPO consumer, post-consumer, or composition gain; why the mechanism is strong enough; and what stage/counter proof should change
    - also name the failure bucket being tested or repaired: non-executed/stale code, producer payload, handoff lifetime, DPO consumer zero/low accepts, acceptance/scoring too strict/local, accepted-delta washout, post-consumer preservation, runtime/cap bottleneck, wrong start/case-type route, or `none yet`
    - edit source, then run `$build_variant_script` and `$evaluate_candidate_script`
@@ -133,8 +134,7 @@ a repairable rejected line by assigning that ref through `begin --from-ref
 ## Start Branch Contract
 
 - The private source repo contains prepared local branches `start/framework`,
-  `start/diamond`, `start/default_negotiation`, `start/evolved_diamond`,
-  and `start/evolved_negotiation` after preparation.
+  `start/diamond`, and `start/default_negotiation` after preparation.
 - If Teacher assigns a prepared start, use `prepare_start_source_script --kind <kind>` before edits. Do not manually apply release/start patch files and do not copy source trees.
 - After preparation, implement and commit your mechanism on the dev branch `$source_branch`. The generated iteration ref marks the iteration-start commit for diffing and review.
 

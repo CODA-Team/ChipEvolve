@@ -766,9 +766,9 @@ def write_case_feature_route_insight_packet(
             "  selects after reading the evidence above.",
             "- Student should use the Teacher-assigned route section for concrete source",
             "  handles, implementation order, counters, proof criteria, and first repair.",
-            "- For an explicit Blueprint A/B/C/D assignment, Student should query the",
-            "  exact section with `08_query_knowledge.sh --stage detailed_placement",
-            "  --q \"Blueprint <letter>\"` before editing and report the completeness",
+            "- For an explicit blueprint assignment, Student should query the",
+            "  exact section with `08_query_knowledge.sh --stage detailed_placement --q \"Blueprint D+A\"`",
+            "  or replace `D+A` with the assigned single-letter blueprint before editing and report the completeness",
             "  audit after evaluation.",
             "",
         ]
@@ -845,23 +845,11 @@ def common_context(
         / "family_variants"
         / "openroad_negotiation_nblg",
         dreamplace_abacus=runtime.agent_root / "family_variants" / "dreamplace_abacus",
-        evolved_legalizers_readme=runtime.agent_root
-        / "patches"
-        / "evolved_legalizers"
-        / "README.md",
-        evolved_legalizers_manifest=runtime.agent_root
-        / "patches"
-        / "evolved_legalizers"
-        / "generation_manifest.tsv",
-        evolved_legalizers_validation=runtime.agent_root
-        / "patches"
-        / "evolved_legalizers"
-        / "validation.tsv",
         dense_legalizer_routing_insight=runtime.agent_root
         / "knowledge"
         / "insights"
         / "case_evolution"
-        / "dense_evolved_legalizer_routing.md",
+        / "dense_legalizer_routing.md",
         strategy_inspiration_insight=runtime.agent_root
         / "knowledge"
         / "insights"
@@ -1074,10 +1062,6 @@ def start_kind_source(runtime: Any, start_kind: str) -> Path:
         return runtime.state_root / "seed_sources" / "diamond_dpl_evolve"
     if start_kind == "default_negotiation":
         return runtime.state_root / "seed_sources" / "default_negotiation_dpl_evolve"
-    if start_kind == "evolved_diamond":
-        return runtime.state_root / "seed_sources" / "evolved_diamond_dpl_evolve"
-    if start_kind == "evolved_negotiation":
-        return runtime.state_root / "seed_sources" / "evolved_negotiation_dpl_evolve"
     if start_kind == "prepared":
         return runtime.orfs_root / "tools" / "OpenROAD" / "src" / "dpl_evolve"
     raise ValueError(f"unsupported start_kind: {start_kind}")
@@ -1329,12 +1313,6 @@ seed_for_kind() {{
     default_negotiation)
       printf '%s\\n' "$AGENT_ROOT/.dpl_evolve_state/seed_sources/default_negotiation_dpl_evolve"
       ;;
-    evolved_diamond)
-      printf '%s\\n' "$AGENT_ROOT/.dpl_evolve_state/seed_sources/evolved_diamond_dpl_evolve"
-      ;;
-    evolved_negotiation)
-      printf '%s\\n' "$AGENT_ROOT/.dpl_evolve_state/seed_sources/evolved_negotiation_dpl_evolve"
-      ;;
     *)
       return 2
       ;;
@@ -1356,6 +1334,26 @@ materialize_start_branch() {{
   git -C "$DPL_SRC" rm -r --cached . >/dev/null 2>&1 || true
   find "$DPL_SRC" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {{}} +
   rsync -a --delete --exclude='.git' "$seed/" "$DPL_SRC/"
+  if [[ "$kind" == "diamond" ]]; then
+    local rel
+    for rel in \\
+      src/DifferentialGuidance.cpp \\
+      src/EvolveLegalizer.cpp \\
+      src/EvolveNegotiationRepair.cpp \\
+      src/LegalmFullLegalization.cpp \\
+      src/LegalmGuidance.cpp \\
+      src/LegalmRowAssignment.cpp \\
+      src/LegalmTechPenalty.cpp \\
+      src/StudentAlgorithm.cpp; do
+      if [[ -f "$DPL_SRC/$rel" ]]; then
+        continue
+      fi
+      mkdir -p "$(dirname "$DPL_SRC/$rel")"
+      cat > "$DPL_SRC/$rel" <<'STUB'
+// Build-surface compatibility translation unit for lean start seeds.
+STUB
+    done
+  fi
   git -C "$DPL_SRC" add -A
   git -C "$DPL_SRC" commit -m "Seed $branch source" >/dev/null
   git -C "$DPL_SRC" branch -M "$branch"
@@ -1373,7 +1371,7 @@ prepare_start_branches() {{
     echo "[WARN] current branch is $return_branch, expected $SOURCE_BRANCH; skip start branch materialization" >&2
     return 0
   fi
-  for kind in framework diamond default_negotiation evolved_diamond evolved_negotiation; do
+  for kind in framework diamond default_negotiation; do
     materialize_start_branch "$kind"
   done
   git -C "$DPL_SRC" switch "$SOURCE_BRANCH" >/dev/null
@@ -1634,7 +1632,7 @@ Reset the dev source branch to one prepared local start branch or any local
 kept/rejected/candidate/peer ref. Examples:
   framework
   diamond
-  evolved_negotiation
+  default_negotiation
   kept/<run_tag>/<label>
   rejected/<run_tag>/<label>
 
@@ -1883,11 +1881,11 @@ from pathlib import Path
 
 query = os.environ.get("BLUEPRINT_QUERY", "")
 roadmap = Path(os.environ["BLUEPRINT_ROADMAP"])
-match = re.search(r"\\bblueprint\\s+([A-J])\\b", query, re.IGNORECASE)
+match = re.search(r"\\bblueprint\\s+(D\\s*\\+\\s*A|[A-J])\\b", query, re.IGNORECASE)
 if not match:
     match = re.search(r"\\b([A-J])\\s*\\.\\s*[A-Z][A-Za-z-]", query)
 if match and roadmap.exists():
-    letter = match.group(1).upper()
+    letter = re.sub(r"\\s+", "", match.group(1).upper())
     text = roadmap.read_text(encoding="utf-8", errors="replace")
     heading = f"## Blueprint {{letter}}:"
     lines = text.splitlines()

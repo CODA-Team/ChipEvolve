@@ -48,7 +48,7 @@ can directly steer Teacher route assignment.
 | `case_evolution/case_type_quality_mechanism_priority.md` | Core case-feature to blueprint map | yes |
 | `case_evolution/mechanism_reconstruction_roadmap.md` | Core selected-blueprint implementation roadmap | yes, after blueprint selection |
 | `case_evolution/cutrow_adversarial_legalization.md` | cutRow stress evidence and adversarial legality inspiration | no |
-| `case_evolution/dense_evolved_legalizer_routing.md` | Dense legalizer producer inspiration and caution | no |
+| `case_evolution/dense_legalizer_routing.md` | Dense legalizer producer inspiration and caution | no |
 | `case_evolution/evidence_weighted_mechanism_priority.md` | Mechanism evidence/risk weighting after core route selection | no |
 | `case_evolution/mechanism_robustness_support.md` | Mechanism robustness lessons | no |
 | `case_evolution/full_flow_timeout_and_target_selection.md` | Runtime/timeout policy and target-selection context | no |

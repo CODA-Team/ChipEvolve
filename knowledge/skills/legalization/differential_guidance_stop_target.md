@@ -43,8 +43,8 @@ The key search variables are:
 - Use stage-wise metrics to check whether the guidance improved legal HPWL but
   hurt final HPWL; if so, tune the stop point or consumer instead of assuming
   the global signal is wrong.
-- Keep route semantics explicit.  For an `evolved_negotiation` line, guidance
-  can seed negotiation, but negotiation must still be the primary successful
+- Keep route semantics explicit.  For a `default_negotiation` line, guidance can
+  seed negotiation, but negotiation must still be the primary successful
   legalizer.
 - Log compact counters: guided cells, target misses, frontier size, consumer
   attempts, consumer accepts, and elapsed time.

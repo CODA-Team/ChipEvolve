@@ -53,9 +53,9 @@ Child Agent:
      evidence shows high utilization, standard-cell density, or large
      global-to-legal HPWL disturbance, unless current full-flow HPWL evidence
      says that case archetype should prefer another route,
-   - an `evolved_diamond` or Diamond-local route for local greedy closure,
+   - a `diamond` or Diamond-local route for local greedy closure,
      row/macro structure, or large-case local legality pressure,
-   - an `evolved_negotiation` route for residual conflicts or overlap patterns,
+   - a `default_negotiation` route for residual conflicts or overlap patterns,
    - a hybrid or improve-placement-primary route when final HPWL depends on
      after-legal recovery.
 4. Each child starts from:
@@ -84,7 +84,7 @@ Child Agent:
 10. Losing lineages are not frozen forever, but they must change strategy or
    borrow from a stronger parent instead of blindly continuing the same patch.
     From iteration 2 onward, Teacher should explicitly choose for each student:
-    continue the original route, switch to another evolved legalizer family, or
+    continue the original route, switch to another start/route family, or
     hybridize two families in a staged source-level flow.
 11. Repeat until the case beats the OpenROAD DPL flow anchor on strict HPWL
    while preserving legality, runtime, and displacement guards.

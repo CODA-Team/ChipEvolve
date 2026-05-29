@@ -113,7 +113,7 @@ route. Keep the review concise and action-bearing.
   roster, review it as `elite-expand` and require a material HPWL mechanism on
   top of it.  Multiple Students may target the same promising mechanism family
   when their source hypotheses differ.
-- For any route assigned from Blueprint A/B/C/D, classify the implementation
+- For any route assigned from Blueprint A/B/C/D or D+A, classify the implementation
   against the selected roadmap checklist as `full-chain`, `partial-chain`, or
   `non-live`.  A weak partial-chain result should route the next packet to the
   first missing producer/handoff/consumer/post-consumer link or an alternate

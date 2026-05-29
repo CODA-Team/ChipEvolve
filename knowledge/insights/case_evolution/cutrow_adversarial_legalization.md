@@ -38,7 +38,7 @@ Excluded patterns:
 
 ## Teacher advice
 
-For cutRow rounds, start from `evolved_negotiation` for center-band separator
+For cutRow rounds, start from `default_negotiation` for center-band separator
 quality/runtime, but explicitly distinguish three buckets:
 
 1. promoted strict evolved repair/acceleration rows in the archived tables,

@@ -5,8 +5,8 @@
 evolved improve-placement step. Agents should evolve a coherent
 legalize/improve mechanism in private `dpl_evolve` source while using archived
 algorithms only as donors. The private source seed is selected by the
-orchestrator (`framework`, `diamond`, `evolved_diamond`,
-`evolved_negotiation`, or `prepared`), so this packet must
+orchestrator (`framework`, `diamond`, `default_negotiation`, or `prepared`), so
+this packet must
 stay seed-neutral. Downstream optimize-mirroring may remain in
 evaluation, but it is not part of the active patch surface.
 """
@@ -71,7 +71,7 @@ REFERENCE_FILES = [
     "knowledge/EVIDENCE_POLICY.md",
     "knowledge/insights/workflow/metric_contract.md",
     "knowledge/insights/case_evolution/strategy_inspiration_by_design_feature.md",
-    "knowledge/insights/case_evolution/dense_evolved_legalizer_routing.md",
+    "knowledge/insights/case_evolution/dense_legalizer_routing.md",
     "knowledge/insights/dpo/source_level_mechanisms.md",
     "knowledge/insights/dpo/openroad_native_handoff.md",
     "knowledge/index/skill_cards.jsonl",
@@ -213,7 +213,7 @@ def packet_markdown(packet: dict[str, Any]) -> str:
         "- Use reference algorithms as donors, then implement a clean, high-performance mechanism in `dpl_evolve`.",
         "- Treat the stage flow as a scaffold; implementation details must be justified by canonical evaluator evidence.",
         "- Treat design-feature strategy notes as mechanism inspiration, not route selectors or case-name rules.",
-        "- Treat `evolved_diamond` and `evolved_negotiation` as materialized start branches/seed sources with measured wins on some archetypes, not universal defaults.",
+        "- Prepared start parents are `framework`, `diamond`, and `default_negotiation`; choose among them from case features and stage evidence.",
         "- Use DPO source-level mechanism cards for improve-placement work: bounded source-edge scoring, transaction rollback, bounded staged descent, scoped LSMC, and handoff consumers. Implement in current source; do not rely on code transplant.",
         "- Implement handoff with OpenROAD-native in-process state: compact ids/vectors and `odb`/DetailedMgr mappings, not log/file/string payloads.",
         "- Use `knowledge/index/skill_cards.jsonl` and `scripts/query_knowledge.py` as the first-stage LEGO-lite skill lookup before opening one matched skill note.",
@@ -299,7 +299,7 @@ def build_packet(problem_dir: Path, out_dir: Path) -> dict[str, Any]:
             "knowledge/EVIDENCE_POLICY.md",
             "knowledge/insights/workflow/metric_contract.md",
             "knowledge/insights/case_evolution/strategy_inspiration_by_design_feature.md",
-            "knowledge/insights/case_evolution/dense_evolved_legalizer_routing.md",
+            "knowledge/insights/case_evolution/dense_legalizer_routing.md",
             "knowledge/insights/dpo/source_level_mechanisms.md",
             "knowledge/insights/dpo/openroad_native_handoff.md",
             "knowledge/index/skill_cards.jsonl",
@@ -319,7 +319,7 @@ def build_packet(problem_dir: Path, out_dir: Path) -> dict[str, Any]:
             "Edit only `tools/OpenROAD/src/dpl_evolve` in a prepared private variant source.",
             "Implement coherent flow changes across legalization/detailed placement, improve placement, and their shared handoff.",
             "Use reference algorithms to implement bounded legalize and improve mechanisms; avoid one-stage-only attempts.",
-            "Use materialized evolved start-kind seed branches when assigned; start-point switches are branch-only inside the private source tree.",
+            "Use prepared start-kind seed branches when assigned; start-point switches are branch-only inside the private source tree.",
             "Implement selected bounded DPO mechanisms directly in the private `dpl_evolve` source; do not rely on code transplant.",
             "Use LEGO-lite skill records to select stage mechanisms and done criteria; do not bulk-load unrelated cards.",
             "Add or refine `EvolveTelemetry` counters that explain stage behavior.",

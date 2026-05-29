@@ -62,11 +62,18 @@ choice needs it.
   diagnosis cards for the failure bucket, algorithm cards for a stronger
   producer/handoff/consumer idea, or skill cards for implementation and liveness
   checks. Turn the card into a patch target, counters, and proof criteria.
-- If Teacher assigns Blueprint A/B/C/D, query that exact roadmap section before
+- If Teacher assigns Blueprint A/B/C/D or D+A, query that exact roadmap section before
   editing and write a compact complete-chain audit: start basin, producer
   payload, handoff state, exact consumer, post-consumer closure, counters,
   already-live links, missing links, and the link this iteration implements or
   repairs.
+- For Blueprint D+A on a Diamond start, explicitly account for the exact-DPO
+  chain before considering legalizer repair.  A modest legal-HPWL rise can be
+  valid for this route if sourceTopK accepted delta, hot-segment handoff,
+  selected reorder, and final HPWL move strongly.  Inspect or edit `Place.cpp`
+  only when Teacher names legal-basin repair or your logs prove the DPO
+  producer/handoff/consumer chain is already live and the remaining failure is
+  legal-basin or displacement-tail damage.
 - Mechanism-level rewrites and direct producer/consumer support changes are
   encouraged when Teacher guidance and source diagnosis justify them; keep the
   diff coherent, reviewable, bounded, and validated.

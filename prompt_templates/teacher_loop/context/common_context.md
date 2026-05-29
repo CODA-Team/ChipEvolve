@@ -10,14 +10,14 @@
 
 ## Sources
 
-- evolved source: `$dpl_evolve_src`
+- private dpl_evolve source: `$dpl_evolve_src`
 - LEGALM reference: `$legalm_guidance`
 - OpenROAD DPL default-flow reference: `$openroad_diamond`
 - negotiation donor: `$openroad_negotiation_nblg`
 - Abacus donor: `$dreamplace_abacus`
 - case feature route insight packet: `$case_feature_route_insight_packet`
 - secondary inspiration only, not direct route maps:
-  - dense evolved-legalizer note: `$dense_legalizer_routing_insight`
+  - dense legalizer-producer note: `$dense_legalizer_routing_insight`
   - feature-to-mechanism strategy note: `$strategy_inspiration_insight`
 - DPO mechanism insight: `$dpo_source_mechanisms_insight`
 - OpenROAD-native handoff insight: `$openroad_native_handoff_insight`
@@ -165,8 +165,8 @@ mechanism hypotheses and implementation roadmap sections.
   rollback fallback. A feature-matched donor is plausible because the current
   design has matching stage/physical features; it can be aggressively optimized
   for this case even if it may not transfer universally.
-- prepared start branches include `framework`, `diamond`,
-  `default_negotiation`, `evolved_diamond`, and `evolved_negotiation`
+- prepared start branches include `framework`, `diamond`, and
+  `default_negotiation`
 - `framework` contains the current LEGALM-style producer/frontier base plus
   bounded DPO handoff support. Treat it as a normal editable source parent, not
   as proof that legalization-only changes are sufficient.
@@ -222,7 +222,7 @@ $metric_table
 - start-kind donor calibration packet: `$start_seed_calibration_path`
 - If this packet contains rows, Teacher should use it as initial source-level
   donor evidence before assigning Student routes.  Compare `framework`,
-  `evolved_diamond`, and `evolved_negotiation` stage-wise
+  `diamond`, and `default_negotiation` stage-wise
   results, but do not treat the best initial seed as the only exploration
   parent.  A stage donor can still be useful when its final HPWL is not best.
 

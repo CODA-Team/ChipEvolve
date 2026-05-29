@@ -8,8 +8,8 @@ family-tree tuning to a constrained `detailed_placement_evolve` framework.
 - The evolved command remains `detailed_placement_evolve`.
 - The active source patch is `patches/openroad_dpl_evolve_framework.patch`.
 - Prepared start branches preserve active donor/source parents:
-  `framework`, `evolved_diamond`, and `evolved_negotiation` need
-  case-specific validation.
+  `framework`, `diamond`, and `default_negotiation` need case-specific
+  validation.
 - `EvolveLegalizer` is a stage scaffold, not a fixed final algorithm.
 - Student experiments use private `dpl_evolve` source trees plus lightweight
   variant relink.
@@ -27,15 +27,13 @@ family-tree tuning to a constrained `detailed_placement_evolve` framework.
   `metrics.json:hpwl`.  The legacy bbox proxy is a debug field only.
 - OpenROAD diamond remains a local-search donor and prepass reference, not a
   standalone canonical baseline runner in the current harness.
-- The `framework`, `evolved_diamond`, and `evolved_negotiation` prepared
-  start branches are active route-specific donor starts.
-  Teacher should consider whether the matching evolved seed is the better start
-  point before assigning a student to a clean route seed, but must use current
-  case evidence to justify that choice.
+- The `framework`, `diamond`, and `default_negotiation` prepared start branches
+  are active route-specific donor starts. Teacher must use current case
+  evidence to justify the selected source parent.
 - OpenROAD negotiation/NBLG is a repair and mechanism donor. It should not be
   promoted as the primary path without case evidence against the current
   OpenROAD DPL flow anchor.
-- `evolved_negotiation` is a negotiation-primary donor seed.  It may consume
+- `default_negotiation` is the negotiation-primary source parent. It may consume
   guidance from earlier stages, but the normal successful route must execute
   negotiation/resource allocation and must not silently return from full LEGALM
   legalization.

@@ -4,7 +4,7 @@
 - route action: <elite-expand | continue | switch | hybridize | mechanism-redesign | repair>
 - start/parent: <prepared branch or donor/workbench>
 - donor scope: <general donor | feature-matched donor | new mechanism | fallback-preserved donor>
-- blueprint audit: <if assigning Blueprint A/B/C/D, name selected roadmap query, start basin, already-live links, missing links, and the link this Student implements; otherwise `none`>
+- blueprint audit: <if assigning Blueprint A/B/C/D or D+A, name selected roadmap query, start basin, already-live links, missing links, and the link this Student implements; otherwise `none`>
 - expected HPWL source: <producer, handoff, DPO consumer, post-consumer polish, or composition being attacked>
 - failure bucket to test: <non-executed/stale implementation | producer payload | handoff lifetime | DPO consumer zero/low accepts | acceptance/scoring too strict or local | accepted-delta washout | post-consumer preservation | runtime/cap bottleneck | wrong start/case-type route | none yet>
 - mechanism strength: <why this mechanism can materially move final HPWL, not only preserve or retune a donor>

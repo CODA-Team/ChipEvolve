@@ -36,7 +36,7 @@ Primary flow:
 
 1. prepare source or assigned start:
    - `$prepare_source_script`
-   - `$prepare_start_source_script --kind <framework|diamond|default_negotiation|evolved_diamond|evolved_negotiation>`
+   - `$prepare_start_source_script --kind <framework|diamond|default_negotiation>`
 2. for each mechanism trial:
    - `$trial_source_script begin --label <short-mechanism>`
    - repair a prior kept/rejected ref when assigned: `$trial_source_script begin --label <repair-name> --from-ref <ref>`
@@ -66,9 +66,9 @@ Optional helpers:
 - knowledge query, only when Teacher names a card/skill, the mechanism role is
   unclear, or metrics/logs suggest a pivot:
   `$query_knowledge_script --stage <stage> --q <text>`
-- for an assigned case-type Blueprint A/B/C/D, query that exact roadmap section
+- for an assigned case-type Blueprint A/B/C/D or D+A, query that exact roadmap section
   before editing:
-  `$query_knowledge_script --stage detailed_placement --q "Blueprint <letter>"`
+  `$query_knowledge_script --stage detailed_placement --q "Blueprint <letter|D+A>"`
 - metrics summary on demand: `$report_candidate_metrics_script`
 - trial state/status: `$trial_source_script status`
 - fresh build only if normal build fails: `$fresh_build_script`

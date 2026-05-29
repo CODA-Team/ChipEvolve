@@ -31,10 +31,12 @@ This copies one prepared seed source:
   default_negotiation:
                 $DPL_EVOLVE_STATE_ROOT/seed_sources/default_negotiation_dpl_evolve
                 framework-compatible source layout with negotiation enabled
-                by default; this is not the evolved_negotiation donor.
-  evolved_diamond:     $DPL_EVOLVE_STATE_ROOT/seed_sources/evolved_diamond_dpl_evolve
-  evolved_negotiation: $DPL_EVOLVE_STATE_ROOT/seed_sources/evolved_negotiation_dpl_evolve
+                by default.
   prepared:     $ORFS_ROOT/tools/OpenROAD/src/dpl_evolve
+
+  Additional archival seed snapshots may exist under seed_sources, but normal
+  Teacher/Student workspaces prepare only framework, diamond, and
+  default_negotiation start branches.
 
 into:
   <variant-root>/dpl_evolve
@@ -51,9 +53,7 @@ Options:
   --dpl-src PATH         Destination dpl_evolve source path.
                          Default: <variant-root>/dpl_evolve.
   --start-kind KIND      Seed type: framework, diamond,
-                         default_negotiation,
-                         evolved_diamond, evolved_negotiation,
-                         or prepared.
+                         default_negotiation, or prepared.
                          Default: framework.
   --seed-src PATH        Source dpl_evolve tree to copy instead of the prepared
                          ORFS root seed.  Useful for continuing from a
@@ -114,66 +114,6 @@ if [[ -z "${dpl_src}" ]]; then
 fi
 dpl_src="$(realpath -m "${dpl_src}")"
 
-file_sha256() {
-  python3 - "$1" <<'PY'
-import hashlib
-import pathlib
-import sys
-
-print(hashlib.sha256(pathlib.Path(sys.argv[1]).read_bytes()).hexdigest())
-PY
-}
-
-validate_evolved_seed() {
-  local expected_seed="$1"
-  local expected_patch="$2"
-  local manifest="${seed_src}/.dpl_evolve_seed_manifest.json"
-  local expected_sha
-
-  if [[ ! -f "${manifest}" ]]; then
-    echo "[ERROR] Evolved seed lacks materialization manifest: ${manifest}" >&2
-    echo "[ERROR] Run scripts/prepare_workspace.sh --force to refresh evolved legalizer seeds." >&2
-    exit 1
-  fi
-  if [[ ! -f "${expected_patch}" ]]; then
-    echo "[ERROR] Missing expected evolved framework delta patch: ${expected_patch}" >&2
-    exit 1
-  fi
-  expected_sha="$(file_sha256 "${expected_patch}")"
-  python3 - "${manifest}" "${expected_seed}" "${expected_sha}" <<'PY'
-import json
-import pathlib
-import sys
-
-manifest = pathlib.Path(sys.argv[1])
-payload = json.loads(manifest.read_text(encoding="utf-8"))
-expected_seed = sys.argv[2]
-expected_sha = sys.argv[3]
-problems = []
-if payload.get("seed_name") != expected_seed:
-    problems.append(f"seed_name={payload.get('seed_name')!r}")
-if payload.get("patch_sha256") != expected_sha:
-    problems.append("patch_sha256_mismatch")
-if payload.get("apply_base") != "framework_dpl_evolve":
-    problems.append(f"apply_base={payload.get('apply_base')!r}")
-if payload.get("status") != "materialized":
-    problems.append(f"status={payload.get('status')!r}")
-if problems:
-    raise SystemExit(
-        "invalid evolved seed manifest "
-        + str(manifest)
-        + ": "
-        + ", ".join(problems)
-    )
-PY
-  if [[ -d "${state_root}/seed_sources/framework_dpl_evolve" ]] \
-      && diff -qr "${seed_src}" "${state_root}/seed_sources/framework_dpl_evolve" >/dev/null 2>&1; then
-    echo "[ERROR] Evolved seed is identical to framework seed: ${seed_src}" >&2
-    echo "[ERROR] Run scripts/prepare_workspace.sh --force to materialize the evolved legalizer patch." >&2
-    exit 1
-  fi
-}
-
 if [[ -n "${seed_src_override}" ]]; then
   seed_src="$(realpath -m "${seed_src_override}")"
 else
@@ -187,18 +127,12 @@ else
     default_negotiation)
       seed_src="${state_root}/seed_sources/default_negotiation_dpl_evolve"
       ;;
-    evolved_diamond)
-      seed_src="${state_root}/seed_sources/evolved_diamond_dpl_evolve"
-      ;;
-    evolved_negotiation)
-      seed_src="${state_root}/seed_sources/evolved_negotiation_dpl_evolve"
-      ;;
     prepared)
       seed_src="${orfs_root}/tools/OpenROAD/src/dpl_evolve"
       ;;
     *)
       echo "[ERROR] Unsupported --start-kind: ${start_kind}" >&2
-      echo "[ERROR] Expected one of: framework, diamond, default_negotiation, evolved_diamond, evolved_negotiation, prepared" >&2
+      echo "[ERROR] Expected one of: framework, diamond, default_negotiation, prepared" >&2
       exit 1
       ;;
   esac
@@ -213,7 +147,7 @@ if [[ "${start_kind}" == "framework" && -z "${seed_src_override}" && ! -f "${see
   echo "[ERROR] Prepared seed source lacks EvolveLegalizer.cpp: ${seed_src}" >&2
   exit 1
 fi
-if [[ ("${start_kind}" == "framework" || "${start_kind}" == "evolved_diamond" || "${start_kind}" == "evolved_negotiation") && -z "${seed_src_override}" && ! -f "${seed_src}/src/LegalmGuidance.cpp" ]]; then
+if [[ "${start_kind}" == "framework" && -z "${seed_src_override}" && ! -f "${seed_src}/src/LegalmGuidance.cpp" ]]; then
   echo "[ERROR] Prepared seed source lacks LegalmGuidance.cpp: ${seed_src}" >&2
   exit 1
 fi
@@ -222,20 +156,6 @@ if [[ "${start_kind}" == "default_negotiation" && -z "${seed_src_override}" ]]; 
     echo "[ERROR] Prepared default_negotiation seed lacks required framework/negotiation sources: ${seed_src}" >&2
     exit 1
   fi
-fi
-if [[ -z "${seed_src_override}" ]]; then
-  case "${start_kind}" in
-    evolved_diamond)
-      validate_evolved_seed \
-        "evolved_diamond_dpl_evolve" \
-        "${AGENT_ROOT}/patches/evolved_legalizers/openroad_dpl_evolve_diamond_iter30_framework_delta.patch"
-      ;;
-    evolved_negotiation)
-      validate_evolved_seed \
-        "evolved_negotiation_dpl_evolve" \
-        "${AGENT_ROOT}/patches/evolved_legalizers/openroad_dpl_evolve_negotiation_iter30_framework_delta.patch"
-      ;;
-  esac
 fi
 
 existing_git_repo=0
@@ -260,6 +180,34 @@ init_local_git_repo() {
   ensure_local_git_repo "${repo}"
   git -C "${repo}" config user.email "dpl-evolve-agent@example.invalid"
   git -C "${repo}" config user.name "dpl-evolve-agent"
+}
+
+ensure_relink_compat_sources() {
+  local repo="$1"
+  local files=(
+    "src/DifferentialGuidance.cpp"
+    "src/EvolveLegalizer.cpp"
+    "src/EvolveNegotiationRepair.cpp"
+    "src/LegalmFullLegalization.cpp"
+    "src/LegalmGuidance.cpp"
+    "src/LegalmRowAssignment.cpp"
+    "src/LegalmTechPenalty.cpp"
+    "src/StudentAlgorithm.cpp"
+  )
+
+  # Some lean seeds intentionally do not contain framework-only translation
+  # units, while the shared relink cache may still contain compile entries for
+  # them. Keep that build-surface compatibility in the seed commit so Students
+  # can focus on algorithm code instead of inventing empty files.
+  for rel in "${files[@]}"; do
+    if [[ -f "${repo}/${rel}" ]]; then
+      continue
+    fi
+    mkdir -p "$(dirname "${repo}/${rel}")"
+    cat > "${repo}/${rel}" <<'EOF'
+// Build-surface compatibility translation unit for lean start seeds.
+EOF
+  done
 }
 
 if [[ -e "${dpl_src}" ]]; then
@@ -297,6 +245,9 @@ fi
 
 mkdir -p "$(dirname "${dpl_src}")"
 rsync -a --delete --exclude='.git' "${seed_src}/" "${dpl_src}/"
+if [[ "${start_kind}" == "diamond" && -z "${seed_src_override}" ]]; then
+  ensure_relink_compat_sources "${dpl_src}"
+fi
 init_local_git_repo "${dpl_src}"
 git -C "${dpl_src}" add -A
 if ! git -C "${dpl_src}" diff --cached --quiet; then

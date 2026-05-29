@@ -53,9 +53,8 @@ the evidence-driven route decision.
 - Legalization-side improvements must preserve avg/max displacement, a
   DPO-recoverable local order, useful handoff state, and downstream exact
   accepted gain.
-- Prepared start branches (`framework`, `evolved_diamond`,
-  `evolved_negotiation`, etc.) are source basins, not edit-scope restrictions or
-  universal answers.
+- Prepared start branches (`framework`, `diamond`, `default_negotiation`) are
+  source basins, not edit-scope restrictions or universal answers.
 
 ## Core Mechanism Families
 

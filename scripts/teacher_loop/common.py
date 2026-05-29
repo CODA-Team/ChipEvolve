@@ -17,14 +17,9 @@ START_KINDS = (
     "framework",
     "diamond",
     "default_negotiation",
-    "evolved_diamond",
-    "evolved_negotiation",
-    "prepared",
 )
 
-PREPARED_START_KIND_PATTERN = (
-    r"(?:framework|diamond|default_negotiation|evolved_diamond|evolved_negotiation)"
-)
+PREPARED_START_KIND_PATTERN = r"(?:framework|diamond|default_negotiation)"
 
 CANONICAL_LINES = (
     "openroad_dpl_flow",
@@ -169,8 +164,8 @@ def round_id_from_dir(round_dir: Path) -> str:
 def assigned_start_kind_from_insight(text: str) -> str | None:
     """Extract the primary prepared start-branch kind from Teacher text.
 
-    Teacher may mention evolved starts as evidence or fallbacks.  Only an
-    explicit primary assignment should become an unconditional Student switch.
+    Only explicit primary assignments to active prepared starts should become
+    unconditional Student switches.
     """
     fallback_markers = (
         "if ",

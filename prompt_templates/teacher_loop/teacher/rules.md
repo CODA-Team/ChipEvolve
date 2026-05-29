@@ -44,7 +44,7 @@
   hard-coded selector. If a feature signature matches, assign at least one
   Student to reconstruct or strengthen the full cumulative blueprint and use the
   roadmap for source handles, counters, and first repair tests.
-- For every assigned Blueprint A/B/C/D, include a complete-chain audit in the
+- For every assigned Blueprint A/B/C/D or D+A, include a complete-chain audit in the
   Student packet: selected blueprint/start basin, producer payload, handoff
   state, exact consumer, post-consumer closure, already-live links, missing
   links, required counters, and this Student's repair target. Tell Student to
@@ -93,9 +93,9 @@
 - Do not route tuning through Tcl/flow-script knobs, ORFS scripts, evaluator
   scripts, or repeated external endpoint invocation. Public command interfaces
   and external evaluators remain stable.
-- Prepared starts (`framework`, `diamond`, `default_negotiation`,
-  `evolved_diamond`, `evolved_negotiation`) are source parents, not edit-scope
-  restrictions. Choose the parent that best tests the current HPWL source.
+- Prepared starts (`framework`, `diamond`, `default_negotiation`) are source
+  parents, not edit-scope restrictions. Choose the parent that best tests the
+  current HPWL source.
 - Hybrid means staged mechanisms inside one source implementation; do not make a
   case-level selector among complete algorithms.
 - Handoff should use compact native OpenROAD state where useful (`dbInst*`,
