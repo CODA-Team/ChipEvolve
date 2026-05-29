@@ -368,26 +368,25 @@ resource limit for parallel Student implementation/evaluation.
 ```text
 framework             constrained top-level dpl_evolve framework with LEGALM-style producer/frontier and bounded DPO handoff support
 diamond               direct/default DPL-style evolve seed; useful as a contrast line
-evolved_diamond       prior iter30 Diamond/local-greedy evolved donor seed
-evolved_negotiation   prior iter30 negotiation-primary evolved donor seed; can use differential guidance only as seed/frontier
-prepared              copy the current ORFS dpl_evolve source; useful for local debug only
+default_negotiation   framework-compatible source layout with negotiation enabled by default
 ```
 
-`framework` is the CLI default. Use `evolved_negotiation` as a
-conflict/resource-allocation donor, not as a universal HPWL winner; route logs
-should prove negotiation-primary execution.
+`framework` is the CLI default. These starts are source basins for the first
+private workspace, not edit-scope restrictions or universal answers. Teacher
+may keep, switch, or repair the source basin based on the current case metrics,
+logs, peer evidence, and source diagnosis.
 
-The evolved seeds are materialized by `scripts/prepare_workspace.sh` from
-`patches/evolved_legalizers/*_framework_delta.patch`.  The standalone
-`*_from_clean.patch` files in that directory are for clean OpenROAD checkouts at
-the recorded anchor; they are not meant to be manually applied inside a Student
-private source tree.
+Prepared starts are materialized by `scripts/prepare_workspace.sh` into
+generated workspaces. Patch catalogs under `patches/evolved_legalizers/` are
+release/reproduction evidence used by maintenance scripts; they are not manual
+Student commands and should not be applied directly inside a Student private
+source tree.
 
 Before a new case-specific round, `--calibrate-start-seeds` can compile and
 run the prepared start-kind seed branches on the target case.  The generated
 `start_seed_calibration.md` packet gives Teacher initial stage-wise evidence
-for `framework`, `evolved_diamond`, and `evolved_negotiation` before Student
-routes are assigned.
+for `framework`, `diamond`, and `default_negotiation` before Student routes are
+assigned.
 
 ### Where More Details Live
 
