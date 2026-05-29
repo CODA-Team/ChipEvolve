@@ -99,6 +99,10 @@
 - Use `03_fetch_peer_source.sh` only when Teacher assigns a peer Student ref/mechanism or your current trial needs a concrete donor comparison. First summarize the peer mechanism in 2-3 lines, then port the understood implementation idea deliberately onto your branch; do not auto-apply peer diffs.
 - Use `25_trial_source.sh begin|keep|reject|status` as the only checkpoint/rejected-source state machine. Reject preserves the code and leaves it checked out; use `04_switch_start_branch.sh --ref <ref>` or `--kind <kind>` only when intentionally changing the dev starting point.
 - If Teacher assigns a repairable rejected/kept ref, start that workbench with `25_trial_source.sh begin --label <repair-name> --from-ref <ref>` and then repair it as a normal trial.
+- A low-ROI trial is not a reason to keep editing the same weak link forever.
+  Preserve it with the trial helper, then explicitly reset from the best clean
+  kept/candidate/start ref before trying a different HPWL source. Do not hide a
+  rollback or pivot as an ordinary working-tree overwrite.
 - Do not edit evaluator, ORFS, baseline scripts, workspace helpers, memories,
   rollout summaries, session archives, or event logs. Optimize mirroring must
   remain callable for the full-flow evaluator. Mirror-internal work is not a
@@ -116,6 +120,9 @@
   pass/runtime cost where applicable. These logs are evidence for your own
   repair decision and for the next Teacher review.
 - Hybrid routes should be staged algorithms inside the source implementation, not case-name hardcoding and not selectors among complete legalizers.
+- Mechanism stacking is valid when the pieces are compatible in one full flow:
+  preserve the live donor link, add a new producer/handoff/consumer link for a
+  different bottleneck, and emit counters showing both links executed.
 - A good detailed-placement candidate should be a producer-consumer design:
   the legalizer creates a DPO-recoverable placement, DPO has a move/scoring
   mechanism capable of consuming that state, and any useful dirty-row,

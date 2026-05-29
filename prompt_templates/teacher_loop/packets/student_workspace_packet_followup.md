@@ -30,6 +30,21 @@ mechanism.
 - peer_learning_packet: `$peer_learning_path`
 - Teacher output: `$teacher_plan_last_message`
 
+## Source Reading Boundary
+
+- Implement from the Teacher route, selected knowledge/roadmap section, and the
+  current private source tree.  Do not search or copy old experiment source
+  implementations from `/home/.../local_backups`, `local_backups`, or historical
+  `.dpl_evolve_state` round directories.
+- Allowed reads are: this generated round's packet/prompts/artifacts/helpers,
+  `private_dpl_evolve_source`, current prepared start branches inside that source
+  repo, explicitly fetched peer refs via the helper, `agent_root/knowledge`,
+  `agent_root/knowledge/index`, and current OpenROAD/DPL source needed for API or
+  call-site understanding.
+- `.dpl_evolve_state` is allowed only for this round's generated workspace files
+  and prepared seed sources used by helper scripts.  It is not a general search
+  space for old implementations.
+
 ## Helpers
 
 Primary flow:
@@ -122,6 +137,13 @@ to change the dev starting point.
   only. Treat the trial as elite expansion: keep rollback available, but use
   the iteration to attack a larger final-HPWL source rather than only guarding
   or retuning the donor.
+- Compatible mechanism stacking is allowed: keep a live donor mechanism in the
+  same flow, add one new producer/handoff/consumer link aimed at a different
+  HPWL bottleneck, and log counters for both links.
+- When a trial is low-ROI after one meaningful repair, close it with
+  `keep`/`reject`, then explicitly reset from a clean kept/candidate/start ref
+  before trying a different HPWL source. Do not silently overwrite a failed
+  mechanism.
 - New algorithms or handoff paths should emit compact counters/logs for
   producer/consumer liveness, accept/reject behavior, HPWL movement, and
   pass/runtime cost.
@@ -138,9 +160,9 @@ to change the dev starting point.
   strength, stage-wise proof target, measured HPWL-source attribution, and
   whether the first result came from the intended mechanism.
 - Resolve ordinary code uncertainty with targeted source inspection of nearby
-  implementations, call sites, or assigned donor refs. If still ambiguous,
-  choose the simplest coherent implementation of the assigned mechanism; do not
-  pause the iteration for ordinary uncertainty.
+  call sites inside the allowed source-reading boundary above. If still
+  ambiguous, choose the simplest coherent implementation of the assigned
+  mechanism; do not pause the iteration for ordinary uncertainty.
 - Prefer patch/build/eval over repeated broad reading once the current
   mechanism is understood.
 - Reuse Teacher `first patch handles` and the main workspace packet `Algorithm

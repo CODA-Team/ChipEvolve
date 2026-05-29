@@ -88,6 +88,11 @@ choice needs it.
   producer/handoff composition change, bounded quality search, runtime rewrite
   to free budget for stronger search, or compatible stacking, with full-flow
   proof that the donor remains recoverable.
+- Donor-on-top stacking is allowed and expected when the current donor has a
+  live useful mechanism but final HPWL still has clear headroom. Keep the useful
+  mechanism enabled, add one compatible producer/handoff/consumer link that
+  attacks a different bottleneck, and log enough counters to prove both the
+  original donor and the added link executed in the same full flow.
 - Do not treat being best-so-far, barely improving over OpenROAD default/current
   elite, or preserving legality as enough. If final HPWL is still far from the
   5% ambition and runtime remains inside the hard gate, spend the iteration on
@@ -198,6 +203,11 @@ choice needs it.
   the current trial evidence first, then finalize or start a focused
   repair/pivot trial from the preserved ref; do not leave an active trial open
   while fetching prepared-start diffs or broad donor context.
+- If a closed trial is legal but clearly low-ROI after one meaningful repair,
+  do not keep polishing the same link. Preserve it with `keep`/`reject`, reset
+  from the last clean kept/candidate parent or a Teacher-named ref, and try a
+  different HPWL source when iteration time remains. The reset/pivot must be
+  explicit in the trial log, not an unrecorded overwrite.
 - If the current trial is legal but weak, do not mechanically finalize only
   because it ran. Continue only when metrics expose a concrete same-route
   implementation bug, missing consumer, or wrong HPWL source; otherwise keep

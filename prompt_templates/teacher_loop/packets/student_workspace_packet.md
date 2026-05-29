@@ -36,6 +36,21 @@ packet for mechanism intent.
 - peer_learning_packet: `$peer_learning_path`
 - Teacher output: `$teacher_plan_last_message`
 
+## Source Reading Boundary
+
+- Implement from the Teacher route, the selected knowledge/roadmap section, and
+  the current private source tree.  Do not search or copy old experiment source
+  implementations from `/home/.../local_backups`, `local_backups`, or historical
+  `.dpl_evolve_state` round directories.
+- Allowed reads are: this generated round's packet/prompts/artifacts/helpers,
+  `private_dpl_evolve_source`, current prepared start branches inside that source
+  repo, explicitly fetched peer refs via the helper, `agent_root/knowledge`,
+  `agent_root/knowledge/index`, and current OpenROAD/DPL source needed for API or
+  call-site understanding.
+- `.dpl_evolve_state` is allowed only for this round's generated workspace files
+  and prepared seed sources used by helper scripts.  It is not a general search
+  space for old implementations.
+
 ## Knowledge Handles
 
 Open knowledge only when Teacher assigns a specific card/blueprint, the
@@ -131,6 +146,13 @@ a repairable rejected line by assigning that ref through `begin --from-ref
 <ref>`. To change direction, use the explicit reset helper with `--ref` or
 `--kind`; reject itself does not reset the branch.
 
+Compatible mechanism stacking is allowed when it is one coherent full-flow
+algorithm: preserve the live donor link, add a new producer/handoff/consumer
+link for a different HPWL bottleneck, and log counters for both links. If a
+trial is low-ROI after one meaningful repair, close it with `keep`/`reject`,
+then explicitly reset from a clean kept/candidate/start ref before trying a
+different HPWL source; do not silently overwrite the failed mechanism.
+
 ## Start Branch Contract
 
 - The private source repo contains prepared local branches `start/framework`,
@@ -189,9 +211,9 @@ Before final answer:
 - Prefer the first concrete patch/build/eval loop over extended diagnosis.
 - If the assigned mechanism and source handles are already clear, patch now and use evaluation to drive the next diagnosis.
 - Resolve ordinary code uncertainty with targeted source inspection of nearby
-  implementations, call sites, or assigned donor refs. If still ambiguous,
-  choose the simplest coherent implementation of the assigned mechanism; do not
-  pause the iteration for ordinary uncertainty.
+  call sites inside the allowed source-reading boundary above. If still
+  ambiguous, choose the simplest coherent implementation of the assigned
+  mechanism; do not pause the iteration for ordinary uncertainty.
 - Use Teacher `first patch handles` and the entry-point map above to keep
   pre-evaluation source reading narrow. Expand only for adjacent implementation
   support, a clearly wrong landing zone, or a concrete compile/correctness
