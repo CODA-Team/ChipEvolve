@@ -1,7 +1,7 @@
 # Skill Note: differential_guidance_stop_target
 
 Canonical structured fields live in `knowledge/index/skill_cards.jsonl`.
-Use `scripts/query_knowledge.py --q differential_guidance_stop_target --show-full`
+Use `scripts/repo/query_knowledge.py --q differential_guidance_stop_target --show-full`
 when Teacher wants a mechanism-level route that uses global/differential
 guidance without turning it into a complete legalizer replacement.
 

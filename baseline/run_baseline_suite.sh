@@ -106,7 +106,7 @@ done
 
 if [[ -z "${design_config}" ]]; then
   case_id="${case_id:-$DEFAULT_CASE}"
-  design_config="$(python3 "${SCRIPT_DIR}/../scripts/case_registry.py" --case "${case_id}" --field design_config)"
+  design_config="$(python3 "${SCRIPT_DIR}/../scripts/repo/case_registry.py" --case "${case_id}" --field design_config)"
 fi
 if [[ "${design_config}" == /* ]]; then
   design_config="$(to_flow_relative_if_possible "${design_config}")"

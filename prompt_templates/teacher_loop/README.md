@@ -50,7 +50,7 @@ Rules:
   should trigger a different source-level hypothesis rather than polishing only
   the current donor.
 - LEGO-lite mechanism lookup lives in `knowledge/index/skill_cards.jsonl`,
-  `knowledge/skills/`, and `knowledge/algorithm_cards/`. Teacher packets should
+  `knowledge/skills/`, and `knowledge/algorithms/`. Teacher packets should
   select relevant stage skills/cards only when they clarify the current
   evidence; Student reports should prove the adapted mechanism with source,
   metrics, and log evidence.

@@ -48,7 +48,7 @@ Run the full canonical suite:
 Run one canonical line:
 
 ```bash
-./dpl_evolve_agent/scripts/run_canonical_line.sh \
+./dpl_evolve_agent/scripts/evaluator/run_canonical_line.sh \
   --line openroad_dpl_flow \
   --case jpeg_nangate45 \
   --flow-variant <FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB> \

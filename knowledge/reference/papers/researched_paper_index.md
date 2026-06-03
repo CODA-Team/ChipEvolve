@@ -52,15 +52,15 @@ row/mixed-height legalization ideas.
 
 ## Cards Generated From This Index
 
-- `knowledge/algorithm_cards/legalization_paper_pseudocode.md`
-- `knowledge/algorithm_cards/legalization/`
-- `knowledge/algorithm_cards/dpo_paper_pseudocode.md`
-- `knowledge/algorithm_cards/dpo_refinement/`
-- `knowledge/algorithm_cards/context/`
+- `knowledge/algorithms/legalization_paper_pseudocode.md`
+- `knowledge/algorithms/legalization/`
+- `knowledge/algorithms/dpo_paper_pseudocode.md`
+- `knowledge/algorithms/dpo_refinement/`
+- `knowledge/algorithms/context/`
 
 Recommended `rg` queries:
 
 ```bash
-rg -n "L[0-9]+\.|D[0-9]+\.|Pseudo code|path purity|handoff|history|LSMC|Abacus|NBLG|LEGALM" knowledge/algorithm_cards
+rg -n "L[0-9]+\.|D[0-9]+\.|Pseudo code|path purity|handoff|history|LSMC|Abacus|NBLG|LEGALM" knowledge/algorithms
 rg -n "HPWLlg|HPWLimprove|HPWLfinal|full-flow|candidate generation|exact-delta" knowledge
 ```

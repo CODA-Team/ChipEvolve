@@ -13,6 +13,10 @@ It does four things:
 - Orchestrates Teacher/Student Codex loops that review code, metrics, and logs
   across multiple iterations.
 
+Tracked scripts and docs should refer to directory prefixes through
+`DPL_EVOLVE_AGENT_ROOT`, `ORFS_ROOT`, and `DPL_EVOLVE_STATE_ROOT`; local
+absolute paths belong only in ignored `env.sh` or the shell environment.
+
 The evolved OpenROAD command stays:
 
 ```text
@@ -32,13 +36,13 @@ Recommended sibling layout:
 ```text
 work/
   OpenROAD-flow-scripts/
-  dpl_evolve_agent/
+  <this repo>/
 ```
 
 Runtime state is ignored by git and normally lives here:
 
 ```text
-dpl_evolve_agent/.dpl_evolve_state/
+$DPL_EVOLVE_AGENT_ROOT/.dpl_evolve_state/
 ```
 
 You need:
@@ -86,10 +90,19 @@ cd "$(dirname "$DPL_EVOLVE_AGENT_ROOT")"
 source "$DPL_EVOLVE_AGENT_ROOT/env.sh"
 ```
 
+Before launching expensive ORFS/OpenROAD work, run the repo-level static gate:
+
+```bash
+"$DPL_EVOLVE_AGENT_ROOT/scripts/repo/check_release_readiness.sh"
+```
+
+Use `--skip-teacher-dry-run` only when the local ORFS/OpenROAD roots are not
+available and you only need compile, shell, knowledge, and repo-hygiene checks.
+
 Reset to the supported anchors and apply the framework overlay:
 
 ```bash
-"$DPL_EVOLVE_AGENT_ROOT/scripts/prepare_workspace.sh" \
+"$DPL_EVOLVE_AGENT_ROOT/scripts/workspace/prepare_workspace.sh" \
   --workspace-root "$ORFS_ROOT" \
   --force
 ```
@@ -100,9 +113,9 @@ patching. Use it only when it is safe to discard local ORFS/OpenROAD edits.
 Build the reusable OpenROAD core once:
 
 ```bash
-"$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_core.sh"
+"$DPL_EVOLVE_AGENT_ROOT/scripts/workspace/configure_openroad_core.sh"
 
-"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_core.sh" \
+"$DPL_EVOLVE_AGENT_ROOT/scripts/workspace/build_openroad_core.sh" \
   --threads 10
 ```
 
@@ -120,7 +133,7 @@ Choose an existing snapshot variant. It must contain:
 $ORFS_ROOT/flow/results/<platform>/<design>/<FLOW_VARIANT>/3_4_place_resized.odb
 ```
 
-If you need to create snapshots first, use `scripts/run_place_batch.sh`.
+If you need to create snapshots first, use `scripts/evaluator/run_place_batch.sh`.
 
 ```bash
 export FLOW_VARIANT="<FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB>"
@@ -167,7 +180,7 @@ $DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/
 Watch a launched round:
 
 ```bash
-"$DPL_EVOLVE_AGENT_ROOT/scripts/watch_teacher_round.py" \
+"$DPL_EVOLVE_AGENT_ROOT/scripts/orchestration/watch_teacher_round.py" \
   <round_id> \
   --watch
 ```
@@ -175,7 +188,7 @@ Watch a launched round:
 Serve a local dashboard:
 
 ```bash
-"$DPL_EVOLVE_AGENT_ROOT/scripts/watch_teacher_round.py" \
+"$DPL_EVOLVE_AGENT_ROOT/scripts/orchestration/watch_teacher_round.py" \
   <round_id> \
   --serve --host 127.0.0.1 --port 8765
 ```
@@ -187,7 +200,7 @@ Serve a local dashboard:
 Prepare ORFS/OpenROAD once before launched experiments:
 
 ```bash
-"$DPL_EVOLVE_AGENT_ROOT/scripts/prepare_workspace.sh" \
+"$DPL_EVOLVE_AGENT_ROOT/scripts/workspace/prepare_workspace.sh" \
   --workspace-root "$ORFS_ROOT"
 ```
 
@@ -198,8 +211,8 @@ the control repo.
 After prepare, the common OpenROAD core should be built by the top-level flow:
 
 ```bash
-"$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_core.sh"
-"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_core.sh" --threads 10
+"$DPL_EVOLVE_AGENT_ROOT/scripts/workspace/configure_openroad_core.sh"
+"$DPL_EVOLVE_AGENT_ROOT/scripts/workspace/build_openroad_core.sh" --threads 10
 ```
 
 Student variants only relink private `dpl_evolve` sources against this core;
@@ -216,7 +229,7 @@ flow/results/<platform>/<design>/<FLOW_VARIANT>/3_4_place_resized.odb
 Create or refresh snapshots with:
 
 ```bash
-"$DPL_EVOLVE_AGENT_ROOT/scripts/run_place_batch.sh"
+"$DPL_EVOLVE_AGENT_ROOT/scripts/evaluator/run_place_batch.sh"
 ```
 
 If a snapshot already exists, reuse its `FLOW_VARIANT`.
@@ -376,29 +389,34 @@ private workspace, not edit-scope restrictions or universal answers. Teacher
 may keep, switch, or repair the source basin based on the current case metrics,
 logs, peer evidence, and source diagnosis.
 
-Prepared starts are materialized by `scripts/prepare_workspace.sh` into
+Prepared starts are materialized by `scripts/workspace/prepare_workspace.sh` into
 generated workspaces. Patch catalogs under `patches/evolved_legalizers/` are
 release/reproduction evidence used by maintenance scripts; they are not manual
 Student commands and should not be applied directly inside a Student private
 source tree.
 
 Before a new case-specific round, `--calibrate-start-seeds` can compile and
-run the prepared start-kind seed branches on the target case.  The generated
-`start_seed_calibration.md` packet gives Teacher initial stage-wise evidence
-for `framework`, `diamond`, and `default_negotiation` before Student routes are
-assigned.
+run the prepared start-kind seed branches on the target case.  This is a
+target-local start-kind probe, not paper-level Level 1 calibration.  The
+generated `start_seed_calibration.md` packet gives Teacher initial stage-wise
+evidence for `framework`, `diamond`, and `default_negotiation` before Student
+routes are assigned.
 
 ### Where More Details Live
 
+- `docs/REPO_REDESIGN_BLUEPRINT.md`: repo redesign plan and migration phases.
+- `docs/RUNTIME_CONTRACT.md`: runtime roots, protected evaluator, and generated state.
+- `docs/KNOWLEDGE_CONTRACT.md`: default/on-demand/reference knowledge rules.
+- `calibration/README.md`: ReviewDSE Level 1 calibration contract.
 - `AGENTS.md`: coding-agent contract and algorithm constraints.
 - `scripts/README.md`: script inventory, common-core build, variant relink,
   generated packets, and Teacher/Student mechanics.
 - `prompt_templates/teacher_loop/README.md`: prompt template rules.
 - `problems/README.md`: case registry format.
-- `knowledge/EVIDENCE_POLICY.md`: how to classify observations, hypotheses,
+- `knowledge/policies/evidence_policy.md`: how to classify observations, hypotheses,
   and durable evidence.
-- `knowledge/index/skill_cards.jsonl` plus `scripts/query_knowledge.py`: concise stage skill lookup.
-- `knowledge/insights/dpo/source_level_mechanisms.md`: improve-placement mechanism lessons.
+- `knowledge/index/skill_cards.jsonl` plus `scripts/repo/query_knowledge.py`: concise stage skill lookup.
+- `knowledge/support/dpo/source_level_mechanisms.md`: improve-placement mechanism lessons.
 - `family_variants/REFERENCE_INDEX.yaml`: compact source-code donor index.
 
 ### Repo Hygiene
@@ -406,7 +424,7 @@ assigned.
 Before sharing the repo or asking an agent to consume it:
 
 ```bash
-python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/audit_repo_hygiene.py"
+"$DPL_EVOLVE_AGENT_ROOT/scripts/repo/check_release_readiness.sh" --skip-teacher-dry-run
 git diff --check
 ```
 

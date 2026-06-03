@@ -34,6 +34,18 @@ prepare_patches:
     apply_target: prepared OpenROAD after openroad_dpl_evolve_base.patch
     verification: framework_smoke_passed
 
+  - path: patches/openroad_dpl_evolve_default_negotiation_seed.patch
+    status: active_seed_materialization_patch
+    meaning: >
+      Small framework-delta patch used by prepare_workspace.sh to materialize
+      the default_negotiation prepared source-start seed under
+      $DPL_EVOLVE_STATE_ROOT/seed_sources/default_negotiation_dpl_evolve.
+      It converts the framework pipeline into a negotiation-primary closure
+      seed.  This is a source basin for Teacher/Student initialization, not a
+      manual Student patch command or a target-level promotion by itself.
+    apply_target: prepared dpl_evolve framework seed source
+    verification: materialized_by_prepare_workspace
+
   - path: patches/orfs_make_overlay.patch
     status: active_prepare_patch
     meaning: >

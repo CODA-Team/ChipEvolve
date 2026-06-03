@@ -24,7 +24,7 @@ enabled case core_utilization flow_variant round_id start_kind notes
 - `start_kind`: `framework`, `diamond`,
   `evolved_diamond`, `evolved_negotiation`, or `prepared`.
   `evolved_*` rows use prepared seed sources created by
-  `scripts/prepare_workspace.sh`.
+  `scripts/workspace/prepare_workspace.sh`.
 - `notes`: short human intent for this experiment point.
 
 ## Recommended Pattern
@@ -45,7 +45,7 @@ When one student produces a promising source commit, test that exact code
 across the whole plan before promoting it:
 
 ```bash
-"$DPL_EVOLVE_AGENT_ROOT/scripts/run_round_candidate_matrices.sh" \
+"$DPL_EVOLVE_AGENT_ROOT/scripts/matrix/run_round_candidate_matrices.sh" \
   --round-id <round> \
   --student student_XX \
   --iteration iter_YY \

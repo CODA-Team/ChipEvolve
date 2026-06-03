@@ -44,14 +44,14 @@ If donor evidence is needed, use repo-root references such as:
 
 - `<agent_root>/knowledge/index/skill_cards.jsonl`
 - `<agent_root>/knowledge/skills/`
-- `<agent_root>/scripts/query_knowledge.py`
+- `<agent_root>/scripts/repo/query_knowledge.py`
 - `<agent_root>/family_variants/REFERENCE_INDEX.yaml`
 - `<agent_root>/family_variants/legalm_guidance/README.md`
 - `<agent_root>/family_variants/openroad_diamond/README.md`
 - `<agent_root>/family_variants/openroad_negotiation_nblg/README.md`
 - `<agent_root>/family_variants/openroad_negotiation_nblg/mechanism_deltas/`
   only when assigned to negotiation-history mechanisms.
-- `<agent_root>/knowledge/insights/dpo/source_level_mechanisms.md`
+- `<agent_root>/knowledge/support/dpo/source_level_mechanisms.md`
 
 If an absolute donor path is missing, skip it and continue from Teacher-named
 source symbols. Do not search for donor files relative to the private source

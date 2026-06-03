@@ -1,7 +1,7 @@
 # Skill Note: log_runtime_liveness_diagnosis
 
 Canonical structured fields live in `knowledge/index/skill_cards.jsonl`.
-Use `scripts/query_knowledge.py --q log_runtime_liveness_diagnosis --show-full`
+Use `scripts/repo/query_knowledge.py --q log_runtime_liveness_diagnosis --show-full`
 for source handles, metrics, and log signals.
 
 ## Extra Guidance

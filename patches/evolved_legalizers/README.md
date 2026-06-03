@@ -59,7 +59,7 @@ prefer the native negotiation baseline.
 
 For normal Teacher/Student rounds, do not ask Students to manually apply these
 OpenROAD-root patch files inside their private source tree.  Run
-`scripts/prepare_workspace.sh` to materialize the corresponding seed sources
+`scripts/workspace/prepare_workspace.sh` to materialize the corresponding seed sources
 under `.dpl_evolve_state/seed_sources/`, then launch with
 `--start-kind evolved_diamond` or `--start-kind evolved_negotiation`.
 

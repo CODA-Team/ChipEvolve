@@ -1,7 +1,7 @@
 # Skill Note: case_stagewise_hpwl_diagnosis
 
 Canonical structured fields live in `knowledge/index/skill_cards.jsonl`.
-Use `scripts/query_knowledge.py --q case_stagewise_hpwl_diagnosis --show-full`
+Use `scripts/repo/query_knowledge.py --q case_stagewise_hpwl_diagnosis --show-full`
 when Teacher needs the exact metrics/log checklist.
 
 ## Extra Guidance
@@ -13,9 +13,9 @@ when Teacher needs the exact metrics/log checklist.
 - Check whether legalization destroys too much of the global-placement basin:
   a large `HPWLg -> HPWLlg` disruption plus weak DPO recovery is evidence that
   the legalizer output may need repair before adding more DPO polish.
-- For an active launch, use `scripts/report_experiment_status.py` to combine
+- For an active launch, use `scripts/analysis/report_experiment_status.py` to combine
   process status, best-donor summaries, and recent stage rows.  Use
-  `scripts/report_stage_metrics.py` when only one round's full per-student
+  `scripts/evaluator/report_stage_metrics.py` when only one round's full per-student
   stage table is needed.
 - Preserve a stage donor even when a later stage erases it; assign the next
   route to repair the consumer or handoff.

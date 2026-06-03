@@ -1,7 +1,7 @@
 # BO Search Spaces
 
 These YAML files define black-box parameter spaces for
-`scripts/bo_tune_case.py`.
+`scripts/bo/bo_tune_case.py`.
 
 The BO runner requires Ray Tune and does not edit C++/Tcl source.  It maps
 parameter values to Tcl command arguments and injects them through the existing

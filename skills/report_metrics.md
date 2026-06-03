@@ -27,7 +27,7 @@ partial-log rows as clean final winners.
 From the repo root:
 
 ```bash
-python3 scripts/report_experiment_status.py \
+python3 scripts/analysis/report_experiment_status.py \
   --launch-dir .dpl_evolve_state/launch_runs/<launch_id> \
   --expected-iterations <N> \
   --children <M> \
@@ -39,15 +39,15 @@ Useful variants:
 
 ```bash
 # Latest launch directory, compact per-case best summary.
-python3 scripts/report_experiment_status.py
+python3 scripts/analysis/report_experiment_status.py
 
 # One explicit round, full landed stage table.
-python3 scripts/report_experiment_status.py \
+python3 scripts/analysis/report_experiment_status.py \
   --round-id <round_id> \
   --detail-round <round_id>
 
 # Machine-readable output for a notebook or another script.
-python3 scripts/report_experiment_status.py \
+python3 scripts/analysis/report_experiment_status.py \
   --launch-dir .dpl_evolve_state/launch_runs/<launch_id> \
   --format json
 ```
@@ -57,7 +57,7 @@ python3 scripts/report_experiment_status.py \
 For a direct per-student table without launch/process status:
 
 ```bash
-python3 scripts/report_stage_metrics.py \
+python3 scripts/evaluator/report_stage_metrics.py \
   --round-id <round_id> \
   --expected-iterations <N> \
   --children <M> \
@@ -104,6 +104,6 @@ If the table is stale or missing rows, inspect in this order:
 
 1. `summary.tsv` under the launch directory.
 2. `run.log` under the launch directory.
-3. `scripts/report_experiment_status.py --show-processes` for active sessions.
+3. `scripts/analysis/report_experiment_status.py --show-processes` for active sessions.
 4. `.dpl_evolve_state/checkpoints/operations/<operation_id>/codex_stderr.log`.
 5. The `metrics.json` and DPL log paths printed by `--include-path`.

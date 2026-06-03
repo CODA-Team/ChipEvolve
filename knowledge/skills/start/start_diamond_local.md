@@ -1,7 +1,7 @@
 # Skill Note: start_diamond_local
 
 Canonical structured fields live in `knowledge/index/skill_cards.jsonl`.
-Use `scripts/query_knowledge.py --q start_diamond_local --show-full`
+Use `scripts/repo/query_knowledge.py --q start_diamond_local --show-full`
 for source handles, metrics, and log signals.
 
 ## Extra Guidance

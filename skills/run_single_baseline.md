@@ -11,7 +11,7 @@ Manual one-line runner notes. Prefer `evaluator.py` for agent-managed runs.
 ## Preferred Manual Wrapper
 
 ```bash
-"$DPL_EVOLVE_AGENT_ROOT/scripts/run_canonical_line.sh" \
+"$DPL_EVOLVE_AGENT_ROOT/scripts/evaluator/run_canonical_line.sh" \
   --line evolve_default \
   --case <case_id> \
   --flow-variant <FLOW_VARIANT_WITH_3_4_PLACE_RESIZED_ODB> \
@@ -23,7 +23,7 @@ For a variant/family binary:
 
 ```bash
 source "${DPL_EVOLVE_STATE_ROOT}/variants/<agent_id>/variant_env.sh"
-"$DPL_EVOLVE_AGENT_ROOT/scripts/run_canonical_line.sh" \
+"$DPL_EVOLVE_AGENT_ROOT/scripts/evaluator/run_canonical_line.sh" \
   --line evolve_default \
   --openroad-binary "${OPENROAD_BINARY}" \
   --case <case_id> \

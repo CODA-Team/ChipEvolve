@@ -34,7 +34,7 @@ mechanism.
 
 - Implement from the Teacher route, selected knowledge/roadmap section, and the
   current private source tree.  Do not search or copy old experiment source
-  implementations from `/home/.../local_backups`, `local_backups`, or historical
+  implementations from `$HOME/local_backups`, `local_backups`, or historical
   `.dpl_evolve_state` round directories.
 - Allowed reads are: this generated round's packet/prompts/artifacts/helpers,
   `private_dpl_evolve_source`, current prepared start branches inside that source

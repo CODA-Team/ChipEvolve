@@ -31,7 +31,7 @@ if str(AGENT_ROOT) not in sys.path:
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from case_registry import get_case
+from scripts.repo.case_registry import get_case
 from runtime_paths import (
     clean_subprocess_env,
     load_local_env_sh,
@@ -131,7 +131,7 @@ def build_command(
     if build_mode != "openroad_only":
         raise ValueError(f"Unsupported build_mode: {build_mode}")
     return [
-        str(agent_root / "scripts" / "build_openroad_only.sh"),
+        str(agent_root / "scripts" / "workspace" / "build_openroad_only.sh"),
         "--threads",
         str(threads),
         "--build-dir",

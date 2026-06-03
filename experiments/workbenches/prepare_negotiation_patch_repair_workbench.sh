@@ -61,7 +61,7 @@ NEG_PATCH="${DPL_EVOLVE_AGENT_ROOT}/patches/evolved_legalizers/openroad_dpl_evol
 
 if [[ ! -f "${FRAMEWORK_SEED}/CMakeLists.txt" ]]; then
   echo "[ERROR] Missing framework seed: ${FRAMEWORK_SEED}" >&2
-  echo "[ERROR] Run scripts/prepare_workspace.sh first." >&2
+  echo "[ERROR] Run scripts/workspace/prepare_workspace.sh first." >&2
   exit 1
 fi
 if [[ ! -s "${NEG_PATCH}" ]]; then
@@ -325,7 +325,7 @@ if [[ -z "\${MATRIX_ID}" ]]; then
 fi
 
 cmd=(
-  "\${AGENT_ROOT}/scripts/run_candidate_matrix.sh"
+  "\${AGENT_ROOT}/scripts/matrix/run_candidate_matrix.sh"
   --matrix-id "\${MATRIX_ID}"
   --output-root "\${WB_ROOT}/candidate_matrices"
   --candidate-src "\${CANDIDATE}"
@@ -381,7 +381,7 @@ def fmt(value: float | None, digits: int = 1) -> str:
 
 def case_field(case_id: str, field: str) -> str:
     out = subprocess.check_output(
-        ["python3", str(AGENT_ROOT / "scripts/case_registry.py"), "--case", case_id, "--field", field],
+        ["python3", str(AGENT_ROOT / "scripts/repo/case_registry.py"), "--case", case_id, "--field", field],
         text=True,
     )
     return out.strip()

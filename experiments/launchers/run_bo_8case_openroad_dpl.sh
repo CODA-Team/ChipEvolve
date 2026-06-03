@@ -32,14 +32,14 @@ CASES=(
 
 if [[ ! -x "${PYTHON_BIN}" ]]; then
   echo "[ERROR] Ray Tune Python is not executable: ${PYTHON_BIN}" >&2
-  echo "        Run ${AGENT_ROOT}/scripts/setup_raytune_venv.sh first." >&2
+  echo "        Run ${AGENT_ROOT}/scripts/bo/setup_raytune_venv.sh first." >&2
   exit 1
 fi
 
 for case_id in "${CASES[@]}"; do
   run_id="${RUN_PREFIX}_${case_id}"
   cmd=(
-    "${PYTHON_BIN}" "${AGENT_ROOT}/scripts/bo_tune_case.py"
+    "${PYTHON_BIN}" "${AGENT_ROOT}/scripts/bo/bo_tune_case.py"
     --case "${case_id}"
     --space "${SPACE}"
     --run-id "${run_id}"

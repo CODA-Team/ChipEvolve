@@ -40,7 +40,7 @@ packet for mechanism intent.
 
 - Implement from the Teacher route, the selected knowledge/roadmap section, and
   the current private source tree.  Do not search or copy old experiment source
-  implementations from `/home/.../local_backups`, `local_backups`, or historical
+  implementations from `$HOME/local_backups`, `local_backups`, or historical
   `.dpl_evolve_state` round directories.
 - Allowed reads are: this generated round's packet/prompts/artifacts/helpers,
   `private_dpl_evolve_source`, current prepared start branches inside that source
@@ -78,7 +78,7 @@ counters, already-live links, missing links, and the link you will implement.
 - native handoff insight: `$optional_openroad_native_handoff_insight`
 - skill index: `$skill_index`
 - skill cards: `$skill_cards_dir`
-- algorithm cards: `$algorithm_cards_dir`
+- algorithm cards: `$algorithms_dir`
 - knowledge query helper: `$query_knowledge_script`
 
 If your assigned mechanism mixes Diamond, negotiation, LEGALM, or Differential

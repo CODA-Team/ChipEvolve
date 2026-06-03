@@ -9,7 +9,7 @@ AGENT_ROOT = Path(__file__).resolve().parents[2]
 if str(AGENT_ROOT) not in sys.path:
     sys.path.insert(0, str(AGENT_ROOT))
 
-from scripts.teacher_loop.common import START_KINDS
+from scripts.teacher_loop.constants import START_KINDS
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -45,7 +45,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--prepare-workspace",
         action="store_true",
         help=(
-            "Run scripts/prepare_workspace.sh before baseline preflight. This "
+            "Run scripts/workspace/prepare_workspace.sh before baseline preflight. This "
             "anchors ORFS/OpenROAD, applies supported patches, and refreshes "
             "start-kind seed snapshots."
         ),

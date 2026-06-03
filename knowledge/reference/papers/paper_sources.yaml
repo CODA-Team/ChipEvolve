@@ -4,9 +4,9 @@ purpose: >
   Optional cached PDFs are source-text verification aids only unless a
   redistribution policy is explicitly checked.  Algorithm pseudocode derived
   from these sources lives in
-  knowledge/algorithm_cards/*_paper_pseudocode.md and the split cards under
-  knowledge/algorithm_cards/legalization/ and
-  knowledge/algorithm_cards/dpo_refinement/.
+  knowledge/algorithms/*_paper_pseudocode.md and the split cards under
+  knowledge/algorithms/legalization/ and
+  knowledge/algorithms/dpo_refinement/.
 
 papers:
   - id: openroad_dpl_docs

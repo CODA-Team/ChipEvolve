@@ -1,7 +1,7 @@
 # Skill Note: dpo_source_edge_cached_scoring
 
 Canonical structured fields live in `knowledge/index/skill_cards.jsonl`.
-Use `scripts/query_knowledge.py --q dpo_source_edge_cached_scoring --show-full`
+Use `scripts/repo/query_knowledge.py --q dpo_source_edge_cached_scoring --show-full`
 for source handles, metrics, and log signals.
 
 ## Extra Guidance

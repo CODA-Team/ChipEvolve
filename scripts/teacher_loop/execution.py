@@ -17,7 +17,10 @@ from scripts.teacher_loop.common import (
     stable_candidate_ref,
 )
 from scripts.teacher_loop.evidence import load_json, seed_private_source_from_elite
-from scripts.teacher_loop.prompts import focused_message_excerpt, read_text_excerpt
+from scripts.teacher_loop.prompt_rendering import (
+    focused_message_excerpt,
+    read_text_excerpt,
+)
 
 MAX_CHILD_TEACHER_INSIGHT_CHARS = 2800
 

@@ -136,7 +136,7 @@ run_program() {
   start_ts="$(date '+%F %T')"
   results="${MATRIX_ROOT}/${program}/results.tsv"
   args=(
-    "${AGENT_ROOT}/scripts/run_candidate_matrix.sh"
+    "${AGENT_ROOT}/scripts/matrix/run_candidate_matrix.sh"
     --matrix-id "${program}"
     --output-root "${MATRIX_ROOT}"
     --candidate-src "${src}"

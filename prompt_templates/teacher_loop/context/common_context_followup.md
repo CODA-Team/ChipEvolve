@@ -75,7 +75,7 @@ $elite_text
 - DPO mechanism insight: `$dpo_source_mechanisms_insight`
 - OpenROAD-native handoff insight: `$openroad_native_handoff_insight`
 - skill query: `python3 $skill_query_script --stage <stage> --q "<bottleneck or mechanism>"`
-- algorithm cards: `$algorithm_cards_dir`
+- algorithm cards: `$algorithms_dir`
 
 For Diamond/negotiation/LEGALM/Differential Guidance mixtures, query
 `--stage legalization --q "diamond negotiation differential guidance liveness"`

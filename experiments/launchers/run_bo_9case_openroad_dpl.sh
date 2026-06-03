@@ -60,12 +60,12 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ "${#CASES[@]}" -eq 0 ]]; then
-  mapfile -t CASES < <(python3 "${AGENT_ROOT}/scripts/case_registry.py" --case-set "${CASE_SET}" --field case)
+  mapfile -t CASES < <(python3 "${AGENT_ROOT}/scripts/repo/case_registry.py" --case-set "${CASE_SET}" --field case)
 fi
 
 if [[ ! -x "${PYTHON_BIN}" ]]; then
   echo "[ERROR] Ray Tune Python is not executable: ${PYTHON_BIN}" >&2
-  echo "        Run ${AGENT_ROOT}/scripts/setup_raytune_venv.sh first." >&2
+  echo "        Run ${AGENT_ROOT}/scripts/bo/setup_raytune_venv.sh first." >&2
   exit 1
 fi
 
@@ -83,8 +83,8 @@ printf "case\tstatus\tlog\tstart\tend\trun_id\n" > "${STATUS_FILE}"
 check_case_snapshot() {
   local case_id="$1"
   local design platform snapshot
-  design="$(python3 "${AGENT_ROOT}/scripts/case_registry.py" --case "${case_id}" --field design)"
-  platform="$(python3 "${AGENT_ROOT}/scripts/case_registry.py" --case "${case_id}" --field platform)"
+  design="$(python3 "${AGENT_ROOT}/scripts/repo/case_registry.py" --case "${case_id}" --field design)"
+  platform="$(python3 "${AGENT_ROOT}/scripts/repo/case_registry.py" --case "${case_id}" --field platform)"
   snapshot="${ORFS_ROOT}/flow/results/${platform}/${design}/${FLOW_VARIANT}/3_4_place_resized.odb"
   if [[ ! -f "${snapshot}" ]]; then
     echo "[ERROR] Missing input snapshot for ${case_id}: ${snapshot}" >&2
@@ -101,7 +101,7 @@ run_case() {
   start_ts="$(date '+%F %T')"
 
   cmd=(
-    "${PYTHON_BIN}" "${AGENT_ROOT}/scripts/bo_tune_case.py"
+    "${PYTHON_BIN}" "${AGENT_ROOT}/scripts/bo/bo_tune_case.py"
     --case "${case_id}"
     --flow-variant "${FLOW_VARIANT}"
     --space "${SPACE}"

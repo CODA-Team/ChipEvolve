@@ -36,6 +36,7 @@ def load_local_env_sh(agent_root: Path) -> None:
     Shell wrappers already source env.sh through scripts/runtime_env.sh.  Python
     entrypoints also need the same local ORFS/state settings so agents do not
     accidentally depend on a mounted ORFS symlink or a globally exported env.
+    Values explicitly provided by the caller take precedence over env.sh.
     """
 
     if os.environ.get("DPL_EVOLVE_SKIP_ENV_SH") == "1":
@@ -43,6 +44,19 @@ def load_local_env_sh(agent_root: Path) -> None:
     env_file = agent_root / "env.sh"
     if not env_file.is_file():
         return
+    caller_overrides = {
+        key: os.environ[key]
+        for key in (
+            "DPL_EVOLVE_AGENT_ROOT",
+            "ORFS_ROOT",
+            "ORFS_BUILD_ROOT",
+            "DPL_EVOLVE_STATE_ROOT",
+            "DPL_EVOLVE_ORFS_ALIAS_ROOT",
+            "DPL_EVOLVE_PYTHON",
+            "DPL_EVOLVE_PYTHON_CANDIDATES",
+        )
+        if key in os.environ
+    }
     cmd = (
         "set -a; "
         f"source {shlex.quote(str(env_file))}; "
@@ -64,8 +78,9 @@ def load_local_env_sh(agent_root: Path) -> None:
         if "=" not in line:
             continue
         key, value = line.split("=", 1)
-        if key:
+        if key and key not in caller_overrides:
             os.environ[key] = value
+    os.environ.update(caller_overrides)
 
 
 def resolve_orfs_root(

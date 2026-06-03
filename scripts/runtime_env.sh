@@ -86,6 +86,41 @@ dpl_resolve_agent_root() {
   realpath -m "${helper_dir}/.."
 }
 
+dpl_source_local_env_preserving_overrides() {
+  local agent_root="$1"
+  local caller_agent_root_set="${DPL_EVOLVE_AGENT_ROOT+x}"
+  local caller_orfs_root_set="${ORFS_ROOT+x}"
+  local caller_orfs_build_root_set="${ORFS_BUILD_ROOT+x}"
+  local caller_state_root_set="${DPL_EVOLVE_STATE_ROOT+x}"
+  local caller_orfs_alias_root_set="${DPL_EVOLVE_ORFS_ALIAS_ROOT+x}"
+  local caller_python_set="${DPL_EVOLVE_PYTHON+x}"
+  local caller_python_candidates_set="${DPL_EVOLVE_PYTHON_CANDIDATES+x}"
+  local caller_agent_root="${DPL_EVOLVE_AGENT_ROOT:-}"
+  local caller_orfs_root="${ORFS_ROOT:-}"
+  local caller_orfs_build_root="${ORFS_BUILD_ROOT:-}"
+  local caller_state_root="${DPL_EVOLVE_STATE_ROOT:-}"
+  local caller_orfs_alias_root="${DPL_EVOLVE_ORFS_ALIAS_ROOT:-}"
+  local caller_python="${DPL_EVOLVE_PYTHON:-}"
+  local caller_python_candidates="${DPL_EVOLVE_PYTHON_CANDIDATES:-}"
+
+  if [[ "${DPL_EVOLVE_SKIP_ENV_SH:-0}" == "1" || ! -f "${agent_root}/env.sh" ]]; then
+    return 0
+  fi
+
+  # env.sh is local-only and ignored by git. It provides machine-specific
+  # defaults; caller-provided roots/tool overrides win.
+  # shellcheck source=/dev/null
+  source "${agent_root}/env.sh"
+  [[ -n "${caller_agent_root_set}" ]] && export DPL_EVOLVE_AGENT_ROOT="${caller_agent_root}"
+  [[ -n "${caller_orfs_root_set}" ]] && export ORFS_ROOT="${caller_orfs_root}"
+  [[ -n "${caller_orfs_build_root_set}" ]] && export ORFS_BUILD_ROOT="${caller_orfs_build_root}"
+  [[ -n "${caller_state_root_set}" ]] && export DPL_EVOLVE_STATE_ROOT="${caller_state_root}"
+  [[ -n "${caller_orfs_alias_root_set}" ]] && export DPL_EVOLVE_ORFS_ALIAS_ROOT="${caller_orfs_alias_root}"
+  [[ -n "${caller_python_set}" ]] && export DPL_EVOLVE_PYTHON="${caller_python}"
+  [[ -n "${caller_python_candidates_set}" ]] && export DPL_EVOLVE_PYTHON_CANDIDATES="${caller_python_candidates}"
+  return 0
+}
+
 dpl_init_runtime() {
   local script_name="${1:-script}"
   local agent_root candidate
@@ -93,10 +128,7 @@ dpl_init_runtime() {
   agent_root="$(dpl_resolve_agent_root)"
   export DPL_EVOLVE_AGENT_ROOT="${agent_root}"
   if [[ "${DPL_EVOLVE_SKIP_ENV_SH:-0}" != "1" && -f "${agent_root}/env.sh" ]]; then
-    # env.sh is local-only and ignored by git. It is the right place for
-    # machine-specific ORFS, state, module, and optional tool paths.
-    # shellcheck source=/dev/null
-    source "${agent_root}/env.sh"
+    dpl_source_local_env_preserving_overrides "${agent_root}"
     agent_root="$(dpl_resolve_agent_root)"
     export DPL_EVOLVE_AGENT_ROOT="${agent_root}"
   fi

@@ -9,23 +9,14 @@ from pathlib import Path
 from string import Template
 from typing import Any
 
+from scripts.teacher_loop.constants import (
+    CANONICAL_LINES,
+    PREPARED_START_KIND_PATTERN,
+    START_KINDS,
+)
 
 AGENT_ROOT = Path(__file__).resolve().parents[2]
 PROMPT_TEMPLATE_DIR = AGENT_ROOT / "prompt_templates" / "teacher_loop"
-
-START_KINDS = (
-    "framework",
-    "diamond",
-    "default_negotiation",
-)
-
-PREPARED_START_KIND_PATTERN = r"(?:framework|diamond|default_negotiation)"
-
-CANONICAL_LINES = (
-    "openroad_dpl_flow",
-    "openroad_dpl_negotiation",
-    "evolve_default",
-)
 
 @dataclass(frozen=True)
 class MetricSummary:

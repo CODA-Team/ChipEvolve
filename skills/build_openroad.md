@@ -29,19 +29,19 @@ script is the interface for Student source workers.
 Build common core once:
 
 ```bash
-"$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_core.sh"
-"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_core.sh" 10
+"$DPL_EVOLVE_AGENT_ROOT/scripts/workspace/configure_openroad_core.sh"
+"$DPL_EVOLVE_AGENT_ROOT/scripts/workspace/build_openroad_core.sh" --threads 10
 ```
 
 Build a private variant binary. In normal Student execution this is already
 wrapped by the workspace packet scripts:
 
 ```bash
-"$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_variant_relink.sh" \
+"$DPL_EVOLVE_AGENT_ROOT/scripts/workspace/configure_openroad_variant_relink.sh" \
   --variant-root "${DPL_EVOLVE_STATE_ROOT}/variants/<agent_id>" \
   --dpl-src /abs/path/to/<agent_id>/dpl_evolve
 source "${DPL_EVOLVE_STATE_ROOT}/variants/<agent_id>/variant_env.sh"
-"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_variant_relink.sh" --threads 10
+python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/workspace/build_openroad_variant_relink.py" --threads 10
 ```
 
 Expected outputs:

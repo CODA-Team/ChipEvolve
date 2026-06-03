@@ -139,12 +139,12 @@ log "baseline_parallel=${BASELINE_PARALLEL}"
 log "matrix_row_parallel=${MATRIX_ROW_PARALLEL}"
 
 if [[ "${MATRIX_ONLY}" -ne 1 && "${SKIP_CORE_BUILD}" -ne 1 ]]; then
-  run_cmd "${AGENT_ROOT}/scripts/configure_openroad_core.sh"
-  run_cmd "${AGENT_ROOT}/scripts/build_openroad_core.sh" "${THREADS}"
+  run_cmd "${AGENT_ROOT}/scripts/workspace/configure_openroad_core.sh"
+  run_cmd "${AGENT_ROOT}/scripts/workspace/build_openroad_core.sh" "${THREADS}"
 fi
 
 if [[ "${MATRIX_ONLY}" -ne 1 && "${SKIP_BASELINE_MATRIX}" -ne 1 ]]; then
-  run_cmd "${AGENT_ROOT}/scripts/run_candidate_matrix.sh" \
+  run_cmd "${AGENT_ROOT}/scripts/matrix/run_candidate_matrix.sh" \
     --matrix-id "${ROUND_ID}_baselines" \
     --plan "${PLAN_FILE}" \
     --threads "${THREADS}" \
@@ -181,7 +181,7 @@ if [[ "${DISCOVERY_ONLY}" -eq 1 ]]; then
 fi
 
 matrix_args=(
-  "${AGENT_ROOT}/scripts/run_round_candidate_matrices.sh"
+  "${AGENT_ROOT}/scripts/matrix/run_round_candidate_matrices.sh"
   --round-id "${ROUND_ID}"
   --plan "${PLAN_FILE}"
   --matrix-prefix "${ROUND_ID}_all_candidates"

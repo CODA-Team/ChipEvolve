@@ -24,14 +24,14 @@
 - LEGO-lite skill index: `$skill_index`
 - LEGO-lite skill query helper: `$skill_query_script`
 - LEGO-lite skill notes: `$skill_cards_dir`
-- algorithm/pseudocode cards: `$algorithm_cards_dir`
+- algorithm/pseudocode cards: `$algorithms_dir`
 - Teacher coaching skill: `$teacher_coaching_skill`
 
 Use these paths as search handles only when they help identify concrete
 function/state insertion points. Do not require broad donor-tree reading.
 
 The case feature route insight packet is evidence plus a compact route-insight
-index generated from `case_type_quality_mechanism_priority.md` and
+index generated from `case_feature_to_mechanism_route_map.md` and
 `mechanism_reconstruction_roadmap.md`. It is not a Python-selected route.
 Teacher must classify the current case from evidence, then use the packet to
 choose and justify concrete route hypotheses.
@@ -196,7 +196,7 @@ mechanism hypotheses and implementation roadmap sections.
   `skills/source_git_workflow.md`, `skills/build_openroad.md`,
   `skills/evaluate_run.md`, and `skills/trace_logging.md` when counters/logs
   are needed
-- algorithm cards under `$algorithm_cards_dir` provide pseudocode and liveness
+- algorithm cards under `$algorithms_dir` provide pseudocode and liveness
   contracts for the selected mechanism family; Students should read only the
   relevant card after Teacher names the stage/mechanism
 - generated Student workspace scripts own prepare/build/evaluate/commit/diff

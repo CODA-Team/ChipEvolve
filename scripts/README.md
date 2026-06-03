@@ -9,53 +9,59 @@ Runtime roots:
 - `ORFS_ROOT`
 - `DPL_EVOLVE_STATE_ROOT`
 
+Use these environment variables for directory prefixes in tracked scripts,
+docs, and generated packets. Machine-local absolute paths belong in ignored
+`env.sh` or the caller environment.
+
 ## Script Inventory
 
 Every active framework/helper script in `scripts/` is listed here.  If a file
 is experiment-specific, keep it under `experiments/launchers/` or
 `experiments/workbenches/` instead of this directory.
 
+Active implementation files live under role namespaces such as `scripts/workspace/`, `scripts/evaluator/`, `scripts/matrix/`, `scripts/analysis/`, `scripts/calibration/`, `scripts/orchestration/`, `scripts/repo/`, and `scripts/bo/`. Top-level `scripts/` is reserved for two stable Python shims, `runtime_env.sh`, and this README.
+
 ### Workspace And Runtime
 
 | Script | Purpose | Called by | Stage |
 | --- | --- | --- | --- |
 | `scripts/runtime_env.sh` | Resolve `DPL_EVOLVE_AGENT_ROOT`, `ORFS_ROOT`, `DPL_EVOLVE_STATE_ROOT`, and stable build aliases. | Sourced by shell entrypoints. | All shell-script stages. |
-| `scripts/prepare_workspace.sh` | Prepare a clean ORFS/OpenROAD workspace by applying supported patches and snapshot reusable `dpl_evolve` seed sources. | Human/Teacher before experiments. | Bootstrap. |
-| `scripts/case_registry.py` | Resolve cases from the single `problems/` registry. | `run_place_batch.sh`, `run_baseline.sh`, Teacher tooling, humans. | Case selection. |
-| `scripts/checkpoint.py` | Snapshot/restore local candidate source state under ignored runtime state. | Teacher/child loop and manual recovery. | Experiment state management. |
-| `scripts/audit_repo_hygiene.py` | Check that GitHub-facing files avoid stale family-flow references and unclassified patch artifacts. | Human/CI-style preflight. | Repo hygiene. |
+| `scripts/workspace/prepare_workspace.sh` | Prepare a clean ORFS/OpenROAD workspace by applying supported patches and snapshot reusable `dpl_evolve` seed sources. | Human/Teacher before experiments. | Bootstrap. |
+| `scripts/repo/case_registry.py` | Resolve cases from the single `problems/` registry. | `run_place_batch.sh`, `run_baseline.sh`, Teacher tooling, humans. | Case selection. |
+| `scripts/repo/query_knowledge.py` | Query and validate the concise skill-card index. | Teacher/Student packets, humans. | Knowledge lookup. |
+| `scripts/repo/checkpoint.py` | Snapshot/restore local candidate source state under ignored runtime state. | Teacher/child loop and manual recovery. | Experiment state management. |
+| `scripts/repo/audit_repo_hygiene.py` | Check that GitHub-facing files avoid stale family-flow references and unclassified patch artifacts. | Human/CI-style preflight. | Repo hygiene. |
+| `scripts/repo/check_release_readiness.sh` | Run the static release gate: compile, shell syntax, knowledge validation, repo hygiene, Teacher dry-run prompt audit, and generated Student script syntax. | Human/CI-style preflight. | Release gate. |
 
 ### Build And Relink
 
 | Script | Purpose | Called by | Stage |
 | --- | --- | --- | --- |
-| `scripts/configure_openroad_core.sh` | Write common-core `core_env.sh` with build/install/binary paths. | Human/Teacher before common-core build. | Common-core configure. |
-| `scripts/build_openroad_core.sh` | Choose the common-core root and delegate the actual OpenROAD build. | Human/Teacher before variants. | Common-core build. |
-| `scripts/build_openroad_only.sh` | Single OpenROAD configure/build/install implementation.  Also used by evaluator `openroad_only` mode. | `build_openroad_core.sh`, evaluator, advanced manual builds. | Common-core or explicit OpenROAD build. |
-| `scripts/create_variant_start.sh` | Copy a `dpl_evolve` seed into one private variant source tree, initialize it as a local git repo, and optionally switch to the generated source branch. Active start kinds are `framework`, `diamond`, `default_negotiation`, and `prepared`; `--seed-src` can start from an exported elite source commit. Preserves existing source unless `--force` is passed. | Human/Teacher/child agents. | Variant initialize. |
-| `scripts/configure_openroad_variant_relink.sh` | Write `variant_env.sh` for a private candidate `dpl_evolve` source. | Human/Teacher/child agents. | Variant configure. |
-| `scripts/build_openroad_variant_relink.sh` | Thin shell wrapper around the Python relinker. | Human/Teacher/child agents. | Variant build. |
-| `scripts/build_openroad_variant_relink.py` | Recompile variant-owned `dpl_evolve` objects and relink a private OpenROAD binary from common-core link recipes. | `build_openroad_variant_relink.sh`. | Fast variant build. |
+| `scripts/workspace/configure_openroad_core.sh` | Write common-core `core_env.sh` with build/install/binary paths. | Human/Teacher before common-core build. | Common-core configure. |
+| `scripts/workspace/build_openroad_core.sh` | Choose the common-core root and delegate the actual OpenROAD build. | Human/Teacher before variants. | Common-core build. |
+| `scripts/workspace/build_openroad_only.sh` | Single OpenROAD configure/build/install implementation. | `build_openroad_core.sh`, evaluator, advanced manual builds. | Common-core or explicit OpenROAD build. |
+| `scripts/workspace/configure_openroad_variant_relink.sh` | Write `variant_env.sh` for a private candidate `dpl_evolve` source. | Human/Teacher/child agents. | Variant configure. |
+| `scripts/workspace/build_openroad_variant_relink.py` | Recompile variant-owned `dpl_evolve` objects and relink a private OpenROAD binary from common-core link recipes. | Human/Teacher/child agents. | Fast variant build. |
 
 ### Run And Evaluate
 
 | Script | Purpose | Called by | Stage |
 | --- | --- | --- | --- |
-| `scripts/run_place_batch.sh` | Produce reusable `3_4_place_resized.odb` snapshots for selected cases. | Human/Teacher before baseline/evolve gates. | Input snapshot generation. |
-| `scripts/calibrate_start_seeds.sh` | Build/evaluate active prepared start-kind seeds `framework`, `diamond`, and `default_negotiation` for one case, then write initial donor-evidence tables. | `optimize_case_with_codex.py --calibrate-start-seeds`, Human/Teacher. | Start donor calibration. |
-| `scripts/summarize_start_seed_calibration.py` | Summarize start-kind calibration candidate matrices into markdown/TSV stage-wise metrics. | `calibrate_start_seeds.sh`. | Result analysis. |
-| `scripts/run_candidate_matrix.sh` | Build one fixed candidate `dpl_evolve` source once, then evaluate that identical code across every enabled row in a TSV plan. | Human/Teacher after a promising exported student source commit exists. | Cross-case candidate validation. |
-| `scripts/run_round_candidate_matrices.sh` | Enumerate committed student source revisions from one Teacher round, export each revision, and run `run_candidate_matrix.sh` for each. | Human/Teacher after a completed round. | 4xN candidate validation. |
-| `scripts/export_round_candidate_sources.py` | Export committed student source revisions from one Teacher round into reusable source snapshots. | `run_round_candidate_matrices.sh`, Human/Teacher. | Candidate export. |
-| `scripts/normalize_candidate_matrix_results.py` | Normalize candidate-matrix result TSVs into stable comparison tables. | `run_round_candidate_matrices.sh`, Human/Teacher. | Result analysis. |
-| `scripts/run_canonical_line.sh` | Dispatch one canonical line: `openroad_dpl_flow`, `openroad_dpl_negotiation`, or `evolve_default`. | Humans, evaluator, Teacher loop. | Single run. |
-| `scripts/bo_tune_case.py` | Ray Tune black-box optimize Tcl command parameters for one case using the same strict baseline runner and metrics.json as the white-box evolve loop. Requires Ray Tune; there is no local fallback. | Human/Teacher for black-box baselines. | Parameter tuning / ablation. |
-| `scripts/setup_raytune_venv.sh` | Create the repo-local `.venv_raytune` environment and verify `ray.tune` plus `optuna`. | Human before BO runs. | BO setup. |
-| `scripts/compare_runs.py` | Compare two evaluator or metrics JSON files using stable metrics. | Human/Teacher review. | Result analysis. |
-| `scripts/report_candidate_metrics.py` | Summarize one candidate run into canonical final/stage metrics, artifact paths, and key log counter lines so Students do not need to hand-parse nested metrics/log files. | Student helpers, Human/Teacher review. | Candidate result summary. |
-| `scripts/report_experiment_quick_status.py` | Fast state-only batch summary from round packets and Student metric summaries. Avoids ORFS-wide scans for frequent heartbeat checks. | Human/Teacher monitoring. | Monitoring/result analysis. |
-| `scripts/report_stage_metrics.py` | Print canonical per-round stage-wise HPWL/runtime/displacement rows from evaluator `metrics.json`, falling back to labeled partial DPL logs for in-flight evidence. | Human/Teacher review, packets. | Result analysis. |
-| `scripts/report_experiment_status.py` | Summarize a launch directory: active processes, completed/active rounds, best baseline vs best evolved donors, and optional detailed stage rows. | Human/Teacher monitoring. | Monitoring/result analysis. |
+| `scripts/evaluator/run_place_batch.sh` | Produce reusable `3_4_place_resized.odb` snapshots for selected cases. | Human/Teacher before baseline/evolve gates. | Input snapshot generation. |
+| `scripts/calibration/calibrate_start_seeds.sh` | Build/evaluate active prepared start-kind seeds `framework`, `diamond`, and `default_negotiation` on one target case, then write initial donor-evidence tables. This is a target-local start-kind probe, not Level 1 calibration. | `optimize_case_with_codex.py --calibrate-start-seeds`, Human/Teacher. | Target start-kind probe. |
+| `scripts/calibration/summarize_start_seed_calibration.py` | Summarize target start-kind probe candidate matrices into markdown/TSV stage-wise metrics. | `calibrate_start_seeds.sh`. | Result analysis. |
+| `scripts/matrix/run_candidate_matrix.sh` | Build one fixed candidate `dpl_evolve` source once, then evaluate that identical code across every enabled row in a TSV plan. | Human/Teacher after a promising exported student source commit exists. | Cross-case candidate validation. |
+| `scripts/matrix/run_round_candidate_matrices.sh` | Enumerate committed student source revisions from one Teacher round, export each revision, and run `run_candidate_matrix.sh` for each. | Human/Teacher after a completed round. | 4xN candidate validation. |
+| `scripts/analysis/export_round_candidate_sources.py` | Export committed student source revisions from one Teacher round into reusable source snapshots. | `run_round_candidate_matrices.sh`, Human/Teacher. | Candidate export. |
+| `scripts/evaluator/normalize_candidate_matrix_results.py` | Normalize candidate-matrix result TSVs into stable comparison tables. | `run_round_candidate_matrices.sh`, Human/Teacher. | Result analysis. |
+| `scripts/evaluator/run_canonical_line.sh` | Dispatch one canonical line: `openroad_dpl_flow`, `openroad_dpl_negotiation`, or `evolve_default`. | Humans, evaluator, Teacher loop. | Single run. |
+| `scripts/bo/bo_tune_case.py` | Ray Tune black-box optimize Tcl command parameters for one case using the same strict baseline runner and metrics.json as the white-box evolve loop. Requires Ray Tune; there is no local fallback. | Human/Teacher for black-box baselines. | Parameter tuning / ablation. |
+| `scripts/bo/setup_raytune_venv.sh` | Create the repo-local `.venv_raytune` environment and verify `ray.tune` plus `optuna`. | Human before BO runs. | BO setup. |
+| `scripts/analysis/compare_runs.py` | Compare two evaluator or metrics JSON files using stable metrics. | Human/Teacher review. | Result analysis. |
+| `scripts/evaluator/report_candidate_metrics.py` | Summarize one candidate run into canonical final/stage metrics, artifact paths, and key log counter lines so Students do not need to hand-parse nested metrics/log files. | Student helpers, Human/Teacher review. | Candidate result summary. |
+| `scripts/analysis/report_experiment_quick_status.py` | Fast state-only batch summary from round packets and Student metric summaries. | Human/Teacher monitoring. | Monitoring/result analysis. |
+| `scripts/evaluator/report_stage_metrics.py` | Print canonical per-round stage-wise HPWL/runtime/displacement rows from evaluator `metrics.json`, falling back to labeled partial DPL logs for in-flight evidence. | Human/Teacher review, packets. | Result analysis. |
+| `scripts/analysis/report_experiment_status.py` | Summarize a launch directory: active processes, completed/active rounds, best baseline vs best evolved donors, and optional detailed stage rows. | Human/Teacher monitoring. | Monitoring/result analysis. |
 
 ### Teacher/Child Optimization
 
@@ -63,8 +69,10 @@ is experiment-specific, keep it under `experiments/launchers/` or
 | --- | --- | --- | --- |
 | `scripts/optimize_case_with_codex.py` | Stable CLI shim for the multi-iteration Teacher/child optimization round. The implementation is split under `scripts/teacher_loop/`. | Human/Teacher. | Case-specific algorithm search. |
 | `scripts/run_codex_exec.py` | Stable CLI shim for the low-level `codex exec --json` recorder used by launched Teacher/Student agents.  Can resume a prior Codex session with `--resume-session-id`; records usage and stderr category summaries. Implementation lives under `scripts/codex_exec/`. | `optimize_case_with_codex.py`. | Worker execution. |
-| `scripts/watch_teacher_round.py` | Terminal or local-web dashboard for a Teacher/Student round.  Shows observable status, paths, last visible messages, diffs, metrics, and usage. | Human/Teacher. | Monitoring. |
-| `scripts/compact_round_peer_prompts.py` | Compact large peer-prompt context from a Teacher round into smaller review artifacts. | Human/Teacher when prompt context grows too large. | Prompt hygiene. |
+| `scripts/orchestration/watch_teacher_round.py` | Terminal or local-web dashboard for a Teacher/Student round. | Human/Teacher. | Monitoring. |
+| `scripts/orchestration/check_evolve_now.py` | Compact live status for active experiment batches. | Human/Teacher. | Monitoring. |
+| `scripts/orchestration/monitor_evolve_heartbeat.sh` | Repeated batch heartbeat for long-running campaigns. | Human/Teacher. | Monitoring. |
+| `scripts/analysis/compact_round_peer_prompts.py` | Compact large peer-prompt context from a Teacher round into smaller review artifacts. | Human/Teacher when prompt context grows too large. | Prompt hygiene. |
 
 ### Experiment-Specific Launchers
 
@@ -86,13 +94,28 @@ Current launchers:
 | `experiments/launchers/run_bo_8case_openroad_dpl.sh` | 8-case OpenROAD native DPL BO sweep. |
 | `experiments/launchers/run_bo_9case_openroad_dpl.sh` | 9-case OpenROAD native DPL BO sweep. |
 | `experiments/launchers/run_evolve_9case_place_batch.sh` | 9-case Teacher/Student evolve sweep. |
+| `experiments/launchers/run_evolve_9case_breadth16x4_place_batch.sh` | Wider 9-case Teacher/Student evolve campaign with breadth-16/iteration-4 settings. |
+| `experiments/launchers/run_best_evolved_9case_transfer_matrix.sh` | Best-evolved source transfer matrix launcher for cross-case reuse checks. |
 | `experiments/workbenches/prepare_negotiation_patch_repair_workbench.sh` | Dedicated evolved-negotiation patch repair workbench generator. |
+
+Experiment-specific analysis utilities live under `experiments/analysis/`;
+keep new one-off paper/campaign reducers there instead of under generic
+`scripts/analysis/`.
 
 `scripts/teacher_loop/` contains the Python implementation modules:
 `orchestrator.py` for the top-level loop, `common.py` for shared data,
-`evidence.py` for metrics and artifact validity, `prompts.py` for generated
-prompt/packet material and per-Student command scripts, and `execution.py` for
-Codex command execution and source commits.
+`evidence.py` for metrics and artifact validity, `context_packets.py` for
+generated context and route packets, `packet_builders.py` for generated
+workspace/review packets, `prompt_rendering.py` for agent-facing prompt text
+and prompt audit, `workspace_scripts.py` for start-kind and generated Student
+helper-script APIs, and `execution.py` for Codex command execution and source
+commits. `prompt_rendering.py` now owns prompt-safe text excerpting and audit
+rules plus Teacher/Student prompt construction, `packet_builders.py` owns
+packet/README generation, and `context_packets.py` owns Teacher/Student
+context generation and route-insight packets. `workspace_scripts.py` owns start-kind source resolution,
+parent-source selection, runtime timeout policy, executable-script writing, and
+generated Student helper scripts. `prompts.py` remains a legacy compatibility
+import module; new code should import through the role-specific modules.
 
 `scripts/codex_exec/` contains the low-level Codex recorder implementation:
 `cli.py` for options, `runner.py` for the execution flow, and `artifacts.py`
@@ -119,7 +142,7 @@ bbox `hpwl_proxy` field is diagnostic only.
 
 ### Black-Box Parameter Tuning
 
-Use `scripts/bo_tune_case.py` when we need a black-box comparison against the
+Use `scripts/bo/bo_tune_case.py` when we need a black-box comparison against the
 white-box Agent/code-evolution flow.  This runner requires Ray Tune/Optuna and
 intentionally has no local fallback.  The tuner does not edit source code or
 relink OpenROAD.  It injects parameter lists into the existing baseline Tcl
@@ -135,13 +158,13 @@ OPENROAD_DPL_OPTIMIZE_ARGS
 Set up the local Ray Tune Python once:
 
 ```bash
-dpl_evolve_agent/scripts/setup_raytune_venv.sh
+"$DPL_EVOLVE_AGENT_ROOT/scripts/bo/setup_raytune_venv.sh"
 ```
 
 Single-case example:
 
 ```bash
-dpl_evolve_agent/.venv_raytune/bin/python "$DPL_EVOLVE_AGENT_ROOT/scripts/bo_tune_case.py" \
+"$DPL_EVOLVE_AGENT_ROOT/.venv_raytune/bin/python" "$DPL_EVOLVE_AGENT_ROOT/scripts/bo/bo_tune_case.py" \
   --case aes_dense_nangate45 \
   --flow-variant DENSE \
   --space "$DPL_EVOLVE_AGENT_ROOT/configs/bo_search_spaces/openroad_dpl_native.yaml" \
@@ -155,7 +178,7 @@ Standard 8-case sweep:
 
 ```bash
 BO_TRIALS=100 BO_MAX_CONCURRENT_TRIALS=4 BO_THREADS_PER_TRIAL=10 \
-  dpl_evolve_agent/experiments/launchers/run_bo_8case_openroad_dpl.sh
+  "$DPL_EVOLVE_AGENT_ROOT/experiments/launchers/run_bo_8case_openroad_dpl.sh"
 ```
 
 Standard 9-case sweep for the shared `place_batch_20260421_220319` snapshots:
@@ -163,7 +186,7 @@ Standard 9-case sweep for the shared `place_batch_20260421_220319` snapshots:
 ```bash
 BO_TRIALS=400 BO_MAX_CONCURRENT_CASES=3 BO_MAX_CONCURRENT_TRIALS=4 \
 BO_THREADS_PER_TRIAL=10 BO_FLOW_VARIANT=place_batch_20260421_220319 \
-  dpl_evolve_agent/experiments/launchers/run_bo_9case_openroad_dpl.sh
+  "$DPL_EVOLVE_AGENT_ROOT/experiments/launchers/run_bo_9case_openroad_dpl.sh"
 ```
 
 DPO-boundary sweep with the native legalizer fixed and a wider
@@ -174,7 +197,7 @@ BO_SPACE="$DPL_EVOLVE_AGENT_ROOT/configs/bo_search_spaces/openroad_dpl_native_dp
 BO_RUN_PREFIX=openroad_dpl_native_dpo_frontier_9case_bo \
 BO_TRIALS=400 BO_MAX_CONCURRENT_CASES=3 BO_MAX_CONCURRENT_TRIALS=4 \
 BO_THREADS_PER_TRIAL=10 BO_FLOW_VARIANT=place_batch_20260421_220319 \
-  dpl_evolve_agent/experiments/launchers/run_bo_9case_openroad_dpl.sh
+  "$DPL_EVOLVE_AGENT_ROOT/experiments/launchers/run_bo_9case_openroad_dpl.sh"
 ```
 
 This DPO-focused space explores `improve_placement -random_seed`, scalar and
@@ -187,7 +210,7 @@ OpenROAD default DPL baseline rows for the same 9-case set:
 
 ```bash
 BASELINE_FLOW_VARIANT=place_batch_20260421_220319 BASELINE_MAX_PARALLEL=3 \
-  dpl_evolve_agent/experiments/launchers/run_openroad_dpl_9case_baselines.sh
+  "$DPL_EVOLVE_AGENT_ROOT/experiments/launchers/run_openroad_dpl_9case_baselines.sh"
 ```
 
 White-box Agent evolve rows for the same 9-case set:
@@ -197,7 +220,7 @@ EVOLVE_FLOW_VARIANT=place_batch_20260421_220319 EVOLVE_CHILDREN=4 \
 EVOLVE_ITERATIONS=15 EVOLVE_TEACHER_MODEL=gpt-5.4 \
 EVOLVE_TEACHER_REASONING_EFFORT=xhigh EVOLVE_STUDENT_MODEL=gpt-5.4 \
 EVOLVE_STUDENT_REASONING_EFFORT=xhigh EVOLVE_MAX_CONCURRENT_CASES=3 \
-  dpl_evolve_agent/experiments/launchers/run_evolve_9case_place_batch.sh
+  "$DPL_EVOLVE_AGENT_ROOT/experiments/launchers/run_evolve_9case_place_batch.sh"
 ```
 
 The 9-case sweep checks that every case has
@@ -255,13 +278,13 @@ parameter ranges before running a new BO sweep.
 
 | Script | Purpose | Called by | Stage |
 | --- | --- | --- | --- |
-| `scripts/fetch_reference_papers.sh` | Fetch papers into the ignored local PDF cache. | Human/research agent when references are missing. | Local research setup only. |
+| `scripts/analysis/fetch_reference_papers.sh` | Fetch papers into the ignored local PDF cache. | Human/research agent when references are missing. | Local research setup only. |
 
 ### Baseline Harness
 
 | Script | Purpose | Called by | Stage |
 | --- | --- | --- | --- |
-| `baseline/run_baseline.sh` | Strict canonical-line dispatcher. | `run_canonical_line.sh`, line wrappers, evaluator. | Baseline/evolve run. |
+| `baseline/run_baseline.sh` | Strict canonical-line dispatcher. | `run_canonical_line.sh`, canonical line scripts, evaluator. | Baseline/evolve run. |
 | `baseline/run_baseline_suite.sh` | Run the three canonical comparison lines as one suite. | Human/Teacher. | Baseline suite. |
 | `baseline/run_openroad_dpl_flow.sh` | Convenience wrapper for `openroad_dpl_flow`. | Human/Teacher. | Baseline line. |
 | `baseline/run_openroad_dpl_negotiation.sh` | Convenience wrapper for `openroad_dpl_negotiation`. | Human/Teacher. | Baseline line. |
@@ -280,18 +303,27 @@ Teacher/child case-optimization loop.
 
 ## Typical Framework Flow
 
+Run the repo-level static release gate before launching expensive ORFS work:
+
+```bash
+"$DPL_EVOLVE_AGENT_ROOT/scripts/repo/check_release_readiness.sh"
+```
+
+Use `--skip-teacher-dry-run` only when ORFS/OpenROAD roots are not available
+and a static-only check is needed.
+
 1. Prepare ORFS once:
 
 ```bash
-"$DPL_EVOLVE_AGENT_ROOT/scripts/prepare_workspace.sh" \
+"$DPL_EVOLVE_AGENT_ROOT/scripts/workspace/prepare_workspace.sh" \
   --workspace-root "$ORFS_ROOT"
 ```
 
 2. Build or reuse common OpenROAD core:
 
 ```bash
-"$DPL_EVOLVE_AGENT_ROOT/scripts/configure_openroad_core.sh"
-"$DPL_EVOLVE_AGENT_ROOT/scripts/build_openroad_core.sh" 10
+"$DPL_EVOLVE_AGENT_ROOT/scripts/workspace/configure_openroad_core.sh"
+"$DPL_EVOLVE_AGENT_ROOT/scripts/workspace/build_openroad_core.sh" --threads 10
 ```
 
 3. Create a candidate `dpl_evolve` source under `DPL_EVOLVE_STATE_ROOT`, relink,
@@ -413,7 +445,7 @@ Per-iteration diffs, build logs, and eval logs still live under
 `students/student_XX/iter_XX/artifacts`.
 
 Generated Student command packets also include `08_query_knowledge.sh`, a thin
-wrapper around `scripts/query_knowledge.py`.  Use it for LEGO-lite stage skill
+wrapper around `scripts/repo/query_knowledge.py`. Use it for LEGO-lite stage skill
 lookup instead of broad-reading the whole knowledge tree.
 
 `--prepare-workspace` is the one-flag bootstrap path for launched rounds.  It
@@ -422,8 +454,10 @@ preflight, which refreshes the start-kind seed snapshots.  Use
 `--prepare-force` only when it is safe to reset the prepared ORFS/OpenROAD
 workspace.
 
-Use `--calibrate-start-seeds` when Teacher should see initial full-flow
-results for the prepared start-kind seeds before assigning Student routes:
+Use `--calibrate-start-seeds` when Teacher should see target-local initial
+full-flow results for the prepared start-kind seeds before assigning Student
+routes. This is not paper-level Level 1 calibration; see
+`$DPL_EVOLVE_AGENT_ROOT/calibration/README.md` for the Level 1 contract.
 
 ```bash
 "$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py" \
@@ -437,7 +471,7 @@ results for the prepared start-kind seeds before assigning Student routes:
   --launch
 ```
 
-The calibration packet is written to:
+The target start-kind probe packet is written to:
 
 ```text
 $DPL_EVOLVE_STATE_ROOT/<round>/teacher_rounds/iter_XX/packet/start_seed_calibration.md
@@ -482,7 +516,7 @@ a recorded `last_thread_id`.
 Watch a running round in the terminal:
 
 ```bash
-"$DPL_EVOLVE_AGENT_ROOT/scripts/watch_teacher_round.py" \
+"$DPL_EVOLVE_AGENT_ROOT/scripts/orchestration/watch_teacher_round.py" \
   <round_id> \
   --watch
 ```
@@ -490,7 +524,7 @@ Watch a running round in the terminal:
 Serve a tiny local dashboard:
 
 ```bash
-"$DPL_EVOLVE_AGENT_ROOT/scripts/watch_teacher_round.py" \
+"$DPL_EVOLVE_AGENT_ROOT/scripts/orchestration/watch_teacher_round.py" \
   <round_id> \
   --serve --host 127.0.0.1 --port 8765
 ```

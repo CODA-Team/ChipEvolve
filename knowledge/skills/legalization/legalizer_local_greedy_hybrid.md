@@ -1,7 +1,7 @@
 # Skill Note: legalizer_local_greedy_hybrid
 
 Canonical structured fields live in `knowledge/index/skill_cards.jsonl`.
-Use `scripts/query_knowledge.py --q legalizer_local_greedy_hybrid --show-full`
+Use `scripts/repo/query_knowledge.py --q legalizer_local_greedy_hybrid --show-full`
 for source handles, metrics, and log signals.
 
 ## Extra Guidance

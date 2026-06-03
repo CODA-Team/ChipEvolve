@@ -15,7 +15,7 @@ Read only the skill needed for the current action:
   reporting, including active-process checks and best-donor summaries.
 - `trace_logging.md`: Student lightweight counters and logs for mechanism
   verification.
-- `../knowledge/insights/workflow/metric_contract.md`: canonical HPWL and
+- `../knowledge/contracts/metric_contract.md`: canonical HPWL and
   report interpretation contract.
 - `run_single_baseline.md`: manual one-line baseline/evolve runs.
 - `run_baseline_suite.md`: manual suite runs.
@@ -38,7 +38,7 @@ Default Student skills for source-edit workers:
 - touch legalization/detailed placement, improve placement, or their shared
   objective/handoff as directed by Teacher
 - when Teacher assigns a pseudocode/algorithm family, read only the relevant
-  card under `../knowledge/algorithm_cards/` and translate it into a concrete
+  card under `../knowledge/algorithms/` and translate it into a concrete
   source-level plan shaped by the current metrics, logs, and source path before
   patching
 - let the orchestrator-owned packet decide whether this worker should build

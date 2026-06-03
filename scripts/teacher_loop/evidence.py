@@ -13,14 +13,14 @@ from pathlib import Path
 from typing import Any, Callable
 
 from runtime_paths import clean_subprocess_env
-from scripts.case_registry import get_case
+from scripts.repo.case_registry import get_case
 from scripts.teacher_loop.common import (
-    CANONICAL_LINES,
     CandidateArtifacts,
     ChildRound,
     MetricSummary,
     iter_name,
 )
+from scripts.teacher_loop.constants import CANONICAL_LINES
 
 VALUE_REFERENCE_LINE = "openroad_dpl_flow"
 HPWL_RUNTIME_GAIN_FORMULA = (

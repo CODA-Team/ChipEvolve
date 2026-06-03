@@ -14,7 +14,7 @@ not machine-specific artifact paths.
 Use the helper from the repo root:
 
 ```bash
-./scripts/fetch_reference_papers.sh
+./scripts/analysis/fetch_reference_papers.sh
 ```
 
 The script downloads clearly fetchable papers into an ignored cache.  That
@@ -26,7 +26,7 @@ does not download them by default.  You can opt in only for source-text
 verification:
 
 ```bash
-./scripts/fetch_reference_papers.sh --include-personal-use
+./scripts/analysis/fetch_reference_papers.sh --include-personal-use
 ```
 
 Do not commit the resulting cache.

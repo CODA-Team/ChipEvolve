@@ -126,11 +126,11 @@ for value_name in CHILDREN ITERATIONS MAX_PARALLEL THREADS MAX_CONCURRENT_CASES;
 done
 
 if [[ "${#CASES[@]}" -eq 0 ]]; then
-  mapfile -t CASES < <(python3 "${AGENT_ROOT}/scripts/case_registry.py" --case-set "${CASE_SET}" --field case)
+  mapfile -t CASES < <(python3 "${AGENT_ROOT}/scripts/repo/case_registry.py" --case-set "${CASE_SET}" --field case)
 fi
 
 case_field() {
-  python3 "${AGENT_ROOT}/scripts/case_registry.py" --case "$1" --field "$2"
+  python3 "${AGENT_ROOT}/scripts/repo/case_registry.py" --case "$1" --field "$2"
 }
 
 snapshot_path() {
@@ -183,7 +183,7 @@ printf "case\tflow_variant\tround_id\tstart_kind\tchildren\titerations\tmax_para
 require_snapshots
 
 if [[ "${PREPARE_WORKSPACE}" -eq 1 ]]; then
-  prepare_cmd=("${AGENT_ROOT}/scripts/prepare_workspace.sh" --workspace-root "${ORFS_ROOT}")
+  prepare_cmd=("${AGENT_ROOT}/scripts/workspace/prepare_workspace.sh" --workspace-root "${ORFS_ROOT}")
   if [[ "${PREPARE_FORCE}" -eq 1 ]]; then
     prepare_cmd+=(--force)
   fi
@@ -191,8 +191,8 @@ if [[ "${PREPARE_WORKSPACE}" -eq 1 ]]; then
 fi
 
 if [[ "${SKIP_CORE_BUILD}" -ne 1 ]]; then
-  run_cmd "${AGENT_ROOT}/scripts/configure_openroad_core.sh"
-  run_cmd "${AGENT_ROOT}/scripts/build_openroad_core.sh" --threads "${THREADS}"
+  run_cmd "${AGENT_ROOT}/scripts/workspace/configure_openroad_core.sh"
+  run_cmd "${AGENT_ROOT}/scripts/workspace/build_openroad_core.sh" --threads "${THREADS}"
 fi
 
 if [[ "${REFRESH_BASELINES}" -eq 1 ]]; then

@@ -22,10 +22,9 @@ if str(AGENT_ROOT) not in sys.path:
     sys.path.insert(0, str(AGENT_ROOT))
 
 from runtime_paths import clean_subprocess_env, resolve_runtime_paths
-from scripts.case_registry import get_case
+from scripts.repo.case_registry import get_case
 from scripts.teacher_loop.cli import parse_args
 from scripts.teacher_loop.common import (
-    CANONICAL_LINES,
     ChildRound,
     MetricSummary,
     RoundLogger,
@@ -34,6 +33,7 @@ from scripts.teacher_loop.common import (
     student_workspace_paths,
     teacher_session_paths,
 )
+from scripts.teacher_loop.constants import CANONICAL_LINES
 
 
 from scripts.teacher_loop.evidence import (
@@ -61,25 +61,31 @@ from scripts.teacher_loop.execution import (
     run_commands,
     seed_elite_children,
 )
-from scripts.teacher_loop.prompts import (
-    agent_prompt_warnings,
-    build_packet,
-    child_prompt,
+from scripts.teacher_loop.context_packets import (
     common_context,
+    prior_iteration_context,
+    write_case_feature_route_insight_packet,
+    write_iteration_context,
+    write_teacher_routing_context,
+)
+from scripts.teacher_loop.packet_builders import (
+    build_packet,
+    write_child_workspace_packet,
+    write_review_artifacts_packet,
+    write_round_readme,
+)
+from scripts.teacher_loop.prompt_rendering import (
+    agent_prompt_warnings,
+    child_prompt,
     compact_child_prompt,
     compact_teacher_prompt,
     compact_teacher_review_prompt,
     prompt_audit,
-    prior_iteration_context,
     teacher_prompt,
     teacher_review_prompt,
+)
+from scripts.teacher_loop.workspace_scripts import (
     validate_start_kind_seed,
-    write_child_workspace_packet,
-    write_iteration_context,
-    write_case_feature_route_insight_packet,
-    write_teacher_routing_context,
-    write_review_artifacts_packet,
-    write_round_readme,
 )
 
 
@@ -120,7 +126,7 @@ def start_seed_calibration_command(
     dry_run: bool,
 ) -> list[str]:
     command = [
-        str(runtime.agent_root / "scripts" / "calibrate_start_seeds.sh"),
+        str(runtime.agent_root / "scripts" / "calibration" / "calibrate_start_seeds.sh"),
         "--case",
         case_id,
         "--flow-variant",
@@ -227,7 +233,7 @@ def main(argv: list[str] | None = None) -> int:
     core_build_command: list[str] | None = None
     if args.prepare_workspace:
         prepare_command = [
-            str(runtime.agent_root / "scripts" / "prepare_workspace.sh"),
+            str(runtime.agent_root / "scripts" / "workspace" / "prepare_workspace.sh"),
             "--workspace-root",
             str(runtime.orfs_root),
         ]
@@ -254,10 +260,10 @@ def main(argv: list[str] | None = None) -> int:
     # dpl_evolve sources.
     if (args.launch or args.prepare_workspace) and not args.skip_core_build:
         core_configure_command = [
-            str(runtime.agent_root / "scripts" / "configure_openroad_core.sh"),
+            str(runtime.agent_root / "scripts" / "workspace" / "configure_openroad_core.sh"),
         ]
         core_build_command = [
-            str(runtime.agent_root / "scripts" / "build_openroad_core.sh"),
+            str(runtime.agent_root / "scripts" / "workspace" / "build_openroad_core.sh"),
             "--threads",
             str(args.threads),
         ]
@@ -302,7 +308,7 @@ def main(argv: list[str] | None = None) -> int:
             raise SystemExit(
                 f"Missing start-kind seed for {args.start_kind}: {seed_path}. "
                 "Run optimize_case_with_codex.py with --prepare-workspace or "
-                "run scripts/prepare_workspace.sh first."
+                "run scripts/workspace/prepare_workspace.sh first."
             )
 
     if not args.skip_baseline_preflight:
