@@ -52,6 +52,312 @@ You need:
 - Python with `yaml`/PyYAML for evaluator and case-registry paths.
 - `codex` CLI for launched Teacher/Student runs.
 
+## Experiment Runbook
+
+Use this section as the end-to-end operator flow for preparing the workspace,
+running a smoke experiment, and then scaling to larger case batches. Commands
+assume the sibling layout from `Install Dependencies`.
+
+### 0. Configure Runtime Roots
+
+Create a machine-local `env.sh` and source it before every run:
+
+```bash
+cd /path/to/dpl_evolve_agent
+cp env.sh.example env.sh
+$EDITOR env.sh
+source env.sh
+```
+
+At minimum:
+
+```bash
+export DPL_EVOLVE_AGENT_ROOT="/abs/path/to/dpl_evolve_agent"
+export ORFS_ROOT="/abs/path/to/OpenROAD-flow-scripts"
+export DPL_EVOLVE_STATE_ROOT="${DPL_EVOLVE_AGENT_ROOT}/.dpl_evolve_state"
+```
+
+For large or repeated campaigns, `DPL_EVOLVE_STATE_ROOT` may point outside the
+repo, for example to a scratch filesystem. Tracked scripts and generated
+packets should use these variables instead of local absolute paths.
+
+If the default `python3` cannot import `yaml`, set:
+
+```bash
+export DPL_EVOLVE_PYTHON_CANDIDATES="/usr/bin/python3:/path/to/another/python3"
+```
+
+### 1. Run The Repo Gate
+
+Before touching ORFS/OpenROAD, run the static release-readiness gate:
+
+```bash
+"$DPL_EVOLVE_AGENT_ROOT/scripts/repo/check_release_readiness.sh"
+```
+
+This checks Python compile, shell syntax, knowledge index validity, repo
+hygiene, prompt generation, and generated Student helper-script syntax.
+
+When ORFS/OpenROAD is unavailable but you still want the static checks:
+
+```bash
+"$DPL_EVOLVE_AGENT_ROOT/scripts/repo/check_release_readiness.sh" \
+  --skip-teacher-dry-run
+```
+
+### 2. Prepare ORFS And Seed Sources
+
+Prepare the external ORFS/OpenROAD workspace once before real experiments:
+
+```bash
+"$DPL_EVOLVE_AGENT_ROOT/scripts/workspace/prepare_workspace.sh" \
+  --workspace-root "$ORFS_ROOT"
+```
+
+Use `--force` only when it is safe to reset ORFS/OpenROAD branches to the
+recorded anchors:
+
+```bash
+"$DPL_EVOLVE_AGENT_ROOT/scripts/workspace/prepare_workspace.sh" \
+  --workspace-root "$ORFS_ROOT" \
+  --force
+```
+
+This applies the supported overlay and refreshes prepared start-kind seed
+sources under:
+
+```text
+$DPL_EVOLVE_STATE_ROOT/seed_sources/
+```
+
+The active starts are:
+
+```text
+framework
+diamond
+default_negotiation
+```
+
+### 3. Build The Common OpenROAD Core
+
+Build the shared OpenROAD core once. Student variants later relink only their
+private `dpl_evolve` source against this core.
+
+```bash
+"$DPL_EVOLVE_AGENT_ROOT/scripts/workspace/configure_openroad_core.sh"
+
+"$DPL_EVOLVE_AGENT_ROOT/scripts/workspace/build_openroad_core.sh" \
+  --threads 10
+```
+
+If the core is already built and you are only launching another round, pass
+`--skip-core-build` to `optimize_case_with_codex.py`.
+
+### 4. Create Or Reuse Placement Snapshots
+
+Every experiment needs an input placement snapshot:
+
+```text
+$ORFS_ROOT/flow/results/<platform>/<design>/<FLOW_VARIANT>/3_4_place_resized.odb
+```
+
+To create one snapshot for a smoke case:
+
+```bash
+export FLOW_VARIANT="smoke_snapshot_$(date +%Y%m%d_%H%M%S)"
+
+"$DPL_EVOLVE_AGENT_ROOT/scripts/evaluator/run_place_batch.sh" \
+  --case jpeg_nangate45 \
+  --max-tasks 1 \
+  --num-cores 8 \
+  --flow-variant "$FLOW_VARIANT"
+```
+
+To create snapshots for the default place-batch case set:
+
+```bash
+export FLOW_VARIANT="place_batch_$(date +%Y%m%d_%H%M%S)"
+
+"$DPL_EVOLVE_AGENT_ROOT/scripts/evaluator/run_place_batch.sh" \
+  --case-set place_batch \
+  --max-tasks 5 \
+  --num-cores 8 \
+  --flow-variant "$FLOW_VARIANT"
+```
+
+If a snapshot already exists, reuse its `FLOW_VARIANT`.
+
+### 5. Run Baselines
+
+Run the canonical strict baseline suite before interpreting evolved candidates:
+
+```bash
+"$DPL_EVOLVE_AGENT_ROOT/baseline/run_baseline_suite.sh" \
+  --case jpeg_nangate45 \
+  --flow-variant "$FLOW_VARIANT" \
+  --threads 10 \
+  --tag-prefix jpeg_smoke_baseline
+```
+
+Baseline reports live under:
+
+```text
+$ORFS_ROOT/flow/reports/<platform>/<design>/<FLOW_VARIANT>/dpl_evolve_baseline/
+```
+
+The headline metric is `metrics.json:hpwl`.
+
+### 6. Dry-Run The Teacher/Student Prompts
+
+Before launching Codex workers, generate prompts and helper scripts without
+running agents:
+
+```bash
+python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py" \
+  --case jpeg_nangate45 \
+  --flow-variant "$FLOW_VARIANT" \
+  --round-id dryrun_jpeg_$(date +%Y%m%d_%H%M%S) \
+  --start-kind framework \
+  --iterations 1 \
+  --children 2 \
+  --max-parallel 2 \
+  --skip-baseline-preflight \
+  --skip-core-build \
+  --dry-run \
+  --audit-prompts
+```
+
+Use the generated `PROMPT_AUDIT.md` to confirm agent prompts stay compact and
+the generated Student helper scripts point at the expected role-namespaced
+scripts.
+
+### 7. Run A One-Case 1T2S Smoke
+
+After prepare, core build, snapshot, and baseline are ready, run one real
+Teacher plus two Students:
+
+```bash
+export ROUND_ID="smoke_1t2s_$(date +%Y%m%d_%H%M%S)"
+
+python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py" \
+  --case jpeg_nangate45 \
+  --flow-variant "$FLOW_VARIANT" \
+  --round-id "$ROUND_ID" \
+  --start-kind framework \
+  --iterations 1 \
+  --children 2 \
+  --max-parallel 2 \
+  --threads 8 \
+  --student-runtime-multiplier 1.0 \
+  --teacher-reasoning-effort low \
+  --student-reasoning-effort low \
+  --skip-baseline-preflight \
+  --skip-core-build \
+  --audit-prompts \
+  --launch
+```
+
+This smoke checks the complete chain:
+
+```text
+Teacher plan -> two parallel Students -> private relink/eval -> artifact gate -> Teacher review
+```
+
+Watch it in a terminal:
+
+```bash
+"$DPL_EVOLVE_AGENT_ROOT/scripts/orchestration/watch_teacher_round.py" \
+  "$ROUND_ID" \
+  --watch
+```
+
+Or serve the local dashboard:
+
+```bash
+"$DPL_EVOLVE_AGENT_ROOT/scripts/orchestration/watch_teacher_round.py" \
+  "$ROUND_ID" \
+  --serve --host 127.0.0.1 --port 8765
+```
+
+### 8. Run A Normal Case Experiment
+
+For a normal case-specific search, increase iterations and keep baseline
+preflight enabled unless the baseline was just refreshed:
+
+```bash
+export ROUND_ID="jpeg_framework_4x2_$(date +%Y%m%d_%H%M%S)"
+
+python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py" \
+  --case jpeg_nangate45 \
+  --flow-variant "$FLOW_VARIANT" \
+  --round-id "$ROUND_ID" \
+  --start-kind framework \
+  --iterations 2 \
+  --children 4 \
+  --max-parallel 2 \
+  --threads 10 \
+  --teacher-reasoning-effort high \
+  --student-reasoning-effort high \
+  --skip-core-build \
+  --audit-prompts \
+  --launch
+```
+
+Optional target-local start probe before Teacher planning:
+
+```bash
+  --calibrate-start-seeds
+```
+
+That probe evaluates `framework`, `diamond`, and `default_negotiation` on the
+target case and writes a `start_seed_calibration.md` packet for Teacher.
+
+### 9. Inspect Results
+
+Round state lives under:
+
+```text
+$DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/
+```
+
+Useful files:
+
+```text
+round.log
+PROMPT_AUDIT.md
+iter_XX/context/iteration_context.md
+iter_XX/prompts/
+iter_XX/packet/
+students/student_XX/iter_XX/artifacts/candidate_metrics_summary.md
+students/student_XX/iter_XX/artifacts/implementation.diff
+students/student_XX/iter_XX/artifacts/knowledge_card.md
+```
+
+Each Student's private source tree is:
+
+```text
+$DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/students/student_XX/workspace/variant/dpl_evolve
+```
+
+### 10. Validate Candidate Transfer
+
+After a promising round, run fixed-source matrix validation:
+
+```bash
+"$DPL_EVOLVE_AGENT_ROOT/scripts/matrix/run_round_candidate_matrices.sh" \
+  --round-id "$ROUND_ID" \
+  --plan "$DPL_EVOLVE_AGENT_ROOT/configs/experiment_plans/flow_knowledge_core_util.tsv" \
+  --threads 10 \
+  --matrix-row-parallel 1 \
+  --skip-baseline-matrix
+```
+
+Matrix outputs live under:
+
+```text
+$DPL_EVOLVE_STATE_ROOT/<round_id>/candidate_matrix_batches/
+```
+
 ## Quick Run
 
 This is the copy/paste flow for "repatch ORFS/OpenROAD into the framework
