@@ -12,6 +12,7 @@ AGENT_ROOT="$(dpl_resolve_agent_root)"
 export DPL_EVOLVE_AGENT_ROOT="${AGENT_ROOT}"
 DEFAULT_WORKSPACE_ROOT="${ORFS_ROOT:-$(realpath -m "${AGENT_ROOT}/../OpenROAD-flow-scripts")}"
 DEFAULT_STATE_ROOT="${DPL_EVOLVE_STATE_ROOT:-${AGENT_ROOT}/.dpl_evolve_state}"
+dpl_resolve_python yaml
 
 workspace_root="${DEFAULT_WORKSPACE_ROOT}"
 seed_root="${DEFAULT_STATE_ROOT}/seed_sources"
@@ -102,7 +103,7 @@ if ! git -C "${workspace_root}" rev-parse --git-dir >/dev/null 2>&1; then
 fi
 
 mapfile -t anchor_values < <(
-  python3 - <<'PY' "${anchors_json}"
+  "${DPL_EVOLVE_PYTHON}" - <<'PY' "${anchors_json}"
 import json, sys
 data = json.load(open(sys.argv[1], encoding="utf-8"))
 print(data["workspace_model"]["orfs_base_commit"])
@@ -114,7 +115,7 @@ orfs_base_commit="${anchor_values[0]}"
 openroad_base_commit="${anchor_values[1]}"
 
 file_sha256() {
-  python3 - "$1" <<'PY'
+  "${DPL_EVOLVE_PYTHON}" - "$1" <<'PY'
 import hashlib
 import pathlib
 import sys
@@ -340,7 +341,7 @@ materialize_default_negotiation_seed() {
     git -C "${target_dir}" add -A
     git -C "${target_dir}" commit -m "Apply default negotiation seed patch" >/dev/null
     patch_sha="$(file_sha256 "${default_negotiation_patch}")"
-    python3 - "${target_dir}/.dpl_evolve_seed_manifest.json" "${seed_name}" "${default_negotiation_patch}" "${patch_sha}" <<'PY'
+    "${DPL_EVOLVE_PYTHON}" - "${target_dir}/.dpl_evolve_seed_manifest.json" "${seed_name}" "${default_negotiation_patch}" "${patch_sha}" <<'PY'
 import json
 import pathlib
 import sys

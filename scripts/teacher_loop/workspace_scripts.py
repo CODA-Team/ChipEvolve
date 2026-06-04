@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import math
+import os
 import shlex
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -173,6 +175,7 @@ def write_student_workspace_scripts(
     common_vars = f"""AGENT_ROOT={shlex.quote(str(runtime.agent_root))}
 ORFS_ROOT={shlex.quote(str(runtime.orfs_root))}
 STATE_ROOT={shlex.quote(str(runtime.state_root))}
+DPL_EVOLVE_PYTHON={shlex.quote(os.environ.get("DPL_EVOLVE_PYTHON", sys.executable))}
 VARIANT_ROOT={shlex.quote(str(paths.variant_root))}
 DPL_SRC={shlex.quote(str(paths.dpl_src))}
 PRIVATE_BINARY={shlex.quote(str(paths.private_binary))}
@@ -194,6 +197,11 @@ START_KIND={shlex.quote(start_kind)}
 PARENT_SRC={shlex.quote(str(parent_src))}
 METRICS_PATH={shlex.quote(str(metrics_path))}
 BASELINE_METRICS_PATH={shlex.quote(baseline_metrics_path)}
+
+export DPL_EVOLVE_AGENT_ROOT="$AGENT_ROOT"
+export ORFS_ROOT
+export DPL_EVOLVE_STATE_ROOT="$STATE_ROOT"
+export DPL_EVOLVE_PYTHON
 
 ensure_dpl_git_repo() {{
   local top
@@ -530,7 +538,7 @@ fi
 if [[ -z "$label" ]]; then
   label="$(basename "$(dirname "$peer_repo")")_$(basename "$peer_ref")"
 fi
-safe_label="$(python3 - "$label" <<'PY'
+safe_label="$("$DPL_EVOLVE_PYTHON" - "$label" <<'PY'
 import re
 import sys
 
@@ -665,7 +673,7 @@ fi
 git -C "$DPL_SRC" switch -C "$SOURCE_BRANCH" "$target_commit" >/dev/null
 git -C "$DPL_SRC" branch -f "$ITERATION_BRANCH" "$target_commit" >/dev/null
 git -C "$DPL_SRC" rev-parse HEAD > "$SOURCE_BASE_RECORD"
-python3 - "$ARTIFACT_DIR/start_branch.json" "${{kind:-}}" "$target_ref" "$(git -C "$DPL_SRC" rev-parse HEAD)" <<'PY'
+"$DPL_EVOLVE_PYTHON" - "$ARTIFACT_DIR/start_branch.json" "${{kind:-}}" "$target_ref" "$(git -C "$DPL_SRC" rev-parse HEAD)" <<'PY'
 import json
 import pathlib
 import sys
@@ -679,7 +687,7 @@ payload = {{
 }}
 path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\\n", encoding="utf-8")
 PY
-RESET_TARGET_REF="$target_ref" RESET_TARGET_COMMIT="$(git -C "$DPL_SRC" rev-parse HEAD)" RESET_KIND="${{kind:-}}" python3 - "$ARTIFACT_DIR/source_trials.jsonl" <<'PY'
+RESET_TARGET_REF="$target_ref" RESET_TARGET_COMMIT="$(git -C "$DPL_SRC" rev-parse HEAD)" RESET_KIND="${{kind:-}}" "$DPL_EVOLVE_PYTHON" - "$ARTIFACT_DIR/source_trials.jsonl" <<'PY'
 import json
 import os
 import sys
@@ -839,7 +847,7 @@ while [[ "$#" -gt 0 ]]; do
 done
 if [[ "$json_mode" -eq 0 && -n "$query_text" ]]; then
   set +e
-  BLUEPRINT_QUERY="$query_text" BLUEPRINT_ROADMAP="$AGENT_ROOT/knowledge/routing/mechanism_reconstruction_roadmap.md" python3 - <<'PY'
+  BLUEPRINT_QUERY="$query_text" BLUEPRINT_ROADMAP="$AGENT_ROOT/knowledge/routing/mechanism_reconstruction_roadmap.md" "$DPL_EVOLVE_PYTHON" - <<'PY'
 import os
 import re
 import sys
@@ -879,7 +887,7 @@ PY
     exit "$blueprint_rc"
   fi
 fi
-exec python3 "$AGENT_ROOT/scripts/repo/query_knowledge.py" "${{orig_args[@]}}"
+exec "$DPL_EVOLVE_PYTHON" "$AGENT_ROOT/scripts/repo/query_knowledge.py" "${{orig_args[@]}}"
 """,
     )
 
@@ -894,7 +902,7 @@ assert_no_git_index_lock
 "$AGENT_ROOT/scripts/workspace/configure_openroad_variant_relink.sh" \\
   --variant-root "$VARIANT_ROOT" \\
   --dpl-src "$DPL_SRC"
-python3 "$AGENT_ROOT/scripts/workspace/build_openroad_variant_relink.py" \\
+"$DPL_EVOLVE_PYTHON" "$AGENT_ROOT/scripts/workspace/build_openroad_variant_relink.py" \\
   --variant-root "$VARIANT_ROOT" \\
   --dpl-src "$DPL_SRC" \\
   --threads "$THREADS"
@@ -916,7 +924,7 @@ FRESH_BUILD_DIR="$VARIANT_ROOT/build_fresh"
   --variant-root "$VARIANT_ROOT" \\
   --build-dir "$FRESH_BUILD_DIR" \\
   --dpl-src "$DPL_SRC"
-python3 "$AGENT_ROOT/scripts/workspace/build_openroad_variant_relink.py" \\
+"$DPL_EVOLVE_PYTHON" "$AGENT_ROOT/scripts/workspace/build_openroad_variant_relink.py" \\
   --variant-root "$VARIANT_ROOT" \\
   --build-dir "$FRESH_BUILD_DIR" \\
   --dpl-src "$DPL_SRC" \\
@@ -950,7 +958,7 @@ status=$?
 set -e
 echo "$status" > "$ARTIFACT_DIR/evaluate_exit_status.txt"
 if [[ "$status" -ne 0 ]]; then
-  ATTEMPT_STATUS="$status" ATTEMPT_METRICS="$METRICS_PATH" ATTEMPT_TAG="$RUN_TAG" python3 - "$ARTIFACT_DIR/failed_attempts.jsonl" <<'PY'
+  ATTEMPT_STATUS="$status" ATTEMPT_METRICS="$METRICS_PATH" ATTEMPT_TAG="$RUN_TAG" "$DPL_EVOLVE_PYTHON" - "$ARTIFACT_DIR/failed_attempts.jsonl" <<'PY'
 import json
 import os
 import sys
@@ -998,7 +1006,7 @@ if [[ ! -f "$METRICS_PATH" ]]; then
   echo "[ERROR] metrics json missing: $METRICS_PATH" >&2
   exit 2
 fi
-python3 "$AGENT_ROOT/scripts/evaluator/report_candidate_metrics.py" \\
+"$DPL_EVOLVE_PYTHON" "$AGENT_ROOT/scripts/evaluator/report_candidate_metrics.py" \\
   --metrics "$METRICS_PATH" \\
   $([[ -f "$BASELINE_METRICS_PATH" ]] && printf '%s %q' --reference-metrics "$BASELINE_METRICS_PATH") \\
   --output-json "$METRICS_SUMMARY_JSON" \\
@@ -1122,7 +1130,7 @@ append_trial_event() {{
   TRIAL_METRICS="$metrics_snapshot" \
   TRIAL_RUN_TAG="$RUN_TAG" \
   DPL_SRC="$DPL_SRC" \
-  python3 - "$TRIAL_LOG" <<'PY'
+  "$DPL_EVOLVE_PYTHON" - "$TRIAL_LOG" <<'PY'
 import json
 import os
 import sys
@@ -1147,7 +1155,7 @@ PY
 }}
 
 load_state_exports() {{
-  python3 - "$TRIAL_STATE" <<'PY'
+  "$DPL_EVOLVE_PYTHON" - "$TRIAL_STATE" <<'PY'
 import json
 import shlex
 import sys
@@ -1223,7 +1231,7 @@ case "$COMMAND" in
     TRIAL_FROM_REF="$start_ref" \
     TRIAL_START_COMMIT="$start_commit" \
     TRIAL_STARTED_AT="$stamp" \
-    python3 - "$TRIAL_STATE" <<'PY'
+    "$DPL_EVOLVE_PYTHON" - "$TRIAL_STATE" <<'PY'
 import json
 import os
 import sys
@@ -1378,7 +1386,7 @@ FINAL_DIFF="$IMPLEMENTATION_DIFF" \
 FINAL_KNOWLEDGE="$KNOWLEDGE_CARD" \
 DPL_SRC="$DPL_SRC" \
 RUN_TAG="$RUN_TAG" \
-python3 - "$TRIAL_LOG" <<'PY'
+"$DPL_EVOLVE_PYTHON" - "$TRIAL_LOG" <<'PY'
 import json
 import os
 import sys
@@ -1406,7 +1414,7 @@ DIRTY_STATUS="$dirty" \
 CANDIDATE_SOURCE_REF="$CANDIDATE_SOURCE_REF" \
 DPL_SRC="$DPL_SRC" \
 SOURCE_BASE_COMMIT="$SOURCE_BASE_COMMIT" \
-python3 - "$SOURCE_COMMIT_RECORD" "$SOURCE_BRANCH" "$TRIAL_LOG" "$TRIAL_SUMMARY_MD" <<'PY'
+"$DPL_EVOLVE_PYTHON" - "$SOURCE_COMMIT_RECORD" "$SOURCE_BRANCH" "$TRIAL_LOG" "$TRIAL_SUMMARY_MD" <<'PY'
 import json
 import os
 import sys

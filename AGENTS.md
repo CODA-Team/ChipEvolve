@@ -21,7 +21,7 @@ framework publishable:
   Use `DPL_EVOLVE_AGENT_ROOT`, `ORFS_ROOT`, and `DPL_EVOLVE_STATE_ROOT` as the
   directory prefixes for tracked docs, scripts, and generated packets.
 - Keep runtime-generated outputs under `DPL_EVOLVE_STATE_ROOT`; do not commit
-  `.dpl_evolve_state`, ORFS run outputs, or private variant workspaces.
+  state-root directories, ORFS run outputs, or private variant workspaces.
 - Validate changed Python and shell scripts before launching experiments.
 - Keep prompt text in `prompt_templates/` when possible. Python may assemble,
   substitute, and index prompt fragments, but should not grow hidden long-form
@@ -152,13 +152,20 @@ $DPL_EVOLVE_STATE_ROOT/<round_id>/start_seed_calibration/
 
 `start_seed_calibration/` is the legacy runtime directory for the target-local
 start-kind probe produced by `--calibrate-start-seeds`. Paper-level Level 1
-calibration contracts live under `calibration/`, and generated Level 1 runs
+calibration contracts live under `calibration/`. Mechanism calibration launched
+with `--calibration-mode` is still a Teacher/Student round and writes raw
+artifacts under `$DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/`.
+Generated paper-level diagnostic archives that are not one target round may
 belong under `$DPL_EVOLVE_STATE_ROOT/calibrations/<calibration_id>/`.
+
+During repo discovery, ignore global state roots unless the user or the current
+packet names a specific round path. Runtime state is evidence, not repo
+structure.
 
 Codex session storage remains the normal Codex store, usually `~/.codex` unless
 `CODEX_HOME` is explicitly set. The evolve framework records session identity
 and thread ids in the round workspace, but it does not move the Codex session
-store into `.dpl_evolve_state`.
+store into `DPL_EVOLVE_STATE_ROOT`.
 
 ORFS evaluator outputs stay in ORFS:
 
@@ -275,7 +282,7 @@ Build common OpenROAD once, then relink private variants:
 "$DPL_EVOLVE_AGENT_ROOT/scripts/workspace/configure_openroad_variant_relink.sh" \
   --variant-root "${DPL_EVOLVE_STATE_ROOT}/variants/<agent_id>" \
   --dpl-src /abs/path/to/variant/dpl_evolve
-python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/workspace/build_openroad_variant_relink.py" \
+"$DPL_EVOLVE_PYTHON" "$DPL_EVOLVE_AGENT_ROOT/scripts/workspace/build_openroad_variant_relink.py" \
   --variant-root "${DPL_EVOLVE_STATE_ROOT}/variants/<agent_id>" \
   --dpl-src /abs/path/to/variant/dpl_evolve \
   --threads 10

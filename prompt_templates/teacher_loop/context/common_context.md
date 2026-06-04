@@ -92,7 +92,9 @@ mechanism hypotheses and implementation roadmap sections.
 ## LEGO-lite Skill Lookup
 
 - Use the skill index only after stage metrics/logs identify a bottleneck:
-  `python3 $skill_query_script --stage <stage> --q "<bottleneck or mechanism>"`.
+  `"$DPL_EVOLVE_PYTHON" $skill_query_script --stage <stage> --q "<bottleneck or mechanism>"`.
+  In a generated Student workspace, prefer the local `08_query_knowledge.sh`
+  helper because it already carries the resolved runtime paths.
   Stage names include `case_diagnosis`, `start_selection`, `legalization`,
   `improve_placement`, `handoff`, `build_eval_log_diagnosis`, and
   `teacher_review`.

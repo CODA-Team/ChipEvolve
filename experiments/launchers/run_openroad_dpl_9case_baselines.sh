@@ -69,22 +69,22 @@ for value_name in THREADS MAX_PARALLEL; do
 done
 
 if [[ "${#CASES[@]}" -eq 0 ]]; then
-  mapfile -t CASES < <(python3 "${AGENT_ROOT}/scripts/repo/case_registry.py" --case-set "${CASE_SET}" --field case)
+  mapfile -t CASES < <("${DPL_EVOLVE_PYTHON}" "${AGENT_ROOT}/scripts/repo/case_registry.py" --case-set "${CASE_SET}" --field case)
 fi
 
 snapshot_path() {
   local case_id="$1"
   local design platform
-  design="$(python3 "${AGENT_ROOT}/scripts/repo/case_registry.py" --case "${case_id}" --field design)"
-  platform="$(python3 "${AGENT_ROOT}/scripts/repo/case_registry.py" --case "${case_id}" --field platform)"
+  design="$("${DPL_EVOLVE_PYTHON}" "${AGENT_ROOT}/scripts/repo/case_registry.py" --case "${case_id}" --field design)"
+  platform="$("${DPL_EVOLVE_PYTHON}" "${AGENT_ROOT}/scripts/repo/case_registry.py" --case "${case_id}" --field platform)"
   printf '%s\n' "${ORFS_ROOT}/flow/results/${platform}/${design}/${FLOW_VARIANT}/3_4_place_resized.odb"
 }
 
 metrics_path_for_case() {
   local case_id="$1"
   local design platform
-  design="$(python3 "${AGENT_ROOT}/scripts/repo/case_registry.py" --case "${case_id}" --field design)"
-  platform="$(python3 "${AGENT_ROOT}/scripts/repo/case_registry.py" --case "${case_id}" --field platform)"
+  design="$("${DPL_EVOLVE_PYTHON}" "${AGENT_ROOT}/scripts/repo/case_registry.py" --case "${case_id}" --field design)"
+  platform="$("${DPL_EVOLVE_PYTHON}" "${AGENT_ROOT}/scripts/repo/case_registry.py" --case "${case_id}" --field platform)"
   printf '%s\n' "${ORFS_ROOT}/flow/reports/${platform}/${design}/${FLOW_VARIANT}/dpl_evolve_baseline/${RUN_PREFIX}_${case_id}/metrics.json"
 }
 
@@ -158,7 +158,7 @@ for pid in "${pids[@]}"; do
   fi
 done
 
-python3 - "${STATUS_FILE}" "${SUMMARY_FILE}" <<'PY'
+"${DPL_EVOLVE_PYTHON}" - "${STATUS_FILE}" "${SUMMARY_FILE}" <<'PY'
 import csv
 import json
 import sys

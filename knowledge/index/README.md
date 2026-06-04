@@ -18,9 +18,9 @@ are compact routing aids.
 Use the repo-local helper:
 
 ```bash
-python3 scripts/repo/query_knowledge.py --stage teacher_review --q "Blueprint D+A stack" --limit 3
-python3 scripts/repo/query_knowledge.py --stage improve_placement --q "source-edge top-K exact consumer" --limit 3
-python3 scripts/repo/query_knowledge.py --validate
+"$DPL_EVOLVE_PYTHON" scripts/repo/query_knowledge.py --stage teacher_review --q "Blueprint D+A stack" --limit 3
+"$DPL_EVOLVE_PYTHON" scripts/repo/query_knowledge.py --stage improve_placement --q "source-edge top-K exact consumer" --limit 3
+"$DPL_EVOLVE_PYTHON" scripts/repo/query_knowledge.py --validate
 ```
 
 Stage aliases such as `detailed_placement`, `blueprint`, `routing`, `dpo`, and

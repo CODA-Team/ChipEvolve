@@ -86,11 +86,11 @@ printf "config\tstatus\tlog\tstart\tend\n" > "${STATUS_FILE}"
 
 if [[ -n "${CASE_ID}" ]]; then
   mapfile -t DESIGN_CONFIGS < <(
-    python3 "${DPL_EVOLVE_AGENT_ROOT}/scripts/repo/case_registry.py" --case "${CASE_ID}" --field design_config
+    "${DPL_EVOLVE_PYTHON}" "${DPL_EVOLVE_AGENT_ROOT}/scripts/repo/case_registry.py" --case "${CASE_ID}" --field design_config
   )
 else
   mapfile -t DESIGN_CONFIGS < <(
-    python3 "${DPL_EVOLVE_AGENT_ROOT}/scripts/repo/case_registry.py" --case-set "${CASE_SET}" --field design_config
+    "${DPL_EVOLVE_PYTHON}" "${DPL_EVOLVE_AGENT_ROOT}/scripts/repo/case_registry.py" --case-set "${CASE_SET}" --field design_config
   )
 fi
 

@@ -158,7 +158,7 @@ if [[ "${BASELINE_ONLY}" -eq 1 ]]; then
 fi
 
 if [[ "${MATRIX_ONLY}" -ne 1 ]]; then
-  run_cmd python3 "${AGENT_ROOT}/scripts/optimize_case_with_codex.py" \
+  run_cmd "${DPL_EVOLVE_PYTHON}" "${AGENT_ROOT}/scripts/optimize_case_with_codex.py" \
     --case "${MAIN_CASE}" \
     --flow-variant "${MAIN_FLOW_VARIANT}" \
     --round-id "${ROUND_ID}" \

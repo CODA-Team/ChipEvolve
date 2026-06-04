@@ -189,7 +189,7 @@ write_tcl_driver() {
 
 if [[ -z "${design_config}" ]]; then
   case_id="${case_id:-$DEFAULT_CASE}"
-  design_config="$(python3 "${SCRIPT_DIR}/../scripts/repo/case_registry.py" --case "${case_id}" --field design_config)"
+  design_config="$("${DPL_EVOLVE_PYTHON}" "${SCRIPT_DIR}/../scripts/repo/case_registry.py" --case "${case_id}" --field design_config)"
 fi
 if [[ "${design_config}" == /* ]]; then
   design_config="$(to_flow_relative_if_possible "${design_config}")"
@@ -364,13 +364,13 @@ if [[ "${legalize_status}" -eq 0 ]]; then
     RUN_LOG_NAME_STEM="3_5_place_dp" \
     RUN_OPENROAD_ARGS="${metrics_openroad_args}"
 
-  FLOW_HOME="${FLOW_HOME}" python3 "${SCRIPT_DIR}/gen_orfs_metadata.py" \
+  FLOW_HOME="${FLOW_HOME}" "${DPL_EVOLVE_PYTHON}" "${SCRIPT_DIR}/gen_orfs_metadata.py" \
     --orfs-metrics "${stage_metrics_json}" \
     --output "${metadata_json}"
 else
   echo "[WARN] Legalize flow failed with status ${legalize_status}; collecting failure metrics without running post-legalization evaluator." >&2
   failure_json="$(flow_abs "${report_dir}/legalize_failure.json")"
-  FLOW_HOME="${FLOW_HOME}" python3 - "${failure_json}" "${legalize_status}" "${legalize_failure_reason}" "${legalize_timeout_seconds:-}" "${run_log_dir}/${legalize_log_stem}.log" <<'PY'
+  FLOW_HOME="${FLOW_HOME}" "${DPL_EVOLVE_PYTHON}" - "${failure_json}" "${legalize_status}" "${legalize_failure_reason}" "${legalize_timeout_seconds:-}" "${run_log_dir}/${legalize_log_stem}.log" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -403,7 +403,7 @@ collect_args=(
   --legalize-timeout-seconds "${legalize_timeout_seconds:-0}"
   --output "${metrics_json}"
 )
-FLOW_HOME="${FLOW_HOME}" python3 "${SCRIPT_DIR}/collect_metrics.py" "${collect_args[@]}"
+FLOW_HOME="${FLOW_HOME}" "${DPL_EVOLVE_PYTHON}" "${SCRIPT_DIR}/collect_metrics.py" "${collect_args[@]}"
 
 if [[ "${legalize_status}" -ne 0 ]]; then
   echo "[ERROR] Strict baseline flow failed." >&2

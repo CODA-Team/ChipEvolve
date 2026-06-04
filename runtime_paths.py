@@ -60,7 +60,7 @@ def load_local_env_sh(agent_root: Path) -> None:
     cmd = (
         "set -a; "
         f"source {shlex.quote(str(env_file))}; "
-        "python3 - <<'PY'\n"
+        f"{shlex.quote(sys.executable)} - <<'PY'\n"
         "import os\n"
         "for key, value in os.environ.items():\n"
         "    print(f'{key}={value}')\n"
@@ -112,7 +112,7 @@ def resolve_state_root(*, orfs_root: Path, agent_root: Path) -> Path:
     env_root = os.environ.get("DPL_EVOLVE_STATE_ROOT")
     if env_root:
         return Path(env_root).resolve()
-    return (agent_root / ".dpl_evolve_state").resolve()
+    return (agent_root.parent / "dpl_evolve_state").resolve()
 
 
 def candidate_python_interpreters(
@@ -122,6 +122,10 @@ def candidate_python_interpreters(
     """Return user-configured Python candidates followed by portable defaults."""
 
     seen: set[str] = set()
+    explicit = os.environ.get("DPL_EVOLVE_PYTHON", "").strip()
+    if explicit:
+        seen.add(explicit)
+        yield explicit
     env_value = os.environ.get(extra_env_var, "")
     for raw in env_value.split(os.pathsep):
         candidate = raw.strip()
@@ -137,8 +141,23 @@ def candidate_python_interpreters(
 def reexec_with_module(module_name: str, script_file: str | Path, argv: list[str]) -> None:
     """Re-exec with a configured Python that can import module_name, if any."""
 
+    current_probe = subprocess.run(
+        [sys.executable, "-c", f"import {module_name}"],
+        capture_output=True,
+        text=True,
+    )
+    if current_probe.returncode == 0:
+        os.environ.setdefault("DPL_EVOLVE_PYTHON", sys.executable)
+        return
+
     for candidate in candidate_python_interpreters():
-        resolved = shutil.which(candidate)
+        if os.path.sep in candidate:
+            candidate_path = Path(candidate).expanduser()
+            if not candidate_path.exists():
+                continue
+            resolved = str(candidate_path)
+        else:
+            resolved = shutil.which(candidate)
         if not resolved or resolved == sys.executable:
             continue
         probe = subprocess.run(
@@ -147,7 +166,26 @@ def reexec_with_module(module_name: str, script_file: str | Path, argv: list[str
             text=True,
         )
         if probe.returncode == 0:
+            os.environ["DPL_EVOLVE_PYTHON"] = resolved
             os.execv(resolved, [resolved, str(script_file), *argv[1:]])
+
+
+def ensure_python_module(module_name: str, script_file: str | Path, argv: list[str]) -> None:
+    """Require the current or configured Python to import module_name."""
+
+    reexec_with_module(module_name, script_file, argv)
+    probe = subprocess.run(
+        [sys.executable, "-c", f"import {module_name}"],
+        capture_output=True,
+        text=True,
+    )
+    if probe.returncode != 0:
+        searched = ", ".join(candidate_python_interpreters())
+        raise SystemExit(
+            f"Could not find a Python interpreter that can import {module_name}. "
+            "Set DPL_EVOLVE_PYTHON or DPL_EVOLVE_PYTHON_CANDIDATES in env.sh. "
+            f"Searched: {searched}"
+        )
 
 
 def resolve_input_path(

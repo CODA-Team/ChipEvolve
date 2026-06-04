@@ -13,7 +13,7 @@ Mechanism calibration uses the normal Teacher/Student entrypoint with the
 calibration Teacher prompt:
 
 ```text
-$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py \
+"$DPL_EVOLVE_PYTHON" "$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py" \
   --case <case_id> \
   --flow-variant <flow_variant> \
   --round-id <calibration_round_id> \
@@ -29,6 +29,12 @@ $DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py \
 count with `--children`, not with `--iterations`; Teacher assigns one distinct
 mechanism per child and reviews results as calibration evidence.
 
+Raw mechanism-sweep artifacts are round artifacts:
+
+```text
+$DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/
+```
+
 Call these scripts through their canonical namespace:
 
 ```text
@@ -42,8 +48,12 @@ Paper-level ReviewDSE Level 1 calibration contracts live under:
 $DPL_EVOLVE_AGENT_ROOT/calibration/
 ```
 
-Generated Level 1 calibration runs should use:
+Generated paper-level diagnostic archives that are not one target round should
+use:
 
 ```text
 $DPL_EVOLVE_STATE_ROOT/calibrations/<calibration_id>/
 ```
+
+Human-reviewed Level 1 summaries and source-start provenance stay tracked under
+`$DPL_EVOLVE_AGENT_ROOT/calibration/`.

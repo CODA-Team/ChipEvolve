@@ -376,7 +376,7 @@ def write_checkpoint_files(operation_dir: Path, checkpoint_payload: dict[str, An
             f"- {checkpoint_payload['result_summary']}",
             "",
             "## Restore",
-            f"```bash\npython3 \"$DPL_EVOLVE_AGENT_ROOT/scripts/repo/checkpoint.py\" restore --checkpoint-id {checkpoint_payload['checkpoint_id']} --force\n```",
+            f"```bash\n\"$DPL_EVOLVE_PYTHON\" \"$DPL_EVOLVE_AGENT_ROOT/scripts/repo/checkpoint.py\" restore --checkpoint-id {checkpoint_payload['checkpoint_id']} --force\n```",
             "",
             "## Evidence",
         ]

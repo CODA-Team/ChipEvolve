@@ -78,7 +78,7 @@ Rules:
 - Run the prompt audit before launching a new prompt design:
 
 ```bash
-python3 scripts/optimize_case_with_codex.py \
+"${DPL_EVOLVE_PYTHON:-python3}" scripts/optimize_case_with_codex.py \
   --case <case_id> \
   --children 2 \
   --iterations 2 \

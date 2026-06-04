@@ -294,9 +294,9 @@ Teacher should explicitly demote these unless paired with a concrete repair:
 Use these lookup handles before assigning routes:
 
 ```bash
-python3 scripts/repo/query_knowledge.py --stage teacher_review --q "runtime light final HPWL mechanism priority"
-python3 scripts/repo/query_knowledge.py --stage improve_placement --q "source-edge top-K exact consumer affected-net"
-python3 scripts/repo/query_knowledge.py --stage handoff --q "recoverability frontier residual producer consumer"
+"$DPL_EVOLVE_PYTHON" scripts/repo/query_knowledge.py --stage teacher_review --q "runtime light final HPWL mechanism priority"
+"$DPL_EVOLVE_PYTHON" scripts/repo/query_knowledge.py --stage improve_placement --q "source-edge top-K exact consumer affected-net"
+"$DPL_EVOLVE_PYTHON" scripts/repo/query_knowledge.py --stage handoff --q "recoverability frontier residual producer consumer"
 ```
 
 Then route Students as follows:

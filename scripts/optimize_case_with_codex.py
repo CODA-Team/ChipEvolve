@@ -14,6 +14,11 @@ AGENT_ROOT = Path(__file__).resolve().parents[1]
 if str(AGENT_ROOT) not in sys.path:
     sys.path.insert(0, str(AGENT_ROOT))
 
+from runtime_paths import ensure_python_module, load_local_env_sh
+
+load_local_env_sh(AGENT_ROOT)
+ensure_python_module("yaml", __file__, sys.argv)
+
 from scripts.teacher_loop.orchestrator import main
 
 

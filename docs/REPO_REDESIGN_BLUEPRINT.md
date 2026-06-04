@@ -5,6 +5,9 @@ Scope: `dpl_evolve_agent` only.
 This document captures the repo-only redesign plan for `dpl_evolve_agent`.
 The outer workspace, paper sources, ORFS checkout, local backups, and runtime
 artifacts are dependencies or local context, not part of this repo redesign.
+It is a planning record; the current user-facing source of truth is
+`README.md`, `docs/RUNTIME_CONTRACT.md`, `docs/KNOWLEDGE_CONTRACT.md`, and the
+directory READMEs.
 
 ## Prefix Policy
 
@@ -54,10 +57,10 @@ Tracked publishing surface is concentrated in these directories:
 - `skills/`: repo-local operational notes for humans and Student workers.
 - `validation/`: preflight guard for allowed source diff scope.
 
-Ignored local state is correctly outside the tracked surface:
+Ignored local state is outside the tracked surface:
 
-- `.dpl_evolve_state/`: runtime rounds, seed snapshots, OpenROAD core builds,
-  candidate matrices, operations, logs, and packets.
+- `$DPL_EVOLVE_STATE_ROOT`: runtime rounds, seed snapshots, OpenROAD core
+  builds, candidate matrices, operations, logs, and packets.
 - `.venv_raytune/`: local BO environment.
 - `__pycache__/`, `*.pyc`, `env.sh`, and local checkpoint stores.
 
@@ -127,7 +130,7 @@ Reference-only material should not appear in default prompts.
 
 - `knowledge/reference/**`
 - paper PDFs and cached paper indices
-- `knowledge/archive/context_audit.md`
+- `knowledge/archive/context_audit_legacy.md`
 - historical experiment launchers
 - removed legacy aliases and migration-only wrapper paths
 
@@ -214,12 +217,15 @@ Tracked calibration content:
 - `calibration/reports/`: frozen human-readable summaries that Teacher may
   cite during Level 2 initialization.
 
-Generated calibration outputs remain under:
+Generated target-local calibration outputs remain under:
 
 ```text
-$DPL_EVOLVE_STATE_ROOT/calibrations/<calibration_id>/
+$DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/
 $DPL_EVOLVE_STATE_ROOT/<round_id>/start_seed_calibration/
 ```
+
+Paper-level diagnostic archives that are not one target round may use
+`$DPL_EVOLVE_STATE_ROOT/calibrations/<calibration_id>/`.
 
 The current `start_seed_calibration` directory should be renamed in docs as a
 "target start-kind probe" to avoid confusing it with paper Level 1 calibration.
@@ -390,11 +396,11 @@ The CLI flag may stay as `--calibrate-start-seeds` for compatibility.
 Minimum checks after each refactor phase:
 
 ```bash
-python3 scripts/repo/query_knowledge.py --validate
-python3 scripts/repo/audit_repo_hygiene.py
-python3 -m compileall runtime_paths.py scripts baseline validation database memory learning
+"$DPL_EVOLVE_PYTHON" scripts/repo/query_knowledge.py --validate
+"$DPL_EVOLVE_PYTHON" scripts/repo/audit_repo_hygiene.py
+"$DPL_EVOLVE_PYTHON" -m compileall runtime_paths.py scripts baseline validation database memory learning
 bash -n scripts/*.sh baseline/*.sh experiments/launchers/*.sh experiments/workbenches/*.sh
-python3 scripts/optimize_case_with_codex.py --case jpeg_nangate45 --iterations 1 --children 1 --dry-run --audit-prompts
+"$DPL_EVOLVE_PYTHON" scripts/optimize_case_with_codex.py --case jpeg_nangate45 --iterations 1 --children 1 --dry-run --audit-prompts
 ```
 
 If script paths are moved, update `docs/MIGRATION_MAP.md` and run the repo

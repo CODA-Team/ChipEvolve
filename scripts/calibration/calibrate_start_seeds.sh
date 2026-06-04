@@ -192,7 +192,7 @@ for start_kind in "${START_KIND_ARRAY[@]}"; do
 done
 
 if [[ "${DRY_RUN}" -ne 1 ]]; then
-  run_cmd python3 "${SCRIPT_DIR}/summarize_start_seed_calibration.py" \
+  run_cmd "${DPL_EVOLVE_PYTHON}" "${SCRIPT_DIR}/summarize_start_seed_calibration.py" \
     --manifest "${MANIFEST}" \
     --output-md "${SUMMARY_MD}" \
     --output-tsv "${SUMMARY_TSV}" \

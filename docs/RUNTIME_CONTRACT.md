@@ -9,10 +9,17 @@ portable control plane.
 - `ORFS_ROOT`: external OpenROAD-flow-scripts workspace.
 - `DPL_EVOLVE_STATE_ROOT`: ignored runtime state root.
 
-Default state root is:
+The fallback state root is a sibling directory:
 
 ```text
-$DPL_EVOLVE_AGENT_ROOT/.dpl_evolve_state
+$DPL_EVOLVE_AGENT_ROOT/../dpl_evolve_state
+```
+
+You may set an external ignored state root when multiple repos share one ORFS
+workspace:
+
+```text
+/abs/path/to/dpl_evolve_state
 ```
 
 Tracked scripts, prompt templates, knowledge cards, and generated packets
@@ -37,11 +44,10 @@ metric parsers, or baseline wrappers during a source-evolution round.
 
 ## Generated State
 
-Generated state belongs under:
+Target-round generated state belongs under:
 
 ```text
 $DPL_EVOLVE_STATE_ROOT/<round_id>/
-$DPL_EVOLVE_STATE_ROOT/calibrations/<calibration_id>/
 ```
 
 Target-round artifacts use:
@@ -57,6 +63,17 @@ $DPL_EVOLVE_STATE_ROOT/<round_id>/start_seed_calibration/
 `start_seed_calibration/` is the legacy runtime directory for the target
 start-kind probe. It is target-local initialization evidence, not the global
 Level 1 calibration store.
+
+Mechanism calibration launched with `--calibration-mode` is also a target-round
+Teacher/Student run and writes raw artifacts under
+`$DPL_EVOLVE_STATE_ROOT/<round_id>/teacher_rounds/`.
+
+Paper-level generated diagnostic archives that are not tied to one target round
+may use:
+
+```text
+$DPL_EVOLVE_STATE_ROOT/calibrations/<calibration_id>/
+```
 
 ## Script Layout
 

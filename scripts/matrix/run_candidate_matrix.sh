@@ -141,7 +141,7 @@ run_cmd_env() {
 }
 
 case_field() {
-  python3 "${DPL_EVOLVE_AGENT_ROOT}/scripts/repo/case_registry.py" --case "$1" --field "$2"
+  "${DPL_EVOLVE_PYTHON}" "${DPL_EVOLVE_AGENT_ROOT}/scripts/repo/case_registry.py" --case "$1" --field "$2"
 }
 
 snapshot_path() {
@@ -176,7 +176,7 @@ metric_fields() {
     design="$(case_field "${case_id}" design)"
     legalize_log="${ORFS_ROOT}/flow/logs/${platform}/${design}/${flow_variant}/dpl_evolve_baseline/${run_tag}/dpl_evolve_${run_tag}_legalize.log"
   fi
-  python3 - "${metrics_json}" "${legalize_log}" <<'PY'
+  "${DPL_EVOLVE_PYTHON}" - "${metrics_json}" "${legalize_log}" <<'PY'
 import json
 import re
 import sys
@@ -348,7 +348,7 @@ if [[ "${BASELINE_ONLY}" -ne 1 ]]; then
     --variant-root "${VARIANT_ROOT}" \
     --dpl-src "${DPL_SRC}"
 
-  run_cmd python3 "${DPL_EVOLVE_AGENT_ROOT}/scripts/workspace/build_openroad_variant_relink.py" \
+  run_cmd "${DPL_EVOLVE_PYTHON}" "${DPL_EVOLVE_AGENT_ROOT}/scripts/workspace/build_openroad_variant_relink.py" \
     --variant-root "${VARIANT_ROOT}" \
     --dpl-src "${DPL_SRC}" \
     --threads "${THREADS}"

@@ -23,6 +23,65 @@ _dpl_path_id() {
   fi
 }
 
+_dpl_python_candidates() {
+  local seen=":" candidate raw
+
+  if [[ -n "${DPL_EVOLVE_PYTHON:-}" ]]; then
+    printf '%s\n' "${DPL_EVOLVE_PYTHON}"
+    seen="${seen}${DPL_EVOLVE_PYTHON}:"
+  fi
+
+  if [[ -n "${DPL_EVOLVE_PYTHON_CANDIDATES:-}" ]]; then
+    while IFS= read -r -d '' raw; do
+      candidate="${raw}"
+      [[ -z "${candidate}" ]] && continue
+      if [[ "${seen}" != *":${candidate}:"* ]]; then
+        printf '%s\n' "${candidate}"
+        seen="${seen}${candidate}:"
+      fi
+    done < <(printf '%s' "${DPL_EVOLVE_PYTHON_CANDIDATES}" | tr ':' '\0')
+  fi
+
+  for candidate in python3 python; do
+    if [[ "${seen}" != *":${candidate}:"* ]]; then
+      printf '%s\n' "${candidate}"
+      seen="${seen}${candidate}:"
+    fi
+  done
+}
+
+dpl_resolve_python() {
+  local required_module="${1:-yaml}"
+  local candidate resolved
+
+  while IFS= read -r candidate; do
+    [[ -z "${candidate}" ]] && continue
+    if [[ "${candidate}" = */* ]]; then
+      [[ -x "${candidate}" ]] || continue
+      resolved="${candidate}"
+    else
+      resolved="$(command -v "${candidate}" 2>/dev/null || true)"
+      [[ -n "${resolved}" ]] || continue
+    fi
+
+    if [[ -n "${required_module}" ]]; then
+      if ! "${resolved}" -c "import ${required_module}" >/dev/null 2>&1; then
+        continue
+      fi
+    fi
+    export DPL_EVOLVE_PYTHON="${resolved}"
+    return 0
+  done < <(_dpl_python_candidates)
+
+  if [[ -n "${required_module}" ]]; then
+    echo "[ERROR] Could not find a Python interpreter that can import ${required_module}." >&2
+  else
+    echo "[ERROR] Could not find a usable Python interpreter." >&2
+  fi
+  echo "[ERROR] Set DPL_EVOLVE_PYTHON or DPL_EVOLVE_PYTHON_CANDIDATES in env.sh." >&2
+  return 1
+}
+
 _dpl_lexical_alias_path() {
   local raw="$1"
   local parent base
@@ -152,12 +211,13 @@ dpl_init_runtime() {
   if [[ -n "${DPL_EVOLVE_STATE_ROOT:-}" ]]; then
     export DPL_EVOLVE_STATE_ROOT="$(realpath -m "${DPL_EVOLVE_STATE_ROOT}")"
   else
-    export DPL_EVOLVE_STATE_ROOT="${agent_root}/.dpl_evolve_state"
+    export DPL_EVOLVE_STATE_ROOT="$(realpath -m "${agent_root}/../dpl_evolve_state")"
   fi
 
   export DPL_EVOLVE_PACKET_DIR="${DPL_EVOLVE_STATE_ROOT}/packets"
   export DPL_EVOLVE_CHECKPOINTS_DIR="${DPL_EVOLVE_STATE_ROOT}/checkpoints"
   export DPL_EVOLVE_OPERATIONS_DIR="${DPL_EVOLVE_CHECKPOINTS_DIR}/operations"
+  dpl_resolve_python yaml
 
   if _dpl_contains_space "${ORFS_ROOT}"; then
     export ORFS_BUILD_ROOT="$(_dpl_stable_alias_root)"

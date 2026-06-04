@@ -15,10 +15,10 @@ note when it is useful.
 Use the query helper from the repo root:
 
 ```bash
-python3 scripts/repo/query_knowledge.py --stage improve_placement --q "final HPWL weak runtime controlled" --limit 3
-python3 scripts/repo/query_knowledge.py --stage teacher_review --q "Blueprint D+A stack" --limit 3
-python3 scripts/repo/query_knowledge.py --q dpo_source_edge_cached_scoring --show-full
-python3 scripts/repo/query_knowledge.py --validate
+"$DPL_EVOLVE_PYTHON" scripts/repo/query_knowledge.py --stage improve_placement --q "final HPWL weak runtime controlled" --limit 3
+"$DPL_EVOLVE_PYTHON" scripts/repo/query_knowledge.py --stage teacher_review --q "Blueprint D+A stack" --limit 3
+"$DPL_EVOLVE_PYTHON" scripts/repo/query_knowledge.py --q dpo_source_edge_cached_scoring --show-full
+"$DPL_EVOLVE_PYTHON" scripts/repo/query_knowledge.py --validate
 ```
 
 Recommended query stages:

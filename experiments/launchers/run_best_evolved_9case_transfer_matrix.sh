@@ -120,7 +120,7 @@ echo "  row_parallel  : ${ROW_PARALLEL}"
 echo "  program_parallel: ${PROGRAM_PARALLEL}"
 echo
 
-python3 "${AGENT_ROOT}/experiments/analysis/materialize_best_evolved_sources.py" \
+"${DPL_EVOLVE_PYTHON}" "${AGENT_ROOT}/experiments/analysis/materialize_best_evolved_sources.py" \
   --source-table "${SOURCE_TABLE}" \
   --output-root "${MATERIALIZED_ROOT}" \
   --manifest "${MANIFEST}"
@@ -200,7 +200,7 @@ for pid in "${pids[@]}"; do
   fi
 done
 
-python3 "${AGENT_ROOT}/experiments/analysis/summarize_best_evolved_transfer.py" \
+"${DPL_EVOLVE_PYTHON}" "${AGENT_ROOT}/experiments/analysis/summarize_best_evolved_transfer.py" \
   --manifest "${MANIFEST}" \
   --matrix-root "${MATRIX_ROOT}" \
   --default-table "${DEFAULT_TABLE}" \

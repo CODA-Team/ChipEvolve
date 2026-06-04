@@ -67,7 +67,6 @@ LEGALIZE_IMPROVE_SURFACE = {
 
 
 REFERENCE_FILES = [
-    "knowledge/archive/context_audit.md",
     "knowledge/policies/evidence_policy.md",
     "knowledge/contracts/metric_contract.md",
     "knowledge/support/case_evolution/strategy_inspiration_by_design_feature.md",
@@ -305,7 +304,6 @@ def build_packet(problem_dir: Path, out_dir: Path) -> dict[str, Any]:
             "knowledge/index/skill_cards.jsonl",
             "knowledge/skills/README.md",
             "scripts/repo/query_knowledge.py",
-            "knowledge/archive/context_audit.md",
             LEGALIZE_IMPROVE_SURFACE["file"],
             "tools/OpenROAD/src/dpl_evolve/src/Optdp.cpp",
             "tools/OpenROAD/src/dpl_evolve/src/LegalmGuidance.cpp",

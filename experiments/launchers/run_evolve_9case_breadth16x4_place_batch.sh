@@ -126,11 +126,11 @@ for value_name in CHILDREN ITERATIONS MAX_PARALLEL THREADS MAX_CONCURRENT_CASES;
 done
 
 if [[ "${#CASES[@]}" -eq 0 ]]; then
-  mapfile -t CASES < <(python3 "${AGENT_ROOT}/scripts/repo/case_registry.py" --case-set "${CASE_SET}" --field case)
+  mapfile -t CASES < <("${DPL_EVOLVE_PYTHON}" "${AGENT_ROOT}/scripts/repo/case_registry.py" --case-set "${CASE_SET}" --field case)
 fi
 
 case_field() {
-  python3 "${AGENT_ROOT}/scripts/repo/case_registry.py" --case "$1" --field "$2"
+  "${DPL_EVOLVE_PYTHON}" "${AGENT_ROOT}/scripts/repo/case_registry.py" --case "$1" --field "$2"
 }
 
 snapshot_path() {
@@ -219,7 +219,7 @@ run_case() {
     >> "${EXPERIMENTS_FILE}"
 
   cmd=(
-    python3 "${AGENT_ROOT}/scripts/optimize_case_with_codex.py"
+    "${DPL_EVOLVE_PYTHON}" "${AGENT_ROOT}/scripts/optimize_case_with_codex.py"
     --case "${case_id}"
     --flow-variant "${FLOW_VARIANT}"
     --round-id "${round_id}"

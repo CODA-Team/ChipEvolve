@@ -51,7 +51,7 @@ namespace cleanup. Canonical implementations live under role namespaces.
 | Old Path | New Path | Role |
 | --- | --- | --- |
 | `knowledge/EVIDENCE_POLICY.md` | `knowledge/policies/evidence_policy.md` | Evidence classification policy |
-| `knowledge/CONTEXT_AUDIT.md` | `knowledge/archive/context_audit.md` | Historical audit archive |
+| `knowledge/CONTEXT_AUDIT.md` | `knowledge/archive/context_audit_legacy.md` | Historical audit archive |
 | `knowledge/reference/commands.txt` | `knowledge/archive/commands_legacy.txt` | Historical command snippets |
 | `knowledge/algorithm_cards/` | `knowledge/algorithms/` | Paper-derived algorithms and pseudocode |
 | `knowledge/insights/workflow/` | `knowledge/contracts/` | Metric and workflow contracts |

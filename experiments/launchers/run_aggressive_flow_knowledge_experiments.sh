@@ -134,7 +134,7 @@ run_cmd_env() {
 }
 
 case_field() {
-  python3 "${AGENT_ROOT}/scripts/repo/case_registry.py" --case "$1" --field "$2"
+  "${DPL_EVOLVE_PYTHON}" "${AGENT_ROOT}/scripts/repo/case_registry.py" --case "$1" --field "$2"
 }
 
 snapshot_path() {
@@ -257,7 +257,7 @@ log "phase=teacher_student_loops"
 for row in "${EXPERIMENTS[@]}"; do
   IFS='|' read -r case_id core_util flow_variant round_id row_start_kind notes <<< "${row}"
   log "launch_round case=${case_id} core_utilization=${core_util:-default} round_id=${round_id} start_kind=${row_start_kind} notes=${notes}"
-  run_cmd python3 "${AGENT_ROOT}/scripts/optimize_case_with_codex.py" \
+  run_cmd "${DPL_EVOLVE_PYTHON}" "${AGENT_ROOT}/scripts/optimize_case_with_codex.py" \
     --case "${case_id}" \
     --flow-variant "${flow_variant}" \
     --round-id "${round_id}" \

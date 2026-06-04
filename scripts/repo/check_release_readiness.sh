@@ -5,9 +5,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENT_ROOT="${DPL_EVOLVE_AGENT_ROOT:-$(cd "${SCRIPT_DIR}/../.." && pwd)}"
 AGENT_ROOT="$(realpath -m "${AGENT_ROOT}")"
 export DPL_EVOLVE_AGENT_ROOT="${AGENT_ROOT}"
-export DPL_EVOLVE_STATE_ROOT="${DPL_EVOLVE_STATE_ROOT:-${AGENT_ROOT}/.dpl_evolve_state}"
+source "${AGENT_ROOT}/scripts/runtime_env.sh"
+dpl_source_local_env_preserving_overrides "${AGENT_ROOT}"
+export DPL_EVOLVE_AGENT_ROOT="${AGENT_ROOT}"
+export DPL_EVOLVE_STATE_ROOT="${DPL_EVOLVE_STATE_ROOT:-$(realpath -m "${AGENT_ROOT}/../dpl_evolve_state")}"
 export PYTHONPYCACHEPREFIX="${PYTHONPYCACHEPREFIX:-${DPL_EVOLVE_STATE_ROOT}/pycache/release_readiness}"
 mkdir -p "${PYTHONPYCACHEPREFIX}"
+dpl_resolve_python yaml
+PYTHON_BIN="${DPL_EVOLVE_PYTHON}"
 
 ROUND_ID="release_readiness_dryrun"
 FLOW_VARIANT="release_readiness_dryrun"
@@ -71,22 +76,23 @@ log() {
 }
 
 log "agent_root=${AGENT_ROOT}"
+log "python=${PYTHON_BIN}"
 
 log "python compile"
-python3 -m compileall -q runtime_paths.py scripts baseline validation database memory learning adapters
+"${PYTHON_BIN}" -m compileall -q runtime_paths.py scripts baseline validation database memory learning adapters
 
 log "shell syntax"
 find scripts baseline experiments -type f -name '*.sh' -print0 | xargs -0 -r bash -n
 
 log "knowledge index"
-python3 scripts/repo/query_knowledge.py --validate
+"${PYTHON_BIN}" scripts/repo/query_knowledge.py --validate
 
 log "repo hygiene"
-python3 scripts/repo/audit_repo_hygiene.py
+"${PYTHON_BIN}" scripts/repo/audit_repo_hygiene.py
 
 if [[ "${RUN_TEACHER_DRY_RUN}" -eq 1 ]]; then
   log "teacher dry-run case=${CASE_ID} round_id=${ROUND_ID} flow_variant=${FLOW_VARIANT}"
-  python3 scripts/optimize_case_with_codex.py \
+  "${PYTHON_BIN}" scripts/optimize_case_with_codex.py \
     --case "${CASE_ID}" \
     --flow-variant "${FLOW_VARIANT}" \
     --round-id "${ROUND_ID}" \
@@ -96,7 +102,7 @@ if [[ "${RUN_TEACHER_DRY_RUN}" -eq 1 ]]; then
     --dry-run \
     --audit-prompts
 
-  generated_root="${DPL_EVOLVE_STATE_ROOT:-${AGENT_ROOT}/.dpl_evolve_state}/${ROUND_ID}/teacher_rounds/students"
+  generated_root="${DPL_EVOLVE_STATE_ROOT:-$(realpath -m "${AGENT_ROOT}/../dpl_evolve_state")}/${ROUND_ID}/teacher_rounds/students"
   if [[ -d "${generated_root}" ]]; then
     log "generated Student shell syntax"
     find "${generated_root}" -type f -name '*.sh' -print0 | xargs -0 -r bash -n

@@ -180,7 +180,7 @@ skipped_complete=0
 skipped_failed=0
 expected_rows="$(enabled_plan_rows)"
 export_args=(
-  python3 "${DPL_EVOLVE_AGENT_ROOT}/scripts/analysis/export_round_candidate_sources.py"
+  "${DPL_EVOLVE_PYTHON}" "${DPL_EVOLVE_AGENT_ROOT}/scripts/analysis/export_round_candidate_sources.py"
   --round-dir "${ROUND_DIR}"
   --output-root "${MATERIALIZED_ROOT}"
 )
@@ -214,7 +214,7 @@ while IFS=$'\t' read -r student iter_part source_repo source_ref candidate_src; 
     rows_done="$(result_rows "${results_tsv}")"
     if [[ "${rows_done}" -ge "${expected_rows}" && "${expected_rows}" -gt 0 ]]; then
       if result_has_metric_columns "${results_tsv}"; then
-        run_cmd python3 "${DPL_EVOLVE_AGENT_ROOT}/scripts/evaluator/normalize_candidate_matrix_results.py" "${results_tsv}"
+        run_cmd "${DPL_EVOLVE_PYTHON}" "${DPL_EVOLVE_AGENT_ROOT}/scripts/evaluator/normalize_candidate_matrix_results.py" "${results_tsv}"
         skipped_complete=$((skipped_complete + 1))
         log "skip_complete matrix_id=${matrix_id} rows=${rows_done}/${expected_rows}"
         printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
@@ -223,7 +223,7 @@ while IFS=$'\t' read -r student iter_part source_repo source_ref candidate_src; 
         continue
       fi
       log "normalize_legacy_schema matrix_id=${matrix_id} rows=${rows_done}/${expected_rows}"
-      run_cmd python3 "${DPL_EVOLVE_AGENT_ROOT}/scripts/evaluator/normalize_candidate_matrix_results.py" "${results_tsv}"
+      run_cmd "${DPL_EVOLVE_PYTHON}" "${DPL_EVOLVE_AGENT_ROOT}/scripts/evaluator/normalize_candidate_matrix_results.py" "${results_tsv}"
       skipped_complete=$((skipped_complete + 1))
       printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
         "${student}" "${iter_part}" "${candidate_src}" "${matrix_id}" "${results_tsv}" \

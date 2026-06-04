@@ -35,15 +35,15 @@ mechanism.
 - Implement from the Teacher route, selected knowledge/roadmap section, and the
   current private source tree.  Do not search or copy old experiment source
   implementations from `$HOME/local_backups`, `local_backups`, or historical
-  `.dpl_evolve_state` round directories.
+  `DPL_EVOLVE_STATE_ROOT` round directories.
 - Allowed reads are: this generated round's packet/prompts/artifacts/helpers,
   `private_dpl_evolve_source`, current prepared start branches inside that source
   repo, explicitly fetched peer refs via the helper, `agent_root/knowledge`,
   `agent_root/knowledge/index`, and current OpenROAD/DPL source needed for API or
   call-site understanding.
-- `.dpl_evolve_state` is allowed only for this round's generated workspace files
-  and prepared seed sources used by helper scripts.  It is not a general search
-  space for old implementations.
+- `DPL_EVOLVE_STATE_ROOT` is allowed only for this round's generated workspace
+  files and prepared seed sources used by helper scripts.  It is not a general
+  search space for old implementations.
 
 ## Helpers
 

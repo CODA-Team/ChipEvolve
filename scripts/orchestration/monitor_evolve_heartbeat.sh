@@ -161,7 +161,7 @@ heartbeat() {
 
   echo
   echo "[round summary]"
-  python3 "${AGENT_ROOT}/scripts/analysis/report_experiment_quick_status.py" \
+  "${DPL_EVOLVE_PYTHON}" "${AGENT_ROOT}/scripts/analysis/report_experiment_quick_status.py" \
     --format markdown \
     --batch-root "${batch}" \
     "${report_args[@]}"
@@ -169,7 +169,7 @@ heartbeat() {
   if [[ "${DETAIL_STAGE}" -eq 1 ]]; then
     echo
     echo "[stage metrics]"
-    python3 "${AGENT_ROOT}/scripts/evaluator/report_stage_metrics.py" \
+    "${DPL_EVOLVE_PYTHON}" "${AGENT_ROOT}/scripts/evaluator/report_stage_metrics.py" \
       --format markdown \
       "${report_args[@]}" \
       --no-expected
