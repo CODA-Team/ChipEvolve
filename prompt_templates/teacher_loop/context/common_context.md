@@ -21,7 +21,7 @@
   - feature-to-mechanism strategy note: `$strategy_inspiration_insight`
 - DPO mechanism insight: `$dpo_source_mechanisms_insight`
 - OpenROAD-native handoff insight: `$openroad_native_handoff_insight`
-- LEGO-lite skill index: `$skill_index`
+- LEGO-lite knowledge indexes: `$skill_index`
 - LEGO-lite skill query helper: `$skill_query_script`
 - LEGO-lite skill notes: `$skill_cards_dir`
 - algorithm/pseudocode cards: `$algorithms_dir`

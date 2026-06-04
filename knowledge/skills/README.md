@@ -3,6 +3,9 @@
 `knowledge/index/skill_cards.jsonl` is the canonical skill database. It keeps the
 machine-readable stage, source handles, patches, metrics, log signals, and done
 criteria used by Teacher and Student prompts.
+`knowledge/index/mechanism_stack_cards.jsonl` is the companion database for
+blueprint composition: producer/handoff/consumer roles, compatible stacking,
+handoff payloads, failure buckets, and first patch handles.
 
 The markdown files under this directory are short notes only. They add route
 pitfalls and extra guidance that should not be duplicated in every prompt. Do
@@ -13,6 +16,7 @@ Use the query helper from the repo root:
 
 ```bash
 python3 scripts/repo/query_knowledge.py --stage improve_placement --q "final HPWL weak runtime controlled" --limit 3
+python3 scripts/repo/query_knowledge.py --stage teacher_review --q "Blueprint D+A stack" --limit 3
 python3 scripts/repo/query_knowledge.py --q dpo_source_edge_cached_scoring --show-full
 python3 scripts/repo/query_knowledge.py --validate
 ```

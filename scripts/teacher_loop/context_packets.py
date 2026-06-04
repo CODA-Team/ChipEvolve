@@ -539,7 +539,7 @@ def write_case_feature_route_insight_packet(
             "- Student should use the Teacher-assigned route section for concrete source",
             "  handles, implementation order, counters, proof criteria, and first repair.",
             "- For an explicit blueprint assignment, Student should query the",
-            "  exact section with `08_query_knowledge.sh --stage detailed_placement --q \"Blueprint D+A\"`",
+            "  exact stack with `08_query_knowledge.sh --stage teacher_review --q \"Blueprint D+A stack\"`",
             "  or replace `D+A` with the assigned single-letter blueprint before editing and report the completeness",
             "  audit after evaluation.",
             "",
@@ -645,7 +645,7 @@ def common_context(
         / "support"
         / "dpo"
         / "openroad_native_handoff.md",
-        skill_index=runtime.agent_root / "knowledge" / "index" / "skill_cards.jsonl",
+        skill_index=runtime.agent_root / "knowledge" / "index",
         skill_query_script=runtime.agent_root / "scripts" / "repo" / "query_knowledge.py",
         skill_cards_dir=runtime.agent_root / "knowledge" / "skills",
         algorithms_dir=runtime.agent_root / "knowledge" / "algorithms",

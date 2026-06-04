@@ -722,7 +722,7 @@ routes are assigned.
 - `problems/README.md`: case registry format.
 - `knowledge/policies/evidence_policy.md`: how to classify observations, hypotheses,
   and durable evidence.
-- `knowledge/index/skill_cards.jsonl` plus `scripts/repo/query_knowledge.py`: concise stage skill lookup.
+- `knowledge/index/` plus `scripts/repo/query_knowledge.py`: concise stage skill and blueprint-stack lookup.
 - `knowledge/support/dpo/source_level_mechanisms.md`: improve-placement mechanism lessons.
 - `family_variants/REFERENCE_INDEX.yaml`: compact source-code donor index.
 

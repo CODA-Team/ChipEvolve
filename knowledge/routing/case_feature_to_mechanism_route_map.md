@@ -232,8 +232,8 @@ When Teacher selects a blueprint, the Student plan must include:
 
 - route label and blueprint letter;
 - start basin and why current evidence supports it;
-- selected roadmap query, e.g. `08_query_knowledge.sh --stage detailed_placement
-  --q "Blueprint B"`;
+- selected stack/roadmap query, e.g. `08_query_knowledge.sh --stage
+  teacher_review --q "Blueprint B stack"`;
 - complete-chain audit: producer, handoff, exact consumer, post-consumer
   closure, counters, already-live links, missing links, and this iteration's
   repair target;

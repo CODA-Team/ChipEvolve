@@ -76,7 +76,7 @@ counters, already-live links, missing links, and the link you will implement.
 - case feature route insight packet: `$optional_case_feature_route_insight_packet`
 - DPO mechanism insight: `$optional_dpo_source_mechanisms_insight`
 - native handoff insight: `$optional_openroad_native_handoff_insight`
-- skill index: `$skill_index`
+- knowledge indexes: `$skill_index`
 - skill cards: `$skill_cards_dir`
 - algorithm cards: `$algorithms_dir`
 - knowledge query helper: `$query_knowledge_script`
@@ -102,8 +102,8 @@ Primary flow:
      names a card/skill, the mechanism role is unclear, or metrics/logs suggest
      a pivot
    - for an assigned case-type blueprint, use
-     `$query_knowledge_script --stage detailed_placement --q "Blueprint <letter|D+A>"`
-     and keep the selected roadmap checklist beside your source plan
+     `$query_knowledge_script --stage teacher_review --q "Blueprint <letter|D+A> stack"`
+     and keep the selected stack record plus roadmap checklist beside your source plan
 3. for each mechanism trial:
    - `$trial_source_script begin --label <short-mechanism>`
    - repair a prior kept/rejected ref when assigned: `$trial_source_script begin --label <repair-name> --from-ref <ref>`

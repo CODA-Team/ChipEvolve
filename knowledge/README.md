@@ -35,8 +35,9 @@ the evidence-driven route decision.
    the generated packet is insufficient
 11. `routing/mechanism_reconstruction_roadmap.md` only for the
    Teacher-selected route section
-12. `index/skill_cards.jsonl` through `../scripts/repo/query_knowledge.py` only to
-    sharpen a selected stage mechanism, liveness check, or failure diagnosis
+12. `index/skill_cards.jsonl` and `index/mechanism_stack_cards.jsonl` through
+    `../scripts/repo/query_knowledge.py` only to sharpen a selected stage
+    mechanism, liveness check, blueprint stack, or failure diagnosis
 13. one relevant `support/dpo/`, `support/legalization/`, `support/legalm/`,
     `skills/`, or `algorithms/` file after the route needs it
 14. paper PDFs and source notes under `reference/` only if needed
@@ -83,6 +84,8 @@ current evidence proves they should become a separate route.
   contracts.
 - `algorithms/`: pseudocode and background references used only when a
   selected route needs algorithm detail.
+- `index/`: query-facing JSONL records for skill lookup and blueprint mechanism
+  stacks.
 - `skills/`: concise stage skill notes discoverable through
   `scripts/repo/query_knowledge.py`.
 

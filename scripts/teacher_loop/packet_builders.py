@@ -195,7 +195,7 @@ def write_child_workspace_packet(
             / "support"
             / "dpo"
             / "openroad_native_handoff.md",
-            skill_index=agent_root / "knowledge" / "index" / "skill_cards.jsonl",
+            skill_index=agent_root / "knowledge" / "index",
             skill_cards_dir=agent_root / "knowledge" / "skills",
             algorithms_dir=agent_root / "knowledge" / "algorithms",
             skill_query_script=agent_root / "scripts" / "repo" / "query_knowledge.py",

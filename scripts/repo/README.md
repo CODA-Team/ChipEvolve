@@ -9,7 +9,8 @@ not mutate ORFS/OpenROAD workspaces or candidate sources.
 ## Canonical Helpers
 
 - `case_registry.py`: resolve cases from `problems/` and `case_sets.json`.
-- `query_knowledge.py`: query or validate `knowledge/index/skill_cards.jsonl`.
+- `query_knowledge.py`: query or validate `knowledge/index/skill_cards.jsonl`
+  and the companion blueprint stack index.
 - `checkpoint.py`: manage local restorable operation checkpoints under ignored
   runtime state.
 - `audit_repo_hygiene.py`: enforce repo hygiene, script namespace layout, and

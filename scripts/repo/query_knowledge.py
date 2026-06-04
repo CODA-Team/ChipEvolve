@@ -14,9 +14,36 @@ from pathlib import Path
 from typing import Any
 
 AGENT_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_INDEX = AGENT_ROOT / "knowledge" / "index" / "skill_cards.jsonl"
+DEFAULT_SKILL_INDEX = AGENT_ROOT / "knowledge" / "index" / "skill_cards.jsonl"
+DEFAULT_STACK_INDEX = AGENT_ROOT / "knowledge" / "index" / "mechanism_stack_cards.jsonl"
+DEFAULT_INDEXES = (DEFAULT_SKILL_INDEX, DEFAULT_STACK_INDEX)
 
 TOKEN_RE = re.compile(r"[A-Za-z0-9_+%.-]+")
+BLUEPRINT_RE = re.compile(r"\bblueprint\s+([A-Za-z](?:\+[A-Za-z])?)\b", re.IGNORECASE)
+
+STAGE_ALIASES = {
+    "detailed_placement": {
+        "teacher_review",
+        "legalization",
+        "improve_placement",
+        "handoff",
+    },
+    "detailed-placement": {
+        "teacher_review",
+        "legalization",
+        "improve_placement",
+        "handoff",
+    },
+    "blueprint": {"teacher_review"},
+    "routing": {"teacher_review"},
+    "mechanism_stack": {"teacher_review"},
+    "mechanism-stack": {"teacher_review"},
+    "dpo": {"improve_placement"},
+    "improve": {"improve_placement"},
+    "legalizer": {"legalization"},
+    "diagnosis": {"case_diagnosis", "build_eval_log_diagnosis"},
+    "review": {"teacher_review"},
+}
 
 
 def tokenize(text: str) -> list[str]:
@@ -41,6 +68,34 @@ def load_cards(path: Path) -> list[dict[str, Any]]:
     return cards
 
 
+def load_all_cards(paths: list[Path]) -> list[dict[str, Any]]:
+    cards: list[dict[str, Any]] = []
+    for path in paths:
+        if path.exists():
+            cards.extend(load_cards(path))
+    if not cards:
+        joined = ", ".join(str(path) for path in paths)
+        raise SystemExit(f"[ERROR] missing knowledge indexes: {joined}")
+    return cards
+
+
+def flatten_value(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        flattened: list[str] = []
+        for item in value:
+            flattened.extend(flatten_value(item))
+        return flattened
+    if isinstance(value, dict):
+        flattened = []
+        for key, item in value.items():
+            flattened.append(str(key))
+            flattened.extend(flatten_value(item))
+        return flattened
+    return [str(value)]
+
+
 def text_blob(card: dict[str, Any]) -> str:
     parts: list[str] = []
     for key in (
@@ -60,16 +115,44 @@ def text_blob(card: dict[str, Any]) -> str:
         "log_signals",
         "done_criteria",
         "keywords",
+        "blueprints",
+        "mechanism_roles",
+        "compatible_with",
+        "failure_buckets",
+        "handoff_payloads",
+        "stacking_notes",
+        "prerequisites",
+        "first_patch_handles",
     ):
-        value = card.get(key, [])
-        if isinstance(value, list):
-            parts.extend(str(item) for item in value)
-        else:
-            parts.append(str(value))
+        parts.extend(flatten_value(card.get(key, [])))
     return "\n".join(parts)
 
 
-def score_card(card: dict[str, Any], query_tokens: list[str], stages: set[str]) -> float:
+def expand_stages(stage_args: list[str]) -> set[str]:
+    stages: set[str] = set()
+    for raw_stage in stage_args:
+        stage = raw_stage.strip().lower()
+        if not stage:
+            continue
+        stages.add(stage)
+        stages.update(STAGE_ALIASES.get(stage, set()))
+    return stages
+
+
+def normalize_blueprint(value: str) -> str:
+    return value.strip().upper().replace(" ", "")
+
+
+def requested_blueprints(query: str) -> set[str]:
+    return {normalize_blueprint(match.group(1)) for match in BLUEPRINT_RE.finditer(query)}
+
+
+def score_card(
+    card: dict[str, Any],
+    query_tokens: list[str],
+    stages: set[str],
+    blueprints: set[str],
+) -> float:
     blob = text_blob(card).lower()
     blob_tokens = set(tokenize(blob))
     score = 0.0
@@ -90,6 +173,15 @@ def score_card(card: dict[str, Any], query_tokens: list[str], stages: set[str]) 
         score += 3.0
     if any(tok in skill_id for tok in query_tokens):
         score += 1.5
+    if blueprints:
+        card_blueprints = {
+            normalize_blueprint(value) for value in as_list(card.get("blueprints"))
+        }
+        if card_blueprints:
+            if card_blueprints & blueprints:
+                score += 10.0
+            else:
+                score -= 2.0
     return score
 
 
@@ -99,6 +191,16 @@ def as_list(value: Any) -> list[str]:
     if isinstance(value, list):
         return [str(item) for item in value]
     return [str(value)]
+
+
+def optional_markdown_list(card: dict[str, Any], key: str, label: str | None = None) -> str | None:
+    if key not in card:
+        return None
+    values = as_list(card.get(key))
+    if not values:
+        return None
+    prefix = label or key
+    return f"- {prefix}: " + "; ".join(f"`{x}`" for x in values)
 
 
 def format_markdown(rows: list[tuple[float, dict[str, Any]]], *, show_full: bool) -> str:
@@ -117,12 +219,29 @@ def format_markdown(rows: list[tuple[float, dict[str, Any]]], *, show_full: bool
                 f"- use_when: {card.get('use_when', '')}",
                 f"- avoid_when: {card.get('avoid_when', '')}",
                 f"- skill_note: `{full_card}`",
+            ]
+        )
+        for key in (
+            "blueprints",
+            "mechanism_roles",
+            "compatible_with",
+            "failure_buckets",
+            "handoff_payloads",
+            "stacking_notes",
+            "prerequisites",
+            "first_patch_handles",
+        ):
+            line = optional_markdown_list(card, key)
+            if line:
+                lines.append(line)
+        lines.extend(
+            [
                 "- source_handles: " + ", ".join(f"`{x}`" for x in as_list(card.get("source_handles"))) if card.get("source_handles") else "- source_handles: none",
                 "- patches: " + ", ".join(f"`{x}`" for x in as_list(card.get("patches"))) if card.get("patches") else "- patches: none",
                 "- metrics_to_check: " + ", ".join(f"`{x}`" for x in as_list(card.get("metrics_to_check"))),
                 "- log_signals: " + ", ".join(f"`{x}`" for x in as_list(card.get("log_signals"))),
                 "- done_criteria: " + "; ".join(as_list(card.get("done_criteria"))),
-                f"- rg: `rg -n \"{card['skill_id']}|{'|'.join(as_list(card.get('keywords'))[:3])}\" knowledge/index knowledge/skills knowledge/algorithms`",
+                f"- rg: `rg -n \"{card['skill_id']}|{'|'.join(as_list(card.get('keywords'))[:3])}\" knowledge/index knowledge/skills knowledge/algorithms knowledge/routing knowledge/support`",
                 "",
             ]
         )
@@ -163,7 +282,13 @@ def validate_cards(cards: list[dict[str, Any]]) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Query DPL-Evolve LEGO-lite skill records.")
-    parser.add_argument("--index", type=Path, default=DEFAULT_INDEX)
+    parser.add_argument(
+        "--index",
+        type=Path,
+        action="append",
+        default=None,
+        help="Knowledge index to query. Repeatable; defaults to skill and mechanism-stack indexes.",
+    )
     parser.add_argument("--stage", action="append", default=[], help="Filter/boost one workflow stage. Repeatable.")
     parser.add_argument("--q", default="", help="Lexical query over summaries, handles, metrics, and keywords.")
     parser.add_argument("--limit", type=int, default=5)
@@ -172,13 +297,15 @@ def main() -> int:
     parser.add_argument("--validate", action="store_true", help="Validate index full-card and patch references.")
     args = parser.parse_args()
 
-    cards = load_cards(args.index)
+    index_paths = args.index if args.index else list(DEFAULT_INDEXES)
+    cards = load_all_cards(index_paths)
     if args.validate:
         return validate_cards(cards)
 
     query_tokens = tokenize(args.q)
-    stages = {stage.lower() for stage in args.stage if stage}
-    rows = [(score_card(card, query_tokens, stages), card) for card in cards]
+    stages = expand_stages(args.stage)
+    blueprints = requested_blueprints(args.q)
+    rows = [(score_card(card, query_tokens, stages, blueprints), card) for card in cards]
     if stages:
         # Still allow out-of-stage hits when query strongly matches, but hide weak ones.
         rows = [row for row in rows if row[0] > 0]

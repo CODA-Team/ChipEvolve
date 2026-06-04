@@ -83,7 +83,7 @@ Optional helpers:
   `$query_knowledge_script --stage <stage> --q <text>`
 - for an assigned case-type Blueprint A/B/C/D or D+A, query that exact roadmap section
   before editing:
-  `$query_knowledge_script --stage detailed_placement --q "Blueprint <letter|D+A>"`
+  `$query_knowledge_script --stage teacher_review --q "Blueprint <letter|D+A> stack"`
 - metrics summary on demand: `$report_candidate_metrics_script`
 - trial state/status: `$trial_source_script status`
 - fresh build only if normal build fails: `$fresh_build_script`

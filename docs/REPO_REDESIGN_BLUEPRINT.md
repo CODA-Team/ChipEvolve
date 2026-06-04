@@ -101,7 +101,9 @@ Default knowledge is allowed to steer Teacher planning directly.
 - generated `case_feature_route_insight_packet.md`
 - `knowledge/routing/case_feature_to_mechanism_route_map.md`
 - `knowledge/routing/mechanism_reconstruction_roadmap.md`
-- `knowledge/index/skill_cards.jsonl` through `scripts/repo/query_knowledge.py`
+- `knowledge/index/skill_cards.jsonl` and
+  `knowledge/index/mechanism_stack_cards.jsonl` through
+  `scripts/repo/query_knowledge.py`
 - `family_variants/REFERENCE_INDEX.yaml`
 - `patches/PATCH_AUDIT.yaml`
 
@@ -255,7 +257,7 @@ The CLI flag may stay as `--calibrate-start-seeds` for compatibility.
 5. prior Teacher review and peer-learning packet
 6. elite source reference, if any
 7. two core route files only when the generated packet is insufficient
-8. skill index query for selected mechanism sharpening
+8. knowledge index query for selected mechanism or blueprint-stack sharpening
 9. one donor or support card only after assigning the route
 
 ### Level 2 Student
@@ -369,7 +371,8 @@ The CLI flag may stay as `--calibrate-start-seeds` for compatibility.
 - Move algorithm cards into `knowledge/algorithms/`.
 - Move support insights into `knowledge/support/`.
 - Keep paper PDFs and donor references under `knowledge/reference/`.
-- Regenerate and validate `knowledge/index/skill_cards.jsonl`.
+- Regenerate and validate `knowledge/index/skill_cards.jsonl` and
+  `knowledge/index/mechanism_stack_cards.jsonl`.
 - Current status: Phase 4 taxonomy has been applied. Policy, routing,
   contract, algorithm, support, and archive material now lives under
   `knowledge/policies/`, `knowledge/routing/`, `knowledge/contracts/`,

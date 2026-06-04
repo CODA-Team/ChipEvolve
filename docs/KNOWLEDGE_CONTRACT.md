@@ -16,7 +16,9 @@ Default route knowledge may steer Teacher planning directly:
 - generated `case_feature_route_insight_packet.md`
 - `knowledge/routing/case_feature_to_mechanism_route_map.md`
 - `knowledge/routing/mechanism_reconstruction_roadmap.md`
-- `knowledge/index/skill_cards.jsonl` through `scripts/repo/query_knowledge.py`
+- `knowledge/index/skill_cards.jsonl` and
+  `knowledge/index/mechanism_stack_cards.jsonl` through
+  `scripts/repo/query_knowledge.py`
 - `family_variants/REFERENCE_INDEX.yaml`
 - `patches/PATCH_AUDIT.yaml`
 
