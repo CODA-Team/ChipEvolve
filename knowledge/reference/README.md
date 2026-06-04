@@ -6,9 +6,6 @@ This directory keeps algorithm references for `dpl_evolve_agent`.
   legalization paper, not OpenROAD DPL engine documentation.
 - `papers/` stores the curated paper index and optional source-verification
   instructions.
-- Legacy OpenROAD command snippets are not tracked as active knowledge. If a
-  command lesson is useful, migrate it into `knowledge/algorithms/` or a concise
-  stage skill instead of restoring an archive note.
 
 Do not commit papers whose redistribution status is unclear.  Use
 `papers/paper_sources.yaml` and `scripts/analysis/fetch_reference_papers.sh`
