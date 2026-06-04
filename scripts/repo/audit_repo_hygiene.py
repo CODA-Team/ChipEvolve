@@ -110,7 +110,6 @@ LOCAL_CONTEXT_ALLOWED_FILES = {
 
 FORBIDDEN_TRACKED_PREFIXES = (
     "baseline/dreamplace_vendor/",
-    "knowledge/archive/",
 )
 
 ROLE_NAMESPACE_READMES = (
