@@ -197,6 +197,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "Repeatable. Default: framework, diamond, and default_negotiation."
         ),
     )
+    parser.add_argument(
+        "--calibration-mode",
+        action="store_true",
+        help=(
+            "Use the single-iteration mechanism calibration Teacher prompt. "
+            "Teacher assigns one independent mechanism per child, spreads "
+            "starts across framework/diamond/default_negotiation and stages, "
+            "and reviews results as mechanism evidence rather than evolution "
+            "continuation. Requires --iterations 1."
+        ),
+    )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(
         "--audit-prompts",
@@ -206,7 +217,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--prompt-audit-max-agent-bytes",
         type=int,
-        default=20000,
+        default=24000,
         help=(
             "Warn when an agent-facing prompt is larger than this many bytes. "
             "This is a context-hygiene guard, not an instruction to remove "

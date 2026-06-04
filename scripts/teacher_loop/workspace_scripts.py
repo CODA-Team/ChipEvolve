@@ -172,6 +172,7 @@ def write_student_workspace_scripts(
 
     common_vars = f"""AGENT_ROOT={shlex.quote(str(runtime.agent_root))}
 ORFS_ROOT={shlex.quote(str(runtime.orfs_root))}
+STATE_ROOT={shlex.quote(str(runtime.state_root))}
 VARIANT_ROOT={shlex.quote(str(paths.variant_root))}
 DPL_SRC={shlex.quote(str(paths.dpl_src))}
 PRIVATE_BINARY={shlex.quote(str(paths.private_binary))}
@@ -270,13 +271,13 @@ fi
 seed_for_kind() {{
   case "$1" in
     framework)
-      printf '%s\\n' "$AGENT_ROOT/.dpl_evolve_state/seed_sources/framework_dpl_evolve"
+      printf '%s\\n' "$STATE_ROOT/seed_sources/framework_dpl_evolve"
       ;;
     diamond)
-      printf '%s\\n' "$AGENT_ROOT/.dpl_evolve_state/seed_sources/diamond_dpl_evolve"
+      printf '%s\\n' "$STATE_ROOT/seed_sources/diamond_dpl_evolve"
       ;;
     default_negotiation)
-      printf '%s\\n' "$AGENT_ROOT/.dpl_evolve_state/seed_sources/default_negotiation_dpl_evolve"
+      printf '%s\\n' "$STATE_ROOT/seed_sources/default_negotiation_dpl_evolve"
       ;;
     *)
       return 2

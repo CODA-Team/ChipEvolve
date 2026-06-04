@@ -148,6 +148,7 @@ if [[ "${SKIP_BASELINE}" -ne 1 ]]; then
 fi
 
 IFS=',' read -r -a START_KIND_ARRAY <<< "${START_KINDS}"
+fail_count=0
 for start_kind in "${START_KIND_ARRAY[@]}"; do
   start_kind="$(printf '%s' "${start_kind}" | xargs)"
   [[ -n "${start_kind}" ]] || continue
@@ -183,6 +184,7 @@ for start_kind in "${START_KIND_ARRAY[@]}"; do
   else
     status="FAIL"
     exit_code="$?"
+    fail_count=$((fail_count + 1))
   fi
   printf "%s\t%s\t%s\t%s\t%s\t%s\n" \
     "${start_kind}" "${matrix_id}" "${seed_src}" "${results_tsv}" "${status}" "${exit_code}" \
@@ -200,3 +202,7 @@ fi
 echo "[target_start_kind_probe] manifest=${MANIFEST}"
 echo "[target_start_kind_probe] summary_md=${SUMMARY_MD}"
 echo "[target_start_kind_probe] summary_tsv=${SUMMARY_TSV}"
+if [[ "${fail_count}" -gt 0 ]]; then
+  echo "[ERROR] ${fail_count} start-kind calibration matrix failed; see ${MANIFEST}" >&2
+  exit 1
+fi

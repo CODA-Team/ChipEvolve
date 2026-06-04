@@ -9,6 +9,26 @@ Current scripts:
 - `summarize_start_seed_calibration.py`: summarizer for that target-local
   probe.
 
+Mechanism calibration uses the normal Teacher/Student entrypoint with the
+calibration Teacher prompt:
+
+```text
+$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py \
+  --case <case_id> \
+  --flow-variant <flow_variant> \
+  --round-id <calibration_round_id> \
+  --iterations 1 \
+  --children 50 \
+  --max-parallel 10 \
+  --calibration-mode \
+  --calibrate-start-seeds \
+  --launch
+```
+
+`--calibration-mode` is a single-iteration mechanism sweep.  Scale mechanism
+count with `--children`, not with `--iterations`; Teacher assigns one distinct
+mechanism per child and reviews results as calibration evidence.
+
 Call these scripts through their canonical namespace:
 
 ```text

@@ -187,6 +187,13 @@ def main(argv: list[str] | None = None) -> int:
 
     iterations = max(1, args.iterations)
     start_iteration = max(1, min(args.start_iteration, iterations))
+    if args.calibration_mode:
+        if iterations != 1 or start_iteration != 1:
+            raise SystemExit(
+                "--calibration-mode is a single-iteration mechanism validation "
+                "sweep. Use --iterations 1 --start-iteration 1 and scale with "
+                "--children/--max-parallel instead."
+            )
     if args.route_label:
         route_labels = args.route_label[: max(1, args.children)]
     else:
@@ -224,6 +231,7 @@ def main(argv: list[str] | None = None) -> int:
         dry_run=dry_run,
         launch=args.launch,
         student_runtime_multiplier=args.student_runtime_multiplier,
+        calibration_mode=args.calibration_mode,
     )
 
     all_commands: list[list[str]] = []
@@ -637,6 +645,7 @@ def main(argv: list[str] | None = None) -> int:
                     children=len(route_labels),
                     iteration=iteration,
                     student_runtime_multiplier=args.student_runtime_multiplier,
+                    calibration_mode=args.calibration_mode,
                 )
                 if compact_followup_prompts
                 else teacher_prompt(
@@ -651,6 +660,7 @@ def main(argv: list[str] | None = None) -> int:
                     children=len(route_labels),
                     iteration=iteration,
                     student_runtime_multiplier=args.student_runtime_multiplier,
+                    calibration_mode=args.calibration_mode,
                 )
             ),
             encoding="utf-8",
@@ -853,12 +863,14 @@ def main(argv: list[str] | None = None) -> int:
                         context_path=full_context_path,
                         review_packet_path=review_packet_path,
                         student_runtime_multiplier=args.student_runtime_multiplier,
+                        calibration_mode=args.calibration_mode,
                     )
                     if compact_followup_prompts
                     else teacher_review_prompt(
                         context_path=full_context_path,
                         review_packet_path=review_packet_path,
                         student_runtime_multiplier=args.student_runtime_multiplier,
+                        calibration_mode=args.calibration_mode,
                     )
                 ),
                 encoding="utf-8",
@@ -898,6 +910,7 @@ def main(argv: list[str] | None = None) -> int:
                 "iteration": iter_name(iteration),
                 "iteration_dir": str(iteration_dir),
                 "start_kind": args.start_kind,
+                "calibration_mode": args.calibration_mode,
                 "packet": str(packet_path),
                 "peer_learning_packet": str(peer_learning_path),
                 "full_context": str(full_context_path),
@@ -1183,6 +1196,7 @@ def main(argv: list[str] | None = None) -> int:
                 "student_reasoning_effort": student_reasoning_effort,
                 "resume_sessions": args.resume_sessions,
                 "student_runtime_multiplier": args.student_runtime_multiplier,
+                "calibration_mode": args.calibration_mode,
                 "compact_after_first": True,
                 "stable_student_workspaces": True,
                 "child_cwd": str(child_cwd),

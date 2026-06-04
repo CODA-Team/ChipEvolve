@@ -248,9 +248,7 @@ fi
 
 mkdir -p "$(dirname "${dpl_src}")"
 rsync -a --delete --exclude='.git' "${seed_src}/" "${dpl_src}/"
-if [[ "${start_kind}" == "diamond" && -z "${seed_src_override}" ]]; then
-  ensure_relink_compat_sources "${dpl_src}"
-fi
+ensure_relink_compat_sources "${dpl_src}"
 init_local_git_repo "${dpl_src}"
 git -C "${dpl_src}" add -A
 if ! git -C "${dpl_src}" diff --cached --quiet; then

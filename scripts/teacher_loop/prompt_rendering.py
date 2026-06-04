@@ -270,7 +270,7 @@ def agent_prompt_warnings(
 
 
 def prompt_audit(
-    *, round_dir: Path, max_agent_prompt_bytes: int = 12000
+    *, round_dir: Path, max_agent_prompt_bytes: int = 24000
 ) -> tuple[Path, Path, int]:
     """Audit generated prompts without launching agents.
 
@@ -362,6 +362,7 @@ def teacher_prompt(
     children: int,
     iteration: int,
     student_runtime_multiplier: float,
+    calibration_mode: bool = False,
 ) -> str:
     student_roster = "\n".join(
         render_prompt_template(
@@ -377,6 +378,33 @@ def teacher_prompt(
         ).rstrip()
         for idx, _name in enumerate(strategies, start=1)
     )
+    teacher_rules = render_prompt_template(
+        "teacher/rules.md",
+        student_runtime_multiplier=format_multiplier(student_runtime_multiplier),
+    )
+    teacher_plan_output = render_prompt_template(
+        "teacher/plan_output.md",
+        student_insight_packet_format=render_prompt_template(
+            "shared/student_insight_packet_format.md"
+        ),
+    )
+    if calibration_mode:
+        teacher_rules = (
+            teacher_rules.rstrip()
+            + "\n\n"
+            + render_prompt_template(
+                "teacher/calibration_rules.md",
+                student_runtime_multiplier=format_multiplier(student_runtime_multiplier),
+                children=children,
+            ).strip()
+        )
+        teacher_plan_output = render_prompt_template(
+            "teacher/calibration_plan_output.md",
+            student_insight_packet_format=render_prompt_template(
+                "shared/student_insight_packet_format.md"
+            ),
+            children=children,
+        )
     return render_prompt_template(
         "teacher/plan.md",
         context_path=context_path,
@@ -393,16 +421,8 @@ def teacher_prompt(
         iteration_name=iter_name(iteration),
         route_lines=route_lines,
         student_roster=student_roster,
-        teacher_rules=render_prompt_template(
-            "teacher/rules.md",
-            student_runtime_multiplier=format_multiplier(student_runtime_multiplier),
-        ),
-        teacher_plan_output=render_prompt_template(
-            "teacher/plan_output.md",
-            student_insight_packet_format=render_prompt_template(
-                "shared/student_insight_packet_format.md"
-            ),
-        ),
+        teacher_rules=teacher_rules,
+        teacher_plan_output=teacher_plan_output,
         children=children,
     )
 
@@ -420,6 +440,7 @@ def compact_teacher_prompt(
     children: int,
     iteration: int,
     student_runtime_multiplier: float,
+    calibration_mode: bool = False,
 ) -> str:
     student_roster = "\n".join(
         render_prompt_template(
@@ -435,6 +456,33 @@ def compact_teacher_prompt(
         ).rstrip()
         for idx, _name in enumerate(strategies, start=1)
     )
+    teacher_rules = render_prompt_template(
+        "teacher/rules_followup.md",
+        student_runtime_multiplier=format_multiplier(student_runtime_multiplier),
+    )
+    teacher_plan_output = render_prompt_template(
+        "teacher/plan_output.md",
+        student_insight_packet_format=render_prompt_template(
+            "shared/student_insight_packet_format.md"
+        ),
+    )
+    if calibration_mode:
+        teacher_rules = (
+            teacher_rules.rstrip()
+            + "\n\n"
+            + render_prompt_template(
+                "teacher/calibration_rules.md",
+                student_runtime_multiplier=format_multiplier(student_runtime_multiplier),
+                children=children,
+            ).strip()
+        )
+        teacher_plan_output = render_prompt_template(
+            "teacher/calibration_plan_output.md",
+            student_insight_packet_format=render_prompt_template(
+                "shared/student_insight_packet_format.md"
+            ),
+            children=children,
+        )
     return render_prompt_template(
         "teacher/plan_compact.md",
         context_path=context_path,
@@ -451,16 +499,8 @@ def compact_teacher_prompt(
         iteration_name=iter_name(iteration),
         route_lines=route_lines,
         student_roster=student_roster,
-        teacher_rules=render_prompt_template(
-            "teacher/rules_followup.md",
-            student_runtime_multiplier=format_multiplier(student_runtime_multiplier),
-        ),
-        teacher_plan_output=render_prompt_template(
-            "teacher/plan_output.md",
-            student_insight_packet_format=render_prompt_template(
-                "shared/student_insight_packet_format.md"
-            ),
-        ),
+        teacher_rules=teacher_rules,
+        teacher_plan_output=teacher_plan_output,
         children=children,
     )
 
@@ -470,21 +510,39 @@ def teacher_review_prompt(
     context_path: Path,
     review_packet_path: Path,
     student_runtime_multiplier: float,
+    calibration_mode: bool = False,
 ) -> str:
+    teacher_review_rules = render_prompt_template(
+        "teacher/review_rules.md",
+        student_runtime_multiplier=format_multiplier(student_runtime_multiplier),
+    )
+    teacher_review_output = render_prompt_template(
+        "teacher/review_output.md",
+        student_insight_packet_format=render_prompt_template(
+            "shared/student_insight_packet_format.md"
+        ),
+    )
+    if calibration_mode:
+        teacher_review_rules = (
+            teacher_review_rules.rstrip()
+            + "\n\n"
+            + render_prompt_template(
+                "teacher/calibration_rules.md",
+                student_runtime_multiplier=format_multiplier(student_runtime_multiplier),
+            ).strip()
+        )
+        teacher_review_output = render_prompt_template(
+            "teacher/calibration_review_output.md",
+            student_insight_packet_format=render_prompt_template(
+                "shared/student_insight_packet_format.md"
+            ),
+        )
     return render_prompt_template(
         "teacher/review.md",
         context_path=context_path,
         review_packet_path=review_packet_path,
-        teacher_review_rules=render_prompt_template(
-            "teacher/review_rules.md",
-            student_runtime_multiplier=format_multiplier(student_runtime_multiplier),
-        ),
-        teacher_review_output=render_prompt_template(
-            "teacher/review_output.md",
-            student_insight_packet_format=render_prompt_template(
-                "shared/student_insight_packet_format.md"
-            ),
-        ),
+        teacher_review_rules=teacher_review_rules,
+        teacher_review_output=teacher_review_output,
     )
 
 
@@ -493,21 +551,39 @@ def compact_teacher_review_prompt(
     context_path: Path,
     review_packet_path: Path,
     student_runtime_multiplier: float,
+    calibration_mode: bool = False,
 ) -> str:
+    teacher_review_rules = render_prompt_template(
+        "teacher/review_rules_followup.md",
+        student_runtime_multiplier=format_multiplier(student_runtime_multiplier),
+    )
+    teacher_review_output = render_prompt_template(
+        "teacher/review_output.md",
+        student_insight_packet_format=render_prompt_template(
+            "shared/student_insight_packet_format.md"
+        ),
+    )
+    if calibration_mode:
+        teacher_review_rules = (
+            teacher_review_rules.rstrip()
+            + "\n\n"
+            + render_prompt_template(
+                "teacher/calibration_rules.md",
+                student_runtime_multiplier=format_multiplier(student_runtime_multiplier),
+            ).strip()
+        )
+        teacher_review_output = render_prompt_template(
+            "teacher/calibration_review_output.md",
+            student_insight_packet_format=render_prompt_template(
+                "shared/student_insight_packet_format.md"
+            ),
+        )
     return render_prompt_template(
         "teacher/review_compact.md",
         context_path=context_path,
         review_packet_path=review_packet_path,
-        teacher_review_rules=render_prompt_template(
-            "teacher/review_rules_followup.md",
-            student_runtime_multiplier=format_multiplier(student_runtime_multiplier),
-        ),
-        teacher_review_output=render_prompt_template(
-            "teacher/review_output.md",
-            student_insight_packet_format=render_prompt_template(
-                "shared/student_insight_packet_format.md"
-            ),
-        ),
+        teacher_review_rules=teacher_review_rules,
+        teacher_review_output=teacher_review_output,
     )
 
 

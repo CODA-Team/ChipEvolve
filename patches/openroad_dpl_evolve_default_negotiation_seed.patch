@@ -2,10 +2,11 @@ diff --git a/src/StudentAlgorithm.cpp b/src/StudentAlgorithm.cpp
 index 78cd8c1..8251f5e 100644
 --- a/src/StudentAlgorithm.cpp
 +++ b/src/StudentAlgorithm.cpp
-@@ -11,11 +11,12 @@ namespace dpl_evolve {
+@@ -11,12 +11,13 @@ namespace dpl_evolve {
  bool Opendp::runStudentAlgorithm(const EvolveContext& context)
  {
    clearGuidedInitialLocations();
+   clearLegalmFrontier();
 -  logger_->metric("dpl_evolve__student_algorithm__pipeline_version", 1);
 +  (void) context;
 +  logger_->metric("dpl_evolve__student_algorithm__pipeline_version", 100);
@@ -18,7 +19,7 @@ index 78cd8c1..8251f5e 100644
  
    using Clock = std::chrono::steady_clock;
    auto elapsed_ms
-@@ -23,45 +24,6 @@ bool Opendp::runStudentAlgorithm(const EvolveContext& context)
+@@ -24,45 +25,6 @@ bool Opendp::runStudentAlgorithm(const EvolveContext& context)
            return std::chrono::duration<double, std::milli>(end - begin).count();
          };
  
