@@ -26,7 +26,8 @@ usable by another operator without private context.
   shims. `runtime_env.sh` intentionally remains top-level because shell callers
   source it.
 - Knowledge taxonomy status: Phase 4 is complete for policy, routing,
-  contract, algorithm, support, reference, and archive directories.
+  contract, algorithm, support, and reference directories; legacy archive notes
+  have been removed from tracked knowledge.
 
 ## Script Namespace Review
 
@@ -79,7 +80,7 @@ scripts/repo/check_release_readiness.sh
 - Phase 4 taxonomy is complete: default route knowledge lives under
   `knowledge/routing/`, policy/contracts under `knowledge/policies/` and
   `knowledge/contracts/`, on-demand support under `knowledge/support/`,
-  paper-derived cards under `knowledge/algorithms/`, and deprecated context
-  under `knowledge/archive/`.
+  paper-derived cards under `knowledge/algorithms/`, and deprecated context is
+  removed from tracked knowledge.
 - Run one non-dry-run smoke case only after the local ORFS/OpenROAD workspace
   is confirmed available and baselines are prepared.

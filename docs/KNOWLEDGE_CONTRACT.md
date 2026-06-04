@@ -52,7 +52,7 @@ Every promoted knowledge record should identify one of:
 - `measured_observation`: result tied to a run, case, metrics path, and date;
 - `working_hypothesis`: plausible mechanism explanation requiring a next test;
 - `reference_donor`: source or paper mechanism to inspect and port;
-- `deprecated_context`: forensic archive, not route guidance.
+- `deprecated_context`: removed or migration-only history, not route guidance.
 
 Mechanism knowledge should record scope, source reference, controls/liveness,
 full-flow metrics, compatibility observations, and review outcome.

@@ -51,8 +51,8 @@ namespace cleanup. Canonical implementations live under role namespaces.
 | Old Path | New Path | Role |
 | --- | --- | --- |
 | `knowledge/EVIDENCE_POLICY.md` | `knowledge/policies/evidence_policy.md` | Evidence classification policy |
-| `knowledge/CONTEXT_AUDIT.md` | `knowledge/archive/context_audit_legacy.md` | Historical audit archive |
-| `knowledge/reference/commands.txt` | `knowledge/archive/commands_legacy.txt` | Historical command snippets |
+| `knowledge/CONTEXT_AUDIT.md` | removed | Historical audit superseded by active contracts and directory READMEs |
+| `knowledge/reference/commands.txt` | removed | Historical command snippets removed from active knowledge |
 | `knowledge/algorithm_cards/` | `knowledge/algorithms/` | Paper-derived algorithms and pseudocode |
 | `knowledge/insights/workflow/` | `knowledge/contracts/` | Metric and workflow contracts |
 | `knowledge/insights/case_evolution/case_type_quality_mechanism_priority.md` | `knowledge/routing/case_feature_to_mechanism_route_map.md` | Default case-to-route map |
@@ -63,7 +63,7 @@ namespace cleanup. Canonical implementations live under role namespaces.
 | `knowledge/insights/dpo/*` | `knowledge/support/dpo/*` | DPO and handoff support |
 | `knowledge/insights/legalization/*` | `knowledge/support/legalization/*` | Legalization support |
 | `knowledge/insights/legalm/*` | `knowledge/support/legalm/*` | LEGALM support |
-| `knowledge/insights/README.md` | `knowledge/archive/insights_readme_legacy.md` | Historical taxonomy note |
+| `knowledge/insights/README.md` | removed | Historical taxonomy note superseded by `knowledge/README.md` and directory READMEs |
 
 ## Compatibility Rules
 
@@ -77,6 +77,6 @@ namespace cleanup. Canonical implementations live under role namespaces.
 - Do not add new runtime references to `knowledge/insights/` or
   `knowledge/algorithm_cards/`.
 - Default Teacher routing may read `knowledge/routing/` and contracts; support,
-  algorithm, reference, and archive material must be on-demand.
+  algorithm, and reference material must be on-demand.
 - Machine-local absolute paths belong in `env.sh` or ignored state, not tracked
   files.

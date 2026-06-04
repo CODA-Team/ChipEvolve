@@ -110,6 +110,7 @@ LOCAL_CONTEXT_ALLOWED_FILES = {
 
 FORBIDDEN_TRACKED_PREFIXES = (
     "baseline/dreamplace_vendor/",
+    "knowledge/archive/",
 )
 
 ROLE_NAMESPACE_READMES = (
@@ -182,9 +183,7 @@ DEPRECATED_KNOWLEDGE_PATTERNS = (
     "knowledge/insights/",
 )
 
-DEPRECATED_KNOWLEDGE_ALLOWED_PREFIXES = (
-    "knowledge/archive/",
-)
+DEPRECATED_KNOWLEDGE_ALLOWED_PREFIXES: tuple[str, ...] = ()
 
 DEPRECATED_KNOWLEDGE_ALLOWED_FILES = {
     "docs/MIGRATION_MAP.md",
@@ -443,7 +442,7 @@ def main() -> int:
             print(f"  - {item}")
     if deprecated_knowledge_refs:
         ok = False
-        print("[FAIL] Deprecated knowledge-path references outside archive/migration docs:")
+        print("[FAIL] Deprecated knowledge-path references outside migration docs:")
         for item in deprecated_knowledge_refs:
             print(f"  - {item}")
     if removed_script_refs:

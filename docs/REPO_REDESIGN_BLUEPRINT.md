@@ -130,7 +130,6 @@ Reference-only material should not appear in default prompts.
 
 - `knowledge/reference/**`
 - paper PDFs and cached paper indices
-- `knowledge/archive/context_audit_legacy.md`
 - historical experiment launchers
 - removed legacy aliases and migration-only wrapper paths
 
@@ -380,9 +379,10 @@ The CLI flag may stay as `--calibrate-start-seeds` for compatibility.
 - Regenerate and validate `knowledge/index/skill_cards.jsonl` and
   `knowledge/index/mechanism_stack_cards.jsonl`.
 - Current status: Phase 4 taxonomy has been applied. Policy, routing,
-  contract, algorithm, support, and archive material now lives under
+  contract, algorithm, and support material now lives under
   `knowledge/policies/`, `knowledge/routing/`, `knowledge/contracts/`,
-  `knowledge/algorithms/`, `knowledge/support/`, and `knowledge/archive/`.
+  `knowledge/algorithms/`, and `knowledge/support/`. Legacy archive notes have
+  been removed from tracked knowledge after reusable lessons were migrated.
 
 ### Phase 5: Calibration-Aware Teacher Context
 

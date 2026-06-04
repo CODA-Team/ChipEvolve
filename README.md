@@ -53,7 +53,8 @@ All commands below assume this repo is `dpl_evolve_agent`.
   design configs.
 - `configs/experiment_plans/`: TSV DSE replay plans.
 - `knowledge/`: active routing, skill, support, algorithm, and reference
-  knowledge; `knowledge/archive/` is forensic only.
+  knowledge. Legacy archive notes are removed from tracked knowledge after
+  reusable lessons are migrated into the active taxonomy.
 - `calibration/`: optional Level 1 calibration contracts, reviewed evidence,
   source-start provenance, and report layout.
 - `family_variants/`: source/reference donors, not default baselines.
