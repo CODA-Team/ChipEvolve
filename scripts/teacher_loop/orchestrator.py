@@ -178,6 +178,12 @@ def main(argv: list[str] | None = None) -> int:
             "--launch requires --flow-variant or DPL_EVOLVE_FLOW_VARIANT; "
             "the dry-run placeholder is not runnable."
         )
+    if args.launch and args.skip_baseline_preflight:
+        raise SystemExit(
+            "--skip-baseline-preflight is only valid for dry-run prompt audits. "
+            "Real launched smoke/evolve rounds must run the three-line "
+            "canonical baseline preflight."
+        )
 
     iterations = max(1, args.iterations)
     start_iteration = max(1, min(args.start_iteration, iterations))

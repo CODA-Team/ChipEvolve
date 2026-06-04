@@ -233,8 +233,10 @@ scripts.
 
 ### 7. Run A One-Case 1T2S Smoke
 
-After prepare, core build, snapshot, and baseline are ready, run one real
-Teacher plus two Students:
+After prepare, core build, and snapshot are ready, run one real Teacher plus
+two Students.  A launched smoke must refresh the three canonical baselines
+(`openroad_dpl_flow`, `openroad_dpl_negotiation`, and `evolve_default`) before
+the Teacher sees candidate evidence:
 
 ```bash
 export ROUND_ID="smoke_1t2s_$(date +%Y%m%d_%H%M%S)"
@@ -251,7 +253,6 @@ python3 "$DPL_EVOLVE_AGENT_ROOT/scripts/optimize_case_with_codex.py" \
   --student-runtime-multiplier 1.0 \
   --teacher-reasoning-effort low \
   --student-reasoning-effort low \
-  --skip-baseline-preflight \
   --skip-core-build \
   --audit-prompts \
   --launch

@@ -148,7 +148,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--skip-baseline-preflight",
         action="store_true",
-        help="Do not run/refresh the canonical baseline suite before planning.",
+        help=(
+            "Dry-run only: do not run/refresh the canonical baseline suite "
+            "before prompt planning."
+        ),
     )
     parser.add_argument(
         "--refresh-baseline",
