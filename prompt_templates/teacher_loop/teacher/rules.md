@@ -60,6 +60,9 @@
   start/parent, first-patch handles, runtime tier, liveness counters, proof
   target, failure bucket, and stop/pivot rule. Handles are orientation, not an
   allowed-file list.
+- First-patch handles should be source-understanding targets, not just filenames:
+  name the expected entry point, state/payload lifetime, consumer/acceptance path,
+  and proof counter/log whenever the route depends on a nontrivial code path.
 - Route actions:
   - `elite-expand`: continue the current best with a real donor-on-top quality
     mechanism; preservation is rollback discipline, not the objective.

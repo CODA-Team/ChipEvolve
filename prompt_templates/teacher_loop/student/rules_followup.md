@@ -46,29 +46,34 @@ needs it.
 
 1. Use generated helpers for prepare/start, trial begin/keep/reject, build,
    evaluate, and finalization. Do not reconstruct commands.
-2. Keep planning short and execution-oriented. Once the first coherent patch
-   path is clear, begin a real trial and patch.
-3. Resolve ordinary uncertainty through targeted source reads, nearby
+2. Prepare or switch to the assigned branch/ref first and verify status. Treat
+   current checked-out code as ground truth; do not implement from memory of a
+   different start branch.
+3. Keep planning short but source-grounded. Before edits, inspect Teacher first
+   patch handles plus nearby call sites and write a compact source map: entry
+   function, call path, state/payload lifetime, candidate/scoring/acceptance
+   path, and proof counter/log.
+4. Resolve ordinary uncertainty through targeted source reads, nearby
    implementations, call sites, or assigned donor refs. If still ambiguous,
    choose the simplest coherent implementation, record the assumption, and
    evaluate.
-4. Use knowledge only for the current mechanism gap. If Teacher assigns
+5. Use knowledge only for the current mechanism gap. If Teacher assigns
    Blueprint A/B/C/D or D+A, query the exact stack record with
    `08_query_knowledge.sh --stage teacher_review --q "Blueprint <letter|D+A> stack"`,
    then read only the selected roadmap section. Write a compact complete-chain
    audit: start basin, producer, handoff, exact consumer, post-consumer closure,
    compatible follow-up, counters, live links, missing links, and this
    iteration's repair link.
-5. Patch a real mechanism class unless explicitly doing implementation repair:
+6. Patch a real mechanism class unless explicitly doing implementation repair:
    candidate generation, scoring, acceptance, transaction/rollback, handoff,
    producer state, post-consumer preservation, or bounded search scope.
-6. Build/evaluate, then inspect metrics/logs for stage movement, legality,
+7. Build/evaluate, then inspect metrics/logs for stage movement, legality,
    runtime, liveness counters, accept/reject bottlenecks, and source/binary
    alignment.
-7. Treat the first legal result as diagnosis, not finalization. Make one
+8. Treat the first legal result as diagnosis, not finalization. Make one
    strengthened modification when a same-route repair is plausible, then
    re-run build/evaluation.
-8. Close the trial before broad donor or knowledge archaeology. Keep/reject
+9. Close the trial before broad donor or knowledge archaeology. Keep/reject
    from current evidence, then finalize or start a focused repair/pivot from a
    preserved ref.
 
@@ -76,6 +81,8 @@ needs it.
 
 - Work on the generated dev branch under `private_dpl_evolve_source`; prepared
   starts are source parents, not edit-scope restrictions.
+- After any branch/ref switch, reset, or `begin --from-ref`, rerun status and
+  redo the source map for the landing zone before editing.
 - Do not manually apply release/start patch files or copy source trees.
 - Teacher `first patch handles` are efficient landing zones, not an exclusive
   allowed-file list. Modify any private `dpl_evolve` source needed by one
@@ -124,6 +131,8 @@ needs it.
 Fill the generated `knowledge_card` as a source-to-evidence map:
 
 - route action, changed files/functions, mechanism class, source reasoning
+- prepared branch/ref and pre-edit source map: entry, call path, state/payload
+  lifetime, acceptance path, and proof counter/log
 - stack/card query used, implemented roles, and compatible follow-up left open
 - expected HPWL source, measured attribution, and failure bucket if weak
 - final HPWL/runtime/legality/displacement and stage-wise HPWL deltas

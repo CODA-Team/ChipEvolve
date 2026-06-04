@@ -35,29 +35,35 @@
 
 1. Open the workspace packet and use its generated helpers for source prep,
    trial begin/keep/reject, build, evaluate, and finalization.
-2. Start from Teacher `first patch handles` or the workspace `Algorithm Entry
-   Points`. Keep source reading narrow until a concrete patch path is clear.
-3. Prepare the assigned start. If Teacher names Blueprint A/B/C/D or D+A, query
+2. Prepare the assigned source or start branch first, then verify the current
+   branch/status with the generated status helper. Source understanding must be
+   based on the checked-out branch you will edit, not on memory or another start.
+3. Read Teacher `first patch handles`, the workspace `Algorithm Entry Points`,
+   and nearby call sites after branch preparation. Before material edits, write a
+   compact source map in your notes: entry function, call path, state fields or
+   payload lifetime, candidate/scoring/acceptance path, and the counter/log that
+   will prove the code executed.
+4. If Teacher names Blueprint A/B/C/D or D+A, query
    the exact stack record with
    `08_query_knowledge.sh --stage teacher_review --q "Blueprint <letter|D+A> stack"`,
    then read only the selected roadmap section. Write a compact complete-chain
    audit from the stack fields: start basin, producer, handoff, exact consumer,
    post-consumer closure, compatible follow-up, counters, already-live links,
    missing links, and the link this iteration implements.
-4. Begin a trial before material edits. Name the HPWL-source hypothesis,
+5. Begin a trial before material edits. Name the HPWL-source hypothesis,
    failure bucket, success metrics, liveness counters, and runtime guard.
-5. Patch a real mechanism class unless explicitly doing implementation repair:
+6. Patch a real mechanism class unless explicitly doing implementation repair:
    legalizer/DPO producer state, handoff/frontier state, candidate generation,
    scoring, acceptance, transactions/rollback, post-consumer preservation, or a
    bounded search family. Constants and counters are support unless they feed
    the mechanism.
-6. Build/evaluate with canonical helpers. Read `candidate_metrics_summary_md`
+7. Build/evaluate with canonical helpers. Read `candidate_metrics_summary_md`
    first; open DPL logs only for liveness, accept/reject behavior, stop reason,
    runtime cost, or unclear attribution.
-7. Treat the first legal result as diagnosis. If HPWL is weak/flat/worse,
+8. Treat the first legal result as diagnosis. If HPWL is weak/flat/worse,
    classify the bucket from source plus counters, then make one strengthened
    same-route repair or controlled pivot when plausible.
-8. Keep/reject/finalize only after the strengthened evaluation or after the
+9. Keep/reject/finalize only after the strengthened evaluation or after the
    first result proves no plausible repair. Preserve rejected code with the
    trial helper and keep source commit/ref, binary, metrics, diff, and report
    aligned.
@@ -66,6 +72,9 @@
 
 - Work on the generated dev branch in `private_dpl_evolve_source`; prepared
   starts are source parents, not edit-scope restrictions.
+- After any prepare/start switch/reset, re-check branch/status and redo the
+  source map for changed landing zones. Do not reuse source conclusions from a
+  different branch when implementation files diverge.
 - Do not manually apply release/start patch files or copy source trees.
 - You may modify any file under `private_dpl_evolve_source` needed by one
   coherent mechanism, including adjacent legalizer, DPO, handoff, objective,
@@ -128,6 +137,8 @@ Fill the `knowledge_card` before finalizing. Keep it compact but sufficient for
 Teacher review:
 
 - route action, changed files/functions, mechanism class, and source reasoning
+- prepared branch/ref plus pre-edit source map: entry point, call path, state or
+  payload lifetime, acceptance path, and proof counter/log
 - stack/card query used, mechanism roles implemented, and any compatible link
   intentionally left for follow-up
 - expected HPWL source and measured attribution

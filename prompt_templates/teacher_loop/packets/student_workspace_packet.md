@@ -109,6 +109,11 @@ Primary flow:
      `$query_knowledge_script --stage handoff --q "handoff lifetime producer consumer"`
      or `$query_knowledge_script --stage improve_placement --q "accepted-delta washout exact consumer"`
 3. for each mechanism trial:
+   - after source preparation or start switching, run status and inspect Teacher
+     first-patch handles on the checked-out branch before editing
+   - write a pre-edit source map in your notes/report: entry point, call path,
+     state/payload lifetime, candidate/scoring/acceptance path, and proof
+     counter/log
    - `$trial_source_script begin --label <short-mechanism>`
    - repair a prior kept/rejected ref when assigned: `$trial_source_script begin --label <repair-name> --from-ref <ref>`
    - inspect enough source and logs to understand the mechanism path, then start
@@ -165,6 +170,8 @@ different HPWL source; do not silently overwrite the failed mechanism.
   `start/diamond`, and `start/default_negotiation` after preparation.
 - If Teacher assigns a prepared start, use `prepare_start_source_script --kind <kind>` before edits. Do not manually apply release/start patch files and do not copy source trees.
 - After preparation, implement and commit your mechanism on the dev branch `$source_branch`. The generated iteration ref marks the iteration-start commit for diffing and review.
+- After any branch/start switch, re-check `$source_status_script` and redo source
+  context reads for the files/functions you will patch.
 
 ## Algorithm Entry Points
 

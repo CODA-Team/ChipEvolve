@@ -44,6 +44,9 @@ decision.
   modify any private `dpl_evolve` file needed by one coherent producer,
   handoff, consumer, objective, transaction, mirror, helper, parameter, or
   telemetry mechanism.
+- First-patch handles should include the source-understanding target: entry
+  point, state/payload lifetime, consumer/acceptance path, and proof counter/log
+  when the route depends on a nontrivial path.
 - Label every packet with `route type` and `route action`: `repair`,
   `switch`, `hybridize`, `mechanism-redesign`, or `elite-expand`.
 - Route the current best as `elite-expand` only when it names a stronger

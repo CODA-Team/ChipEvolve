@@ -12,6 +12,7 @@
 - stage-wise proof target: <expected HPWLlg/HPWLimprove/HPWLfinal movement and liveness counters>
 - why this can beat a small donor: <larger HPWL source, mechanism novelty, and expected stage movement>
 - pipeline coverage: <producer/legalizer; handoff/frontier; consumer/DPO; mark active links>
+- source-understanding gate: <branch/ref, entry point, call path, state/payload lifetime, acceptance path, proof counter/log>
 - first patch handles: <1-3 primary functions/state/files for the first patch>
 - support handles: <0-2 extra functions/state/files only if the first patch cannot stand alone>
 - mechanism plan: <dominant mechanism plus adjacent-stage compatibility proof; name legalizer recoverability, DPO consumption, or handoff only where it matters>

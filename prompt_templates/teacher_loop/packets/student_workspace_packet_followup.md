@@ -53,6 +53,12 @@ Primary flow:
    - `$prepare_source_script`
    - `$prepare_start_source_script --kind <framework|diamond|default_negotiation>`
 2. for each mechanism trial:
+   - after source preparation, branch switch, or `begin --from-ref`, run status
+     and inspect Teacher first-patch handles on the checked-out branch before
+     editing
+   - write a pre-edit source map in your notes/report: entry point, call path,
+     state/payload lifetime, candidate/scoring/acceptance path, and proof
+     counter/log
    - `$trial_source_script begin --label <short-mechanism>`
    - repair a prior kept/rejected ref when assigned: `$trial_source_script begin --label <repair-name> --from-ref <ref>`
    - start the first real trial as soon as the current mechanism path is clear; do not spend long in pre-edit diagnosis
