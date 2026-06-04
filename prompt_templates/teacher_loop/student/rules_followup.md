@@ -53,9 +53,11 @@ needs it.
    choose the simplest coherent implementation, record the assumption, and
    evaluate.
 4. Use knowledge only for the current mechanism gap. If Teacher assigns
-   Blueprint A/B/C/D or D+A, query that exact roadmap and write a compact
-   complete-chain audit: start basin, producer, handoff, exact consumer,
-   post-consumer closure, counters, live links, missing links, and this
+   Blueprint A/B/C/D or D+A, query the exact stack record with
+   `08_query_knowledge.sh --stage teacher_review --q "Blueprint <letter|D+A> stack"`,
+   then read only the selected roadmap section. Write a compact complete-chain
+   audit: start basin, producer, handoff, exact consumer, post-consumer closure,
+   compatible follow-up, counters, live links, missing links, and this
    iteration's repair link.
 5. Patch a real mechanism class unless explicitly doing implementation repair:
    candidate generation, scoring, acceptance, transaction/rollback, handoff,
@@ -98,7 +100,9 @@ needs it.
 - Mirror-internal edits are support only: change them when they protect or
   attribute a concrete accepted DPO/reorder/handoff mechanism.
 - Same-case stacking must be a coherent producer/handoff/consumer source flow,
-  not a selector among complete algorithms.
+  not a selector among complete algorithms. If a stack record exists, use its
+  `compatible_with` and `failure_buckets` fields to justify the added link or
+  the repair target.
 - New algorithms or handoff paths need compact counters: producer count,
   consumer attempts, accepts/rejects, HPWL gain/loss, and pass/runtime cost.
 - If final HPWL is flat or worse, classify the bucket before finalizing:
@@ -120,6 +124,7 @@ needs it.
 Fill the generated `knowledge_card` as a source-to-evidence map:
 
 - route action, changed files/functions, mechanism class, source reasoning
+- stack/card query used, implemented roles, and compatible follow-up left open
 - expected HPWL source, measured attribution, and failure bucket if weak
 - final HPWL/runtime/legality/displacement and stage-wise HPWL deltas
 - active counters/logs, metrics path, diff path, rejected refs if any

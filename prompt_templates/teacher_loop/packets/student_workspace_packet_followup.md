@@ -81,9 +81,13 @@ Optional helpers:
 - knowledge query, only when Teacher names a card/skill, the mechanism role is
   unclear, or metrics/logs suggest a pivot:
   `$query_knowledge_script --stage <stage> --q <text>`
-- for an assigned case-type Blueprint A/B/C/D or D+A, query that exact roadmap section
-  before editing:
+- for an assigned case-type Blueprint A/B/C/D or D+A, query that exact stack
+  record before editing:
   `$query_knowledge_script --stage teacher_review --q "Blueprint <letter|D+A> stack"`
+- if the first result exposes a named failure bucket, query that bucket with the
+  relevant stage, for example
+  `$query_knowledge_script --stage handoff --q "handoff lifetime producer consumer"`
+  or `$query_knowledge_script --stage improve_placement --q "accepted-delta washout exact consumer"`
 - metrics summary on demand: `$report_candidate_metrics_script`
 - trial state/status: `$trial_source_script status`
 - fresh build only if normal build fails: `$fresh_build_script`
@@ -139,7 +143,9 @@ to change the dev starting point.
   or retuning the donor.
 - Compatible mechanism stacking is allowed: keep a live donor mechanism in the
   same flow, add one new producer/handoff/consumer link aimed at a different
-  HPWL bottleneck, and log counters for both links.
+  HPWL bottleneck, and log counters for both links. Use the selected stack
+  record's `compatible_with` field when available; otherwise write a short local
+  compatibility proof before editing.
 - When a trial is low-ROI after one meaningful repair, close it with
   `keep`/`reject`, then explicitly reset from a clean kept/candidate/start ref
   before trying a different HPWL source. Do not silently overwrite a failed

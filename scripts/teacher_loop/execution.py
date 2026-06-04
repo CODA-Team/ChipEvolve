@@ -435,13 +435,17 @@ def teacher_insight_for_student(
         "Runtime/search stance:",
         "Mechanism knowledge used:",
         "Case-type prior:",
+        "Complete-chain audit:",
+        "Failure-mode target:",
         "HPWL source target:",
+        "Stacking decision:",
+        "Implementation anchors:",
     )
     global_kept: list[str] = []
     for line in global_lines:
         if any(line.startswith(prefix) for prefix in global_keep_prefixes):
             global_kept.append(line)
-    global_excerpt = "\n".join(global_kept[:6] or global_lines[:4]).strip()
+    global_excerpt = "\n".join(global_kept[:10] or global_lines[:4]).strip()
 
     def zero_based_alias(student: str) -> str | None:
         prefix = "student_"

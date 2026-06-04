@@ -108,7 +108,9 @@
   route follow-up toward compatible stacking or runtime repair of those
   mechanisms before assigning more same-basin threshold variants. Stacking must
   be a coherent producer/handoff/consumer source flow, not a selector among
-  complete algorithms.
+  complete algorithms. If a mechanism-stack record exists for the route, use its
+  `compatible_with`, `failure_buckets`, and handoff payload fields to name the
+  next link.
 - If a Student completed one self-diagnosis/strengthening loop and left a
   concrete `Next Teacher Handoff`, decide whether to continue that workbench,
   switch family, or redesign composition. Do not ask the same Student line to

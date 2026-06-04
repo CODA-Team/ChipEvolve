@@ -2,8 +2,8 @@
 """Query the repo-local LEGO-lite skill index.
 
 The helper is intentionally deterministic and dependency-free.  It gives
-Teacher/Student agents a fast first-stage lookup over concise skill records; the
-returned full-card paths can then be opened only when relevant.
+Teacher/Student agents a fast first-stage lookup over concise knowledge records;
+the returned full-card paths can then be opened only when relevant.
 """
 from __future__ import annotations
 
@@ -20,6 +20,49 @@ DEFAULT_INDEXES = (DEFAULT_SKILL_INDEX, DEFAULT_STACK_INDEX)
 
 TOKEN_RE = re.compile(r"[A-Za-z0-9_+%.-]+")
 BLUEPRINT_RE = re.compile(r"\bblueprint\s+([A-Za-z](?:\+[A-Za-z])?)\b", re.IGNORECASE)
+
+CANONICAL_STAGES = {
+    "case_diagnosis",
+    "start_selection",
+    "legalization",
+    "improve_placement",
+    "handoff",
+    "build_eval_log_diagnosis",
+    "teacher_review",
+}
+
+REQUIRED_FIELDS = (
+    "skill_id",
+    "stage",
+    "group",
+    "summary",
+    "use_when",
+    "avoid_when",
+    "source_handles",
+    "metrics_to_check",
+    "log_signals",
+    "done_criteria",
+    "full_card",
+    "keywords",
+)
+
+MECHANISM_STACK_FIELDS = (
+    "blueprints",
+    "mechanism_roles",
+    "compatible_with",
+    "failure_buckets",
+    "handoff_payloads",
+    "stacking_notes",
+    "first_patch_handles",
+)
+
+ROLE_PREFIXES = (
+    "start_basin:",
+    "producer:",
+    "handoff:",
+    "consumer:",
+    "post_consumer:",
+)
 
 STAGE_ALIASES = {
     "detailed_placement": {
@@ -53,7 +96,7 @@ def tokenize(text: str) -> list[str]:
 def load_cards(path: Path) -> list[dict[str, Any]]:
     cards: list[dict[str, Any]] = []
     if not path.exists():
-        raise SystemExit(f"[ERROR] missing skill index: {path}")
+        raise SystemExit(f"[ERROR] missing knowledge index: {path}")
     for lineno, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         raw = raw.strip()
         if not raw:
@@ -63,7 +106,7 @@ def load_cards(path: Path) -> list[dict[str, Any]]:
         except json.JSONDecodeError as exc:
             raise SystemExit(f"[ERROR] invalid JSON at {path}:{lineno}: {exc}") from exc
         if not isinstance(card, dict) or not card.get("skill_id"):
-            raise SystemExit(f"[ERROR] invalid skill card at {path}:{lineno}")
+            raise SystemExit(f"[ERROR] invalid knowledge card at {path}:{lineno}")
         cards.append(card)
     return cards
 
@@ -204,9 +247,9 @@ def optional_markdown_list(card: dict[str, Any], key: str, label: str | None = N
 
 
 def format_markdown(rows: list[tuple[float, dict[str, Any]]], *, show_full: bool) -> str:
-    lines = ["# Knowledge Skill Query", ""]
+    lines = ["# Knowledge Query", ""]
     if not rows:
-        lines.append("No matching skill records.")
+        lines.append("No matching knowledge records.")
         return "\n".join(lines) + "\n"
     for score, card in rows:
         full_card = AGENT_ROOT / str(card.get("full_card", ""))
@@ -256,9 +299,31 @@ def validate_cards(cards: list[dict[str, Any]]) -> int:
     seen: set[str] = set()
     for card in cards:
         skill_id = str(card.get("skill_id", ""))
+        for field in REQUIRED_FIELDS:
+            value = card.get(field)
+            if value in (None, "", []):
+                errors.append(f"{skill_id or '<missing skill_id>'}: missing required field {field}")
         if skill_id in seen:
             errors.append(f"duplicate skill_id: {skill_id}")
         seen.add(skill_id)
+        stage = str(card.get("stage", ""))
+        if stage and stage not in CANONICAL_STAGES:
+            errors.append(f"{skill_id}: non-canonical stage {stage}")
+        if str(card.get("group", "")) == "mechanism_stack":
+            for field in MECHANISM_STACK_FIELDS:
+                value = card.get(field)
+                if value in (None, "", []):
+                    errors.append(f"{skill_id}: missing mechanism-stack field {field}")
+            roles = as_list(card.get("mechanism_roles"))
+            if not any(role.startswith("producer:") for role in roles):
+                errors.append(f"{skill_id}: mechanism_roles missing producer role")
+            if not any(role.startswith("handoff:") for role in roles):
+                errors.append(f"{skill_id}: mechanism_roles missing handoff role")
+            if not any(role.startswith("consumer:") for role in roles):
+                errors.append(f"{skill_id}: mechanism_roles missing consumer role")
+            for role in roles:
+                if ":" in role and not role.startswith(ROLE_PREFIXES):
+                    errors.append(f"{skill_id}: unknown mechanism role prefix in {role!r}")
         full_card = AGENT_ROOT / str(card.get("full_card", ""))
         if not full_card.exists():
             errors.append(f"{skill_id}: missing skill note {full_card}")
@@ -276,12 +341,12 @@ def validate_cards(cards: list[dict[str, Any]]) -> int:
         for error in errors:
             print(f"[ERROR] {error}")
         return 1
-    print(f"[OK] validated {len(cards)} skill records")
+    print(f"[OK] validated {len(cards)} knowledge records")
     return 0
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Query DPL-Evolve LEGO-lite skill records.")
+    parser = argparse.ArgumentParser(description="Query DPL-Evolve LEGO-lite knowledge records.")
     parser.add_argument(
         "--index",
         type=Path,

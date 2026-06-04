@@ -56,3 +56,20 @@ Every promoted knowledge record should identify one of:
 
 Mechanism knowledge should record scope, source reference, controls/liveness,
 full-flow metrics, compatibility observations, and review outcome.
+
+## Mechanism-Stack Discipline
+
+Mechanism-stack records are query-facing composition checklists.  They should
+record:
+
+- blueprint or route family;
+- producer, handoff, consumer, and post-consumer roles;
+- compatible follow-up links;
+- failure buckets and liveness counters;
+- first source handles for inspection.
+
+Teacher may use stack records to assign a coherent route or compatible
+follow-up, but current case metrics, source behavior, logs, and clean final HPWL
+still decide whether the stack is useful. Student must translate a stack record
+into source changes and counters before coding; reading the record alone is not
+mechanism evidence.

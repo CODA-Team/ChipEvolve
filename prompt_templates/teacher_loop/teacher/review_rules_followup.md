@@ -83,6 +83,10 @@ route. Keep the review concise and action-bearing.
   and Student knowledge-card reasoning. Use a knowledge/algorithm handle only
   as inspiration or a risk check when it helps; when changing route family,
   name the evidence-backed mechanism insight being tested.
+- For blueprint or stack continuation routes, query or cite the exact stack
+  record and classify the current implementation against its producer, handoff,
+  consumer, and post-consumer roles. Route the next Student to the first missing
+  role or to a `compatible_with` follow-up justified by current evidence.
 - Next packets must be non-accumulative: one distinct HPWL-source hypothesis,
   concise dominant-mechanism plan, adjacent-stage compatibility proof, exact
   function/state handles, runtime tier, liveness counters, and the low-ROI stop

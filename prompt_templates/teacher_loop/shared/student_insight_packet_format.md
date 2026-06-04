@@ -4,19 +4,20 @@
 - route action: <elite-expand | continue | switch | hybridize | mechanism-redesign | repair>
 - start/parent: <prepared branch or donor/workbench>
 - donor scope: <general donor | feature-matched donor | new mechanism | fallback-preserved donor>
-- blueprint audit: <if assigning Blueprint A/B/C/D or D+A, name selected roadmap query, start basin, already-live links, missing links, and the link this Student implements; otherwise `none`>
+- knowledge/stack: <exact stack/card query, selected mechanism_stack id, and compatibility/failure-bucket basis; or `none`>
+- blueprint audit: <Blueprint stack/roadmap query, start basin, live/missing links, implemented link; otherwise `none`>
 - expected HPWL source: <producer, handoff, DPO consumer, post-consumer polish, or composition being attacked>
-- failure bucket to test: <non-executed/stale implementation | producer payload | handoff lifetime | DPO consumer zero/low accepts | acceptance/scoring too strict or local | accepted-delta washout | post-consumer preservation | runtime/cap bottleneck | wrong start/case-type route | none yet>
+- failure bucket to test: <one known bucket or `none yet`>
 - mechanism strength: <why this mechanism can materially move final HPWL, not only preserve or retune a donor>
 - stage-wise proof target: <expected HPWLlg/HPWLimprove/HPWLfinal movement and liveness counters>
 - why this can beat a small donor: <larger HPWL source, mechanism novelty, and expected stage movement>
-- pipeline coverage: <producer/legalizer action; handoff/frontier action; consumer/DPO action. At least two should be active source mechanisms or liveness hooks; co-optimization should normally make all three active>
+- pipeline coverage: <producer/legalizer; handoff/frontier; consumer/DPO; mark active links>
 - first patch handles: <1-3 primary functions/state/files for the first patch>
 - support handles: <0-2 extra functions/state/files only if the first patch cannot stand alone>
 - mechanism plan: <dominant mechanism plus adjacent-stage compatibility proof; name legalizer recoverability, DPO consumption, or handoff only where it matters>
-- skills/cards: <only selected ids or none>
+- skills/cards: <only selected stack/skill/support/algorithm ids or none>
 - expected proof: <stage metrics, counters/logs, legality/runtime evidence>
 - self-diagnosis trigger: <which metric/log/source signal forces repair, pivot, or stronger chain reconstruction after first evaluation>
 - runtime/complexity: <fast|explore|aggressive plus caps/cache/parallelism>
 - stop/pivot: <low-ROI, failure, or repair condition>
-- record: <diff/metrics/knowledge evidence plus Student mechanism reasoning to preserve; if one self-repair was insufficient, require `## Next Teacher Handoff` in the knowledge_card>
+- record: <diff/metrics/knowledge evidence; require `## Next Teacher Handoff` if self-repair is insufficient>

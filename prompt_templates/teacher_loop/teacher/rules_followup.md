@@ -88,6 +88,10 @@ decision.
   complete-chain audit: selected blueprint/start basin, producer payload,
   handoff state, exact consumer, post-consumer closure, required counters,
   already-live links, missing links, and this Student's repair target.
+- Name the exact stack query for blueprint or stacking routes, normally
+  `08_query_knowledge.sh --stage teacher_review --q "Blueprint <letter|D+A> stack"`.
+  Use the returned `compatible_with` and `failure_buckets` fields to justify
+  whether the next packet continues, stacks, repairs, or switches.
 - For Differential/LEGALM-style guidance, the target objective is searchable.
   If logs show zero useful moves, missing frontier consumption, or final-HPWL
   damage after DPO, route a target/weight/stop/handoff/consumer change rather
@@ -101,6 +105,8 @@ decision.
 - Prefer same-case mechanism stacking when evidence shows real final-HPWL
   movement: combine a live producer with a consumer, add compact handoff to a
   proven exact move family, or rewrite a strong heavy donor for bounded runtime.
+  If a stack card exists, route only compatible links from that record unless
+  current source evidence gives a stronger local compatibility proof.
 - Each non-repair route must explain why it can beat a small donor by attacking
   a larger HPWL source.
 - Each route needs an expected stage-wise proof target: `HPWLlg`,

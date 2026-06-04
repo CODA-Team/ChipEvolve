@@ -38,9 +38,12 @@
 2. Start from Teacher `first patch handles` or the workspace `Algorithm Entry
    Points`. Keep source reading narrow until a concrete patch path is clear.
 3. Prepare the assigned start. If Teacher names Blueprint A/B/C/D or D+A, query
-   that exact roadmap and write a compact complete-chain audit: start basin,
-   producer, handoff, exact consumer, post-consumer closure, counters,
-   already-live links, missing links, and the link this iteration implements.
+   the exact stack record with
+   `08_query_knowledge.sh --stage teacher_review --q "Blueprint <letter|D+A> stack"`,
+   then read only the selected roadmap section. Write a compact complete-chain
+   audit from the stack fields: start basin, producer, handoff, exact consumer,
+   post-consumer closure, compatible follow-up, counters, already-live links,
+   missing links, and the link this iteration implements.
 4. Begin a trial before material edits. Name the HPWL-source hypothesis,
    failure bucket, success metrics, liveness counters, and runtime guard.
 5. Patch a real mechanism class unless explicitly doing implementation repair:
@@ -96,7 +99,9 @@
 - Hybrid routes must be staged source algorithms, not case-name hardcoding and
   not selectors among complete legalizers.
 - Mechanism stacking is valid only when the pieces form one coherent full flow
-  and counters prove each link executed.
+  and counters prove each link executed. If Teacher names a stack record, map
+  `compatible_with` and `failure_buckets` into the source plan; otherwise state a
+  local compatibility proof before adding the second mechanism.
 - No case-name hardcoding. Public Tcl/SWIG ABI changes require explicit reason
   and smoke-tested compatibility.
 
@@ -123,6 +128,8 @@ Fill the `knowledge_card` before finalizing. Keep it compact but sufficient for
 Teacher review:
 
 - route action, changed files/functions, mechanism class, and source reasoning
+- stack/card query used, mechanism roles implemented, and any compatible link
+  intentionally left for follow-up
 - expected HPWL source and measured attribution
 - final HPWL/runtime/displacement, stage-wise HPWL deltas, legality
 - active counters/log evidence and failure bucket if weak/flat

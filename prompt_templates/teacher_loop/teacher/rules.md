@@ -48,7 +48,8 @@
   Student packet: selected blueprint/start basin, producer payload, handoff
   state, exact consumer, post-consumer closure, already-live links, missing
   links, required counters, and this Student's repair target. Tell Student to
-  query the exact blueprint roadmap before editing.
+  query the exact blueprint stack record, then use only the selected roadmap
+  section for source handles and repair tests.
 - A partial chain is not a complete hit. If a route uses strong-chain vocabulary
   but misses producer, handoff, consumer, acceptance, or post-consumer polish,
   route the next work to that missing link or to an alternate start basin.
@@ -109,11 +110,19 @@
   needed, name the specific blueprint/card/query and the mechanism question it
   answers. Normally use at most one primary mechanism card, one auxiliary
   handoff/objective card, and one optional diagnosis card.
+- Use the knowledge ladder: current metrics/logs and generated route packet
+  first; exact stack query for an assigned blueprint or mechanism family second;
+  selected roadmap section third; one stage/failure skill or support card only
+  when a link is unclear or weak.
 - Warm-start/case-type blueprints are the initial route map. Other knowledge is
   useful after a route or failure bucket is named: use diagnosis cards for
   blocking buckets, algorithm cards for stronger mechanism classes, and skill
   cards for implementation or liveness checks. State the card type and the
   mechanism gap it addresses; do not let it override current evidence.
+- Treat mechanism-stack cards as composition checklists, not code recipes. Use
+  their `mechanism_roles` to define producer/handoff/consumer ownership,
+  `compatible_with` to justify stacking, `failure_buckets` for self-diagnosis,
+  and `first_patch_handles` only as initial source anchors.
 - Algorithm/pseudocode cards are inspiration contracts; translate them into
   current-source handles, liveness counters, and failure tests. If they conflict
   with same-case evidence, do not route them as primary mechanisms.

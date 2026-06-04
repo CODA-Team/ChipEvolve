@@ -104,6 +104,10 @@ Primary flow:
    - for an assigned case-type blueprint, use
      `$query_knowledge_script --stage teacher_review --q "Blueprint <letter|D+A> stack"`
      and keep the selected stack record plus roadmap checklist beside your source plan
+   - if the route is not a named blueprint but the first result exposes a concrete
+     failure bucket, query that bucket with the relevant stage, for example
+     `$query_knowledge_script --stage handoff --q "handoff lifetime producer consumer"`
+     or `$query_knowledge_script --stage improve_placement --q "accepted-delta washout exact consumer"`
 3. for each mechanism trial:
    - `$trial_source_script begin --label <short-mechanism>`
    - repair a prior kept/rejected ref when assigned: `$trial_source_script begin --label <repair-name> --from-ref <ref>`
@@ -148,7 +152,9 @@ a repairable rejected line by assigning that ref through `begin --from-ref
 
 Compatible mechanism stacking is allowed when it is one coherent full-flow
 algorithm: preserve the live donor link, add a new producer/handoff/consumer
-link for a different HPWL bottleneck, and log counters for both links. If a
+link for a different HPWL bottleneck, and log counters for both links. Use the
+selected stack record's `compatible_with` field when available; otherwise write a
+short local compatibility proof before editing. If a
 trial is low-ROI after one meaningful repair, close it with `keep`/`reject`,
 then explicitly reset from a clean kept/candidate/start ref before trying a
 different HPWL source; do not silently overwrite the failed mechanism.
