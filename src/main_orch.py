@@ -44,6 +44,10 @@ OpenROAD_bin = "/data/jethiraj/OpenROAD/build/bin/openroad"
 #OpenROAD_bin = _os.environ.get("OPENROAD_BIN", "openroad")
 OpenROAD_design_tcl = f"{workdir}/OpenROAD_utils/OpenROAD_load_design.tcl"
 OpenROAD_design_tcl_best = f"{workdir}/OpenROAD_utils/OpenROAD_load_design_best.tcl"
+# Snapshot load tcl for DRT_EVERY_ITER backtrace: read_db points at the best-DRT
+# odb AND read_spef points at that cycle's saved SPEF, so a stagnation restart
+# resumes from the best routed state with matching parasitics (no re-extraction).
+OpenROAD_design_tcl_drt_best = f"{workdir}/OpenROAD_utils/OpenROAD_load_design_drt_best.tcl"
 
 ECO_out = f"{workdir}/prompts/dynamic/llm_eco.tcl"
 ANALYSIS_out = f"{workdir}/prompts/dynamic/llm_analysis.md"
@@ -787,6 +791,62 @@ def generate_best_load_tcl():
     """Generate a load tcl whose read_db points at the global best (best-DRT)
     snapshot. Used by crash/backtrace recovery."""
     return generate_load_tcl_for(BEST_ODB, OpenROAD_design_tcl_best)
+
+
+def generate_drt_best_load_tcl(odb_path, spef_path, dst_path=None):
+    """Write a snapshot load tcl for DRT_EVERY_ITER backtrace recovery.
+
+    Unlike generate_load_tcl_for(), which DROPS read_spef because the periodic
+    DRT block re-routes and re-extracts parasitics after loading, this variant
+    KEEPS a read_spef line pointing at the best-DRT cycle's saved SPEF. In
+    every-iter mode each iteration already produced a fully routed odb + its
+    matching SPEF, so on stagnation we resume from that exact routed state
+    (best_drt.odb + its spef) with no re-extraction — both read_db and read_spef
+    are encoded to the last best cycle. Returns the dst Path.
+    """
+    dst_path = dst_path or OpenROAD_design_tcl_drt_best
+    src = Path(OpenROAD_design_tcl)
+    dst = Path(dst_path)
+    if not src.exists():
+        raise FileNotFoundError(f"design load tcl not found: {src}")
+    lines_ = src.read_text(encoding="utf-8").splitlines()
+    out_lines = []
+    db_inserted = False
+    spef_inserted = False
+    for ln in lines_:
+        stripped = ln.lstrip()
+        # Redirect read_db -> best-DRT snapshot.
+        if stripped.startswith("read_db ") and not stripped.startswith("#"):
+            out_lines.append("# [DRT-BEST-PATCH] commented by generate_drt_best_load_tcl(): " + ln)
+            if not db_inserted:
+                out_lines.append(f"read_db {odb_path}    ;# [DRT-BEST-PATCH] best-DRT snapshot")
+                db_inserted = True
+            continue
+        # Redirect read_spef -> best-DRT cycle SPEF (matches the routed snapshot).
+        if stripped.startswith("read_spef ") and not stripped.startswith("#"):
+            out_lines.append("# [DRT-BEST-PATCH] commented by generate_drt_best_load_tcl(): " + ln)
+            if not spef_inserted:
+                out_lines.append(f"read_spef {spef_path}    ;# [DRT-BEST-PATCH] best-DRT SPEF")
+                spef_inserted = True
+            continue
+        out_lines.append(ln)
+    # Fallbacks if the base tcl lacked an active read_db / read_spef line.
+    if not db_inserted:
+        out_lines.append(f"read_db {odb_path}    ;# [DRT-BEST-PATCH] best-DRT snapshot")
+    if not spef_inserted:
+        out_lines.append(f"read_spef {spef_path}    ;# [DRT-BEST-PATCH] best-DRT SPEF")
+    dst.write_text("\n".join(out_lines) + "\n", encoding="utf-8")
+    print(f"  [LOAD] generated {dst.name} with read_db -> {odb_path}, "
+          f"read_spef -> {spef_path}", flush=True)
+    return dst
+
+
+def restart_openroad_from_drt_best(odb_path):
+    """Spawn a fresh OpenROAD for DRT_EVERY_ITER backtrace. BACKTRACE_ODB is set
+    for parity with the other restart paths, but the caller sources the
+    generated OpenROAD_load_design_drt_best.tcl (which hard-codes read_db +
+    read_spef to the best-DRT snapshot) rather than the plain load tcl."""
+    return restart_openroad_from_odb(odb_path)
 
 
 def shutdown_openroad(proc):
@@ -1729,6 +1789,23 @@ def run_loop(loop_max=48):
     write_best_odb_snapshot(proc)
     print(f"  [INIT] Baseline best.odb saved to {BEST_ODB}", flush=True)
 
+    # DRT_EVERY_ITER: best_qor already starts crowned at the baseline (iter 0),
+    # and best.odb above is the baseline routed odb. Pair it with the baseline
+    # SPEF so the baseline is a FULLY consistent best-DRT restore point
+    # (best_qor iter 0 + best_drt.odb + best_drt_spef all agree) from iter 1
+    # onward. Without this seed, best_drt_spef stays None until the first iter
+    # that beats baseline, so a backtrace before any improvement could not
+    # restore the baseline's matching parasitics. The per-iter crowning below
+    # overwrites best_drt_spef as soon as a real best appears.
+    if DRT_EVERY_ITER:
+        _baseline_spef = DESIGN_DIR / f"{DESIGN_TOP}.spef"
+        if _baseline_spef.exists():
+            best_drt_spef = _baseline_spef
+            print(f"  [INIT] Baseline best_drt_spef seeded to {best_drt_spef}", flush=True)
+        else:
+            print(f"  [INIT][WARN] baseline SPEF not found at {_baseline_spef}; "
+                  f"best_drt_spef stays None until first improving iter", flush=True)
+
     # Seed best_grt.odb from the baseline too. The DRT reload guard keys off
     # BEST_GRT_ODB.exists(); without this seed an early-DRT that fires on the
     # very FIRST iteration (GRT WNS>=0 at iter 1) finds no snapshot yet, the
@@ -2232,13 +2309,17 @@ def run_loop(loop_max=48):
                     f"but no best.odb snapshot exists — aborting."
                 )
                 break
+            _bt_src = ("best_drt.odb + best-DRT SPEF"
+                       if DRT_EVERY_ITER and best_drt_spef is not None
+                       and Path(best_drt_spef).exists()
+                       else "best.odb")
             print(
                 f"  [BACKTRACE] {stagnation_count} iters since last new best. "
-                f"Restarting OpenROAD from best.odb "
+                f"Restarting OpenROAD from {_bt_src} "
                 f"(iter {best_qor.get('iteration')}, WNS={best_qor.get('wns')})."
             )
             log_event(
-                f"BACKTRACE — restarting from best.odb "
+                f"BACKTRACE — restarting from {_bt_src} "
                 f"iter={best_qor.get('iteration')} WNS={best_qor.get('wns')} "
                 f"stagnation_count={stagnation_count}"
             )
@@ -2251,10 +2332,25 @@ def run_loop(loop_max=48):
                                    best_qor.get("wns"), last10)
 
             shutdown_openroad(proc)
-            proc = restart_openroad_from_best()
 
-            # Re-load design (TCL reads BACKTRACE_ODB env var via $::env).
-            send(proc, f"source {OpenROAD_design_tcl}\nputs {PARA}\n")
+            # DRT_EVERY_ITER: every iter is a full DRT cycle, so best_drt.odb has
+            # a matching saved SPEF (best_drt_spef). Resume from that routed state
+            # directly — read_db + read_spef both point at the best-DRT snapshot
+            # via OpenROAD_load_design_drt_best.tcl — instead of reloading the
+            # baseline design. Falls back to the standard best-odb restart if the
+            # SPEF is somehow missing.
+            if DRT_EVERY_ITER and best_drt_spef is not None and Path(best_drt_spef).exists():
+                _drt_best_tcl = generate_drt_best_load_tcl(BEST_ODB, best_drt_spef)
+                proc = restart_openroad_from_drt_best(BEST_ODB)
+                log_event(
+                    f"BACKTRACE (DRT_EVERY_ITER) — read_db={BEST_ODB} "
+                    f"read_spef={best_drt_spef}"
+                )
+                send(proc, f"source {_drt_best_tcl}\nputs {PARA}\n")
+            else:
+                proc = restart_openroad_from_best()
+                # Re-load design (TCL reads BACKTRACE_ODB env var via $::env).
+                send(proc, f"source {OpenROAD_design_tcl}\nputs {PARA}\n")
             wait_for_sentinel(proc)
             send(proc, NODE_NET_TCL_BLOCK)
             send(proc, f'write_node_net_and_reports "{NODE_FILE}" "{NET_FILE}" "{NET_REPORTS_FILE}"')
