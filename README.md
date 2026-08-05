@@ -25,13 +25,13 @@ calibrated against real post-route RC.
 | `src/context_builder.py` | Emits the per-iteration design state context from timing/node/net files. |
 | `src/extract_liberty_tables.py` | Builds the Liberty cell-delay reference (see [Onboarding a new PDK](#onboarding-a-new-pdk)). |
 | `src/parsers/` | Timing-report and Liberty parsing helpers. |
-| `OpenROAD_utils/OpenROAD_load_design.tcl` | Loads the design checkpoint + PDK into OpenROAD (see [Onboarding a new EDA tool](#onboarding-a-new-eda-tool)). |
+| `OpenROAD_utils/OpenROAD_load_design.tcl` | Loads the design checkpoint(JPEG_RDF example) + PDK into OpenROAD (see [Onboarding a new EDA tool](#onboarding-a-new-eda-tool)). |
 | `OpenROAD_utils/eco_procs.tcl` | gate level ECO commands procs (`eco_resize_gate`, `eco_insert_buffer`, `eco_clone_gate`, …). |
 | `prompts/AGENTS.md` | Strategy guide (loaded into the system prompt). |
 | `prompts/static/cell_delay_reference.toon` | Liberty cell-delay reference for the active PDK. |
-| `prompts/static/few_shot/few_shot.toon` | Worked ECO example injected into the system prompt. |
+| `prompts/static/few_shot/few_shot.toon` | Worked ECO example (theoretical) injected into the system prompt. |
 | `asap7/` | Bundled ASAP7 PDK subset (LEF, NLDM Liberty, `setRC.tcl`, RCX rules). |
-| `benchmark/` | Detailed routed design checkpoints (`6_final.odb/.sdc/.spef`, …). |
+| `benchmark/` | Detailed routed design checkpoints for different designs (`6_final.odb/.sdc/.spef`, …). |
 
 ---
 
