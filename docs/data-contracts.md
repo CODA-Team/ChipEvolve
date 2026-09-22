@@ -20,6 +20,8 @@ application and adapters.
 | `DesignConnection` / `DesignLocation` / `DesignRegion` | Read-only relationships and physical scope |
 | `AnalysisScope` / `AnalysisProvenance` | Explicit scope and origin for analysis results |
 | `TimingMetricObservation` / `TimingPathObservation` | Bounded timing-analysis evidence |
+| `DiagnosisScope` / `DiagnosisProvenance` | Scope and origin of one finding |
+| `DiagnosisFinding` / `DiagnosisSupport` | Diagnostic claim and its citable support |
 
 `EvidenceProvenance` is intentionally small: provider, optional source SHA-256,
 optional source modification time, and retrieval time. `EvidenceLocator` points
@@ -73,6 +75,12 @@ Phase III-B adds a fixture-backed `AnalysisProvider` for
 paths. Incomplete results are retained as partial evidence and cannot satisfy
 the current-analysis requirement; no timing graph, parser, tool launch, or
 diagnosis is included.
+
+Phase IV adds a fixture-backed `DiagnosisProvider`. A `DiagnosisFinding` must
+contain at least one typed support item, explicit design/run/stage scope, and
+provenance. The application does not treat a claim as answerable when the
+finding is incomplete or absent; it also does not add a numeric confidence
+score or infer a cause from experience.
 
 ## Binary and large-file contract
 

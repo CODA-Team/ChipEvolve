@@ -1,6 +1,6 @@
 # Agentic EDA Query Agent
 
-This repository is the Phase III-B foundation for an evidence-first Query Agent
+This repository is the Phase IV foundation for an evidence-first Query Agent
 for ASIC physical design and OpenROAD. It intentionally does not parse DEF,
 SPEF, ODB or timing graphs, execute shell commands, or run an agent framework.
 

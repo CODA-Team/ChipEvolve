@@ -18,16 +18,16 @@ pipeline.
 | Phase II: experiment context reasoning | complete | typed run/stage/context provider, deterministic selection, freshness/conflict/comparison policies |
 | Phase III-A: design-object understanding | complete (fixture-backed contract) | typed instance/net/pin/location/connection/fanout/region port, application integration, 8-case benchmark |
 | Phase III-B: analysis understanding | complete (fixture-backed contract) | scoped WNS/TNS and timing-path port, application integration, 5-case benchmark |
-| Phase IV: evidence-grounded diagnosis | planned | requires cell/net/path/region evidence |
+| Phase IV: evidence-grounded diagnosis | complete (fixture-backed contract) | evidence-linked findings with typed support, scope, and refusal semantics |
 | Phase V: action / optimization | planned | explicit reversible execution contract |
 
 ## Near-term sequence
 
-1. Preserve all three completed context/design/analysis benchmarks.
-2. Add a production analysis adapter only when the data foundation can expose
-   scoped, provenance-bearing results through the timing contract.
-3. Define diagnosis as a separate evidence contract rather than widening
-   timing paths into causal or action semantics.
+1. Preserve all four completed context/design/analysis/diagnosis benchmarks.
+2. Add diagnosis comparison only when conflict and support semantics are
+   explicit.
+3. Define action as a separate reversible contract; do not widen findings into
+   autonomous execution.
 
 ## Explicit non-goals
 

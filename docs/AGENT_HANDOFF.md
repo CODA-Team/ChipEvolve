@@ -1,28 +1,31 @@
 # Agent Handoff
 
-Last verified state: Phase-III-B typed timing-analysis slice complete; gates green.
+Last verified state: Phase-IV evidence-linked diagnosis slice complete; gates green.
 
-Current phase/slice: Phase III-B / 3.2 complete.
+Current phase/slice: Phase IV / 4.1 complete.
 
 What was just completed: structured experiment context contracts, execution
 foundation adapter, deterministic selection/freshness/conflict/comparison
 policies, QueryTrace integration, typed design-data operations, bounded timing
-analysis evidence, and the Phase-III-A/III-B benchmarks.
+analysis evidence, evidence-linked diagnosis, and the Phase-III-A/III-B/IV
+benchmarks.
 
-Exact next action: preserve the analysis contract while preparing Phase IV's
-separate evidence-grounded diagnosis boundary; do not add timing graph
-traversal, tool execution, or action capabilities.
+Exact next action: preserve the diagnosis contract while preparing a separate
+Phase V action boundary; do not add autonomous repair, tool execution, or
+causal confidence heuristics.
 
 Files currently relevant:
 
 - `src/query_agent/domain/`
 - `src/query_agent/ports/run_evidence.py`
 - `src/query_agent/ports/analysis.py`
+- `src/query_agent/ports/diagnosis.py`
 - `src/query_agent/adapters/run_evidence/`
 - `src/query_agent/adapters/analysis/`
+- `src/query_agent/adapters/diagnosis/`
 - `src/query_agent/application/`
 - `tests/fixtures/fake_execution.py`
-- `tests/unit/`, `tests/integration/`, and `benchmarks/phase3b/`
+- `tests/unit/`, `tests/integration/`, and `benchmarks/phase4/`
 
 Commands to run first:
 

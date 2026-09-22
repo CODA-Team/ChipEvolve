@@ -9,7 +9,7 @@ analysis, and language-model implementations remain replaceable adapters.
 1. Phase I — bounded evidence and deterministic answerability (complete).
 2. Phase II — experiment context reasoning (complete).
 3. Phase III — design-object and analysis understanding (in progress).
-4. Phase IV — evidence-grounded diagnosis.
+4. Phase IV — evidence-grounded diagnosis (in progress).
 5. Phase V — explicit, reversible action and optimization loops.
 
 Phase II establishes run, stage, artifact, metric, provenance, freshness,
@@ -41,5 +41,9 @@ Phase III vertical slices:
 - 3.2: bounded timing-analysis evidence through `AnalysisProvider` (complete).
 - 3.3: additional analysis families only after an authoritative provider
   contract exists.
+
+- 4.1: evidence-linked diagnostic findings with explicit support and scope.
+- 4.2: diagnosis comparison and causal confidence semantics only after a
+  separate contract is approved.
 
 Each slice must retain the Phase-I tests and pass the complete quality gate.

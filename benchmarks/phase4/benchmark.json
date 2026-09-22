@@ -1,0 +1,34 @@
+{
+  "name": "Query Agent Phase IV evidence-grounded diagnosis benchmark",
+  "version": "1.0",
+  "cases": [
+    {
+      "id": "supported_finding",
+      "question": "Why did timing become worse?",
+      "expected_status": "ANSWERED",
+      "expected_text": "net n1"
+    },
+    {
+      "id": "missing_provider",
+      "question": "Why did timing become worse?",
+      "expected_status": "NEEDS_MORE_DATA",
+      "provider_available": false
+    },
+    {
+      "id": "wrong_design_scope",
+      "question": "Why did timing become worse?",
+      "expected_status": "NEEDS_MORE_DATA",
+      "design_id": "other"
+    },
+    {
+      "id": "unsupported_symptom",
+      "question": "Why did power become worse?",
+      "expected_status": "NEEDS_MORE_DATA"
+    },
+    {
+      "id": "different_routing_symptom",
+      "question": "Why did routing stop?",
+      "expected_status": "NEEDS_MORE_DATA"
+    }
+  ]
+}

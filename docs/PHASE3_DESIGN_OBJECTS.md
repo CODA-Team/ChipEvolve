@@ -23,6 +23,7 @@ locator and optional source hash, and is visible in `QueryTrace`.
 
 ## Deferred work
 
-Timing paths, cell delay, parasitics, congestion, DRC, power, diagnosis, and
-write/ECO actions belong to later analysis/action contracts. They must not be
-added as fields to these structural objects merely to make one query pass.
+Timing paths, cell delay, parasitics, congestion, DRC, power, and write/ECO
+actions belong to separate analysis/action contracts. Evidence-linked diagnosis
+is specified separately in `docs/PHASE4_DIAGNOSIS.md`; it must not be added as
+fields to these structural objects merely to make one query pass.

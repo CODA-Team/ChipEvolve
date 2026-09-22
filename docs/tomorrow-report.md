@@ -2,7 +2,7 @@
 
 ## Executive result
 
-Phase III-B is ready for review. The vertical slice can classify a natural
+Phase IV is ready for review. The vertical slice can classify a natural
 language question, create an explicit evidence plan, collect scoped evidence,
 reject stale/conflicting/wrong-scope facts, and return citations or
 `NEEDS_MORE_DATA`.
@@ -16,8 +16,8 @@ reject stale/conflicting/wrong-scope facts, and return citations or
        │                                        │
    已完成                                   等数据底座
        │                                        │
-   Knowledge                         Design-object + Analysis
-   Artifact                          typed structural + timing evidence
+   Knowledge                         Design-object + Analysis + Diagnosis
+   Artifact                          typed evidence and support links
    Experiment State                         │
    run/stage/metric                         ▼
    provenance                         Deep Diagnosis
@@ -33,7 +33,7 @@ flowchart LR
     C --> A[Artifact]:::done
     C --> E[Experiment State<br/>run / stage / metric]:::done
     C --> P[provenance]:::done
-    W --> O[Design-object + Analysis<br/>typed evidence]:::wait
+    W --> O[Design-object + Analysis + Diagnosis<br/>typed evidence]:::wait
     O --> D[Deep Diagnosis]:::future
     C --> N([future]):::future
     W --> N
@@ -53,13 +53,13 @@ flowchart LR
 | Provenance | supported | locator, hash, scope, provider, trace |
 | Design-object understanding | fixture-backed | typed design-data provider |
 | Timing analysis | fixture-backed | typed analysis provider |
-| Deep diagnosis | unavailable | requires design relations and paths |
+| Deep diagnosis | fixture-backed | typed diagnosis provider with support links |
 
 ## Benchmark summary
 
-- Tests: **65** collected and passing (deterministic, no network dependency).
+- Tests: **71** collected and passing (deterministic, no network dependency).
 - Benchmarks: Phase I **30/30**, Phase II **9/9**, Phase III-A **8/8**, and
-  Phase III-B **5/5** cases passed.
+  Phase III-B **5/5**, Phase IV **5/5** cases passed.
 - Benchmark categories cover knowledge, artifacts, metrics, status, logs,
   cross-run comparison, wrong run/stage, conflicts, stale evidence, missing
   sources, unsupported object queries, and root-cause insufficiency.
@@ -75,6 +75,8 @@ flowchart LR
   object boundary.
 - `FixtureAnalysisProvider` and `UnavailableAnalysisProvider`: bounded timing
   analysis boundary.
+- `FixtureDiagnosisProvider` and `UnavailableDiagnosisProvider`: evidence-linked
+  diagnosis boundary.
 - `FakeLanguageModel`: deterministic typed LLM edge for tests.
 
 ## Demo commands
@@ -118,14 +120,15 @@ attempt workspace is opened.
 
 ## Next three tasks
 
-1. Preserve the typed design and analysis contracts while providers evolve.
-2. Define evidence-grounded diagnosis as a separate read-only contract.
+1. Preserve the typed design, analysis, and diagnosis contracts while providers
+   evolve.
+2. Define Phase V action as a separate reversible contract.
 3. Expand knowledge-source indexing only after retrieval quality has a
    deterministic evaluation set.
 
 **P0 completed:** yes  
 **P1 completed:** yes  
-**P2 completed:** knowledge, context, design-object, and bounded analysis;
-deep diagnosis remains out of scope.
+**P2 completed:** knowledge, context, design-object, bounded analysis, and
+evidence-linked diagnosis; action remains out of scope.
 
 ## READY FOR MORNING REVIEW

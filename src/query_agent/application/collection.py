@@ -16,6 +16,7 @@ from query_agent.domain.design import (
     DesignObjectRef,
     DesignPin,
 )
+from query_agent.domain.diagnosis import DiagnosisFinding
 from query_agent.domain.evidence import (
     Evidence,
     EvidenceLocator,
@@ -40,6 +41,7 @@ from query_agent.domain.trace import ProviderCall
 from query_agent.ports.analysis import AnalysisProvider
 from query_agent.ports.artifacts import ArtifactProvider
 from query_agent.ports.design_data import DesignDataProvider
+from query_agent.ports.diagnosis import DiagnosisProvider
 from query_agent.ports.experiment_context import ExperimentContextProvider
 from query_agent.ports.knowledge import KnowledgeProvider
 from query_agent.ports.run_evidence import RunEvidenceProvider
@@ -60,6 +62,7 @@ class EvidenceCollector:
         knowledge_provider: KnowledgeProvider | None = None,
         design_data_provider: DesignDataProvider | None = None,
         analysis_provider: AnalysisProvider | None = None,
+        diagnosis_provider: DiagnosisProvider | None = None,
         experiment_context_provider: ExperimentContextProvider | None = None,
     ) -> None:
         self.artifact_provider = artifact_provider
@@ -67,6 +70,7 @@ class EvidenceCollector:
         self.knowledge_provider = knowledge_provider
         self.design_data_provider = design_data_provider
         self.analysis_provider = analysis_provider
+        self.diagnosis_provider = diagnosis_provider
         self.experiment_context_provider = experiment_context_provider
         self._last_provider_calls: tuple[ProviderCall, ...] = ()
 
@@ -87,6 +91,8 @@ class EvidenceCollector:
             capabilities.update(self.design_data_provider.capabilities)
         if self.analysis_provider is not None:
             capabilities.update(self.analysis_provider.capabilities)
+        if self.diagnosis_provider is not None:
+            capabilities.update(self.diagnosis_provider.capabilities)
         if self.experiment_context_provider is not None:
             capabilities.update(self.experiment_context_provider.capabilities)
         return frozenset(capabilities)
@@ -111,6 +117,8 @@ class EvidenceCollector:
             capabilities.update(self.design_data_provider.capabilities)
         if self.analysis_provider is not None:
             capabilities.update(self.analysis_provider.capabilities)
+        if self.diagnosis_provider is not None:
+            capabilities.update(self.diagnosis_provider.capabilities)
         if self.experiment_context_provider is not None:
             capabilities.update(self.experiment_context_provider.capabilities)
         return frozenset(capabilities)
@@ -185,12 +193,80 @@ class EvidenceCollector:
             and self.analysis_provider is not None
         ):
             collected.extend(self._collect_analysis_data(request, resolved_context))
+        if (
+            plan.intent is QueryIntent.ROOT_CAUSE
+            and self.diagnosis_provider is not None
+        ):
+            collected.extend(self._collect_diagnosis_data(request, resolved_context))
         providers = sorted({item.provenance.provider for item in collected})
         self._last_provider_calls = tuple(
             ProviderCall(provider=provider, operation="collect")
             for provider in providers
         )
         return tuple(collected)
+
+    def _collect_diagnosis_data(
+        self,
+        request: QueryRequest,
+        resolved_context: ResolvedExperimentContext | None,
+    ) -> tuple[Evidence, ...]:
+        provider = self.diagnosis_provider
+        if provider is None:
+            return ()
+        context = request.context
+        if resolved_context is not None:
+            selected_run = resolved_context.selection.selected_run_id
+            selected_stage = resolved_context.selection.selected_stage_key
+            if selected_run is not None:
+                context = context.model_copy(
+                    update={
+                        "run_id": selected_run,
+                        "run_ids": (selected_run,),
+                        "stage": selected_stage or context.stage,
+                    }
+                )
+        findings = provider.get_findings(context, symptom=request.query, limit=10)
+        return tuple(self._diagnosis_evidence(item) for item in findings)
+
+    @staticmethod
+    def _diagnosis_evidence(item: DiagnosisFinding) -> Evidence:
+        content: JsonValue = {
+            "answer": item.claim,
+            "finding_id": item.finding_id,
+            "affected_object": (
+                item.affected_object.model_dump(mode="json")
+                if item.affected_object is not None
+                else None
+            ),
+            "cause_object": (
+                item.cause_object.model_dump(mode="json")
+                if item.cause_object is not None
+                else None
+            ),
+            "support": [support.model_dump(mode="json") for support in item.support],
+            "scope": item.scope.model_dump(mode="json"),
+        }
+        return Evidence(
+            evidence_id=_analysis_evidence_id(item.provenance.locator, item.finding_id),
+            source_kind=EvidenceSourceKind.DIAGNOSIS,
+            content=content,
+            scope=EvidenceScope(
+                design_id=item.scope.design_id,
+                run_id=item.scope.run_id,
+                stage=item.scope.stage,
+            ),
+            locator=EvidenceLocator(uri=item.provenance.locator),
+            provenance=EvidenceProvenance(
+                provider=item.provenance.provider,
+                source_hash=item.provenance.source_hash,
+                retrieved_at=item.provenance.observed_at,
+            ),
+            status=(
+                EvidenceStatus.SUFFICIENT if item.complete else EvidenceStatus.PARTIAL
+            ),
+            fact_key=item.fact_key,
+            reason=None if item.complete else "diagnostic finding is incomplete",
+        )
 
     def _collect_analysis_data(
         self,

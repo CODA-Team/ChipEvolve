@@ -10,7 +10,7 @@
 | Cross-run comparison | supported | execution-foundation adapter | Compare WNS across runs | aligned run-scoped metrics | explicit comparison policies |
 | Design-object query | fixture-backed contract | `FixtureDesignDataProvider` / `UnavailableDesignDataProvider` | Where is instance u1? | typed design-object evidence | production data foundation |
 | Timing analysis | fixture-backed contract | `FixtureAnalysisProvider` / `UnavailableAnalysisProvider` | What is the critical path slack? | scoped timing metric/path evidence | authoritative analysis service |
-| Deep diagnosis | unavailable | no provider | Why did timing become worse? | insufficient without causal evidence | separate diagnosis contract |
+| Deep diagnosis | fixture-backed contract | `FixtureDiagnosisProvider` / `UnavailableDiagnosisProvider` | Why did timing become worse? | evidence-linked finding with path and design support | authoritative diagnosis service |
 
 ## Provider boundaries
 

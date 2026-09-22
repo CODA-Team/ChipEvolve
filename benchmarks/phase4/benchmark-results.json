@@ -1,0 +1,59 @@
+{
+  "name": "Query Agent Phase IV evidence-grounded diagnosis benchmark",
+  "version": "1.0",
+  "total": 5,
+  "passed": 5,
+  "failed": 0,
+  "metrics": {
+    "diagnosis_intent_accuracy": 1.0,
+    "answerability_accuracy": 1.0,
+    "unsupported_hallucination_rate": 0.0
+  },
+  "cases": [
+    {
+      "case_id": "supported_finding",
+      "passed": true,
+      "expected_intent": "ROOT_CAUSE",
+      "actual_intent": "ROOT_CAUSE",
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "reasons": []
+    },
+    {
+      "case_id": "missing_provider",
+      "passed": true,
+      "expected_intent": "ROOT_CAUSE",
+      "actual_intent": "ROOT_CAUSE",
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "reasons": []
+    },
+    {
+      "case_id": "wrong_design_scope",
+      "passed": true,
+      "expected_intent": "ROOT_CAUSE",
+      "actual_intent": "ROOT_CAUSE",
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "reasons": []
+    },
+    {
+      "case_id": "unsupported_symptom",
+      "passed": true,
+      "expected_intent": "ROOT_CAUSE",
+      "actual_intent": "ROOT_CAUSE",
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "reasons": []
+    },
+    {
+      "case_id": "different_routing_symptom",
+      "passed": true,
+      "expected_intent": "ROOT_CAUSE",
+      "actual_intent": "ROOT_CAUSE",
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "reasons": []
+    }
+  ]
+}

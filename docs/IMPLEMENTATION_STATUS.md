@@ -1,8 +1,8 @@
 # Implementation Status
 
-Current phase: Phase III-B — Analysis Understanding
+Current phase: Phase IV — Evidence-Grounded Diagnosis
 
-Current slice: 3.2 — typed timing-analysis vertical slice complete
+Current slice: 4.1 — evidence-linked diagnostic findings complete
 
 Overall state: COMPLETE
 
@@ -31,29 +31,34 @@ Overall state: COMPLETE
 - [x] Query-service analysis intent, evidence conversion, citations, and
   partial-evidence refusal.
 - [x] Phase-III-B benchmark: 5/5 deterministic fixture cases.
+- [x] `DiagnosisProvider` port with typed, non-empty supporting evidence.
+- [x] Fixture and unavailable diagnosis adapters with strict scope handling.
+- [x] Root-cause QueryService integration that refuses unsupported or partial
+  findings.
+- [x] Phase-IV benchmark: 5/5 deterministic fixture cases.
 
 ## In progress
 
-- [ ] Phase IV evidence-grounded diagnosis (future milestone).
+- [ ] Phase V explicit reversible action and optimization (future milestone).
 
 ## Baseline quality gate (2026-09-22)
 
 - ruff check: PASS
-- ruff format --check: PASS (114 files)
+- ruff format --check: PASS (126 files)
 - pyright: PASS
-- lint-imports: PASS (59 files, 163 dependencies)
-- pytest: PASS (65 passed)
+- lint-imports: PASS (65 files, 184 dependencies)
+- pytest: PASS (71 passed)
 - Phase-II benchmark: PASS (9/9)
 - Phase-III-A benchmark: PASS (8/8)
 - Phase-III-B benchmark: PASS (5/5)
+- Phase-IV benchmark: PASS (5/5)
 
 ## Next
 
-1. Preserve the Phase-II, Phase-III-A, and Phase-III-B benchmarks.
-2. Add another analysis family only with a separate typed contract and an
-   authoritative provider.
-3. Keep diagnosis and action work behind new ports; do not widen context models
-   into design graphs or execution controls.
+1. Preserve the Phase-II, Phase-III-A, Phase-III-B, and Phase-IV benchmarks.
+2. Add diagnosis comparison only with explicit support and conflict semantics.
+3. Keep action work behind new ports; do not widen diagnosis into execution
+   controls or autonomous repair.
 
 ## Known issues
 
@@ -66,3 +71,4 @@ Overall state: COMPLETE
 - ADR-008 records the Phase-II context provider and selection-policy boundary.
 - ADR-009 records the typed read-only design-data boundary.
 - ADR-010 records the bounded timing-analysis provider boundary.
+- ADR-011 records the evidence-linked diagnosis provider boundary.

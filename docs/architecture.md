@@ -33,10 +33,12 @@ flowchart TD
     P --> E[Experiment Evidence]
     P --> D[Design State Evidence]
     P --> A[Specialized Analysis Evidence]
+    P --> G[Evidence-Linked Diagnosis]
     K --> C[EDA-Corpus / docs]
     E --> F[Execution Foundation public read API]
     D --> U[Typed DesignDataProvider\nfixture-backed Phase III-A]
     A --> T[Typed AnalysisProvider\nfixture-backed Phase III-B]
+    G --> Y[Typed DiagnosisProvider\nfixture-backed Phase IV]
     L[Local Artifact Evidence] --> W[Unmanaged workspace only]
 ```
 
@@ -116,6 +118,22 @@ them to cited evidence and refuses partial or unavailable results. The fixture
 adapter is deterministic; a production adapter must use an authoritative
 read-only service and must not add shell execution or timing-graph parsing.
 
+## Phase IV diagnosis boundary
+
+Root-cause questions use a separate finding port:
+
+```text
+QueryService -> DiagnosisProvider
+             -> get_findings(symptom)
+             -> claim + support[] + scope + provenance
+```
+
+`DiagnosisFinding` cannot be constructed without non-empty `DiagnosisSupport`.
+The collector exposes the claim only as cited diagnosis evidence, and current
+or incomplete findings remain `NEEDS_MORE_DATA`. The fixture demonstrates the
+contract with one timing path and one net relationship; it is not an inference
+engine and does not authorize repair actions.
+
 ## Phase I pipeline
 
 1. Validate `QueryRequest` and its small `QueryContext`.
@@ -145,6 +163,9 @@ plausible explanation generated from experience.
 - `AnalysisProvider` is a bounded Phase III-B port for registered read-only
   timing evidence. Its fixture adapter is deterministic; a production adapter
   still requires an authoritative analysis service.
+- `DiagnosisProvider` returns only findings with explicit supporting facts. Its
+  fixture adapter is deterministic; a production adapter must preserve source
+  evidence and must not hide unsupported causal claims.
 - `LanguageModel` accepts and returns Pydantic models. Any concrete SDK must be
   isolated under `adapters/llm/` and invalid structured output must raise
   `LLMContractError`.
@@ -156,5 +177,5 @@ workspace root and exposes metadata for binary files instead of their bytes.
 ## Deliberate non-goals
 
 There is no agent graph framework, arbitrary shell execution, autonomous
-execution, deep timing/congestion/DRC analysis, flow optimization, ECO, or
-cross-run causal inference in this phase.
+execution, deep timing/congestion/DRC analysis, flow optimization, ECO, numeric
+causal confidence, or cross-run causal inference in this phase.

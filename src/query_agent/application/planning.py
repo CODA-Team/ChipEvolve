@@ -151,9 +151,9 @@ class QueryPlanner:
             )
         elif intent is QueryIntent.ROOT_CAUSE:
             add(
-                "bounded evidence plus structured design relationships; "
+                "evidence-linked structured design relationships; "
                 "experience is not proof",
-                [Capability.TEXT_SEARCH, Capability.DESIGN_RELATION_QUERY],
+                [Capability.DESIGN_RELATION_QUERY],
                 requires_current=True,
             )
         elif intent is QueryIntent.RECOMMENDATION:
