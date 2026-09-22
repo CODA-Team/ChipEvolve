@@ -1,0 +1,69 @@
+{
+  "name": "Query Agent Phase III-A design-object benchmark",
+  "version": "1.0",
+  "total": 8,
+  "passed": 8,
+  "failed": 0,
+  "metrics": {
+    "object_retrieval_accuracy": 1.0,
+    "unsupported_hallucination_rate": 0.0
+  },
+  "cases": [
+    {
+      "case_id": "instance_lookup",
+      "passed": true,
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "reasons": []
+    },
+    {
+      "case_id": "net_lookup",
+      "passed": true,
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "reasons": []
+    },
+    {
+      "case_id": "pin_lookup",
+      "passed": true,
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "reasons": []
+    },
+    {
+      "case_id": "location_lookup",
+      "passed": true,
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "reasons": []
+    },
+    {
+      "case_id": "fanout_lookup",
+      "passed": true,
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "reasons": []
+    },
+    {
+      "case_id": "region_lookup",
+      "passed": true,
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "reasons": []
+    },
+    {
+      "case_id": "missing_instance",
+      "passed": true,
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "reasons": []
+    },
+    {
+      "case_id": "wrong_design_scope",
+      "passed": true,
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "reasons": []
+    }
+  ]
+}

@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from .phase2 import Phase2BenchmarkRunner
+from .phase3 import Phase3BenchmarkRunner
 from .runner import BenchmarkRunner
 
 
@@ -14,9 +15,10 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run a deterministic benchmark")
     parser.add_argument("benchmark_dir", type=Path)
     args = parser.parse_args(argv)
-    if (args.benchmark_dir / "benchmark.json").read_text(encoding="utf-8").find(
-        "Phase II"
-    ) >= 0:
+    benchmark_name = (args.benchmark_dir / "benchmark.json").read_text(encoding="utf-8")
+    if "Phase III-A" in benchmark_name:
+        report = Phase3BenchmarkRunner().run(args.benchmark_dir)
+    elif "Phase II" in benchmark_name:
         report = Phase2BenchmarkRunner().run(args.benchmark_dir)
     else:
         report = BenchmarkRunner().run(args.benchmark_dir)

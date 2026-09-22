@@ -1,7 +1,9 @@
 # Implementation Status
 
-Current phase: Phase II — EDA Experiment Context Reasoning  
-Current slice: 2.5 — Phase-II vertical slice complete  
+Current phase: Phase III-A — Design Object Understanding
+
+Current slice: 3.1 — typed design-data vertical slice complete
+
 Overall state: COMPLETE
 
 ## Completed
@@ -17,23 +19,29 @@ Overall state: COMPLETE
 - [x] QueryTrace/QueryResponse context selection and conflict integration.
 - [x] Phase-II benchmark: 9/9 deterministic fixture cases, including an
   aligned comparison that reports a deterministic difference.
+- [x] Typed design-object vocabulary and `DesignDataProvider` port.
+- [x] Fixture provider for instance/net/pin, location, connections, fanout,
+  and region queries.
+- [x] Query-service integration with cited design evidence and strict scope.
+- [x] Phase-III-A benchmark: 8/8 deterministic fixture cases.
 
 ## In progress
 
-- [ ] Phase III-A design-object understanding (future milestone).
+- [ ] Phase III-B analysis understanding (future milestone).
 
 ## Baseline quality gate (2026-09-22)
 
 - ruff check: PASS
-- ruff format --check: PASS (91 files)
+- ruff format --check: PASS (101 files)
 - pyright: PASS
-- lint-imports: PASS (48 files, 128 dependencies)
-- pytest: PASS (51 passed)
+- lint-imports: PASS (52 files, 142 dependencies)
+- pytest: PASS (59 passed)
 - Phase-II benchmark: PASS (9/9)
+- Phase-III-A benchmark: PASS (8/8)
 
 ## Next
 
-1. Preserve the Phase-II benchmark while adding a typed design-data provider.
+1. Preserve the Phase-II and Phase-III-A benchmarks while adding providers.
 2. Introduce analysis contracts only when an authoritative analysis service is
    available.
 3. Keep diagnosis and action work behind new ports; do not widen context models
@@ -48,3 +56,4 @@ Overall state: COMPLETE
 ## Architectural decisions
 
 - ADR-008 records the Phase-II context provider and selection-policy boundary.
+- ADR-009 records the typed read-only design-data boundary.

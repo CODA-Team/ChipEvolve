@@ -6,6 +6,12 @@ import hashlib
 from datetime import UTC, datetime
 
 from query_agent.domain.capability import Capability
+from query_agent.domain.design import (
+    DesignInstance,
+    DesignNet,
+    DesignObjectRef,
+    DesignPin,
+)
 from query_agent.domain.evidence import (
     Evidence,
     EvidenceLocator,
@@ -33,6 +39,7 @@ from query_agent.ports.experiment_context import ExperimentContextProvider
 from query_agent.ports.knowledge import KnowledgeProvider
 from query_agent.ports.run_evidence import RunEvidenceProvider
 
+from .design_queries import DesignOperation, DesignQuestionParser
 from .planning import context_scope, metric_name_from_query
 
 
@@ -160,13 +167,139 @@ class EvidenceCollector:
             Capability.DESIGN_OBJECT_QUERY in plan.required_capabilities
             or Capability.DESIGN_RELATION_QUERY in plan.required_capabilities
         ) and self.design_data_provider is not None:
-            collected.extend(self.design_data_provider.query(request.query, context))
+            collected.extend(self._collect_design_data(request))
         providers = sorted({item.provenance.provider for item in collected})
         self._last_provider_calls = tuple(
             ProviderCall(provider=provider, operation="collect")
             for provider in providers
         )
         return tuple(collected)
+
+    def _collect_design_data(self, request: QueryRequest) -> tuple[Evidence, ...]:
+        provider = self.design_data_provider
+        if provider is None:
+            return ()
+        question = DesignQuestionParser().parse(request.query)
+        if question is None:
+            return ()
+        context = request.context
+        evidence: list[Evidence] = []
+        if question.operation is DesignOperation.INSTANCE:
+            instance = provider.get_instance(context, question.name)
+            if instance is not None:
+                evidence.append(self._design_evidence(instance, context))
+        elif question.operation is DesignOperation.NET:
+            net = provider.get_net(context, question.name)
+            if net is not None:
+                evidence.append(self._design_evidence(net, context))
+        elif question.operation is DesignOperation.PIN:
+            pin = provider.get_pin(context, question.name)
+            if pin is not None:
+                evidence.append(self._design_evidence(pin, context))
+        elif question.operation is DesignOperation.LOCATION:
+            instance = provider.get_instance(context, question.name)
+            if instance is not None:
+                location = provider.get_location(context, instance.ref)
+                if location is not None:
+                    evidence.append(
+                        self._design_evidence(
+                            instance,
+                            context,
+                            content={
+                                "instance": instance.model_dump(mode="json"),
+                                "location": location.model_dump(mode="json"),
+                            },
+                            fact_key=f"design:location:{instance.ref.name}",
+                        )
+                    )
+        elif question.operation in {
+            DesignOperation.FANOUT,
+            DesignOperation.CONNECTIONS,
+        }:
+            net = provider.get_net(context, question.name)
+            if net is not None:
+                if question.operation is DesignOperation.FANOUT:
+                    pins = provider.get_fanout(context, net.ref)
+                    if pins:
+                        evidence.append(
+                            self._design_evidence(
+                                net,
+                                context,
+                                content={
+                                    "net": net.model_dump(mode="json"),
+                                    "fanout": [
+                                        pin.model_dump(mode="json") for pin in pins
+                                    ],
+                                },
+                                fact_key=f"design:fanout:{net.ref.name}",
+                            )
+                        )
+                else:
+                    connections = provider.get_connections(context, net.ref)
+                    if connections:
+                        evidence.append(
+                            self._design_evidence(
+                                net,
+                                context,
+                                content={
+                                    "net": net.model_dump(mode="json"),
+                                    "connections": [
+                                        connection.model_dump(mode="json")
+                                        for connection in connections
+                                    ],
+                                },
+                                fact_key=f"design:connections:{net.ref.name}",
+                            )
+                        )
+        elif (
+            question.operation is DesignOperation.REGION and question.region is not None
+        ):
+            instances = provider.get_instances_in_region(context, question.region)
+            if instances:
+                first = instances[0]
+                evidence.append(
+                    self._design_evidence(
+                        first,
+                        context,
+                        content={
+                            "region": question.region.model_dump(mode="json"),
+                            "instances": [
+                                item.model_dump(mode="json") for item in instances
+                            ],
+                        },
+                        fact_key="design:instances-in-region",
+                    )
+                )
+        self._last_provider_calls = (
+            ProviderCall(provider="design-data-provider", operation=question.operation),
+        )
+        return tuple(evidence)
+
+    @staticmethod
+    def _design_evidence(
+        item: DesignInstance | DesignNet | DesignPin,
+        context: QueryContext,
+        *,
+        content: JsonValue | None = None,
+        fact_key: str | None = None,
+    ) -> Evidence:
+        payload = content or item.model_dump(mode="json")
+        ref: DesignObjectRef = item.ref
+        now = datetime.now(UTC)
+        digest = hashlib.sha256(f"{ref.locator}:{payload}".encode()).hexdigest()
+        return Evidence(
+            evidence_id=f"ev-{digest[:24]}",
+            source_kind=EvidenceSourceKind.DESIGN_DATA,
+            content=payload,
+            scope=context_scope(context),
+            locator=EvidenceLocator(uri=ref.locator),
+            provenance=EvidenceProvenance(
+                provider="design-data-provider",
+                source_hash=ref.source_hash,
+                retrieved_at=now,
+            ),
+            fact_key=fact_key or f"design:{ref.kind.value}:{ref.name}",
+        )
 
     def _collect_experiment_context(
         self, plan: QueryPlan, resolved: ResolvedExperimentContext

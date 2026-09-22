@@ -1,16 +1,17 @@
 # Agent Handoff
 
-Last verified state: Phase-II complete and all gates green on 2026-09-22.
+Last verified state: Phase-III-A typed design-data slice complete; gates green.
 
-Current phase/slice: Phase II / 2.5 complete.
+Current phase/slice: Phase III-A / 3.1 complete.
 
 What was just completed: structured experiment context contracts, execution
 foundation adapter, deterministic selection/freshness/conflict/comparison
-policies, QueryTrace integration, and the 9-case Phase-II benchmark.
+policies, QueryTrace integration, typed design-data operations, and the 8-case
+Phase-III-A benchmark.
 
-Exact next action: start Phase III-A only after preserving the Phase-II gate;
-add a typed design-data provider behind a new port when an authoritative data
-foundation is available.
+Exact next action: begin Phase III-B with a narrow read-only analysis contract;
+do not add timing graph traversal or tool execution until an authoritative
+analysis provider boundary is specified.
 
 Files currently relevant:
 

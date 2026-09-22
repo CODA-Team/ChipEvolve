@@ -16,6 +16,8 @@ application and adapters.
 | `ArtifactRef` / `MetricObservation` | Run/stage ownership and metric lineage |
 | `ExperimentContext` / `ContextSelection` | Provider snapshot and deterministic selection |
 | `ComparisonSet` / `Conflict` | Aligned comparisons and unresolved disagreement |
+| `DesignObjectRef` / `DesignInstance` / `DesignNet` / `DesignPin` | Stable typed design identities |
+| `DesignConnection` / `DesignLocation` / `DesignRegion` | Read-only relationships and physical scope |
 
 `EvidenceProvenance` is intentionally small: provider, optional source SHA-256,
 optional source modification time, and retrieval time. `EvidenceLocator` points
@@ -41,6 +43,12 @@ registered source artifact is retained as a partial observation but cannot
 satisfy a strict current-state requirement. Only complete observations take
 part in authoritative conflict detection. Comparisons require aligned design,
 canonical stage, metric, unit, and corner semantics.
+
+Phase III-A design objects are intentionally narrower than a physical-design
+database. `DesignDataProvider` exposes typed lookup and relationship operations
+for instances, nets, pins, locations, fanout, connections, and regions. The
+provider owns translation from its external representation; application code
+never receives a mutable provider dictionary or executes a parser.
 
 ## Phase I capabilities
 

@@ -34,6 +34,26 @@ class KeywordIntentParser:
             return QueryIntent.ROOT_CAUSE
         if any(token in text for token in ("compare", "difference", "对比", "差多少")):
             return QueryIntent.CROSS_RUN_COMPARE
+        if any(
+            token in text
+            for token in (
+                "which instance",
+                "which instances",
+                "which net",
+                "which nets",
+                "which pin",
+                "which pins",
+                "where is instance",
+                "location of instance",
+                "fanout of net",
+                "connections of net",
+                "instances in region",
+                "instances inside region",
+                "哪些 instance",
+                "哪些实例",
+            )
+        ):
+            return QueryIntent.DESIGN_OBJECT_QUERY
         if any(token in text for token in ("recommend", "建议", "应该")):
             return QueryIntent.RECOMMENDATION
         if any(
@@ -137,10 +157,25 @@ class QueryPlanner:
                 "current evidence and domain knowledge",
                 [Capability.TEXT_SEARCH, Capability.DOMAIN_KNOWLEDGE],
             )
+        elif intent is QueryIntent.DESIGN_OBJECT_QUERY:
+            relation = any(
+                token in request.query.lower()
+                for token in ("fanout", "drive", "drives", "connection", "连接")
+            )
+            add(
+                "typed design-object evidence",
+                [
+                    Capability.DESIGN_RELATION_QUERY
+                    if relation
+                    else Capability.DESIGN_OBJECT_QUERY
+                ],
+                exact_scope=False,
+            )
         elif intent is QueryIntent.UNKNOWN and any(
             token in request.query.lower()
             for token in (
                 "which cell",
+                "which cells",
                 "which instance",
                 "which net",
                 "哪些 cell",

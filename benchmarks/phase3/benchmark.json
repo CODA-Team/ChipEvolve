@@ -1,0 +1,53 @@
+{
+  "name": "Query Agent Phase III-A design-object benchmark",
+  "version": "1.0",
+  "cases": [
+    {
+      "id": "instance_lookup",
+      "question": "Which instance u1 exists?",
+      "expected_status": "ANSWERED",
+      "expected_text": "NAND2_X1"
+    },
+    {
+      "id": "net_lookup",
+      "question": "Which net n1 exists?",
+      "expected_status": "ANSWERED",
+      "expected_text": "n1"
+    },
+    {
+      "id": "pin_lookup",
+      "question": "Which pin u1/Y exists?",
+      "expected_status": "ANSWERED",
+      "expected_text": "u1/Y"
+    },
+    {
+      "id": "location_lookup",
+      "question": "Where is instance u1?",
+      "expected_status": "ANSWERED",
+      "expected_text": "10.0"
+    },
+    {
+      "id": "fanout_lookup",
+      "question": "What is the fanout of net n1?",
+      "expected_status": "ANSWERED",
+      "expected_text": "u2/A"
+    },
+    {
+      "id": "region_lookup",
+      "question": "Which instances are in region 0,0,20,30?",
+      "expected_status": "ANSWERED",
+      "expected_text": "u1"
+    },
+    {
+      "id": "missing_instance",
+      "question": "Where is instance missing?",
+      "expected_status": "NEEDS_MORE_DATA"
+    },
+    {
+      "id": "wrong_design_scope",
+      "question": "Where is instance u1?",
+      "expected_status": "NEEDS_MORE_DATA",
+      "design_id": "other"
+    }
+  ]
+}

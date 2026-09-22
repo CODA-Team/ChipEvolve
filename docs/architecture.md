@@ -78,6 +78,26 @@ interfaces
 SDKs. `application` receives providers by dependency injection. Adapters are
 the only place that knows how a provider is reached.
 
+## Phase III-A design-object boundary
+
+Design understanding is a typed read-only port, not a parser hidden in the
+query service:
+
+```text
+QueryService -> DesignDataProvider
+             -> get_instance / get_net / get_pin
+             -> get_connections / get_fanout / get_location
+             -> get_instances_in_region
+```
+
+The domain vocabulary contains only stable identities, locations, regions,
+instances, nets, pins, and connections. It deliberately does not model an
+ODB/DEF object graph. `FixtureDesignDataProvider` is a deterministic contract
+implementation for tests and demos; a real data-foundation adapter can replace
+it without changing planning or answerability. Missing objects and unavailable
+capabilities remain `NEEDS_MORE_DATA`, while every returned object is cited by
+its typed locator and source hash when one is available.
+
 ## Phase I pipeline
 
 1. Validate `QueryRequest` and its small `QueryContext`.

@@ -13,3 +13,4 @@ def test_design_data_provider_is_explicitly_unavailable() -> None:
         )
         == ()
     )
+    assert provider.get_instance(QueryContext(workspace=Path("/w")), "u1") is None
