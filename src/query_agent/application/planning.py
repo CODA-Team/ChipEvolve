@@ -15,6 +15,8 @@ from query_agent.domain.query import (
     RunSelectionMode,
 )
 
+from .analysis_queries import AnalysisQuestionParser
+
 
 class IntentParser(Protocol):
     """Provider-neutral intent parser."""
@@ -54,6 +56,8 @@ class KeywordIntentParser:
             )
         ):
             return QueryIntent.DESIGN_OBJECT_QUERY
+        if AnalysisQuestionParser().parse(request.query) is not None:
+            return QueryIntent.ANALYSIS_QUERY
         if any(token in text for token in ("recommend", "建议", "应该")):
             return QueryIntent.RECOMMENDATION
         if any(
@@ -169,6 +173,15 @@ class QueryPlanner:
                     if relation
                     else Capability.DESIGN_OBJECT_QUERY
                 ],
+                exact_scope=False,
+            )
+        elif intent is QueryIntent.ANALYSIS_QUERY:
+            question = AnalysisQuestionParser().parse(request.query)
+            add(
+                "typed timing-analysis evidence",
+                [Capability.SPECIALIZED_ANALYSIS],
+                fact_key=question.fact_key if question is not None else None,
+                requires_current=True,
                 exact_scope=False,
             )
         elif intent is QueryIntent.UNKNOWN and any(

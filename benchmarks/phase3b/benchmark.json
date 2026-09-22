@@ -1,0 +1,36 @@
+{
+  "name": "Query Agent Phase III-B analysis-understanding benchmark",
+  "version": "1.0",
+  "cases": [
+    {
+      "id": "critical_path",
+      "question": "What is the critical path slack?",
+      "expected_status": "ANSWERED",
+      "expected_text": "u1/A -> u2/Y"
+    },
+    {
+      "id": "negative_path_filter",
+      "question": "Show timing paths with slack below 0.0",
+      "expected_status": "ANSWERED",
+      "expected_text": "slack=-0.2"
+    },
+    {
+      "id": "timing_summary",
+      "question": "What is timing WNS?",
+      "expected_status": "ANSWERED",
+      "expected_text": "WNS=-0.2"
+    },
+    {
+      "id": "analysis_provider_missing",
+      "question": "What is the critical path slack?",
+      "expected_status": "NEEDS_MORE_DATA",
+      "provider_available": false
+    },
+    {
+      "id": "wrong_design_scope",
+      "question": "What is the critical path slack?",
+      "expected_status": "NEEDS_MORE_DATA",
+      "design_id": "other"
+    }
+  ]
+}

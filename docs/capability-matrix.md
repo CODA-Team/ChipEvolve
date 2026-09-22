@@ -8,8 +8,9 @@
 | Explicit metric | supported | execution-foundation adapter or local text search | What is run_02 routing WNS? | scoped metric evidence | registered metric families |
 | Log/error evidence | supported | execution-foundation adapter or local text search | Show the routing error | bounded log excerpt | structured error taxonomy |
 | Cross-run comparison | supported | execution-foundation adapter | Compare WNS across runs | aligned run-scoped metrics | explicit comparison policies |
-| Design-object query | unavailable | `UnavailableDesignDataProvider` | Which cells are on this path? | none in Phase I | cell/net/path/region data foundation |
-| Deep diagnosis | unavailable | no provider | Why did timing become worse? | insufficient without relations | read-only analysis capability |
+| Design-object query | fixture-backed contract | `FixtureDesignDataProvider` / `UnavailableDesignDataProvider` | Where is instance u1? | typed design-object evidence | production data foundation |
+| Timing analysis | fixture-backed contract | `FixtureAnalysisProvider` / `UnavailableAnalysisProvider` | What is the critical path slack? | scoped timing metric/path evidence | authoritative analysis service |
+| Deep diagnosis | unavailable | no provider | Why did timing become worse? | insufficient without causal evidence | separate diagnosis contract |
 
 ## Provider boundaries
 

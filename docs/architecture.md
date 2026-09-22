@@ -32,9 +32,11 @@ flowchart TD
     P --> K[Knowledge Evidence]
     P --> E[Experiment Evidence]
     P --> D[Design State Evidence]
+    P --> A[Specialized Analysis Evidence]
     K --> C[EDA-Corpus / docs]
     E --> F[Execution Foundation public read API]
-    D --> U[Future data foundation\ncurrently unavailable]
+    D --> U[Typed DesignDataProvider\nfixture-backed Phase III-A]
+    A --> T[Typed AnalysisProvider\nfixture-backed Phase III-B]
     L[Local Artifact Evidence] --> W[Unmanaged workspace only]
 ```
 
@@ -98,6 +100,22 @@ it without changing planning or answerability. Missing objects and unavailable
 capabilities remain `NEEDS_MORE_DATA`, while every returned object is cited by
 its typed locator and source hash when one is available.
 
+## Phase III-B analysis boundary
+
+Timing understanding is a separate typed port:
+
+```text
+QueryService -> AnalysisProvider
+             -> get_timing_metrics (WNS / TNS)
+             -> get_timing_paths (bounded, optional slack threshold)
+```
+
+`TimingMetricObservation` and `TimingPathObservation` carry an explicit
+design/run/stage/corner scope and analysis provenance. The application converts
+them to cited evidence and refuses partial or unavailable results. The fixture
+adapter is deterministic; a production adapter must use an authoritative
+read-only service and must not add shell execution or timing-graph parsing.
+
 ## Phase I pipeline
 
 1. Validate `QueryRequest` and its small `QueryContext`.
@@ -118,14 +136,15 @@ plausible explanation generated from experience.
 - `KnowledgeProvider` returns cited domain/tool knowledge.
 - `ArtifactProvider` lists and searches a bounded workspace and has no write or
   shell API.
-- `DesignDataProvider` is currently represented by
-  `UnavailableDesignDataProvider`; no DEF/SPEF/ODB parser is hidden behind it.
+- `DesignDataProvider` has deterministic fixture and unavailable adapters; no
+  DEF/SPEF/ODB parser is hidden behind either boundary.
 - `RunEvidenceProvider` reads existing registered run/stage/metric/artifact/log
   and provenance evidence through a public service API. It never creates a
   task. Managed runs must use this provider and must not be scanned as local
   workspaces.
-- `AnalysisProvider` is a documented future port for requesting a new read-only
-  analysis through the execution foundation. It is not implemented in Phase I.
+- `AnalysisProvider` is a bounded Phase III-B port for registered read-only
+  timing evidence. Its fixture adapter is deterministic; a production adapter
+  still requires an authoritative analysis service.
 - `LanguageModel` accepts and returns Pydantic models. Any concrete SDK must be
   isolated under `adapters/llm/` and invalid structured output must raise
   `LLMContractError`.

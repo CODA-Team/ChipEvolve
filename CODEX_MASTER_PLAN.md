@@ -7,8 +7,8 @@ analysis, and language-model implementations remain replaceable adapters.
 ## Capability ladder
 
 1. Phase I — bounded evidence and deterministic answerability (complete).
-2. Phase II — experiment context reasoning (current construction target).
-3. Phase III — design-object and analysis understanding.
+2. Phase II — experiment context reasoning (complete).
+3. Phase III — design-object and analysis understanding (in progress).
 4. Phase IV — evidence-grounded diagnosis.
 5. Phase V — explicit, reversible action and optimization loops.
 
@@ -34,5 +34,12 @@ tools, mutate designs, or add an agent framework.
 - 2.3: provenance, metric ownership, freshness, and conflict policies.
 - 2.4: comparable-run selection and QueryService/trace integration.
 - 2.5: externally meaningful Phase-II benchmark and completion verification.
+
+Phase III vertical slices:
+
+- 3.1: typed design-object lookups and relationships (complete).
+- 3.2: bounded timing-analysis evidence through `AnalysisProvider` (complete).
+- 3.3: additional analysis families only after an authoritative provider
+  contract exists.
 
 Each slice must retain the Phase-I tests and pass the complete quality gate.

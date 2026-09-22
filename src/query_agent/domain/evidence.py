@@ -19,6 +19,7 @@ class EvidenceSourceKind(StrEnum):
     KNOWLEDGE = "knowledge"
     EXECUTION_RUN = "execution_run"
     DESIGN_DATA = "design_data"
+    SPECIALIZED_ANALYSIS = "specialized_analysis"
 
 
 class EvidenceStatus(StrEnum):

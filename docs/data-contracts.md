@@ -18,6 +18,8 @@ application and adapters.
 | `ComparisonSet` / `Conflict` | Aligned comparisons and unresolved disagreement |
 | `DesignObjectRef` / `DesignInstance` / `DesignNet` / `DesignPin` | Stable typed design identities |
 | `DesignConnection` / `DesignLocation` / `DesignRegion` | Read-only relationships and physical scope |
+| `AnalysisScope` / `AnalysisProvenance` | Explicit scope and origin for analysis results |
+| `TimingMetricObservation` / `TimingPathObservation` | Bounded timing-analysis evidence |
 
 `EvidenceProvenance` is intentionally small: provider, optional source SHA-256,
 optional source modification time, and retrieval time. `EvidenceLocator` points
@@ -59,12 +61,18 @@ Available when a provider advertises them:
 - `TEXT_SEARCH`
 - `EXPLICIT_METRIC`
 
-Defined for future integration but unavailable in the default design-data
-adapter:
+Defined as explicit capability boundaries (the default null adapters do not
+advertise them):
 
 - `DESIGN_OBJECT_QUERY`
 - `DESIGN_RELATION_QUERY`
 - `SPECIALIZED_ANALYSIS`
+
+Phase III-B adds a fixture-backed `AnalysisProvider` for
+`SPECIALIZED_ANALYSIS`. It exposes only scalar WNS/TNS and bounded timing
+paths. Incomplete results are retained as partial evidence and cannot satisfy
+the current-analysis requirement; no timing graph, parser, tool launch, or
+diagnosis is included.
 
 ## Binary and large-file contract
 

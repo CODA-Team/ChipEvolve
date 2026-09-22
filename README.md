@@ -1,6 +1,6 @@
 # Agentic EDA Query Agent
 
-This repository is the Phase I foundation for an evidence-first Query Agent
+This repository is the Phase III-B foundation for an evidence-first Query Agent
 for ASIC physical design and OpenROAD. It intentionally does not parse DEF,
 SPEF, ODB or timing graphs, execute shell commands, or run an agent framework.
 
@@ -12,7 +12,8 @@ QueryRequest -> intent -> QueryPlan -> providers -> Evidence
 ```
 
 The filesystem adapter is read-only and sandboxed to one workspace. Design-data
-and execution-backed analysis are ports with explicit unavailable boundaries.
+and execution-backed analysis are typed ports with explicit fixture and
+unavailable boundaries.
 See [`docs/execution-foundation-integration.md`](docs/execution-foundation-integration.md)
 for the recommended future integration.
 

@@ -1,8 +1,8 @@
 # Implementation Status
 
-Current phase: Phase III-A — Design Object Understanding
+Current phase: Phase III-B — Analysis Understanding
 
-Current slice: 3.1 — typed design-data vertical slice complete
+Current slice: 3.2 — typed timing-analysis vertical slice complete
 
 Overall state: COMPLETE
 
@@ -24,26 +24,34 @@ Overall state: COMPLETE
   and region queries.
 - [x] Query-service integration with cited design evidence and strict scope.
 - [x] Phase-III-A benchmark: 8/8 deterministic fixture cases.
+- [x] Typed timing-analysis vocabulary with explicit scope and provenance.
+- [x] `AnalysisProvider` port for bounded WNS/TNS and timing-path reads.
+- [x] Fixture and unavailable analysis adapters with strict missing-data
+  behavior.
+- [x] Query-service analysis intent, evidence conversion, citations, and
+  partial-evidence refusal.
+- [x] Phase-III-B benchmark: 5/5 deterministic fixture cases.
 
 ## In progress
 
-- [ ] Phase III-B analysis understanding (future milestone).
+- [ ] Phase IV evidence-grounded diagnosis (future milestone).
 
 ## Baseline quality gate (2026-09-22)
 
 - ruff check: PASS
-- ruff format --check: PASS (101 files)
+- ruff format --check: PASS (114 files)
 - pyright: PASS
-- lint-imports: PASS (52 files, 142 dependencies)
-- pytest: PASS (59 passed)
+- lint-imports: PASS (59 files, 163 dependencies)
+- pytest: PASS (65 passed)
 - Phase-II benchmark: PASS (9/9)
 - Phase-III-A benchmark: PASS (8/8)
+- Phase-III-B benchmark: PASS (5/5)
 
 ## Next
 
-1. Preserve the Phase-II and Phase-III-A benchmarks while adding providers.
-2. Introduce analysis contracts only when an authoritative analysis service is
-   available.
+1. Preserve the Phase-II, Phase-III-A, and Phase-III-B benchmarks.
+2. Add another analysis family only with a separate typed contract and an
+   authoritative provider.
 3. Keep diagnosis and action work behind new ports; do not widen context models
    into design graphs or execution controls.
 
@@ -57,3 +65,4 @@ Overall state: COMPLETE
 
 - ADR-008 records the Phase-II context provider and selection-policy boundary.
 - ADR-009 records the typed read-only design-data boundary.
+- ADR-010 records the bounded timing-analysis provider boundary.

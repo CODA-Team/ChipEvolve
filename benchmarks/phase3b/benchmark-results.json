@@ -1,0 +1,59 @@
+{
+  "name": "Query Agent Phase III-B analysis-understanding benchmark",
+  "version": "1.0",
+  "total": 5,
+  "passed": 5,
+  "failed": 0,
+  "metrics": {
+    "analysis_intent_accuracy": 1.0,
+    "answerability_accuracy": 1.0,
+    "unsupported_hallucination_rate": 0.0
+  },
+  "cases": [
+    {
+      "case_id": "critical_path",
+      "passed": true,
+      "expected_intent": "ANALYSIS_QUERY",
+      "actual_intent": "ANALYSIS_QUERY",
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "reasons": []
+    },
+    {
+      "case_id": "negative_path_filter",
+      "passed": true,
+      "expected_intent": "ANALYSIS_QUERY",
+      "actual_intent": "ANALYSIS_QUERY",
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "reasons": []
+    },
+    {
+      "case_id": "timing_summary",
+      "passed": true,
+      "expected_intent": "ANALYSIS_QUERY",
+      "actual_intent": "ANALYSIS_QUERY",
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "reasons": []
+    },
+    {
+      "case_id": "analysis_provider_missing",
+      "passed": true,
+      "expected_intent": "ANALYSIS_QUERY",
+      "actual_intent": "ANALYSIS_QUERY",
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "reasons": []
+    },
+    {
+      "case_id": "wrong_design_scope",
+      "passed": true,
+      "expected_intent": "ANALYSIS_QUERY",
+      "actual_intent": "ANALYSIS_QUERY",
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "reasons": []
+    }
+  ]
+}

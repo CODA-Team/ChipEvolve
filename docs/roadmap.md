@@ -15,19 +15,19 @@ pipeline.
 | P1: typed natural-language edge | complete | fake model, schema validation, versioned prompts |
 | P1: CLI and trace | complete | `query-agent ask`, benchmark command, `QueryTrace` |
 | P2: EDA-Corpus knowledge | complete when checkout is supplied | lexical QA and prompt-script CSV provider |
-| Phase II: experiment context reasoning | in progress | typed run/stage/context provider, deterministic selection, freshness/conflict/comparison policies |
+| Phase II: experiment context reasoning | complete | typed run/stage/context provider, deterministic selection, freshness/conflict/comparison policies |
 | Phase III-A: design-object understanding | complete (fixture-backed contract) | typed instance/net/pin/location/connection/fanout/region port, application integration, 8-case benchmark |
-| Phase III-B: analysis understanding | planned | requires typed analysis provider |
+| Phase III-B: analysis understanding | complete (fixture-backed contract) | scoped WNS/TNS and timing-path port, application integration, 5-case benchmark |
 | Phase IV: evidence-grounded diagnosis | planned | requires cell/net/path/region evidence |
 | Phase V: action / optimization | planned | explicit reversible execution contract |
 
 ## Near-term sequence
 
-1. Preserve the Phase-II and Phase-III-A benchmarks while providers evolve.
-2. Add a production design-data adapter only when the data foundation can expose
-   scoped, provenance-bearing objects through this contract.
-3. Add bounded analysis requests through the execution foundation rather than
-   introducing shell execution or a second orchestration framework.
+1. Preserve all three completed context/design/analysis benchmarks.
+2. Add a production analysis adapter only when the data foundation can expose
+   scoped, provenance-bearing results through the timing contract.
+3. Define diagnosis as a separate evidence contract rather than widening
+   timing paths into causal or action semantics.
 
 ## Explicit non-goals
 

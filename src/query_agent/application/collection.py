@@ -5,6 +5,10 @@ from __future__ import annotations
 import hashlib
 from datetime import UTC, datetime
 
+from query_agent.domain.analysis import (
+    TimingMetricObservation,
+    TimingPathObservation,
+)
 from query_agent.domain.capability import Capability
 from query_agent.domain.design import (
     DesignInstance,
@@ -33,12 +37,14 @@ from query_agent.domain.query import (
     QuerySource,
 )
 from query_agent.domain.trace import ProviderCall
+from query_agent.ports.analysis import AnalysisProvider
 from query_agent.ports.artifacts import ArtifactProvider
 from query_agent.ports.design_data import DesignDataProvider
 from query_agent.ports.experiment_context import ExperimentContextProvider
 from query_agent.ports.knowledge import KnowledgeProvider
 from query_agent.ports.run_evidence import RunEvidenceProvider
 
+from .analysis_queries import AnalysisOperation, AnalysisQuestionParser
 from .design_queries import DesignOperation, DesignQuestionParser
 from .planning import context_scope, metric_name_from_query
 
@@ -53,12 +59,14 @@ class EvidenceCollector:
         run_evidence_provider: RunEvidenceProvider | None = None,
         knowledge_provider: KnowledgeProvider | None = None,
         design_data_provider: DesignDataProvider | None = None,
+        analysis_provider: AnalysisProvider | None = None,
         experiment_context_provider: ExperimentContextProvider | None = None,
     ) -> None:
         self.artifact_provider = artifact_provider
         self.run_evidence_provider = run_evidence_provider
         self.knowledge_provider = knowledge_provider
         self.design_data_provider = design_data_provider
+        self.analysis_provider = analysis_provider
         self.experiment_context_provider = experiment_context_provider
         self._last_provider_calls: tuple[ProviderCall, ...] = ()
 
@@ -77,6 +85,8 @@ class EvidenceCollector:
             capabilities.update(self.knowledge_provider.capabilities)
         if self.design_data_provider is not None:
             capabilities.update(self.design_data_provider.capabilities)
+        if self.analysis_provider is not None:
+            capabilities.update(self.analysis_provider.capabilities)
         if self.experiment_context_provider is not None:
             capabilities.update(self.experiment_context_provider.capabilities)
         return frozenset(capabilities)
@@ -99,6 +109,8 @@ class EvidenceCollector:
             capabilities.update(self.knowledge_provider.capabilities)
         if self.design_data_provider is not None:
             capabilities.update(self.design_data_provider.capabilities)
+        if self.analysis_provider is not None:
+            capabilities.update(self.analysis_provider.capabilities)
         if self.experiment_context_provider is not None:
             capabilities.update(self.experiment_context_provider.capabilities)
         return frozenset(capabilities)
@@ -168,12 +180,114 @@ class EvidenceCollector:
             or Capability.DESIGN_RELATION_QUERY in plan.required_capabilities
         ) and self.design_data_provider is not None:
             collected.extend(self._collect_design_data(request))
+        if (
+            Capability.SPECIALIZED_ANALYSIS in plan.required_capabilities
+            and self.analysis_provider is not None
+        ):
+            collected.extend(self._collect_analysis_data(request, resolved_context))
         providers = sorted({item.provenance.provider for item in collected})
         self._last_provider_calls = tuple(
             ProviderCall(provider=provider, operation="collect")
             for provider in providers
         )
         return tuple(collected)
+
+    def _collect_analysis_data(
+        self,
+        request: QueryRequest,
+        resolved_context: ResolvedExperimentContext | None,
+    ) -> tuple[Evidence, ...]:
+        provider = self.analysis_provider
+        question = AnalysisQuestionParser().parse(request.query)
+        if provider is None or question is None:
+            return ()
+        context = request.context
+        if resolved_context is not None:
+            selected_run = resolved_context.selection.selected_run_id
+            selected_stage = resolved_context.selection.selected_stage_key
+            if selected_run is not None:
+                context = context.model_copy(
+                    update={
+                        "run_id": selected_run,
+                        "run_ids": (selected_run,),
+                        "stage": selected_stage or context.stage,
+                    }
+                )
+        if question.operation is AnalysisOperation.METRIC:
+            items = provider.get_timing_metrics(
+                context, metric_name=question.metric_name
+            )
+            return tuple(self._timing_metric_evidence(item) for item in items)
+        items = provider.get_timing_paths(
+            context, limit=question.limit, slack_below=question.slack_below
+        )
+        return tuple(self._timing_path_evidence(item) for item in items)
+
+    @staticmethod
+    def _timing_metric_evidence(item: TimingMetricObservation) -> Evidence:
+        unit = f" {item.unit}" if item.unit else ""
+        return Evidence(
+            evidence_id=_analysis_evidence_id(item.provenance.locator, item.fact_key),
+            source_kind=EvidenceSourceKind.SPECIALIZED_ANALYSIS,
+            content={
+                "answer": f"{item.metric_name}={item.value}{unit}",
+                "metric": item.metric_name,
+                "value": item.value,
+                "unit": item.unit,
+                "scope": item.scope.model_dump(mode="json"),
+            },
+            scope=EvidenceScope(
+                design_id=item.scope.design_id,
+                run_id=item.scope.run_id,
+                stage=item.scope.stage,
+            ),
+            locator=EvidenceLocator(uri=item.provenance.locator),
+            provenance=EvidenceProvenance(
+                provider=item.provenance.provider,
+                source_hash=item.provenance.source_hash,
+                retrieved_at=item.provenance.observed_at,
+            ),
+            status=(
+                EvidenceStatus.SUFFICIENT if item.complete else EvidenceStatus.PARTIAL
+            ),
+            fact_key=item.fact_key,
+            reason=None if item.complete else "analysis observation is incomplete",
+        )
+
+    @staticmethod
+    def _timing_path_evidence(item: TimingPathObservation) -> Evidence:
+        answer = f"{item.startpoint} -> {item.endpoint}; slack={item.slack} {item.unit}"
+        return Evidence(
+            evidence_id=_analysis_evidence_id(item.provenance.locator, item.path_id),
+            source_kind=EvidenceSourceKind.SPECIALIZED_ANALYSIS,
+            content={
+                "answer": answer,
+                "path_id": item.path_id,
+                "startpoint": item.startpoint,
+                "endpoint": item.endpoint,
+                "slack": item.slack,
+                "unit": item.unit,
+                "total_delay": item.total_delay,
+                "logic_depth": item.logic_depth,
+                "scope": item.scope.model_dump(mode="json"),
+            },
+            scope=EvidenceScope(
+                design_id=item.scope.design_id,
+                run_id=item.scope.run_id,
+                stage=item.scope.stage,
+            ),
+            locator=EvidenceLocator(uri=item.provenance.locator),
+            provenance=EvidenceProvenance(
+                provider=item.provenance.provider,
+                source_hash=item.provenance.source_hash,
+                retrieved_at=item.provenance.observed_at,
+            ),
+            status=(
+                EvidenceStatus.SUFFICIENT if item.complete else EvidenceStatus.PARTIAL
+            ),
+            fact_key=item.fact_key,
+            reason=None if item.complete else "analysis observation is incomplete",
+        )
 
     def _collect_design_data(self, request: QueryRequest) -> tuple[Evidence, ...]:
         provider = self.design_data_provider
@@ -499,3 +613,8 @@ class EvidenceCollector:
             ),
             fact_key=fact_key,
         )
+
+
+def _analysis_evidence_id(locator: str, fact_key: str) -> str:
+    digest = hashlib.sha256(f"{locator}:{fact_key}".encode()).hexdigest()
+    return f"ev-{digest[:24]}"

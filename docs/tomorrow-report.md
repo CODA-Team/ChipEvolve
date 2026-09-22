@@ -2,7 +2,7 @@
 
 ## Executive result
 
-Phase I is ready for morning review. The vertical slice can classify a natural
+Phase III-B is ready for review. The vertical slice can classify a natural
 language question, create an explicit evidence plan, collect scoped evidence,
 reject stale/conflicting/wrong-scope facts, and return citations or
 `NEEDS_MORE_DATA`.
@@ -16,8 +16,8 @@ reject stale/conflicting/wrong-scope facts, and return citations or
        │                                        │
    已完成                                   等数据底座
        │                                        │
-   Knowledge                         Design-object Understanding
-   Artifact                          cell / net / path / region
+   Knowledge                         Design-object + Analysis
+   Artifact                          typed structural + timing evidence
    Experiment State                         │
    run/stage/metric                         ▼
    provenance                         Deep Diagnosis
@@ -33,7 +33,7 @@ flowchart LR
     C --> A[Artifact]:::done
     C --> E[Experiment State<br/>run / stage / metric]:::done
     C --> P[provenance]:::done
-    W --> O[Design-object Understanding<br/>cell / net / path / region]:::wait
+    W --> O[Design-object + Analysis<br/>typed evidence]:::wait
     O --> D[Deep Diagnosis]:::future
     C --> N([future]):::future
     W --> N
@@ -43,7 +43,7 @@ flowchart LR
     classDef future fill:#e0e7ff,color:#312e81,stroke:#6366f1,stroke-width:2px
 ```
 
-## Phase I capability table
+## Capability table
 
 | Area | Status | Evidence source |
 | --- | --- | --- |
@@ -51,13 +51,15 @@ flowchart LR
 | Artifacts | supported | local unmanaged workspace or registered run artifacts |
 | Experiment state | supported | execution-foundation public read API |
 | Provenance | supported | locator, hash, scope, provider, trace |
-| Design-object understanding | unavailable | future data foundation |
+| Design-object understanding | fixture-backed | typed design-data provider |
+| Timing analysis | fixture-backed | typed analysis provider |
 | Deep diagnosis | unavailable | requires design relations and paths |
 
 ## Benchmark summary
 
-- Tests: **43** collected and passing (deterministic, no network dependency).
-- Benchmark: **30/30** cases passed (**100%**).
+- Tests: **65** collected and passing (deterministic, no network dependency).
+- Benchmarks: Phase I **30/30**, Phase II **9/9**, Phase III-A **8/8**, and
+  Phase III-B **5/5** cases passed.
 - Benchmark categories cover knowledge, artifacts, metrics, status, logs,
   cross-run comparison, wrong run/stage, conflicts, stale evidence, missing
   sources, unsupported object queries, and root-cause insufficiency.
@@ -69,7 +71,10 @@ flowchart LR
 - `EDACorpusKnowledgeProvider`: lexical, local, reproducible CSV retrieval.
 - `LocalArtifactProvider`: bounded read-only unmanaged workspace access.
 - `ExecutionFoundationRunEvidenceAdapter`: public GET-only managed-run evidence.
-- `UnavailableDesignDataProvider`: explicit unavailable boundary.
+- `FixtureDesignDataProvider` and `UnavailableDesignDataProvider`: typed design
+  object boundary.
+- `FixtureAnalysisProvider` and `UnavailableAnalysisProvider`: bounded timing
+  analysis boundary.
 - `FakeLanguageModel`: deterministic typed LLM edge for tests.
 
 ## Demo commands
@@ -113,13 +118,14 @@ attempt workspace is opened.
 
 ## Next three tasks
 
-1. Specify the design-data evidence contract with the future data foundation.
-2. Add a read-only analysis request path for bounded, registered diagnostics.
+1. Preserve the typed design and analysis contracts while providers evolve.
+2. Define evidence-grounded diagnosis as a separate read-only contract.
 3. Expand knowledge-source indexing only after retrieval quality has a
    deterministic evaluation set.
 
 **P0 completed:** yes  
 **P1 completed:** yes  
-**P2 completed:** knowledge provider yes; design-object/deep-diagnosis no
+**P2 completed:** knowledge, context, design-object, and bounded analysis;
+deep diagnosis remains out of scope.
 
 ## READY FOR MORNING REVIEW
