@@ -1,0 +1,564 @@
+{
+  "name": "Query Agent Phase I deterministic evidence benchmark",
+  "version": "1.0",
+  "total": 30,
+  "passed": 30,
+  "failed": 0,
+  "metrics": {
+    "intent_accuracy": 1.0,
+    "answerability_accuracy": 1.0,
+    "evidence_scope_accuracy": 1.0,
+    "provenance_coverage": 1.0,
+    "unsupported_query_accuracy": 1.0
+  },
+  "cases": [
+    {
+      "case_id": "knowledge_cts",
+      "passed": true,
+      "expected_intent": "DOMAIN_KNOWLEDGE",
+      "actual_intent": "DOMAIN_KNOWLEDGE",
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "kb-cts"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": null,
+          "run_id": null,
+          "stage": null
+        }
+      ]
+    },
+    {
+      "case_id": "knowledge_openroad",
+      "passed": true,
+      "expected_intent": "DOMAIN_KNOWLEDGE",
+      "actual_intent": "DOMAIN_KNOWLEDGE",
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "kb-openroad"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": null,
+          "run_id": null,
+          "stage": null
+        }
+      ]
+    },
+    {
+      "case_id": "how_to_report",
+      "passed": true,
+      "expected_intent": "HOW_TO",
+      "actual_intent": "HOW_TO",
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "kb-report"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": null,
+          "run_id": null,
+          "stage": null
+        }
+      ]
+    },
+    {
+      "case_id": "artifact_local_config",
+      "passed": true,
+      "expected_intent": "ARTIFACT_DISCOVERY",
+      "actual_intent": "ARTIFACT_DISCOVERY",
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "local-config"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": null,
+          "run_id": null,
+          "stage": null
+        }
+      ]
+    },
+    {
+      "case_id": "artifact_local_def",
+      "passed": true,
+      "expected_intent": "ARTIFACT_DISCOVERY",
+      "actual_intent": "ARTIFACT_DISCOVERY",
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "local-def"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": null,
+          "run_id": null,
+          "stage": null
+        }
+      ]
+    },
+    {
+      "case_id": "artifact_run02_routing",
+      "passed": true,
+      "expected_intent": "ARTIFACT_DISCOVERY",
+      "actual_intent": "ARTIFACT_DISCOVERY",
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "route-artifact"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": "gcd",
+          "run_id": "run_02",
+          "stage": "routing"
+        }
+      ]
+    },
+    {
+      "case_id": "metric_run02_route_wns",
+      "passed": true,
+      "expected_intent": "METRIC_QUERY",
+      "actual_intent": "METRIC_QUERY",
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "r2-route-wns"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": "gcd",
+          "run_id": "run_02",
+          "stage": "routing"
+        }
+      ]
+    },
+    {
+      "case_id": "metric_run02_route_tns",
+      "passed": true,
+      "expected_intent": "METRIC_QUERY",
+      "actual_intent": "METRIC_QUERY",
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "r2-route-tns"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": "gcd",
+          "run_id": "run_02",
+          "stage": "routing"
+        }
+      ]
+    },
+    {
+      "case_id": "metric_run02_route_density",
+      "passed": true,
+      "expected_intent": "METRIC_QUERY",
+      "actual_intent": "METRIC_QUERY",
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "r2-route-density"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": "gcd",
+          "run_id": "run_02",
+          "stage": "routing"
+        }
+      ]
+    },
+    {
+      "case_id": "flow_run02_routing",
+      "passed": true,
+      "expected_intent": "FLOW_STATUS",
+      "actual_intent": "FLOW_STATUS",
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "r2-routing-status"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": "gcd",
+          "run_id": "run_02",
+          "stage": "routing"
+        }
+      ]
+    },
+    {
+      "case_id": "flow_failed_latest",
+      "passed": true,
+      "expected_intent": "FLOW_STATUS",
+      "actual_intent": "FLOW_STATUS",
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "r3-status"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": "gcd",
+          "run_id": "run_03",
+          "stage": null
+        }
+      ]
+    },
+    {
+      "case_id": "log_routing_error",
+      "passed": true,
+      "expected_intent": "LOG_DIAGNOSIS",
+      "actual_intent": "LOG_DIAGNOSIS",
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "r2-log-error"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": "gcd",
+          "run_id": "run_02",
+          "stage": "routing"
+        }
+      ]
+    },
+    {
+      "case_id": "log_routing_warning",
+      "passed": true,
+      "expected_intent": "LOG_DIAGNOSIS",
+      "actual_intent": "LOG_DIAGNOSIS",
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "r2-log-warning"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": "gcd",
+          "run_id": "run_02",
+          "stage": "placement"
+        }
+      ]
+    },
+    {
+      "case_id": "log_missing",
+      "passed": true,
+      "expected_intent": "LOG_DIAGNOSIS",
+      "actual_intent": "LOG_DIAGNOSIS",
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "failure_reasons": [],
+      "evidence_ids": [],
+      "evidence_scopes": []
+    },
+    {
+      "case_id": "metric_wrong_run",
+      "passed": true,
+      "expected_intent": "METRIC_QUERY",
+      "actual_intent": "METRIC_QUERY",
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "wrong-run"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": "gcd",
+          "run_id": "run_01",
+          "stage": "routing"
+        }
+      ]
+    },
+    {
+      "case_id": "metric_wrong_stage",
+      "passed": true,
+      "expected_intent": "METRIC_QUERY",
+      "actual_intent": "METRIC_QUERY",
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "wrong-stage"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": "gcd",
+          "run_id": "run_02",
+          "stage": "placement"
+        }
+      ]
+    },
+    {
+      "case_id": "metric_placement_correct",
+      "passed": true,
+      "expected_intent": "METRIC_QUERY",
+      "actual_intent": "METRIC_QUERY",
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "r2-place-wns"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": "gcd",
+          "run_id": "run_02",
+          "stage": "placement"
+        }
+      ]
+    },
+    {
+      "case_id": "cross_run_wns",
+      "passed": true,
+      "expected_intent": "CROSS_RUN_COMPARE",
+      "actual_intent": "CROSS_RUN_COMPARE",
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "r1-wns",
+        "r2-wns"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": "gcd",
+          "run_id": "run_01",
+          "stage": "routing"
+        },
+        {
+          "design_id": "gcd",
+          "run_id": "run_02",
+          "stage": "routing"
+        }
+      ]
+    },
+    {
+      "case_id": "cross_run_tns",
+      "passed": true,
+      "expected_intent": "CROSS_RUN_COMPARE",
+      "actual_intent": "CROSS_RUN_COMPARE",
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "r1-tns",
+        "r2-tns"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": "gcd",
+          "run_id": "run_01",
+          "stage": "routing"
+        },
+        {
+          "design_id": "gcd",
+          "run_id": "run_02",
+          "stage": "routing"
+        }
+      ]
+    },
+    {
+      "case_id": "root_cause_missing_relation",
+      "passed": true,
+      "expected_intent": "ROOT_CAUSE",
+      "actual_intent": "ROOT_CAUSE",
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "root-log"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": "gcd",
+          "run_id": "run_02",
+          "stage": "routing"
+        }
+      ]
+    },
+    {
+      "case_id": "root_cause_no_evidence",
+      "passed": true,
+      "expected_intent": "ROOT_CAUSE",
+      "actual_intent": "ROOT_CAUSE",
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "failure_reasons": [],
+      "evidence_ids": [],
+      "evidence_scopes": []
+    },
+    {
+      "case_id": "conflicting_route_wns",
+      "passed": true,
+      "expected_intent": "METRIC_QUERY",
+      "actual_intent": "METRIC_QUERY",
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "conflict-a",
+        "conflict-b"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": "gcd",
+          "run_id": "run_02",
+          "stage": "routing"
+        },
+        {
+          "design_id": "gcd",
+          "run_id": "run_02",
+          "stage": "routing"
+        }
+      ]
+    },
+    {
+      "case_id": "stale_route_wns",
+      "passed": true,
+      "expected_intent": "METRIC_QUERY",
+      "actual_intent": "METRIC_QUERY",
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "stale-wns"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": "gcd",
+          "run_id": "run_02",
+          "stage": "routing"
+        }
+      ]
+    },
+    {
+      "case_id": "incomplete_metric_source",
+      "passed": true,
+      "expected_intent": "METRIC_QUERY",
+      "actual_intent": "METRIC_QUERY",
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "orphan-wns"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": "gcd",
+          "run_id": "run_02",
+          "stage": "routing"
+        }
+      ]
+    },
+    {
+      "case_id": "unsupported_cell_query",
+      "passed": true,
+      "expected_intent": "UNKNOWN",
+      "actual_intent": "UNKNOWN",
+      "expected_status": "UNSUPPORTED",
+      "actual_status": "UNSUPPORTED",
+      "failure_reasons": [],
+      "evidence_ids": [],
+      "evidence_scopes": []
+    },
+    {
+      "case_id": "mixed_design_scope",
+      "passed": true,
+      "expected_intent": "METRIC_QUERY",
+      "actual_intent": "METRIC_QUERY",
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "mixed-design"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": "other-design",
+          "run_id": "run_02",
+          "stage": "routing"
+        }
+      ]
+    },
+    {
+      "case_id": "same_metric_wrong_stage",
+      "passed": true,
+      "expected_intent": "METRIC_QUERY",
+      "actual_intent": "METRIC_QUERY",
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "place-wns"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": "gcd",
+          "run_id": "run_02",
+          "stage": "placement"
+        }
+      ]
+    },
+    {
+      "case_id": "managed_route_artifact_list",
+      "passed": true,
+      "expected_intent": "ARTIFACT_DISCOVERY",
+      "actual_intent": "ARTIFACT_DISCOVERY",
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "failure_reasons": [],
+      "evidence_ids": [
+        "route-def"
+      ],
+      "evidence_scopes": [
+        {
+          "design_id": "gcd",
+          "run_id": "run_02",
+          "stage": "routing"
+        }
+      ]
+    },
+    {
+      "case_id": "recommendation_insufficient",
+      "passed": true,
+      "expected_intent": "RECOMMENDATION",
+      "actual_intent": "RECOMMENDATION",
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "failure_reasons": [],
+      "evidence_ids": [],
+      "evidence_scopes": []
+    },
+    {
+      "case_id": "ambiguous_question",
+      "passed": true,
+      "expected_intent": "UNKNOWN",
+      "actual_intent": "UNKNOWN",
+      "expected_status": "UNSUPPORTED",
+      "actual_status": "UNSUPPORTED",
+      "failure_reasons": [],
+      "evidence_ids": [],
+      "evidence_scopes": []
+    }
+  ]
+}

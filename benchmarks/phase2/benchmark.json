@@ -1,0 +1,82 @@
+{
+  "name": "Query Agent Phase II experiment context benchmark",
+  "version": "1.0",
+  "cases": [
+    {
+      "id": "latest_valid_selection",
+      "scenario": "normal",
+      "question": "What is the latest completed routing WNS?",
+      "stage": "routing",
+      "expected_status": "ANSWERED",
+      "expected_selection": "run_001"
+    },
+    {
+      "id": "current_running_rejected",
+      "scenario": "normal",
+      "question": "What is the current routing WNS?",
+      "stage": "routing",
+      "expected_status": "NEEDS_MORE_DATA",
+      "expected_selection": null
+    },
+    {
+      "id": "wrong_stage_rejected",
+      "scenario": "wrong_stage",
+      "question": "What is the latest completed routing WNS?",
+      "stage": "routing",
+      "expected_status": "NEEDS_MORE_DATA",
+      "expected_selection": "run_001"
+    },
+    {
+      "id": "stale_metric_rejected",
+      "scenario": "stale",
+      "question": "What is the latest completed routing WNS?",
+      "stage": "routing",
+      "expected_status": "NEEDS_MORE_DATA",
+      "expected_selection": "run_001"
+    },
+    {
+      "id": "missing_artifact_rejected",
+      "scenario": "missing_artifact",
+      "question": "What is the latest completed routing WNS?",
+      "stage": "routing",
+      "expected_status": "NEEDS_MORE_DATA",
+      "expected_selection": "run_001"
+    },
+    {
+      "id": "conflicting_values",
+      "scenario": "conflict",
+      "question": "What is the latest completed routing WNS?",
+      "stage": "routing",
+      "expected_status": "NEEDS_MORE_DATA",
+      "expected_selection": "run_001",
+      "expects_conflict": true
+    },
+    {
+      "id": "comparable_runs",
+      "scenario": "normal",
+      "question": "Compare WNS across runs",
+      "run_ids": ["run_001"],
+      "stage": "routing",
+      "expected_status": "NEEDS_MORE_DATA",
+      "expected_selection": "run_001"
+    },
+    {
+      "id": "comparison_scope_mismatch",
+      "scenario": "comparison_mismatch",
+      "question": "Compare WNS across runs",
+      "run_ids": ["run_001", "run_004"],
+      "stage": "routing",
+      "expected_status": "NEEDS_MORE_DATA",
+      "expected_selection": "run_004"
+    },
+    {
+      "id": "comparison_aligned",
+      "scenario": "comparison_aligned",
+      "question": "Compare WNS across runs",
+      "run_ids": ["run_001", "run_004"],
+      "stage": "routing",
+      "expected_status": "ANSWERED",
+      "expected_selection": "run_004"
+    }
+  ]
+}

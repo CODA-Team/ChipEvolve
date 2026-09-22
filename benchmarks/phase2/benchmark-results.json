@@ -1,0 +1,98 @@
+{
+  "name": "Query Agent Phase II experiment context benchmark",
+  "version": "1.0",
+  "total": 9,
+  "passed": 9,
+  "failed": 0,
+  "metrics": {
+    "context_selection_accuracy": 1.0,
+    "wrong_stage_rejection_rate": 1.0,
+    "stale_evidence_rejection_rate": 1.0,
+    "conflict_detection_rate": 1.0,
+    "unsupported_hallucination_rate": 0.0,
+    "answerability_accuracy": 1.0
+  },
+  "cases": [
+    {
+      "case_id": "latest_valid_selection",
+      "passed": true,
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "selected_run_id": "run_001",
+      "conflict_count": 0,
+      "reasons": []
+    },
+    {
+      "case_id": "current_running_rejected",
+      "passed": true,
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "selected_run_id": null,
+      "conflict_count": 0,
+      "reasons": []
+    },
+    {
+      "case_id": "wrong_stage_rejected",
+      "passed": true,
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "selected_run_id": "run_001",
+      "conflict_count": 0,
+      "reasons": []
+    },
+    {
+      "case_id": "stale_metric_rejected",
+      "passed": true,
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "selected_run_id": "run_001",
+      "conflict_count": 0,
+      "reasons": []
+    },
+    {
+      "case_id": "missing_artifact_rejected",
+      "passed": true,
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "selected_run_id": "run_001",
+      "conflict_count": 0,
+      "reasons": []
+    },
+    {
+      "case_id": "conflicting_values",
+      "passed": true,
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "selected_run_id": "run_001",
+      "conflict_count": 1,
+      "reasons": []
+    },
+    {
+      "case_id": "comparable_runs",
+      "passed": true,
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "selected_run_id": "run_001",
+      "conflict_count": 0,
+      "reasons": []
+    },
+    {
+      "case_id": "comparison_scope_mismatch",
+      "passed": true,
+      "expected_status": "NEEDS_MORE_DATA",
+      "actual_status": "NEEDS_MORE_DATA",
+      "selected_run_id": "run_004",
+      "conflict_count": 0,
+      "reasons": []
+    },
+    {
+      "case_id": "comparison_aligned",
+      "passed": true,
+      "expected_status": "ANSWERED",
+      "actual_status": "ANSWERED",
+      "selected_run_id": "run_004",
+      "conflict_count": 0,
+      "reasons": []
+    }
+  ]
+}

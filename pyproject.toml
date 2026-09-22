@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentic-eda-query-agent"
+version = "0.1.0"
+description = "Phase I evidence-first Query Agent foundation for ASIC physical design"
+requires-python = ">=3.12"
+dependencies = ["pydantic>=2.7,<3"]
+
+[project.scripts]
+query-agent = "query_agent.interfaces.cli:main"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "ruff>=0.6",
+  "pyright>=1.1",
+  "import-linter>=2.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["query_agent*"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "RUF"]
+
+[tool.pyright]
+include = ["src", "tests"]
+pythonVersion = "3.12"
+typeCheckingMode = "strict"
+reportMissingTypeStubs = false

@@ -1,0 +1,20 @@
+[importlinter]
+root_package = query_agent
+
+[contract:domain-isolation]
+name = Domain does not import outer layers
+type = forbidden
+source_modules = query_agent.domain
+forbidden_modules = query_agent.application, query_agent.adapters, query_agent.interfaces
+
+[contract:application-boundary]
+name = Application does not import concrete adapters
+type = forbidden
+source_modules = query_agent.application
+forbidden_modules = query_agent.adapters, query_agent.interfaces
+
+[contract:ports-depend-inward]
+name = Ports depend only on domain
+type = forbidden
+source_modules = query_agent.ports
+forbidden_modules = query_agent.application, query_agent.adapters, query_agent.interfaces
