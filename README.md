@@ -43,7 +43,11 @@ Useful endpoints:
 - `GET /snapshots/{id}/timing-paths` lists path summaries.
 - `GET /snapshots/{id}/timing-paths/{path}/points` expands ordered points.
 - `GET /snapshots/{id}/objects/{object}` returns entity, observations, and relations.
+- `GET /snapshots/{id}/objects/{object}/context` returns one object's connected
+  entities, physical facts, and source references.
 - `GET /snapshots/{id}/physical/{object}` returns typed geometry/routing context.
+- `GET /snapshots/{id}/nets/{net}/context` returns connectivity, route facts,
+  and source references for one net.
 - `GET /snapshots/{id}/evidence?artifact_id=...` returns source locations.
 
 ## What it must not do

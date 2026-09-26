@@ -9,6 +9,7 @@ import pytest
 from openroad_platform_contracts import ContractError
 
 from openroad_app_data_foundation.bundle import import_ready_bundles, load_run_bundle
+from openroad_app_data_foundation.context import net_context, object_context
 from openroad_app_data_foundation.ingest import load_snapshot_directory
 from openroad_app_data_foundation.queries import compare_timing_path
 from openroad_app_data_foundation.repository import DataStore
@@ -63,6 +64,31 @@ def test_evidence_keeps_source_location(tmp_path: Path) -> None:
         assert evidence[0]["evidence"]["line_start"] == 12
         assert store.record_evidence("snap-1", "timing_paths", "path-1")[0][
             "evidence"]["line_end"] == 19
+    finally:
+        store.close()
+
+
+def test_object_and_net_contexts_keep_explicit_neighbors_and_sources(tmp_path: Path) -> None:
+    value = pack()
+    value["relations"] = [{
+        "relation_id": "u1-net", "snapshot_id": "snap-1",
+        "subject_id": "top/u1", "predicate": "connected_to",
+        "object_id": "net:n1",
+        "evidence": [{"artifact_id": "netlist-1", "source_type": "line",
+                       "line_start": 4, "line_end": 4}],
+    }]
+    store = DataStore(tmp_path / "data.db")
+    try:
+        store.register(value)
+        instance = object_context(store, "snap-1", "top/u1")
+        assert instance["target"] == {"type": "object", "id": "top/u1"}
+        assert {row["object_id"] for row in instance["entities"]} == {
+            "top/u1", "net:n1"}
+        assert instance["physical_context"][0]["object_id"] == "top/u1"
+        net = net_context(store, "snap-1", "net:n1")
+        assert net["target"] == {"type": "net", "id": "net:n1"}
+        assert net["physical_context"][0]["object_id"] == "net:n1"
+        assert any(item["artifact_id"] == "netlist-1" for item in net["evidence"])
     finally:
         store.close()
 

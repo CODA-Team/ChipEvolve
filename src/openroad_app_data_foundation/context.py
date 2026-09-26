@@ -94,6 +94,108 @@ def timing_path_context(store: DataStore, snapshot_id: str,
     }
 
 
+def object_context(store: DataStore, snapshot_id: str,
+                   object_id: str) -> dict[str, Any]:
+    """Compile one object and its explicit neighboring facts.
+
+    The object ID is supplied by the indexed snapshot.  This function does
+    not resolve a name, scan a host directory, or infer relationships.
+    """
+    snapshot = store.snapshot(snapshot_id)
+    view = store.object(snapshot_id, object_id, expansion="full")
+    entity = view["entity"]
+    related_ids = _related_object_ids(entity, view.get("relations", []))
+    entities = [entity, *(_entities(store, snapshot_id, related_ids))]
+    physical = _physical_rows(store, snapshot_id, [object_id, *related_ids])
+    evidence = _evidence_rows(view, "objects", object_id)
+    evidence.extend(_evidence_rows(view.get("observations", []), "observations", object_id))
+    evidence.extend(_evidence_rows(view.get("relations", []), "relations", object_id))
+    evidence.extend(_evidence_rows(physical, "physical_context", object_id))
+    evidence.extend(_snapshot_evidence(snapshot, snapshot_id))
+    return _object_pack(snapshot, entity, view.get("observations", []), entities,
+                        view.get("relations", []), physical, evidence)
+
+
+def net_context(store: DataStore, snapshot_id: str, net_id: str) -> dict[str, Any]:
+    """Compile a net, its connected entities, physical route, and evidence."""
+    snapshot = store.snapshot(snapshot_id)
+    view = store.expand_net(snapshot_id, net_id)
+    entity = view["entity"]
+    connected = view.get("connected_entities", [])
+    physical = view.get("physical_context", [])
+    evidence = _evidence_rows([entity, *connected], "objects", net_id)
+    evidence.extend(_evidence_rows(view.get("observations", []), "observations", net_id))
+    evidence.extend(_evidence_rows(view.get("relations", []), "relations", net_id))
+    evidence.extend(_evidence_rows(physical, "physical_context", net_id))
+    evidence.extend(_snapshot_evidence(snapshot, snapshot_id))
+    return _object_pack(snapshot, entity, view.get("observations", []),
+                        [entity, *connected], view.get("relations", []), physical,
+                        evidence, target_type="net")
+
+
+def _object_pack(snapshot: dict[str, Any], entity: dict[str, Any],
+                 observations: list[dict[str, Any]], entities: list[dict[str, Any]],
+                 relations: list[dict[str, Any]], physical: list[dict[str, Any]],
+                 evidence: list[dict[str, Any]], *, target_type: str = "object") -> dict[str, Any]:
+    return {
+        "task": {"type": f"{target_type}_context"},
+        "scope": {key: snapshot.get(key) for key in (
+            "design_id", "revision_id", "run_id", "stage", "snapshot_id")},
+        "target": {"type": target_type, "id": entity.get("object_id")},
+        "observations": observations,
+        "entities": entities,
+        "relations": relations,
+        "physical_context": physical,
+        "evidence": evidence,
+        "evidence_policy": {"relationship_source": "data_foundation",
+                             "inference_performed": False},
+    }
+
+
+def _related_object_ids(entity: dict[str, Any], relations: list[dict[str, Any]]) -> list[str]:
+    object_id = entity.get("object_id")
+    return list(dict.fromkeys(
+        str(relation[key]) for relation in relations
+        for key in ("subject_id", "object_id")
+        if relation.get(key) and relation.get(key) != object_id
+    ))
+
+
+def _entities(store: DataStore, snapshot_id: str,
+              object_ids: list[str]) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+    for object_id in object_ids:
+        rows = store.records(snapshot_id, "entities", record_id=object_id, limit=1)
+        result.extend(rows)
+    return result
+
+
+def _physical_rows(store: DataStore, snapshot_id: str,
+                   object_ids: list[str]) -> list[dict[str, Any]]:
+    return [row for object_id in object_ids
+            for row in store.records(snapshot_id, "physical_context",
+                                     record_id=object_id, limit=1)]
+
+
+def _evidence_rows(rows: list[dict[str, Any]] | dict[str, Any],
+                   record_type: str, default_id: str) -> list[dict[str, Any]]:
+    values = rows if isinstance(rows, list) else [rows]
+    result: list[dict[str, Any]] = []
+    for row in values:
+        record_id = row.get("object_id") or row.get("record_id") or default_id
+        for item in row.get("evidence", []):
+            if isinstance(item, dict):
+                result.append({"record_type": record_type, "record_id": record_id,
+                               **item})
+    return result
+
+
+def _snapshot_evidence(snapshot: dict[str, Any], snapshot_id: str) -> list[dict[str, Any]]:
+    return [{"record_type": "snapshot", "record_id": snapshot_id, "artifact": artifact}
+            for artifact in snapshot.get("source_artifacts", [])
+            if isinstance(artifact, dict)]
+
+
 def _point_objects(point: dict[str, Any]) -> list[str]:
     values = [point.get("pin_id"), point.get("instance_id"), point.get("net_id"),
               point.get("object_id")]

@@ -11,7 +11,7 @@ from openroad_platform_client import KernelClient, KernelError, KernelUnavailabl
 from openroad_platform_contracts import ContractError
 
 from .bundle import import_ready_bundles, load_run_bundle
-from .context import timing_path_context
+from .context import net_context, object_context, timing_path_context
 from .queries import compare_timing_path, list_timing_paths, path_points, timing_path
 from .repository import DataStore
 
@@ -100,8 +100,12 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) == 6 and parts[2] == "records" and parts[5] == "evidence":
                 return {"evidence": self.store.record_evidence(
                     parts[1], parts[3], parts[4])}
+            if len(parts) == 5 and parts[2] == "objects" and parts[4] == "context":
+                return object_context(self.store, parts[1], parts[3])
             if len(parts) == 4 and parts[2] == "objects":
                 return self.store.object(parts[1], parts[3], expansion=query.get("expansion", "summary"))
+            if len(parts) == 5 and parts[2] == "nets" and parts[4] == "context":
+                return net_context(self.store, parts[1], parts[3])
             if len(parts) == 4 and parts[2] == "nets":
                 return self.store.net(parts[1], parts[3])
             if len(parts) == 5 and parts[2] == "nets" and parts[4] == "expand":
