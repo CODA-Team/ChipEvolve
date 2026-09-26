@@ -247,7 +247,7 @@ class DataStore:
                  "evidence": item} for item in rows[0].get("evidence", [])]
 
     def _by_object(self, snapshot_id: str, record_type: str, object_id: str) -> list[dict[str, Any]]:
-        return [row for row in self.records(snapshot_id, record_type)
+        return [row for row in self.records(snapshot_id, record_type, limit=10000)
                 if row.get("object_id") == object_id]
 
     def _related(self, snapshot_id: str, object_id: str) -> list[dict[str, Any]]:
