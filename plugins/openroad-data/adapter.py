@@ -48,9 +48,11 @@ def main() -> int:
         inputs = task.get("inputs", {})
         mode = inputs.get("adapter", "command")
         if mode == "opendb":
-            plan = prepare_opendb(inputs, workspace)
+            plans = [prepare_opendb(inputs, workspace)]
         elif mode == "opensta":
-            plan = prepare_opensta(inputs, workspace)
+            plans = [prepare_opensta(inputs, workspace)]
+        elif mode == "openroad":
+            plans = [prepare_opendb(inputs, workspace), prepare_opensta(inputs, workspace)]
         elif mode == "orfs":
             output_name = convert_orfs(inputs, workspace)
             _attach_source_artifacts(workspace / output_name, inputs)
@@ -64,12 +66,11 @@ def main() -> int:
             if not isinstance(command, list) or not command or not all(
                     isinstance(item, str) and item for item in command):
                 raise ValueError("inputs.extractor_command must be a non-empty string list")
-            plan = {"command": command, "output_directory": inputs.get(
-                "output_directory", "query-data")}
+            plans = [{"command": command, "output_directory": inputs.get(
+                "output_directory", "query-data")}]
         else:
-            raise ValueError("inputs.adapter must be command, opendb, opensta, or orfs")
-        command = plan["command"]
-        output_name = plan["output_directory"]
+            raise ValueError("inputs.adapter must be command, opendb, openroad, opensta, or orfs")
+        output_name = plans[0]["output_directory"]
         output_dir = (workspace / output_name).resolve()
         output_dir.relative_to(workspace)
         environment = os.environ.copy()
@@ -80,13 +81,19 @@ def main() -> int:
             raise ValueError("inputs.environment must be a string mapping")
         environment.update(supplied)
         progress("extract", "started")
-        completed = subprocess.run(command, cwd=workspace, env=environment,
-                                   text=True, capture_output=True, check=False)
-        output = completed.stdout + completed.stderr
+        output = ""
+        completed = None
+        for plan in plans:
+            completed = subprocess.run(plan["command"], cwd=workspace, env=environment,
+                                       text=True, capture_output=True, check=False)
+            output += completed.stdout + completed.stderr
+            if completed.returncode:
+                break
+        assert completed is not None
         (workspace / "extractor.log").write_text(output, encoding="utf-8")
-        receipt = {"command": command, "output_directory": output_name,
-                   "returncode": completed.returncode, "started_at": started,
-                   "ended_at": now()}
+        receipt = {"commands": [plan["command"] for plan in plans],
+                   "output_directory": output_name, "returncode": completed.returncode,
+                   "started_at": started, "ended_at": now()}
         (workspace / "extractor_receipt.json").write_text(
             json.dumps(receipt, indent=2), encoding="utf-8")
         if completed.returncode:
@@ -95,7 +102,7 @@ def main() -> int:
                                  _failure_artifacts(), {"category": "extractor_error",
                                       "message": f"extractor exited with status {completed.returncode}",
                                       "retryable": False})
-        if mode == "opensta":
+        if mode in {"opensta", "openroad"}:
             normalize_opensta(output_dir, inputs)
         _attach_source_artifacts(output_dir, inputs)
         manifest = output_dir / "manifest.json"

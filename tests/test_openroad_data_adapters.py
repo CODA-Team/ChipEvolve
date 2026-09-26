@@ -96,3 +96,44 @@ out.mkdir()
     assert [row["mapping_status"] for row in rows] == ["mapped", "mapped"]
     assert rows[0]["instance_id"] == "inst:2"
     assert rows[1]["pin_id"] == "bterm:4"
+
+
+def test_openroad_snapshot_combines_native_physical_and_timing_facts(tmp_path: Path) -> None:
+    fake = tmp_path / "fake-openroad"
+    fake.write_text("""#!/usr/bin/env python3
+import json
+import sys
+from pathlib import Path
+
+out = Path('query-data')
+out.mkdir(exist_ok=True)
+script = Path(sys.argv[-1]).name
+if script == 'opendb_extract.tcl':
+    (out / 'manifest.json').write_text(json.dumps({
+        'snapshot_id': 'snap-1', 'design_id': 'chip', 'revision_id': 'rev-1',
+        'run_id': 'run-1', 'stage': 'route', 'created_at': '2026-01-01T00:00:00Z'
+    }))
+    (out / 'summary.json').write_text('{}')
+    (out / 'objects.jsonl').write_text(json.dumps({
+        'object_id': 'inst:2', 'snapshot_id': 'snap-1', 'kind': 'instance', 'name': 'u1'
+    }) + '\\n')
+    (out / 'relations.jsonl').write_text('')
+    (out / 'markers.jsonl').write_text('')
+else:
+    (out / 'timing_report.json').write_text(json.dumps({'checks': [{
+        'path_id': 'path:0', 'check': 'setup', 'points': [{'pin': 'u1/A'}]
+    }]}))
+    (out / 'dbnetwork_map.json').write_text(json.dumps({
+        'u1/A': {'dbnetwork': 'native', 'pin_id': 'iterm:1', 'instance_id': 'inst:2'}
+    }))
+""", encoding="utf-8")
+    fake.chmod(0o755)
+
+    result = _run_adapter(tmp_path, _task({
+        "adapter": "openroad", "odb_path": "design.odb", "openroad_bin": str(fake),
+    }))
+
+    assert result["status"] == "succeeded"
+    with zipfile.ZipFile(tmp_path / "query-data.zip") as archive:
+        assert json.loads(archive.read("objects.jsonl").splitlines()[0])["object_id"] == "inst:2"
+        assert json.loads(archive.read("timing_points.jsonl").splitlines()[0])["instance_id"] == "inst:2"
