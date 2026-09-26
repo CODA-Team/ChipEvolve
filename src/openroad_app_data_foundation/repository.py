@@ -251,7 +251,7 @@ class DataStore:
                 if row.get("object_id") == object_id]
 
     def _related(self, snapshot_id: str, object_id: str) -> list[dict[str, Any]]:
-        return [row for row in self.records(snapshot_id, "relations")
+        return [row for row in self.records(snapshot_id, "relations", limit=10000)
                 if row.get("subject_id") == object_id or row.get("object_id") == object_id]
 
     def _count(self, snapshot_id: str, record_type: str) -> int:

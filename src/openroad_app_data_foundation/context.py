@@ -104,16 +104,26 @@ def object_context(store: DataStore, snapshot_id: str,
     snapshot = store.snapshot(snapshot_id)
     view = store.object(snapshot_id, object_id, expansion="full")
     entity = view["entity"]
-    related_ids = _related_object_ids(entity, view.get("relations", []))
-    entities = [entity, *(_entities(store, snapshot_id, related_ids))]
-    physical = _physical_rows(store, snapshot_id, [object_id, *related_ids])
+    children = view.get("children", [])
+    relations = list(view.get("relations", []))
+    observations = list(view.get("observations", []))
+    for child in children:
+        child_view = store.object(snapshot_id, child["object_id"], expansion="full")
+        relations.extend(child_view.get("relations", []))
+        observations.extend(child_view.get("observations", []))
+    relations = _unique_rows(relations, "relation_id")
+    related_ids = _related_object_ids(entity, relations)
+    entities = _unique_rows([entity, *children,
+                             *(_entities(store, snapshot_id, related_ids))], "object_id")
+    physical = _physical_rows(store, snapshot_id,
+                              [row["object_id"] for row in entities])
     evidence = _evidence_rows(view, "objects", object_id)
-    evidence.extend(_evidence_rows(view.get("observations", []), "observations", object_id))
-    evidence.extend(_evidence_rows(view.get("relations", []), "relations", object_id))
+    evidence.extend(_evidence_rows(observations, "observations", object_id))
+    evidence.extend(_evidence_rows(relations, "relations", object_id))
     evidence.extend(_evidence_rows(physical, "physical_context", object_id))
     evidence.extend(_snapshot_evidence(snapshot, snapshot_id))
-    return _object_pack(snapshot, entity, view.get("observations", []), entities,
-                        view.get("relations", []), physical, evidence)
+    return _object_pack(snapshot, entity, observations, entities, relations,
+                        physical, evidence)
 
 
 def net_context(store: DataStore, snapshot_id: str, net_id: str) -> dict[str, Any]:
@@ -122,14 +132,25 @@ def net_context(store: DataStore, snapshot_id: str, net_id: str) -> dict[str, An
     view = store.expand_net(snapshot_id, net_id)
     entity = view["entity"]
     connected = view.get("connected_entities", [])
-    physical = view.get("physical_context", [])
-    evidence = _evidence_rows([entity, *connected], "objects", net_id)
-    evidence.extend(_evidence_rows(view.get("observations", []), "observations", net_id))
-    evidence.extend(_evidence_rows(view.get("relations", []), "relations", net_id))
+    relations = list(view.get("relations", []))
+    observations = list(view.get("observations", []))
+    parent_ids = [str(row["parent_id"]) for row in connected
+                  if row.get("parent_id")]
+    parents = _entities(store, snapshot_id, list(dict.fromkeys(parent_ids)))
+    for parent in parents:
+        parent_view = store.object(snapshot_id, parent["object_id"], expansion="full")
+        relations.extend(parent_view.get("relations", []))
+        observations.extend(parent_view.get("observations", []))
+    relations = _unique_rows(relations, "relation_id")
+    entities = _unique_rows([entity, *connected, *parents], "object_id")
+    physical = _physical_rows(store, snapshot_id,
+                              [row["object_id"] for row in entities])
+    evidence = _evidence_rows(entities, "objects", net_id)
+    evidence.extend(_evidence_rows(observations, "observations", net_id))
+    evidence.extend(_evidence_rows(relations, "relations", net_id))
     evidence.extend(_evidence_rows(physical, "physical_context", net_id))
     evidence.extend(_snapshot_evidence(snapshot, snapshot_id))
-    return _object_pack(snapshot, entity, view.get("observations", []),
-                        [entity, *connected], view.get("relations", []), physical,
+    return _object_pack(snapshot, entity, observations, entities, relations, physical,
                         evidence, target_type="net")
 
 
@@ -167,6 +188,18 @@ def _entities(store: DataStore, snapshot_id: str,
     for object_id in object_ids:
         rows = store.records(snapshot_id, "entities", record_id=object_id, limit=1)
         result.extend(rows)
+    return result
+
+
+def _unique_rows(rows: list[dict[str, Any]], key: str) -> list[dict[str, Any]]:
+    seen: set[str] = set()
+    result: list[dict[str, Any]] = []
+    for row in rows:
+        value = row.get(key)
+        if not isinstance(value, str) or value in seen:
+            continue
+        seen.add(value)
+        result.append(row)
     return result
 
 

@@ -76,17 +76,27 @@ def test_object_and_net_contexts_keep_explicit_neighbors_and_sources(tmp_path: P
         "object_id": "net:n1",
         "evidence": [{"artifact_id": "netlist-1", "source_type": "line",
                        "line_start": 4, "line_end": 4}],
+    }, {
+        "relation_id": "pin-inst", "snapshot_id": "snap-1",
+        "subject_id": "top/u1/A", "predicate": "belongs_to", "object_id": "top/u1",
+    }, {
+        "relation_id": "pin-net", "snapshot_id": "snap-1",
+        "subject_id": "top/u1/A", "predicate": "connected_to", "object_id": "net:n1",
     }]
+    value["entities"].append({"object_id": "top/u1/A", "snapshot_id": "snap-1",
+                                "kind": "pin", "name": "u1/A", "parent_id": "top/u1"})
     store = DataStore(tmp_path / "data.db")
     try:
         store.register(value)
         instance = object_context(store, "snap-1", "top/u1")
         assert instance["target"] == {"type": "object", "id": "top/u1"}
         assert {row["object_id"] for row in instance["entities"]} == {
-            "top/u1", "net:n1"}
+            "top/u1", "top/u1/A", "net:n1"}
+        assert len(instance["relations"]) == 3
         assert instance["physical_context"][0]["object_id"] == "top/u1"
         net = net_context(store, "snap-1", "net:n1")
         assert net["target"] == {"type": "net", "id": "net:n1"}
+        assert {row["kind"] for row in net["entities"]} == {"instance", "pin", "net"}
         assert net["physical_context"][0]["object_id"] == "net:n1"
         assert any(item["artifact_id"] == "netlist-1" for item in net["evidence"])
     finally:
