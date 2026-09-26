@@ -1,0 +1,5 @@
+{
+  "license": "Apache-2.0",
+  "source_url": "https://github.com/The-OpenROAD-Project",
+  "notes": "The adapter is a process bridge. Native extraction code is supplied by the deployment toolchain and is not vendored."
+}

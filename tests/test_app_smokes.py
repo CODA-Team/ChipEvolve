@@ -14,6 +14,7 @@ APP_SMOKES = [
     "evidence_console",
     "plan_executor",
     "query_agent",
+    "data_foundation",
     "run_console",
 ]
 

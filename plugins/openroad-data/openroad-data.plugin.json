@@ -1,0 +1,16 @@
+{
+  "schema_version": 3,
+  "plugin_id": "openroad-data",
+  "plugin_version": "0.1.0",
+  "adapter_entry": ["python3", "./adapter.py"],
+  "capabilities": ["design.snapshot", "timing.snapshot", "flow.snapshot"],
+  "supported_arch": ["x86_64", "aarch64", "arm64"],
+  "default_timeout_seconds": 3600,
+  "artifact_rules": [
+    {"kind": "data_snapshot", "required": false},
+    {"kind": "extractor_log", "required": true},
+    {"kind": "extractor_receipt", "required": true}
+  ],
+  "progress_marker": "[progress]",
+  "environment": {}
+}

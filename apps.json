@@ -35,6 +35,12 @@
       "base_url": "http://127.0.0.1:8850",
       "title": "Query Agent",
       "description": "Find runs and original evidence with sourced reports."
+    },
+    {
+      "name": "data_foundation",
+      "base_url": "http://127.0.0.1:8860",
+      "title": "Design Data Foundation",
+      "description": "Index deterministic design facts and timing context."
     }
   ]
 }

@@ -96,6 +96,8 @@ directories are:
 | `core/client/` | Small client for the public kernel API |
 | `gateway/` | HTTP composition root and API routing |
 | `apps/plan_executor/` | Agent-authored ordered plans and artifact handoff |
+| `apps/data_foundation/` | Deterministic design snapshots and timing/physical context queries |
+| `apps/query_agent/` | Sourced run/artifact reports and context orchestration |
 | `plugins/` | Minimal in-repository example; real EDA Toolkits may live elsewhere |
 | `guardrails/` | Executable architecture rules and deliberate negative fixtures |
 
