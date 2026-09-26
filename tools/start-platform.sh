@@ -7,6 +7,8 @@ state_root="${OPENROAD_PLATFORM_STATE_ROOT:-$platform_root/var}"
 plugins_root="${OPENROAD_PLATFORM_PLUGINS_ROOT:-$platform_root/plugins}"
 admissions_root="${OPENROAD_PLATFORM_ADMISSIONS_ROOT:-$platform_root/admissions}"
 gateway_config="${OPENROAD_PLATFORM_GATEWAY_CONFIG:-$platform_root/examples/gateway-agent.json}"
+data_port="${OPENROAD_PLATFORM_DATA_PORT:-8860}"
+query_port="${OPENROAD_PLATFORM_QUERY_PORT:-8850}"
 
 mkdir -p "$state_root"
 export NO_PROXY="127.0.0.1,localhost${NO_PROXY:+,$NO_PROXY}"
@@ -52,6 +54,18 @@ pids+=("$!")
   --db "$state_root/plan_executor.sqlite" "${plan_auth_args[@]}" &
 pids+=("$!")
 
+"$platform_venv/bin/openroad-app-data_foundation" \
+  --host 127.0.0.1 --port "$data_port" \
+  --db "$state_root/data_foundation.sqlite" \
+  --kernel-url http://127.0.0.1:8700 &
+pids+=("$!")
+
+"$platform_venv/bin/openroad-app-query_agent" \
+  --host 127.0.0.1 --port "$query_port" \
+  --kernel-url http://127.0.0.1:8700 \
+  --data-url "http://127.0.0.1:$data_port" &
+pids+=("$!")
+
 "$platform_venv/bin/openroad-platform-gateway" \
   --host 127.0.0.1 --port 8700 --no-auth \
   --config "$gateway_config" --state-root "$state_root" \
@@ -59,5 +73,5 @@ pids+=("$!")
   "${capacity_args[@]}" "${input_root_args[@]}" &
 pids+=("$!")
 
-printf 'gateway: http://127.0.0.1:8700\nplan service: http://127.0.0.1:8840\n'
+printf 'gateway: http://127.0.0.1:8700\nplan service: http://127.0.0.1:8840\ndata service: http://127.0.0.1:%s\nquery service: http://127.0.0.1:%s\n' "$data_port" "$query_port"
 wait -n

@@ -1,0 +1,8 @@
+{
+  "plugin_id": "openroad-data",
+  "status": "admitted",
+  "license_review": "green",
+  "approved_commit": "4edff5d2fb32ff7fdca8bc7eafa2c526428654c4",
+  "reviewer": "platform-owner",
+  "reason": "First-party OpenROAD extraction bridge reviewed for the native OpenDB and OpenSTA snapshot path."
+}
