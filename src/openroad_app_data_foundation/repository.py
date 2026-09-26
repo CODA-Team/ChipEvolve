@@ -50,6 +50,9 @@ class DataStore:
             );
             CREATE INDEX IF NOT EXISTS records_lookup
                 ON records(snapshot_id, record_type, ordinal);
+            CREATE TABLE IF NOT EXISTS imported_artifacts (
+                artifact_id TEXT PRIMARY KEY
+            );
             """
         )
         self.connection.commit()
@@ -100,6 +103,19 @@ class DataStore:
         except sqlite3.IntegrityError as exc:
             raise ContractError(f"snapshot already exists: {snapshot_id}") from exc
         return {"snapshot": snapshot, "record_counts": _counts(records)}
+
+    def imported(self, artifact_id: str) -> bool:
+        return self.connection.execute(
+            "SELECT 1 FROM imported_artifacts WHERE artifact_id = ?", (artifact_id,)
+        ).fetchone() is not None
+
+    def register_import(self, artifact_id: str, pack: Mapping[str, Any]) -> dict[str, Any]:
+        result = self.register(pack)
+        with self.connection:
+            self.connection.execute(
+                "INSERT INTO imported_artifacts(artifact_id) VALUES (?)", (artifact_id,)
+            )
+        return result
 
     def snapshots(self, *, design_id: str | None = None, run_id: str | None = None) -> list[dict[str, Any]]:
         query = "SELECT payload FROM snapshots"

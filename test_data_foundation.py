@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from openroad_platform_contracts import ContractError
 
-from openroad_app_data_foundation.bundle import load_run_bundle
+from openroad_app_data_foundation.bundle import import_ready_bundles, load_run_bundle
 from openroad_app_data_foundation.ingest import load_snapshot_directory
 from openroad_app_data_foundation.repository import DataStore
 
@@ -128,5 +128,38 @@ def test_portable_objects_and_manifest_artifacts_are_indexed(tmp_path: Path) -> 
         store.register(loaded)
         assert store.snapshot("snap-1")["source_artifacts"][0]["artifact_id"] == "odb-1"
         assert store.find_instance("snap-1", "u1")[0]["object_id"] == "inst:1"
+    finally:
+        store.close()
+
+
+def test_completed_snapshot_artifact_is_imported_once(tmp_path: Path) -> None:
+    import zipfile
+
+    source = tmp_path / "query-data"
+    source.mkdir()
+    (source / "manifest.json").write_text(json.dumps(pack()["snapshot"]), encoding="utf-8")
+    archive = tmp_path / "snapshot.zip"
+    with zipfile.ZipFile(archive, "w") as output:
+        output.write(source / "manifest.json", "manifest.json")
+
+    class Client:
+        def runs(self, **_filters: object) -> list[dict]:
+            return [{"run_id": "run-extract"}]
+
+        def artifacts(self, run_id: str) -> list[dict]:
+            assert run_id == "run-extract"
+            return [{"artifact_id": "bundle-1", "kind": "data_snapshot",
+                     "sha256": "a" * 64, "store_key": "query-data.zip",
+                     "size_bytes": archive.stat().st_size}]
+
+        def download_artifact_to(self, run_id: str, artifact_id: str, destination: str) -> None:
+            assert (run_id, artifact_id) == ("run-extract", "bundle-1")
+            Path(destination).write_bytes(archive.read_bytes())
+
+    store = DataStore(tmp_path / "data.db")
+    try:
+        assert import_ready_bundles(store, Client()) == 1
+        assert store.snapshot("snap-1")["run_id"] == "run-1"
+        assert import_ready_bundles(store, Client()) == 0
     finally:
         store.close()

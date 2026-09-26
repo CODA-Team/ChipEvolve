@@ -10,7 +10,7 @@ from typing import Any
 from openroad_platform_client import KernelClient, KernelError, KernelUnavailable
 from openroad_platform_contracts import ContractError
 
-from .bundle import load_run_bundle
+from .bundle import import_ready_bundles, load_run_bundle
 from .context import timing_path_context
 from .queries import list_timing_paths, path_points, timing_path
 from .repository import DataStore
@@ -28,6 +28,10 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, self._get(parsed.path, query))
         except (KeyError, ValueError, ContractError) as exc:
             self._send(404 if isinstance(exc, KeyError) else 400, {"error": str(exc)})
+        except KernelUnavailable as exc:
+            self._send(503, {"error": str(exc)})
+        except KernelError as exc:
+            self._send(exc.status or 502, {"error": str(exc)})
 
     def do_POST(self) -> None:  # noqa: N802
         try:
@@ -39,8 +43,8 @@ class Handler(BaseHTTPRequestHandler):
                     raise ValueError("run_id and artifact_id are required")
                 if self.execution_client is None:
                     raise KernelUnavailable("execution service is not configured")
-                self._send(201, self.store.register(
-                    load_run_bundle(self.execution_client, run_id, artifact_id)))
+                self._send(201, self.store.register_import(
+                    artifact_id, load_run_bundle(self.execution_client, run_id, artifact_id)))
                 return
             if self.path != "/snapshots":
                 self._send(404, {"error": "not found"})
@@ -56,6 +60,8 @@ class Handler(BaseHTTPRequestHandler):
     def _get(self, path: str, query: dict[str, str]) -> dict[str, Any]:
         if path == "/health":
             return {"app": "data_foundation", "status": "ok"}
+        if self.execution_client is not None:
+            import_ready_bundles(self.store, self.execution_client)
         if path == "/snapshots":
             return {"snapshots": self.store.snapshots(
                 design_id=query.get("design_id"), run_id=query.get("run_id"))}

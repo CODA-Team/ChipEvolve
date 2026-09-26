@@ -11,6 +11,7 @@ from openroad_platform_client import KernelClient
 from openroad_platform_contracts import ContractError
 
 from .ingest import load_snapshot_directory
+from .repository import DataStore
 
 
 def load_run_bundle(client: KernelClient, run_id: str, artifact_id: str) -> dict[str, Any]:
@@ -38,6 +39,22 @@ def load_run_bundle(client: KernelClient, run_id: str, artifact_id: str) -> dict
             *pack["snapshot"].get("source_artifacts", []), artifact,
         ]
         return pack
+
+
+def import_ready_bundles(store: DataStore, client: KernelClient) -> int:
+    """Import each completed design snapshot artifact once."""
+    imported = 0
+    for run in client.runs(status="succeeded", limit=100):
+        run_id = str(run["run_id"])
+        for artifact in client.artifacts(run_id):
+            artifact_id = artifact.get("artifact_id")
+            if artifact.get("kind") != "data_snapshot" or not isinstance(artifact_id, str):
+                continue
+            if store.imported(artifact_id):
+                continue
+            store.register_import(artifact_id, load_run_bundle(client, run_id, artifact_id))
+            imported += 1
+    return imported
 
 
 def _check_members(source: zipfile.ZipFile) -> None:
