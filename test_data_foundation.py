@@ -10,6 +10,7 @@ from openroad_platform_contracts import ContractError
 
 from openroad_app_data_foundation.bundle import import_ready_bundles, load_run_bundle
 from openroad_app_data_foundation.ingest import load_snapshot_directory
+from openroad_app_data_foundation.queries import compare_timing_path
 from openroad_app_data_foundation.repository import DataStore
 
 
@@ -161,5 +162,42 @@ def test_completed_snapshot_artifact_is_imported_once(tmp_path: Path) -> None:
         assert import_ready_bundles(store, Client()) == 1
         assert store.snapshot("snap-1")["run_id"] == "run-1"
         assert import_ready_bundles(store, Client()) == 0
+    finally:
+        store.close()
+
+
+def test_stage_comparison_reports_timing_and_physical_fact_deltas(tmp_path: Path) -> None:
+    placed = pack()
+    placed["snapshot"] = {**placed["snapshot"], "snapshot_id": "snap-place", "stage": "place"}
+    placed["entities"] = [{**item, "snapshot_id": "snap-place"} for item in placed["entities"]]
+    placed["timing_paths"][0] = {**placed["timing_paths"][0], "snapshot_id": "snap-place", "slack": -0.12}
+    placed["timing_points"][0] = {**placed["timing_points"][0], "net_id": "net:n1"}
+    placed["physical_context"] = [
+        {**placed["physical_context"][0], "snapshot_id": "snap-place", "x": 10.0, "y": 20.0},
+        {**placed["physical_context"][1], "snapshot_id": "snap-place",
+         "routing": [{"routing_type": "segment", "x_min": 0, "y_min": 0,
+                      "x_max": 10, "y_max": 0}]},
+    ]
+    routed = {
+        **placed,
+        "snapshot": {**placed["snapshot"], "snapshot_id": "snap-route", "stage": "route"},
+        "entities": [{**item, "snapshot_id": "snap-route"} for item in placed["entities"]],
+        "timing_paths": [{**placed["timing_paths"][0], "snapshot_id": "snap-route", "slack": -0.58}],
+        "physical_context": [
+            {**placed["physical_context"][0], "snapshot_id": "snap-route", "x": 14.0, "y": 24.0},
+            {**placed["physical_context"][1], "snapshot_id": "snap-route",
+             "routing": [{"routing_type": "segment", "x_min": 0, "y_min": 0,
+                          "x_max": 18, "y_max": 0}]},
+        ],
+    }
+    store = DataStore(tmp_path / "data.db")
+    try:
+        store.register(placed)
+        store.register(routed)
+        comparison = compare_timing_path(store, "snap-place", "snap-route", "path-1")
+        assert comparison["matching"]["basis"] == "exact path_id and object_id"
+        assert comparison["timing"]["slack"]["delta"] == pytest.approx(-0.46)
+        assert comparison["physical"]["instances"][0]["delta"] == {"x": 4.0, "y": 4.0}
+        assert comparison["physical"]["nets"][0]["wire_length"]["delta"] == 8
     finally:
         store.close()

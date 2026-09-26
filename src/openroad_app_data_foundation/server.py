@@ -12,7 +12,7 @@ from openroad_platform_contracts import ContractError
 
 from .bundle import import_ready_bundles, load_run_bundle
 from .context import timing_path_context
-from .queries import list_timing_paths, path_points, timing_path
+from .queries import compare_timing_path, list_timing_paths, path_points, timing_path
 from .repository import DataStore
 
 
@@ -72,6 +72,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.store.run_summary_for_run(run_id)
         if path.startswith("/snapshots/"):
             parts = [urllib.parse.unquote(item) for item in path.split("/") if item]
+            if len(parts) == 6 and parts[2] == "compare" and parts[4] == "timing-paths":
+                return compare_timing_path(self.store, parts[1], parts[3], parts[5])
             if len(parts) == 2:
                 return {"snapshot": self.store.snapshot(parts[1])}
             if len(parts) == 3 and parts[2] == "summary":
