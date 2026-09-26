@@ -265,7 +265,7 @@ class RuntimeStore:
         # explicitly rather than leaving the layout to be inferred from here.
         self.objects_root = Path(objects_root if objects_root is not None else self.db_path.parent / "runtime-objects").expanduser()
         self._lock = threading.RLock()
-        self._connection = sqlite3.connect(str(self.db_path), check_same_thread=False, isolation_level=None)
+        self._connection = sqlite3.connect(str(self.db_path), check_same_thread=False, isolation_level=None, timeout=30)
         self._connection.row_factory = sqlite3.Row
         self._connection.execute("PRAGMA foreign_keys = ON")
         self._connection.execute("PRAGMA journal_mode = DELETE")

@@ -118,6 +118,14 @@ def test_reopening_the_same_database_is_fine(tmp_path: Path):
     RuntimeStore(path).close()
 
 
+def test_store_waits_for_another_process_to_finish_its_write(tmp_path: Path):
+    store = RuntimeStore(tmp_path / "r.db")
+    try:
+        assert store._connection.execute("PRAGMA busy_timeout").fetchone()[0] == 30000
+    finally:
+        store.close()
+
+
 @pytest.mark.parametrize("version", [1, 3, 5])
 def test_migration_adds_idempotency_to_a_root_without_the_column(tmp_path, version):
     path = tmp_path / "old.db"
