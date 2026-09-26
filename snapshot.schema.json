@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "design-context-snapshot-1",
+  "title": "Design context snapshot",
+  "type": "object",
+  "required": ["snapshot", "timing_paths", "timing_points"],
+  "properties": {
+    "snapshot": {
+      "type": "object",
+      "required": ["snapshot_id", "design_id", "revision_id", "run_id", "stage", "created_at"],
+      "properties": {
+        "schema_version": {"type": "integer", "const": 3},
+        "snapshot_id": {"type": "string"},
+        "design_id": {"type": "string"},
+        "revision_id": {"type": "string"},
+        "run_id": {"type": "string"},
+        "stage": {"type": "string"},
+        "created_at": {"type": "string"},
+        "source_artifacts": {"type": "array"}
+      }
+    },
+    "entities": {"type": "array"},
+    "observations": {"type": "array"},
+    "relations": {"type": "array"},
+    "timing_paths": {"type": "array"},
+    "timing_points": {"type": "array"},
+    "physical_context": {"type": "array"},
+    "coverage": {"type": "object"}
+  }
+}
