@@ -82,9 +82,19 @@ def test_structured_metrics_are_queryable_by_snapshot_and_run(tmp_path: Path) ->
         assert summary["run_summary"]["metrics"]["wns"] == -0.2
         observed = list_observations(store, "snap-1", {"name": "wns"})
         assert observed["observations"][0]["value"] == -0.2
+        # CONTRACT 4.6: only declared canonical names appear in metrics;
+        # anything else stays reachable under its original key.
         metrics = list_metrics_for_run(store, "run-1", {"scene": "setup"})
-        assert [item["name"] for item in metrics["metrics"]] == ["tns"]
-        assert metrics["metrics"][0]["stage"] == "route"
+        assert metrics["metrics"] == []
+        raw = list_metrics_for_run(store, "run-1", {"include_raw": "1"})
+        by_key = {item["raw_key"]: item for item in raw["raw_metrics"]}
+        assert by_key["wns"]["value"] == -0.2
+        assert by_key["tns"]["stage"] == "route"
+        assert by_key["tns"]["canonical"] is False
+        runtime = [row for row in list_metrics_for_run(store, "run-1", {})["metrics"]
+                   if row["name"] == "RUNTIME"][0]
+        assert runtime["status"] == "unavailable"
+        assert runtime["authoritative_source"] == "execution_foundation"
     finally:
         store.close()
 
@@ -644,5 +654,53 @@ def test_list_pagination_reports_total_and_truncation(tmp_path: Path) -> None:
         assert last["returned"] == 1
         assert last["truncated"] is False
         assert last["next_offset"] is None
+    finally:
+        store.close()
+
+
+def test_canonical_metrics_project_orfs_stage_keys(tmp_path: Path) -> None:
+    """A 66-key stage report becomes a small canonical set plus raw keys."""
+    value = pack()
+    value["snapshot"]["stage"] = "finish"
+    value["observations"] = [
+        {"observation_id": "metric:finish__timing__setup__ws", "kind": "metric",
+         "value": -0.04544, "status": "parsed", "context": {"scene": "setup"}},
+        {"observation_id": "metric:finish__timing__setup__tns", "kind": "metric",
+         "value": -0.737691, "status": "parsed"},
+        {"observation_id": "metric:finish__design__instance__count", "kind": "metric",
+         "value": 655, "status": "parsed"},
+        {"observation_id": "metric:finish__power__total", "kind": "metric",
+         "value": 0.00373869, "status": "parsed"},
+        {"observation_id": "metric:finish__clock__skew__setup", "kind": "metric",
+         "value": 0.00129502, "status": "parsed"},
+        {"observation_id": "metric:run__flow__platform__time_units", "kind": "metric",
+         "value": "1ns", "status": "parsed"},
+        {"observation_id": "metric:run__flow__platform__power_units", "kind": "metric",
+         "value": "1nW", "status": "parsed"},
+        {"observation_id": "metric:run__flow__platform__distance_units", "kind": "metric",
+         "value": "1um", "status": "parsed"},
+    ]
+    store = DataStore(tmp_path / "canonical.db")
+    try:
+        store.register(value)
+        result = list_metrics_for_run(store, "run-1", {})
+        rows = {row["name"]: row for row in result["metrics"]}
+        assert rows["WNS"]["value"] == -0.04544
+        assert rows["WNS"]["unit"] == "ns"
+        assert rows["WNS"]["analysis"] == "setup"
+        assert rows["WNS"]["authoritative_source"] == "orfs_stage_report"
+        assert rows["WNS"]["raw_key"] == "finish__timing__setup__ws"
+        assert rows["WNS"]["status"] == "available"
+        assert rows["TNS"]["value"] == -0.737691
+        assert rows["INSTANCE_COUNT"]["unit"] == "count"
+        assert rows["POWER_TOTAL"]["status"] == "partial"
+        assert "1nW" in rows["POWER_TOTAL"]["reason"]
+        assert rows["RUNTIME"]["status"] == "unavailable"
+        assert "finish__clock__skew__setup" not in rows
+        raw_result = list_metrics_for_run(store, "run-1", {"include_raw": "1"})
+        raw_keys = {row["raw_key"] for row in raw_result["raw_metrics"]}
+        assert "finish__clock__skew__setup" in raw_keys
+        assert "run__flow__platform__time_units" in raw_keys
+        assert result["metrics"][0]["stage"] == "finish"
     finally:
         store.close()

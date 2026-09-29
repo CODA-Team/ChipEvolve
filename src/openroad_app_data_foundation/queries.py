@@ -8,6 +8,7 @@ from .analysis_context import (
     build_analysis_context, context_availability, context_differences,
 )
 from .identity import canonical_key
+from .metrics import CANONICAL_METRICS, project_run
 from .repository import DataStore
 
 
@@ -44,29 +45,43 @@ def list_observations(store: DataStore, snapshot_id: str,
 
 def list_metrics_for_run(store: DataStore, run_id: str,
                          query: dict[str, str]) -> dict[str, Any]:
-    """Collect metric observations across the immutable snapshots of one run."""
-    rows: list[dict[str, Any]] = []
-    for snapshot in store.snapshots(run_id=run_id):
-        snapshot_id = snapshot["snapshot_id"]
-        for row in store.fetch_all(snapshot_id, "observations"):
-            if row.get("kind") != "metric":
-                continue
-            if query.get("stage") and snapshot.get("stage") != query["stage"]:
-                continue
-            if query.get("name") and _observation_value(row, "name") != query["name"]:
-                continue
-            if query.get("scene") and _observation_value(row, "scene") != query["scene"]:
-                continue
-            rows.append({"snapshot_id": snapshot_id, "stage": snapshot.get("stage"),
-                         "design_id": snapshot.get("design_id"),
-                         "revision_id": snapshot.get("revision_id"),
-                         **row, "name": _observation_value(row, "name")})
+    """Canonical metrics for one run, plus raw keys on request.
+
+    CONTRACT section 4.6: ``metrics`` holds only the declared canonical set,
+    each with its authoritative source; everything else stays available under
+    its original key in ``raw_metrics`` (``include_raw=1``) so the response
+    stays small by default.
+    """
+    projection = project_run(store, store.snapshots(run_id=run_id))
+    filters = {key: query[key] for key in ("stage", "name", "scene") if query.get(key)}
+    rows = [row for row in projection["metrics"] if _metric_matches(row, filters)]
     limit, offset = _limit(query), _offset(query)
     page = rows[offset:offset + limit]
-    return {"run_id": run_id, "metrics": page,
-            **_page(len(rows), len(page), limit, offset),
-            "filters": {key: query[key] for key in ("stage", "name", "scene")
-                        if query.get(key)}}
+    result: dict[str, Any] = {
+        "run_id": run_id, "metrics": page,
+        **_page(len(rows), len(page), limit, offset),
+        "canonical_names": sorted(CANONICAL_METRICS),
+        "canonical_names_available": projection["canonical_names_available"],
+        "units_declared": projection["units_declared"],
+        "filters": filters,
+    }
+    if str(query.get("include_raw", "")).lower() in {"1", "true", "yes"}:
+        raw = projection["raw_metrics"]
+        if filters.get("stage"):
+            raw = [row for row in raw if row.get("stage") == filters["stage"]]
+        result["raw_metrics"] = raw[offset:offset + limit]
+        result["raw_metric_count"] = len(raw)
+    return result
+
+
+def _metric_matches(row: dict[str, Any], filters: dict[str, str]) -> bool:
+    for key, value in filters.items():
+        if key == "name":
+            if row.get("name") != value and row.get("raw_key") != value:
+                return False
+        elif row.get(key) != value:
+            return False
+    return True
 
 
 def _observation_value(row: dict[str, Any], name: str) -> Any:
