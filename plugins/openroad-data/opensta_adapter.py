@@ -22,22 +22,30 @@ def prepare(inputs: dict[str, Any], workspace: Path) -> dict[str, Any]:
 
 
 def normalize(output_dir: Path, inputs: dict[str, Any]) -> None:
-    report = output_dir / "timing_report.json"
-    if not report.is_file():
+    setup = output_dir / "timing_report.json"
+    if not setup.is_file():
         raise ValueError("OpenSTA did not produce timing_report.json")
-    payload = json.loads(report.read_text(encoding="utf-8"))
-    paths = _checks(payload)
     metadata = _metadata(inputs, inputs.get("stage", "route"))
     mapping = _mapping(inputs, output_dir.parent)
     _write_json(output_dir / "manifest.json", {"snapshot": metadata, "schema_version": 3})
-    if paths is None:
+    # The setup (max) and hold (min) reports are both read here.  The
+    # discriminator is the report's own path_type, not the constraint type:
+    # ``type`` is "output_delay"/"check" while ``path_type`` is max/min.
+    sources: list[tuple[dict[str, Any], str]] = []
+    for filename in ("timing_report.json", "timing_report_hold.json"):
+        candidate = output_dir / filename
+        if not candidate.is_file():
+            continue
+        rows = _checks(json.loads(candidate.read_text(encoding="utf-8")))
+        if rows is None:
+            continue
+        sources.extend((row, filename) for row in rows if isinstance(row, dict))
+    if not sources:
         _write_coverage(output_dir, "unsupported", "timing JSON has no paths list")
         return
     timing_paths: list[dict[str, Any]] = []
     points: list[dict[str, Any]] = []
-    for path_index, source in enumerate(paths):
-        if not isinstance(source, dict):
-            continue
+    for path_index, (source, filename) in enumerate(sources):
         path_id = str(source.get("path_id") or f"path:{path_index}")
         point_rows = _points(source)
         point_ids: list[str] = []
@@ -53,16 +61,25 @@ def normalize(output_dir: Path, inputs: dict[str, Any]) -> None:
             "path_id": path_id,
             "snapshot_id": metadata["snapshot_id"],
             "analysis": _value(source, "analysis", "view", default=inputs.get("analysis")),
-            "check": _value(source, "check", "type", default=inputs.get("check")),
+            "check": _check_name(source) or inputs.get("check"),
             "group": _value(source, "group", "path_group", default=inputs.get("group")),
+            "path_type": source.get("path_type"),
             "startpoint": source.get("startpoint"),
             "endpoint": source.get("endpoint"),
             "slack": source.get("slack"),
             "delay": source.get("delay"),
+            "required_time": source.get("required_time"),
+            "margin": source.get("margin"),
             "unit": source.get("unit") or inputs.get("unit"),
             "corner": source.get("corner") or inputs.get("corner"),
             "point_ids": point_ids,
-            "evidence": [_timing_evidence(inputs, {"path_index": path_index})],
+            "point_field_availability": {
+                "required": "unavailable",
+                "reason": ("OpenSTA report_checks does not emit a per-point required "
+                           "field; required_time is reported per path"),
+            },
+            "evidence": [_timing_evidence(inputs, {"path_index": path_index,
+                                                    "report": filename})],
         })
         for name in ("native_path_id", "structural_fingerprint"):
             if isinstance(source.get(name), str) and source[name]:
@@ -73,9 +90,20 @@ def normalize(output_dir: Path, inputs: dict[str, Any]) -> None:
     _write_json(output_dir / "summary.json", {"snapshot": metadata,
                                                 "timing_path_count": len(timing_paths)})
     _write_json(output_dir / "coverage.json", {
-        "source": "opensta", "timing": "parsed" if timing_paths else "empty",
+        "source": "opensta",
+        "timing": "parsed" if timing_paths else "empty",
         "dbnetwork": "parsed" if mapping else "unsupported",
     })
+
+
+def _check_name(source: dict[str, Any]) -> str | None:
+    """setup/hold comes from path_type (max/min), never from `type`."""
+    path_type = source.get("path_type")
+    if path_type == "max":
+        return "setup"
+    if path_type == "min":
+        return "hold"
+    return None
 
 
 def _point(point_id: str, path_id: str, ordinal: int, point: dict[str, Any],
@@ -173,12 +201,19 @@ def _script(inputs: dict[str, Any], odb_path: str, output_name: str) -> str:
         if value is not None:
             _require_relative(value, option)
             lines.append(f"{command} {_tcl(value)}")
-    lines += [
-        f"sta::redirect_file_begin [file join {_tcl(output_name)} timing_report.json]",
-        "report_checks -path_delay max -format json -digits 6",
-        "sta::redirect_file_end",
-        _mapping_script(output_name),
-    ]
+    count = inputs.get("path_count", 5)
+    if not isinstance(count, int) or not 1 <= count <= 200:
+        raise ValueError("inputs.path_count must be an integer between 1 and 200")
+    # Non-deprecated option names matter: -group_count / -endpoint_count print a
+    # deprecation warning into the redirected file and break JSON parsing.
+    for filename, delay in (("timing_report.json", "max"),
+                            ("timing_report_hold.json", "min")):
+        lines.append("sta::redirect_file_begin [file join "
+                     f"{_tcl(output_name)} {_tcl(filename)}]")
+        lines.append(f"report_checks -path_delay {delay} -group_path_count {count} "
+                     f"-endpoint_path_count {count} -format json -digits 6")
+        lines.append("sta::redirect_file_end")
+    lines.append(_mapping_script(output_name))
     return "\n".join(lines) + "\n"
 
 
