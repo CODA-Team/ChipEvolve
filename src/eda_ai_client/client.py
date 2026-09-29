@@ -257,20 +257,17 @@ class EdaAiClient:
         """Source locations behind the indexed facts.
 
         With ``record_type`` and ``record_id`` it returns that record's own
-        evidence; otherwise it returns the snapshot's evidence index, which can
-        be filtered by ``artifact_id``.
+        evidence; otherwise it returns one page of the snapshot's evidence
+        index, optionally filtered by ``artifact_id``.  The index is large, so
+        the service streams it and reports ``count: None`` with
+        ``count_status: "unavailable"`` when the total was not computed.
         """
         if record_type and record_id:
             return self._get(self.data_url,
                              f"/snapshots/{_segment(snapshot_id)}/records/"
                              f"{_segment(record_type)}/{_segment(record_id)}/evidence")
-        result = self._get(self.data_url, f"/snapshots/{_segment(snapshot_id)}/evidence",
-                           {"artifact_id": artifact_id})
-        rows = result.get("evidence", [])
-        result["evidence"] = rows[offset:offset + limit]
-        result["count"] = len(rows)
-        result["returned"] = len(result["evidence"])
-        return result
+        return self._get(self.data_url, f"/snapshots/{_segment(snapshot_id)}/evidence",
+                         {"artifact_id": artifact_id, "limit": limit, "offset": offset})
 
     # ------------------------------------------------------------- raw bytes
 

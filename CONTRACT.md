@@ -215,6 +215,10 @@ Data Foundation 只回答 **结构化 EDA 事实**。它不诊断、不建议、
 2. `truncated: true` ⇔ `offset + returned < count`；此时 `status` 为 `truncated`（若本页确实截断）。
 3. 对象级查询（`get_instance` / `get_net_context` / `get_physical_context`）**不接受全表扫描语义**：必须按索引精确命中该对象及其直接关系，与库里总记录数无关。
 4. 服务端默认 `limit=100`，上限 `10000`。任何超过上限的请求返回 400，不静默截断。
+5. **例外：`get_evidence` 的整快照索引。** 该索引可能极大（ibex 约 19 万条；一次响应曾达 95 MB / 10.5 s）。
+   服务端对它流式扫描并取满一页即停，因此 `count` 为 `null` 且
+   `count_status: "unavailable"`、`count_reason` 说明原因，`truncated` 与 `next_offset` 照常给出。
+   指定 `record_type` + `record_id` 的定向查询不受影响，仍是完整的。
 
 ---
 

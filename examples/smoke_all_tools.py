@@ -88,7 +88,9 @@ def main() -> int:
 
         evidence = client.get_evidence(args.snapshot, limit=5)
         first = evidence["evidence"][0]["evidence"]
-        record("get_evidence", f"{evidence['count']} entries, "
+        record("get_evidence", f"{evidence['returned']} entries "
+                               f"(count={evidence.get('count')}, "
+                               f"{evidence.get('count_status', 'exact')}), "
                                f"first artifact={first.get('artifact_id')}")
 
         if first.get("artifact_id") and first.get("run_id"):

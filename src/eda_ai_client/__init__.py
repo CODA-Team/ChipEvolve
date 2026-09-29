@@ -14,6 +14,7 @@ the tool surface and for what each response field means.
 """
 
 from .client import DEFAULT_DATA_URL, EdaAiClient, EdaAiError
+from .schemas import TOOL_NAMES, TOOL_SCHEMAS
 
-__all__ = ["EdaAiClient", "EdaAiError", "DEFAULT_DATA_URL"]
+__all__ = ["EdaAiClient", "EdaAiError", "DEFAULT_DATA_URL", "TOOL_NAMES", "TOOL_SCHEMAS"]
 __version__ = "0.1.0"
