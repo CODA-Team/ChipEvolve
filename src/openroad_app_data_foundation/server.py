@@ -118,7 +118,8 @@ class Handler(BaseHTTPRequestHandler):
                 if len(parts) == 5 and parts[4] == "points":
                     return path_points(self.store, snapshot_id, path_id, query)
                 if len(parts) == 5 and parts[4] == "context":
-                    return timing_path_context(self.store, snapshot_id, path_id)
+                    return timing_path_context(self.store, snapshot_id, path_id,
+                                               query.get("detail", "summary"))
                 if len(parts) == 5 and parts[4] == "expand":
                     return timing_path_context(self.store, snapshot_id, path_id)
             if len(parts) == 3 and parts[2] == "timing-paths":
@@ -131,11 +132,13 @@ class Handler(BaseHTTPRequestHandler):
                 return {"evidence": self.store.record_evidence(
                     parts[1], parts[3], parts[4])}
             if len(parts) == 5 and parts[2] == "objects" and parts[4] == "context":
-                return object_context(self.store, parts[1], parts[3])
+                return object_context(self.store, parts[1], parts[3],
+                                      query.get("detail", "summary"))
             if len(parts) == 4 and parts[2] == "objects":
                 return self.store.object(parts[1], parts[3], expansion=query.get("expansion", "summary"))
             if len(parts) == 5 and parts[2] == "nets" and parts[4] == "context":
-                return net_context(self.store, parts[1], parts[3])
+                return net_context(self.store, parts[1], parts[3],
+                                   query.get("detail", "summary"))
             if len(parts) == 4 and parts[2] == "nets":
                 return self.store.net(parts[1], parts[3])
             if len(parts) == 5 and parts[2] == "nets" and parts[4] == "expand":

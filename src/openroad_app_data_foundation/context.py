@@ -10,16 +10,18 @@ from .analysis_context import build_analysis_context, context_availability
 
 
 def timing_path_context(store: DataStore, snapshot_id: str,
-                        path_id: str) -> dict[str, Any]:
+                        path_id: str, detail: str = "summary") -> dict[str, Any]:
     """Compile the smallest useful cross-domain context for one path.
 
     All links come from explicit record identifiers or stored relations. This
     function never matches names and never reads a raw host file.
     """
     snapshot = store.snapshot(snapshot_id)
-    detail = timing_path(store, snapshot_id, path_id)
-    path = detail["timing_path"]
-    points = detail["timing_points"]
+    # note: `detail` is this function's verbosity argument, so the path record
+    # needs its own name here.
+    path_detail = timing_path(store, snapshot_id, path_id)
+    path = path_detail["timing_path"]
+    points = path_detail["timing_points"]
     analysis_context = build_analysis_context(snapshot, path)
     entities: list[dict[str, Any]] = []
     relations: list[dict[str, Any]] = []
@@ -79,7 +81,7 @@ def timing_path_context(store: DataStore, snapshot_id: str,
             evidence.append({"record_type": "snapshot", "record_id": snapshot_id,
                              "artifact": artifact})
 
-    return {
+    return _summarize({
         "task": {"type": "timing_analysis"},
         "scope": {"design": snapshot.get("design_id"),
                    "revision": snapshot.get("revision_id"),
@@ -98,11 +100,11 @@ def timing_path_context(store: DataStore, snapshot_id: str,
         "availability": context_availability(analysis_context),
         "evidence_policy": {"relationship_source": "data_foundation",
                              "inference_performed": False},
-    }
+    }, path_id, detail)
 
 
 def object_context(store: DataStore, snapshot_id: str,
-                   object_id: str) -> dict[str, Any]:
+                   object_id: str, detail: str = "summary") -> dict[str, Any]:
     """Compile one object and its explicit neighboring facts.
 
     The object ID is supplied by the indexed snapshot.  This function does
@@ -130,10 +132,11 @@ def object_context(store: DataStore, snapshot_id: str,
     evidence.extend(_evidence_rows(physical, "physical_context", object_id))
     evidence.extend(_snapshot_evidence(snapshot, snapshot_id))
     return _object_pack(snapshot, entity, observations, entities, relations,
-                        physical, evidence)
+                        physical, evidence, detail=detail)
 
 
-def net_context(store: DataStore, snapshot_id: str, net_id: str) -> dict[str, Any]:
+def net_context(store: DataStore, snapshot_id: str, net_id: str,
+                detail: str = "summary") -> dict[str, Any]:
     """Compile a net, its connected entities, physical route, and evidence."""
     snapshot = store.snapshot(snapshot_id)
     view = store.expand_net(snapshot_id, net_id)
@@ -158,14 +161,15 @@ def net_context(store: DataStore, snapshot_id: str, net_id: str) -> dict[str, An
     evidence.extend(_evidence_rows(physical, "physical_context", net_id))
     evidence.extend(_snapshot_evidence(snapshot, snapshot_id))
     return _object_pack(snapshot, entity, observations, entities, relations, physical,
-                        evidence, target_type="net")
+                        evidence, target_type="net", detail=detail)
 
 
 def _object_pack(snapshot: dict[str, Any], entity: dict[str, Any],
                  observations: list[dict[str, Any]], entities: list[dict[str, Any]],
                  relations: list[dict[str, Any]], physical: list[dict[str, Any]],
-                 evidence: list[dict[str, Any]], *, target_type: str = "object") -> dict[str, Any]:
-    return {
+                 evidence: list[dict[str, Any]], *, target_type: str = "object",
+                 detail: str = "summary") -> dict[str, Any]:
+    return _summarize({
         "task": {"type": f"{target_type}_context"},
         "scope": {key: snapshot.get(key) for key in (
             "design_id", "revision_id", "run_id", "stage", "snapshot_id")},
@@ -177,7 +181,70 @@ def _object_pack(snapshot: dict[str, Any], entity: dict[str, Any],
         "evidence": evidence,
         "evidence_policy": {"relationship_source": "data_foundation",
                              "inference_performed": False},
-    }
+    }, entity.get("object_id"), detail)
+
+
+def _summarize(pack: dict[str, Any], target_id: str | None,
+               detail: str = "summary") -> dict[str, Any]:
+    """Project a context pack so a partner can actually afford it.
+
+    Measured composition of one gcd net context (269,892 B in total):
+    ``physical_context`` 89 KB (identity 30 KB + per-record evidence 33 KB),
+    ``relations`` 85 KB (the repeated ``snapshot_id`` alone 14 KB),
+    ``entities`` 54 KB (identity 30 KB, geometry 11 KB) and the pack-level
+    ``evidence`` list 41 KB.  Geometry - the first thing this projection removed
+    - was only 8 KB, which is why the first attempt saved 9%.
+
+    So summary removes the *duplicated* parts: the snapshot-local identity echo,
+    the per-row ``snapshot_id`` (the pack's ``scope`` carries it), the
+    per-record evidence copies (the pack-level list still carries them) and
+    neighbour geometry.  ``detail=full`` returns the unprojected pack.
+    """
+    if detail not in {"summary", "full"}:
+        raise ValueError("detail must be summary or full")
+    pack["detail"] = detail
+    if detail == "full":
+        return pack
+    for collection in ("entities", "physical_context", "relations", "observations"):
+        for row in pack.get(collection, []):
+            if isinstance(row, dict):
+                row.pop("snapshot_id", None)
+    for entity in pack.get("entities", []):
+        if not isinstance(entity, dict):
+            continue
+        identity = entity.get("identity")
+        if isinstance(identity, dict):
+            entity["identity"] = _trim_identity(identity)
+        attributes = entity.get("attributes")
+        if isinstance(attributes, dict) and "geometry" in attributes:
+            trimmed = dict(attributes)
+            trimmed.pop("geometry", None)
+            entity["attributes"] = trimmed
+    for record in pack.get("physical_context", []):
+        if not isinstance(record, dict):
+            continue
+        record.pop("identity", None)
+        record.pop("evidence", None)
+        if record.get("object_id") != target_id:
+            record.pop("geometry", None)
+            record.pop("routing", None)
+    for relation in pack.get("relations", []):
+        if isinstance(relation, dict):
+            relation.pop("attributes", None)
+    return pack
+
+
+def _trim_identity(identity: dict[str, Any]) -> dict[str, Any]:
+    """Keep the IDs that identify the object; drop the snapshot-local echo."""
+    trimmed = {key: identity[key] for key in
+               ("native_id", "canonical_basis", "matching_status",
+                "structural_fingerprint") if key in identity}
+    canonical = identity.get("canonical")
+    if isinstance(canonical, dict):
+        trimmed["canonical"] = {key: canonical[key] for key in
+                                ("design_id", "revision_id", "kind",
+                                 "hierarchical_name") if key in canonical}
+    return trimmed
 
 
 def _related_object_ids(entity: dict[str, Any], relations: list[dict[str, Any]]) -> list[str]:

@@ -704,3 +704,43 @@ def test_canonical_metrics_project_orfs_stage_keys(tmp_path: Path) -> None:
         assert result["metrics"][0]["stage"] == "finish"
     finally:
         store.close()
+
+
+def test_context_detail_summary_projects_neighbour_geometry(tmp_path: Path) -> None:
+    """CONTRACT 4.8 / 4.10: context packs are projected unless detail=full."""
+    value = pack()
+    value["entities"].append({
+        "object_id": "top/u1/A", "snapshot_id": "snap-1", "kind": "pin",
+        "name": "u1/A", "parent_id": "top/u1",
+        "attributes": {"geometry": [{"geometry_type": "rect", "x_min": 1, "y_min": 2,
+                                     "x_max": 3, "y_max": 4}]}})
+    value["physical_context"].append({
+        "object_id": "top/u1/A", "snapshot_id": "snap-1",
+        "geometry": [{"geometry_type": "rect", "x_min": 1, "y_min": 2,
+                      "x_max": 3, "y_max": 4}],
+        "routing": [{"routing_type": "segment", "x_min": 0, "x_max": 5,
+                     "y_min": 0, "y_max": 0}]})
+    store = DataStore(tmp_path / "detail.db")
+    try:
+        store.register(value)
+        summary = object_context(store, "snap-1", "top/u1")
+        assert summary["detail"] == "summary"
+        child = next(row for row in summary["entities"] if row["object_id"] == "top/u1/A")
+        assert "geometry" not in child["attributes"]
+        child_physical = next(row for row in summary["physical_context"]
+                              if row["object_id"] == "top/u1/A")
+        assert "geometry" not in child_physical and "routing" not in child_physical
+        target = next(row for row in summary["physical_context"]
+                      if row["object_id"] == "top/u1")
+        assert target["x"] == 10.0
+
+        full = object_context(store, "snap-1", "top/u1", detail="full")
+        assert full["detail"] == "full"
+        assert len(json.dumps(full)) > len(json.dumps(summary))
+        child_full = next(row for row in full["entities"] if row["object_id"] == "top/u1/A")
+        assert child_full["attributes"]["geometry"]
+
+        with pytest.raises(ValueError):
+            object_context(store, "snap-1", "top/u1", detail="verbose")
+    finally:
+        store.close()
