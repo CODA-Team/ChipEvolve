@@ -256,7 +256,12 @@ class DataStore:
         if where:
             query += " AND " + where
             values.extend(params)
-        query += " ORDER BY ordinal"
+        # Ordering by ordinal forces the (snapshot, type, ordinal) index, which
+        # cannot also serve a predicate - SQLite then scans every row of the
+        # snapshot.  A filtered lookup does not need snapshot ordering, and a
+        # snapshot is immutable, so index order is stable for a given boundary.
+        if not where:
+            query += " ORDER BY ordinal"
         if limit is not None:
             query += " LIMIT ? OFFSET ?"
             values.extend((limit, offset))
@@ -357,16 +362,31 @@ class DataStore:
         for start in range(0, len(ids), 250):
             chunk = ids[start:start + 250]
             marks = ", ".join("?" for _ in chunk)
-            for row in self.filtered(
-                    snapshot_id, "relations",
-                    where=f"json_extract(payload, '$.subject_id') IN ({marks}) OR "
-                          f"json_extract(payload, '$.object_id') IN ({marks})",
-                    params=[*chunk, *chunk]):
-                key = str(row.get("relation_id"))
-                if key in seen:
-                    continue
-                seen.add(key)
-                result.append(row)
+            # Two index searches rather than one OR, for two measured reasons:
+            #
+            #  * without parentheses around the OR group SQLite parses
+            #    `snapshot_id = ? AND record_type = ? AND subject IN (?) OR
+            #    object IN (?)` as `(... AND subject IN (?)) OR object IN (?)`,
+            #    so the right branch escapes both filters - entity and physical
+            #    rows came back as if they were relations, and the plan became a
+            #    full scan of every record (1,523 ms instead of 0.1 ms);
+            #  * with parentheses it used only the object-side expression index
+            #    and silently dropped subject-only relations (1 row returned
+            #    where 2 exist).
+            #
+            # Each branch is an index search on its own expression index, so the
+            # union is correct and cheap; relation_id de-duplicates rows that
+            # match both.
+            for column in ("subject_id", "object_id"):
+                for row in self.filtered(
+                        snapshot_id, "relations",
+                        where=f"json_extract(payload, '$.{column}') IN ({marks})",
+                        params=chunk):
+                    key = str(row.get("relation_id"))
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    result.append(row)
         return result
 
     def records_for_object(self, snapshot_id: str, record_type: str,
