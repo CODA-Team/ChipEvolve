@@ -177,6 +177,8 @@ Data Foundation 只回答 **结构化 EDA 事实**。它不诊断、不建议、
 - `mapping_status` ∈ `mapped | unmapped`。`unmapped` 表示 STA→OpenDB 原生桥没有给出对应对象，**不得用名字猜**。
 - `analysis_context`: `{design, revision, run, snapshot, stage, analysis, check, corner, unit, status, missing[]}`，缺任一关键字段则 `status: unavailable`。
 - `include=context` 时额外附 `objects[]`（沿 ID 展开的实体）与 `physical_context[]`。
+- `detail`（`summary` 默认 / `full`）：summary 只保留**目标对象**的 geometry/routing，邻居保留身份、计数与 bbox；
+  full 返回未投影的完整 pack。这是为了让 context 响应可交付：gcd 上单条路径的 full pack 曾达 731 KB。
 
 ### 4.9 `get_instance(snapshot_id, name)`
 
@@ -193,6 +195,7 @@ Data Foundation 只回答 **结构化 EDA 事实**。它不诊断、不建议、
 `data`: `{object_id, kind, x, y, bbox, geometry[], routing[], coverage}`
 - `geometry[].geometry_type` ∈ `rect | polygon | wire_segment | via`；via 保留 `bottom_layer`/`top_layer`/`cut`，不得退化成矩形。
 - `routing[]` 只含该 net 的 segment/via；`coverage` 表明 geometry 是否 `partial`。
+- `detail`（`summary` 默认 / `full`）语义同上；`get_instance` 与 `get_net_context` 都接受它。
 
 ### 4.12 `get_evidence(snapshot_id, record_type?, record_id?, artifact_id?, limit, offset)`
 
