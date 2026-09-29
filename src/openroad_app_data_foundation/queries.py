@@ -12,29 +12,34 @@ from .repository import DataStore
 
 
 def list_timing_paths(store: DataStore, snapshot_id: str, query: dict[str, str]) -> dict[str, Any]:
-    rows = store.records(snapshot_id, "timing_paths", limit=10000)
     filters = {key: query[key] for key in ("analysis", "check", "group") if query.get(key)}
-    if filters:
-        rows = [row for row in rows if all(row.get(key) == value for key, value in filters.items())]
-    start = _offset(query)
-    rows = rows[start:start + _limit(query)]
-    return {"snapshot_id": snapshot_id, "timing_paths": rows, "count": len(rows),
-            "filters": filters}
+    where = " AND ".join(f"json_extract(payload, '$.{key}') = ?" for key in filters)
+    params = list(filters.values())
+    total = store.count_records(snapshot_id, "timing_paths", where=where, params=params)
+    limit, offset = _limit(query), _offset(query)
+    rows = store.filtered(snapshot_id, "timing_paths", where=where, params=params,
+                          limit=limit, offset=offset)
+    return {"snapshot_id": snapshot_id, "timing_paths": rows,
+            **_page(total, len(rows), limit, offset), "filters": filters}
 
 
 def list_observations(store: DataStore, snapshot_id: str,
                       query: dict[str, str]) -> dict[str, Any]:
-    """List structured facts without exposing the records table."""
-    rows = store.records(snapshot_id, "observations", limit=10000)
+    """List structured facts without exposing the records table.
+
+    ``name``/``scene`` resolve through the observation payload fallback chain,
+    so this filter stays in Python over the complete set (observations are
+    small); the pagination envelope is still exact.
+    """
+    rows = store.fetch_all(snapshot_id, "observations")
     filters = {key: query[key] for key in ("name", "kind", "object_id", "status", "scene")
                if query.get(key)}
     rows = [row for row in rows if all(
         _observation_value(row, key) == value for key, value in filters.items())]
-    start = _offset(query)
-    total = len(rows)
-    rows = rows[start:start + _limit(query)]
-    return {"snapshot_id": snapshot_id, "observations": rows, "count": total,
-            "filters": filters}
+    limit, offset = _limit(query), _offset(query)
+    page = rows[offset:offset + limit]
+    return {"snapshot_id": snapshot_id, "observations": page,
+            **_page(len(rows), len(page), limit, offset), "filters": filters}
 
 
 def list_metrics_for_run(store: DataStore, run_id: str,
@@ -43,7 +48,7 @@ def list_metrics_for_run(store: DataStore, run_id: str,
     rows: list[dict[str, Any]] = []
     for snapshot in store.snapshots(run_id=run_id):
         snapshot_id = snapshot["snapshot_id"]
-        for row in store.records(snapshot_id, "observations", limit=10000):
+        for row in store.fetch_all(snapshot_id, "observations"):
             if row.get("kind") != "metric":
                 continue
             if query.get("stage") and snapshot.get("stage") != query["stage"]:
@@ -56,10 +61,10 @@ def list_metrics_for_run(store: DataStore, run_id: str,
                          "design_id": snapshot.get("design_id"),
                          "revision_id": snapshot.get("revision_id"),
                          **row, "name": _observation_value(row, "name")})
-    start = _offset(query)
-    total = len(rows)
-    return {"run_id": run_id, "metrics": rows[start:start + _limit(query)],
-            "count": total,
+    limit, offset = _limit(query), _offset(query)
+    page = rows[offset:offset + limit]
+    return {"run_id": run_id, "metrics": page,
+            **_page(len(rows), len(page), limit, offset),
             "filters": {key: query[key] for key in ("stage", "name", "scene")
                         if query.get(key)}}
 
@@ -82,8 +87,9 @@ def timing_path(store: DataStore, snapshot_id: str, path_id: str) -> dict[str, A
     if not rows:
         raise KeyError(f"timing path not found: {path_id}")
     path = rows[0]
-    points = store.records(snapshot_id, "timing_points", limit=10000)
-    selected = [row for row in points if row.get("path_id") == path_id]
+    selected = store.filtered(snapshot_id, "timing_points",
+                              where="json_extract(payload, '$.path_id') = ?",
+                              params=(path_id,))
     selected.sort(key=lambda row: row.get("ordinal", 0))
     return {"snapshot_id": snapshot_id, "timing_path": path, "timing_points": selected,
             "analysis_context": build_analysis_context(store.snapshot(snapshot_id), path)}
@@ -92,10 +98,11 @@ def timing_path(store: DataStore, snapshot_id: str, path_id: str) -> dict[str, A
 def path_points(store: DataStore, snapshot_id: str, path_id: str, query: dict[str, str]) -> dict[str, Any]:
     result = timing_path(store, snapshot_id, path_id)
     points = result["timing_points"]
-    start = _offset(query)
     limit = _limit(query)
+    offset = _offset(query)
+    page = points[offset:offset + limit]
     return {"snapshot_id": snapshot_id, "path_id": path_id,
-            "timing_points": points[start:start + limit], "count": len(points)}
+            "timing_points": page, **_page(len(points), len(page), limit, offset)}
 
 
 def compare_timing_path(store: DataStore, from_snapshot_id: str,
@@ -324,8 +331,14 @@ def _match_objects(store: DataStore, from_snapshot_id: str, to_snapshot_id: str,
 
 def _path_objects(store: DataStore, snapshot_id: str,
                   points: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    entities = {row.get("object_id"): row for row in store.records(
-        snapshot_id, "entities", limit=10000) if isinstance(row.get("object_id"), str)}
+    wanted: list[str] = []
+    for point in points:
+        for field in ("pin_id", "instance_id", "net_id", "object_id"):
+            value = point.get(field)
+            if isinstance(value, str) and value:
+                wanted.append(value)
+    entities = {row.get("object_id"): row
+                for row in store.entities_by_ids(snapshot_id, wanted)}
     result: list[dict[str, Any]] = []
     seen: set[str] = set()
     for point in points:
@@ -427,6 +440,14 @@ def _change(before: Any, after: Any) -> dict[str, Any]:
     if isinstance(before, (int, float)) and isinstance(after, (int, float)):
         result["delta"] = after - before
     return result
+
+
+def _page(total: int, returned: int, limit: int, offset: int) -> dict[str, Any]:
+    """Pagination envelope shared by every list tool (CONTRACT section 5)."""
+    truncated = offset + returned < total
+    return {"count": total, "returned": returned, "limit": limit, "offset": offset,
+            "truncated": truncated,
+            "next_offset": offset + returned if truncated else None}
 
 
 def _limit(query: dict[str, str]) -> int:

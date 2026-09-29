@@ -16,6 +16,7 @@ from openroad_app_data_foundation.queries import (
     compare_timing_path,
     list_metrics_for_run,
     list_observations,
+    list_timing_paths,
 )
 from openroad_app_data_foundation.repository import DataStore
 
@@ -563,5 +564,85 @@ def test_stage_comparison_reports_explicit_path_matching_basis(
         comparison = compare_timing_path(store, "snap-1", "snap-route", "path-1")
         assert comparison["status"] == "COMPARABLE"
         assert comparison["matching"]["basis"] == expected
+    finally:
+        store.close()
+
+
+def test_scale_object_lookup_is_indexed_and_complete(tmp_path: Path) -> None:
+    """CONTRACT section 5: an object query must not depend on table size.
+
+    The previous implementation read the first 10000 entities and filtered in
+    Python, so an object past row 10000 looked absent while returning HTTP 200.
+    """
+    total = 12050
+    value = {
+        "snapshot": {
+            "snapshot_id": "snap-scale", "design_id": "chip", "revision_id": "rev-1",
+            "run_id": "run-scale", "stage": "route",
+            "created_at": "2026-01-01T00:00:00Z",
+        },
+        "entities": [
+            {"object_id": f"inst:{i}", "snapshot_id": "snap-scale",
+             "kind": "instance", "name": f"u{i:05d}"}
+            for i in range(total)
+        ],
+        "relations": [
+            {"relation_id": f"rel:{i}", "snapshot_id": "snap-scale",
+             "subject_id": f"inst:{i}", "predicate": "connected_to",
+             "object_id": f"net:{i}"}
+            for i in range(total)
+        ],
+        "physical_context": [
+            {"object_id": f"inst:{i}", "snapshot_id": "snap-scale",
+             "instance_name": f"u{i:05d}", "x": float(i), "y": 0.0}
+            for i in range(total)
+        ],
+    }
+    store = DataStore(tmp_path / "scale.db")
+    try:
+        store.register(value)
+        far = total - 1
+        found = store.find_instance("snap-scale", f"u{far:05d}")
+        assert [row["object_id"] for row in found] == [f"inst:{far}"]
+
+        context = object_context(store, "snap-scale", f"inst:{far}")
+        assert context["target"]["id"] == f"inst:{far}"
+        assert [row["relation_id"] for row in context["relations"]] == [f"rel:{far}"]
+        assert context["physical_context"][0]["x"] == float(far)
+
+        plan = list(store.connection.execute(
+            "EXPLAIN QUERY PLAN SELECT payload FROM records "
+            "WHERE snapshot_id = ? AND record_type = ? "
+            "AND json_extract(payload, '$.name') = ?",
+            ("snap-scale", "entities", f"u{far:05d}")))
+        detail = " ".join(str(row["detail"]) for row in plan)
+        assert "records_json_name" in detail, detail
+        assert "SEARCH" in detail.upper(), detail
+    finally:
+        store.close()
+
+
+def test_list_pagination_reports_total_and_truncation(tmp_path: Path) -> None:
+    """CONTRACT section 5: count is the total, not the page size."""
+    value = pack()
+    value["timing_paths"] = [
+        {"path_id": f"path-{index}", "snapshot_id": "snap-1",
+         "analysis": "view", "check": "setup", "group": "clk",
+         "startpoint": "top/u1/A", "endpoint": "top/u2/Z",
+         "corner": "slow", "unit": "s"}
+        for index in range(5)
+    ]
+    store = DataStore(tmp_path / "page.db")
+    try:
+        store.register(value)
+        first = list_timing_paths(store, "snap-1", {"limit": "2", "offset": "0"})
+        assert first["count"] == 5
+        assert first["returned"] == 2
+        assert first["truncated"] is True
+        assert first["next_offset"] == 2
+        last = list_timing_paths(store, "snap-1", {"limit": "2", "offset": "4"})
+        assert last["returned"] == 1
+        assert last["truncated"] is False
+        assert last["next_offset"] is None
     finally:
         store.close()

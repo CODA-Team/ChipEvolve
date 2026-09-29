@@ -44,20 +44,23 @@ def timing_path_context(store: DataStore, snapshot_id: str,
                 if parent is not None:
                     seen_entities.add(parent_id)
                     entities.append(parent)
-            for relation in store.records(snapshot_id, "relations", limit=10000):
-                if relation.get("subject_id") in {object_id, parent_id} \
-                        or relation.get("object_id") in {object_id, parent_id}:
-                    relation_id = relation.get("relation_id")
-                    if relation_id not in seen_relations:
-                        seen_relations.add(str(relation_id))
-                        relations.append(relation)
-                    _append_related_entity(store, snapshot_id, relation, entities,
-                                           seen_entities)
         for key in ("evidence",):
             for item in point.get(key, []):
                 if isinstance(item, dict):
                     evidence.append({"record_type": "timing_points",
                                      "record_id": point.get("point_id"), **item})
+
+    # One indexed relation query for every object collected above.  The old
+    # per-object full-table scan was O(points x relations) and stopped at the
+    # 10000-row ceiling, which silently dropped relations on real designs.
+    for relation in store.relations_touching(
+            snapshot_id, [row["object_id"] for row in entities]):
+        relation_id = relation.get("relation_id")
+        if relation_id in seen_relations:
+            continue
+        seen_relations.add(str(relation_id))
+        relations.append(relation)
+        _append_related_entity(store, snapshot_id, relation, entities, seen_entities)
 
     for entity in entities:
         object_id = entity.get("object_id")

@@ -60,7 +60,7 @@ def compare_metric(store: DataStore, from_snapshot_id: str,
 
 def _metric_rows(store: DataStore, snapshot_id: str, name: str,
                  scene: str | None) -> list[dict[str, Any]]:
-    rows = store.records(snapshot_id, "observations", limit=10000)
+    rows = store.fetch_all(snapshot_id, "observations")
     return [row for row in rows
             if row.get("kind") == "metric"
             and _value(row, "name") == name

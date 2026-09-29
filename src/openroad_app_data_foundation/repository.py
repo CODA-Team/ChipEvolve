@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -56,6 +56,21 @@ class DataStore:
             CREATE TABLE IF NOT EXISTS imported_artifacts (
                 artifact_id TEXT PRIMARY KEY
             );
+            CREATE INDEX IF NOT EXISTS records_json_name
+                ON records(snapshot_id, record_type,
+                           json_extract(payload, '$.name'));
+            CREATE INDEX IF NOT EXISTS records_json_subject
+                ON records(snapshot_id, record_type,
+                           json_extract(payload, '$.subject_id'));
+            CREATE INDEX IF NOT EXISTS records_json_object
+                ON records(snapshot_id, record_type,
+                           json_extract(payload, '$.object_id'));
+            CREATE INDEX IF NOT EXISTS records_json_parent
+                ON records(snapshot_id, record_type,
+                           json_extract(payload, '$.parent_id'));
+            CREATE INDEX IF NOT EXISTS records_json_path
+                ON records(snapshot_id, record_type,
+                           json_extract(payload, '$.path_id'));
             """
         )
         self.connection.commit()
@@ -177,19 +192,11 @@ class DataStore:
 
     def find_instance(self, snapshot_id: str, name: str) -> list[dict[str, Any]]:
         """Find instances by an exact canonical or hierarchical name."""
-        rows = self.records(snapshot_id, "entities", limit=10000)
-        return [row for row in rows
-                if row.get("kind") == "instance"
-                and (row.get("name") == name
-                     or row.get("attributes", {}).get("hierarchical_name") == name)]
+        return self.entities_named(snapshot_id, "instance", name)
 
     def find_net(self, snapshot_id: str, name: str) -> list[dict[str, Any]]:
         """Find nets by an exact indexed name, never by a path scan or guess."""
-        rows = self.records(snapshot_id, "entities", limit=10000)
-        return [row for row in rows
-                if row.get("kind") == "net"
-                and (row.get("name") == name
-                     or row.get("attributes", {}).get("hierarchical_name") == name)]
+        return self.entities_named(snapshot_id, "net", name)
 
     def net(self, snapshot_id: str, net_id: str) -> dict[str, Any]:
         result = self._entity_context(snapshot_id, net_id, "net")
@@ -228,6 +235,125 @@ class DataStore:
         values.extend((limit, offset))
         return [json.loads(row["payload"]) for row in self.connection.execute(query, values)]
 
+    def filtered(self, snapshot_id: str, record_type: str, *, where: str = "",
+                 params: Sequence[Any] = (), limit: int | None = None,
+                 offset: int = 0) -> list[dict[str, Any]]:
+        """Select records with an explicit SQL predicate on their payload.
+
+        Callers must pass a bounded ``limit`` unless they genuinely need every
+        row; unbounded reads go through :meth:`fetch_all`, which pages instead
+        of silently cutting the result at the 10000-row ceiling.
+        """
+        if record_type not in RECORD_TYPES:
+            raise KeyError(f"unsupported record type: {record_type}")
+        if limit is not None and not 1 <= limit <= 10000:
+            raise ValueError("limit must be between 1 and 10000")
+        if offset < 0:
+            raise ValueError("offset must not be negative")
+        self.snapshot(snapshot_id)
+        query = "SELECT payload FROM records WHERE snapshot_id = ? AND record_type = ?"
+        values: list[Any] = [snapshot_id, record_type]
+        if where:
+            query += " AND " + where
+            values.extend(params)
+        query += " ORDER BY ordinal"
+        if limit is not None:
+            query += " LIMIT ? OFFSET ?"
+            values.extend((limit, offset))
+        return [json.loads(row["payload"]) for row in self.connection.execute(query, values)]
+
+    def count_records(self, snapshot_id: str, record_type: str, *, where: str = "",
+                      params: Sequence[Any] = ()) -> int:
+        """Count rows for one snapshot and optional predicate, without scanning."""
+        if record_type not in RECORD_TYPES:
+            raise KeyError(f"unsupported record type: {record_type}")
+        query = ("SELECT COUNT(*) AS count FROM records "
+                 "WHERE snapshot_id = ? AND record_type = ?")
+        values: list[Any] = [snapshot_id, record_type]
+        if where:
+            query += " AND " + where
+            values.extend(params)
+        row = self.connection.execute(query, values).fetchone()
+        return int(row["count"])
+
+    def fetch_all(self, snapshot_id: str, record_type: str) -> list[dict[str, Any]]:
+        """Read every record of one type through bounded pages.
+
+        Every context query used to pass ``limit=10000`` and then filter in
+        Python, which returned a *silently short* answer once a design carried
+        more than 10000 records.  This helper removes the ceiling without
+        loading unbounded SQL in one shot.
+        """
+        self.snapshot(snapshot_id)
+        total = self._count(snapshot_id, record_type)
+        rows: list[dict[str, Any]] = []
+        while len(rows) < total:
+            rows.extend(self.records(snapshot_id, record_type, limit=10000,
+                                     offset=len(rows)))
+        return rows
+
+    def entities_named(self, snapshot_id: str, kind: str,
+                       name: str) -> list[dict[str, Any]]:
+        """Exact indexed-name lookup inside one snapshot, through SQL."""
+        return self.filtered(
+            snapshot_id, "entities",
+            where="json_extract(payload, '$.kind') = ? AND ("
+                  "json_extract(payload, '$.name') = ? OR "
+                  "json_extract(payload, '$.attributes.hierarchical_name') = ?)",
+            params=(kind, name, name))
+
+    def entities_by_ids(self, snapshot_id: str,
+                        object_ids: Sequence[str]) -> list[dict[str, Any]]:
+        ids = [str(item) for item in dict.fromkeys(object_ids)]
+        if not ids:
+            return []
+        result: list[dict[str, Any]] = []
+        # ponytail: chunk at 250 IDs to stay far below SQLite's variable limit.
+        for start in range(0, len(ids), 250):
+            chunk = ids[start:start + 250]
+            marks = ", ".join("?" for _ in chunk)
+            result.extend(self.filtered(snapshot_id, "entities",
+                                        where=f"record_id IN ({marks})",
+                                        params=chunk))
+        return result
+
+    def children_of(self, snapshot_id: str, parent_id: str) -> list[dict[str, Any]]:
+        return self.filtered(snapshot_id, "entities",
+                             where="json_extract(payload, '$.parent_id') = ?",
+                             params=(parent_id,))
+
+    def relations_touching(self, snapshot_id: str,
+                           object_ids: Sequence[str]) -> list[dict[str, Any]]:
+        """Relations whose subject or object is one of the supplied IDs."""
+        ids = [str(item) for item in dict.fromkeys(object_ids)]
+        if not ids:
+            return []
+        result: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        # ponytail: chunk at 250 IDs to stay far below SQLite's variable limit.
+        # A relation whose two ends land in different chunks would otherwise be
+        # returned twice, so de-duplicate by relation_id.
+        for start in range(0, len(ids), 250):
+            chunk = ids[start:start + 250]
+            marks = ", ".join("?" for _ in chunk)
+            for row in self.filtered(
+                    snapshot_id, "relations",
+                    where=f"json_extract(payload, '$.subject_id') IN ({marks}) OR "
+                          f"json_extract(payload, '$.object_id') IN ({marks})",
+                    params=[*chunk, *chunk]):
+                key = str(row.get("relation_id"))
+                if key in seen:
+                    continue
+                seen.add(key)
+                result.append(row)
+        return result
+
+    def records_for_object(self, snapshot_id: str, record_type: str,
+                           object_id: str) -> list[dict[str, Any]]:
+        return self.filtered(snapshot_id, record_type,
+                             where="json_extract(payload, '$.object_id') = ?",
+                             params=(object_id,))
+
     def object(self, snapshot_id: str, object_id: str, *, expansion: str = "summary") -> dict[str, Any]:
         if expansion not in {"summary", "children", "full"}:
             raise ValueError("expansion must be summary, children, or full")
@@ -236,9 +362,7 @@ class DataStore:
             raise KeyError(f"object not found: {object_id}")
         result: dict[str, Any] = {"entity": rows[0], "expansion": expansion}
         if expansion in {"children", "full"}:
-            result["children"] = [row for row in self.records(
-                snapshot_id, "entities", limit=10000)
-                if row.get("parent_id") == object_id]
+            result["children"] = self.children_of(snapshot_id, object_id)
         if expansion == "full":
             result["observations"] = self._by_object(snapshot_id, "observations", object_id)
             result["relations"] = self._related(snapshot_id, object_id)
@@ -254,7 +378,7 @@ class DataStore:
         """Return fact locations that cite one registered artifact."""
         result: list[dict[str, Any]] = []
         for record_type in RECORD_TYPES:
-            for row in self.records(snapshot_id, record_type, limit=10000):
+            for row in self.fetch_all(snapshot_id, record_type):
                 for evidence in row.get("evidence", []):
                     if not isinstance(evidence, dict):
                         continue
@@ -273,12 +397,10 @@ class DataStore:
                  "evidence": item} for item in rows[0].get("evidence", [])]
 
     def _by_object(self, snapshot_id: str, record_type: str, object_id: str) -> list[dict[str, Any]]:
-        return [row for row in self.records(snapshot_id, record_type, limit=10000)
-                if row.get("object_id") == object_id]
+        return self.records_for_object(snapshot_id, record_type, object_id)
 
     def _related(self, snapshot_id: str, object_id: str) -> list[dict[str, Any]]:
-        return [row for row in self.records(snapshot_id, "relations", limit=10000)
-                if row.get("subject_id") == object_id or row.get("object_id") == object_id]
+        return self.relations_touching(snapshot_id, [object_id])
 
     def _count(self, snapshot_id: str, record_type: str) -> int:
         row = self.connection.execute(
@@ -307,7 +429,7 @@ class DataStore:
 
     def _related_ids(self, snapshot_id: str, object_id: str) -> list[str]:
         ids: list[str] = []
-        for relation in self.records(snapshot_id, "relations", limit=10000):
+        for relation in self.relations_touching(snapshot_id, [object_id]):
             if relation.get("subject_id") == object_id:
                 ids.append(str(relation.get("object_id")))
             elif relation.get("object_id") == object_id:
