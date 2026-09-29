@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from .analysis_context import (
+    build_analysis_context, context_availability, context_differences,
+)
+from .identity import canonical_key
 from .repository import DataStore
 
 
@@ -18,6 +22,61 @@ def list_timing_paths(store: DataStore, snapshot_id: str, query: dict[str, str])
             "filters": filters}
 
 
+def list_observations(store: DataStore, snapshot_id: str,
+                      query: dict[str, str]) -> dict[str, Any]:
+    """List structured facts without exposing the records table."""
+    rows = store.records(snapshot_id, "observations", limit=10000)
+    filters = {key: query[key] for key in ("name", "kind", "object_id", "status", "scene")
+               if query.get(key)}
+    rows = [row for row in rows if all(
+        _observation_value(row, key) == value for key, value in filters.items())]
+    start = _offset(query)
+    total = len(rows)
+    rows = rows[start:start + _limit(query)]
+    return {"snapshot_id": snapshot_id, "observations": rows, "count": total,
+            "filters": filters}
+
+
+def list_metrics_for_run(store: DataStore, run_id: str,
+                         query: dict[str, str]) -> dict[str, Any]:
+    """Collect metric observations across the immutable snapshots of one run."""
+    rows: list[dict[str, Any]] = []
+    for snapshot in store.snapshots(run_id=run_id):
+        snapshot_id = snapshot["snapshot_id"]
+        for row in store.records(snapshot_id, "observations", limit=10000):
+            if row.get("kind") != "metric":
+                continue
+            if query.get("stage") and snapshot.get("stage") != query["stage"]:
+                continue
+            if query.get("name") and _observation_value(row, "name") != query["name"]:
+                continue
+            if query.get("scene") and _observation_value(row, "scene") != query["scene"]:
+                continue
+            rows.append({"snapshot_id": snapshot_id, "stage": snapshot.get("stage"),
+                         "design_id": snapshot.get("design_id"),
+                         "revision_id": snapshot.get("revision_id"),
+                         **row, "name": _observation_value(row, "name")})
+    start = _offset(query)
+    total = len(rows)
+    return {"run_id": run_id, "metrics": rows[start:start + _limit(query)],
+            "count": total,
+            "filters": {key: query[key] for key in ("stage", "name", "scene")
+                        if query.get(key)}}
+
+
+def _observation_value(row: dict[str, Any], name: str) -> Any:
+    if name == "name":
+        value = row.get("name") or row.get("metric")
+        if value is not None:
+            return value
+        observation_id = row.get("observation_id")
+        return observation_id.removeprefix("metric:") if isinstance(observation_id, str) else None
+    if name == "scene":
+        context = row.get("context")
+        return context.get("scene") if isinstance(context, dict) else row.get(name)
+    return row.get(name)
+
+
 def timing_path(store: DataStore, snapshot_id: str, path_id: str) -> dict[str, Any]:
     rows = store.records(snapshot_id, "timing_paths", record_id=path_id, limit=1)
     if not rows:
@@ -26,7 +85,8 @@ def timing_path(store: DataStore, snapshot_id: str, path_id: str) -> dict[str, A
     points = store.records(snapshot_id, "timing_points", limit=10000)
     selected = [row for row in points if row.get("path_id") == path_id]
     selected.sort(key=lambda row: row.get("ordinal", 0))
-    return {"snapshot_id": snapshot_id, "timing_path": path, "timing_points": selected}
+    return {"snapshot_id": snapshot_id, "timing_path": path, "timing_points": selected,
+            "analysis_context": build_analysis_context(store.snapshot(snapshot_id), path)}
 
 
 def path_points(store: DataStore, snapshot_id: str, path_id: str, query: dict[str, str]) -> dict[str, Any]:
@@ -39,35 +99,100 @@ def path_points(store: DataStore, snapshot_id: str, path_id: str, query: dict[st
 
 
 def compare_timing_path(store: DataStore, from_snapshot_id: str,
-                        to_snapshot_id: str, path_id: str) -> dict[str, Any]:
-    """Compare one explicitly identical timing path across two snapshots."""
+                        to_snapshot_id: str, path_id: str,
+                        to_path_id: str | None = None) -> dict[str, Any]:
+    """Compare paths only after proving their semantic prerequisites."""
+    from_snapshot = store.snapshot(from_snapshot_id)
+    to_snapshot = store.snapshot(to_snapshot_id)
     before = timing_path(store, from_snapshot_id, path_id)
-    after = timing_path(store, to_snapshot_id, path_id)
+    target_path_id = to_path_id or path_id
+    after = timing_path(store, to_snapshot_id, target_path_id)
     before_path, after_path = before["timing_path"], after["timing_path"]
-    before_ids = _point_ids(before["timing_points"])
-    after_ids = _point_ids(after["timing_points"])
-    shared_ids = before_ids & after_ids
-    kinds = {row["object_id"]: row.get("kind") for row in store.records(
-        from_snapshot_id, "entities", limit=10000)}
-    physical = _physical_changes(store, from_snapshot_id, to_snapshot_id, shared_ids, kinds)
+    before_context = before["analysis_context"]
+    after_context = after["analysis_context"]
+    reasons = _comparison_reasons(
+        before_context, after_context, before_path, after_path)
+    path_basis, path_detail = _path_match(before_path, after_path)
+    evidence = {"from": _path_evidence(store, from_snapshot_id, path_id, before_path),
+                "to": _path_evidence(store, to_snapshot_id, target_path_id, after_path)}
+    if reasons or path_basis == "unresolved":
+        if path_basis == "unresolved":
+            reasons.append({"field": "path_identity", "reason": "unresolved"})
+        return _incomparable(
+            from_snapshot_id, to_snapshot_id, path_id, target_path_id,
+            before_context, after_context, before_path, after_path,
+            reasons, path_detail, evidence,
+        )
+
+    matched, unresolved = _match_objects(
+        store, from_snapshot_id, to_snapshot_id,
+        before["timing_points"], after["timing_points"],
+    )
+    physical = _physical_changes(store, from_snapshot_id, to_snapshot_id, matched)
     return {
+        "status": "COMPARABLE",
         "from_snapshot_id": from_snapshot_id,
         "to_snapshot_id": to_snapshot_id,
-        "matching": {"basis": "exact path_id and object_id", "path_id": path_id},
+        "matching": {"basis": path_basis,
+                     "path_id": {"from": path_id, "to": target_path_id,
+                                 "scope": "snapshot-local"},
+                     "path_identity": path_detail,
+                     "conditions": {"analysis_context": "available and equal",
+                                    "endpoints": "equal", "path_identity": path_basis}},
+        "analysis_context": {"from": before_context, "to": after_context},
         "timing": {name: _change(before_path.get(name), after_path.get(name))
                    for name in ("slack", "delay")},
         "connections": _net_changes(before["timing_points"], after["timing_points"]),
         "physical": physical,
-        "evidence": {"from": [*before_path.get("evidence", []),
-                              *store.snapshot(from_snapshot_id).get("source_artifacts", [])],
-                     "to": [*after_path.get("evidence", []),
-                            *store.snapshot(to_snapshot_id).get("source_artifacts", [])]},
+        "matched_objects": _matched_relations(matched),
+        "unmatched_objects": unresolved,
+        "relations": _matched_relations(matched),
+        "availability": context_availability(before_context),
+        "evidence": evidence,
     }
 
 
-def _point_ids(points: list[dict[str, Any]]) -> set[str]:
-    return {str(point[key]) for point in points for key in ("instance_id", "net_id", "object_id")
-            if isinstance(point.get(key), str) and point[key]}
+def _comparison_reasons(left: dict[str, Any], right: dict[str, Any],
+                        left_path: dict[str, Any], right_path: dict[str, Any]
+                        ) -> list[dict[str, Any]]:
+    reasons = context_differences(left, right)
+    for field in ("startpoint", "endpoint", "group"):
+        left_value, right_value = left_path.get(field), right_path.get(field)
+        if not _present(left_value) or not _present(right_value):
+            reasons.append({"field": field, "reason": "missing",
+                            "from": left_value, "to": right_value})
+        elif left_value != right_value:
+            reasons.append({"field": field, "reason": "mismatch",
+                            "from": left_value, "to": right_value})
+    return reasons
+
+
+def _path_match(left: dict[str, Any], right: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    native_left = _path_identity_value(left, "native_path_id")
+    native_right = _path_identity_value(right, "native_path_id")
+    if native_left and native_right and native_left == native_right:
+        return "native_exact", {"native_path_id": native_left}
+    structural_left = _path_identity_value(left, "structural_fingerprint")
+    structural_right = _path_identity_value(right, "structural_fingerprint")
+    if structural_left and structural_right and structural_left == structural_right:
+        return "structural_verified", {"structural_fingerprint": structural_left}
+    fields = ("startpoint", "endpoint", "analysis", "check", "corner", "unit", "group")
+    if all(_present(left.get(field)) and left.get(field) == right.get(field)
+           for field in fields):
+        return "scoped_name", {field: left.get(field) for field in fields}
+    return "unresolved", {"from_path_id": left.get("path_id"),
+                           "to_path_id": right.get("path_id")}
+
+
+def _path_identity_value(path: dict[str, Any], name: str) -> str | None:
+    value = path.get(name)
+    if isinstance(value, str) and value:
+        return value
+    identity = path.get("path_identity")
+    if isinstance(identity, dict):
+        value = identity.get(name)
+        return value if isinstance(value, str) and value else None
+    return None
 
 
 def _net_changes(before: list[dict[str, Any]], after: list[dict[str, Any]]) -> dict[str, list[str]]:
@@ -75,28 +200,213 @@ def _net_changes(before: list[dict[str, Any]], after: list[dict[str, Any]]) -> d
     after_nets = {str(point["net_id"]) for point in after if point.get("net_id")}
     return {"shared": sorted(before_nets & after_nets),
             "only_from": sorted(before_nets - after_nets),
-            "only_to": sorted(after_nets - before_nets)}
+            "only_to": sorted(after_nets - before_nets),
+            "basis": "snapshot-local point references; not cross-stage identity"}
 
 
 def _physical_changes(store: DataStore, from_snapshot_id: str, to_snapshot_id: str,
-                      object_ids: set[str], kinds: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+                      matched: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     instances, nets = [], []
-    for object_id in sorted(object_ids):
-        before = _physical(store, from_snapshot_id, object_id)
-        after = _physical(store, to_snapshot_id, object_id)
+    for item in matched:
+        from_id = item["from_object_id"]
+        to_id = item["to_object_id"]
+        before = _physical(store, from_snapshot_id, from_id)
+        after = _physical(store, to_snapshot_id, to_id)
         if before is None or after is None:
             continue
-        if kinds.get(object_id) == "instance" and all(
+        if item.get("kind") == "instance" and all(
                 isinstance(value.get(name), (int, float))
                 for value in (before, after) for name in ("x", "y")):
-            instances.append({"object_id": object_id,
+            instances.append({"from_object_id": from_id, "to_object_id": to_id,
+                              "matching_basis": item["matching_basis"],
+                              "evidence": item["evidence"],
                               "from": {name: before[name] for name in ("x", "y")},
                               "to": {name: after[name] for name in ("x", "y")},
                               "delta": {name: after[name] - before[name] for name in ("x", "y")}})
-        if kinds.get(object_id) == "net":
-            nets.append({"object_id": object_id,
+        if item.get("kind") == "net":
+            nets.append({"from_object_id": from_id, "to_object_id": to_id,
+                         "matching_basis": item["matching_basis"],
+                         "evidence": item["evidence"],
                          "wire_length": _change(_wire_length(before), _wire_length(after))})
     return {"instances": instances, "nets": nets}
+
+
+def _matched_relations(matched: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [{
+        "predicate": "same_design_object_as",
+        "from_object_id": item["from_object_id"],
+        "to_object_id": item["to_object_id"],
+        "identity": item["identity"],
+        "matching_basis": item["matching_basis"],
+        "evidence": item["evidence"],
+    } for item in matched]
+
+
+def _incomparable(from_snapshot_id: str, to_snapshot_id: str,
+                  from_path_id: str, to_path_id: str,
+                  from_context: dict[str, Any], to_context: dict[str, Any],
+                  from_path: dict[str, Any], to_path: dict[str, Any],
+                  reasons: list[dict[str, Any]], path_detail: dict[str, Any],
+                  evidence: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
+    return {
+        "status": "INCOMPARABLE",
+        "from_snapshot_id": from_snapshot_id,
+        "to_snapshot_id": to_snapshot_id,
+        "matching": {"basis": "unresolved",
+                     "path_id": {"from": from_path_id, "to": to_path_id,
+                                 "scope": "snapshot-local"},
+                     "path_identity": path_detail,
+                     "reasons": reasons},
+        "analysis_context": {"from": from_context, "to": to_context},
+        "path_identity": {"from": _path_view(from_path),
+                          "to": _path_view(to_path)},
+        "availability": context_availability(from_context),
+        "limitations": [{"status": "incomparable", "reasons": reasons}],
+        "evidence": evidence,
+    }
+
+
+def _match_objects(store: DataStore, from_snapshot_id: str, to_snapshot_id: str,
+                   from_points: list[dict[str, Any]],
+                   to_points: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    from_objects = _path_objects(store, from_snapshot_id, from_points)
+    to_objects = _path_objects(store, to_snapshot_id, to_points)
+    by_native = _identity_candidates(to_objects, "native_id")
+    by_structural = _identity_candidates(to_objects, "structural_fingerprint")
+    by_canonical = _canonical_candidates(to_objects)
+    matched: list[dict[str, Any]] = []
+    unresolved: list[dict[str, Any]] = []
+    for source in from_objects:
+        identity = source.get("identity") or {}
+        candidates: list[dict[str, Any]] = []
+        basis = "unresolved"
+        native_id = identity.get("native_id")
+        if isinstance(native_id, str) and native_id:
+            candidates = by_native.get((source.get("kind"), native_id), [])
+            basis = "native_exact"
+        if not candidates:
+            fingerprint = identity.get("structural_fingerprint")
+            if isinstance(fingerprint, str) and fingerprint:
+                candidates = by_structural.get((source.get("kind"), fingerprint), [])
+                basis = "structural_verified"
+        if not candidates:
+            key = _canonical_tuple(identity)
+            if key is not None:
+                candidates = by_canonical.get(key, [])
+                basis = "scoped_name"
+        if len(candidates) == 1:
+            target = candidates[0]
+            item = {
+                "from_object_id": source["object_id"],
+                "to_object_id": target["object_id"],
+                "kind": source.get("kind"),
+                "matching_basis": basis,
+                "identity": {"from": source.get("identity"),
+                             "to": target.get("identity")},
+            }
+            item["evidence"] = {
+                "from": _object_evidence(store, from_snapshot_id, source["object_id"]),
+                "to": _object_evidence(store, to_snapshot_id, target["object_id"]),
+            }
+            matched.append(item)
+            continue
+        unresolved.append({
+            "status": "ambiguous" if len(candidates) > 1 else "unresolved",
+            "from_object_id": source["object_id"],
+            "identity": source.get("identity"),
+            "matching_basis": basis,
+            "candidate_object_ids": [item["object_id"] for item in candidates],
+            "evidence": {"from": _object_evidence(
+                store, from_snapshot_id, source["object_id"])},
+        })
+    return matched, unresolved
+
+
+def _path_objects(store: DataStore, snapshot_id: str,
+                  points: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    entities = {row.get("object_id"): row for row in store.records(
+        snapshot_id, "entities", limit=10000) if isinstance(row.get("object_id"), str)}
+    result: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for point in points:
+        for field in ("pin_id", "instance_id", "net_id", "object_id"):
+            object_id = point.get(field)
+            if not isinstance(object_id, str) or object_id in seen:
+                continue
+            seen.add(object_id)
+            entity = entities.get(object_id)
+            result.append({"object_id": object_id,
+                           "kind": entity.get("kind") if entity else None,
+                           "identity": entity.get("identity") if entity else None})
+    return result
+
+
+def _identity_candidates(objects: list[dict[str, Any]], field: str
+                         ) -> dict[tuple[Any, Any], list[dict[str, Any]]]:
+    result: dict[tuple[Any, Any], list[dict[str, Any]]] = {}
+    for item in objects:
+        value = (item.get("identity") or {}).get(field)
+        if isinstance(value, str) and value:
+            result.setdefault((item.get("kind"), value), []).append(item)
+    return result
+
+
+def _canonical_candidates(objects: list[dict[str, Any]]) -> dict[tuple[Any, ...], list[dict[str, Any]]]:
+    result: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
+    for item in objects:
+        key = _canonical_tuple(item.get("identity"))
+        if key is not None:
+            result.setdefault(key, []).append(item)
+    return result
+
+
+def _canonical_tuple(identity: dict[str, Any] | None) -> tuple[Any, ...] | None:
+    if not isinstance(identity, dict):
+        return None
+    canonical = identity.get("canonical")
+    if not isinstance(canonical, dict) or identity.get("matching_status") == "ambiguous":
+        return None
+    return canonical_key(identity)
+
+
+def _object_evidence(store: DataStore, snapshot_id: str,
+                     object_id: str) -> list[dict[str, Any]]:
+    entity = store.records(snapshot_id, "entities", record_id=object_id, limit=1)
+    physical = store.records(snapshot_id, "physical_context", record_id=object_id, limit=1)
+    result = [{"record_type": "entities", "record_id": object_id,
+               "evidence": item}
+              for item in (entity[0].get("evidence", []) if entity else [])
+              if isinstance(item, dict)]
+    result.extend({"record_type": "physical_context", "record_id": object_id,
+                   "evidence": item}
+                  for item in (physical[0].get("evidence", []) if physical else [])
+                  if isinstance(item, dict))
+    return result or [{"status": "unavailable", "reason": "no evidence reference",
+                      "record_id": object_id}]
+
+
+def _path_evidence(store: DataStore, snapshot_id: str, path_id: str,
+                   path: dict[str, Any]) -> list[dict[str, Any]]:
+    result = [{"record_type": "timing_paths", "record_id": path_id,
+               "evidence": item}
+              for item in path.get("evidence", []) if isinstance(item, dict)]
+    if not result:
+        result.append({"record_type": "timing_paths", "record_id": path_id,
+                       "evidence": {"status": "unavailable",
+                                    "reason": "no evidence reference"}})
+    return result + [{"record_type": "snapshot", "record_id": snapshot_id,
+                      "artifact": item}
+                     for item in store.snapshot(snapshot_id).get("source_artifacts", [])
+                     if isinstance(item, dict)]
+
+
+def _path_view(path: dict[str, Any]) -> dict[str, Any]:
+    return {name: path.get(name) for name in (
+        "path_id", "startpoint", "endpoint", "analysis", "check", "corner", "unit")}
+
+
+def _present(value: Any) -> bool:
+    return isinstance(value, str) and bool(value)
 
 
 def _physical(store: DataStore, snapshot_id: str, object_id: str) -> dict[str, Any] | None:

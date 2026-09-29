@@ -12,7 +12,15 @@ from openroad_platform_contracts import ContractError
 
 from .bundle import import_ready_bundles, load_run_bundle
 from .context import net_context, object_context, timing_path_context
-from .queries import compare_timing_path, list_timing_paths, path_points, timing_path
+from .metric_queries import compare_metric
+from .queries import (
+    compare_timing_path,
+    list_metrics_for_run,
+    list_observations,
+    list_timing_paths,
+    path_points,
+    timing_path,
+)
 from .repository import DataStore
 
 
@@ -70,10 +78,22 @@ class Handler(BaseHTTPRequestHandler):
             if not run_id:
                 raise ValueError("run_id is required")
             return self.store.run_summary_for_run(run_id)
+        if path.startswith("/runs/") and path.endswith("/metrics"):
+            run_id = urllib.parse.unquote(path[len("/runs/"):-len("/metrics")]).strip("/")
+            if not run_id:
+                raise ValueError("run_id is required")
+            return list_metrics_for_run(self.store, run_id, query)
         if path.startswith("/snapshots/"):
             parts = [urllib.parse.unquote(item) for item in path.split("/") if item]
             if len(parts) == 6 and parts[2] == "compare" and parts[4] == "timing-paths":
-                return compare_timing_path(self.store, parts[1], parts[3], parts[5])
+                return compare_timing_path(
+                    self.store, parts[1], parts[3], parts[5], query.get("to_path_id"))
+            if len(parts) == 5 and parts[2] == "compare" and parts[4] == "metrics":
+                name = query.get("name")
+                if not name:
+                    raise ValueError("name is required")
+                return compare_metric(self.store, parts[1], parts[3], name,
+                                      query.get("scene"))
             if len(parts) == 2:
                 return {"snapshot": self.store.snapshot(parts[1])}
             if len(parts) == 3 and parts[2] == "summary":
@@ -84,6 +104,12 @@ class Handler(BaseHTTPRequestHandler):
                     raise ValueError("name is required")
                 return {"snapshot_id": parts[1],
                         "instances": self.store.find_instance(parts[1], name)}
+            if len(parts) == 3 and parts[2] == "nets":
+                name = query.get("name")
+                if not name:
+                    raise ValueError("name is required")
+                return {"snapshot_id": parts[1],
+                        "nets": self.store.find_net(parts[1], name)}
             if len(parts) >= 4 and parts[2] == "timing-paths":
                 snapshot_id, path_id = parts[1], parts[3]
                 if len(parts) == 4:
@@ -92,8 +118,12 @@ class Handler(BaseHTTPRequestHandler):
                     return path_points(self.store, snapshot_id, path_id, query)
                 if len(parts) == 5 and parts[4] == "context":
                     return timing_path_context(self.store, snapshot_id, path_id)
+                if len(parts) == 5 and parts[4] == "expand":
+                    return timing_path_context(self.store, snapshot_id, path_id)
             if len(parts) == 3 and parts[2] == "timing-paths":
                 return list_timing_paths(self.store, parts[1], query)
+            if len(parts) == 3 and parts[2] == "observations":
+                return list_observations(self.store, parts[1], query)
             if len(parts) == 3 and parts[2] == "evidence":
                 return {"snapshot_id": parts[1], "evidence": self.store.evidence(
                     parts[1], query.get("artifact_id"))}

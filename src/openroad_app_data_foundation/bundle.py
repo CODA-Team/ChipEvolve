@@ -35,9 +35,13 @@ def load_run_bundle(client: KernelClient, run_id: str, artifact_id: str) -> dict
             raise ContractError("run bundle must contain exactly one data manifest")
         pack = load_snapshot_directory(manifests[0].parent)
         artifact = _bundle_ref(client, run_id, artifact_id)
-        pack["snapshot"]["source_artifacts"] = [
-            *pack["snapshot"].get("source_artifacts", []), artifact,
-        ]
+        refs = list(pack["snapshot"].get("source_artifacts", []))
+        known = {item.get("artifact_id") for item in refs if isinstance(item, dict)}
+        for item in (*_run_artifact_refs(client, run_id, excluded={artifact_id}), artifact):
+            if item["artifact_id"] not in known:
+                refs.append(item)
+                known.add(item["artifact_id"])
+        pack["snapshot"]["source_artifacts"] = refs
         return pack
 
 
@@ -73,6 +77,7 @@ def _bundle_ref(client: KernelClient, run_id: str, artifact_id: str) -> dict[str
         "schema_version": 3,
         "artifact_id": artifact_id,
         "run_id": run_id,
+        "attempt_id": item.get("attempt_id"),
         "sha256": item["sha256"],
         "logical_path": item.get("store_key", artifact_id),
         "category": item.get("kind", "bundle"),
@@ -80,3 +85,44 @@ def _bundle_ref(client: KernelClient, run_id: str, artifact_id: str) -> dict[str
         "format": "zip",
         "size_bytes": item.get("size_bytes", 0),
     }
+
+
+def _run_artifact_refs(client: KernelClient, run_id: str,
+                       *, excluded: set[str]) -> list[dict[str, Any]]:
+    """Expose registered run artifacts as individual source references.
+
+    A data snapshot is a portable index, not the only raw evidence.  The
+    execution platform may also register the original report, database, or
+    tool receipt separately.  Keeping those identities in the immutable
+    snapshot lets a later query retrieve the exact bytes without unpacking a
+    bundle or guessing a path.
+    """
+    result: list[dict[str, Any]] = []
+    for item in client.artifacts(run_id):
+        artifact_id = item.get("artifact_id")
+        if not isinstance(artifact_id, str) or artifact_id in excluded:
+            continue
+        kind = item.get("kind")
+        if (isinstance(kind, str)
+                and (kind.startswith("runtime_")
+                     or kind in {"extractor_log", "extractor_receipt"})):
+            continue
+        required = ("sha256", "store_key", "kind")
+        if not all(isinstance(item.get(name), str) and item[name] for name in required):
+            raise ContractError(f"run artifact is missing source identity: {artifact_id}")
+        result.append({
+            "schema_version": 3,
+            "artifact_id": artifact_id,
+            "run_id": run_id,
+            "attempt_id": item.get("attempt_id"),
+            "sha256": item["sha256"],
+            "logical_path": item["store_key"],
+            "category": kind,
+            "stage": item.get("stage_key") or "run",
+            "format": item.get("media_type") or (
+                item.get("metadata", {}).get("format")
+                if isinstance(item.get("metadata"), dict) else None
+            ),
+            "size_bytes": item.get("size_bytes", 0),
+        })
+    return result

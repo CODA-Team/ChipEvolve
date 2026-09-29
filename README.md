@@ -14,6 +14,13 @@ expansion, physical context, and source-location references. The original EDA
 files remain in the execution foundation and are reached by their artifact
 identity.
 
+When a run bundle is imported, the service carries forward the run's
+registered non-runtime artifacts as `source_artifacts`. Parser evidence may
+refer to a source by its role and logical path before the execution foundation
+assigns its final identity; the query layer resolves that reference only
+against this registered catalogue. The service never reconstructs a host path
+from a filename.
+
 The portable input is the `query-data` directory described by the team design:
 `manifest.json`, `artifacts.jsonl`, `objects.jsonl`, `relations.jsonl`,
 `timing_paths.jsonl`, `timing_points.jsonl`, `markers.jsonl`, and
@@ -37,14 +44,42 @@ The API deliberately follows IDs returned by the snapshot. It never guesses a
 file path, parses an arbitrary host directory, or asks a language model to
 infer a relationship.
 
+During registration, parser evidence that has only an artifact role and
+logical location is resolved against the snapshot's registered artifact
+catalogue. An exact logical-path match wins; otherwise a single role/stage
+candidate is accepted. Zero or multiple candidates remain explicitly
+`unresolved` or `ambiguous`, so a query can never silently attach evidence to
+the wrong raw file.
+
+Each indexed entity keeps three identity views: the native identity supplied by
+the adapter, the snapshot-local object ID used by stored relations, and a
+scoped canonical identity containing design, revision, kind, and hierarchical
+name. Timing points and physical observations carry references to that identity
+without replacing their native IDs. An ambiguous canonical identity is
+rejected at snapshot registration; records are never silently merged.
+
+Cross-stage comparison is intentionally strict: it requires the same design,
+revision, path identity, and timing unit. Incompatible snapshots are rejected
+with an explicit reason instead of receiving a misleading numeric delta.
+When both snapshots carry canonical object identities, the comparison returns
+explicit `same_design_object_as` relations and uses those identities for
+physical deltas; it falls back to snapshot-local IDs only for older records
+that have no canonical identity.
+
 Useful endpoints:
 
 - `GET /snapshots?design_id=...` lists immutable fact boundaries.
+- `GET /runs/{run_id}/summary` returns all indexed stage snapshots for one run.
+- `GET /runs/{run_id}/metrics?stage=...&name=...&scene=...` returns structured
+  metric observations across that run's snapshots.
 - `GET /snapshots/{id}/timing-paths` lists path summaries.
+- `GET /snapshots/{id}/observations?name=...&kind=...` lists indexed facts.
 - `GET /snapshots/{id}/timing-paths/{path}/points` expands ordered points.
 - `GET /snapshots/{id}/objects/{object}` returns entity, observations, and relations.
 - `GET /snapshots/{id}/objects/{object}/context` returns one object's connected
   entities, physical facts, and source references.
+- `GET /snapshots/{id}/nets?name=...` resolves one exact indexed net name;
+  multiple matches are returned for the caller to reject rather than guessed.
 - `GET /snapshots/{id}/physical/{object}` returns typed geometry/routing context.
 - `GET /snapshots/{id}/nets/{net}/context` returns connectivity, route facts,
   and source references for one net.

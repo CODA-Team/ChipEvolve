@@ -66,6 +66,7 @@ def _artifact_ref(item: dict[str, Any], snapshot: dict[str, Any]) -> dict[str, A
         "schema_version": SCHEMA_VERSION,
         "artifact_id": item.get("artifact_id") or item.get("id"),
         "run_id": item.get("run_id") or snapshot.get("run_id"),
+        "attempt_id": item.get("attempt_id"),
         "sha256": item.get("sha256"),
         "logical_path": item.get("logical_path") or item.get("store_key") or item.get("path"),
         "category": item.get("category") or metadata.get("category") or item.get("kind"),

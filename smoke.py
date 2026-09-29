@@ -87,10 +87,15 @@ def main() -> int:
                 f"http://127.0.0.1:{port}/snapshots/snap-smoke/timing-paths/path-1/context")
             assert context["target"]["type"] == "timing_path"
             assert context["physical_context"][0]["x"] == 1
+            expanded_path = _call(
+                f"http://127.0.0.1:{port}/snapshots/snap-smoke/timing-paths/path-1/expand")
+            assert expanded_path["target"]["id"] == "path-1"
             summary = _call(f"http://127.0.0.1:{port}/snapshots/snap-smoke/summary")
             assert summary["record_counts"]["stages"] == 0
             found = _call(f"http://127.0.0.1:{port}/snapshots/snap-smoke/instances?name=u1")
             assert found["instances"][0]["object_id"] == "u1"
+            found_net = _call(f"http://127.0.0.1:{port}/snapshots/snap-smoke/nets?name=n1")
+            assert found_net["nets"][0]["object_id"] == "n1"
             expanded = _call(f"http://127.0.0.1:{port}/snapshots/snap-smoke/nets/n1/expand")
             assert expanded["connected_entities"][0]["object_id"] == "u1"
             print("data_foundation smoke: ok")

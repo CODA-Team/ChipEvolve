@@ -20,6 +20,9 @@ from openroad_platform_contracts import (
     validate_sha256,
 )
 
+from .identity import enrich_records
+from .evidence import resolve_records
+
 
 RECORD_TYPES = (
     "stages", "entities", "observations", "relations", "timing_paths",
@@ -73,14 +76,27 @@ class DataStore:
             "coverage": dict(pack.get("coverage") or {}),
             "run_summary": dict(pack.get("run_summary") or {}),
         }, version)
-        records: list[tuple[str, str, int, str]] = []
-        seen: set[tuple[str, str]] = set()
+        values_by_type: dict[str, list[dict[str, Any]]] = {}
         for record_type in RECORD_TYPES:
             values = pack.get(record_type, [])
             if not isinstance(values, list):
                 raise ContractError(f"{record_type} must be a list")
+            values_by_type[record_type] = [
+                _object(value, f"{record_type}[{ordinal}]")
+                for ordinal, value in enumerate(values)
+            ]
+        entity_rows = values_by_type.get("entities", [])
+        values_by_type = {
+            record_type: enrich_records(snapshot, record_type, rows, entity_rows)
+            for record_type, rows in values_by_type.items()
+        }
+        values_by_type = resolve_records(snapshot, values_by_type)
+        records: list[tuple[str, str, int, str]] = []
+        seen: set[tuple[str, str]] = set()
+        for record_type in RECORD_TYPES:
+            values = values_by_type[record_type]
             for ordinal, value in enumerate(values):
-                row = _object(value, f"{record_type}[{ordinal}]")
+                row = value
                 record_id = _record_id(record_type, row, ordinal)
                 key = (record_type, record_id)
                 if key in seen:
@@ -147,7 +163,9 @@ class DataStore:
             record_type: self._count(snapshot_id, record_type)
             for record_type in RECORD_TYPES
         }
-        return {"snapshot": snapshot, "record_counts": counts,
+        return {"snapshot": snapshot,
+                "run_summary": snapshot.get("run_summary", {}),
+                "record_counts": counts,
                 "coverage": snapshot.get("coverage", {})}
 
     def run_summary_for_run(self, run_id: str) -> dict[str, Any]:
@@ -162,6 +180,14 @@ class DataStore:
         rows = self.records(snapshot_id, "entities", limit=10000)
         return [row for row in rows
                 if row.get("kind") == "instance"
+                and (row.get("name") == name
+                     or row.get("attributes", {}).get("hierarchical_name") == name)]
+
+    def find_net(self, snapshot_id: str, name: str) -> list[dict[str, Any]]:
+        """Find nets by an exact indexed name, never by a path scan or guess."""
+        rows = self.records(snapshot_id, "entities", limit=10000)
+        return [row for row in rows
+                if row.get("kind") == "net"
                 and (row.get("name") == name
                      or row.get("attributes", {}).get("hierarchical_name") == name)]
 
@@ -300,6 +326,7 @@ class DataStore:
     get_net = net
     get_evidence_for_record = record_evidence
     find_instances = find_instance
+    find_nets = find_net
     expand_net_context = expand_net
     get_physical_context = physical
     get_evidence = evidence
@@ -334,6 +361,8 @@ def _validate_snapshot(snapshot: dict[str, Any], version: int) -> dict[str, Any]
                 raise ContractError(f"source_artifacts[{index}].{name} is required")
         validate_identifier(f"source_artifacts[{index}].artifact_id", artifact["artifact_id"])
         validate_identifier(f"source_artifacts[{index}].run_id", artifact["run_id"])
+        validate_identifier(f"source_artifacts[{index}].attempt_id",
+                           artifact.get("attempt_id"), required=False)
         validate_sha256(f"source_artifacts[{index}].sha256", artifact.get("sha256"))
         validate_relative_path(f"source_artifacts[{index}].logical_path",
                                artifact["logical_path"], container="artifact store")

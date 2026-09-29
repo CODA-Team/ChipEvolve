@@ -11,7 +11,12 @@ from openroad_platform_contracts import ContractError
 from openroad_app_data_foundation.bundle import import_ready_bundles, load_run_bundle
 from openroad_app_data_foundation.context import net_context, object_context
 from openroad_app_data_foundation.ingest import load_snapshot_directory
-from openroad_app_data_foundation.queries import compare_timing_path
+from openroad_app_data_foundation.metric_queries import compare_metric
+from openroad_app_data_foundation.queries import (
+    compare_timing_path,
+    list_metrics_for_run,
+    list_observations,
+)
 from openroad_app_data_foundation.repository import DataStore
 
 
@@ -28,6 +33,7 @@ def pack() -> dict:
         "timing_paths": [{"path_id": "path-1", "snapshot_id": "snap-1",
                            "analysis": "view", "check": "setup", "group": "clk",
                            "startpoint": "top/u1/A", "endpoint": "top/u2/Z",
+                           "corner": "slow", "unit": "s",
                            "evidence": [{"artifact_id": "report-1", "source_type": "line",
                                           "line_start": 12, "line_end": 19}]}],
         "timing_points": [{"point_id": "point-1", "path_id": "path-1", "ordinal": 0,
@@ -47,10 +53,124 @@ def test_snapshot_and_path_are_separate_fact_queries(tmp_path: Path) -> None:
         assert store.records("snap-1", "timing_points")[0]["object_id"] == "top/u1"
         assert store.physical("snap-1", "top/u1")["x"] == 10.0
         assert store.find_instance("snap-1", "u1")[0]["object_id"] == "top/u1"
+        assert store.find_net("snap-1", "n1")[0]["object_id"] == "net:n1"
         assert store.net("snap-1", "net:n1")["physical_context"]["routing"]
         assert store.run_summary("snap-1")["record_counts"]["timing_paths"] == 1
         assert store.run_summary_for_run("run-1")["snapshots"][0]["snapshot"][
             "snapshot_id"] == "snap-1"
+    finally:
+        store.close()
+
+
+def test_structured_metrics_are_queryable_by_snapshot_and_run(tmp_path: Path) -> None:
+    value = pack()
+    value["run_summary"] = {"tool": "flow", "metrics": {"wns": -0.2}}
+    value["observations"] = [{
+        "observation_id": "metric:wns", "object_id": "run:run-1",
+        "kind": "metric", "value": -0.2, "status": "parsed",
+        "evidence": [{"artifact_id": "metrics-1", "field": "metrics.wns"}],
+    }, {
+        "observation_id": "metric:tns", "object_id": "run:run-1",
+        "kind": "metric", "value": -1.3, "status": "parsed",
+        "context": {"scene": "setup"},
+    }]
+    store = DataStore(tmp_path / "data.db")
+    try:
+        store.register(value)
+        summary = store.run_summary("snap-1")
+        assert summary["run_summary"]["metrics"]["wns"] == -0.2
+        observed = list_observations(store, "snap-1", {"name": "wns"})
+        assert observed["observations"][0]["value"] == -0.2
+        metrics = list_metrics_for_run(store, "run-1", {"scene": "setup"})
+        assert [item["name"] for item in metrics["metrics"]] == ["tns"]
+        assert metrics["metrics"][0]["stage"] == "route"
+    finally:
+        store.close()
+
+
+def test_metric_comparison_keeps_values_units_and_evidence(tmp_path: Path) -> None:
+    placed = pack()
+    placed["snapshot"] = {**placed["snapshot"], "snapshot_id": "snap-place",
+                           "stage": "place"}
+    placed["observations"] = [{
+        "observation_id": "metric:wns", "kind": "metric", "name": "wns",
+        "value": -0.12, "unit": "ns", "context": {"scene": "setup"},
+        "evidence": [{"artifact_id": "place-metrics", "field": "wns"}],
+    }]
+    routed = {
+        **placed,
+        "snapshot": {**placed["snapshot"], "snapshot_id": "snap-route",
+                      "stage": "route"},
+        "observations": [{
+            "observation_id": "metric:wns", "kind": "metric", "name": "wns",
+            "value": -0.58, "unit": "ns", "context": {"scene": "setup"},
+            "evidence": [{"artifact_id": "route-metrics", "field": "wns"}],
+        }],
+    }
+    store = DataStore(tmp_path / "data.db")
+    try:
+        store.register(placed)
+        store.register(routed)
+        result = compare_metric(store, "snap-place", "snap-route", "wns", "setup")
+        assert result["status"] == "COMPARABLE"
+        assert result["value"] == {"from": -0.12, "to": -0.58, "delta": pytest.approx(-0.46)}
+        assert result["unit"] == "ns"
+        assert result["evidence"]["from"][0]["artifact_id"] == "place-metrics"
+    finally:
+        store.close()
+
+
+def test_metric_comparison_rejects_unit_or_scope_mismatch(tmp_path: Path) -> None:
+    left = pack()
+    left["observations"] = [{"observation_id": "metric:area", "kind": "metric",
+                              "name": "area", "value": 10, "unit": "um2"}]
+    right = {**left, "snapshot": {**left["snapshot"], "snapshot_id": "snap-right",
+                                   "revision_id": "rev-2"},
+             "observations": [{"observation_id": "metric:area", "kind": "metric",
+                                "name": "area", "value": 11, "unit": "mm2"}]}
+    store = DataStore(tmp_path / "data.db")
+    try:
+        store.register(left)
+        store.register(right)
+        result = compare_metric(store, "snap-1", "snap-right", "area")
+        assert result["status"] == "INCOMPARABLE"
+        assert {item["field"] for item in result["matching"]["reasons"]} == {
+            "revision_id", "unit"}
+        assert "value" not in result
+    finally:
+        store.close()
+
+
+def test_snapshot_records_keep_native_local_and_canonical_identity(tmp_path: Path) -> None:
+    store = DataStore(tmp_path / "data.db")
+    try:
+        store.register(pack())
+        entity = store.object("snap-1", "top/u1")["entity"]
+        identity = entity["identity"]
+        assert identity["snapshot_local_id"] == "top/u1"
+        assert identity["canonical"] == {
+            "design_id": "chip", "revision_id": "rev-1",
+            "kind": "instance", "hierarchical_name": "u1",
+        }
+        point = store.records("snap-1", "timing_points")[0]
+        assert point["identity_references"]["object_id"] == identity
+        physical = store.physical("snap-1", "top/u1")
+        assert physical["identity"] == identity
+    finally:
+        store.close()
+
+
+def test_snapshot_retains_ambiguous_canonical_identity(tmp_path: Path) -> None:
+    store = DataStore(tmp_path / "data.db")
+    try:
+        value = pack()
+        value["entities"].append({"object_id": "another/u1", "kind": "instance",
+                                   "name": "u1"})
+        store.register(value)
+        identities = [row["identity"] for row in store.records("snap-1", "entities")
+                      if row["identity"]["canonical"]["hierarchical_name"] == "u1"]
+        assert all(item["matching_status"] == "ambiguous" for item in identities)
+        assert identities[0]["ambiguous_candidates"] == ["another/u1", "top/u1"]
     finally:
         store.close()
 
@@ -64,6 +184,92 @@ def test_evidence_keeps_source_location(tmp_path: Path) -> None:
         assert evidence[0]["evidence"]["line_start"] == 12
         assert store.record_evidence("snap-1", "timing_paths", "path-1")[0][
             "evidence"]["line_end"] == 19
+    finally:
+        store.close()
+
+
+def test_evidence_role_resolves_to_registered_artifact_identity(tmp_path: Path) -> None:
+    value = pack()
+    value["snapshot"]["source_artifacts"] = [{
+        "artifact_id": "timing-1", "run_id": "run-1", "sha256": "a" * 64,
+        "logical_path": "stored/reports/timing.json",
+        "category": "raw_timing_report", "stage": "route", "size_bytes": 20,
+    }]
+    value["timing_paths"][0]["evidence"] = [{
+        "artifact_kind": "raw_timing_report", "logical_path": "reports/timing.json",
+        "stage": "route", "source_type": "json", "line_start": 2,
+    }]
+    store = DataStore(tmp_path / "data.db")
+    try:
+        store.register(value)
+        evidence = store.record_evidence("snap-1", "timing_paths", "path-1")[0]["evidence"]
+        assert evidence["artifact_id"] == "timing-1"
+        assert evidence["resolution"] == "unique_role"
+        assert evidence["sha256"] == "a" * 64
+    finally:
+        store.close()
+
+
+def test_evidence_role_stays_unresolved_when_two_sources_match(tmp_path: Path) -> None:
+    value = pack()
+    value["snapshot"]["source_artifacts"] = [{
+        "artifact_id": "timing-1", "run_id": "run-1", "sha256": "a" * 64,
+        "logical_path": "reports/a.json", "category": "raw_timing_report",
+        "stage": "route", "size_bytes": 20,
+    }, {
+        "artifact_id": "timing-2", "run_id": "run-1", "sha256": "b" * 64,
+        "logical_path": "reports/b.json", "category": "raw_timing_report",
+        "stage": "route", "size_bytes": 20,
+    }]
+    value["timing_paths"][0]["evidence"] = [{
+        "artifact_kind": "raw_timing_report", "logical_path": "unknown.json",
+    }]
+    store = DataStore(tmp_path / "data.db")
+    try:
+        store.register(value)
+        evidence = store.record_evidence("snap-1", "timing_paths", "path-1")[0]["evidence"]
+        assert evidence["resolution"] == "ambiguous"
+        assert "artifact_id" not in evidence
+    finally:
+        store.close()
+
+
+def test_placeholder_evidence_resolves_to_real_bundle_artifact(tmp_path: Path) -> None:
+    value = pack()
+    value["snapshot"]["source_artifacts"] = [{
+        "artifact_id": "bundle-1", "run_id": "run-1", "sha256": "a" * 64,
+        "logical_path": "query-data.zip", "category": "data_snapshot",
+        "stage": "route", "size_bytes": 20,
+    }]
+    value["timing_paths"][0]["evidence"] = [{
+        "artifact_id": "timing-report", "artifact_kind": "raw_timing_report",
+        "logical_path": "query-data/timing_report.json", "source_type": "json",
+        "json_pointer": "/checks/0",
+    }]
+    store = DataStore(tmp_path / "data.db")
+    try:
+        store.register(value)
+        evidence = store.record_evidence("snap-1", "timing_paths", "path-1")[0]["evidence"]
+        assert evidence["artifact_id"] == "bundle-1"
+        assert evidence["resolution"] == "bundle_member"
+        assert evidence["nested_path"] == "query-data/timing_report.json"
+        assert evidence["artifact_id"] != "timing-report"
+    finally:
+        store.close()
+
+
+def test_missing_analysis_context_is_unavailable_and_not_comparable(tmp_path: Path) -> None:
+    value = pack()
+    del value["timing_paths"][0]["corner"]
+    other = {**value, "snapshot": {**value["snapshot"], "snapshot_id": "snap-2"}}
+    store = DataStore(tmp_path / "data.db")
+    try:
+        store.register(value)
+        store.register(other)
+        context = compare_timing_path(store, "snap-1", "snap-2", "path-1")
+        assert context["status"] == "INCOMPARABLE"
+        assert any(item["field"] == "corner" for item in context["matching"]["reasons"])
+        assert "timing" not in context
     finally:
         store.close()
 
@@ -141,10 +347,20 @@ def test_run_artifact_handoff_keeps_bundle_identity(tmp_path: Path) -> None:
         def artifacts(self, run_id: str) -> list[dict]:
             return [{"artifact_id": "bundle-1", "sha256": "a" * 64,
                      "store_key": "query-data.zip", "kind": "data_snapshot",
-                     "size_bytes": archive.stat().st_size}]
+                     "size_bytes": archive.stat().st_size},
+                    {"artifact_id": "timing-1", "sha256": "b" * 64,
+                     "store_key": "reports/timing.json", "kind": "raw_timing_report",
+                     "stage_key": "route", "size_bytes": 42},
+                    {"artifact_id": "runtime-1", "sha256": "c" * 64,
+                     "store_key": "runtime_protocol_receipt.json",
+                     "kind": "runtime_protocol_receipt", "size_bytes": 8}]
 
     handoff = load_run_bundle(Client(), "run-1", "bundle-1")
-    assert handoff["snapshot"]["source_artifacts"][0]["artifact_id"] == "bundle-1"
+    refs = handoff["snapshot"]["source_artifacts"]
+    assert any(item["artifact_id"] == "bundle-1" for item in refs)
+    assert any(item["artifact_id"] == "timing-1" and item["stage"] == "route"
+               for item in refs)
+    assert all(item["artifact_id"] != "runtime-1" for item in refs)
 
 
 def test_portable_objects_and_manifest_artifacts_are_indexed(tmp_path: Path) -> None:
@@ -231,9 +447,121 @@ def test_stage_comparison_reports_timing_and_physical_fact_deltas(tmp_path: Path
         store.register(placed)
         store.register(routed)
         comparison = compare_timing_path(store, "snap-place", "snap-route", "path-1")
-        assert comparison["matching"]["basis"] == "exact path_id and object_id"
+        assert comparison["status"] == "COMPARABLE"
+        assert comparison["matching"]["basis"] == "scoped_name"
         assert comparison["timing"]["slack"]["delta"] == pytest.approx(-0.46)
         assert comparison["physical"]["instances"][0]["delta"] == {"x": 4.0, "y": 4.0}
         assert comparison["physical"]["nets"][0]["wire_length"]["delta"] == 8
+        assert comparison["matched_objects"]
+        assert all(item["matching_basis"] == "scoped_name"
+                   for item in comparison["matched_objects"])
+        assert all("identity" in item and "evidence" in item
+                   for item in comparison["matched_objects"])
+        assert {row["predicate"] for row in comparison["relations"]} == {
+            "same_design_object_as"
+        }
+        assert all(row["matching_basis"] == "scoped_name" for row in comparison["relations"])
+    finally:
+        store.close()
+
+
+def test_stage_comparison_rejects_different_design_revision(tmp_path: Path) -> None:
+    placed = pack()
+    routed = {
+        **placed,
+        "snapshot": {**placed["snapshot"], "snapshot_id": "snap-other",
+                      "design_id": "other-chip"},
+    }
+    store = DataStore(tmp_path / "data.db")
+    try:
+        store.register(placed)
+        store.register(routed)
+        comparison = compare_timing_path(store, "snap-1", "snap-other", "path-1")
+        assert comparison["status"] == "INCOMPARABLE"
+        assert comparison["matching"]["reasons"][0]["field"] == "design"
+        assert "timing" not in comparison
+    finally:
+        store.close()
+
+
+def test_stage_comparison_rejects_different_path_identity(tmp_path: Path) -> None:
+    placed = pack()
+    routed = {
+        **placed,
+        "snapshot": {**placed["snapshot"], "snapshot_id": "snap-route"},
+        "timing_paths": [{**placed["timing_paths"][0],
+                           "snapshot_id": "snap-route", "check": "hold"}],
+    }
+    store = DataStore(tmp_path / "data.db")
+    try:
+        store.register(placed)
+        store.register(routed)
+        comparison = compare_timing_path(store, "snap-1", "snap-route", "path-1")
+        assert comparison["status"] == "INCOMPARABLE"
+        assert any(item["field"] == "check" for item in comparison["matching"]["reasons"])
+        assert "timing" not in comparison
+    finally:
+        store.close()
+
+
+def test_stage_comparison_uses_canonical_identity_when_native_ids_change(tmp_path: Path) -> None:
+    placed = pack()
+    routed = {
+        **placed,
+        "snapshot": {**placed["snapshot"], "snapshot_id": "snap-route"},
+        "entities": [
+            {"object_id": "native-inst-2", "snapshot_id": "snap-route",
+             "kind": "instance", "name": "u1"},
+            {"object_id": "native-net-2", "snapshot_id": "snap-route",
+             "kind": "net", "name": "n1"},
+        ],
+        "timing_paths": [{**placed["timing_paths"][0], "snapshot_id": "snap-route",
+                           "slack": -0.4}],
+        "timing_points": [{"point_id": "point-route", "path_id": "path-1",
+                            "ordinal": 0, "object_id": "native-inst-2",
+                            "net_id": "native-net-2"}],
+        "physical_context": [
+            {"object_id": "native-inst-2", "snapshot_id": "snap-route",
+             "x": 14.0, "y": 24.0},
+            {"object_id": "native-net-2", "snapshot_id": "snap-route",
+             "routing": [{"routing_type": "segment", "x_min": 0, "y_min": 0,
+                           "x_max": 18, "y_max": 0}]},
+        ],
+    }
+    store = DataStore(tmp_path / "data.db")
+    try:
+        store.register(placed)
+        store.register(routed)
+        comparison = compare_timing_path(store, "snap-1", "snap-route", "path-1")
+        assert comparison["physical"]["instances"][0]["from_object_id"] == "top/u1"
+        assert comparison["physical"]["instances"][0]["to_object_id"] == "native-inst-2"
+        assert all(row["matching_basis"] == "scoped_name" for row in comparison["relations"])
+    finally:
+        store.close()
+
+
+@pytest.mark.parametrize(
+    ("field", "expected"),
+    (("native_path_id", "native_exact"),
+     ("structural_fingerprint", "structural_verified")),
+)
+def test_stage_comparison_reports_explicit_path_matching_basis(
+        tmp_path: Path, field: str, expected: str) -> None:
+    placed = pack()
+    placed["timing_paths"][0][field] = "path-proof"
+    routed = {
+        **placed,
+        "snapshot": {**placed["snapshot"], "snapshot_id": "snap-route"},
+        "entities": [{**item} for item in placed["entities"]],
+        "timing_paths": [{**placed["timing_paths"][0], "snapshot_id": "snap-route",
+                           "slack": -0.4}],
+    }
+    store = DataStore(tmp_path / "data.db")
+    try:
+        store.register(placed)
+        store.register(routed)
+        comparison = compare_timing_path(store, "snap-1", "snap-route", "path-1")
+        assert comparison["status"] == "COMPARABLE"
+        assert comparison["matching"]["basis"] == expected
     finally:
         store.close()

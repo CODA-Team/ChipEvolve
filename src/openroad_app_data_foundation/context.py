@@ -6,6 +6,7 @@ from typing import Any
 
 from .queries import timing_path
 from .repository import DataStore
+from .analysis_context import build_analysis_context, context_availability
 
 
 def timing_path_context(store: DataStore, snapshot_id: str,
@@ -19,6 +20,7 @@ def timing_path_context(store: DataStore, snapshot_id: str,
     detail = timing_path(store, snapshot_id, path_id)
     path = detail["timing_path"]
     points = detail["timing_points"]
+    analysis_context = build_analysis_context(snapshot, path)
     entities: list[dict[str, Any]] = []
     relations: list[dict[str, Any]] = []
     physical: list[dict[str, Any]] = []
@@ -81,6 +83,7 @@ def timing_path_context(store: DataStore, snapshot_id: str,
                    "run": snapshot.get("run_id"), "stage": snapshot.get("stage"),
                    "snapshot": snapshot_id, "view": path.get("analysis"),
                    "corner": path.get("corner")},
+        "analysis_context": analysis_context,
         "target": {"type": "timing_path", "id": path_id},
         "observations": {key: path.get(key) for key in ("slack", "delay", "unit")
                          if path.get(key) is not None},
@@ -89,6 +92,7 @@ def timing_path_context(store: DataStore, snapshot_id: str,
         "timing_context": {"path": path, "points": points},
         "physical_context": physical,
         "evidence": evidence,
+        "availability": context_availability(analysis_context),
         "evidence_policy": {"relationship_source": "data_foundation",
                              "inference_performed": False},
     }
