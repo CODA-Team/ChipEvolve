@@ -6,6 +6,7 @@ __pycache__/
 .ruff_cache/
 *.log
 query-data/
+smoke-*.sqlite*
 *.egg-info/
 build/
 dist/
