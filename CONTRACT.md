@@ -177,8 +177,12 @@ Data Foundation 只回答 **结构化 EDA 事实**。它不诊断、不建议、
 - `mapping_status` ∈ `mapped | unmapped`。`unmapped` 表示 STA→OpenDB 原生桥没有给出对应对象，**不得用名字猜**。
 - `analysis_context`: `{design, revision, run, snapshot, stage, analysis, check, corner, unit, status, missing[]}`，缺任一关键字段则 `status: unavailable`。
 - `include=context` 时额外附 `objects[]`（沿 ID 展开的实体）与 `physical_context[]`。
-- `detail`（`summary` 默认 / `full`）：summary 只保留**目标对象**的 geometry/routing，邻居保留身份、计数与 bbox；
-  full 返回未投影的完整 pack。这是为了让 context 响应可交付：gcd 上单条路径的 full pack 曾达 731 KB。
+- `detail`（`summary` 默认 / `full`）：summary 只保留**目标对象**的 geometry/routing 与 pack 级 evidence，
+  邻居保留身份、计数与 bbox；`timing_context.points[*].evidence` 在 summary 下省略（pack 级 evidence 与
+  `/timing-paths/{path}/points` 仍完整）。full 返回未投影的完整 pack。
+- `relation_limit`（默认 200，`0` = 不限）：context pack 合并的关系上限，**两种 detail 下都生效**。
+  触顶时返回 `relations_truncated: true`、`relations_total`，并往 `limitations[]` 追加一条 truncated 记录 ——
+  一条 12 点的 ibex 路径上下文会合并 401 条关系，调用方必须能设上限、也必须被告知被截断。
 
 ### 4.9 `get_instance(snapshot_id, name)`
 

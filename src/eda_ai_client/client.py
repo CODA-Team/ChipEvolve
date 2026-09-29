@@ -185,7 +185,8 @@ class EdaAiClient:
 
     def get_timing_path(self, snapshot_id: str, path_id: str,
                         *, include: str = "summary",
-                        detail: str = "summary") -> dict[str, Any]:
+                        detail: str = "summary",
+                        relation_limit: int = 200) -> dict[str, Any]:
         """One path.  ``include`` is ``summary``, ``points`` or ``context``.
 
         ``summary`` returns the path record; ``points`` returns the ordered
@@ -199,12 +200,14 @@ class EdaAiClient:
             return self._get(self.data_url, base)
         if include == "points":
             return self._get(self.data_url, f"{base}/points")
-        return self._get(self.data_url, f"{base}/context", {"detail": detail})
+        return self._get(self.data_url, f"{base}/context",
+                         {"detail": detail, "relation_limit": relation_limit})
 
     # ----------------------------------------------------- tool 9: instances
 
-    def get_instance(self, snapshot_id: str, name: str,
-                     *, detail: str = "summary") -> dict[str, Any]:
+    def get_instance(self, snapshot_id: str, name: str, *,
+                     detail: str = "summary",
+                     relation_limit: int = 200) -> dict[str, Any]:
         """One instance by exact name, with its physical facts and relations.
 
         Zero matches and several matches are distinct outcomes, not an
@@ -220,7 +223,8 @@ class EdaAiClient:
         object_id = found[0]["object_id"]
         context = self._get(self.data_url,
                             f"/snapshots/{_segment(snapshot_id)}/objects/"
-                            f"{_segment(object_id)}/context", {"detail": detail})
+                            f"{_segment(object_id)}/context",
+                            {"detail": detail, "relation_limit": relation_limit})
         return {"snapshot_id": snapshot_id, "name": name, "status": "available",
                 "instance": context["entities"][0], "context": context,
                 "physical_context": context.get("physical_context", []),
@@ -229,8 +233,9 @@ class EdaAiClient:
 
     # --------------------------------------------------- tool 10: net context
 
-    def get_net_context(self, snapshot_id: str, net: str,
-                        *, detail: str = "summary") -> dict[str, Any]:
+    def get_net_context(self, snapshot_id: str, net: str, *,
+                        detail: str = "summary",
+                        relation_limit: int = 200) -> dict[str, Any]:
         """A net by object ID or exact name: connectivity, route and sources."""
         net_id = net
         if not net.startswith("net:"):
@@ -244,7 +249,8 @@ class EdaAiClient:
             net_id = found[0]["object_id"]
         return self._get(self.data_url,
                          f"/snapshots/{_segment(snapshot_id)}/nets/"
-                         f"{_segment(net_id)}/context", {"detail": detail})
+                         f"{_segment(net_id)}/context",
+                         {"detail": detail, "relation_limit": relation_limit})
 
     # --------------------------------------------- tool 11: physical context
 
