@@ -288,6 +288,8 @@ class KernelApi:
                 design_id=request.q("design_id"),
                 plugin_id=request.q("plugin_id"),
                 status=request.q("status"),
+                run_type=request.q("run_type"),
+                analysis_of_run_id=request.q("analysis_of_run_id"),
                 owner_run_ids=owner_ids,
                 offset=offset,
                 **({"limit": limit} if limit is not None else {}),

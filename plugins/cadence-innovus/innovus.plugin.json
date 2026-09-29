@@ -20,6 +20,7 @@
     "input_contract": {
       "capability": "preflight|script",
       "tool_path": "absolute path supplied by the deployment",
+      "environment_script": "optional deployment shell profile (OA/LD_LIBRARY_PATH)",
       "script_path": "staged workspace path for script capability"
     },
     "output_contract": {

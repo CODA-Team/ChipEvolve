@@ -113,6 +113,21 @@ def test_runs_can_be_filtered_by_status(store):
     assert index.runs(status="succeeded") == []
 
 
+def test_run_listing_preserves_task_labels(store):
+    store.submit_run(
+        TaskSpec(task_id="analysis", project_id="proj", design_id="gcd",
+                 plugin_id="some-capability",
+                 labels={"run_type": "analysis", "analysis_of_run_id": "run-base"}),
+        stage_key="main", plugin_version="1.0.0",
+    )
+    summary = EvidenceIndex(store).runs()[0].to_dict()
+    assert summary["labels"] == {
+        "run_type": "analysis", "analysis_of_run_id": "run-base",
+    }
+    assert [item.task_id for item in EvidenceIndex(store).runs(
+        run_type="analysis", analysis_of_run_id="run-base")] == ["analysis"]
+
+
 def test_an_unknown_status_is_refused(store):
     with pytest.raises(ValueError):
         EvidenceIndex(store).runs(status="not-a-status")

@@ -47,11 +47,18 @@ def _observations(metadata: dict[str, Any], inputs: dict[str, Any]) -> list[dict
     values = metadata.get("metrics", metadata)
     if not isinstance(values, dict):
         raise ValueError("ORFS metadata metrics must be an object")
-    artifact_id = inputs.get("metrics_artifact_id", "orfs-metadata")
+    artifact_id = inputs.get("metrics_artifact_id")
     result: list[dict[str, Any]] = []
     for index, (name, value) in enumerate(sorted(values.items())):
         if not isinstance(value, (int, float, str, bool)):
             continue
+        evidence = {"artifact_kind": "raw_flow_metadata",
+                    "logical_path": inputs.get("metadata_path", "metadata.json"),
+                    "source_type": "json",
+                    "detail": {"field": f"metrics.{name}", "ordinal": index}}
+        if isinstance(artifact_id, str) and artifact_id \
+                not in {"timing-report", "orfs-metadata"}:
+            evidence["artifact_id"] = artifact_id
         result.append({
             "observation_id": f"metric:{name}",
             "snapshot_id": inputs["snapshot_id"],
@@ -59,8 +66,7 @@ def _observations(metadata: dict[str, Any], inputs: dict[str, Any]) -> list[dict
             "kind": "metric",
             "value": value,
             "status": "parsed",
-            "evidence": [{"artifact_id": artifact_id, "source_type": "json",
-                          "detail": {"field": f"metrics.{name}", "ordinal": index}}],
+            "evidence": [evidence],
         })
     return result
 

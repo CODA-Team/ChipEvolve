@@ -54,16 +54,26 @@ def _tool_environment(tool_path: Path, inputs: dict[str, Any]) -> dict[str, str]
     return environment
 
 
-def _command(module: str | None, tool_path: str, args: list[str]) -> list[str]:
-    if not module:
+def _command(
+    module: str | None,
+    tool_path: str,
+    args: list[str],
+    environment_script: str | None = None,
+) -> list[str]:
+    if not module and not environment_script:
         return [tool_path, *args]
-    # Login shells source the site Modules setup.  The module name and tool
-    # path are positional parameters, so task data never becomes shell code.
+    # Deployment environment and command arguments are positional parameters;
+    # task data never becomes shell code.  A site Cadence profile is preferred
+    # when supplied because it also establishes OA/LD_LIBRARY_PATH settings.
     script = (
-        "source /etc/profile.d/modules.sh 2>/dev/null || true; "
-        'module load "$1"; shift; exec "$@"'
+        'if [ -n "$1" ]; then . "$1"; fi; shift; '
+        'if [ -n "$1" ]; then . /etc/profile.d/modules.sh 2>/dev/null || true; '
+        'module load "$1"; fi; shift; exec "$@"'
     )
-    return ["/bin/bash", "-lc", script, "innovus-toolkit", module, tool_path, *args]
+    return [
+        "/bin/bash", "-lc", script, "innovus-toolkit",
+        environment_script or "", module or "", tool_path, *args,
+    ]
 
 
 def _classify(returncode: int, output: str) -> dict[str, Any]:
@@ -125,6 +135,9 @@ def main() -> int:
         module = inputs.get("module", "cadence")
         if module is not None and not isinstance(module, str):
             raise ValueError("inputs.module must be a string or null")
+        environment_script = inputs.get("environment_script")
+        if environment_script is not None and not isinstance(environment_script, str):
+            raise ValueError("inputs.environment_script must be a string or null")
         environment = _tool_environment(tool_path, inputs)
         if capability == "preflight":
             command_args = ["-version"]
@@ -136,8 +149,8 @@ def main() -> int:
             script_path.relative_to(workspace)
             if not script_path.is_file():
                 raise ValueError(f"script does not exist: {script_name}")
-            command_args = ["-batch", "-files", str(script_path)]
-        command = _command(module, str(tool_path), command_args)
+            command_args = ["-no_gui", "-overwrite", "-init", str(script_path)]
+        command = _command(module, str(tool_path), command_args, environment_script)
         completed = subprocess.run(
             command,
             cwd=workspace,

@@ -250,7 +250,7 @@ class ProcessAdapter:
                 "adapter claimed success with a non-zero process exit code "
                 f"({outcome.returncode})"
             )
-        if outcome.returncode != result.exit_code:
+        if result.exit_code not in ({outcome.returncode, outcome.returncode - 256} if outcome.returncode >= 128 else {outcome.returncode}):
             raise AdapterProtocolError(
                 f"result exit_code {result.exit_code} does not match the "
                 f"process exit code {outcome.returncode}"

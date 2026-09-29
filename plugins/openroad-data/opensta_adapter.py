@@ -48,22 +48,25 @@ def normalize(output_dir: Path, inputs: dict[str, Any]) -> None:
             point_ids.append(point_id)
             point_name = str(point.get("pin") or point.get("pin_name") or "unknown")
             native_mapping = mapping.get(point_id) or mapping.get(point_name) or {}
-            points.append(_point(point_id, path_id, ordinal, point, native_mapping))
+            points.append(_point(point_id, path_id, ordinal, point, native_mapping, inputs))
         timing_paths.append({
             "path_id": path_id,
             "snapshot_id": metadata["snapshot_id"],
-            "analysis": str(source.get("analysis") or source.get("view") or "default"),
-            "check": str(source.get("check") or source.get("type") or "unknown"),
-            "group": str(source.get("group") or source.get("path_group") or "default"),
-            "startpoint": str(source.get("startpoint") or "unknown"),
-            "endpoint": str(source.get("endpoint") or "unknown"),
+            "analysis": _value(source, "analysis", "view", default=inputs.get("analysis")),
+            "check": _value(source, "check", "type", default=inputs.get("check")),
+            "group": _value(source, "group", "path_group", default=inputs.get("group")),
+            "startpoint": source.get("startpoint"),
+            "endpoint": source.get("endpoint"),
             "slack": source.get("slack"),
             "delay": source.get("delay"),
-            "unit": source.get("unit", "s"),
+            "unit": source.get("unit") or inputs.get("unit"),
+            "corner": source.get("corner") or inputs.get("corner"),
             "point_ids": point_ids,
-            "evidence": [{"artifact_id": inputs.get("timing_artifact_id", "timing-report"),
-                          "source_type": "json", "detail": {"path_index": path_index}}],
+            "evidence": [_timing_evidence(inputs, {"path_index": path_index})],
         })
+        for name in ("native_path_id", "structural_fingerprint"):
+            if isinstance(source.get(name), str) and source[name]:
+                timing_paths[-1][name] = source[name]
     _write_lines(output_dir / "timing_paths.jsonl", timing_paths)
     _write_lines(output_dir / "timing_points.jsonl", points)
     _write_json(output_dir / "manifest.json", {"snapshot": metadata, "schema_version": 3})
@@ -76,7 +79,7 @@ def normalize(output_dir: Path, inputs: dict[str, Any]) -> None:
 
 
 def _point(point_id: str, path_id: str, ordinal: int, point: dict[str, Any],
-           mapping: dict[str, Any]) -> dict[str, Any]:
+           mapping: dict[str, Any], inputs: dict[str, Any]) -> dict[str, Any]:
     result = {"point_id": point_id, "path_id": path_id, "ordinal": ordinal,
               "pin_name": str(point.get("pin") or point.get("pin_name") or "unknown"),
               "instance_name": point.get("instance"),
@@ -85,17 +88,41 @@ def _point(point_id: str, path_id: str, ordinal: int, point: dict[str, Any],
               "x": point.get("x"), "y": point.get("y"),
               "arrival": point.get("arrival"), "required": point.get("required"),
               "slew": point.get("slew"), "load": point.get("capacitance"),
-              "clock": point.get("clock"), "time_unit": "s",
+              "clock": point.get("clock"), "time_unit": point.get("time_unit"),
               "capacitance_unit": "F", "distance_unit": "m",
               "path_section": point.get("path_section")}
     for name in ("pin_id", "instance_id", "net_id", "object_id"):
-        value = mapping.get(name, point.get(name))
+        value = mapping.get(name)
         if value is not None:
             result[name] = value
     result["mapping_status"] = "mapped" if mapping else "unmapped"
-    result["evidence"] = [{"artifact_id": point.get("artifact_id", "timing-report"),
-                            "source_type": "json", "detail": {"point": ordinal}}]
+    result["mapping_basis"] = "native_dbnetwork" if mapping else "none"
+    result["evidence"] = [_timing_evidence(inputs, detail={"point": ordinal},
+                                             artifact_id=point.get("artifact_id"))]
     return result
+
+
+def _timing_evidence(inputs: dict[str, Any], detail: dict[str, Any],
+                     *, artifact_id: Any = None) -> dict[str, Any]:
+    """Reference a real artifact when supplied; otherwise preserve only its role."""
+    value = artifact_id or inputs.get("timing_artifact_id")
+    result = {
+        "artifact_kind": "raw_timing_report",
+        "logical_path": inputs.get("timing_artifact_path", "query-data/timing_report.json"),
+        "source_type": "json",
+        "detail": detail,
+    }
+    if isinstance(value, str) and value and value not in {"timing-report", "orfs-metadata"}:
+        result["artifact_id"] = value
+    return result
+
+
+def _value(source: dict[str, Any], *names: str, default: Any = None) -> Any:
+    for name in names:
+        value = source.get(name)
+        if value is not None and value != "":
+            return value
+    return default
 
 
 def _checks(payload: Any) -> list[dict[str, Any]] | None:

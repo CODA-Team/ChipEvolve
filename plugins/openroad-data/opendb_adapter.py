@@ -82,6 +82,33 @@ proc json_obj {{args}} {{
 proc json_array {{args}} {{
   return "\\[[join $args ,]\\]"
 }}
+proc db_pin_geometry {{boxes coordinate_space}} {{
+  set items [list]
+  foreach box $boxes {{
+    if {{[$box isVia]}} {{
+      set via_name ""
+      set bottom_layer ""
+      set top_layer ""
+      set tech_via [$box getTechVia]
+      if {{$tech_via ne "NULL"}} {{
+        set via_name [$tech_via getName]
+        set bottom_layer [[$tech_via getBottomLayer] getName]
+        set top_layer [[$tech_via getTopLayer] getName]
+      }}
+      lappend items [json_obj geometry_type [json_q via] \
+          coordinate_space [json_q $coordinate_space] via [json_q $via_name] \
+          bottom_layer [json_q $bottom_layer] top_layer [json_q $top_layer] \
+          x [$box xMin] y [$box yMin]]
+    }} else {{
+      set layer [$box getTechLayer]
+      if {{$layer eq "NULL"}} {{ continue }}
+      lappend items [json_obj geometry_type [json_q rect] \
+          coordinate_space [json_q $coordinate_space] layer [json_q [$layer getName]] \
+          x_min [$box xMin] y_min [$box yMin] x_max [$box xMax] y_max [$box yMax]]
+    }}
+  }}
+  return [json_array {{*}}$items]
+}}
 proc write_json {{path value}} {{
   set fd [open $path a]
   puts $fd $value
@@ -106,6 +133,8 @@ set fd [open [file join $out summary.json] w]
 puts $fd [json_obj snapshot $snapshot]
 close $fd
 read_db {_tcl(odb_path)}
+set source_evidence [json_array [json_obj artifact_kind [json_q raw_design_database] \
+    logical_path [json_q {_tcl(odb_path)}] source_type [json_q opendb]]]
 set db [ord::get_db]
 set chip [$db getChip]
 set block [$chip getBlock]
@@ -126,7 +155,7 @@ foreach inst [$block getInsts] {{
       bbox [json_obj x_min [$bbox xMin] y_min [$bbox yMin] x_max [$bbox xMax] y_max [$bbox yMax]] \
       geometry [json_array [json_obj geometry_type [json_q rect] \
           x_min [$bbox xMin] y_min [$bbox yMin] x_max [$bbox xMax] y_max [$bbox yMax]]] \
-      routing [json_array] evidence [json_array]]
+      routing [json_array] evidence $source_evidence]
   write_json [file join $out markers.jsonl] $physical
   foreach iterm [$inst getITerms] {{
     set pin_id "iterm:[$iterm getId]"
@@ -134,10 +163,19 @@ foreach inst [$block getInsts] {{
     set net [$iterm getNet]
     set net_id ""
     if {{$net ne "NULL"}} {{ set net_id "net:[$net getId]" }}
+    set pin_geometry [list]
+    foreach mpin [$mterm getMPins] {{
+      foreach box [$mpin getGeometry] {{ lappend pin_geometry $box }}
+    }}
+    set geometry [db_pin_geometry $pin_geometry master]
     set pin [json_obj object_id [json_q $pin_id] snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] \
         kind [json_q pin] name [json_q "[$inst getName]/[$mterm getName]"] \
-        parent_id [json_q $object_id] attributes [json_obj native_id [json_q [$iterm getId]]]]
+        parent_id [json_q $object_id] attributes [json_obj native_id [json_q [$iterm getId]] \
+        geometry $geometry]]
     write_json [file join $out objects.jsonl] $pin
+    write_json [file join $out markers.jsonl] [json_obj object_id [json_q $pin_id] \
+        snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] pin_name [json_q "[$inst getName]/[$mterm getName]"] \
+        geometry $geometry evidence $source_evidence]
     write_json [file join $out relations.jsonl] [json_obj relation_id [json_q "pin-inst:$pin_id"] \
         snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] subject_id [json_q $pin_id] \
         predicate [json_q belongs_to] object_id [json_q $object_id] attributes [json_obj]]
@@ -146,6 +184,29 @@ foreach inst [$block getInsts] {{
           snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] subject_id [json_q $pin_id] \
           predicate [json_q connected_to] object_id [json_q $net_id] attributes [json_obj]]
     }}
+  }}
+}}
+foreach bterm [$block getBTerms] {{
+  set pin_id "bterm:[$bterm getId]"
+  set net [$bterm getNet]
+  set net_id ""
+  if {{$net ne "NULL"}} {{ set net_id "net:[$net getId]" }}
+  set pin_geometry [list]
+  foreach bpin [$bterm getBPins] {{
+    foreach box [$bpin getBoxes] {{ lappend pin_geometry $box }}
+  }}
+  set geometry [db_pin_geometry $pin_geometry block]
+  set pin [json_obj object_id [json_q $pin_id] snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] \
+      kind [json_q pin] name [json_q [$bterm getName]] \
+      attributes [json_obj native_id [json_q [$bterm getId]] geometry $geometry]]
+  write_json [file join $out objects.jsonl] $pin
+  write_json [file join $out markers.jsonl] [json_obj object_id [json_q $pin_id] \
+      snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] pin_name [json_q [$bterm getName]] \
+      geometry $geometry evidence $source_evidence]
+  if {{$net_id ne ""}} {{
+    write_json [file join $out relations.jsonl] [json_obj relation_id [json_q "pin-net:$pin_id"] \
+        snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] subject_id [json_q $pin_id] \
+        predicate [json_q connected_to] object_id [json_q $net_id] attributes [json_obj]]
   }}
 }}
 foreach net [$block getNets] {{
@@ -185,7 +246,7 @@ foreach net [$block getNets] {{
     set routing [json_array {{*}}$routing_items]
   }}
   write_json [file join $out markers.jsonl] [json_obj object_id [json_q $net_id] \
-      snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] geometry [json_array] routing $routing evidence [json_array]]
+      snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] geometry [json_array] routing $routing evidence $source_evidence]
 }}
 set fd [open [file join $out coverage.json] w]
 puts $fd [json_obj source [json_q opendb] instances [json_q parsed] pins [json_q parsed] nets [json_q parsed] \

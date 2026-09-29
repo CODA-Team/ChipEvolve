@@ -19,7 +19,7 @@ Two things this layer is for:
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -83,6 +83,7 @@ class RunSummary:
     attempts: int
     artifacts: int
     metrics: int
+    labels: dict[str, str] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         result = {
@@ -93,6 +94,7 @@ class RunSummary:
             "ended_at": self.ended_at, "terminal_reason": self.terminal_reason,
             "counts": {"attempts": self.attempts, "artifacts": self.artifacts,
                        "metrics": self.metrics},
+            "labels": dict(self.labels),
         }
         for name in ("design_revision_id", "experiment_id", "input_manifest_sha256"):
             value = getattr(self, name)
@@ -128,20 +130,14 @@ class EvidenceIndex:
     def __init__(self, store: RuntimeStore):
         self.store = store
 
-    # -- runs -------------------------------------------------------------
-
     def runs(
         self, *, project_id: str | None = None, design_id: str | None = None,
         plugin_id: str | None = None, status: str | None = None,
+        run_type: str | None = None, analysis_of_run_id: str | None = None,
         owner_run_ids: set[str] | None = None,
         limit: int = DEFAULT_RUN_LIMIT, offset: int = 0,
     ) -> list[RunSummary]:
-        """Summaries, newest first.
-
-        Filtering happens here rather than in SQL so the store's schema stays
-        private to the runtime; the alternative couples every reader to the
-        tables, which is what G5 exists to prevent.
-        """
+        """Summaries newest first; filtering stays in this read model."""
         if not 1 <= limit <= MAX_RUN_LIMIT:
             raise ValueError(f"limit must be between 1 and {MAX_RUN_LIMIT}")
         if offset < 0:
@@ -169,6 +165,11 @@ class EvidenceIndex:
                 continue
             if wanted is not None and run.status is not wanted:
                 continue
+            labels = run.task_spec.labels
+            if run_type and labels.get("run_type") != run_type:
+                continue
+            if analysis_of_run_id and labels.get("analysis_of_run_id") != analysis_of_run_id:
+                continue
             if matched < offset:
                 matched += 1
                 continue
@@ -195,6 +196,7 @@ class EvidenceIndex:
             created_at=run.created_at, started_at=run.started_at,
             ended_at=run.ended_at, terminal_reason=run.terminal_reason,
             attempts=attempts, artifacts=artifacts, metrics=metrics,
+            labels=dict(run.task_spec.labels),
         )
 
     def count_runs(self, **filters: Any) -> int:
@@ -210,8 +212,6 @@ class EvidenceIndex:
 
     def run_detail(self, run_id: str) -> dict[str, Any]:
         return self.store.describe_run(run_id)
-
-    # -- metrics with their lineage --------------------------------------
 
     def metrics(self, run_id: str, *, complete_only: bool = False
                 ) -> list[MetricProvenance]:
@@ -272,8 +272,6 @@ class EvidenceIndex:
             None,
         )
 
-    # -- events -----------------------------------------------------------
-
     def timeline(self, run_id: str) -> list[dict[str, Any]]:
         """The run's events in order -- what happened, produced by whom."""
         return [
@@ -283,8 +281,6 @@ class EvidenceIndex:
             for e in self.store.list_events(run_id)
         ]
 
-    # -- the graph --------------------------------------------------------
-
     def artifact_graph(self, run_ids: Iterable[str]) -> ArtifactGraph:
         """Runs, stages, attempts and artifacts, with named edges.
 
@@ -292,8 +288,7 @@ class EvidenceIndex:
         crawl of the whole store.
         """
         graph = ArtifactGraph()
-        wanted: Sequence[str] = list(run_ids)
-        for run_id in wanted:
+        for run_id in run_ids:
             view = self.store.describe_run(run_id)
             graph.nodes.append({
                 "id": f"run:{run_id}", "kind": "run",

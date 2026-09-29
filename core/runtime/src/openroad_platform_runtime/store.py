@@ -287,7 +287,7 @@ class RuntimeStore:
             if existing is None:
                 self._connection.executescript(_DDL)
                 self._connection.execute(
-                    "INSERT INTO runtime_schema_meta (key, value) VALUES (?, ?)",
+                    "INSERT OR IGNORE INTO runtime_schema_meta (key, value) VALUES (?, ?)",
                     ("schema_version", str(RUNTIME_SCHEMA_VERSION)),
                 )
                 return
@@ -1458,6 +1458,7 @@ class RuntimeStore:
             "design_revision_id": run.task_spec.design_revision_id,
             "experiment_id": run.task_spec.experiment_id,
             "input_manifest_sha256": run.task_spec.input_manifest_sha256,
+            "labels": dict(run.task_spec.labels),
             "status": run.status.value,
             "created_at": run.created_at,
             "started_at": run.started_at,

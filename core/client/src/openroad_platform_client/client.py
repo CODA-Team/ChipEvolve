@@ -183,10 +183,12 @@ class KernelClient:
 
     def runs(self, *, project_id: str | None = None, design_id: str | None = None,
              plugin_id: str | None = None, status: str | None = None,
+             run_type: str | None = None, analysis_of_run_id: str | None = None,
              limit: int | None = None, offset: int = 0) -> list[dict[str, Any]]:
         return self._call("GET", "/kernel/runs", query={
             "project_id": project_id, "design_id": design_id,
             "plugin_id": plugin_id, "status": status, "limit": limit,
+            "run_type": run_type, "analysis_of_run_id": analysis_of_run_id,
             "offset": offset,
         })["runs"]
 
