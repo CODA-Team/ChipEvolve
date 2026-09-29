@@ -10,7 +10,8 @@ from .analysis_context import build_analysis_context, context_availability
 
 
 def timing_path_context(store: DataStore, snapshot_id: str,
-                        path_id: str, detail: str = "summary") -> dict[str, Any]:
+                        path_id: str, detail: str = "summary",
+                        relation_limit: int = 200) -> dict[str, Any]:
     """Compile the smallest useful cross-domain context for one path.
 
     All links come from explicit record identifiers or stored relations. This
@@ -100,11 +101,12 @@ def timing_path_context(store: DataStore, snapshot_id: str,
         "availability": context_availability(analysis_context),
         "evidence_policy": {"relationship_source": "data_foundation",
                              "inference_performed": False},
-    }, path_id, detail)
+    }, path_id, detail, relation_limit)
 
 
 def object_context(store: DataStore, snapshot_id: str,
-                   object_id: str, detail: str = "summary") -> dict[str, Any]:
+                   object_id: str, detail: str = "summary",
+                   relation_limit: int = 200) -> dict[str, Any]:
     """Compile one object and its explicit neighboring facts.
 
     The object ID is supplied by the indexed snapshot.  This function does
@@ -132,11 +134,12 @@ def object_context(store: DataStore, snapshot_id: str,
     evidence.extend(_evidence_rows(physical, "physical_context", object_id))
     evidence.extend(_snapshot_evidence(snapshot, snapshot_id))
     return _object_pack(snapshot, entity, observations, entities, relations,
-                        physical, evidence, detail=detail)
+                        physical, evidence, detail=detail,
+                        relation_limit=relation_limit)
 
 
 def net_context(store: DataStore, snapshot_id: str, net_id: str,
-                detail: str = "summary") -> dict[str, Any]:
+                detail: str = "summary", relation_limit: int = 200) -> dict[str, Any]:
     """Compile a net, its connected entities, physical route, and evidence."""
     snapshot = store.snapshot(snapshot_id)
     view = store.expand_net(snapshot_id, net_id)
@@ -161,14 +164,15 @@ def net_context(store: DataStore, snapshot_id: str, net_id: str,
     evidence.extend(_evidence_rows(physical, "physical_context", net_id))
     evidence.extend(_snapshot_evidence(snapshot, snapshot_id))
     return _object_pack(snapshot, entity, observations, entities, relations, physical,
-                        evidence, target_type="net", detail=detail)
+                        evidence, target_type="net", detail=detail,
+                        relation_limit=relation_limit)
 
 
 def _object_pack(snapshot: dict[str, Any], entity: dict[str, Any],
                  observations: list[dict[str, Any]], entities: list[dict[str, Any]],
                  relations: list[dict[str, Any]], physical: list[dict[str, Any]],
                  evidence: list[dict[str, Any]], *, target_type: str = "object",
-                 detail: str = "summary") -> dict[str, Any]:
+                 detail: str = "summary", relation_limit: int = 200) -> dict[str, Any]:
     return _summarize({
         "task": {"type": f"{target_type}_context"},
         "scope": {key: snapshot.get(key) for key in (
@@ -181,11 +185,11 @@ def _object_pack(snapshot: dict[str, Any], entity: dict[str, Any],
         "evidence": evidence,
         "evidence_policy": {"relationship_source": "data_foundation",
                              "inference_performed": False},
-    }, entity.get("object_id"), detail)
+    }, entity.get("object_id"), detail, relation_limit)
 
 
 def _summarize(pack: dict[str, Any], target_id: str | None,
-               detail: str = "summary") -> dict[str, Any]:
+               detail: str = "summary", relation_limit: int = 200) -> dict[str, Any]:
     """Project a context pack so a partner can actually afford it.
 
     Measured composition of one gcd net context (269,892 B in total):
@@ -202,9 +206,30 @@ def _summarize(pack: dict[str, Any], target_id: str | None,
     """
     if detail not in {"summary", "full"}:
         raise ValueError("detail must be summary or full")
+    if relation_limit < 0:
+        raise ValueError("relation_limit must not be negative")
     pack["detail"] = detail
+    pack["relation_limit"] = relation_limit
+    # The cap applies in both modes: it is a fetch bound, not a formatting
+    # choice.  One gcd path context merged 178 relations and one ibex path 401
+    # (a 12-point path whose nets carry every load), so a caller needs a bound
+    # and needs to be told when it bit.  0 means unlimited.
+    relations = pack.get("relations")
+    if isinstance(relations, list) and relation_limit and len(relations) > relation_limit:
+        pack["relations"] = relations[:relation_limit]
+        pack["relations_truncated"] = True
+        pack["relations_total"] = len(relations)
+        pack.setdefault("limitations", []).append({
+            "field": "relations", "status": "truncated",
+            "returned": relation_limit, "total": len(relations),
+            "reason": "relation_limit reached; raise it or query the object directly"})
     if detail == "full":
         return pack
+    timing = pack.get("timing_context")
+    if isinstance(timing, dict):
+        for point in timing.get("points") or []:
+            if isinstance(point, dict):
+                point.pop("evidence", None)
     for collection in ("entities", "physical_context", "relations", "observations"):
         for row in pack.get(collection, []):
             if isinstance(row, dict):

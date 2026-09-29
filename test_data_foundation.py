@@ -772,3 +772,31 @@ def test_name_lookup_finds_the_hierarchical_name(tmp_path: Path) -> None:
         assert "records_json_hier_name" in indexes, indexes
     finally:
         store.close()
+
+
+def test_context_relation_cap_is_reported(tmp_path: Path) -> None:
+    """CONTRACT 4.8: a context cap must say that it bit."""
+    value = pack()
+    value["relations"] = [
+        {"relation_id": f"r{index}", "snapshot_id": "snap-1",
+         "subject_id": "top/u1", "predicate": "connected_to",
+         "object_id": f"net:{index}"} for index in range(5)]
+    store = DataStore(tmp_path / "cap.db")
+    try:
+        store.register(value)
+        uncapped = object_context(store, "snap-1", "top/u1", relation_limit=0)
+        assert len(uncapped["relations"]) == 5
+        assert "relations_truncated" not in uncapped
+
+        capped = object_context(store, "snap-1", "top/u1", relation_limit=2)
+        assert len(capped["relations"]) == 2
+        assert capped["relations_truncated"] is True
+        assert capped["relations_total"] == 5
+        assert capped["relation_limit"] == 2
+        assert capped["limitations"][0]["status"] == "truncated"
+        assert capped["limitations"][0]["total"] == 5
+
+        with pytest.raises(ValueError):
+            object_context(store, "snap-1", "top/u1", relation_limit=-1)
+    finally:
+        store.close()

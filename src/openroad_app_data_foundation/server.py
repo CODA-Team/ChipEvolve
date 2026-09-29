@@ -118,8 +118,10 @@ class Handler(BaseHTTPRequestHandler):
                 if len(parts) == 5 and parts[4] == "points":
                     return path_points(self.store, snapshot_id, path_id, query)
                 if len(parts) == 5 and parts[4] == "context":
-                    return timing_path_context(self.store, snapshot_id, path_id,
-                                               query.get("detail", "summary"))
+                    return timing_path_context(
+                        self.store, snapshot_id, path_id,
+                        query.get("detail", "summary"),
+                        _int_param(query, "relation_limit", 200))
                 if len(parts) == 5 and parts[4] == "expand":
                     return timing_path_context(self.store, snapshot_id, path_id)
             if len(parts) == 3 and parts[2] == "timing-paths":
@@ -133,12 +135,14 @@ class Handler(BaseHTTPRequestHandler):
                     parts[1], parts[3], parts[4])}
             if len(parts) == 5 and parts[2] == "objects" and parts[4] == "context":
                 return object_context(self.store, parts[1], parts[3],
-                                      query.get("detail", "summary"))
+                                      query.get("detail", "summary"),
+                                      _int_param(query, "relation_limit", 200))
             if len(parts) == 4 and parts[2] == "objects":
                 return self.store.object(parts[1], parts[3], expansion=query.get("expansion", "summary"))
             if len(parts) == 5 and parts[2] == "nets" and parts[4] == "context":
                 return net_context(self.store, parts[1], parts[3],
-                                   query.get("detail", "summary"))
+                                   query.get("detail", "summary"),
+                                   _int_param(query, "relation_limit", 200))
             if len(parts) == 4 and parts[2] == "nets":
                 return self.store.net(parts[1], parts[3])
             if len(parts) == 5 and parts[2] == "nets" and parts[4] == "expand":
@@ -176,3 +180,13 @@ def serve(*, host: str, port: int, store: DataStore,
                               if kernel_url else None),
     })
     ThreadingHTTPServer((host, port), handler).serve_forever()
+
+
+def _int_param(query: dict[str, str], name: str, default: int) -> int:
+    """Read a bounded integer query parameter, refusing anything unparseable."""
+    raw = query.get(name)
+    if raw is None or raw == "":
+        return default
+    if not raw.lstrip("-").isdigit():
+        raise ValueError(f"{name} must be an integer")
+    return int(raw)
