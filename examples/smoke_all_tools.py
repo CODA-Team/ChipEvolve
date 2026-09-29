@@ -79,7 +79,8 @@ def main() -> int:
         sample = next(point for point in points["timing_points"] if point.get("net_id"))
         net = client.get_net_context(args.snapshot, sample["net_id"])
         record("get_net_context", f"{sample['net_id']} -> "
-                                  f"{len(net.get('connected_entities', []))} connected")
+                                  f"{len(net.get('entities', []))} entities, "
+                                  f"{len(net.get('relations', []))} relations")
         object_id = sample.get("instance_id") or sample.get("pin_id")
 
         physical = client.get_physical_context(args.snapshot, object_id)
