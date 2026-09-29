@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eda-ai-client"
+version = "0.1.0"
+description = "Read-only Python client for the EDA-AI Data Interface (structured OpenROAD/ORFS facts for models)"
+requires-python = ">=3.10"
+dependencies = []
+license = { text = "Proprietary" }
+readme = "README.md"
+
+[project.urls]
+Documentation = "CONTRACT.md"
+
+[tool.setuptools.packages.find]
+where = ["src"]
