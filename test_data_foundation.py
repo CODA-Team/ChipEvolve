@@ -744,3 +744,31 @@ def test_context_detail_summary_projects_neighbour_geometry(tmp_path: Path) -> N
             object_context(store, "snap-1", "top/u1", detail="verbose")
     finally:
         store.close()
+
+
+def test_name_lookup_finds_the_hierarchical_name(tmp_path: Path) -> None:
+    """CONTRACT 4.9: name or hierarchical name, through an index not a scan."""
+    value = pack()
+    value["entities"] = [{
+        "object_id": "inst:1", "snapshot_id": "snap-1", "kind": "instance",
+        "name": "short_name",
+        "attributes": {"hierarchical_name": "top/deep/long_name",
+                       "native_id": "1"}}]
+    store = DataStore(tmp_path / "named.db")
+    try:
+        store.register(value)
+        assert [row["object_id"] for row in
+                store.find_instance("snap-1", "short_name")] == ["inst:1"]
+        assert [row["object_id"] for row in
+                store.find_instance("snap-1", "top/deep/long_name")] == ["inst:1"]
+        assert store.find_instance("snap-1", "not-a-name") == []
+
+        # The index must exist for the lookup to stay a search on a real design;
+        # asserting a plan on a one-row fixture would only test SQLite's cost
+        # heuristics.
+        indexes = {row[0] for row in store.connection.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'index' "
+            "AND tbl_name = 'records'")}
+        assert "records_json_hier_name" in indexes, indexes
+    finally:
+        store.close()

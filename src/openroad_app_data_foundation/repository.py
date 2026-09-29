@@ -71,6 +71,10 @@ class DataStore:
             CREATE INDEX IF NOT EXISTS records_json_path
                 ON records(snapshot_id, record_type,
                            json_extract(payload, '$.path_id'));
+            CREATE INDEX IF NOT EXISTS records_json_hier_name
+                ON records(snapshot_id, record_type,
+                           json_extract(payload,
+                                        '$.attributes.hierarchical_name'));
             """
         )
         self.connection.commit()
@@ -320,13 +324,31 @@ class DataStore:
 
     def entities_named(self, snapshot_id: str, kind: str,
                        name: str) -> list[dict[str, Any]]:
-        """Exact indexed-name lookup inside one snapshot, through SQL."""
-        return self.filtered(
-            snapshot_id, "entities",
-            where="json_extract(payload, '$.kind') = ? AND ("
-                  "json_extract(payload, '$.name') = ? OR "
-                  "json_extract(payload, '$.attributes.hierarchical_name') = ?)",
-            params=(kind, name, name))
+        """Exact name lookup inside one snapshot, by name or hierarchical name.
+
+        Two searches rather than one OR, for the same reason as
+        :meth:`relations_touching`: an OR over a column with and a column
+        without an index made SQLite scan every entity of the snapshot.  The
+        second branch reads ``attributes.hierarchical_name``, which the
+        identity derivation prefers over ``name`` (identity.py:65) but which the
+        OpenDB extractor does not populate yet - so on the current dataset both
+        branches answer the same question, and the index must exist for the pair
+        to stay a search rather than a scan of every entity.
+        """
+        rows: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for where in ("json_extract(payload, '$.name') = ?",
+                      "json_extract(payload, "
+                      "'$.attributes.hierarchical_name') = ?"):
+            for row in self.filtered(
+                    snapshot_id, "entities",
+                    where=f"json_extract(payload, '$.kind') = ? AND {where}",
+                    params=(kind, name)):
+                key = str(row.get("object_id"))
+                if key not in seen:
+                    seen.add(key)
+                    rows.append(row)
+        return rows
 
     def entities_by_ids(self, snapshot_id: str,
                         object_ids: Sequence[str]) -> list[dict[str, Any]]:
