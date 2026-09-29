@@ -9,7 +9,7 @@ from .analysis_context import (
 )
 from .identity import canonical_key
 from .metrics import CANONICAL_METRICS, project_run
-from .repository import DataStore
+from .repository import RECORD_TYPES, DataStore, record_identifier
 
 
 def list_timing_paths(store: DataStore, snapshot_id: str, query: dict[str, str]) -> dict[str, Any]:
@@ -95,6 +95,54 @@ def _observation_value(row: dict[str, Any], name: str) -> Any:
         context = row.get("context")
         return context.get("scene") if isinstance(context, dict) else row.get(name)
     return row.get(name)
+
+
+def list_evidence(store: DataStore, snapshot_id: str,
+                 query: dict[str, str]) -> dict[str, Any]:
+    """Paged evidence index (CONTRACT section 5).
+
+    The index is large - ibex has about 190k entries, which used to be one
+    95 MB response - so records are streamed and the scan stops as soon as one
+    page plus one item is collected.  ``count`` is the exact total only when the
+    scan finished; otherwise it is reported as not computed instead of letting
+    the page size masquerade as the total.
+    """
+    artifact_id = query.get("artifact_id")
+    limit, offset = _limit(query), _offset(query)
+    matched = 0
+    page: list[dict[str, Any]] = []
+    complete = True
+    for record_type in RECORD_TYPES:
+        for row in store.iter_records(snapshot_id, record_type):
+            for item in row.get("evidence", []):
+                if not isinstance(item, dict):
+                    continue
+                if artifact_id is not None and item.get("artifact_id") != artifact_id:
+                    continue
+                if matched < offset:
+                    matched += 1
+                    continue
+                if len(page) >= limit:
+                    complete = False
+                    break
+                page.append({"record_type": record_type,
+                             "record_id": record_identifier(record_type, row),
+                             "evidence": item})
+                matched += 1
+            if not complete:
+                break
+        if not complete:
+            break
+    result: dict[str, Any] = {"snapshot_id": snapshot_id, "evidence": page}
+    if complete:
+        result.update(_page(matched, len(page), limit, offset))
+    else:
+        result.update({"count": None, "count_status": "unavailable",
+                       "count_reason": ("the index is larger than one page; the "
+                                        "total is not computed"),
+                       "returned": len(page), "limit": limit, "offset": offset,
+                       "truncated": True, "next_offset": offset + len(page)})
+    return result
 
 
 def timing_path(store: DataStore, snapshot_id: str, path_id: str) -> dict[str, Any]:

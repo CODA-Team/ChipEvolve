@@ -15,6 +15,7 @@ from .context import net_context, object_context, timing_path_context
 from .metric_queries import compare_metric
 from .queries import (
     compare_timing_path,
+    list_evidence,
     list_metrics_for_run,
     list_observations,
     list_timing_paths,
@@ -125,8 +126,7 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) == 3 and parts[2] == "observations":
                 return list_observations(self.store, parts[1], query)
             if len(parts) == 3 and parts[2] == "evidence":
-                return {"snapshot_id": parts[1], "evidence": self.store.evidence(
-                    parts[1], query.get("artifact_id"))}
+                return list_evidence(self.store, parts[1], query)
             if len(parts) == 6 and parts[2] == "records" and parts[5] == "evidence":
                 return {"evidence": self.store.record_evidence(
                     parts[1], parts[3], parts[4])}

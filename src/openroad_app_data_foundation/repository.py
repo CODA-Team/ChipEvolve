@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from collections.abc import Iterable, Mapping, Sequence, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -292,6 +292,27 @@ class DataStore:
                                      offset=len(rows)))
         return rows
 
+    def iter_records(self, snapshot_id: str, record_type: str,
+                     page: int = 10000) -> Iterator[dict[str, Any]]:
+        """Stream one record type in bounded pages.
+
+        ``fetch_all`` is right when every row is needed.  This exists for
+        callers that may stop early - a paged evidence index - so memory stays
+        at one page instead of the whole record set.
+        """
+        if record_type not in RECORD_TYPES:
+            raise KeyError(f"unsupported record type: {record_type}")
+        self.snapshot(snapshot_id)
+        offset = 0
+        while True:
+            rows = self.records(snapshot_id, record_type, limit=page, offset=offset)
+            if not rows:
+                return
+            yield from rows
+            offset += len(rows)
+            if len(rows) < page:
+                return
+
     def entities_named(self, snapshot_id: str, kind: str,
                        name: str) -> list[dict[str, Any]]:
         """Exact indexed-name lookup inside one snapshot, through SQL."""
@@ -384,7 +405,7 @@ class DataStore:
                         continue
                     if artifact_id is None or evidence.get("artifact_id") == artifact_id:
                         result.append({"record_type": record_type,
-                                       "record_id": _record_id(record_type, row, 0),
+                                       "record_id": record_identifier(record_type, row),
                                        "evidence": evidence})
         return result
 
@@ -452,6 +473,12 @@ class DataStore:
     expand_net_context = expand_net
     get_physical_context = physical
     get_evidence = evidence
+
+
+def record_identifier(record_type: str, row: Mapping[str, Any],
+                      ordinal: int = 0) -> str:
+    """The stable per-record ID of one stored row (same rule as registration)."""
+    return _record_id(record_type, row, ordinal)
 
 
 def _object(value: Any, name: str) -> dict[str, Any]:
