@@ -146,7 +146,8 @@ foreach inst [$block getInsts] {{
   lassign [$inst getLocation] loc_x loc_y
   set bbox [$inst getBBox]
   set attributes [json_obj native_id [json_q $native_id] \
-      master [json_q [$master getName]] orientation [json_q [$inst getOrient]]]
+      master [json_q [$master getName]] orientation [json_q [$inst getOrient]] \
+      is_macro [$master isBlock] master_type [json_q [$master getType]]]
   set entity [json_obj object_id [json_q $object_id] snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] \
       kind [json_q instance] name [json_q [$inst getName]] attributes $attributes]
   write_json [file join $out objects.jsonl] $entity
@@ -171,7 +172,7 @@ foreach inst [$block getInsts] {{
     set pin [json_obj object_id [json_q $pin_id] snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] \
         kind [json_q pin] name [json_q "[$inst getName]/[$mterm getName]"] \
         parent_id [json_q $object_id] attributes [json_obj native_id [json_q [$iterm getId]] \
-        geometry $geometry]]
+        direction [json_q [$mterm getIoType]] geometry $geometry]]
     write_json [file join $out objects.jsonl] $pin
     write_json [file join $out markers.jsonl] [json_obj object_id [json_q $pin_id] \
         snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] pin_name [json_q "[$inst getName]/[$mterm getName]"] \
@@ -198,7 +199,8 @@ foreach bterm [$block getBTerms] {{
   set geometry [db_pin_geometry $pin_geometry block]
   set pin [json_obj object_id [json_q $pin_id] snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] \
       kind [json_q pin] name [json_q [$bterm getName]] \
-      attributes [json_obj native_id [json_q [$bterm getId]] geometry $geometry]]
+      attributes [json_obj native_id [json_q [$bterm getId]] \
+        direction [json_q [$bterm getIoType]] geometry $geometry]]
   write_json [file join $out objects.jsonl] $pin
   write_json [file join $out markers.jsonl] [json_obj object_id [json_q $pin_id] \
       snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] pin_name [json_q [$bterm getName]] \
@@ -211,9 +213,60 @@ foreach bterm [$block getBTerms] {{
 }}
 foreach net [$block getNets] {{
   set net_id "net:[$net getId]"
+  # Driver/load classification comes from the master pin's io type.  A single
+  # top-level port also drives its net, so it is accepted as the driver when no
+  # output pin exists.  Anything else is an explicit count, never a guess.
+  set output_pins [list]
+  set input_count 0
+  set inout_count 0
+  set connected [list]
+  foreach iterm [$net getITerms] {{
+    set io [[$iterm getMTerm] getIoType]
+    set pin_object "iterm:[$iterm getId]"
+    lappend connected $pin_object
+    if {{$io eq "OUTPUT"}} {{
+      lappend output_pins $pin_object
+    }} elseif {{$io eq "INOUT"}} {{
+      incr inout_count
+    }} else {{
+      incr input_count
+    }}
+  }}
+  set bterms [$net getBTerms]
+  set input_count [expr {{$input_count + [llength $bterms]}}]
+  foreach bterm $bterms {{
+    lappend connected "bterm:[$bterm getId]"
+  }}
+  set driver_id ""
+  set driver_basis "unresolved"
+  if {{[llength $output_pins] == 1}} {{
+    set driver_id [lindex $output_pins 0]
+    set driver_basis "unique_output_pin"
+  }} elseif {{[llength $output_pins] == 0 && [llength $bterms] == 1}} {{
+    set driver_id "bterm:[[lindex $bterms 0] getId]"
+    set driver_basis "single_top_level_port"
+  }}
+  set fanout [llength $connected]
+  if {{$driver_id ne ""}} {{ incr fanout -1 }}
   set net_entity [json_obj object_id [json_q $net_id] snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] \
-      kind [json_q net] name [json_q [$net getName]] attributes [json_obj native_id [json_q [$net getId]]]]
+      kind [json_q net] name [json_q [$net getName]] attributes [json_obj native_id [json_q [$net getId]] \
+      driver_id [json_q $driver_id] driver_basis [json_q $driver_basis] \
+      output_pin_count [llength $output_pins] input_pin_count $input_count \
+      inout_pin_count $inout_count fanout $fanout \
+      fanout_basis [json_q "connected pins minus the resolved driver; INOUT counts as a load"]]]
   write_json [file join $out objects.jsonl] $net_entity
+  if {{$driver_id ne ""}} {{
+    write_json [file join $out relations.jsonl] [json_obj relation_id [json_q "net-driver:$net_id"] \
+        snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] subject_id [json_q $net_id] \
+        predicate [json_q driven_by] object_id [json_q $driver_id] \
+        attributes [json_obj basis [json_q $driver_basis]]]
+  }}
+  foreach pin_object $connected {{
+    if {{$pin_object eq $driver_id}} {{ continue }}
+    write_json [file join $out relations.jsonl] [json_obj relation_id [json_q "net-load:$net_id:$pin_object"] \
+        snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] subject_id [json_q $net_id] \
+        predicate [json_q loads] object_id [json_q $pin_object] attributes [json_obj]]
+  }}
   set routing [json_array]
   set wire [$net getWire]
   if {{$wire ne "NULL"}} {{
@@ -250,6 +303,8 @@ foreach net [$block getNets] {{
 }}
 set fd [open [file join $out coverage.json] w]
 puts $fd [json_obj source [json_q opendb] instances [json_q parsed] pins [json_q parsed] nets [json_q parsed] \
-    location [json_q parsed] geometry [json_q partial] routing [json_q parsed]]
+    location [json_q parsed] geometry [json_q partial] routing [json_q parsed] \
+    pin_direction [json_q parsed] macro_classification [json_q parsed] \
+    driver_loads [json_q parsed]]
 close $fd
 '''
