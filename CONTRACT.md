@@ -162,7 +162,7 @@ Data Foundation 只回答 **结构化 EDA 事实**。它不诊断、不建议、
 
 1. **每个 canonical metric 必须声明 `authoritative_source`。** 同名数值来自不同来源时，非权威来源只作为普通 observation 列出，不得覆盖权威值。
 2. 其他 ORFS/report 字段**不进入 canonical 集合**，只在 `data.raw_metrics[]` 里以**原始 key** 出现，并带 `"canonical": false`。它们不参与 `get_metrics(name=...)` 的按名查询。
-3. `unit` 缺失或 `corner` 缺失时，该 metric 返回 `status: unavailable`（不得默认 `default` corner 或隐含单位）。
+3. `unit` 缺失 → `status: unavailable`（不得隐含单位）。`corner` 未由来源声明时**不得静默省略**：保留数值，但该行必须带 `corner_status`——来源声明了就是 `"declared"` 并给出 `corner`，没声明就是 `"not_declared"` 且 `corner` 为 `null`（同时 `reason` 说明）。理由：ORFS 的 run 级报告本就不声明 corner，若按 `unavailable` 处理会让**整个 canonical 指标面不可用**，那是拿诚实换可用性；显式声明可以让两者同时成立。
 4. `AREA` 单位为 `um^2`，`POWER_TOTAL` 为 `uW`，`RUNTIME` 为 `s`（以 ORFS 原始 JSON 为准；不一致时以原始为准并在 `limitations` 记录）。
 
 ### 4.7 `get_timing_paths(snapshot_id, check?, limit, offset)`
