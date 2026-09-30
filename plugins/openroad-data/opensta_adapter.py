@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from sta_inputs import library_paths, timing_commands, directed_options
+
 
 def prepare(inputs: dict[str, Any], workspace: Path) -> dict[str, Any]:
     odb_path = _relative(inputs, "odb_path")
@@ -95,8 +97,24 @@ def normalize(output_dir: Path, inputs: dict[str, Any]) -> None:
     _write_lines(output_dir / "timing_paths.jsonl", timing_paths)
     _write_lines(output_dir / "timing_points.jsonl", points)
     _write_json(output_dir / "manifest.json", {"snapshot": metadata, "schema_version": 3})
-    _write_json(output_dir / "summary.json", {"snapshot": metadata,
-                                                "timing_path_count": len(timing_paths)})
+    context_path = output_dir / "analysis_context.json"
+    context = json.loads(context_path.read_text()) if context_path.is_file() else {}
+    context.update({"libraries": library_paths(inputs), "constraints": inputs.get("sdc_path"),
+                    "rc_script": inputs.get("rc_script_path"),
+                    "parasitics": inputs.get("spef_path"),
+                    "parasitic_mode": inputs.get("parasitic_mode", "spef" if inputs.get("spef_path") else "unavailable"),
+                    "analysis": inputs.get("analysis"), "corner": inputs.get("corner"),
+                    "executor": inputs.get("openroad_bin"), "path_count_per_group": inputs.get("path_count", 5),
+                    "coverage_scope": "sampled report_checks paths; not all timing paths",
+                    "parent_snapshot_id": inputs.get("parent_snapshot_id")})
+    producer_path = inputs.get("producer_metadata_path")
+    if producer_path:
+        _require_relative(producer_path, "producer_metadata_path")
+        context["producer"] = json.loads((output_dir.parent / producer_path).read_text())
+    summary_path = output_dir / "summary.json"
+    summary = json.loads(summary_path.read_text()) if summary_path.is_file() else {}
+    _write_json(summary_path, {**summary, "snapshot": metadata,
+                              "timing_path_count": len(timing_paths), "timing_context": context})
     _write_json(output_dir / "coverage.json", {
         "source": "opensta",
         "timing": "parsed" if timing_paths else "empty",
@@ -237,15 +255,13 @@ def _script(inputs: dict[str, Any], odb_path: str, output_name: str) -> str:
         f"file mkdir {_tcl(output_name)}",
         f"read_db {_tcl(odb_path)}",
     ]
-    for option, command in (("liberty_path", "read_liberty"),
-                            ("sdc_path", "read_sdc"), ("spef_path", "read_spef")):
-        value = inputs.get(option)
-        if value is not None:
-            _require_relative(value, option)
-            lines.append(f"{command} {_tcl(value)}")
+    lines.extend(timing_commands(inputs, _tcl))
+    lines.append(_clock_script(output_name))
     count = inputs.get("path_count", 5)
     if not isinstance(count, int) or not 1 <= count <= 200:
         raise ValueError("inputs.path_count must be an integer between 1 and 200")
+    extra_lines, extra_options = directed_options(inputs, _tcl)
+    lines.extend(extra_lines)
     # Non-deprecated option names matter: -group_count / -endpoint_count print a
     # deprecation warning into the redirected file and break JSON parsing.
     for filename, delay in (("timing_report.json", "max"),
@@ -253,7 +269,7 @@ def _script(inputs: dict[str, Any], odb_path: str, output_name: str) -> str:
         lines.append("sta::redirect_file_begin [file join "
                      f"{_tcl(output_name)} {_tcl(filename)}]")
         lines.append(f"report_checks -path_delay {delay} -group_path_count {count} "
-                     f"-endpoint_path_count {count} -format json -digits 6")
+                     f"-endpoint_path_count {count} {extra_options} -format json -digits 6")
         lines.append("sta::redirect_file_end")
     lines.append(_mapping_script(output_name))
     return "\n".join(lines) + "\n"
@@ -370,3 +386,21 @@ def _mapping(inputs: dict[str, Any], workspace: Path) -> dict[str, dict[str, Any
             raise ValueError("dbNetwork mapping entries must be object values")
         result[point_id] = row
     return result
+
+
+def _clock_script(output_name: str) -> str:
+    return f'''set clock_rows [list]
+foreach clk [all_clocks] {{
+  lappend clock_rows [json_obj name [json_q [get_name $clk]] \
+      period [$clk period] period_ui [get_property $clk period] \
+      unit [json_q s] propagated [$clk is_propagated] generated [$clk is_generated] \
+      virtual [$clk is_virtual] waveform "\\[[join [$clk waveform] ,]\\]"]
+}}
+set fd [open [file join {_tcl(output_name)} analysis_context.json] w]
+puts $fd [json_obj clocks "\\[[join $clock_rows ,]\\]"]
+close $fd
+write_sdc [file join {_tcl(output_name)} effective.sdc]
+sta::redirect_file_begin [file join {_tcl(output_name)} check_setup.rpt]
+check_setup -verbose
+sta::redirect_file_end
+'''

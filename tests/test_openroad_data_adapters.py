@@ -363,3 +363,18 @@ Path('reports/timing.json').write_text('not-json\\n')
     assert {item["kind"] for item in result["artifacts"]} >= {
         "analysis_report", "analysis_script", "raw_design_database",
     }
+
+
+def test_multilib_directed_sta_and_boundary_validation(tmp_path: Path) -> None:
+    _run_adapter(tmp_path, _task({'adapter': 'opensta', 'odb_path': 'design.odb',
+        'openroad_bin': '/does/not/exist', 'liberty_paths': ['standard.lib', 'macro.lib'],
+        'to_pin': 'core/register[7]/D', 'rc_script_path': 'rc.tcl',
+        'parasitic_mode': 'placement'}), expected_exit=2)
+    script = (tmp_path / 'opensta_extract.tcl').read_text()
+    assert 'read_liberty "standard.lib"' in script and 'read_liberty "macro.lib"' in script
+    assert script.index('read_liberty "macro.lib"') < script.index('source "rc.tcl"')
+    assert 'estimate_parasitics -placement' in script and 'must resolve to one pin' in script
+    for paths in (['../outside.lib'], ['a.lib', 'a.lib'], 'a.lib', [None]):
+        result = _run_adapter(tmp_path, _task({'adapter': 'opensta', 'odb_path': 'design.odb',
+            'liberty_paths': paths}), expected_exit=2)
+        assert result['failure']['category'] == 'configuration_error'

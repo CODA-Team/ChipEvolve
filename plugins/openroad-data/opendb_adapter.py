@@ -181,6 +181,14 @@ foreach inst [$block getInsts] {{
       foreach box [$mpin getGeometry] {{ lappend pin_geometry $box }}
     }}
     set geometry [db_pin_geometry $pin_geometry master]
+    set chip_geometries [list]
+    foreach pair [$iterm getGeometries] {{
+      lassign $pair layer rect
+      lappend chip_geometries [json_obj geometry_type [json_q rect] \
+          coordinate_space [json_q block] layer [json_q [$layer getName]] \
+          x_min [$rect xMin] y_min [$rect yMin] x_max [$rect xMax] y_max [$rect yMax]]
+    }}
+    set chip_geometry [json_array {{*}}$chip_geometries]
     set pin [json_obj object_id [json_q $pin_id] snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] \
         kind [json_q pin] name [json_q "[$inst getName]/[$mterm getName]"] \
         parent_id [json_q $object_id] source_ref [json_q $source_ref] locator [json_obj native_id [json_q [$iterm getId]]] attributes [json_obj native_id [json_q [$iterm getId]] \
@@ -188,7 +196,7 @@ foreach inst [$block getInsts] {{
     write_json [file join $out objects.jsonl] $pin
     write_json [file join $out markers.jsonl] [json_obj object_id [json_q $pin_id] \
         snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] pin_name [json_q "[$inst getName]/[$mterm getName]"] \
-        geometry $geometry evidence $source_evidence]
+        geometry $chip_geometry evidence $source_evidence]
     write_json [file join $out relations.jsonl] [json_obj relation_id [json_q "pin-inst:$pin_id"] \
         source_ref [json_q $source_ref] locator [json_obj pin_id [json_q $pin_id]] \
         snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] subject_id [json_q $pin_id] \
@@ -228,11 +236,11 @@ foreach bterm [$block getBTerms] {{
 }}
 foreach net [$block getNets] {{
   set net_id "net:[$net getId]"
-  # Driver/load classification comes from the master pin's io type.  A single
-  # top-level port also drives its net, so it is accepted as the driver when no
-  # output pin exists.  Anything else is an explicit count, never a guess.
+  # Internal OUTPUT and top-level INPUT pins are directional drivers.
+  # INOUT remains a load under the declared fanout basis, with its own count.
   set output_pins [list]
   set input_count 0
+  set driver_pins [list]
   set inout_count 0
   set connected [list]
   foreach iterm [$net getITerms] {{
@@ -241,6 +249,7 @@ foreach net [$block getNets] {{
     lappend connected $pin_object
     if {{$io eq "OUTPUT"}} {{
       lappend output_pins $pin_object
+      lappend driver_pins $pin_object
     }} elseif {{$io eq "INOUT"}} {{
       incr inout_count
     }} else {{
@@ -248,39 +257,46 @@ foreach net [$block getNets] {{
     }}
   }}
   set bterms [$net getBTerms]
-  set input_count [expr {{$input_count + [llength $bterms]}}]
   foreach bterm $bterms {{
-    lappend connected "bterm:[$bterm getId]"
+    set pin_object "bterm:[$bterm getId]"
+    lappend connected $pin_object
+    if {{[$bterm getIoType] eq "INPUT"}} {{
+      lappend driver_pins $pin_object
+    }} elseif {{[$bterm getIoType] eq "INOUT"}} {{
+      incr inout_count
+    }} else {{
+      incr input_count
+    }}
   }}
   set driver_id ""
   set driver_basis "unresolved"
-  if {{[llength $output_pins] == 1}} {{
-    set driver_id [lindex $output_pins 0]
-    set driver_basis "unique_output_pin"
-  }} elseif {{[llength $output_pins] == 0 && [llength $bterms] == 1}} {{
-    set driver_id "bterm:[[lindex $bterms 0] getId]"
-    set driver_basis "single_top_level_port"
+  if {{[llength $driver_pins] == 1}} {{
+    set driver_id [lindex $driver_pins 0]
+    set driver_basis "unique_directional_driver"
+  }} elseif {{[llength $driver_pins] > 1}} {{
+    set driver_basis "multiple_directional_drivers"
   }}
-  set fanout [llength $connected]
-  if {{$driver_id ne ""}} {{ incr fanout -1 }}
+  set fanout [expr {{[llength $connected] - [llength $driver_pins]}}]
   set net_entity [json_obj object_id [json_q $net_id] snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] \
       kind [json_q net] name [json_q [$net getName]] source_ref [json_q $source_ref] \
       locator [json_obj native_id [json_q [$net getId]]] \
       attributes [json_obj native_id [json_q [$net getId]] \
       driver_id [json_q $driver_id] driver_basis [json_q $driver_basis] \
+      driver_ids [json_array {{*}}[lmap pin $driver_pins {{json_q $pin}}]] \
+      driver_count [llength $driver_pins] signal_type [json_q [$net getSigType]] \
       output_pin_count [llength $output_pins] input_pin_count $input_count \
       inout_pin_count $inout_count fanout $fanout \
-      fanout_basis [json_q "connected pins minus the resolved driver; INOUT counts as a load"]]]
+      fanout_basis [json_q "connected pins minus all directional drivers; INOUT counts as a load"]]]
   write_json [file join $out objects.jsonl] $net_entity
-  if {{$driver_id ne ""}} {{
-    write_json [file join $out relations.jsonl] [json_obj relation_id [json_q "net-driver:$net_id"] \
+  foreach driver_pin $driver_pins {{
+    write_json [file join $out relations.jsonl] [json_obj relation_id [json_q "net-driver:$net_id:$driver_pin"] \
         source_ref [json_q $source_ref] locator [json_obj net_native_id [json_q [$net getId]]] \
         snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] subject_id [json_q $net_id] \
-        predicate [json_q driven_by] object_id [json_q $driver_id] \
+        predicate [json_q driven_by] object_id [json_q $driver_pin] \
         attributes [json_obj basis [json_q $driver_basis]]]
   }}
   foreach pin_object $connected {{
-    if {{$pin_object eq $driver_id}} {{ continue }}
+    if {{$pin_object in $driver_pins}} {{ continue }}
     write_json [file join $out relations.jsonl] [json_obj relation_id [json_q "net-load:$net_id:$pin_object"] \
         source_ref [json_q $source_ref] locator [json_obj net_native_id [json_q [$net getId]] pin [json_q $pin_object]] \
         snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] subject_id [json_q $net_id] \
@@ -295,24 +311,32 @@ foreach net [$block getNets] {{
     set shape [odb::new_dbWirePathShape]
     $iterator begin $wire
     while {{[$iterator getNextPath $path]}} {{
-      if {{![ $iterator getNextShape $shape]}} {{ break }}
-      set db_shape [odb::dbWirePathShape_shape_get $shape]
-      if {{[odb::dbShape_isSegment $db_shape]}} {{
-        set layer [odb::dbShape_getTechLayer $db_shape]
-        set item [json_obj routing_type [json_q segment] wire_id [json_q [$wire getId]] \
-            layer [json_q [$layer getName]] x_min [odb::dbShape_xMin $db_shape] \
-            y_min [odb::dbShape_yMin $db_shape] x_max [odb::dbShape_xMax $db_shape] \
-            y_max [odb::dbShape_yMax $db_shape]]
-        lappend routing_items $item
-      }} elseif {{[odb::dbShape_isVia $db_shape]}} {{
-        set via [odb::dbShape_getTechVia $db_shape]
-        set xy [odb::dbShape_getViaXY $db_shape]
-        lassign $xy via_x via_y
-        set item [json_obj routing_type [json_q via] wire_id [json_q [$wire getId]] \
-            via [json_q [$via getName]] x $via_x y $via_y \
-            bottom_layer [json_q [[$via getBottomLayer] getName]] \
-            top_layer [json_q [[$via getTopLayer] getName]]]
-        lappend routing_items $item
+      set prev [odb::dbWirePath_point_get $path]
+      set prev_x [$prev x]; set prev_y [$prev y]
+      while {{[$iterator getNextShape $shape]}} {{
+        set db_shape [odb::dbWirePathShape_shape_get $shape]
+        set point [odb::dbWirePathShape_point_get $shape]
+        set cur_x [$point x]; set cur_y [$point y]
+        if {{[odb::dbShape_isSegment $db_shape]}} {{
+          set layer [odb::dbShape_getTechLayer $db_shape]
+          set item [json_obj routing_type [json_q segment] wire_id [json_q [$wire getId]] \
+              layer [json_q [$layer getName]] \
+              centerline_length_dbu [expr {{abs($cur_x-$prev_x)+abs($cur_y-$prev_y)}}] \
+              x_min [odb::dbShape_xMin $db_shape] \
+              y_min [odb::dbShape_yMin $db_shape] x_max [odb::dbShape_xMax $db_shape] \
+              y_max [odb::dbShape_yMax $db_shape]]
+          lappend routing_items $item
+        }} elseif {{[odb::dbShape_isVia $db_shape]}} {{
+          set via [odb::dbShape_getTechVia $db_shape]
+          set xy [odb::dbShape_getViaXY $db_shape]
+          lassign $xy via_x via_y
+          set item [json_obj routing_type [json_q via] wire_id [json_q [$wire getId]] \
+              via [json_q [$via getName]] x $via_x y $via_y \
+              bottom_layer [json_q [[$via getBottomLayer] getName]] \
+              top_layer [json_q [[$via getTopLayer] getName]]]
+          lappend routing_items $item
+        }}
+        set prev_x $cur_x; set prev_y $cur_y
       }}
     }}
     set routing [json_array {{*}}$routing_items]
@@ -320,6 +344,14 @@ foreach net [$block getNets] {{
   write_json [file join $out markers.jsonl] [json_obj object_id [json_q $net_id] \
       snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] geometry [json_array] routing $routing evidence $source_evidence]
 }}
+set die [$block getDieArea]; set core [$block getCoreArea]
+set fd [open [file join $out summary.json] w]
+puts $fd [json_obj snapshot $snapshot top_module [json_q [$block getName]] \
+    dbu_per_micron [$block getDbUnitsPerMicron] coordinate_space [json_q block] \
+    die_bbox [json_obj x_min [$die xMin] y_min [$die yMin] x_max [$die xMax] y_max [$die yMax]] \
+    core_bbox [json_obj x_min [$core xMin] y_min [$core yMin] x_max [$core xMax] y_max [$core yMax]] \
+    instance_count [llength [$block getInsts]] net_count [llength [$block getNets]]]
+close $fd
 set fd [open [file join $out coverage.json] w]
 puts $fd [json_obj source [json_q opendb] instances [json_q parsed] pins [json_q parsed] nets [json_q parsed] \
     location [json_q parsed] geometry [json_q partial] routing [json_q parsed] \

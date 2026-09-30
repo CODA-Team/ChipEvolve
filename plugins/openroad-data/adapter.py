@@ -20,6 +20,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from sta_inputs import library_paths
+
 from opendb_adapter import prepare as prepare_opendb
 from opensta_adapter import normalize as normalize_opensta
 from opensta_adapter import prepare as prepare_opensta
@@ -157,8 +159,10 @@ _RAW_INPUTS = {
     "liberty_path": "raw_library",
     "sdc_path": "raw_constraints",
     "spef_path": "raw_parasitics",
+    "rc_script_path": "analysis_script",
     "timing_report_path": "raw_timing_report",
     "metadata_path": "raw_flow_metadata",
+    "producer_metadata_path": "raw_flow_metadata",
 }
 
 
@@ -175,7 +179,9 @@ def _artifacts(inputs: dict[str, Any], workspace: Path) -> list[dict[str, Any]]:
     # the wrong one - which is exactly why a hold path used to cite the setup report.
     output_directory = str(inputs.get("output_directory") or "query-data")
     for name, kind in (("timing_report_hold.json", "raw_timing_report"),
-                       ("dbnetwork_map.json", "raw_dbnetwork_map")):
+                       ("dbnetwork_map.json", "raw_dbnetwork_map"),
+                       ("effective.sdc", "raw_constraints"),
+                       ("check_setup.rpt", "analysis_report")):
         path = f"{output_directory}/{name}"
         if path in occupied or not (workspace / path).is_file():
             continue
@@ -189,8 +195,10 @@ def _artifacts(inputs: dict[str, Any], workspace: Path) -> list[dict[str, Any]]:
 def _raw_input_declarations(inputs: dict[str, Any], workspace: Path,
                             *, occupied: set[str]) -> list[dict[str, Any]]:
     result: list[dict[str, Any]] = []
-    for field, kind in _RAW_INPUTS.items():
-        value = inputs.get(field)
+    sources = [(field, kind, inputs.get(field)) for field, kind in _RAW_INPUTS.items()
+               if field != "liberty_path"]
+    sources.extend(("liberty_paths", "raw_library", value) for value in library_paths(inputs))
+    for field, kind, value in sources:
         if value is None:
             continue
         if not isinstance(value, str) or not value or value.startswith("/") \
