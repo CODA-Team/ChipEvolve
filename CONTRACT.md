@@ -18,7 +18,32 @@ Data Foundation 只回答 **结构化 EDA 事实**。它不诊断、不建议、
 | `physical_context`（markers） | ✅ | 指回 `inputs/design.odb` |
 | `observations` / canonical metrics | ✅ | 指回 `inputs/stage.json` 或 ORFS 报告 |
 | `stages` | ✅ | 指回该 stage 的来源文件 |
-| **`entities` / `relations`** | ❌ **目前不带** | 这两类记录**没有** evidence 字段；接口对它们**诚实返回 `status: unavailable` + 原因**，而**不是**伪造一个指针。要补上需要改 adapter 并重新提取，属**已知缺口**（记录在 `NEXT.md`） |
+| **`entities` / `relations`** | ✅ | **紧凑引用**：记录只带 `source_ref` + `locator`，快照级的 `source_catalog.json` 持有 artifact 描述；入库时展开成完整 evidence（见 §3.1），**不逐行复制元数据** |
+
+**§3.1 紧凑来源引用（entities / relations 用的就是这个）**
+
+一条记录只需说"我从哪来"，不需要把 artifact 的五个字段抄一遍（百万行会重复百万次）。所以：
+
+```json
+{"object_id": "inst:1", "kind": "instance", "name": "_479_",
+ "source_ref": "opendb:route", "locator": {"native_id": "1"}}
+```
+
+```json
+// query-data/source_catalog.json —— 每个快照一份
+{"schema_version": 1,
+ "refs": {"opendb:route": {"artifact_kind": "raw_design_database",
+                           "logical_path": "inputs/design.odb",
+                           "source_type": "opendb",
+                           "detail": {"tool": "opendb", "stage": "route"}}}}
+```
+
+规则：
+1. `source_ref` **只在同一快照内唯一**（目录就在快照里），所以引用可以很短；
+2. `locator` **只在能精确定位时出现**（如 ODB 的 `native_id`、pin 的 `pin_id`），**不猜**；
+3. **入库时**由快照目录展开成完整 evidence（`artifact_id`/`sha256`/`run_id`/解析方式一并给出），
+   所以调用方看到的仍是一致的 evidence 形状；`source_ref` 本身保留在记录上，便于看出"同一来源"；
+4. 已经有完整 evidence 的记录（如 `markers.jsonl`）不会被覆盖。
 
 **两个已声明的取回限制**（不是"能取回"的反例，而是**取回通道**的限制）：
 

@@ -16,7 +16,7 @@ from __future__ import annotations
 import argparse
 import sys
 
-from eda_ai_client import EdaAiClient
+from eda_ai_client import EdaAiClient, EdaAiError
 
 #: harvested from row 20000 of the raw ibex objects.jsonl by
 #: evidence/B/check_deep_object_lookup.py - an object well past 10000 rows.
@@ -93,7 +93,7 @@ def main() -> int:
         bbox = physical.get("physical_context", {}).get("bbox")
         record("get_physical_context", f"{object_id} bbox={bbox}")
 
-        evidence = client.get_evidence(args.snapshot, limit=5)
+        evidence = client.get_evidence(args.snapshot, limit=200)
         # CONTRACT 1 lifts the evidence list to the envelope for every tool
         first = evidence["evidence"][0]["evidence"]
         record("get_evidence", f"{data(evidence)['returned']} entries "
@@ -101,11 +101,41 @@ def main() -> int:
                                f"{evidence.get('count_status', 'exact')}), "
                                f"first artifact={first.get('artifact_id')}")
 
-        if first.get("artifact_id") and first.get("run_id"):
-            blob = client.artifact_bytes(first["run_id"], first["artifact_id"])
-            record("artifact_bytes", f"{len(blob)} bytes for {first['artifact_id']}")
+        # Raw bytes must be retrievable, and the documented 4 MiB download limit
+        # must refuse rather than truncate.  Both are checked: the first entry of
+        # the index is now a 25 MB ODB, which is exactly why picking "the first
+        # evidence" and downloading it is not a valid smoke.
+        limit = 4 * 1024 * 1024
+        entries = [row["evidence"] for row in evidence["evidence"]
+                   if isinstance(row.get("evidence"), dict)
+                   and row["evidence"].get("artifact_id")
+                   and row["evidence"].get("run_id")]
+        # the index page is dominated by entities pointing at a 25 MB ODB, so a
+        # small artifact is asked for by record type - timing reports are kilobytes
+        reports = client.get_evidence(args.snapshot, record_type="timing_paths", limit=10)
+        entries += [row["evidence"] for row in reports.get("evidence", [])
+                    if isinstance(row.get("evidence"), dict)
+                    and row["evidence"].get("artifact_id")
+                    and row["evidence"].get("run_id")]
+        small = next((item for item in entries if (item.get("size_bytes") or 0) <= limit), None)
+        big = next((item for item in entries if (item.get("size_bytes") or 0) > limit), None)
+        if small is None:
+            record("artifact_bytes", "skipped (no artifact under the download limit)")
         else:
-            record("artifact_bytes", "skipped (no artifact reference in evidence)")
+            blob = client.artifact_bytes(small["run_id"], small["artifact_id"])
+            record("artifact_bytes",
+                   f"{len(blob)} bytes for {small['artifact_id']} "
+                   f"({small.get('logical_path')})")
+        if big is not None:
+            try:
+                client.artifact_bytes(big["run_id"], big["artifact_id"])
+            except EdaAiError as exc:
+                record("artifact_bytes (oversized)",
+                       f"refused as documented: {exc}")
+            else:
+                record("artifact_bytes (oversized)",
+                       "FAIL: a >4 MiB artifact downloaded, the documented limit "
+                       "is not enforced")
 
     # Any HTTP or shape problem above would have raised EdaAiError, so reaching
     # this line is the assertion: every tool answered.
