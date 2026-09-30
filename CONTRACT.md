@@ -90,15 +90,22 @@ Data Foundation 只回答 **结构化 EDA 事实**。它不诊断、不建议、
   "sha256": "51400c0548106c97605d8ea8c182c89e36af4f5652833dcf35d1ffd81d737e4b",
   "logical_path": "query-data/timing_report.json",
   "source_type": "json",
-  "locator": {"kind": "json_pointer", "value": "/checks/0/points/1"},
-  "parser": {"id": "opensta-json", "version": "0.1.0"},
-  "resolved": true
+  "artifact_kind": "raw_flow_metadata",
+  "category": "raw_flow_metadata",
+  "detail": {"field": "metrics.finish__timing__setup__ws"},
+  "resolution": "exact_path",
+  "stage": "finish",
+  "size_bytes": 3133
 }
 ```
 
+**字段名以本块为准**（服务实际发出的就是这些）：`resolution` 表示引用绑定情况
+（`exact_path` 等），`detail` 是来源内的定位信息，`category`/`source_type` 说明来源类型。
+`parser`（解析器 id/版本）目前**不在** evidence ref 里——M7/Q7 需要它，已记为 Phase 1 缺口。
+
 规则：
 
-1. **`resolved: false` 是合法且有意义的返回值。** 当来源无法绑定到已登记的 artifact 时：
+1. **`resolution: "unavailable"` 是合法且有意义的返回值。** 当来源无法绑定到已登记的 artifact 时：
    ```json
    {"resolved": false, "status": "unavailable",
     "reason": "source artifact is not registered in this snapshot",
@@ -125,11 +132,17 @@ Data Foundation 只回答 **结构化 EDA 事实**。它不诊断、不建议、
 
 ### 4.3 `get_run_summary(run_id)`
 
-`data`: `{run_id, design_id, status, snapshots[]}`；每个 snapshot 给 `{snapshot_id, stage, created_at, counts:{entities,relations,timing_paths,timing_points,physical_context,observations}, coverage}`
+`data`: `{run_id, snapshots[]}`；每个元素是 `{snapshot, coverage, record_counts, run_summary}`——
+`snapshot` 是快照元数据（含 `snapshot_id`/`design_id`/`stage`/`created_at`），
+`record_counts` 是各类记录数（`entities`/`relations`/`timing_paths`/`timing_points`/`physical_context`/`observations`），
+`coverage` 是每类解析状态，`run_summary` 是该快照所属 run 的摘要。（字段名是 `record_counts`，不是 `counts`；
+run 级的 `design_id`/`status` 目前只在 `snapshot`/`run_summary` 里，见 NEXT 的 M1 条目。）
 
 ### 4.4 `get_stage_summary(snapshot_id)`
 
-`data`: `{snapshot_id, design_id, revision_id, run_id, stage, created_at, counts, coverage, source_artifacts[]}`
+`data`: `{snapshot, coverage, record_counts, run_summary}`——`snapshot` 内含
+`snapshot_id`/`design_id`/`revision_id`/`run_id`/`stage`/`created_at`，`record_counts` 见 §4.3，
+`run_summary` 是该快照所属 run 的摘要。
 `coverage` 是**每类数据的解析状态**：`parsed | partial | unsupported | absent`，逐类给出（instances/pins/nets/location/geometry/routing/timing/metrics/parasitics/congestion/drc）。
 
 ### 4.5 `list_artifacts(run_id, kind?)`
