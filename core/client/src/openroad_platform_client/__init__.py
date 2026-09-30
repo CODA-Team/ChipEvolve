@@ -10,9 +10,10 @@ from .client import (
     KernelClient,
     KernelError,
     KernelUnavailable,
+    LocalFirstKernelClient,
 )
 
 __all__ = (
     "DEFAULT_TIMEOUT_SECONDS", "MAX_EXCERPT_BYTES", "KernelClient",
-    "KernelError", "KernelUnavailable",
+    "KernelError", "KernelUnavailable", "LocalFirstKernelClient",
 )

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import secrets
 import urllib.error
 import urllib.parse
@@ -268,9 +269,65 @@ class KernelClient:
             query={"offset": offset, "max_bytes": max_bytes},
         )
 
+    def artifact_locator(self, run_id: str, artifact_id: str) -> dict[str, Any]:
+        """Where this artifact's bytes already are, when the kernel is on this host.
+
+        Same-host ingestion should open that path rather than pulling the bytes
+        through the chunk loop: the kernel only answers with a path it has
+        proven to be inside its own state root, and only for an artifact that
+        belongs to ``run_id``.  Use :meth:`materialize_artifact` when the kernel
+        may be remote.
+        """
+        return self._call(
+            "GET",
+            f"/kernel/runs/{_seg(run_id)}/artifacts/{_seg(artifact_id)}/locator",
+        )["locator"]
+
+    def materialize_artifact(self, run_id: str, artifact_id: str, destination: str,
+                             *, chunk_size: int = MAX_EXCERPT_BYTES) -> dict[str, Any]:
+        """Put an artifact's bytes at ``destination``, copying locally when possible.
+
+        Same-host preferred: the bytes are copied from the path the kernel
+        reports and hashed in the same pass, so the artifact is read once at
+        disk speed instead of 64 KiB per round trip, and the copy still fails
+        unless it matches the registered SHA-256.  A kernel on another host, or
+        a path this host cannot see, falls back to the chunked
+        :meth:`download_artifact_to`, which re-checks the hash itself.
+        """
+        try:
+            locator = self.artifact_locator(run_id, artifact_id)
+        except KernelError:
+            # Any refusal to locate -- an older kernel, a remote kernel, bytes
+            # that moved -- is answered by moving the bytes instead, which is
+            # never less verified.  The exception is not swallowed: a real
+            # failure resurfaces from the download below.
+            locator = None
+        source = locator.get("path") if locator else None
+        if isinstance(source, str) and os.path.isfile(source):
+            digest, size_bytes = _copy_and_hash(source, destination)
+            if digest != locator["sha256"] or size_bytes != locator["size_bytes"]:
+                os.unlink(destination)  # never leave bytes that are not the artifact
+                raise KernelError(
+                    f"local artifact {artifact_id} does not match its registered hash"
+                )
+            return {"path": destination, "size_bytes": size_bytes,
+                    "sha256": digest, "source": "local"}
+        return {
+            **self.download_artifact_to(run_id, artifact_id, destination,
+                                        chunk_size=chunk_size),
+            "source": "download",
+        }
+
     def download_artifact_to(self, run_id: str, artifact_id: str,
                              destination: str, *,
                              chunk_size: int = MAX_EXCERPT_BYTES) -> dict[str, Any]:
+        """Fetch an artifact over HTTP, chunk by chunk, verifying SHA-256.
+
+        Prefer :meth:`materialize_artifact` (or
+        :class:`LocalFirstKernelClient`) for same-host ingestion: this loop
+        reads at most ``chunk_size`` per round trip, so a large artifact costs
+        thousands of requests to move bytes that may already be on this disk.
+        """
         import base64
         import hashlib
         offset = 0
@@ -297,6 +354,25 @@ class KernelClient:
                           query={"run_id": list(run_ids)})["graph"]
 
 
+class LocalFirstKernelClient(KernelClient):
+    """A kernel client that moves artifact bytes by path when they are already here.
+
+    ``bundle.load_run_bundle`` asks its client to *download* a bundle.  On the
+    execution host that bundle is on the same disk, and the chunk loop turns one
+    file copy into thousands of HTTP round trips.  Substituting this class where
+    the client is constructed leaves every caller unchanged -- no signature, no
+    call site, and the fallback still runs when the kernel is remote.
+    """
+
+    def download_artifact_to(self, run_id: str, artifact_id: str,
+                             destination: str, *,
+                             chunk_size: int = MAX_EXCERPT_BYTES) -> dict[str, Any]:
+        # The returned dict carries one extra key ("source") saying which path
+        # was taken; every documented key keeps its meaning.
+        return self.materialize_artifact(run_id, artifact_id, destination,
+                                         chunk_size=chunk_size)
+
+
 def _seg(value: str) -> str:
     """Percent-encode one path segment.
 
@@ -304,6 +380,22 @@ def _seg(value: str) -> str:
     by concatenation should not be the place where a traversal becomes possible.
     """
     return urllib.parse.quote(str(value), safe="")
+
+
+def _copy_and_hash(source: str, destination: str) -> tuple[str, int]:
+    """Copy a file while hashing it, so a large artifact is read exactly once."""
+    import hashlib
+    hasher = hashlib.sha256()
+    size_bytes = 0
+    with open(source, "rb") as origin, open(destination, "wb") as target:
+        while True:
+            block = origin.read(1024 * 1024)
+            if not block:
+                break
+            target.write(block)
+            hasher.update(block)
+            size_bytes += len(block)
+    return hasher.hexdigest(), size_bytes
 
 
 def _error_message(exc: urllib.error.HTTPError) -> str:

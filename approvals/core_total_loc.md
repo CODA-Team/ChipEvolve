@@ -444,3 +444,29 @@ The ownership boundary adds three lines; reconciled total: 9,459.
 
 The six-gigabyte default and manual approval check add the final eight lines;
 reconciled total: 9,467.
+
+## Increment: same-host artifact read by identity (9,467 -> 9,660)
+
+A 189k-instance routing stage is 604 MB of bundles.  The Data Foundation fetched
+each one through `download_artifact_to`, which walks the artifact in 64 KiB
+base64 chunks over HTTP: about 9,600 round trips on localhost to copy a file the
+kernel had already written to this machine's own disk.  Measured on a 15.76 MB
+bundle: 0.888 s chunked versus 0.017 s from the local path (51.6x, identical
+sha256), and the gap grows with the design.
+
+The kernel therefore gains one read-only route that answers "where is this
+artifact on this host, and what did it hash to" -- `GET
+/kernel/runs/{run}/artifacts/{artifact}/locator` (`gateway/.../kernel_api.py`,
++99 lines, plus one line passing `state_root` through bootstrap).  It accepts no
+caller-supplied path, refuses anything resolving outside the kernel state root,
+and refuses an artifact that is not registered in the requested run; the client
+side adds `artifact_locator` / `materialize_artifact` and a
+`LocalFirstKernelClient` that falls back to the original chunked download when
+the path is not local (+92 lines in `core/client/.../client.py`, +2 for the
+export).
+
+Why it is kernel and not an app: artifact identity and location are execution
+foundation facts, and the "one implementation per concern" rule is what made the
+fallback safe to add -- there is still one download implementation.
+
+Reconciled total: 9,660 lines.

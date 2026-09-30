@@ -54,6 +54,9 @@ class KernelApi:
     allow_anonymous: bool = False
     local_user_id: str | None = None
     evaluator_error: str | None = None
+    #: The directory every artifact path must resolve inside.  A locator that
+    #: cannot prove containment refuses instead of answering.
+    state_root: Path | None = None
 
     # -- registration -----------------------------------------------------
 
@@ -91,6 +94,10 @@ class KernelApi:
         router.get(
             "/kernel/runs/{run_id}/artifacts/{artifact_id}/chunk",
             self._guarded(self.artifact_chunk),
+        )
+        router.get(
+            "/kernel/runs/{run_id}/artifacts/{artifact_id}/locator",
+            self._guarded(self.artifact_locator),
         )
         router.get("/kernel/graph", self._guarded(self.graph))
 
@@ -500,6 +507,84 @@ class KernelApi:
         except ValueError as exc:
             raise HttpError(400, str(exc)) from exc
 
+    def artifact_locator(self, request: Request, session: AuthSession | None) -> Response:
+        """Where an artifact's bytes already are on this host, without moving them.
+
+        Reading a multi-hundred-megabyte stage through 64 KiB base64 chunks is
+        thousands of round trips to fetch a file that is on the same disk.  This
+        answers with the custody path instead of the bytes, so a same-host
+        importer can open the file directly.
+
+        The path is the store's own answer, never a caller's, and it must
+        resolve inside the kernel state root: a locator that cannot prove
+        containment refuses rather than answers.  The ``sha256`` is the
+        registered hash and the size is re-checked on every call; the content is
+        not re-read (``content_verified`` says so), so a reader that needs the
+        hash proven hashes what it reads.
+        """
+        run_id = request.params["run_id"]
+        artifact_id = request.params["artifact_id"]
+        self._require_ownership("run", run_id, session)
+        _require_path_segment(run_id, artifact_id)
+        if self.state_root is None:
+            raise HttpError(
+                500, "kernel has no state root configured: refusing to locate artifacts"
+            )
+        try:
+            view = self.runtime.describe(run_id)
+        except RuntimeStoreError as exc:
+            raise HttpError(404, str(exc)) from exc
+        matches = [
+            (stage, attempt, artifact)
+            for stage in view.get("stages", ())
+            for attempt in stage.get("attempts", ())
+            for artifact in attempt.get("artifacts", ())
+            if artifact.get("artifact_id") == artifact_id
+        ]
+        if len(matches) != 1:
+            # Membership, not mere existence: another run's artifact is not this
+            # run's to hand out, and saying which is itself a disclosure.
+            raise HttpError(
+                404, f"artifact {artifact_id!r} is not registered in run {run_id!r}"
+            )
+        stage, attempt, artifact = matches[0]
+        try:
+            path = self.store.artifact_path(artifact_id)
+        except RuntimeStoreError as exc:
+            raise HttpError(404, str(exc)) from exc
+        root = self.state_root.resolve()
+        resolved = path.resolve()
+        try:
+            resolved.relative_to(root)
+        except ValueError as exc:
+            raise HttpError(
+                409, "artifact path resolves outside the kernel state root"
+            ) from exc
+        if not resolved.is_file():
+            raise HttpError(404, "artifact bytes are missing from the store")
+        size_bytes = resolved.stat().st_size
+        if size_bytes != artifact["size_bytes"]:
+            raise HttpError(409, "artifact bytes no longer match the registered size")
+        return Response.json(
+            {
+                "locator": {
+                    "run_id": run_id,
+                    "artifact_id": artifact_id,
+                    "stage_key": stage["stage_key"],
+                    "attempt_id": attempt["attempt_id"],
+                    "attempt_number": attempt["attempt_number"],
+                    "kind": artifact["kind"],
+                    "logical_path": artifact["store_key"],
+                    "storage": artifact["storage"],
+                    "path": str(resolved),
+                    "state_root": str(root),
+                    "size_bytes": size_bytes,
+                    "sha256": artifact["sha256"],
+                    "content_verified": False,
+                }
+            }
+        )
+
     def graph(self, request: Request, session: AuthSession | None) -> Response:
         run_ids = request.q_all("run_id")
         if not run_ids:
@@ -527,3 +612,17 @@ def _object(request: Request) -> dict[str, Any]:
     if not isinstance(request.body, dict):
         raise HttpError(400, "request body must be a JSON object")
     return request.body
+
+
+def _require_path_segment(*values: str) -> None:
+    """Refuse an identifier that is not a single path segment.
+
+    A route template cannot match a value containing ``/``, but a
+    percent-encoded one is decoded *after* matching, so ``%2e%2e%2f`` arrives
+    here as ``../``.  Identifiers are database keys and the traversal could not
+    reach a path join anyway; this makes the refusal explicit instead of
+    incidental to a lookup miss.
+    """
+    for value in values:
+        if not value or value in {".", ".."} or set(value) & {"/", "\\", "\x00"}:
+            raise HttpError(400, "identifier must be a single path segment")

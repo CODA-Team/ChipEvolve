@@ -148,6 +148,7 @@ def build_kernel(paths: KernelPaths, *, allow_anonymous: bool = False
         index=EvidenceIndex(store), allow_anonymous=allow_anonymous,
         local_user_id=local_user_id,
         evaluator_error=parts.evaluator_error,
+        state_root=paths.state_root,
     )
 
 
