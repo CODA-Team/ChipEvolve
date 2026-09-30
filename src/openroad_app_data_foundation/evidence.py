@@ -52,22 +52,32 @@ def _resolve_item(item: Any, refs: list[dict[str, Any]]) -> Any:
     stage = item.get("stage")
     candidates = [ref for ref in refs if _same(ref.get("category"), kind)]
     exact = [ref for ref in candidates if path and ref.get("logical_path") == path]
-    if exact:
-        candidates = exact
-    elif stage:
+    if len(exact) == 1:
+        return _resolved(item, exact[0], resolution="exact_path")
+    if len(exact) > 1:
+        # two artifacts claim the same file: picking the first would be a silent
+        # choice between them
+        return {**item, "resolution": "ambiguous", "candidate_count": len(exact)}
+    if path:
+        # The reference names a file.  Two honest outcomes remain, and neither is
+        # "the only artifact of this kind": the file may live inside the bundle
+        # (bundle_member), or it is not registered anywhere (unresolved).  Quietly
+        # attaching a same-role artifact used to make a wrong pointer look resolved.
+        bundle_candidates = [ref for ref in refs
+                             if ref.get("category") in {"data_snapshot", "runtime_bundle"}]
+        if len(bundle_candidates) == 1:
+            return _resolved({**item, "nested_path": path}, bundle_candidates[0],
+                             resolution="bundle_member")
+        return {**item, "resolution": "unresolved",
+                "reason": f"no registered artifact at {path}"}
+    if stage:
         staged = [ref for ref in candidates if ref.get("stage") == stage]
         if staged:
             candidates = staged
     if len(candidates) != 1:
-        bundle_candidates = [ref for ref in refs
-                             if ref.get("category") in {"data_snapshot", "runtime_bundle"}]
-        if len(bundle_candidates) == 1 and path:
-            return _resolved({**item, "nested_path": path}, bundle_candidates[0],
-                             resolution="bundle_member")
         return {**item, "resolution": "ambiguous" if candidates else "unresolved",
                 "candidate_count": len(candidates)}
-    ref = candidates[0]
-    return _resolved(item, ref, resolution="exact_path" if exact else "unique_role")
+    return _resolved(item, candidates[0], resolution="unique_role")
 
 
 def _resolved(item: dict[str, Any], ref: Mapping[str, Any], *, resolution: str) -> dict[str, Any]:

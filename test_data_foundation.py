@@ -209,7 +209,7 @@ def test_evidence_role_resolves_to_registered_artifact_identity(tmp_path: Path) 
         "category": "raw_timing_report", "stage": "route", "size_bytes": 20,
     }]
     value["timing_paths"][0]["evidence"] = [{
-        "artifact_kind": "raw_timing_report", "logical_path": "reports/timing.json",
+        "artifact_kind": "raw_timing_report", "logical_path": "stored/reports/timing.json",
         "stage": "route", "source_type": "json", "line_start": 2,
     }]
     store = DataStore(tmp_path / "data.db")
@@ -217,7 +217,7 @@ def test_evidence_role_resolves_to_registered_artifact_identity(tmp_path: Path) 
         store.register(value)
         evidence = store.record_evidence("snap-1", "timing_paths", "path-1")[0]["evidence"]
         assert evidence["artifact_id"] == "timing-1"
-        assert evidence["resolution"] == "unique_role"
+        assert evidence["resolution"] == "exact_path"
         assert evidence["sha256"] == "a" * 64
     finally:
         store.close()
@@ -241,8 +241,23 @@ def test_evidence_role_stays_unresolved_when_two_sources_match(tmp_path: Path) -
     try:
         store.register(value)
         evidence = store.record_evidence("snap-1", "timing_paths", "path-1")[0]["evidence"]
-        assert evidence["resolution"] == "ambiguous"
+        # the reference names a file, and no artifact is that file: it must not be
+        # attached to one of the two same-role artifacts
+        assert evidence["resolution"] == "unresolved"
+        assert "no registered artifact" in evidence["reason"]
         assert "artifact_id" not in evidence
+
+        # genuine ambiguity keeps its own label: two artifacts are the named file
+        value["snapshot"]["source_artifacts"][1]["logical_path"] = "unknown.json"
+        value["snapshot"]["source_artifacts"][0]["logical_path"] = "unknown.json"
+        store2 = DataStore(tmp_path / "data2.db")
+        try:
+            store2.register(value)
+            other = store2.record_evidence("snap-1", "timing_paths", "path-1")[0]["evidence"]
+            assert other["resolution"] == "ambiguous"
+            assert "artifact_id" not in other
+        finally:
+            store2.close()
     finally:
         store.close()
 
@@ -1163,3 +1178,42 @@ def test_read_evidence_returns_the_fragment_and_refuses_the_binary_source(tmp_pa
         assert "design.odb" in entity["fragments"][0]["reason"]
     finally:
         store.close()
+
+
+def test_unknown_source_ref_is_marked_unavailable_not_dropped(tmp_path: Path) -> None:
+    """A stale or foreign source_ref must not silently remove a record's provenance."""
+    from openroad_app_data_foundation.ingest import load_snapshot_directory
+
+    root = tmp_path / "query-data"
+    root.mkdir()
+    (root / "manifest.json").write_text(json.dumps({
+        "snapshot": {"snapshot_id": "snap-1", "design_id": "chip",
+                     "revision_id": "rev-1", "run_id": "run-1", "stage": "route",
+                     "created_at": "2026-01-01T00:00:00Z"}}), encoding="utf-8")
+    (root / "source_catalog.json").write_text(json.dumps({
+        "schema_version": 1,
+        "refs": {"opendb:route": {"artifact_kind": "raw_design_database",
+                                  "logical_path": "inputs/design.odb"}}}),
+        encoding="utf-8")
+    (root / "objects.jsonl").write_text(json.dumps({
+        "object_id": "inst:1", "snapshot_id": "snap-1", "kind": "instance",
+        "name": "u1", "attributes": {}, "source_ref": "opendb:does_not_exist"}) + "\n",
+        encoding="utf-8")
+    pack = load_snapshot_directory(root)
+    evidence = pack["entities"][0]["evidence"]
+    assert evidence[0]["status"] == "unavailable"
+    assert "not in this snapshot's catalog" in evidence[0]["reason"]
+
+
+def test_a_claimed_path_must_match_or_stay_unresolved(tmp_path: Path) -> None:
+    """The reference names a file; another file of the same kind is not a substitute."""
+    from openroad_app_data_foundation.evidence import resolve_records
+
+    snapshot = {"source_artifacts": [
+        {"artifact_id": "art-odb", "category": "raw_design_database",
+         "logical_path": "inputs/design.odb", "sha256": "c" * 64}]}
+    rows = {"entities": [{"object_id": "inst:1", "evidence": [
+        {"artifact_kind": "raw_design_database", "logical_path": "inputs/nope.odb"}]}]}
+    resolved = resolve_records(snapshot, rows)["entities"][0]["evidence"][0]
+    assert resolved["resolution"] == "unresolved"
+    assert "artifact_id" not in resolved

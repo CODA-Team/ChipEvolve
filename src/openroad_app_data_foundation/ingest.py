@@ -68,10 +68,19 @@ def _expand_source_ref(row: dict[str, Any], refs: dict[str, Any]) -> dict[str, A
     hash.  A record that already carries full evidence is left alone.
     """
     reference = row.get("source_ref")
-    if not isinstance(reference, str) or reference not in refs:
+    if not isinstance(reference, str) or not reference:
         return row
     if isinstance(row.get("evidence"), list) and row["evidence"]:
         return row
+    if reference not in refs:
+        # A reference this snapshot's catalog does not know - a stale or foreign
+        # one - must stay visible.  Dropping it silently removes the record's
+        # provenance entirely, which is the opposite of what evidence is for.
+        return {**row, "evidence": [{
+            "status": "unavailable",
+            "source_ref": reference,
+            "reason": f"source_ref {reference!r} is not in this snapshot's catalog",
+        }]}
     entry = dict(refs[reference]) if isinstance(refs[reference], dict) else {}
     entry["source_ref"] = reference
     locator = row.get("locator")

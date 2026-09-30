@@ -83,11 +83,34 @@ def import_ready_bundles(store: DataStore, client: KernelClient) -> int:
     return imported
 
 
+#: A bundle is data, but it is extracted and read into memory, so its declared
+#: sizes are bounded rather than trusted.  Real bundles here are ~11 MB with ~13
+#: members; these caps are three orders of magnitude above that.
+MAX_MEMBER_BYTES = 256 * 1024 * 1024
+MAX_BUNDLE_BYTES = 1024 * 1024 * 1024
+MAX_MEMBERS = 20000
+MAX_COMPRESSION_RATIO = 500
+
+
 def _check_members(source: zipfile.ZipFile) -> None:
-    for member in source.infolist():
+    members = source.infolist()
+    if len(members) > MAX_MEMBERS:
+        raise ContractError(f"bundle has {len(members)} members, over the "
+                            f"{MAX_MEMBERS} limit")
+    total = 0
+    for member in members:
         path = Path(member.filename)
         if path.is_absolute() or ".." in path.parts:
             raise ContractError(f"bundle member escapes extraction root: {member.filename}")
+        if member.file_size > MAX_MEMBER_BYTES:
+            raise ContractError(f"bundle member {member.filename} declares "
+                                f"{member.file_size} bytes, over the limit")
+        total += member.file_size
+        if member.compress_size and member.file_size / member.compress_size > MAX_COMPRESSION_RATIO:
+            raise ContractError(f"bundle member {member.filename} expands "
+                                f"{member.file_size // max(member.compress_size, 1)}x")
+    if total > MAX_BUNDLE_BYTES:
+        raise ContractError(f"bundle expands to {total} bytes, over the limit")
 
 
 def _bundle_ref(client: KernelClient, run_id: str, artifact_id: str) -> dict[str, Any]:

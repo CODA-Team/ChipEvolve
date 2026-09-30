@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+
 import json
 
 from typing import Any
@@ -576,6 +578,12 @@ def read_evidence(store: DataStore, snapshot_id: str, record_type: str,
             "locator": entry.get("locator"),
             "detail": entry.get("detail"),
         }
+        if source is not None and hashlib.sha256(source["payload"]).hexdigest() != source["sha256"]:
+            # the stored digest is a claim about the bytes; check the bytes
+            fragments.append({**common, "status": "unavailable",
+                              "reason": "the stored fragment does not match its own "
+                                        "sha256 - refusing to serve it"})
+            continue
         if source is None:
             fragments.append({**common, "status": "unavailable",
                               "reason": (f"{logical_path!r} is not a JSON fragment source; "
