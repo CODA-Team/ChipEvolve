@@ -118,7 +118,8 @@ def project_run(store: DataStore, snapshots: list[dict[str, Any]]) -> dict[str, 
     for name, reason in EXECUTION_OWNED.items():
         canonical.append({"name": name, "canonical": True, "status": "unavailable",
                           "reason": reason, "authoritative_source": "execution_foundation",
-                          "value": None, "unit": None})
+                          "value": None, "unit": None, "corner": None,
+                          "corner_status": "not_declared"})
     names = sorted({row["name"] for row in canonical if row.get("status") == "available"})
     return {"metrics": canonical, "raw_metrics": raw,
             "canonical_names_available": names,
@@ -140,17 +141,23 @@ def _canonical_row(name: str, spec: dict[str, Any], row: dict[str, Any],
         reason = ("flow declares power units as 1nW while the reported magnitude "
                   "is consistent with W; unit reconciliation is an open item")
     context = row.get("context") if isinstance(row.get("context"), dict) else {}
+    # CONTRACT 5 rule 3: a corner the source does not declare is *stated*, not
+    # left as a bare null.  ORFS run-level reports carry no corner at all, so
+    # marking every metric unavailable would destroy the metric surface; saying
+    # "not_declared" keeps the value and keeps the gap visible.
+    corner = context.get("corner")
     return {
         "name": name,
         "canonical": True,
         "value": row.get("value"),
+        "corner_status": "declared" if corner else "not_declared",
         "unit": unit,
         "unit_declared": unit_note,
         "stage": snapshot.get("stage"),
         "snapshot_id": snapshot.get("snapshot_id"),
         "analysis": spec.get("analysis") or context.get("analysis"),
         "check": spec.get("analysis") or context.get("check"),
-        "corner": context.get("corner"),
+        "corner": corner,
         "scene": context.get("scene"),
         "kind": spec.get("kind"),
         "authoritative_source": "orfs_stage_report",

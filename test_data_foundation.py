@@ -12,6 +12,7 @@ from openroad_app_data_foundation.bundle import import_ready_bundles, load_run_b
 from openroad_app_data_foundation.context import net_context, object_context
 from openroad_app_data_foundation.ingest import load_snapshot_directory
 from openroad_app_data_foundation.metric_queries import compare_metric
+from openroad_app_data_foundation.metrics import project_run
 from openroad_app_data_foundation.queries import (
     compare_timing_path,
     list_metrics_for_run,
@@ -798,5 +799,37 @@ def test_context_relation_cap_is_reported(tmp_path: Path) -> None:
 
         with pytest.raises(ValueError):
             object_context(store, "snap-1", "top/u1", relation_limit=-1)
+    finally:
+        store.close()
+
+
+def test_metric_rows_state_whether_a_corner_was_declared(tmp_path: Path) -> None:
+    """CONTRACT 5 rule 3: a corner the source omits is stated, not left as null."""
+    store = DataStore(tmp_path / "corner.db")
+    try:
+        value = {
+            "snapshot": {"snapshot_id": "snap-1", "design_id": "chip",
+                         "revision_id": "rev-1", "run_id": "run-1",
+                         "stage": "finish", "created_at": "2026-01-01T00:00:00Z"},
+            "observations": [
+                {"observation_id": "metric:finish__timing__setup__ws",
+                 "snapshot_id": "snap-1", "kind": "metric", "value": -0.04,
+                 "status": "parsed", "context": {}, "evidence": []},
+                {"observation_id": "metric:finish__design__instance__area",
+                 "snapshot_id": "snap-1", "kind": "metric", "value": 903.3,
+                 "status": "parsed", "context": {"corner": "typical"},
+                 "evidence": []},
+            ],
+            "relations": [], "entities": [], "timing_paths": [], "timing_points": [],
+            "physical_context": [],
+        }
+        store.register(value)
+        rows = {row["name"]: row for row in project_run(store, [store.snapshot("snap-1")])["metrics"]}
+        assert rows["WNS"]["corner_status"] == "not_declared"
+        assert rows["WNS"]["corner"] is None
+        assert rows["WNS"]["status"] in {"available", "partial"}
+        assert rows["AREA"]["corner_status"] == "declared"
+        assert rows["AREA"]["corner"] == "typical"
+        assert rows["RUNTIME"]["corner_status"] == "not_declared"
     finally:
         store.close()
