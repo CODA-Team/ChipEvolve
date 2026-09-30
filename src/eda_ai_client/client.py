@@ -284,6 +284,20 @@ class EdaAiClient:
                          {"artifact_id": artifact_id, "record_type": record_type,
                           "limit": limit, "offset": offset})
 
+    def read_evidence(self, snapshot_id: str, record_type: str,
+                      record_id: str) -> dict[str, Any]:
+        """The raw fragment each evidence reference names, not the whole artifact.
+
+        Whole-artifact download is capped at 4 MiB and a fact rarely needs a whole
+        file, so this returns the slice - a timing check by path index, a timing
+        point by index and ordinal, a mapping row by pin name - together with the
+        artifact identity and hash it came from.  A source that cannot be sliced
+        answers `unavailable` with the reason rather than something else.
+        """
+        return self._get(self.data_url,
+                         f"/snapshots/{_segment(snapshot_id)}/records/"
+                         f"{_segment(record_type)}/{_segment(record_id)}/fragments")
+
     # ------------------------------------------------------------- raw bytes
 
     def artifact_bytes(self, run_id: str, artifact_id: str) -> bytes:

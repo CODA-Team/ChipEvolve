@@ -282,6 +282,38 @@ run 级的 `design_id`/`status` 目前只在 `snapshot`/`run_summary` 里，见 
   `note` 说明，**绝不静默当成"不过滤"**。
   （此前客户端在缺 `record_id` 时会**丢掉** `record_type`，调用方以为过滤了其实没有——已修。）
 
+### 4.13 `read_evidence(snapshot_id, record_type, record_id)`
+
+给一条记录的 evidence，**返回它指的那一小片原始内容**，而不是整份 artifact。
+
+**为什么需要它**：Execution Foundation 的下载接口上限 4 MiB（ibex 的 `dbnetwork_map.json` 10.29 MB、
+`design.odb` 25.54 MB 都取不回），而"为了一个 pin 下载 25 MB"本身也不是对的答案。
+接口在导入时**保留 bundle 里本来就有**的 JSON 成员（`timing_report.json`、`timing_report_hold.json`、
+`dbnetwork_map.json`），于是切片**不需要任何下载**，4 MiB 上限对它不适用。
+
+```json
+{"status": "available",
+ "data": {"snapshot_id": "…", "record_type": "timing_points", "record_id": "path:12:point:1",
+          "available": 2, "returned": 2,
+          "fragments": [
+            {"artifact_id": "art-…", "logical_path": "query-data/timing_report_hold.json",
+             "sha256": "…", "detail": {"path_index": 0, "point": 1}, "status": "available",
+             "fragment_path": "/checks/0/points/1", "fragment": {…}},
+            {"artifact_id": "art-…", "logical_path": "query-data/dbnetwork_map.json",
+             "sha256": "…", "detail": {"pin_name": "input155/A"}, "status": "available",
+             "fragment_path": "/input155/A", "fragment": {…}}]}}
+```
+
+规则：
+
+1. **切片规则按 evidence 自己的定位器**，不按记录类型猜：`detail.path_index`（±`detail.point`）切时序报告；
+   `detail.pin_name` 切映射表（该表以 **pin 名**为键）；`locator` 里的 `native_id`/`pin_id` 用于指认对象。
+2. **取不到就是取不到**：该 artifact 不是 JSON 片段来源（如二进制 `design.odb`）或切不出来时，
+   该条 `status: "unavailable"` 并给出**原因**——**绝不用别的东西顶替**。
+3. **自带来源身份**：每条片段都带 `artifact_id` / `logical_path` / `sha256`（以及 `source_sha256`），
+   调用方可以自己核对；`fragment_path` 是可读的定位串（JSON 指针风格）。
+4. `available`/`returned` 分开报：一条记录可能指向两个来源（时序点就是这样），可能一个可取、一个取不到。
+
 ---
 
 ## 5. 分页与规模
