@@ -52,8 +52,17 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
           "means the fact is not indexed - never substitute a neighbouring value.",
           {"run_id": _STRING, "snapshot_id": _STRING, "stage": _STRING, "name": _STRING,
            "include_raw": _BOOL, "limit": _PAGE, "offset": _OFFSET}),
-    _tool("get_timing_paths", "Timing path summaries; check is setup or hold.",
-          {"snapshot_id": _STRING, "check": _STRING, "limit": _PAGE, "offset": _OFFSET},
+    _tool("get_timing_paths",
+          "Timing path summaries; check is setup or hold. sort=slack with order=worst "
+          "returns the worst paths first, so the worst five need one call, not every path.",
+          {"snapshot_id": _STRING, "check": _STRING, "sort": _STRING, "order": _STRING,
+           "limit": _PAGE, "offset": _OFFSET},
+          ("snapshot_id",)),
+    _tool("get_timing_points",
+          "Timing points across the snapshot, rankable: sort=slew with order=worst "
+          "returns the worst slew first, without walking every path.",
+          {"snapshot_id": _STRING, "path_id": _STRING, "sort": _STRING, "order": _STRING,
+           "limit": _PAGE, "offset": _OFFSET},
           ("snapshot_id",)),
     _tool("get_timing_path",
           "One timing path: summary, its ordered points, or the compiled context with "

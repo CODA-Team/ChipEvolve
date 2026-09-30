@@ -159,7 +159,7 @@ Data Foundation 只回答 **结构化 EDA 事实**。它不诊断、不建议、
 
 ---
 
-## 4. Tools（v0 共 12 个）
+## 4. Tools（v0 共 13 个）
 
 `scope`/`status`/`missing`/`evidence` 字段全部适用，下表只列各自特有的入参与 `data`。
 
@@ -223,7 +223,7 @@ run 级的 `design_id`/`status` 目前只在 `snapshot`/`run_summary` 里，见 
 3. `unit` 缺失 → `status: unavailable`（不得隐含单位）。`corner` 未由来源声明时**不得静默省略**：保留数值，但该行必须带 `corner_status`——来源声明了就是 `"declared"` 并给出 `corner`，没声明就是 `"not_declared"` 且 `corner` 为 `null`（同时 `reason` 说明）。理由：ORFS 的 run 级报告本就不声明 corner，若按 `unavailable` 处理会让**整个 canonical 指标面不可用**，那是拿诚实换可用性；显式声明可以让两者同时成立。
 4. `AREA` 单位为 `um^2`，`POWER_TOTAL` 为 `uW`，`RUNTIME` 为 `s`（以 ORFS 原始 JSON 为准；不一致时以原始为准并在 `limitations` 记录）。
 
-### 4.7 `get_timing_paths(snapshot_id, check?, limit, offset)`
+### 4.7 `get_timing_paths(snapshot_id, check?, sort?, order?, limit, offset)`
 
 `data.timing_paths[]`（摘要，不含 points）：`{path_id, startpoint, endpoint, slack, required_time, margin, unit, analysis, check, corner, group, point_count, path_identity:{basis, native_path_id?}}`
 
@@ -313,6 +313,28 @@ run 级的 `design_id`/`status` 目前只在 `snapshot`/`run_summary` 里，见 
 3. **自带来源身份**：每条片段都带 `artifact_id` / `logical_path` / `sha256`（以及 `source_sha256`），
    调用方可以自己核对；`fragment_path` 是可读的定位串（JSON 指针风格）。
 4. `available`/`returned` 分开报：一条记录可能指向两个来源（时序点就是这样），可能一个可取、一个取不到。
+
+### 4.14 排序与取前 K（`sort` / `order` / `limit`）
+
+**为什么有它**：V2 实验量出来的事实 —— 问"最差 5 条 setup 路径"，**枚举**的模型答对但读了 52.6 MB / 2529 次调用；
+被要求"最小上下文"的模型省了 65%，却**答错了那 5 条**，因为**当时接口没有办法排序**。
+所以"排名"必须是**接口能力**，而不是对模型的道德要求。
+
+```
+GET /snapshots/{id}/timing-paths?check=setup&sort=slack&order=worst&limit=5
+GET /snapshots/{id}/timing-points?sort=slew&order=worst&limit=1
+```
+
+规则：
+
+1. **`order=worst` 的方向由指标决定，不是固定的**：`slack` 是预算，最差 = **最小（最负）** → 升序；
+   `slew` / `load` / `arrival` 是幅值，最差 = **最大** → 降序。（第一版把 worst 一律当升序，
+   结果"最差 slew"返回了 slews = 0 的时钟根 —— 这就是为什么方向必须写死并被检查。）
+2. **响应必须声明排序**：`sorted_by` / `order` / `ordered`（`ascending|descending`）/ `worst_means`。
+   调用方可以**信任前 K**，不必自己再排一遍。
+3. **不认识的 `sort` 字段一律拒绝**（`ValueError`），不静默忽略 —— 否则"排序"变成本地假象。
+4. 排序键缺失的行**永远排在最后**（两个方向都如此）：没有 slack 的路径不是"最差路径"。
+5. 与 §5 一致：`limit` 小于总数时**必须** `truncated: true` 并给出 `next_offset`。
 
 ---
 

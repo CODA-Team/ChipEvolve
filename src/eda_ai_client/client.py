@@ -167,6 +167,7 @@ class EdaAiClient:
     # -------------------------------------------------- tool 7: timing paths
 
     def get_timing_paths(self, snapshot_id: str, *, check: str | None = None,
+                         sort: str | None = None, order: str = "worst",
                          limit: int = 100, offset: int = 0) -> dict[str, Any]:
         """Timing path summaries; ``check`` filters setup/hold on the server.
 
@@ -174,7 +175,8 @@ class EdaAiClient:
         still described the unfiltered page, so ``check="hold"`` could report
         ``count=10, returned=0, truncated=true``.
         """
-        params = {"limit": limit, "offset": offset, "check": check}
+        params = {"limit": limit, "offset": offset, "check": check,
+                  "sort": sort, "order": order}
         return self._get(self.data_url,
                          f"/snapshots/{_segment(snapshot_id)}/timing-paths",
                          {key: value for key, value in params.items()
@@ -203,6 +205,22 @@ class EdaAiClient:
                          {"detail": detail, "relation_limit": relation_limit})
 
     # ----------------------------------------------------- tool 9: instances
+
+    def get_timing_points(self, snapshot_id: str, *, path_id: str | None = None,
+                          sort: str | None = None, order: str = "worst",
+                          limit: int = 100, offset: int = 0) -> dict[str, Any]:
+        """Timing points across the snapshot, rankable by slew or arrival.
+
+        Points used to be reachable only through their path, so "the worst slew in
+        the design" cost every point of every path.
+        """
+        params = {"limit": limit, "offset": offset, "order": order}
+        if path_id:
+            params["path_id"] = path_id
+        if sort:
+            params["sort"] = sort
+        return self._get(self.data_url,
+                         f"/snapshots/{_segment(snapshot_id)}/timing-points", params)
 
     def get_instance(self, snapshot_id: str, name: str, *,
                      detail: str = "summary",

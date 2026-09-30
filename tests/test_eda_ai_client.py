@@ -120,7 +120,9 @@ def test_kernel_tools_refuse_without_a_kernel_url(client: EdaAiClient) -> None:
 
 
 def test_published_schemas_match_the_client(client: EdaAiClient) -> None:
-    assert len(TOOL_SCHEMAS) == 12
+    # frozen on purpose: adding a tool must be a deliberate contract change, and the
+    # published list in CONTRACT.md section 4 must be updated with it
+    assert len(TOOL_SCHEMAS) == 13
     for name in TOOL_NAMES:
         assert callable(getattr(client, name)), f"{name} has a schema but no method"
     for schema in TOOL_SCHEMAS:
