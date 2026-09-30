@@ -180,7 +180,11 @@ run 级的 `design_id`/`status` 目前只在 `snapshot`/`run_summary` 里，见 
 
 ### 4.7 `get_timing_paths(snapshot_id, check?, limit, offset)`
 
-`data.timing_paths[]`（摘要，不含 points）：`{path_id, startpoint, endpoint, slack, delay, unit, analysis, check, corner, group, point_count, path_identity:{basis, native_path_id?}}`
+`data.timing_paths[]`（摘要，不含 points）：`{path_id, startpoint, endpoint, slack, required_time, margin, unit, analysis, check, corner, group, point_count, path_identity:{basis, native_path_id?}}`
+
+- **没有 `delay` 字段**：OpenSTA 的 `report_checks -format json` 在 check 级**不声明** delay（只有 `data_arrival_time`/`required_time`/`slack`/`margin`），
+  所以早期文档里的 `delay` 是**幽灵字段**，实现只能填 `null`——这违反"不得用 null 冒充缺失"，已从契约移除。
+  路径级的 `data_arrival_time` 目前**没有**被索引（见 NEXT），时间事实在 point 级完整可查（`arrival`/`required`/`slew`/`load`）。
 
 ### 4.8 `get_timing_path(snapshot_id, path_id, include?: "summary"|"points"|"context")`
 
