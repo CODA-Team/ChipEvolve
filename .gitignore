@@ -11,3 +11,6 @@ smoke-*.sqlite*
 build/
 dist/
 var/
+
+# qualification working data: native dumps and intermediate probe output, not source
+qualification/v3/work/
