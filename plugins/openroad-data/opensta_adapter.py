@@ -61,7 +61,8 @@ def normalize(output_dir: Path, inputs: dict[str, Any]) -> None:
             point_ids.append(point_id)
             point_name = str(point.get("pin") or point.get("pin_name") or "unknown")
             native_mapping = mapping.get(point_id) or mapping.get(point_name) or {}
-            points.append(_point(point_id, path_id, ordinal, point, native_mapping, inputs))
+            points.append(_point(point_id, path_id, ordinal, point, native_mapping,
+                                 inputs, filename, index_in_file))
         timing_paths.append({
             "path_id": path_id,
             "snapshot_id": metadata["snapshot_id"],
@@ -114,7 +115,9 @@ def _check_name(source: dict[str, Any]) -> str | None:
 
 
 def _point(point_id: str, path_id: str, ordinal: int, point: dict[str, Any],
-           mapping: dict[str, Any], inputs: dict[str, Any]) -> dict[str, Any]:
+           mapping: dict[str, Any], inputs: dict[str, Any],
+           filename: str = "timing_report.json",
+           path_index_in_file: int | None = None) -> dict[str, Any]:
     result = {"point_id": point_id, "path_id": path_id, "ordinal": ordinal,
               "pin_name": str(point.get("pin") or point.get("pin_name") or "unknown"),
               "instance_name": point.get("instance"),
@@ -132,8 +135,26 @@ def _point(point_id: str, path_id: str, ordinal: int, point: dict[str, Any],
             result[name] = value
     result["mapping_status"] = "mapped" if mapping else "unmapped"
     result["mapping_basis"] = "native_dbnetwork" if mapping else "none"
-    result["evidence"] = [_timing_evidence(inputs, detail={"point": ordinal},
-                                             artifact_id=point.get("artifact_id"))]
+    # A point has two sources and used to name neither correctly: it fell back to
+    # the setup report even when it came from the hold report, and its `point`
+    # ordinal had no path to attach to, so no point could be located at all.  The
+    # same defect was fixed for timing_paths and missed here for 1510 rows.
+    evidence = [_timing_evidence(
+        inputs,
+        {"path_index": path_index_in_file, "point": ordinal, "report": filename},
+        artifact_id=point.get("artifact_id"),
+        logical_path=f"query-data/{filename}")]
+    if mapping:
+        # pin_id / instance_id / net_id come from the dbnetwork map, not the report
+        evidence.append({
+            "artifact_kind": "raw_dbnetwork_map",
+            "logical_path": "query-data/dbnetwork_map.json",
+            "source_type": "json",
+            # the map is keyed by pin name; naming the point id here would be
+            # another pointer a caller cannot follow
+            "detail": {"pin_name": str(point.get("pin") or point.get("pin_name") or "")},
+        })
+    result["evidence"] = evidence
     return result
 
 
