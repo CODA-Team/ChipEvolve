@@ -37,7 +37,12 @@ def _order(record_type: str, query: dict[str, str]) -> tuple[str, dict[str, Any]
     entirely (V2, round 34).  So the ranking lives here: worst means ascending, and
     rows without the field sort last in both directions.
     """
-    sort = query.get("sort")
+    sort = (query.get("sort") or "").lower()
+    order = (query.get("order") or "worst").lower()
+    if order not in {"worst", "best"}:
+        # validated even when nothing is sorted, so a caller cannot believe an order
+        # was applied when the parameter was silently ignored
+        raise ValueError("order must be worst|best")
     if not sort:
         return "", {}
     ranking = RANKINGS.get(record_type, {}).get(sort)
@@ -45,17 +50,18 @@ def _order(record_type: str, query: dict[str, str]) -> tuple[str, dict[str, Any]
         raise ValueError(f"cannot sort {record_type} by {sort!r}; "
                          f"known: {sorted(RANKINGS.get(record_type, {}))}")
     expression, worst_direction = ranking
-    order = (query.get("order") or "worst").lower()
-    if order not in {"worst", "best"}:
-        raise ValueError("order must be worst|best")
     # "worst" is not one direction: it is the metric's own worst
     ascending = worst_direction == "asc"
     if order == "best":
         ascending = not ascending
     direction = "ASC" if ascending else "DESC"
     # NULLs last in both directions: a path without a slack is not the worst path
+    # A deterministic tie-break, by the bundle's own order: several points can share
+    # the extreme value (ibex has a five-way tie in slew), and an arbitrary member of
+    # the tie is not reproducible.  Ordering by ordinal keeps the page stable and in
+    # the order the artifact lists, which is also what a gold derived from it expects.
     clause = f" ORDER BY json_extract(payload, '{expression}') IS NULL, " \
-             f"json_extract(payload, '{expression}') {direction}"
+             f"json_extract(payload, '{expression}') {direction}, ordinal ASC"
     return clause, {"sorted_by": sort, "order": order,
                     "ordered": "ascending" if ascending else "descending",
                     "worst_means": f"{worst_direction}ending"}
