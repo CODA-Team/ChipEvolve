@@ -25,6 +25,12 @@ from .queries import (
     path_points,
     timing_path,
 )
+from . import source_fingerprint
+
+#: Captured when this module is imported - i.e. from the source the process
+#: actually loaded.  Computing it per request would hash whatever is on disk at
+#: that moment, which always matches and therefore detects nothing.
+STARTUP_FINGERPRINT = source_fingerprint()
 from .repository import DataStore
 
 
@@ -99,7 +105,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def _get(self, path: str, query: dict[str, str]) -> dict[str, Any]:
         if path == "/health":
-            return {"app": "data_foundation", "status": "ok"}
+            return {"app": "data_foundation", "status": "ok",
+                    "source_fingerprint": STARTUP_FINGERPRINT}
         if self.execution_client is not None:
             import_ready_bundles(self.store, self.execution_client)
         if path == "/snapshots":
