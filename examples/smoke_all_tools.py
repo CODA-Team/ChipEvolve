@@ -23,6 +23,11 @@ from eda_ai_client import EdaAiClient
 DEEP_INSTANCE_NAME = "_19891_"
 
 
+def data(response: dict) -> dict:
+    """The tool's own structure: CONTRACT 1 responses carry it under ``data``."""
+    return response.get("data", response)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-url", default="http://127.0.0.1:8860")
@@ -50,33 +55,34 @@ def main() -> int:
         record("list_runs", f"{len(runs)} runs for {args.design}")
 
         run_summary = client.get_run_summary(args.run)
-        record("get_run_summary", f"{len(run_summary['snapshots'])} snapshots")
+        record("get_run_summary", f"{len(data(run_summary)['snapshots'])} snapshots")
 
         stage = client.get_stage_summary(args.snapshot)
-        counts = stage["record_counts"]
+        counts = data(stage)["record_counts"]
         record("get_stage_summary", f"entities={counts['entities']} "
                                     f"relations={counts['relations']}")
 
         metrics = client.get_metrics(run_id=args.run, stage="finish")
-        available = [row for row in metrics["metrics"] if row.get("status") == "available"]
+        available = [row for row in data(metrics)["metrics"]
+                     if row.get("status") == "available"]
         record("get_metrics", f"{len(available)} available canonical: "
                               f"{sorted(row['name'] for row in available)}")
 
         paths = client.get_timing_paths(args.snapshot, check="setup", limit=5)
-        record("get_timing_paths", f"{paths['returned']} setup paths")
-        path_id = paths["timing_paths"][0]["path_id"]
+        record("get_timing_paths", f"{data(paths)['returned']} setup paths")
+        path_id = data(paths)["timing_paths"][0]["path_id"]
 
         summary = client.get_timing_path(args.snapshot, path_id)
         points = client.get_timing_path(args.snapshot, path_id, include="points")
         record("get_timing_path", f"{path_id}: "
-                                  f"{len(points['timing_points'])} points, "
-                                  f"slack={summary['timing_path'].get('slack')}")
+                                  f"{len(data(points)['timing_points'])} points, "
+                                  f"slack={data(summary)['timing_path'].get('slack')}")
 
         instance = client.get_instance(args.snapshot, DEEP_INSTANCE_NAME)
         record("get_instance", f"{DEEP_INSTANCE_NAME} -> {instance['status']}, "
                                f"relations={len(instance.get('relations', []))}")
 
-        sample = next(point for point in points["timing_points"] if point.get("net_id"))
+        sample = next(point for point in data(points)["timing_points"] if point.get("net_id"))
         net = client.get_net_context(args.snapshot, sample["net_id"])
         record("get_net_context", f"{sample['net_id']} -> "
                                   f"{len(net.get('entities', []))} entities, "
@@ -88,8 +94,9 @@ def main() -> int:
         record("get_physical_context", f"{object_id} bbox={bbox}")
 
         evidence = client.get_evidence(args.snapshot, limit=5)
+        # CONTRACT 1 lifts the evidence list to the envelope for every tool
         first = evidence["evidence"][0]["evidence"]
-        record("get_evidence", f"{evidence['returned']} entries "
+        record("get_evidence", f"{data(evidence)['returned']} entries "
                                f"(count={evidence.get('count')}, "
                                f"{evidence.get('count_status', 'exact')}), "
                                f"first artifact={first.get('artifact_id')}")

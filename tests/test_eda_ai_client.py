@@ -28,7 +28,7 @@ class _Stub(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         REQUESTS.append(self.path)
-        body = self._route(self.path)
+        body = self._envelope(self._route(self.path), self.path)
         payload = json.dumps(body).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
@@ -36,14 +36,28 @@ class _Stub(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(payload)
 
+    @staticmethod
+    def _envelope(data: dict[str, Any], path: str) -> dict[str, Any]:
+        """The real service answers with a CONTRACT 1 envelope; so does the stub."""
+        scope = {}
+        if "snap-1" in path:
+            scope["snapshot_id"] = "snap-1"
+        return {"contract_version": "0.1", "tool": "stub", "scope": scope,
+                "status": "available", "missing": [], "data": data,
+                "evidence": [], "limitations": []}
+
     def _route(self, path: str) -> dict[str, Any]:
         route, _, query = path.partition("?")
         if route.endswith("/snapshots/snap-1"):
             return {"snapshot": {"snapshot_id": "snap-1", "run_id": "run-1"}}
         if route.endswith("/runs/run-1/metrics"):
-            return {"run_id": "run-1", "count": 2, "returned": 2,
-                    "metrics": [{"name": "WNS", "snapshot_id": "snap-1", "status": "available"},
-                                {"name": "TNS", "snapshot_id": "snap-2", "status": "available"}]}
+            rows = [{"name": "WNS", "snapshot_id": "snap-1", "status": "available"},
+                    {"name": "TNS", "snapshot_id": "snap-2", "status": "available"}]
+            # the server filters, so the stub must too
+            if "snapshot_id=snap-1" in query:
+                rows = [row for row in rows if row["snapshot_id"] == "snap-1"]
+            return {"run_id": "run-1", "count": len(rows), "returned": len(rows),
+                    "metrics": rows}
         if route.endswith("/instances"):
             name = query.split("name=")[-1]
             if name == "none":
@@ -82,9 +96,12 @@ def test_ids_with_colons_are_url_quoted(client: EdaAiClient) -> None:
 
 def test_snapshot_scoped_metrics_keep_only_that_snapshot(client: EdaAiClient) -> None:
     result = client.get_metrics(snapshot_id="snap-1")
-    assert [row["name"] for row in result["metrics"]] == ["WNS"]
-    assert result["count"] == 1 and result["returned"] == 1
-    assert result["snapshot_id"] == "snap-1"
+    # CONTRACT 1: the tool's own structure lives under `data`, the fact boundary
+    # under `scope`, and the page counts describe what was actually returned.
+    assert [row["name"] for row in result["data"]["metrics"]] == ["WNS"]
+    assert result["data"]["count"] == 1 and result["data"]["returned"] == 1
+    assert result["scope"]["snapshot_id"] == "snap-1"
+    assert "snapshot_id=snap-1" in REQUESTS[-1]
 
 
 def test_name_lookup_separates_zero_one_and_many(client: EdaAiClient) -> None:

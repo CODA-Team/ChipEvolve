@@ -72,7 +72,7 @@ class EdaAiClient:
         grouping happens here until a design directory exists server-side.
         """
         grouped: dict[str, dict[str, Any]] = {}
-        for snapshot in self._get(self.data_url, "/snapshots")["snapshots"]:
+        for snapshot in _data(self._get(self.data_url, "/snapshots"))["snapshots"]:
             design = grouped.setdefault(snapshot["design_id"], {
                 "design_id": snapshot["design_id"],
                 "revisions": {},
@@ -113,7 +113,7 @@ class EdaAiClient:
         if stage:
             rows = [row for row in rows
                     if any(snapshot.get("stage") == stage
-                           for snapshot in self.get_run_summary(row["run_id"])["snapshots"])]
+                           for snapshot in _data(self.get_run_summary(row["run_id"]))["snapshots"])]
         return rows[offset:offset + limit]
 
     # ---------------------------------------------------- tool 3: run summary
@@ -153,33 +153,32 @@ class EdaAiClient:
         if run_id is None:
             if snapshot_id is None:
                 raise ValueError("get_metrics needs run_id or snapshot_id")
-            run_id = self._get(self.data_url,
-                               f"/snapshots/{_segment(snapshot_id)}")["snapshot"]["run_id"]
-        params = {"stage": stage, "name": name, "limit": limit, "offset": offset}
+            run_id = _data(self._get(
+                self.data_url,
+                f"/snapshots/{_segment(snapshot_id)}"))["snapshot"]["run_id"]
+        params = {"stage": stage, "name": name, "limit": limit, "offset": offset,
+                  "snapshot_id": snapshot_id}
         if include_raw:
             params["include_raw"] = 1
-        result = self._get(self.data_url, f"/runs/{_segment(run_id)}/metrics",
-                           {key: value for key, value in params.items() if value is not None})
-        if snapshot_id is not None:
-            result["metrics"] = [row for row in result.get("metrics", [])
-                                 if row.get("snapshot_id") == snapshot_id]
-            result["count"] = len(result["metrics"])
-            result["returned"] = len(result["metrics"])
-            result["snapshot_id"] = snapshot_id
-        return result
+        return self._get(self.data_url, f"/runs/{_segment(run_id)}/metrics",
+                         {key: value for key, value in params.items()
+                          if value is not None})
 
     # -------------------------------------------------- tool 7: timing paths
 
     def get_timing_paths(self, snapshot_id: str, *, check: str | None = None,
                          limit: int = 100, offset: int = 0) -> dict[str, Any]:
-        """Timing path summaries; ``check`` filters setup/hold client-side."""
-        result = self._get(self.data_url, f"/snapshots/{_segment(snapshot_id)}/timing-paths",
-                           {"limit": limit, "offset": offset})
-        if check:
-            result["timing_paths"] = [row for row in result.get("timing_paths", [])
-                                      if row.get("check") == check]
-            result["returned"] = len(result["timing_paths"])
-        return result
+        """Timing path summaries; ``check`` filters setup/hold on the server.
+
+        Filtering here instead used to break the pagination envelope: the count
+        still described the unfiltered page, so ``check="hold"`` could report
+        ``count=10, returned=0, truncated=true``.
+        """
+        params = {"limit": limit, "offset": offset, "check": check}
+        return self._get(self.data_url,
+                         f"/snapshots/{_segment(snapshot_id)}/timing-paths",
+                         {key: value for key, value in params.items()
+                          if value is not None})
 
     # ------------------------------------------------ tool 8: one timing path
 
@@ -213,8 +212,9 @@ class EdaAiClient:
         Zero matches and several matches are distinct outcomes, not an
         exception and not "take the first one".
         """
-        found = self._get(self.data_url, f"/snapshots/{_segment(snapshot_id)}/instances",
-                          {"name": name})["instances"]
+        found = _data(self._get(
+            self.data_url, f"/snapshots/{_segment(snapshot_id)}/instances",
+            {"name": name}))["instances"]
         if len(found) != 1:
             return {"snapshot_id": snapshot_id, "name": name, "instances": found,
                     "status": "not_found" if not found else "partial",
@@ -225,10 +225,12 @@ class EdaAiClient:
                             f"/snapshots/{_segment(snapshot_id)}/objects/"
                             f"{_segment(object_id)}/context",
                             {"detail": detail, "relation_limit": relation_limit})
-        return {"snapshot_id": snapshot_id, "name": name, "status": "available",
-                "instance": context["entities"][0], "context": context,
-                "physical_context": context.get("physical_context", []),
-                "relations": context.get("relations", []),
+        body = _data(context)
+        return {"snapshot_id": snapshot_id, "name": name,
+                "status": context.get("status", "available"),
+                "instance": body["entities"][0], "context": context,
+                "physical_context": body.get("physical_context", []),
+                "relations": body.get("relations", []),
                 "evidence": context.get("evidence", [])}
 
     # --------------------------------------------------- tool 10: net context
@@ -239,8 +241,8 @@ class EdaAiClient:
         """A net by object ID or exact name: connectivity, route and sources."""
         net_id = net
         if not net.startswith("net:"):
-            found = self._get(self.data_url, f"/snapshots/{_segment(snapshot_id)}/nets",
-                              {"name": net})["nets"]
+            found = _data(self._get(self.data_url, f"/snapshots/{_segment(snapshot_id)}/nets",
+                              {"name": net}))["nets"]
             if len(found) != 1:
                 return {"snapshot_id": snapshot_id, "name": net, "nets": found,
                         "status": "not_found" if not found else "partial",
@@ -331,6 +333,12 @@ class EdaAiClient:
 
     def __exit__(self, *_exc: object) -> None:
         self.close()
+
+
+def _data(response: dict[str, Any]) -> dict[str, Any]:
+    """The tool payload: CONTRACT 1 responses carry it under ``data``."""
+    payload = response.get("data")
+    return payload if isinstance(payload, dict) else response
 
 
 def _segment(value: str) -> str:
