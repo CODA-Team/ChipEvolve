@@ -111,6 +111,10 @@ def _physical_records(markers: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "object_id": object_id,
             "snapshot_id": marker.get("snapshot_id"),
             "instance_name": marker.get("instance_name"),
+            # the adapter emits the placement origin; the record used to drop it,
+            # which left CONTRACT 4.11 promising x/y that no record carried.
+            "x": marker.get("x"),
+            "y": marker.get("y"),
             "bbox": marker.get("bbox"),
             "layer": marker.get("layer"),
             "geometry": marker.get("geometry", []),

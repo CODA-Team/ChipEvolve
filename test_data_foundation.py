@@ -851,3 +851,28 @@ def test_envelope_lifts_nested_evidence_and_declares_its_absence() -> None:
     assert len(absent["evidence"]) == 1
     assert absent["evidence"][0]["status"] == "unavailable"
     assert absent["evidence"][0]["tool"] == "list_snapshots"
+
+
+def test_physical_records_carry_the_placement_origin() -> None:
+    """CONTRACT 4.11: x/y come from the adapter marker; ingesting dropped them."""
+    from openroad_app_data_foundation.ingest import _physical_records
+
+    records = _physical_records([{
+        "object_id": "inst:1", "snapshot_id": "snap-1", "instance_name": "u1",
+        "x": 16340, "y": 8400,
+        "bbox": {"x_min": 16340, "y_min": 8400, "x_max": 17100, "y_max": 11200},
+    }])
+    assert records[0]["x"] == 16340 and records[0]["y"] == 8400
+    assert records[0]["bbox"]["x_min"] == 16340
+
+
+def test_physical_records_leave_an_absent_origin_absent() -> None:
+    """A pin marker has geometry but no placement: x/y stay None, not invented."""
+    from openroad_app_data_foundation.ingest import _physical_records
+
+    records = _physical_records([{
+        "object_id": "iterm:1", "snapshot_id": "snap-1",
+        "geometry": [{"geometry_type": "rect", "coordinate_space": "master"}],
+    }])
+    assert records[0]["x"] is None and records[0]["y"] is None
+    assert records[0]["bbox"] is None
