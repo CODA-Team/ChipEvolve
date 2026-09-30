@@ -223,7 +223,8 @@ class DataStore:
     def close(self) -> None:
         self.connection.close()
 
-    def register(self, pack: Mapping[str, Any]) -> dict[str, Any]:
+    def register(self, pack: Mapping[str, Any], *,
+                 artifact_id: str | None = None) -> dict[str, Any]:
         snapshot = _object(pack.get("snapshot"), "snapshot")
         snapshot_id = _required(snapshot, "snapshot_id")
         for name in ("design_id", "revision_id", "run_id", "stage"):
@@ -297,6 +298,12 @@ class DataStore:
                 if batch:
                     self.connection.executemany(insert, batch)
                     batch.clear()
+                if artifact_id is not None:
+                    # Same transaction as the snapshot: either both are visible or
+                    # neither is, so a retry after a crash is always well defined.
+                    self.connection.execute(
+                        "INSERT INTO imported_artifacts(artifact_id) VALUES (?)",
+                        (artifact_id,))
         except sqlite3.IntegrityError as exc:
             raise ContractError(f"snapshot already exists: {snapshot_id}") from exc
         self._store_pack_fragments(snapshot_id, pack)
@@ -354,12 +361,15 @@ class DataStore:
                 (artifact_id,))
 
     def register_import(self, artifact_id: str, pack: Mapping[str, Any]) -> dict[str, Any]:
-        result = self.register(pack)
-        with self.connection:
-            self.connection.execute(
-                "INSERT INTO imported_artifacts(artifact_id) VALUES (?)", (artifact_id,)
-            )
-        return result
+        """Register a snapshot and its artifact identity in one transaction.
+
+        These used to be two: the snapshot committed first, then the artifact id.
+        A crash in between leaves a snapshot that exists while `imported()` still
+        says no, and every later attempt fails with "snapshot already exists" -
+        the artifact can never be imported again.  Fault injection found that; a
+        normal run never will.
+        """
+        return self.register(pack, artifact_id=artifact_id)
 
     def snapshots(self, *, design_id: str | None = None, run_id: str | None = None) -> list[dict[str, Any]]:
         query = "SELECT payload FROM snapshots"
