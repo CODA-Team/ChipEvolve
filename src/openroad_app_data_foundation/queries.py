@@ -114,11 +114,21 @@ def list_evidence(store: DataStore, snapshot_id: str,
     the page size masquerade as the total.
     """
     artifact_id = query.get("artifact_id")
+    # A caller that asks for one record type should not pay for the whole index,
+    # and must not silently receive every type when the filter is unreadable.
+    requested = query.get("record_type")
     limit, offset = _limit(query), _offset(query)
+    if requested is not None and requested not in RECORD_TYPES:
+        return {"snapshot_id": snapshot_id, "evidence": [], "count": 0,
+                "count_status": "available", "returned": 0, "limit": limit,
+                "offset": offset, "truncated": False,
+                "filters": {"record_type": requested},
+                "missing": ["record_type"],
+                "note": f"unknown record type {requested!r}"}
     matched = 0
     page: list[dict[str, Any]] = []
     complete = True
-    for record_type in RECORD_TYPES:
+    for record_type in ([requested] if requested else RECORD_TYPES):
         for row in store.iter_records(snapshot_id, record_type):
             for item in row.get("evidence", []):
                 if not isinstance(item, dict):
@@ -139,7 +149,9 @@ def list_evidence(store: DataStore, snapshot_id: str,
                 break
         if not complete:
             break
-    result: dict[str, Any] = {"snapshot_id": snapshot_id, "evidence": page}
+    result: dict[str, Any] = {"snapshot_id": snapshot_id, "evidence": page,
+                              "filters": ({"record_type": requested}
+                                          if requested else {})}
     if complete:
         result.update(_page(matched, len(page), limit, offset))
     else:

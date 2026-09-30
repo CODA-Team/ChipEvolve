@@ -954,3 +954,35 @@ def test_import_skips_a_superseded_bundle_instead_of_failing(tmp_path: Path) -> 
         assert len(store.snapshots()) == 1
     finally:
         store.close()
+
+
+def test_evidence_index_filters_by_record_type_and_flags_unknown(tmp_path: Path) -> None:
+    """A type filter must narrow the scan, and an unknown one must not be ignored."""
+    from openroad_app_data_foundation.queries import list_evidence
+
+    store = DataStore(tmp_path / "evidence.db")
+    try:
+        store.register({
+            "snapshot": {"snapshot_id": "snap-1", "design_id": "chip",
+                         "revision_id": "rev-1", "run_id": "run-1", "stage": "route",
+                         "created_at": "2026-01-01T00:00:00Z"},
+            "observations": [{"observation_id": "obs:1", "kind": "metric",
+                              "snapshot_id": "snap-1", "value": 1, "status": "parsed",
+                              "context": {}, "evidence": [{"artifact_kind": "raw"}]}],
+            "relations": [{"relation_id": "rel:1", "predicate": "loads",
+                           "subject_id": "net:1",
+                           "object_id": "iterm:1", "snapshot_id": "snap-1",
+                           "evidence": [{"artifact_kind": "raw"}]}],
+        })
+        filtered = list_evidence(store, "snap-1", {"record_type": "observations",
+                                                   "limit": "10"})
+        assert [row["record_type"] for row in filtered["evidence"]] == ["observations"]
+        assert filtered["filters"] == {"record_type": "observations"}
+
+        unfiltered = list_evidence(store, "snap-1", {"limit": "10"})
+        assert len({row["record_type"] for row in unfiltered["evidence"]}) > 1
+
+        unknown = list_evidence(store, "snap-1", {"record_type": "nonsense"})
+        assert unknown["evidence"] == [] and unknown["missing"] == ["record_type"]
+    finally:
+        store.close()

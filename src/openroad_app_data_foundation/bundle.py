@@ -63,16 +63,18 @@ def import_ready_bundles(store: DataStore, client: KernelClient) -> int:
                 store.register_import(artifact_id,
                                       load_run_bundle(client, run_id, artifact_id))
             except ContractError as exc:
-                # A superseded bundle for a snapshot we already hold must not take
-                # the interface down.  This importer runs on every GET, so one such
-                # artifact made every request fail with "snapshot already exists" -
-                # which is exactly what happened while re-extracting a snapshot: the
-                # new bundle existed, the old snapshot row still did, and the whole
-                # service answered errors until that artifact was marked.
-                if "already exists" not in str(exc):
-                    raise
+                # This importer runs inside every GET, so ANY artifact it cannot
+                # ingest used to make every request answer 400 - the cold audit
+                # listed six reachable triggers for that ("missing source identity",
+                # "bundle artifact not found", "exactly one data manifest", escaping
+                # member, duplicate record identity, unsupported schema version).
+                # Nothing is hidden: the artifact is retired so the service stays
+                # usable, and the reason goes to stderr on every pass.
                 store.mark_imported(artifact_id)
                 superseded += 1
+                print(f"import_ready_bundles: cannot ingest {artifact_id} "
+                      f"({exc}); marked as seen, the interface keeps serving",
+                      file=sys.stderr)
                 continue
             imported += 1
     if superseded:
