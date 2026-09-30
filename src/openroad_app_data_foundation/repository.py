@@ -305,6 +305,15 @@ class DataStore:
                         "INSERT INTO imported_artifacts(artifact_id) VALUES (?)",
                         (artifact_id,))
         except sqlite3.IntegrityError as exc:
+            # Since the snapshot, its records and its artifact identity share one
+            # transaction, an integrity error can come from any of them; naming the
+            # wrong one sends whoever is on call to the wrong table.
+            detail = str(exc)
+            if "imported_artifacts" in detail:
+                raise ContractError(f"artifact already imported: {artifact_id}") from exc
+            if "records" in detail:
+                raise ContractError(
+                    f"duplicate record identity in {snapshot_id}") from exc
             raise ContractError(f"snapshot already exists: {snapshot_id}") from exc
         self._store_pack_fragments(snapshot_id, pack)
         return {"snapshot": snapshot, "record_counts": counts}
