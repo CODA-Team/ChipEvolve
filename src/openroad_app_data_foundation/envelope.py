@@ -75,6 +75,8 @@ def envelope(path: str, query: Mapping[str, str], payload: Any) -> dict[str, Any
     target = data.get("target")
     evidence = data.pop("evidence", None)
     limitations = data.pop("limitations", None)
+    if evidence is None:
+        evidence = _lift_evidence(data)
 
     result: dict[str, Any] = {
         "contract_version": CONTRACT_VERSION,
@@ -87,9 +89,41 @@ def envelope(path: str, query: Mapping[str, str], payload: Any) -> dict[str, Any
     result["status"] = status
     result["missing"] = missing
     result["data"] = data
-    result["evidence"] = evidence if evidence is not None else []
+    result["evidence"] = evidence if evidence else [
+        {"status": "unavailable", "tool": result["tool"],
+         "reason": "no evidence reference is attached to this response"}]
     result["limitations"] = limitations if isinstance(limitations, list) else []
     return result
+
+
+#: payload keys that hold one fact record whose own evidence speaks for the answer
+_NESTED_RECORD_KEYS = ("timing_path", "physical_context", "snapshot", "net", "object",
+                       "timing_points", "timing_paths", "metrics")
+
+
+def _lift_evidence(data: Mapping[str, Any]) -> list[Any] | None:
+    """Find provenance for an answer whose payload does not carry it at the top.
+
+    CONTRACT 1 puts evidence on the envelope, but several tools nest it in the
+    record they return (`timing_path`, `physical_context`) or in one row per
+    fact (`metrics`).  A caller reading an empty envelope list would conclude
+    "no source" while the record it was handed carries one, so the list is
+    filled from the first source that has it - one reference, not a copy of
+    every row.
+    """
+    for key in _NESTED_RECORD_KEYS:
+        value = data.get(key)
+        if isinstance(value, Mapping):
+            nested = value.get("evidence")
+            if isinstance(nested, list) and nested:
+                return list(nested)
+        if isinstance(value, list):
+            for row in value:
+                if isinstance(row, Mapping):
+                    nested = row.get("evidence")
+                    if isinstance(nested, list) and nested:
+                        return list(nested)
+    return None
 
 
 def error_envelope(path: str, status: str, message: str,

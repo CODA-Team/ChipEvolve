@@ -10,6 +10,7 @@ from openroad_platform_contracts import ContractError
 
 from openroad_app_data_foundation.bundle import import_ready_bundles, load_run_bundle
 from openroad_app_data_foundation.context import net_context, object_context
+from openroad_app_data_foundation.envelope import envelope
 from openroad_app_data_foundation.ingest import load_snapshot_directory
 from openroad_app_data_foundation.metric_queries import compare_metric
 from openroad_app_data_foundation.metrics import project_run
@@ -833,3 +834,20 @@ def test_metric_rows_state_whether_a_corner_was_declared(tmp_path: Path) -> None
         assert rows["RUNTIME"]["corner_status"] == "not_declared"
     finally:
         store.close()
+
+
+def test_envelope_lifts_nested_evidence_and_declares_its_absence() -> None:
+    """CONTRACT 1: provenance on the envelope, and never an unexplained empty list."""
+    reference = {"artifact_id": "art-1", "logical_path": "query-data/timing_report.json"}
+    lifted = envelope("/snapshots/snap-1/timing-paths/path-1", {},
+                      {"timing_path": {"path_id": "path-1", "evidence": [reference]}})
+    assert lifted["evidence"] == [reference]
+
+    from_rows = envelope("/runs/run-1/metrics", {},
+                         {"metrics": [{"name": "WNS", "evidence": [reference]}]})
+    assert from_rows["evidence"] == [reference]
+
+    absent = envelope("/snapshots", {}, {"snapshots": []})
+    assert len(absent["evidence"]) == 1
+    assert absent["evidence"][0]["status"] == "unavailable"
+    assert absent["evidence"][0]["tool"] == "list_snapshots"
