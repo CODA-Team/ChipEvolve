@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 from typing import Any
 
 from .analysis_context import (
@@ -543,3 +545,87 @@ def _offset(query: dict[str, str]) -> int:
     if value < 0:
         raise ValueError("offset must not be negative")
     return value
+
+
+def read_evidence(store: DataStore, snapshot_id: str, record_type: str,
+                  record_id: str) -> dict[str, Any]:
+    """The raw fragment a record's evidence points at, not the whole file.
+
+    Whole-artifact download is capped at 4 MiB by the execution foundation, and
+    copying a 25 MB database for one fact is the wrong answer even when it fits.
+    The bundle already carries the JSON the facts were parsed from, so this slices
+    the piece the evidence names: a timing check by its file-local path index, a
+    timing point by that index and its ordinal, a mapping row by its pin name.
+
+    A source that cannot be sliced is reported as unavailable with the reason - a
+    binary database is never silently substituted with something else.
+    """
+    # record_evidence wraps each reference as {"record_type", "record_id", "evidence"}
+    entries = [row["evidence"] for row in
+               store.record_evidence(snapshot_id, record_type, record_id)
+               if isinstance(row, dict) and isinstance(row.get("evidence"), dict)]
+    fragments: list[dict[str, Any]] = []
+    for entry in entries:
+        logical_path = entry.get("logical_path")
+        source = (store.fragment_source(snapshot_id, logical_path)
+                  if isinstance(logical_path, str) else None)
+        common = {
+            "artifact_id": entry.get("artifact_id"),
+            "logical_path": logical_path,
+            "sha256": entry.get("sha256"),
+            "locator": entry.get("locator"),
+            "detail": entry.get("detail"),
+        }
+        if source is None:
+            fragments.append({**common, "status": "unavailable",
+                              "reason": (f"{logical_path!r} is not a JSON fragment source; "
+                                         "it is a binary database whose facts the adapter "
+                                         "already extracted, and it exceeds the download cap")})
+            continue
+        try:
+            document = json.loads(source["payload"])
+            pointer, fragment = _fragment(document, record_type, entry)
+        except (json.JSONDecodeError, KeyError, IndexError, TypeError) as exc:
+            fragments.append({**common, "status": "unavailable",
+                              "reason": f"cannot slice the source: {type(exc).__name__}: {exc}"})
+            continue
+        fragments.append({**common, "status": "available", "fragment_path": pointer,
+                          "fragment": fragment,
+                          "source_sha256": source["sha256"]})
+    available = sum(1 for item in fragments if item["status"] == "available")
+    result: dict[str, Any] = {
+        "snapshot_id": snapshot_id, "record_type": record_type, "record_id": record_id,
+        "fragments": fragments, "available": available, "returned": len(fragments),
+    }
+    if not fragments:
+        raise KeyError(f"no evidence for {record_type}/{record_id}")
+    return result
+
+
+def _fragment(document: Any, record_type: str,
+              entry: Mapping[str, Any]) -> tuple[str, Any]:
+    """Locate the named slice.  Every path here mirrors how the adapter wrote it."""
+    detail = entry.get("detail") if isinstance(entry.get("detail"), dict) else {}
+    locator = entry.get("locator") if isinstance(entry.get("locator"), dict) else {}
+    # A timing point carries two references: the report it came from and the
+    # mapping row that names its ids.  The mapping entry names the pin in `detail`
+    # (it is a property of the reference), while an entity/relation carries its
+    # `locator` on the record; both are accepted, and the mapping table is keyed by
+    # pin *name*.
+    pin = detail.get("pin_name") or locator.get("pin_name")
+    if isinstance(pin, str) and pin:
+        return f"/{pin}", document[pin]
+    if record_type in {"timing_paths", "timing_points"}:
+        index = detail.get("path_index")
+        if not isinstance(index, int):
+            raise KeyError("evidence does not name a path_index")
+        check = document["checks"][index]
+        if record_type == "timing_paths":
+            return f"/checks/{index}", check
+        ordinal = detail.get("point")
+        if not isinstance(ordinal, int):
+            raise KeyError("evidence does not name a point ordinal")
+        ordered = [item for section in ("source_clock_path", "source_path", "target_path")
+                   for item in (check.get(section) or [])]
+        return f"/checks/{index}/points/{ordinal}", ordered[ordinal]
+    raise KeyError("no fragment rule for this locator")

@@ -18,6 +18,7 @@ from .envelope import envelope, error_envelope
 from .queries import (
     compare_timing_path,
     list_evidence,
+    read_evidence,
     list_metrics_for_run,
     list_observations,
     list_timing_paths,
@@ -89,6 +90,12 @@ class Handler(BaseHTTPRequestHandler):
             self._send(503, {"error": str(exc)})
         except KernelError as exc:
             self._send(exc.status or 502, {"error": str(exc)})
+        except Exception as exc:                         # noqa: BLE001 - last resort
+            # An unexpected bug used to close the socket with no response at all,
+            # which a caller cannot distinguish from a dead service.  Answer with
+            # the error instead, and let the log keep the traceback.
+            self._send(500, error_envelope(parsed.path, "unavailable",
+                                           f"{type(exc).__name__}: {exc}"))
 
     def _get(self, path: str, query: dict[str, str]) -> dict[str, Any]:
         if path == "/health":
@@ -154,6 +161,8 @@ class Handler(BaseHTTPRequestHandler):
                 return list_observations(self.store, parts[1], query)
             if len(parts) == 3 and parts[2] == "evidence":
                 return list_evidence(self.store, parts[1], query)
+            if len(parts) == 6 and parts[2] == "records" and parts[5] == "fragments":
+                return read_evidence(self.store, parts[1], parts[3], parts[4])
             if len(parts) == 6 and parts[2] == "records" and parts[5] == "evidence":
                 return {"evidence": self.store.record_evidence(
                     parts[1], parts[3], parts[4])}

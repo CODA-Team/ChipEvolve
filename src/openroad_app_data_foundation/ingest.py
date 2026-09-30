@@ -42,7 +42,22 @@ def load_snapshot_directory(directory: str | Path) -> dict[str, Any]:
         pack["entities" if name == "objects" else name] = values
     pack["coverage"] = _read_object(root / "coverage.json", required=False) or {}
     pack["physical_context"] = _physical_records(marker_rows)
+    # Keep the JSON members a fragment read can slice.  They arrived with the bundle,
+    # so no extra download is needed and the 4 MiB download cap never applies.
+    pack["fragment_sources"] = {
+        path: (root / Path(path).name).read_bytes()
+        for path in FRAGMENT_PATHS
+        if (root / Path(path).name).is_file()
+    }
     return pack
+
+
+#: bundle members worth keeping verbatim for fragment reads.  The binary database is
+#: absent on purpose: its facts are already extracted, and it is neither parseable
+#: here nor under the download cap.
+FRAGMENT_PATHS = ("query-data/timing_report.json",
+                  "query-data/timing_report_hold.json",
+                  "query-data/dbnetwork_map.json")
 
 
 def _expand_source_ref(row: dict[str, Any], refs: dict[str, Any]) -> dict[str, Any]:

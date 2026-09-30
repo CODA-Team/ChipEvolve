@@ -1102,3 +1102,64 @@ def test_compact_source_ref_is_expanded_from_the_snapshot_catalog(tmp_path: Path
         assert resolved["resolution"] in {"exact_path", "exact_artifact"}
     finally:
         store.close()
+
+
+def test_read_evidence_returns_the_fragment_and_refuses_the_binary_source(tmp_path: Path) -> None:
+    """Fragment access slices the bundle member; it never substitutes something else."""
+    from openroad_app_data_foundation.queries import read_evidence
+
+    store = DataStore(tmp_path / "fragments.db")
+    try:
+        report = {"checks": [{"endpoint": "out", "slack": -1.0,
+                              "source_path": [{"pin": "a"}, {"pin": "b"}]}]}
+        mapping = {"u1/A": {"pin_id": "iterm:1", "instance_id": "inst:1"}}
+        store.register({
+            "snapshot": {"snapshot_id": "snap-1", "design_id": "chip",
+                         "revision_id": "rev-1", "run_id": "run-1", "stage": "route",
+                         "created_at": "2026-01-01T00:00:00Z"},
+            "timing_paths": [{"path_id": "path:0", "snapshot_id": "snap-1",
+                              "startpoint": "a", "endpoint": "out", "slack": -1.0,
+                              "evidence": [{"artifact_kind": "raw_timing_report",
+                                            "logical_path": "query-data/timing_report.json",
+                                            "detail": {"path_index": 0}}]}],
+            "timing_points": [{"point_id": "path:0:point:1", "path_id": "path:0",
+                               "ordinal": 1, "pin_name": "u1/A",
+                               "evidence": [
+                                   {"artifact_kind": "raw_timing_report",
+                                    "logical_path": "query-data/timing_report.json",
+                                    "detail": {"path_index": 0, "point": 1}},
+                                   {"artifact_kind": "raw_dbnetwork_map",
+                                    "logical_path": "query-data/dbnetwork_map.json",
+                                    "detail": {"pin_name": "u1/A"}}]}],
+            "fragment_sources": {
+                "query-data/timing_report.json": json.dumps(report).encode(),
+                "query-data/dbnetwork_map.json": json.dumps(mapping).encode(),
+            },
+        })
+        path = read_evidence(store, "snap-1", "timing_paths", "path:0")
+        assert path["available"] == 1
+        assert path["fragments"][0]["fragment"]["slack"] == -1.0
+        assert path["fragments"][0]["fragment_path"] == "/checks/0"
+
+        point = read_evidence(store, "snap-1", "timing_points", "path:0:point:1")
+        assert point["available"] == 2
+        by_path = {item["logical_path"]: item for item in point["fragments"]}
+        assert by_path["query-data/timing_report.json"]["fragment"] == {"pin": "b"}
+        assert by_path["query-data/dbnetwork_map.json"]["fragment"]["pin_id"] == "iterm:1"
+
+        # a record whose evidence names no sliceable member must say so
+        store.register({
+            "snapshot": {"snapshot_id": "snap-2", "design_id": "chip",
+                         "revision_id": "rev-1", "run_id": "run-1", "stage": "route",
+                         "created_at": "2026-01-01T00:00:00Z"},
+            "entities": [{"object_id": "inst:1", "snapshot_id": "snap-2",
+                          "kind": "instance", "name": "u1",
+                          "evidence": [{"artifact_kind": "raw_design_database",
+                                        "logical_path": "inputs/design.odb"}]}],
+        })
+        entity = read_evidence(store, "snap-2", "entities", "inst:1")
+        assert entity["available"] == 0
+        assert entity["fragments"][0]["status"] == "unavailable"
+        assert "design.odb" in entity["fragments"][0]["reason"]
+    finally:
+        store.close()

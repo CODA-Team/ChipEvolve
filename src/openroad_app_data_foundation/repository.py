@@ -6,6 +6,7 @@ keeps the artifact evidence references supplied by its producer.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 import threading
@@ -141,6 +142,18 @@ class DataStore:
             CREATE TABLE IF NOT EXISTS imported_artifacts (
                 artifact_id TEXT PRIMARY KEY
             );
+            -- JSON members the bundle already carries, kept so a caller can read
+            -- the *fragment* a fact came from.  The execution foundation refuses
+            -- artifacts over 4 MiB, so reading a whole file is not always possible;
+            -- a fragment usually is, and it is what a verifier actually needs.
+            CREATE TABLE IF NOT EXISTS fragment_sources (
+                snapshot_id TEXT NOT NULL,
+                logical_path TEXT NOT NULL,
+                sha256 TEXT,
+                payload BLOB NOT NULL,
+                PRIMARY KEY(snapshot_id, logical_path),
+                FOREIGN KEY(snapshot_id) REFERENCES snapshots(snapshot_id)
+            );
             CREATE INDEX IF NOT EXISTS records_json_name
                 ON records(snapshot_id, record_type,
                            json_extract(payload, '$.name'));
@@ -222,7 +235,47 @@ class DataStore:
                 )
         except sqlite3.IntegrityError as exc:
             raise ContractError(f"snapshot already exists: {snapshot_id}") from exc
+        self._store_pack_fragments(snapshot_id, pack)
         return {"snapshot": snapshot, "record_counts": _counts(records)}
+
+    #: members worth keeping for fragment reads: parseable JSON that evidence
+    #: points into.  The binary database is deliberately absent - the adapter
+    #: already extracted its facts, and the file itself is both unparseable here
+    #: and over the download cap.
+    FRAGMENT_PATHS = ("query-data/timing_report.json",
+                      "query-data/timing_report_hold.json",
+                      "query-data/dbnetwork_map.json")
+
+    def store_fragments(self, snapshot_id: str, values: Mapping[str, Any]) -> int:
+        stored = 0
+        with self.connection:
+            for logical_path in self.FRAGMENT_PATHS:
+                payload = values.get(logical_path)
+                if not isinstance(payload, bytes):
+                    continue
+                self.connection.execute(
+                    "INSERT OR REPLACE INTO fragment_sources"
+                    "(snapshot_id, logical_path, sha256, payload) VALUES (?, ?, ?, ?)",
+                    (snapshot_id, logical_path, hashlib.sha256(payload).hexdigest(),
+                     sqlite3.Binary(payload)))
+                stored += 1
+        return stored
+
+    def fragment_source(self, snapshot_id: str,
+                        logical_path: str) -> dict[str, Any] | None:
+        self.snapshot(snapshot_id)
+        row = self.connection.execute(
+            "SELECT sha256, payload FROM fragment_sources"
+            " WHERE snapshot_id = ? AND logical_path = ?",
+            (snapshot_id, logical_path)).fetchone()
+        if row is None:
+            return None
+        return {"sha256": row["sha256"], "payload": bytes(row["payload"])}
+
+    def _store_pack_fragments(self, snapshot_id: str, pack: Mapping[str, Any]) -> None:
+        values = pack.get("fragment_sources")
+        if isinstance(values, dict) and values:
+            self.store_fragments(snapshot_id, values)
 
     def imported(self, artifact_id: str) -> bool:
         return self.connection.execute(
