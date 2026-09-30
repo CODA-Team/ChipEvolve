@@ -215,8 +215,11 @@ run 级的 `design_id`/`status` 目前只在 `snapshot`/`run_summary` 里，见 
 
 ### 4.11 `get_physical_context(snapshot_id, object_id)`
 
-`data`: `{physical_context: {object_id, kind, x, y, bbox, geometry[], routing[], coverage, evidence}}`
-（记录**嵌在 `physical_context` 下**，不是直接放在 `data` 上——这是服务的实际形状，2026-09-30 按真实响应更正。）
+`data`: `{physical_context: {object_id, snapshot_id, instance_name, x, y, bbox, layer, geometry[], routing[], identity, evidence[]}}`
+（记录**嵌在 `physical_context` 下**，不是直接放在 `data` 上——这是服务的实际形状，按真实响应更正。
+ 注意：**没有** `kind` / `coverage` 字段；`x`/`y` 由 adapter 的 marker 提供，ingest 曾经把它丢掉，
+ 已修（`ingest.py`），但**已导入的快照要重新导入才会带上**——见 NEXT 的迁移步骤。`bbox` 为 `null`
+ 表示该对象没有 bbox（例如 pin 只有 master 坐标系的 geometry），不是 0。）
 - `geometry[].geometry_type` ∈ `rect | polygon | wire_segment | via`；via 保留 `bottom_layer`/`top_layer`/`cut`，不得退化成矩形。
 - `routing[]` 只含该 net 的 segment/via；`coverage` 表明 geometry 是否 `partial`。
 - `detail`（`summary` 默认 / `full`）语义同上；`get_instance` 与 `get_net_context` 都接受它。
