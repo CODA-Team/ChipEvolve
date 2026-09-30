@@ -278,8 +278,11 @@ class EdaAiClient:
             return self._get(self.data_url,
                              f"/snapshots/{_segment(snapshot_id)}/records/"
                              f"{_segment(record_type)}/{_segment(record_id)}/evidence")
+        # `record_type` used to be dropped here unless `record_id` came with it, so
+        # a caller asking for one type silently got one page of the whole index.
         return self._get(self.data_url, f"/snapshots/{_segment(snapshot_id)}/evidence",
-                         {"artifact_id": artifact_id, "limit": limit, "offset": offset})
+                         {"artifact_id": artifact_id, "record_type": record_type,
+                          "limit": limit, "offset": offset})
 
     # ------------------------------------------------------------- raw bytes
 

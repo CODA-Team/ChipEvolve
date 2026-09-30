@@ -236,6 +236,11 @@ run 级的 `design_id`/`status` 目前只在 `snapshot`/`run_summary` 里，见 
 
 信封 `evidence[]`（本 tool 的 evidence 引用在信封层，见 §7）: §3 的引用对象；可按 record 或 artifact 过滤。
 
+- **整快照索引也支持 `record_type` 过滤**（只给 `record_type`、不给 `record_id` 时）：响应会带 `filters.record_type`，
+  并且**只扫这一类**，不再从头扫整个索引。若给了未知的 `record_type`，返回空页 + `missing: ["record_type"]` +
+  `note` 说明，**绝不静默当成"不过滤"**。
+  （此前客户端在缺 `record_id` 时会**丢掉** `record_type`，调用方以为过滤了其实没有——已修。）
+
 ---
 
 ## 5. 分页与规模
