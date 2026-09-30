@@ -211,7 +211,8 @@ run 级的 `design_id`/`status` 目前只在 `snapshot`/`run_summary` 里，见 
 
 ### 4.11 `get_physical_context(snapshot_id, object_id)`
 
-`data`: `{object_id, kind, x, y, bbox, geometry[], routing[], coverage}`
+`data`: `{physical_context: {object_id, kind, x, y, bbox, geometry[], routing[], coverage, evidence}}`
+（记录**嵌在 `physical_context` 下**，不是直接放在 `data` 上——这是服务的实际形状，2026-09-30 按真实响应更正。）
 - `geometry[].geometry_type` ∈ `rect | polygon | wire_segment | via`；via 保留 `bottom_layer`/`top_layer`/`cut`，不得退化成矩形。
 - `routing[]` 只含该 net 的 segment/via；`coverage` 表明 geometry 是否 `partial`。
 - `detail`（`summary` 默认 / `full`）语义同上；`get_instance` 与 `get_net_context` 都接受它。
