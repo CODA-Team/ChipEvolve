@@ -876,3 +876,43 @@ def test_physical_records_leave_an_absent_origin_absent() -> None:
     }])
     assert records[0]["x"] is None and records[0]["y"] is None
     assert records[0]["bbox"] is None
+
+
+def test_metric_availability_list_respects_the_requested_scope(tmp_path: Path) -> None:
+    """A snapshot-scoped request must not advertise another stage's metric."""
+    store = DataStore(tmp_path / "scope.db")
+    try:
+        store.register({
+            "snapshot": {"snapshot_id": "snap-finish", "design_id": "chip",
+                         "revision_id": "rev-1", "run_id": "run-1", "stage": "finish",
+                         "created_at": "2026-01-01T00:00:00Z"},
+            "observations": [
+                # without a time-unit declaration the projection correctly calls
+                # WNS partial, so the fixture has to declare it
+                {"observation_id": "metric:finish__flow__platform__time_units",
+                 "kind": "metric", "snapshot_id": "snap-finish", "value": "1ns",
+                 "status": "parsed", "context": {}, "evidence": []},
+                {"observation_id": "metric:finish__timing__setup__ws", "kind": "metric",
+                 "snapshot_id": "snap-finish", "value": -0.04, "status": "parsed",
+                 "context": {}, "evidence": []}],
+        })
+        store.register({
+            "snapshot": {"snapshot_id": "snap-route", "design_id": "chip",
+                         "revision_id": "rev-1", "run_id": "run-1", "stage": "route",
+                         "created_at": "2026-01-01T00:00:00Z"},
+            "observations": [
+                {"observation_id": "metric:route__design__instance__count", "kind": "metric",
+                 "snapshot_id": "snap-route", "value": 10, "status": "parsed",
+                 "context": {}, "evidence": []}],
+        })
+        from openroad_app_data_foundation.metrics import project_run
+        from openroad_app_data_foundation.queries import list_metrics_for_run
+
+        run_wide = project_run(store, store.snapshots(run_id="run-1"))
+        assert "WNS" in run_wide["canonical_names_available"]
+
+        scoped = list_metrics_for_run(store, "run-1", {"snapshot_id": "snap-route"})
+        assert scoped["canonical_names_available"] == ["INSTANCE_COUNT"], scoped[
+            "canonical_names_available"]
+    finally:
+        store.close()

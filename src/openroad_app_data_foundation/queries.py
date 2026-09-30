@@ -63,7 +63,11 @@ def list_metrics_for_run(store: DataStore, run_id: str,
         "run_id": run_id, "metrics": page,
         **_page(len(rows), len(page), limit, offset),
         "canonical_names": sorted(CANONICAL_METRICS),
-        "canonical_names_available": projection["canonical_names_available"],
+        # Scope this to the rows the response actually covers.  Reporting the
+        # run-wide list here meant a snapshot-scoped request advertised WNS for a
+        # stage whose report never declares it (cold audit finding).
+        "canonical_names_available": sorted({row["name"] for row in rows
+                                             if row.get("status") == "available"}),
         "units_declared": projection["units_declared"],
         "filters": filters,
     }
