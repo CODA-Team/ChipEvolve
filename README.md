@@ -1,5 +1,30 @@
 # Agentic EDA Execution Foundation
 
+> **Current objective (goal mode): the EDA–AI Data Interface and its Pre-Benchmark
+> Qualification Suite.** This README describes the Execution Foundation, which is the
+> platform underneath that work. If you are here for the current objective, start with:
+>
+> | document | what it answers |
+> |---|---|
+> | [`STATUS.md`](STATUS.md) | the live entry point: current measured state and the next step |
+> | [`FINAL_REPORT.md`](FINAL_REPORT.md) | the submission summary: every measured number, what it proves, my own mistakes, the limits |
+> | [`CONTRACT.md`](CONTRACT.md) | the interface contract: envelope, statuses, 13 tools, ranking, fragments, compact evidence |
+> | [`BASELINE_QUALIFICATION.md`](BASELINE_QUALIFICATION.md) | what the system is now: data, capability matrix, verified results |
+> | [`NEXT.md`](NEXT.md) | the boundary ledger: every known limit and why it is not blocking |
+> | [`qualification/`](qualification/) | the exams: cases and deterministic gold (Q1–Q8), phase 5/6 runners, V2 engineering exams, reports |
+> | [`evidence/`](evidence/) | the independent checks that do not go through the adapter bundle |
+>
+> Reproduce the whole gate in one command:
+>
+> ```bash
+> .venv/bin/python evidence/C/make_acceptance_report.py     # waits for readiness, then runs every gate
+> ```
+>
+> The interface itself is a Python client (`clients/eda_ai_client`) over the data
+> foundation service (`apps/data_foundation`, port 8860); the Execution Foundation
+> kernel it registers with is described below.
+
+
 [中文说明](README.zh-CN.md)
 
 This repository is the execution foundation for Agentic EDA. An agent decides
