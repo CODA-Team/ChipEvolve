@@ -31,7 +31,11 @@ def normalize(output_dir: Path, inputs: dict[str, Any]) -> None:
     # The setup (max) and hold (min) reports are both read here.  The
     # discriminator is the report's own path_type, not the constraint type:
     # ``type`` is "output_delay"/"check" while ``path_type`` is max/min.
-    sources: list[tuple[dict[str, Any], str]] = []
+    #: (check, the file it came from, its index *within that file*).  The index
+    #: matters: path:N is a global ordinal across both reports, so an evidence
+    #: pointer that reuses it against one file names a row that file does not
+    #: have - which is exactly what the evidence-recoverability check caught.
+    sources: list[tuple[dict[str, Any], str, int]] = []
     for filename in ("timing_report.json", "timing_report_hold.json"):
         candidate = output_dir / filename
         if not candidate.is_file():
@@ -39,13 +43,14 @@ def normalize(output_dir: Path, inputs: dict[str, Any]) -> None:
         rows = _checks(json.loads(candidate.read_text(encoding="utf-8")))
         if rows is None:
             continue
-        sources.extend((row, filename) for row in rows if isinstance(row, dict))
+        sources.extend((row, filename, index)
+                       for index, row in enumerate(rows) if isinstance(row, dict))
     if not sources:
         _write_coverage(output_dir, "unsupported", "timing JSON has no paths list")
         return
     timing_paths: list[dict[str, Any]] = []
     points: list[dict[str, Any]] = []
-    for path_index, (source, filename) in enumerate(sources):
+    for path_index, (source, filename, index_in_file) in enumerate(sources):
         path_id = str(source.get("path_id") or f"path:{path_index}")
         point_rows = _points(source)
         point_ids: list[str] = []
@@ -78,8 +83,10 @@ def normalize(output_dir: Path, inputs: dict[str, Any]) -> None:
                 "reason": ("OpenSTA report_checks does not emit a per-point required "
                            "field; required_time is reported per path"),
             },
-            "evidence": [_timing_evidence(inputs, {"path_index": path_index,
-                                                    "report": filename})],
+            "evidence": [_timing_evidence(inputs,
+                                          {"path_index": index_in_file,
+                                           "report": filename},
+                                          logical_path=f"query-data/{filename}")],
         })
         for name in ("native_path_id", "structural_fingerprint"):
             if isinstance(source.get(name), str) and source[name]:
@@ -131,12 +138,14 @@ def _point(point_id: str, path_id: str, ordinal: int, point: dict[str, Any],
 
 
 def _timing_evidence(inputs: dict[str, Any], detail: dict[str, Any],
-                     *, artifact_id: Any = None) -> dict[str, Any]:
+                     *, artifact_id: Any = None,
+                     logical_path: str | None = None) -> dict[str, Any]:
     """Reference a real artifact when supplied; otherwise preserve only its role."""
     value = artifact_id or inputs.get("timing_artifact_id")
     result = {
         "artifact_kind": "raw_timing_report",
-        "logical_path": inputs.get("timing_artifact_path", "query-data/timing_report.json"),
+        "logical_path": logical_path or inputs.get(
+            "timing_artifact_path", "query-data/timing_report.json"),
         "source_type": "json",
         "detail": detail,
     }
