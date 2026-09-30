@@ -257,10 +257,11 @@ Data Foundation 只回答 **结构化 EDA 事实**。它不诊断、不建议、
 
 | 部分 | 本文件状态 | 当前实现 |
 |---|---|---|
-| 通用信封 / 状态枚举 | 冻结 | 部分（需补 `contract_version`、`missing`、`limitations`） |
-| Evidence 表示 | 冻结 | 已实现（`resolved` 语义已在 semantic-correctness 中） |
-| 分页信封 | 冻结 | 需补 `count/returned/truncated/next_offset` |
-| Tools 1–12 | 冻结 | 1–5、7–8、10–12 已存在；6 需 canonical 化；9 需精确索引查询 |
+| 通用信封 / 状态枚举 | 冻结 | **未实现**。非 context 的 tool 仍返回裸 payload；缺 `contract_version`、`tool`、`status`、`missing`、`limitations`。context pack 有 `scope`/`target` 但同样缺版本与 status。**冻结的是本文件的字段名；服务尚未填满，外部调用方按本文件写代码前请先看这一列。** |
+| Evidence 表示 | 冻结 | 已实现，但**字段名与 §3 不完全一致**：实际发出 `artifact_id / artifact_kind / attempt_id / category / detail / logical_path / resolution / run_id / sha256 / size_bytes / source_type / stage`；§3 写的 `locator`、`parser`、`resolved` 未发出（对应物分别是 `detail`、`category`/`source_type`、`resolution`）。 |
+| 分页信封 | 冻结 | **已实现**：`/timing-paths`、`/metrics`、`/evidence`、`/observations` 均返回 `count/returned/limit/offset/truncated/next_offset`；`count>10000` 拒绝。 |
+| Tools 1–12 | 冻结 | DF 路由：3、4、6–12。1（`/designs`）与 5（`/runs/{id}/artifacts`）**不存在于 DF**，它们是 client 侧分组 / EF 路由，直接 `curl` 会 404。 |
+| 未知 target 的表示 | 冻结 | **未实现**：目标不存在时服务返回 HTTP 404 `{"error": "'… not found'"}`（Python repr 串），而不是 §2 的 `status: not_found`。 |
 | Canonical metrics 封闭集合 | 冻结 | 阶段 B 实现 |
 | 对象级查询不做全表扫描 | 冻结 | 阶段 A 实现（SQL 谓词 + 表达式索引） |
 
