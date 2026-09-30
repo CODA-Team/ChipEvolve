@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import sys
+
 import tempfile
 import zipfile
 from pathlib import Path
@@ -48,6 +50,7 @@ def load_run_bundle(client: KernelClient, run_id: str, artifact_id: str) -> dict
 def import_ready_bundles(store: DataStore, client: KernelClient) -> int:
     """Import each completed design snapshot artifact once."""
     imported = 0
+    superseded = 0
     for run in client.runs(status="succeeded", limit=100):
         run_id = str(run["run_id"])
         for artifact in client.artifacts(run_id):
@@ -56,8 +59,25 @@ def import_ready_bundles(store: DataStore, client: KernelClient) -> int:
                 continue
             if store.imported(artifact_id):
                 continue
-            store.register_import(artifact_id, load_run_bundle(client, run_id, artifact_id))
+            try:
+                store.register_import(artifact_id,
+                                      load_run_bundle(client, run_id, artifact_id))
+            except ContractError as exc:
+                # A superseded bundle for a snapshot we already hold must not take
+                # the interface down.  This importer runs on every GET, so one such
+                # artifact made every request fail with "snapshot already exists" -
+                # which is exactly what happened while re-extracting a snapshot: the
+                # new bundle existed, the old snapshot row still did, and the whole
+                # service answered errors until that artifact was marked.
+                if "already exists" not in str(exc):
+                    raise
+                store.mark_imported(artifact_id)
+                superseded += 1
+                continue
             imported += 1
+    if superseded:
+        print(f"import_ready_bundles: skipped {superseded} superseded bundle(s)",
+              file=sys.stderr)
     return imported
 
 

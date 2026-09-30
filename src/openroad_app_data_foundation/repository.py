@@ -144,6 +144,13 @@ class DataStore:
             "SELECT 1 FROM imported_artifacts WHERE artifact_id = ?", (artifact_id,)
         ).fetchone() is not None
 
+    def mark_imported(self, artifact_id: str) -> None:
+        """Record an artifact as seen without importing it (a superseded bundle)."""
+        with self.connection:
+            self.connection.execute(
+                "INSERT OR IGNORE INTO imported_artifacts(artifact_id) VALUES (?)",
+                (artifact_id,))
+
     def register_import(self, artifact_id: str, pack: Mapping[str, Any]) -> dict[str, Any]:
         result = self.register(pack)
         with self.connection:

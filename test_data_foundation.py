@@ -916,3 +916,41 @@ def test_metric_availability_list_respects_the_requested_scope(tmp_path: Path) -
             "canonical_names_available"]
     finally:
         store.close()
+
+
+def test_import_skips_a_superseded_bundle_instead_of_failing(tmp_path: Path) -> None:
+    """One stale bundle must not take the interface down.
+
+    The importer runs on every GET, so a bundle whose snapshot already exists used
+    to raise ContractError out of the request and every query answered an error -
+    which is what happened while re-extracting a snapshot.
+    """
+    from unittest.mock import patch
+
+    from openroad_app_data_foundation.bundle import import_ready_bundles
+
+    class FakeKernel:
+        def runs(self, *, status: str, limit: int):
+            return [{"run_id": "run-1"}]
+
+        def artifacts(self, run_id: str):
+            return [{"kind": "data_snapshot", "artifact_id": "art-superseded"}]
+
+    store = DataStore(tmp_path / "superseded.db")
+    try:
+        store.register({"snapshot": {"snapshot_id": "snap-1", "design_id": "chip",
+                                     "revision_id": "rev-1", "run_id": "run-1",
+                                     "stage": "route",
+                                     "created_at": "2026-01-01T00:00:00Z"}})
+        same_pack = {"snapshot": {"snapshot_id": "snap-1", "design_id": "chip",
+                                  "revision_id": "rev-1", "run_id": "run-1",
+                                  "stage": "route",
+                                  "created_at": "2026-01-02T00:00:00Z"}}
+        with patch("openroad_app_data_foundation.bundle.load_run_bundle",
+                   return_value=same_pack):
+            imported = import_ready_bundles(store, FakeKernel())
+        assert imported == 0
+        assert store.imported("art-superseded"), "the stale bundle must be marked seen"
+        assert len(store.snapshots()) == 1
+    finally:
+        store.close()
