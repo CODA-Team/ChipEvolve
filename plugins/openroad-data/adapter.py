@@ -169,6 +169,18 @@ def _artifacts(inputs: dict[str, Any], workspace: Path) -> list[dict[str, Any]]:
         {"kind": "extractor_receipt", "path": "extractor_receipt.json"},
     ]
     occupied = {item["path"] for item in result}
+    # Reports the plugin itself produced.  A fact's evidence names the file it came
+    # from, so that file has to be registered: otherwise the reference resolves by
+    # role to whichever report *is* registered, and the data foundation hands back
+    # the wrong one - which is exactly why a hold path used to cite the setup report.
+    output_directory = str(inputs.get("output_directory") or "query-data")
+    for name in ("timing_report_hold.json",):
+        path = f"{output_directory}/{name}"
+        if path in occupied or not (workspace / path).is_file():
+            continue
+        occupied.add(path)
+        result.append({"kind": "raw_timing_report", "path": path,
+                       "metadata": {"produced_by": "openroad-data"}})
     result.extend(_raw_input_declarations(inputs, workspace, occupied=occupied))
     return result
 
