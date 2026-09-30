@@ -288,7 +288,7 @@ run 级的 `design_id`/`status` 目前只在 `snapshot`/`run_summary` 里，见 
 | Evidence 表示 | 冻结 | 已实现，但**字段名与 §3 不完全一致**：实际发出 `artifact_id / artifact_kind / attempt_id / category / detail / logical_path / resolution / run_id / sha256 / size_bytes / source_type / stage`；§3 写的 `locator`、`parser`、`resolved` 未发出（对应物分别是 `detail`、`category`/`source_type`、`resolution`）。 |
 | 分页信封 | 冻结 | **已实现**：`/timing-paths`、`/metrics`、`/evidence`、`/observations` 均返回 `count/returned/limit/offset/truncated/next_offset`；`count>10000` 拒绝。 |
 | Tools 1–12 | 冻结 | DF 路由：3、4、6–12。1（`/designs`）与 5（`/runs/{id}/artifacts`）**不存在于 DF**，它们是 client 侧分组 / EF 路由，直接 `curl` 会 404。 |
-| 未知 target 的表示 | 冻结 | **未实现**：目标不存在时服务返回 HTTP 404 `{"error": "'… not found'"}`（Python repr 串），而不是 §2 的 `status: not_found`。 |
+| 未知 target 的表示 | 冻结 | **已实现**：目标不存在时返回 HTTP 404 且 body 是信封，`status: "not_found"`（`error_envelope`），不再是把 KeyError 的 repr 塞进 `error` 字段。Q8-02/Q8-05 两道题在考它。 |
 | Canonical metrics 封闭集合 | 冻结 | 阶段 B 实现 |
 | 对象级查询不做全表扫描 | 冻结 | 阶段 A 实现（SQL 谓词 + 表达式索引） |
 
