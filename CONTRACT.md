@@ -223,6 +223,10 @@ run 级的 `design_id`/`status` 目前只在 `snapshot`/`run_summary` 里，见 
 
 ### 4.12 `get_evidence(snapshot_id, record_type?, record_id?, artifact_id?, limit, offset)`
 
+- `record_type` 用**复数表名**（`entities` / `relations` / `timing_paths` / `timing_points` / `physical_context` / `observations` / `stages`），
+  不是单数对象名——Phase 6 的模型实测时要靠猜才发现这一点，所以写进契约。
+- **列表在信封层**：`evidence[]` 是信封字段（见 §7），`data` 里是分页计数；这个 tool 的 `count` 按 §5 的唯一例外返回 `null` + `count_status: "unavailable"`。
+
 信封 `evidence[]`（本 tool 的 evidence 引用在信封层，见 §7）: §3 的引用对象；可按 record 或 artifact 过滤。
 
 ---
