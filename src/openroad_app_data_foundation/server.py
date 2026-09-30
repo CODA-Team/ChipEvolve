@@ -13,6 +13,7 @@ from openroad_platform_contracts import ContractError
 from .bundle import import_ready_bundles, load_run_bundle
 from .context import net_context, object_context, timing_path_context
 from .metric_queries import compare_metric
+from .envelope import envelope, error_envelope
 from .queries import (
     compare_timing_path,
     list_evidence,
@@ -31,16 +32,27 @@ class Handler(BaseHTTPRequestHandler):
     execution_client: KernelClient | None = None
 
     def do_GET(self) -> None:  # noqa: N802
+        parsed = urllib.parse.urlparse(self.path)
+        query = {key: values[0] for key, values in urllib.parse.parse_qs(parsed.query).items()}
         try:
-            parsed = urllib.parse.urlparse(self.path)
-            query = {key: values[0] for key, values in urllib.parse.parse_qs(parsed.query).items()}
-            self._send(200, self._get(parsed.path, query))
-        except (KeyError, ValueError, ContractError) as exc:
-            self._send(404 if isinstance(exc, KeyError) else 400, {"error": str(exc)})
+            payload = self._get(parsed.path, query)
+            if parsed.path == "/health":
+                self._send(200, payload)
+                return
+            self._send(200, envelope(parsed.path, query, payload))
+        except KeyError as exc:
+            # CONTRACT 2: a missing target is a status, not an HTTP-shaped error
+            # string.  str(exc) on a KeyError adds quotes, which is how the old
+            # body ended up as {"error": "'... not found'"}.
+            message = exc.args[0] if exc.args else "not found"
+            self._send(404, error_envelope(parsed.path, "not_found", str(message)))
+        except (ValueError, ContractError) as exc:
+            self._send(400, error_envelope(parsed.path, "unavailable", str(exc)))
         except KernelUnavailable as exc:
-            self._send(503, {"error": str(exc)})
+            self._send(503, error_envelope(parsed.path, "unavailable", str(exc)))
         except KernelError as exc:
-            self._send(exc.status or 502, {"error": str(exc)})
+            self._send(exc.status or 502,
+                       error_envelope(parsed.path, "unavailable", str(exc)))
 
     def do_POST(self) -> None:  # noqa: N802
         try:

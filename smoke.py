@@ -35,6 +35,18 @@ def _call(url: str, method: str = "GET", payload: dict | None = None) -> dict:
         return json.loads(response.read())
 
 
+def _enveloped(body: dict) -> dict:
+    """Assert the CONTRACT 1 envelope on a tool response and return its data."""
+    assert body["contract_version"] == "0.1", body
+    assert body["tool"] != "unknown", body
+    assert body["status"] in {"available", "partial", "truncated", "unavailable",
+                              "not_found", "incomparable"}, body
+    assert isinstance(body["missing"], list), body
+    assert isinstance(body["evidence"], list), body
+    assert isinstance(body["limitations"], list), body
+    return body["data"]
+
+
 def main() -> int:
     port = int(sys.argv[1]) if len(sys.argv) > 1 else _free_port()
     with tempfile.TemporaryDirectory() as directory:
@@ -80,24 +92,26 @@ def main() -> int:
             }
             _call(f"http://127.0.0.1:{port}/snapshots", "POST", snapshot)
             paths = _call(f"http://127.0.0.1:{port}/snapshots/snap-smoke/timing-paths")
-            assert paths["timing_paths"][0]["path_id"] == "path-1"
+            assert _enveloped(paths)["timing_paths"][0]["path_id"] == "path-1"
             detail = _call(f"http://127.0.0.1:{port}/snapshots/snap-smoke/timing-paths/path-1")
-            assert detail["timing_points"][0]["pin_name"] == "u1/A"
+            assert _enveloped(detail)["timing_points"][0]["pin_name"] == "u1/A"
             context = _call(
                 f"http://127.0.0.1:{port}/snapshots/snap-smoke/timing-paths/path-1/context")
             assert context["target"]["type"] == "timing_path"
-            assert context["physical_context"][0]["x"] == 1
+            assert context["scope"]["snapshot_id"] == "snap-smoke"
+            _enveloped(context)
+            assert context["data"]["physical_context"][0]["x"] == 1
             expanded_path = _call(
                 f"http://127.0.0.1:{port}/snapshots/snap-smoke/timing-paths/path-1/expand")
             assert expanded_path["target"]["id"] == "path-1"
             summary = _call(f"http://127.0.0.1:{port}/snapshots/snap-smoke/summary")
-            assert summary["record_counts"]["stages"] == 0
+            assert _enveloped(summary)["record_counts"]["stages"] == 0
             found = _call(f"http://127.0.0.1:{port}/snapshots/snap-smoke/instances?name=u1")
-            assert found["instances"][0]["object_id"] == "u1"
+            assert _enveloped(found)["instances"][0]["object_id"] == "u1"
             found_net = _call(f"http://127.0.0.1:{port}/snapshots/snap-smoke/nets?name=n1")
-            assert found_net["nets"][0]["object_id"] == "n1"
+            assert _enveloped(found_net)["nets"][0]["object_id"] == "n1"
             expanded = _call(f"http://127.0.0.1:{port}/snapshots/snap-smoke/nets/n1/expand")
-            assert expanded["connected_entities"][0]["object_id"] == "u1"
+            assert _enveloped(expanded)["connected_entities"][0]["object_id"] == "u1"
             print("data_foundation smoke: ok")
             return 0
         finally:
