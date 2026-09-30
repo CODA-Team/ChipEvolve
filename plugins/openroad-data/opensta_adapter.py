@@ -141,7 +141,9 @@ def _point(point_id: str, path_id: str, ordinal: int, point: dict[str, Any],
     # same defect was fixed for timing_paths and missed here for 1510 rows.
     evidence = [_timing_evidence(
         inputs,
-        {"path_index": path_index_in_file, "point": ordinal, "report": filename},
+        {"path_index": path_index_in_file, "point": ordinal,
+         "section": point.get("path_section"),
+         "section_index": point.get("section_index"), "report": filename},
         artifact_id=point.get("artifact_id"),
         logical_path=f"query-data/{filename}")]
     if mapping:
@@ -193,14 +195,24 @@ def _checks(payload: Any) -> list[dict[str, Any]] | None:
     return None
 
 
+#: The path sections OpenSTA's report_checks emits, in the order the report lists
+#: them.  `target_clock_path` carries the capture-clock side of a hold check and was
+#: missing from this list, so every hold path exposed only its source half (six
+#: points where the artifact has twelve).  Each point now records the section and
+#: its index inside it, so evidence can name the exact row instead of relying on the
+#: concatenation order staying in step with the data foundation's slicer.
+PATH_SECTIONS = ("source_clock_path", "source_path", "target_clock_path", "target_path")
+
+
 def _points(source: dict[str, Any]) -> list[dict[str, Any]]:
     points: list[dict[str, Any]] = []
-    for section in ("source_clock_path", "source_path", "target_path"):
+    for section in PATH_SECTIONS:
         rows = source.get(section, [])
         if isinstance(rows, list):
-            for item in rows:
+            for index_in_section, item in enumerate(rows):
                 if isinstance(item, dict):
-                    points.append({**item, "path_section": section})
+                    points.append({**item, "path_section": section,
+                                   "section_index": index_in_section})
     raw = source.get("points", [])
     if isinstance(raw, list):
         points.extend(item for item in raw if isinstance(item, dict))
