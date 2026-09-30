@@ -135,6 +135,17 @@ close $fd
 read_db {_tcl(odb_path)}
 set source_evidence [json_array [json_obj artifact_kind [json_q raw_design_database] \
     logical_path [json_q {_tcl(odb_path)}] source_type [json_q opendb]]]
+# A short reference per record plus ONE catalog per snapshot.  Copying the full
+# artifact descriptor onto every entity and relation would mean ~1M duplicates of
+# the same five fields; the reference is a few bytes and the catalog resolves it.
+set source_ref {_tcl('opendb:' + metadata['stage'])}
+set catalog [json_obj schema_version 1 refs [json_obj $source_ref [json_obj \
+    artifact_kind [json_q raw_design_database] logical_path [json_q {_tcl(odb_path)}] \
+    source_type [json_q opendb] \
+    detail [json_obj tool [json_q opendb] stage [json_q {_tcl(metadata['stage'])}]]]]]
+set fd [open [file join $out source_catalog.json] w]
+puts $fd $catalog
+close $fd
 set db [ord::get_db]
 set chip [$db getChip]
 set block [$chip getBlock]
@@ -149,7 +160,8 @@ foreach inst [$block getInsts] {{
       master [json_q [$master getName]] orientation [json_q [$inst getOrient]] \
       is_macro [$master isBlock] master_type [json_q [$master getType]]]
   set entity [json_obj object_id [json_q $object_id] snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] \
-      kind [json_q instance] name [json_q [$inst getName]] attributes $attributes]
+      kind [json_q instance] name [json_q [$inst getName]] attributes $attributes \
+      source_ref [json_q $source_ref] locator [json_obj native_id [json_q $native_id]]]
   write_json [file join $out objects.jsonl] $entity
   set physical [json_obj object_id [json_q $object_id] snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] \
       instance_name [json_q [$inst getName]] x $loc_x y $loc_y \
@@ -171,17 +183,19 @@ foreach inst [$block getInsts] {{
     set geometry [db_pin_geometry $pin_geometry master]
     set pin [json_obj object_id [json_q $pin_id] snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] \
         kind [json_q pin] name [json_q "[$inst getName]/[$mterm getName]"] \
-        parent_id [json_q $object_id] attributes [json_obj native_id [json_q [$iterm getId]] \
+        parent_id [json_q $object_id] source_ref [json_q $source_ref] locator [json_obj native_id [json_q [$iterm getId]]] attributes [json_obj native_id [json_q [$iterm getId]] \
         direction [json_q [$mterm getIoType]] geometry $geometry]]
     write_json [file join $out objects.jsonl] $pin
     write_json [file join $out markers.jsonl] [json_obj object_id [json_q $pin_id] \
         snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] pin_name [json_q "[$inst getName]/[$mterm getName]"] \
         geometry $geometry evidence $source_evidence]
     write_json [file join $out relations.jsonl] [json_obj relation_id [json_q "pin-inst:$pin_id"] \
+        source_ref [json_q $source_ref] locator [json_obj pin_id [json_q $pin_id]] \
         snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] subject_id [json_q $pin_id] \
         predicate [json_q belongs_to] object_id [json_q $object_id] attributes [json_obj]]
     if {{$net_id ne ""}} {{
       write_json [file join $out relations.jsonl] [json_obj relation_id [json_q "pin-net:$pin_id"] \
+          source_ref [json_q $source_ref] locator [json_obj pin_id [json_q $pin_id]] \
           snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] subject_id [json_q $pin_id] \
           predicate [json_q connected_to] object_id [json_q $net_id] attributes [json_obj]]
     }}
@@ -199,7 +213,7 @@ foreach bterm [$block getBTerms] {{
   set geometry [db_pin_geometry $pin_geometry block]
   set pin [json_obj object_id [json_q $pin_id] snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] \
       kind [json_q pin] name [json_q [$bterm getName]] \
-      attributes [json_obj native_id [json_q [$bterm getId]] \
+      source_ref [json_q $source_ref] locator [json_obj native_id [json_q [$bterm getId]]] attributes [json_obj native_id [json_q [$bterm getId]] \
         direction [json_q [$bterm getIoType]] geometry $geometry]]
   write_json [file join $out objects.jsonl] $pin
   write_json [file join $out markers.jsonl] [json_obj object_id [json_q $pin_id] \
@@ -207,6 +221,7 @@ foreach bterm [$block getBTerms] {{
       geometry $geometry evidence $source_evidence]
   if {{$net_id ne ""}} {{
     write_json [file join $out relations.jsonl] [json_obj relation_id [json_q "pin-net:$pin_id"] \
+        source_ref [json_q $source_ref] locator [json_obj pin_id [json_q $pin_id]] \
         snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] subject_id [json_q $pin_id] \
         predicate [json_q connected_to] object_id [json_q $net_id] attributes [json_obj]]
   }}
@@ -249,7 +264,9 @@ foreach net [$block getNets] {{
   set fanout [llength $connected]
   if {{$driver_id ne ""}} {{ incr fanout -1 }}
   set net_entity [json_obj object_id [json_q $net_id] snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] \
-      kind [json_q net] name [json_q [$net getName]] attributes [json_obj native_id [json_q [$net getId]] \
+      kind [json_q net] name [json_q [$net getName]] source_ref [json_q $source_ref] \
+      locator [json_obj native_id [json_q [$net getId]]] \
+      attributes [json_obj native_id [json_q [$net getId]] \
       driver_id [json_q $driver_id] driver_basis [json_q $driver_basis] \
       output_pin_count [llength $output_pins] input_pin_count $input_count \
       inout_pin_count $inout_count fanout $fanout \
@@ -257,6 +274,7 @@ foreach net [$block getNets] {{
   write_json [file join $out objects.jsonl] $net_entity
   if {{$driver_id ne ""}} {{
     write_json [file join $out relations.jsonl] [json_obj relation_id [json_q "net-driver:$net_id"] \
+        source_ref [json_q $source_ref] locator [json_obj net_native_id [json_q [$net getId]]] \
         snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] subject_id [json_q $net_id] \
         predicate [json_q driven_by] object_id [json_q $driver_id] \
         attributes [json_obj basis [json_q $driver_basis]]]
@@ -264,6 +282,7 @@ foreach net [$block getNets] {{
   foreach pin_object $connected {{
     if {{$pin_object eq $driver_id}} {{ continue }}
     write_json [file join $out relations.jsonl] [json_obj relation_id [json_q "net-load:$net_id:$pin_object"] \
+        source_ref [json_q $source_ref] locator [json_obj net_native_id [json_q [$net getId]] pin [json_q $pin_object]] \
         snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] subject_id [json_q $net_id] \
         predicate [json_q loads] object_id [json_q $pin_object] attributes [json_obj]]
   }}
