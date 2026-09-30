@@ -10,7 +10,23 @@
 ## 0. 服务边界
 
 Data Foundation 只回答 **结构化 EDA 事实**。它不诊断、不建议、不解释"为什么"。
-所有数据来自原始 artifact；任何返回都能通过 `evidence` 指回原始文件与哈希。
+所有数据来自原始 artifact。**每一类记录与 evidence 的关系必须按实情读，不能一概而论**：
+
+| 记录类型 | 带 evidence？ | 说明 |
+|---|---|---|
+| `timing_paths` / `timing_points` | ✅ | 指回**它自己来自的那份** OpenSTA 报告（文件内 path 序号 + point 序号）；point 另有一条指向 `dbnetwork_map.json`（它的 `pin_id`/`net_id` 来自那里） |
+| `physical_context`（markers） | ✅ | 指回 `inputs/design.odb` |
+| `observations` / canonical metrics | ✅ | 指回 `inputs/stage.json` 或 ORFS 报告 |
+| `stages` | ✅ | 指回该 stage 的来源文件 |
+| **`entities` / `relations`** | ❌ **目前不带** | 这两类记录**没有** evidence 字段；接口对它们**诚实返回 `status: unavailable` + 原因**，而**不是**伪造一个指针。要补上需要改 adapter 并重新提取，属**已知缺口**（记录在 `NEXT.md`） |
+
+**两个已声明的取回限制**（不是"能取回"的反例，而是**取回通道**的限制）：
+
+1. **超过 4 MiB 的 artifact 无法通过 API 下载**：Execution Foundation 的下载接口上限为 4 MiB，
+   ibex 的 `inputs/design.odb`（26.8 MB）等超过上限 → 下载返回 HTTP 413。原始字节仍在 run 工作区里，
+   但**不能通过这个 API 取回**；相应地，那些 evidence 指针**在 API 层面无法兑现**。
+2. **模型/调用方不应把"指针存在"当成"事实已验证"**：验证要真的按指针取字节、核对 sha256、再找事实
+   （本仓库的 `evidence/B/check_evidence_recoverable.py` 就是这么做的，且**无法验证时返回"无法验证"而不是通过**）。
 
 调用方式（同一套语义，三种壳）：HTTP JSON（当前可用）、Python client（阶段 C）、JSON tool schema（阶段 C，供 function calling）。
 
