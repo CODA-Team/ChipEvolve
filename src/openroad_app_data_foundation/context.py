@@ -9,6 +9,11 @@ from .repository import DataStore
 from .analysis_context import build_analysis_context, context_availability
 
 
+#: Provenance entries one context pack returns.  Bounded because the list grows with
+#: the fanout of whatever object was asked about, not with the question.
+EVIDENCE_LIMIT = 200
+
+
 def timing_path_context(store: DataStore, snapshot_id: str,
                         path_id: str, detail: str = "summary",
                         relation_limit: int = 200) -> dict[str, Any]:
@@ -163,9 +168,17 @@ def net_context(store: DataStore, snapshot_id: str, net_id: str,
     evidence.extend(_evidence_rows(relations, "relations", net_id))
     evidence.extend(_evidence_rows(physical, "physical_context", net_id))
     evidence.extend(_snapshot_evidence(snapshot, snapshot_id))
-    return _object_pack(snapshot, entity, observations, entities, relations, physical,
+    pack = _object_pack(snapshot, entity, observations, entities, relations, physical,
                         evidence, target_type="net", detail=detail,
                         relation_limit=relation_limit)
+    # Carry the bound the net expansion applied, so the answer says how much of the
+    # fanout it actually looked at instead of just stopping.
+    for key in ("connected_total", "connected_truncated", "connected_limit"):
+        if key in view:
+            pack[key] = view[key]
+    if view.get("connected_truncated") is True:
+        pack["truncated"] = True
+    return pack
 
 
 def _object_pack(snapshot: dict[str, Any], entity: dict[str, Any],
@@ -265,6 +278,20 @@ def _summarize(pack: dict[str, Any], target_id: str | None,
     for relation in pack.get("relations", []):
         if isinstance(relation, dict):
             relation.pop("attributes", None)
+    # The pack-level evidence list is what the envelope hands back as the answer's
+    # provenance, and nothing bounded it: a synthetic high-fanout net returned
+    # 31.26 MB of which 31.22 MB was this list (764x the payload it describes).
+    evidence = pack.get("evidence")
+    if isinstance(evidence, list) and len(evidence) > EVIDENCE_LIMIT:
+        pack["evidence"] = evidence[:EVIDENCE_LIMIT]
+        pack["evidence_truncated"] = True
+        pack["evidence_total"] = len(evidence)
+        pack.setdefault("limitations", []).append({
+            "field": "evidence", "status": "truncated",
+            "returned": EVIDENCE_LIMIT, "total": len(evidence),
+            "reason": "evidence_limit reached; ask for one record's evidence with "
+                      "GET /snapshots/{snapshot_id}/records/{record_type}/{record_id}"
+                      "/evidence, or raise evidence_limit"})
     pack.setdefault("limitations", []).append({
         "field": "records[].evidence",
         "status": "projected",

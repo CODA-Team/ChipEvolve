@@ -32,6 +32,10 @@ from .evidence import materialize
 IMPORT_BATCH_ROWS = 20000
 
 
+#: How many neighbours one net context expands.  Power nets in a large design have
+#: hundreds of thousands of loads; the bound is reported, never applied silently.
+CONNECTED_ENTITY_LIMIT = 2000
+
 RECORD_TYPES = (
     "stages", "entities", "observations", "relations", "timing_paths",
     "timing_points", "physical_context",
@@ -257,7 +261,12 @@ class DataStore:
         # the old shape needed ~34 GB of RSS to land it, which is memory
         # proportional to design size rather than to batch size.  The write, the
         # duplicate-identity check and the returned counts do not change.
-        counts = {name: 0 for name in RECORD_TYPES}
+        # A snapshot is immutable, so its record counts are computed once here and
+        # stored with it.  Recomputing them per request turned a run summary into 70
+        # COUNT scans over tens of millions of rows - and because one request holds
+        # the service lock, asking for a run summary blocked every other caller.
+        counts = {name: len(values_by_type.get(name) or []) for name in RECORD_TYPES}
+        snapshot = {**snapshot, "record_counts": counts}
         seen: set[tuple[str, str]] = set()
         batch: list[tuple[str, str, str, int, str]] = []
         insert = ("INSERT INTO records(snapshot_id, record_type, record_id, ordinal, "
@@ -276,7 +285,6 @@ class DataStore:
                             raise ContractError(
                                 f"duplicate {record_type} identity: {record_id}")
                         seen.add(key)
-                        counts[record_type] += 1
                         batch.append((snapshot_id, record_type, record_id, ordinal,
                                       json.dumps(row, ensure_ascii=False, sort_keys=True)))
                         if len(batch) >= IMPORT_BATCH_ROWS:
@@ -376,10 +384,13 @@ class DataStore:
     def run_summary(self, snapshot_id: str) -> dict[str, Any]:
         """Return the run/stage boundary and indexed record counts."""
         snapshot = self.snapshot(snapshot_id)
-        counts = {
-            record_type: self._count(snapshot_id, record_type)
-            for record_type in RECORD_TYPES
-        }
+        # Stored at registration; older snapshots predate the field and still count.
+        counts = snapshot.get("record_counts")
+        if not isinstance(counts, dict):
+            counts = {
+                record_type: self._count(snapshot_id, record_type)
+                for record_type in RECORD_TYPES
+            }
         return {"snapshot": snapshot,
                 "run_summary": snapshot.get("run_summary", {}),
                 "record_counts": counts,
@@ -408,15 +419,27 @@ class DataStore:
         return result
 
     def expand_net(self, snapshot_id: str, net_id: str) -> dict[str, Any]:
+        """One net plus its connected objects.
+
+        Measured before this bound existed: the power net VDD on ariane136 has
+        538,185 loads, and expanding it two indexed queries per neighbour took
+        **260 s and 10.7 GiB of RSS**.  A request holds the service lock, so that
+        single call stalled every other caller and could not be cancelled.  The
+        neighbours are now fetched in batches (one query per 250 ids instead of
+        two per id) and bounded, with the bound and the true total stated in the
+        payload so a caller can page or ask for one object instead.
+        """
         result = self._entity_context(snapshot_id, net_id, "net")
-        result["connected_entities"] = [
-            self._entity_by_id(snapshot_id, related_id)
-            for related_id in self._related_ids(snapshot_id, net_id)
-            if self._entity_exists(snapshot_id, related_id)
-        ]
+        related_ids = self._related_ids(snapshot_id, net_id)
+        result["connected_total"] = len(related_ids)
+        if len(related_ids) > CONNECTED_ENTITY_LIMIT:
+            result["connected_truncated"] = True
+            result["connected_limit"] = CONNECTED_ENTITY_LIMIT
+            related_ids = related_ids[:CONNECTED_ENTITY_LIMIT]
+        connected = self.entities_by_ids(snapshot_id, related_ids)
+        result["connected_entities"] = connected
         result["physical_context"] = self._physical_for_ids(
-            snapshot_id, [net_id, *[item["object_id"]
-                                    for item in result["connected_entities"]]])
+            snapshot_id, [net_id, *[item["object_id"] for item in connected]])
         return result
 
     def _catalog_snapshot(self, snapshot_id: str) -> dict[str, Any]:
@@ -718,9 +741,20 @@ class DataStore:
 
     def _physical_for_ids(self, snapshot_id: str,
                           object_ids: list[str]) -> list[dict[str, Any]]:
-        return [row for object_id in object_ids
-                for row in self.records(snapshot_id, "physical_context",
-                                        record_id=object_id, limit=1)]
+        """Physical rows for many objects, in batches rather than one query each.
+
+        A net context asks for the physical row of every neighbour.  Issued one at
+        a time that was 2,001 point queries for a bounded ariane net context and
+        42 s of the request; as 250-id batches it is nine queries.
+        """
+        ids = [str(item) for item in dict.fromkeys(object_ids)]
+        result: list[dict[str, Any]] = []
+        for start in range(0, len(ids), 250):
+            chunk = ids[start:start + 250]
+            marks = ", ".join("?" for _ in chunk)
+            result.extend(self.filtered(snapshot_id, "physical_context",
+                                        where=f"record_id IN ({marks})", params=chunk))
+        return result
 
     get_object = object
     get_run_summary = run_summary
