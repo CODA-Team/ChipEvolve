@@ -85,7 +85,7 @@ def request(method: str, url: str, payload: dict | None = None) -> tuple[int, di
 
 
 def wait_for(url: str, *, status: str | None = None,
-             timeout: float = 15.0) -> dict:
+             timeout: float = 45.0) -> dict:
     deadline = time.monotonic() + timeout
     last: Exception | None = None
     while time.monotonic() < deadline:

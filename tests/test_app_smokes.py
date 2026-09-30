@@ -27,7 +27,8 @@ def test_application_smoke_runs_as_a_real_process(app: str) -> None:
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
-        timeout=60,
+        # the host runs at load average >100; a cold app start has taken 45s here
+        timeout=120,
         check=False,
     )
     assert completed.returncode == 0, (

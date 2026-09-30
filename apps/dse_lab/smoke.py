@@ -101,7 +101,7 @@ def request(method: str, url: str, payload: dict | None = None) -> tuple[int, di
         return exc.code, json.loads(exc.read())
 
 
-def wait_for(url: str, timeout: float = 15.0) -> dict:
+def wait_for(url: str, timeout: float = 45.0) -> dict:
     deadline = time.monotonic() + timeout
     last: Exception | None = None
     while time.monotonic() < deadline:
