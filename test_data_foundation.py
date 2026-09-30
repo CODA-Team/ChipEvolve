@@ -1064,9 +1064,10 @@ def test_concurrent_readers_do_not_break_each_other(tmp_path: Path) -> None:
 def test_compact_source_ref_is_expanded_from_the_snapshot_catalog(tmp_path: Path) -> None:
     """One catalog per snapshot; records carry a short reference, not a copy.
 
-    Copying the artifact descriptor onto every entity and relation would duplicate
-    the same five fields about a million times, so the row keeps `source_ref` (and
-    a locator when it has one) and the catalog resolves it.
+    Copying the artifact descriptor onto every entity and relation duplicates the
+    same five fields about a million times - 1.23 GB inside a 5.74 GB Ibex
+    database.  The row keeps ``source_ref`` (and a locator when it has one); the
+    catalogue entry and the artifact identity are attached when the row is read.
     """
     from openroad_app_data_foundation.ingest import load_snapshot_directory
 
@@ -1102,19 +1103,25 @@ def test_compact_source_ref_is_expanded_from_the_snapshot_catalog(tmp_path: Path
         "inputs/design.odb"
     entity = pack["entities"][0]
     assert entity["source_ref"] == "opendb:route"
-    assert entity["evidence"][0]["logical_path"] == "inputs/design.odb"
-    assert entity["evidence"][0]["locator"] == {"native_id": "1"}
-    relation = pack["relations"][0]
-    assert relation["evidence"][0]["locator"] == {"pin_id": "iterm:1"}
+    # stored compact: the catalogue entry is not copied onto the row
+    assert "evidence" not in entity
+    assert pack["relations"][0]["source_ref"] == "opendb:route"
 
-    # and the registered record is served with the artifact resolved
+    # and the registered record is served with the catalogue and artifact resolved
     store = DataStore(tmp_path / "compact.db")
     try:
         store.register(pack)
-        rows = store.records("snap-1", "entities")
-        resolved = rows[0]["evidence"][0]
+        resolved = store.records("snap-1", "entities")[0]["evidence"][0]
         assert resolved["artifact_id"] == "art-odb"
         assert resolved["resolution"] in {"exact_path", "exact_artifact"}
+        assert resolved["logical_path"] == "inputs/design.odb"
+        assert resolved["locator"] == {"native_id": "1"}
+        assert store.records("snap-1", "relations")[0]["evidence"][0]["locator"] == \
+            {"pin_id": "iterm:1"}
+        # the stored bytes stay compact; only the read expands them
+        raw = store.connection.execute(
+            "SELECT payload FROM records WHERE record_type = 'entities'").fetchone()
+        assert "art-odb" not in raw["payload"]
     finally:
         store.close()
 
@@ -1203,9 +1210,16 @@ def test_unknown_source_ref_is_marked_unavailable_not_dropped(tmp_path: Path) ->
         "name": "u1", "attributes": {}, "source_ref": "opendb:does_not_exist"}) + "\n",
         encoding="utf-8")
     pack = load_snapshot_directory(root)
-    evidence = pack["entities"][0]["evidence"]
-    assert evidence[0]["status"] == "unavailable"
-    assert "not in this snapshot's catalog" in evidence[0]["reason"]
+    # compact on the row, and the honest "unavailable" is produced on read
+    assert pack["entities"][0]["source_ref"] == "opendb:does_not_exist"
+    store = DataStore(tmp_path / "unknown-ref.db")
+    try:
+        store.register(pack)
+        evidence = store.records("snap-1", "entities")[0]["evidence"]
+        assert evidence[0]["status"] == "unavailable"
+        assert "not in this snapshot's catalog" in evidence[0]["reason"]
+    finally:
+        store.close()
 
 
 def test_a_claimed_path_must_match_or_stay_unresolved(tmp_path: Path) -> None:

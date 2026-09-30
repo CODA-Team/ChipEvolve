@@ -7,24 +7,27 @@ from typing import Any
 
 def enrich_records(snapshot: Mapping[str, Any], record_type: str,
                    rows: list[dict[str, Any]],
-                   entity_rows: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+                   entity_rows: list[dict[str, Any]] | None = None,
+                   *, identity_index: dict[str, dict[str, Any]] | None = None) -> list[dict[str, Any]]:
     """Attach identity references without changing the source object IDs.
 
     Native and snapshot-local IDs remain authoritative for storage.  The
     canonical component is a scoped value used only for explicit cross-stage
     matching; it is never used to rewrite relations or merge records.
     """
-    entities = _entity_rows(snapshot, entity_rows or rows)
+    if record_type == "timing_paths":
+        return [_path_identity(snapshot, row) for row in rows]
+    if record_type not in {"entities", "timing_points", "physical_context"}:
+        return rows
+    entities = identity_index if identity_index is not None else _entity_rows(snapshot, entity_rows or rows)
     if record_type == "entities":
         return [
-            {**row, "identity": entities.get(row.get("object_id"), _identity(snapshot, row))}
-            if _identity(snapshot, row) is not None else row
+            {**row, "identity": entities[row["object_id"]]}
+            if row.get("object_id") in entities else row
             for row in rows
         ]
     if record_type == "timing_points":
         return [_point_identity(row, entities) for row in rows]
-    if record_type == "timing_paths":
-        return [_path_identity(snapshot, row) for row in rows]
     if record_type == "physical_context":
         return [_physical_identity(row, entities) for row in rows]
     return rows

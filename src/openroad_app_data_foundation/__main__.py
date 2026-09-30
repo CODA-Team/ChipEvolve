@@ -15,11 +15,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--db", default="data-foundation.db")
     parser.add_argument("--kernel-url", default=None)
     parser.add_argument("--kernel-token", default=None)
+    parser.add_argument("--no-auto-import", action="store_true")
     args = parser.parse_args(argv)
     store = DataStore(args.db)
     try:
         serve(host=args.host, port=args.port, store=store, kernel_url=args.kernel_url,
-              kernel_token=args.kernel_token)
+              kernel_token=args.kernel_token, auto_import=not args.no_auto_import)
     finally:
         store.close()
     return 0

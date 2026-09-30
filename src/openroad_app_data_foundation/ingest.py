@@ -23,18 +23,19 @@ def load_snapshot_directory(directory: str | Path) -> dict[str, Any]:
     artifacts = _read_lines(root / "artifacts.jsonl")
     snapshot = _snapshot(manifest, summary, artifacts)
     pack: dict[str, Any] = {"snapshot": snapshot, "run_summary": summary}
-    # One catalog per snapshot holds the artifact descriptor; each record carries a
-    # short reference to it.  Copying the descriptor onto every entity and relation
-    # would mean ~1M duplicates of the same five fields, so the reference is
-    # expanded here, once, at ingest.
+    # One catalog per snapshot holds the artifact descriptor; each record keeps
+    # only a short reference to it.  The descriptor is NOT copied onto every
+    # record: that cost 1.23 GB inside a 5.74 GB Ibex database (42% of all stored
+    # payload text) and would cost ~11 GB on a design four times this size, for a
+    # field set that is identical on every record of a snapshot.  The reference is
+    # expanded when a caller reads the record - see evidence.materialize.
     catalog = _read_object(root / "source_catalog.json", required=False) or {}
     refs = catalog.get("refs") if isinstance(catalog.get("refs"), dict) else {}
     if refs:
         snapshot["source_catalog"] = refs
     marker_rows: list[dict[str, Any]] = []
     for name in FILES:
-        values = [_expand_source_ref(row, refs)
-                  for row in _read_lines(root / f"{name}.jsonl")]
+        values = list(_read_lines(root / f"{name}.jsonl"))
         if name == "markers":
             marker_rows = [{"marker_id": row.get("marker_id", str(index)), **row}
                            for index, row in enumerate(values)]
@@ -58,35 +59,6 @@ def load_snapshot_directory(directory: str | Path) -> dict[str, Any]:
 FRAGMENT_PATHS = ("query-data/timing_report.json",
                   "query-data/timing_report_hold.json",
                   "query-data/dbnetwork_map.json")
-
-
-def _expand_source_ref(row: dict[str, Any], refs: dict[str, Any]) -> dict[str, Any]:
-    """Turn a compact ``source_ref`` (+ ``locator``) into a full evidence entry.
-
-    The record keeps its short reference so a caller can see it came from the same
-    catalog; the expanded entry is what the resolver turns into an artifact id and
-    hash.  A record that already carries full evidence is left alone.
-    """
-    reference = row.get("source_ref")
-    if not isinstance(reference, str) or not reference:
-        return row
-    if isinstance(row.get("evidence"), list) and row["evidence"]:
-        return row
-    if reference not in refs:
-        # A reference this snapshot's catalog does not know - a stale or foreign
-        # one - must stay visible.  Dropping it silently removes the record's
-        # provenance entirely, which is the opposite of what evidence is for.
-        return {**row, "evidence": [{
-            "status": "unavailable",
-            "source_ref": reference,
-            "reason": f"source_ref {reference!r} is not in this snapshot's catalog",
-        }]}
-    entry = dict(refs[reference]) if isinstance(refs[reference], dict) else {}
-    entry["source_ref"] = reference
-    locator = row.get("locator")
-    if isinstance(locator, dict) and locator:
-        entry["locator"] = locator
-    return {**row, "evidence": [entry]}
 
 
 def _snapshot(manifest: dict[str, Any], summary: dict[str, Any],

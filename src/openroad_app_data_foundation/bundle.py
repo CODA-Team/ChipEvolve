@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import shutil
 import sys
 
 import tempfile
@@ -15,20 +17,25 @@ from openroad_platform_contracts import ContractError
 from .ingest import load_snapshot_directory
 from .repository import DataStore
 
+#: Where a bundle is expanded.  A routing stage expands to several GiB, and the
+#: database itself now lives on the persistent disk, so the scratch space has to
+#: be somewhere that can hold it rather than wherever TMPDIR happens to point.
+SCRATCH_DIR = os.environ.get("DF_SCRATCH_DIR") or None
+
 
 def load_run_bundle(client: KernelClient, run_id: str, artifact_id: str) -> dict[str, Any]:
     """Download one registered bundle, verify it through the client, then import it."""
-    with tempfile.TemporaryDirectory(prefix="context-import-") as directory:
+    with tempfile.TemporaryDirectory(prefix="context-import-", dir=SCRATCH_DIR) as directory:
         archive = Path(directory) / "run.zip"
         client.download_artifact_to(run_id, artifact_id, str(archive))
         with zipfile.ZipFile(archive) as source:
-            _check_members(source)
+            _check_members(source, Path(directory))
             source.extractall(directory)
         for nested in sorted(Path(directory).rglob("*.zip")):
             if nested == archive:
                 continue
             with zipfile.ZipFile(nested) as source:
-                _check_members(source)
+                _check_members(source, Path(directory))
                 target = nested.with_suffix("")
                 target.mkdir(exist_ok=True)
                 source.extractall(target)
@@ -83,16 +90,23 @@ def import_ready_bundles(store: DataStore, client: KernelClient) -> int:
     return imported
 
 
-#: A bundle is data, but it is extracted and read into memory, so its declared
-#: sizes are bounded rather than trusted.  Real bundles here are ~11 MB with ~13
-#: members; these caps are three orders of magnitude above that.
-MAX_MEMBER_BYTES = 256 * 1024 * 1024
-MAX_BUNDLE_BYTES = 1024 * 1024 * 1024
+#: A bundle imported through this function comes from *this host's own* execution
+#: service, so the caps below exist to stop a decompression bomb from filling the
+#: disk - not to reject a real design.  They were 256 MiB / 1 GiB while every
+#: bundle was an 11 MB Ibex stage; an Ariane routing stage legitimately declares a
+#: 1.5 GiB member and a ~4 GiB expanded bundle, and the old numbers made a
+#: finished 189k-instance design impossible to ingest at all.  The real guard is
+#: the free-space preflight in :func:`_check_members`: a bundle may be as large as
+#: the disk we are about to write it to, and no larger.
+MAX_MEMBER_BYTES = int(os.environ.get("DF_MAX_MEMBER_BYTES", 16 * 1024**3))
+MAX_BUNDLE_BYTES = int(os.environ.get("DF_MAX_BUNDLE_BYTES", 64 * 1024**3))
 MAX_MEMBERS = 20000
 MAX_COMPRESSION_RATIO = 500
+#: Refuse to start an extraction that would leave less than this much headroom.
+MIN_FREE_AFTER_BYTES = 1024**3
 
 
-def _check_members(source: zipfile.ZipFile) -> None:
+def _check_members(source: zipfile.ZipFile, directory: Path) -> None:
     members = source.infolist()
     if len(members) > MAX_MEMBERS:
         raise ContractError(f"bundle has {len(members)} members, over the "
@@ -111,6 +125,15 @@ def _check_members(source: zipfile.ZipFile) -> None:
                                 f"{member.file_size // max(member.compress_size, 1)}x")
     if total > MAX_BUNDLE_BYTES:
         raise ContractError(f"bundle expands to {total} bytes, over the limit")
+    # The declared sizes are the only thing known before extracting, and a wrong
+    # declaration fills the disk rather than raising.  Refuse *before* writing:
+    # a bundle that cannot fit with headroom left over is a preflight failure, not
+    # a half-ingested snapshot.
+    free = shutil.disk_usage(directory).free
+    if total + MIN_FREE_AFTER_BYTES > free:
+        raise ContractError(
+            f"bundle expands to {total} bytes but only {free} bytes are free in "
+            f"{directory}; refusing to start an extraction that cannot finish")
 
 
 def _bundle_ref(client: KernelClient, run_id: str, artifact_id: str) -> dict[str, Any]:

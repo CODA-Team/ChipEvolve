@@ -68,7 +68,7 @@ def _order(record_type: str, query: dict[str, str]) -> tuple[str, dict[str, Any]
 
 
 def list_timing_paths(store: DataStore, snapshot_id: str, query: dict[str, str]) -> dict[str, Any]:
-    filters = {key: query[key] for key in ("analysis", "check", "group") if query.get(key)}
+    filters = {key: query[key] for key in ("analysis", "check", "group", "startpoint", "endpoint", "corner") if query.get(key)}
     where = " AND ".join(f"json_extract(payload, '$.{key}') = ?" for key in filters)
     params = list(filters.values())
     total = store.count_records(snapshot_id, "timing_paths", where=where, params=params)

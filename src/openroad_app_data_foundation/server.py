@@ -8,12 +8,15 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
-from openroad_platform_client import KernelClient, KernelError, KernelUnavailable
+from openroad_platform_client import (KernelClient, KernelError, KernelUnavailable,
+                                      LocalFirstKernelClient)
 from openroad_platform_contracts import ContractError
 
 from .bundle import import_ready_bundles, load_run_bundle
 from .context import net_context, object_context, timing_path_context
 from .metric_queries import compare_metric
+from .discovery import list_objects, timing_context, routing_summary
+from .timing_queries import submit_timing_query, timing_query_status
 from .envelope import envelope, error_envelope
 from .queries import (
     compare_timing_path,
@@ -39,6 +42,7 @@ class Handler(BaseHTTPRequestHandler):
     server_version = "design-data-foundation/0.1"
     store: DataStore
     execution_client: KernelClient | None = None
+    auto_import: bool = True
     #: The server is threaded but the store is one SQLite connection.  The
     #: connection itself is locked, and this serialises a whole request on top of
     #: that: a concurrent caller still managed to reach sqlite3 with a statement
@@ -76,6 +80,29 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         try:
+            parts = [urllib.parse.unquote(item) for item in self.path.split('/') if item]
+            if len(parts) == 3 and parts[0] == 'snapshots' and parts[2] == 'timing-queries':
+                if self.execution_client is None:
+                    raise KernelUnavailable('execution service is not configured')
+                query = self._read_body()
+                with self.request_lock:
+                    payload = submit_timing_query(self.store, self.execution_client, parts[1], query)
+                self._send(202, payload)
+                return
+            if self.path == "/query":
+                requests = self._read_body().get("requests")
+                if not isinstance(requests, list) or not 1 <= len(requests) <= 20 or not all(
+                        isinstance(path, str) and path.startswith("/snapshots/") and
+                        not urllib.parse.urlparse(path).netloc for path in requests):
+                    raise ValueError("requests must contain 1 to 20 snapshot query paths")
+                results = []
+                with self.request_lock:
+                    for path in requests:
+                        parsed = urllib.parse.urlparse(path)
+                        query = {k: v[0] for k, v in urllib.parse.parse_qs(parsed.query).items()}
+                        results.append(envelope(parsed.path, query, self._get(parsed.path, query)))
+                self._send(200, {"results": results})
+                return
             if self.path == "/snapshots/from-run":
                 payload = self._read_body()
                 run_id = payload.get("run_id")
@@ -91,6 +118,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(404, {"error": "not found"})
                 return
             self._send(201, self.store.register(self._read_body()))
+        except KeyError as exc:
+            self._send(404, error_envelope(self.path, "not_found", str(exc)))
         except (ValueError, ContractError) as exc:
             self._send(400, {"error": str(exc)})
         except KernelUnavailable as exc:
@@ -101,15 +130,19 @@ class Handler(BaseHTTPRequestHandler):
             # An unexpected bug used to close the socket with no response at all,
             # which a caller cannot distinguish from a dead service.  Answer with
             # the error instead, and let the log keep the traceback.
-            self._send(500, error_envelope(parsed.path, "unavailable",
+            self._send(500, error_envelope(self.path, "unavailable",
                                            f"{type(exc).__name__}: {exc}"))
 
     def _get(self, path: str, query: dict[str, str]) -> dict[str, Any]:
         if path == "/health":
             return {"app": "data_foundation", "status": "ok",
                     "source_fingerprint": STARTUP_FINGERPRINT}
-        if self.execution_client is not None:
+        if self.execution_client is not None and self.auto_import:
             import_ready_bundles(self.store, self.execution_client)
+        if path.startswith('/timing-queries/'):
+            if self.execution_client is None:
+                raise KernelUnavailable('execution service is not configured')
+            return timing_query_status(self.store, self.execution_client, path.split('/')[-1])
         if path == "/snapshots":
             return {"snapshots": self.store.snapshots(
                 design_id=query.get("design_id"), run_id=query.get("run_id"))}
@@ -134,6 +167,23 @@ class Handler(BaseHTTPRequestHandler):
                     raise ValueError("name is required")
                 return compare_metric(self.store, parts[1], parts[3], name,
                                       query.get("scene"))
+            if len(parts) == 5 and parts[2] == 'sources' and parts[4] == 'excerpt':
+                snapshot = self.store.snapshot(parts[1])
+                refs = [r for r in snapshot.get('source_artifacts', []) if r.get('artifact_id') == parts[3]]
+                if len(refs) != 1:
+                    raise KeyError('artifact is not attached to this snapshot')
+                if self.execution_client is None:
+                    raise KernelUnavailable('execution service is not configured')
+                ref = refs[0]
+                result = self.execution_client.artifact_excerpt(ref['run_id'], parts[3],
+                    offset=_int_param(query, 'offset', 0), max_bytes=_int_param(query, 'max_bytes', 8192))
+                return {'snapshot_id': parts[1], 'source': ref, 'excerpt': result}
+            if len(parts) == 3 and parts[2] == "objects":
+                return list_objects(self.store, parts[1], query)
+            if len(parts) == 3 and parts[2] == "timing-context":
+                return timing_context(self.store, parts[1])
+            if len(parts) == 5 and parts[2] == "nets" and parts[4] == "routing-summary":
+                return routing_summary(self.store, parts[1], parts[3])
             if len(parts) == 2:
                 return {"snapshot": self.store.snapshot(parts[1])}
             if len(parts) == 3 and parts[2] == "summary":
@@ -141,13 +191,13 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) == 3 and parts[2] == "instances":
                 name = query.get("name")
                 if not name:
-                    raise ValueError("name is required")
+                    return list_objects(self.store, parts[1], {**query, "kind": "instance"})
                 return {"snapshot_id": parts[1],
                         "instances": self.store.find_instance(parts[1], name)}
             if len(parts) == 3 and parts[2] == "nets":
                 name = query.get("name")
                 if not name:
-                    raise ValueError("name is required")
+                    return list_objects(self.store, parts[1], {**query, "kind": "net"})
                 return {"snapshot_id": parts[1],
                         "nets": self.store.find_net(parts[1], name)}
             if len(parts) >= 4 and parts[2] == "timing-paths":
@@ -216,10 +266,11 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def serve(*, host: str, port: int, store: DataStore,
-          kernel_url: str | None = None, kernel_token: str | None = None) -> None:
+          kernel_url: str | None = None, kernel_token: str | None = None,
+          auto_import: bool = True) -> None:
     handler = type("BoundHandler", (Handler,), {
-        "store": store,
-        "execution_client": (KernelClient(kernel_url, token=kernel_token)
+        "store": store, "auto_import": auto_import,
+        "execution_client": (LocalFirstKernelClient(kernel_url, token=kernel_token)
                               if kernel_url else None),
     })
     ThreadingHTTPServer((host, port), handler).serve_forever()

@@ -234,6 +234,15 @@ def _summarize(pack: dict[str, Any], target_id: str | None,
         for row in pack.get(collection, []):
             if isinstance(row, dict):
                 row.pop("snapshot_id", None)
+                # The docstring above has always claimed the per-record evidence
+                # copies are removed, but only physical rows actually were: on one
+                # ibex timing path the 232 entities carried 130,810 B of evidence
+                # - 34% of the whole 380 KB pack - while the same descriptors sat
+                # in the pack-level list.  Each record keeps its compact
+                # ``source_ref`` and ``locator``, and
+                # GET /snapshots/{s}/records/{type}/{id}/evidence returns the
+                # resolved entry, so nothing becomes unreachable.
+                row.pop("evidence", None)
     for entity in pack.get("entities", []):
         if not isinstance(entity, dict):
             continue
@@ -256,19 +265,34 @@ def _summarize(pack: dict[str, Any], target_id: str | None,
     for relation in pack.get("relations", []):
         if isinstance(relation, dict):
             relation.pop("attributes", None)
+    pack.setdefault("limitations", []).append({
+        "field": "records[].evidence",
+        "status": "projected",
+        "reason": "summary keeps each record's compact source_ref and locator; "
+                  "GET /snapshots/{snapshot_id}/records/{record_type}/{record_id}"
+                  "/evidence returns the resolved entry, and detail=full inlines it"})
     return pack
 
 
 def _trim_identity(identity: dict[str, Any]) -> dict[str, Any]:
-    """Keep the IDs that identify the object; drop the snapshot-local echo."""
-    trimmed = {key: identity[key] for key in
-               ("native_id", "canonical_basis", "matching_status",
-                "structural_fingerprint") if key in identity}
+    """Keep the IDs that identify the object; drop the snapshot-wide echo.
+
+    ``design_id``, ``revision_id``, ``canonical_basis`` and the default
+    ``matching_status`` are identical on every record of a snapshot and already
+    appear in the pack's ``scope``, so repeating them on all 232 entities of one
+    timing path cost 67 KB for nothing.  ``detail=full`` and the per-record
+    endpoint still return the untrimmed identity.
+    """
+    trimmed: dict[str, Any] = {}
+    for key in ("native_id", "structural_fingerprint"):
+        if identity.get(key) is not None:
+            trimmed[key] = identity[key]
+    if identity.get("matching_status") not in (None, "candidate"):
+        trimmed["matching_status"] = identity["matching_status"]
     canonical = identity.get("canonical")
     if isinstance(canonical, dict):
         trimmed["canonical"] = {key: canonical[key] for key in
-                                ("design_id", "revision_id", "kind",
-                                 "hierarchical_name") if key in canonical}
+                                ("kind", "hierarchical_name") if key in canonical}
     return trimmed
 
 

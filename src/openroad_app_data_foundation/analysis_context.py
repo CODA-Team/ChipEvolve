@@ -32,7 +32,12 @@ def build_analysis_context(snapshot: Mapping[str, Any],
         "corner": _first(path, "corner", snapshot, "corner", declared, "corner"),
         "unit": _first(path, "unit", snapshot, "unit", declared, "unit"),
     }
-    missing = [name for name, value in values.items() if not _present(value)]
+    native = snapshot.get("run_summary", {}).get("timing_context")
+    if isinstance(native, Mapping):
+        values["rc_source"] = native.get("rc_script")
+        values["parasitic_source"] = native.get("parasitics")
+        values["parasitic_mode"] = native.get("parasitic_mode")
+    missing = [name for name in CONTEXT_FIELDS if not _present(values[name])]
     return {**values, "status": "available" if not missing else "unavailable",
             "missing": missing}
 
@@ -64,9 +69,12 @@ def context_availability(context: Mapping[str, Any]) -> dict[str, Any]:
         "corner": ({"status": "available", "value": corner}
                     if _present(corner) else unavailable_capability(
                         "corner", "analysis corner is missing")),
-        "rc": unavailable_capability("rc", "no indexed RC context"),
-        "parasitic": unavailable_capability(
-            "parasitic", "no indexed parasitic context"),
+        "rc": ({"status": "available", "source": context["rc_source"]}
+               if context.get("rc_source") else unavailable_capability("rc", "no indexed RC context")),
+        "parasitic": ({"status": "available", "mode": context["parasitic_mode"],
+                       "source": context.get("parasitic_source") or context.get("rc_source")}
+                      if context.get("parasitic_mode") in {"spef", "placement"}
+                      else unavailable_capability("parasitic", "no indexed parasitic context")),
     }
 
 

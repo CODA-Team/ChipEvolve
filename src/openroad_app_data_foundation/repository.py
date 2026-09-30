@@ -23,7 +23,13 @@ from openroad_platform_contracts import (
 )
 
 from .identity import enrich_records
-from .evidence import resolve_records
+from .evidence import materialize
+
+
+#: Rows written per statement during import.  Large enough that the
+#: per-statement overhead disappears, small enough that a 189k-instance
+#: routing stage never holds its whole serialised form in memory.
+IMPORT_BATCH_ROWS = 20000
 
 
 RECORD_TYPES = (
@@ -122,6 +128,19 @@ class DataStore:
         self.connection = _LockedConnection(
             sqlite3.connect(str(path), check_same_thread=False), self._lock)
         self.connection.row_factory = sqlite3.Row
+        # A large design is tens of gigabytes, and the default page cache is 2 MiB:
+        # a two-line query could wait on a cold read of a file the kernel had long
+        # since evicted.  These are per-connection settings, not a schema change.
+        self.connection.executescript(
+            """
+            PRAGMA cache_size = -262144;      -- 256 MiB of page cache per connection
+            PRAGMA mmap_size = 8589934592;    -- let the kernel page in the file
+            PRAGMA temp_store = MEMORY;
+            """)
+        #: A snapshot is immutable once registered, so its catalogue and artifact
+        #: list - the two things a record's evidence resolves against - are read
+        #: once per process instead of once per row.
+        self._snapshot_cache: dict[str, dict[str, Any]] = {}
         self.connection.executescript(
             """
             CREATE TABLE IF NOT EXISTS snapshots (
@@ -154,25 +173,42 @@ class DataStore:
                 PRIMARY KEY(snapshot_id, logical_path),
                 FOREIGN KEY(snapshot_id) REFERENCES snapshots(snapshot_id)
             );
+            -- Every one of these indexes used to carry an entry for *every* record
+            -- in the table, because SQLite stores a NULL key like any other.  On
+            -- Ibex that was 1.76 GB of index for 2.95 GB of payload, and
+            -- records_json_hier_name (206 MB) indexed a field that exactly one row
+            -- out of 2.37 M populates.  A partial index keeps the entry only where
+            -- the field exists, and `json_extract(...) = ?` provably implies
+            -- `json_extract(...) IS NOT NULL`, so the planner still uses them.
             CREATE INDEX IF NOT EXISTS records_json_name
                 ON records(snapshot_id, record_type,
-                           json_extract(payload, '$.name'));
+                           json_extract(payload, '$.name'))
+                WHERE json_extract(payload, '$.name') IS NOT NULL;
             CREATE INDEX IF NOT EXISTS records_json_subject
                 ON records(snapshot_id, record_type,
-                           json_extract(payload, '$.subject_id'));
+                           json_extract(payload, '$.subject_id'))
+                WHERE json_extract(payload, '$.subject_id') IS NOT NULL;
             CREATE INDEX IF NOT EXISTS records_json_object
                 ON records(snapshot_id, record_type,
-                           json_extract(payload, '$.object_id'));
+                           json_extract(payload, '$.object_id'))
+                WHERE json_extract(payload, '$.object_id') IS NOT NULL;
             CREATE INDEX IF NOT EXISTS records_json_parent
                 ON records(snapshot_id, record_type,
-                           json_extract(payload, '$.parent_id'));
+                           json_extract(payload, '$.parent_id'))
+                WHERE json_extract(payload, '$.parent_id') IS NOT NULL;
             CREATE INDEX IF NOT EXISTS records_json_path
                 ON records(snapshot_id, record_type,
-                           json_extract(payload, '$.path_id'));
+                           json_extract(payload, '$.path_id'))
+                WHERE json_extract(payload, '$.path_id') IS NOT NULL;
+            -- Not dead code: an adapter that starts populating
+            -- attributes.hierarchical_name needs this index to exist, and the
+            -- name lookup below reads it.  Today it holds a single entry.
             CREATE INDEX IF NOT EXISTS records_json_hier_name
                 ON records(snapshot_id, record_type,
                            json_extract(payload,
-                                        '$.attributes.hierarchical_name'));
+                                        '$.attributes.hierarchical_name'))
+                WHERE json_extract(payload,
+                                   '$.attributes.hierarchical_name') IS NOT NULL;
             """
         )
         self.connection.commit()
@@ -203,40 +239,57 @@ class DataStore:
                 for ordinal, value in enumerate(values)
             ]
         entity_rows = values_by_type.get("entities", [])
+        enriched_entities = enrich_records(snapshot, "entities", entity_rows, entity_rows)
+        identity_index = {row["object_id"]: row["identity"] for row in enriched_entities
+                          if "identity" in row}
+        values_by_type["entities"] = enriched_entities
         values_by_type = {
-            record_type: enrich_records(snapshot, record_type, rows, entity_rows)
+            record_type: enrich_records(snapshot, record_type, rows, entity_rows,
+                                        identity_index=identity_index)
             for record_type, rows in values_by_type.items()
         }
-        values_by_type = resolve_records(snapshot, values_by_type)
-        records: list[tuple[str, str, int, str]] = []
+        # Evidence is stored compact (source_ref + locator) and resolved on read;
+        # see evidence.materialize.  Resolving it here is what inflated every row.
+        #
+        # Rows are written in bounded batches and each record type is released as
+        # soon as it has been written.  Building one list of every serialised row
+        # first doubled the peak: an ariane136 routing stage is 3.7 GB of JSONL and
+        # the old shape needed ~34 GB of RSS to land it, which is memory
+        # proportional to design size rather than to batch size.  The write, the
+        # duplicate-identity check and the returned counts do not change.
+        counts = {name: 0 for name in RECORD_TYPES}
         seen: set[tuple[str, str]] = set()
-        for record_type in RECORD_TYPES:
-            values = values_by_type[record_type]
-            for ordinal, value in enumerate(values):
-                row = value
-                record_id = _record_id(record_type, row, ordinal)
-                key = (record_type, record_id)
-                if key in seen:
-                    raise ContractError(f"duplicate {record_type} identity: {record_id}")
-                seen.add(key)
-                records.append((record_type, record_id, ordinal, json.dumps(
-                    row, ensure_ascii=False, sort_keys=True)))
+        batch: list[tuple[str, str, str, int, str]] = []
+        insert = ("INSERT INTO records(snapshot_id, record_type, record_id, ordinal, "
+                  "payload) VALUES (?, ?, ?, ?, ?)")
         try:
             with self.connection:
                 self.connection.execute(
                     "INSERT INTO snapshots(snapshot_id, payload) VALUES (?, ?)",
                     (snapshot_id, json.dumps(snapshot, ensure_ascii=False, sort_keys=True)),
                 )
-                self.connection.executemany(
-                    "INSERT INTO records(snapshot_id, record_type, record_id, ordinal, payload) "
-                    "VALUES (?, ?, ?, ?, ?)",
-                    [(snapshot_id, kind, record_id, ordinal, payload)
-                     for kind, record_id, ordinal, payload in records],
-                )
+                for record_type in RECORD_TYPES:
+                    for ordinal, row in enumerate(values_by_type.get(record_type) or []):
+                        record_id = _record_id(record_type, row, ordinal)
+                        key = (record_type, record_id)
+                        if key in seen:
+                            raise ContractError(
+                                f"duplicate {record_type} identity: {record_id}")
+                        seen.add(key)
+                        counts[record_type] += 1
+                        batch.append((snapshot_id, record_type, record_id, ordinal,
+                                      json.dumps(row, ensure_ascii=False, sort_keys=True)))
+                        if len(batch) >= IMPORT_BATCH_ROWS:
+                            self.connection.executemany(insert, batch)
+                            batch.clear()
+                    values_by_type[record_type] = []
+                if batch:
+                    self.connection.executemany(insert, batch)
+                    batch.clear()
         except sqlite3.IntegrityError as exc:
             raise ContractError(f"snapshot already exists: {snapshot_id}") from exc
         self._store_pack_fragments(snapshot_id, pack)
-        return {"snapshot": snapshot, "record_counts": _counts(records)}
+        return {"snapshot": snapshot, "record_counts": counts}
 
     #: members worth keeping for fragment reads: parseable JSON that evidence
     #: points into.  The binary database is deliberately absent - the adapter
@@ -366,6 +419,17 @@ class DataStore:
                                     for item in result["connected_entities"]]])
         return result
 
+    def _catalog_snapshot(self, snapshot_id: str) -> dict[str, Any]:
+        cached = self._snapshot_cache.get(snapshot_id)
+        if cached is None:
+            cached = self.snapshot(snapshot_id)
+            self._snapshot_cache[snapshot_id] = cached
+        return cached
+
+    def _decode(self, payload: str, snapshot_id: str) -> dict[str, Any]:
+        """Read one stored row and restore its full evidence entry."""
+        return materialize(json.loads(payload), self._catalog_snapshot(snapshot_id))
+
     def records(self, snapshot_id: str, record_type: str, *, record_id: str | None = None,
                 limit: int = 100, offset: int = 0) -> list[dict[str, Any]]:
         if record_type not in RECORD_TYPES:
@@ -382,7 +446,8 @@ class DataStore:
             values.append(record_id)
         query += " ORDER BY ordinal LIMIT ? OFFSET ?"
         values.extend((limit, offset))
-        return [json.loads(row["payload"]) for row in self.connection.execute(query, values)]
+        return [self._decode(row["payload"], snapshot_id)
+                for row in self.connection.execute(query, values)]
 
     def filtered(self, snapshot_id: str, record_type: str, *, where: str = "",
                  params: Sequence[Any] = (), limit: int | None = None,
@@ -418,7 +483,8 @@ class DataStore:
         if limit is not None:
             query += " LIMIT ? OFFSET ?"
             values.extend((limit, offset))
-        return [json.loads(row["payload"]) for row in self.connection.execute(query, values)]
+        return [self._decode(row["payload"], snapshot_id)
+                for row in self.connection.execute(query, values)]
 
     def count_records(self, snapshot_id: str, record_type: str, *, where: str = "",
                       params: Sequence[Any] = ()) -> int:
@@ -486,13 +552,15 @@ class DataStore:
         """
         rows: list[dict[str, Any]] = []
         seen: set[str] = set()
-        for where in ("json_extract(payload, '$.name') = ?",
-                      "json_extract(payload, "
-                      "'$.attributes.hierarchical_name') = ?"):
+        variants = name_variants(name)
+        marks = ", ".join("?" for _ in variants)
+        for where in (f"json_extract(payload, '$.name') IN ({marks})",
+                      f"json_extract(payload, "
+                      f"'$.attributes.hierarchical_name') IN ({marks})"):
             for row in self.filtered(
                     snapshot_id, "entities",
                     where=f"json_extract(payload, '$.kind') = ? AND {where}",
-                    params=(kind, name)):
+                    params=(kind, *variants)):
                 key = str(row.get("object_id"))
                 if key not in seen:
                     seen.add(key)
@@ -664,6 +732,29 @@ class DataStore:
     expand_net_context = expand_net
     get_physical_context = physical
     get_evidence = evidence
+
+
+#: OpenDB reports one name in two legal spellings.  ``getName`` escapes the
+#: brackets of a bus bit (``mcountinhibit_q\\[0\\]$_DFFE_PN0P_``) while ``findInst``,
+#: the SDC and the independent STA gold use the plain one
+#: (``mcountinhibit_q[0]$_DFFE_PN0P_``).  They are the same object, so a lookup
+#: accepts the legal spellings instead of making the caller guess the escaping.
+#: Only the brackets are escaped in this data - escaping ``$`` as well produced a
+#: name that matches nothing.
+NAME_ESCAPES = (("[", "\\["), ("]", "\\]"))
+
+
+def name_variants(name: str) -> list[str]:
+    """The given spelling of a name plus the other legal spellings."""
+    variants = [name]
+    escaped = name
+    for plain, quoted in NAME_ESCAPES:
+        escaped = escaped.replace(plain, quoted)
+    candidates = [escaped, escaped.replace("$", "\\$"), name.replace("\\", "")]
+    for candidate in candidates:
+        if candidate and candidate not in variants:
+            variants.append(candidate)
+    return variants
 
 
 def record_identifier(record_type: str, row: Mapping[str, Any],

@@ -37,6 +37,12 @@ def tool_name_for(path: str) -> str:
         tail = parts[2:]
         if not tail:
             return "get_snapshot"
+        if tail == ["objects"]:
+            return "list_objects"
+        if tail == ["timing-context"]:
+            return "get_timing_context"
+        if tail and tail[-1] == "routing-summary":
+            return "get_routing_summary"
         if tail == ["summary"]:
             return "get_stage_summary"
         if tail == ["timing-paths"]:

@@ -80,6 +80,50 @@ def _resolve_item(item: Any, refs: list[dict[str, Any]]) -> Any:
     return _resolved(item, candidates[0], resolution="unique_role")
 
 
+def materialize(row: Mapping[str, Any], snapshot: Mapping[str, Any]) -> dict[str, Any]:
+    """Resolve a record's compact source reference against its snapshot catalogue.
+
+    Records are stored exactly as the adapter wrote them: a short ``source_ref``
+    (or, for marker rows, a bare artifact descriptor) plus an optional ``locator``.
+    The catalogue entry and the artifact identity are attached here, when a caller
+    actually reads the row, instead of being copied into every row of the snapshot.
+    The returned shape is identical to the one the old eager expansion produced, so
+    the public contract does not change.
+    """
+    items = row.get("evidence")
+    if not isinstance(items, list) or not items:
+        reference = row.get("source_ref")
+        if not isinstance(reference, str) or not reference:
+            return dict(row)
+        catalog = snapshot.get("source_catalog")
+        entry = catalog.get(reference) if isinstance(catalog, Mapping) else None
+        if not isinstance(entry, Mapping):
+            # A reference this snapshot's catalogue does not know - a stale or
+            # foreign one - must stay visible rather than disappear.
+            return {**row, "evidence": [{
+                "status": "unavailable",
+                "source_ref": reference,
+                "reason": f"source_ref {reference!r} is not in this snapshot's catalog",
+            }]}
+        item = dict(entry)
+        item["source_ref"] = reference
+        locator = row.get("locator")
+        if isinstance(locator, Mapping) and locator:
+            item["locator"] = dict(locator)
+        items = [item]
+    refs = [item for item in snapshot.get("source_artifacts", [])
+            if isinstance(item, dict)]
+    # A row written by the old eager-expansion ingest already carries resolved
+    # entries.  Resolving those a second time is not a no-op: the first pass put an
+    # ``artifact_id`` on the entry, so the second pass would relabel an
+    # ``exact_path`` provenance as ``exact_artifact``.  Only unresolved entries are
+    # resolved here.
+    return {**row, "evidence": [
+        item if (isinstance(item, Mapping) and item.get("resolution"))
+        else _resolve_item(item, refs)
+        for item in items]}
+
+
 def _resolved(item: dict[str, Any], ref: Mapping[str, Any], *, resolution: str) -> dict[str, Any]:
     return {
         **item,
