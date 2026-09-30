@@ -53,7 +53,9 @@ def list_metrics_for_run(store: DataStore, run_id: str,
     stays small by default.
     """
     projection = project_run(store, store.snapshots(run_id=run_id))
-    filters = {key: query[key] for key in ("stage", "name", "scene") if query.get(key)}
+    filters = {key: query[key]
+               for key in ("stage", "name", "scene", "snapshot_id")
+               if query.get(key)}
     rows = [row for row in projection["metrics"] if _metric_matches(row, filters)]
     limit, offset = _limit(query), _offset(query)
     page = rows[offset:offset + limit]
