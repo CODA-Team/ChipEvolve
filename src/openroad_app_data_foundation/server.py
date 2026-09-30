@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import threading
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
@@ -30,12 +31,23 @@ class Handler(BaseHTTPRequestHandler):
     server_version = "design-data-foundation/0.1"
     store: DataStore
     execution_client: KernelClient | None = None
+    #: The server is threaded but the store is one SQLite connection.  The
+    #: connection itself is locked, and this serialises a whole request on top of
+    #: that: a concurrent caller still managed to reach sqlite3 with a statement
+    #: in flight ("InterfaceError: bad parameter or other API misuse"), which came
+    #: back as an error for a snapshot that exists.  /health is exempt so a
+    #: readiness probe never waits behind a slow query.
+    request_lock = threading.Lock()
 
     def do_GET(self) -> None:  # noqa: N802
         parsed = urllib.parse.urlparse(self.path)
         query = {key: values[0] for key, values in urllib.parse.parse_qs(parsed.query).items()}
         try:
-            payload = self._get(parsed.path, query)
+            if parsed.path == "/health":
+                payload = self._get(parsed.path, query)
+            else:
+                with self.request_lock:
+                    payload = self._get(parsed.path, query)
             if parsed.path == "/health":
                 self._send(200, payload)
                 return

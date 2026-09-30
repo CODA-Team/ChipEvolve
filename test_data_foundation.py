@@ -986,3 +986,61 @@ def test_evidence_index_filters_by_record_type_and_flags_unknown(tmp_path: Path)
         assert unknown["evidence"] == [] and unknown["missing"] == ["record_type"]
     finally:
         store.close()
+
+
+def test_a_statement_cannot_invalidate_another_threads_rows(tmp_path: Path) -> None:
+    """Rows must be read out under the lock, not lazily by the caller.
+
+    The server shares one connection across request threads.  When execute()
+    handed back a live cursor, a second statement on that connection reset the
+    first cursor's results, which showed up as a null payload (TypeError) and as a
+    snapshot that exists answering "snapshot not found".
+    """
+    store = DataStore(tmp_path / "cursor.db")
+    try:
+        store.register({"snapshot": {"snapshot_id": "snap-1", "design_id": "chip",
+                                     "revision_id": "rev-1", "run_id": "run-1",
+                                     "stage": "route",
+                                     "created_at": "2026-01-01T00:00:00Z"}})
+        cursor = store.connection.execute(
+            "SELECT payload FROM snapshots WHERE snapshot_id = ?", ("snap-1",))
+        store.connection.execute("SELECT payload FROM snapshots")   # in between
+        row = cursor.fetchone()
+        assert row is not None and row["payload"] is not None
+        assert store.snapshot("snap-1")["snapshot_id"] == "snap-1"
+    finally:
+        store.close()
+
+
+def test_concurrent_readers_do_not_break_each_other(tmp_path: Path) -> None:
+    """A threaded stress on the shared connection: no errors, no lost rows."""
+    import threading
+
+    store = DataStore(tmp_path / "threads.db")
+    try:
+        store.register({
+            "snapshot": {"snapshot_id": "snap-1", "design_id": "chip",
+                         "revision_id": "rev-1", "run_id": "run-1", "stage": "route",
+                         "created_at": "2026-01-01T00:00:00Z"},
+            "observations": [{"observation_id": "obs:1", "kind": "metric",
+                              "snapshot_id": "snap-1", "value": 1,
+                              "status": "parsed", "context": {}, "evidence": []}],
+        })
+        failures: list[str] = []
+
+        def reader() -> None:
+            for _ in range(150):
+                try:
+                    assert store.snapshot("snap-1")["snapshot_id"] == "snap-1"
+                    assert len(store.records("snap-1", "observations")) == 1
+                except Exception as exc:                     # noqa: BLE001
+                    failures.append(f"{type(exc).__name__}: {exc}")
+
+        threads = [threading.Thread(target=reader) for _ in range(8)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        assert failures == [], failures[:3]
+    finally:
+        store.close()

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import threading
 from collections.abc import Iterable, Iterator, Mapping, Sequence, Sequence
 from pathlib import Path
 from typing import Any
@@ -30,11 +31,95 @@ RECORD_TYPES = (
 )
 
 
+class _MaterialisedCursor:
+    """Rows that were fetched while the connection lock was held.
+
+    Handing back a live sqlite3 cursor would leave a race: the lock is released
+    when ``execute`` returns, and another request thread running a statement on
+    the shared connection invalidates the first cursor's results.  That is not
+    theoretical - it surfaced as ``row["payload"]`` being None and as a snapshot
+    that exists answering "snapshot not found" under concurrent callers.
+    """
+
+    def __init__(self, rows: list[Any], rowcount: int, lastrowid: int | None) -> None:
+        self._rows = rows
+        self.rowcount = rowcount
+        self.lastrowid = lastrowid
+
+    def fetchone(self) -> Any:
+        return self._rows[0] if self._rows else None
+
+    def fetchall(self) -> list[Any]:
+        return list(self._rows)
+
+    def __iter__(self) -> Any:
+        return iter(self._rows)
+
+    def __len__(self) -> int:
+        return len(self._rows)
+
+
+class _LockedConnection:
+    """A sqlite3 connection shared by ThreadingHTTPServer request threads.
+
+    ``check_same_thread=False`` permits cross-thread use but not *simultaneous*
+    use: two request threads touching the connection at once raise
+    ``sqlite3.InterfaceError: bad parameter or other API misuse``.  That is how a
+    net-context request died mid-flight and answered a misleading error, and it is
+    reachable by any two callers that overlap - this interface is a local service
+    with a threaded server, so overlap is normal.  Statements take the lock;
+    cursors are consumed immediately by every call site, so serialising statements
+    is enough, and the transaction context manager holds it for the whole block.
+    """
+
+    def __init__(self, connection: sqlite3.Connection, lock: "threading.RLock") -> None:
+        object.__setattr__(self, "_connection", connection)
+        object.__setattr__(self, "_lock", lock)
+
+    def execute(self, *args: Any, **kwargs: Any) -> _MaterialisedCursor:
+        with self._lock:
+            cursor = self._connection.execute(*args, **kwargs)
+            # read the rows out while nothing else can touch the connection
+            rows = cursor.fetchall()
+            return _MaterialisedCursor(rows, cursor.rowcount, cursor.lastrowid)
+
+    def executemany(self, *args: Any, **kwargs: Any) -> sqlite3.Cursor:
+        with self._lock:
+            return self._connection.executemany(*args, **kwargs)
+
+    def executescript(self, *args: Any, **kwargs: Any) -> Any:
+        with self._lock:
+            return self._connection.executescript(*args, **kwargs)
+
+    def __enter__(self) -> "_LockedConnection":
+        self._lock.acquire()
+        try:
+            self._connection.__enter__()
+        except BaseException:
+            self._lock.release()
+            raise
+        return self
+
+    def __exit__(self, *exc_info: Any) -> Any:
+        try:
+            return self._connection.__exit__(*exc_info)
+        finally:
+            self._lock.release()
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._connection, name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        setattr(self._connection, name, value)
+
+
 class DataStore:
     """A local snapshot store owned by this application."""
 
     def __init__(self, path: str | Path):
-        self.connection = sqlite3.connect(str(path), check_same_thread=False)
+        self._lock = threading.RLock()
+        self.connection = _LockedConnection(
+            sqlite3.connect(str(path), check_same_thread=False), self._lock)
         self.connection.row_factory = sqlite3.Row
         self.connection.executescript(
             """
