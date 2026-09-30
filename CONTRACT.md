@@ -171,6 +171,10 @@ run 级的 `design_id`/`status` 目前只在 `snapshot`/`run_summary` 里，见 
 }
 ```
 
+`data` 另有 `canonical_names`（封闭集合本身）与 `canonical_names_available`（**本次响应 scope 内**声明为
+`available` 的名字；带 `stage`/`snapshot_id`/`name` 过滤时随之收窄——不要再把它读成"整个 run 的可用名"）、
+`units_declared`、`filters`。
+
 规则：
 
 1. **每个 canonical metric 必须声明 `authoritative_source`。** 同名数值来自不同来源时，非权威来源只作为普通 observation 列出，不得覆盖权威值。
