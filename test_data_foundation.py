@@ -1044,3 +1044,61 @@ def test_concurrent_readers_do_not_break_each_other(tmp_path: Path) -> None:
         assert failures == [], failures[:3]
     finally:
         store.close()
+
+
+def test_compact_source_ref_is_expanded_from_the_snapshot_catalog(tmp_path: Path) -> None:
+    """One catalog per snapshot; records carry a short reference, not a copy.
+
+    Copying the artifact descriptor onto every entity and relation would duplicate
+    the same five fields about a million times, so the row keeps `source_ref` (and
+    a locator when it has one) and the catalog resolves it.
+    """
+    from openroad_app_data_foundation.ingest import load_snapshot_directory
+
+    root = tmp_path / "query-data"
+    root.mkdir()
+    (root / "manifest.json").write_text(json.dumps({
+        "snapshot": {"snapshot_id": "snap-1", "design_id": "chip",
+                     "revision_id": "rev-1", "run_id": "run-1", "stage": "route",
+                     "created_at": "2026-01-01T00:00:00Z",
+                     "source_artifacts": [{"artifact_id": "art-odb", "category": "raw_design_database",
+                                           "logical_path": "inputs/design.odb",
+                                           "sha256": "0" * 64, "size_bytes": 1,
+                                           "run_id": "run-1", "stage": "main"}]}}),
+        encoding="utf-8")
+    (root / "source_catalog.json").write_text(json.dumps({
+        "schema_version": 1,
+        "refs": {"opendb:route": {"artifact_kind": "raw_design_database",
+                                  "logical_path": "inputs/design.odb",
+                                  "source_type": "opendb"}}}), encoding="utf-8")
+    (root / "objects.jsonl").write_text(json.dumps({
+        "object_id": "inst:1", "snapshot_id": "snap-1", "kind": "instance",
+        "name": "_479_", "attributes": {"master": "INV_X1"},
+        "source_ref": "opendb:route", "locator": {"native_id": "1"}}) + "\n",
+        encoding="utf-8")
+    (root / "relations.jsonl").write_text(json.dumps({
+        "relation_id": "pin-inst:iterm:1", "snapshot_id": "snap-1",
+        "subject_id": "iterm:1", "predicate": "belongs_to", "object_id": "inst:1",
+        "attributes": {}, "source_ref": "opendb:route",
+        "locator": {"pin_id": "iterm:1"}}) + "\n", encoding="utf-8")
+
+    pack = load_snapshot_directory(root)
+    assert pack["snapshot"]["source_catalog"]["opendb:route"]["logical_path"] == \
+        "inputs/design.odb"
+    entity = pack["entities"][0]
+    assert entity["source_ref"] == "opendb:route"
+    assert entity["evidence"][0]["logical_path"] == "inputs/design.odb"
+    assert entity["evidence"][0]["locator"] == {"native_id": "1"}
+    relation = pack["relations"][0]
+    assert relation["evidence"][0]["locator"] == {"pin_id": "iterm:1"}
+
+    # and the registered record is served with the artifact resolved
+    store = DataStore(tmp_path / "compact.db")
+    try:
+        store.register(pack)
+        rows = store.records("snap-1", "entities")
+        resolved = rows[0]["evidence"][0]
+        assert resolved["artifact_id"] == "art-odb"
+        assert resolved["resolution"] in {"exact_path", "exact_artifact"}
+    finally:
+        store.close()

@@ -23,9 +23,18 @@ def load_snapshot_directory(directory: str | Path) -> dict[str, Any]:
     artifacts = _read_lines(root / "artifacts.jsonl")
     snapshot = _snapshot(manifest, summary, artifacts)
     pack: dict[str, Any] = {"snapshot": snapshot, "run_summary": summary}
+    # One catalog per snapshot holds the artifact descriptor; each record carries a
+    # short reference to it.  Copying the descriptor onto every entity and relation
+    # would mean ~1M duplicates of the same five fields, so the reference is
+    # expanded here, once, at ingest.
+    catalog = _read_object(root / "source_catalog.json", required=False) or {}
+    refs = catalog.get("refs") if isinstance(catalog.get("refs"), dict) else {}
+    if refs:
+        snapshot["source_catalog"] = refs
     marker_rows: list[dict[str, Any]] = []
     for name in FILES:
-        values = _read_lines(root / f"{name}.jsonl")
+        values = [_expand_source_ref(row, refs)
+                  for row in _read_lines(root / f"{name}.jsonl")]
         if name == "markers":
             marker_rows = [{"marker_id": row.get("marker_id", str(index)), **row}
                            for index, row in enumerate(values)]
@@ -34,6 +43,26 @@ def load_snapshot_directory(directory: str | Path) -> dict[str, Any]:
     pack["coverage"] = _read_object(root / "coverage.json", required=False) or {}
     pack["physical_context"] = _physical_records(marker_rows)
     return pack
+
+
+def _expand_source_ref(row: dict[str, Any], refs: dict[str, Any]) -> dict[str, Any]:
+    """Turn a compact ``source_ref`` (+ ``locator``) into a full evidence entry.
+
+    The record keeps its short reference so a caller can see it came from the same
+    catalog; the expanded entry is what the resolver turns into an artifact id and
+    hash.  A record that already carries full evidence is left alone.
+    """
+    reference = row.get("source_ref")
+    if not isinstance(reference, str) or reference not in refs:
+        return row
+    if isinstance(row.get("evidence"), list) and row["evidence"]:
+        return row
+    entry = dict(refs[reference]) if isinstance(refs[reference], dict) else {}
+    entry["source_ref"] = reference
+    locator = row.get("locator")
+    if isinstance(locator, dict) and locator:
+        entry["locator"] = locator
+    return {**row, "evidence": [entry]}
 
 
 def _snapshot(manifest: dict[str, Any], summary: dict[str, Any],
