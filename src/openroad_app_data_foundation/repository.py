@@ -386,7 +386,7 @@ class DataStore:
 
     def filtered(self, snapshot_id: str, record_type: str, *, where: str = "",
                  params: Sequence[Any] = (), limit: int | None = None,
-                 offset: int = 0) -> list[dict[str, Any]]:
+                 offset: int = 0, order_by: str = "") -> list[dict[str, Any]]:
         """Select records with an explicit SQL predicate on their payload.
 
         Callers must pass a bounded ``limit`` unless they genuinely need every
@@ -409,7 +409,11 @@ class DataStore:
         # cannot also serve a predicate - SQLite then scans every row of the
         # snapshot.  A filtered lookup does not need snapshot ordering, and a
         # snapshot is immutable, so index order is stable for a given boundary.
-        if not where:
+        if order_by:
+            # a ranked question orders by a payload field; the index cannot serve
+            # both that and the predicate, so this is a scan of one snapshot's rows
+            query += order_by
+        elif not where:
             query += " ORDER BY ordinal"
         if limit is not None:
             query += " LIMIT ? OFFSET ?"

@@ -22,6 +22,7 @@ from .queries import (
     list_metrics_for_run,
     list_observations,
     list_timing_paths,
+    list_timing_points,
     path_points,
     timing_path,
 )
@@ -164,6 +165,8 @@ class Handler(BaseHTTPRequestHandler):
                     return timing_path_context(self.store, snapshot_id, path_id)
             if len(parts) == 3 and parts[2] == "timing-paths":
                 return list_timing_paths(self.store, parts[1], query)
+            if len(parts) == 3 and parts[2] == "timing-points":
+                return list_timing_points(self.store, parts[1], query)
             if len(parts) == 3 and parts[2] == "observations":
                 return list_observations(self.store, parts[1], query)
             if len(parts) == 3 and parts[2] == "evidence":

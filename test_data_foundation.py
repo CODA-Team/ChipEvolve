@@ -1220,3 +1220,52 @@ def test_a_claimed_path_must_match_or_stay_unresolved(tmp_path: Path) -> None:
     resolved = resolve_records(snapshot, rows)["entities"][0]["evidence"][0]
     assert resolved["resolution"] == "unresolved"
     assert "artifact_id" not in resolved
+
+
+def test_worst_means_the_metrics_own_worst_direction(tmp_path: Path) -> None:
+    """Slack is a budget, slew is a magnitude: "worst" is not one direction.
+
+    The first implementation ordered every ranking ascending, so the worst-slew
+    question returned the zero-slew clock roots.
+    """
+    from openroad_app_data_foundation.queries import list_timing_paths, list_timing_points
+
+    store = DataStore(tmp_path / "ranking.db")
+    try:
+        store.register({
+            "snapshot": {"snapshot_id": "snap-1", "design_id": "chip",
+                         "revision_id": "rev-1", "run_id": "run-1", "stage": "route",
+                         "created_at": "2026-01-01T00:00:00Z"},
+            "timing_paths": [
+                {"path_id": "path:0", "slack": -4.0e-11, "path_type": "max"},
+                {"path_id": "path:1", "slack": 1.0e-11, "path_type": "max"},
+                {"path_id": "path:2", "path_type": "max"},          # no slack at all
+            ],
+            "timing_points": [
+                {"point_id": "path:0:point:0", "path_id": "path:0", "pin_name": "clk", "slew": 0.0},
+                {"point_id": "path:0:point:1", "path_id": "path:0", "pin_name": "u/Z",
+                 "slew": 2.7e-11},
+                {"point_id": "path:0:point:2", "path_id": "path:0", "pin_name": "u/A",
+                 "slew": 1.0e-11},
+            ],
+        })
+        paths = list_timing_paths(store, "snap-1",
+                                  {"sort": "slack", "order": "worst", "limit": "3"})
+        assert [item["path_id"] for item in paths["timing_paths"]] == \
+            ["path:0", "path:1", "path:2"]          # most negative first, missing last
+        assert paths["ordered"] == "ascending" and paths["worst_means"] == "ascending"
+
+        points = list_timing_points(store, "snap-1",
+                                    {"sort": "slew", "order": "worst", "limit": "1"})
+        assert points["timing_points"][0]["pin_name"] == "u/Z"   # largest slew, not zero
+        assert points["ordered"] == "descending" and points["worst_means"] == "descending"
+
+        # a ranking the interface does not define is refused, never ignored
+        try:
+            list_timing_points(store, "snap-1", {"sort": "fanciness"})
+        except ValueError as exc:
+            assert "cannot sort" in str(exc)
+        else:                                                # pragma: no cover
+            raise AssertionError("an unknown sort field was accepted")
+    finally:
+        store.close()

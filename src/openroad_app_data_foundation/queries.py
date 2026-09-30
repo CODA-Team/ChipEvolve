@@ -16,15 +16,80 @@ from .metrics import CANONICAL_METRICS, project_run
 from .repository import RECORD_TYPES, DataStore, record_identifier
 
 
+#: Which field a ranking reads, and which direction "worst" means for it.
+#:
+#: Wrong for one round: "worst" was always ascending.  Slack is a budget, so the
+#: worst path has the smallest (most negative) slack - ascending.  Slew and load are
+#: magnitudes, so the worst point has the *largest* value - descending.  Assuming one
+#: direction made the worst-slew query return the zero-slew clock roots.
+RANKINGS = {
+    "timing_paths": {"slack": ("$.slack", "asc"), "arrival": ("$.arrival", "desc")},
+    "timing_points": {"slew": ("$.slew", "desc"), "load": ("$.load", "desc"),
+                      "arrival": ("$.arrival", "desc")},
+}
+
+
+def _order(record_type: str, query: dict[str, str]) -> tuple[str, dict[str, Any]]:
+    """``ORDER BY`` for a ranked question - "the five worst setup paths" is one call.
+
+    Ranking by reading every row and sorting in the caller is how a model spends
+    2,500 calls and 52 MB; and asking it to be frugal instead loses the ranking
+    entirely (V2, round 34).  So the ranking lives here: worst means ascending, and
+    rows without the field sort last in both directions.
+    """
+    sort = query.get("sort")
+    if not sort:
+        return "", {}
+    ranking = RANKINGS.get(record_type, {}).get(sort)
+    if ranking is None:
+        raise ValueError(f"cannot sort {record_type} by {sort!r}; "
+                         f"known: {sorted(RANKINGS.get(record_type, {}))}")
+    expression, worst_direction = ranking
+    order = (query.get("order") or "worst").lower()
+    if order not in {"worst", "best"}:
+        raise ValueError("order must be worst|best")
+    # "worst" is not one direction: it is the metric's own worst
+    ascending = worst_direction == "asc"
+    if order == "best":
+        ascending = not ascending
+    direction = "ASC" if ascending else "DESC"
+    # NULLs last in both directions: a path without a slack is not the worst path
+    clause = f" ORDER BY json_extract(payload, '{expression}') IS NULL, " \
+             f"json_extract(payload, '{expression}') {direction}"
+    return clause, {"sorted_by": sort, "order": order,
+                    "ordered": "ascending" if ascending else "descending",
+                    "worst_means": f"{worst_direction}ending"}
+
+
 def list_timing_paths(store: DataStore, snapshot_id: str, query: dict[str, str]) -> dict[str, Any]:
     filters = {key: query[key] for key in ("analysis", "check", "group") if query.get(key)}
     where = " AND ".join(f"json_extract(payload, '$.{key}') = ?" for key in filters)
     params = list(filters.values())
     total = store.count_records(snapshot_id, "timing_paths", where=where, params=params)
     limit, offset = _limit(query), _offset(query)
+    clause, ranking = _order("timing_paths", query)
     rows = store.filtered(snapshot_id, "timing_paths", where=where, params=params,
-                          limit=limit, offset=offset)
-    return {"snapshot_id": snapshot_id, "timing_paths": rows,
+                          limit=limit, offset=offset, order_by=clause)
+    return {"snapshot_id": snapshot_id, "timing_paths": rows, **ranking,
+            **_page(total, len(rows), limit, offset), "filters": filters}
+
+
+def list_timing_points(store: DataStore, snapshot_id: str,
+                       query: dict[str, str]) -> dict[str, Any]:
+    """Timing points across the snapshot, rankable - worst slew in one call.
+
+    Points were only reachable through their path, so "which point has the worst
+    slew" meant all 776 points of ibex, path by path.
+    """
+    filters = {key: query[key] for key in ("path_id", "path_section") if query.get(key)}
+    where = " AND ".join(f"json_extract(payload, '$.{key}') = ?" for key in filters)
+    params = list(filters.values())
+    total = store.count_records(snapshot_id, "timing_points", where=where, params=params)
+    limit, offset = _limit(query), _offset(query)
+    clause, ranking = _order("timing_points", query)
+    rows = store.filtered(snapshot_id, "timing_points", where=where, params=params,
+                          limit=limit, offset=offset, order_by=clause)
+    return {"snapshot_id": snapshot_id, "timing_points": rows, **ranking,
             **_page(total, len(rows), limit, offset), "filters": filters}
 
 
