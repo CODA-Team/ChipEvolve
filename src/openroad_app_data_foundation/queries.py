@@ -630,10 +630,13 @@ def _fragment(document: Any, record_type: str,
         check = document["checks"][index]
         if record_type == "timing_paths":
             return f"/checks/{index}", check
-        ordinal = detail.get("point")
-        if not isinstance(ordinal, int):
-            raise KeyError("evidence does not name a point ordinal")
-        ordered = [item for section in ("source_clock_path", "source_path", "target_path")
-                   for item in (check.get(section) or [])]
-        return f"/checks/{index}/points/{ordinal}", ordered[ordinal]
+        section = detail.get("section")
+        section_index = detail.get("section_index")
+        if not isinstance(section, str) or not isinstance(section_index, int):
+            # The point's own location, not a reassembled ordering: slicing by an
+            # index the adapter and this function both have to keep in step is how
+            # a fragment silently becomes the wrong point.
+            raise KeyError("evidence does not name the point's section and index")
+        rows = check.get(section) or []
+        return f"/checks/{index}/{section}/{section_index}", rows[section_index]
     raise KeyError("no fragment rule for this locator")

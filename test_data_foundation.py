@@ -1142,7 +1142,8 @@ def test_read_evidence_returns_the_fragment_and_refuses_the_binary_source(tmp_pa
                                "evidence": [
                                    {"artifact_kind": "raw_timing_report",
                                     "logical_path": "query-data/timing_report.json",
-                                    "detail": {"path_index": 0, "point": 1}},
+                                    "detail": {"path_index": 0, "section": "source_path",
+                                               "section_index": 1}},
                                    {"artifact_kind": "raw_dbnetwork_map",
                                     "logical_path": "query-data/dbnetwork_map.json",
                                     "detail": {"pin_name": "u1/A"}}]}],
@@ -1160,6 +1161,8 @@ def test_read_evidence_returns_the_fragment_and_refuses_the_binary_source(tmp_pa
         assert point["available"] == 2
         by_path = {item["logical_path"]: item for item in point["fragments"]}
         assert by_path["query-data/timing_report.json"]["fragment"] == {"pin": "b"}
+        assert by_path["query-data/timing_report.json"]["fragment_path"] == \
+            "/checks/0/source_path/1"
         assert by_path["query-data/dbnetwork_map.json"]["fragment"]["pin_id"] == "iterm:1"
 
         # a record whose evidence names no sliceable member must say so
