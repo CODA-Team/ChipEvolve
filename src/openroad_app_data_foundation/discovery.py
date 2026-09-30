@@ -30,14 +30,24 @@ def list_objects(store, snapshot_id, query):
             AND json_extract(payload, '$.bbox.y_min') <= ?)""")
         params.extend([snapshot_id, *box])
     where = ' AND '.join(filters)
-    sort = query.get('sort', 'name')
-    if sort not in ('name', 'fanout'):
+    # The default is the stored order, which `records_lookup`
+    # (snapshot_id, record_type, ordinal) serves directly: a page costs
+    # O(offset + limit).  Ordering by name by default re-sorted the whole kind on
+    # *every* page - on ariane136 a single page of 10,000 instances did not return
+    # in 190 s, while the same page over the store's own ordinal index takes
+    # 0.17 s.  A caller that needs a ranking still asks for one explicitly.
+    sort = query.get('sort')
+    if sort is not None and sort not in ('name', 'fanout'):
         raise ValueError('sort must be name|fanout')
-    order = query.get('order', 'desc' if sort == 'fanout' else 'asc')
-    if order not in ('asc', 'desc'):
-        raise ValueError('order must be asc|desc')
-    path = '$.attributes.fanout' if sort == 'fanout' else '$.name'
-    clause = f" ORDER BY json_extract(payload, '{path}') IS NULL, json_extract(payload, '{path}') {order}, record_id"
+    if sort is None:
+        clause = ''
+    else:
+        order = query.get('order', 'desc' if sort == 'fanout' else 'asc')
+        if order not in ('asc', 'desc'):
+            raise ValueError('order must be asc|desc')
+        path = '$.attributes.fanout' if sort == 'fanout' else '$.name'
+        clause = (f" ORDER BY json_extract(payload, '{path}') IS NULL, "
+                  f"json_extract(payload, '{path}') {order}, record_id")
     total = store.count_records(snapshot_id, 'entities', where=where, params=params)
     limit, offset = _limit(query), _offset(query)
     rows = store.filtered(snapshot_id, 'entities', where=where, params=params,
@@ -50,6 +60,7 @@ def list_objects(store, snapshot_id, query):
             raise ValueError('unknown object projection field')
         rows = [{key: row.get(key) for key in columns} for row in rows]
     return {'snapshot_id': snapshot_id, 'objects': rows, 'filters': query,
+            'order': sort or 'stored',
             **_page(total, len(rows), limit, offset)}
 
 

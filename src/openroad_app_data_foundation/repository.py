@@ -145,6 +145,9 @@ class DataStore:
         #: list - the two things a record's evidence resolves against - are read
         #: once per process instead of once per row.
         self._snapshot_cache: dict[str, dict[str, Any]] = {}
+        #: Counts for an immutable snapshot cannot change; paging re-asked for the
+        #: same one on every page.
+        self._count_cache: dict[tuple[Any, ...], int] = {}
         self.connection.executescript(
             """
             CREATE TABLE IF NOT EXISTS snapshots (
@@ -511,9 +514,20 @@ class DataStore:
 
     def count_records(self, snapshot_id: str, record_type: str, *, where: str = "",
                       params: Sequence[Any] = ()) -> int:
-        """Count rows for one snapshot and optional predicate, without scanning."""
+        """Count rows for one snapshot and optional predicate, without scanning.
+
+        The result is cached: a snapshot is immutable, so the count for a given
+        predicate cannot change.  Paging the same filter paid the count again on
+        every page, and on ariane136 a single ``kind`` count scans 2.4 M rows -
+        5 s of every page.  The cache is keyed by the exact SQL and its bound
+        parameters, so it can never serve a count for a different filter.
+        """
         if record_type not in RECORD_TYPES:
             raise KeyError(f"unsupported record type: {record_type}")
+        cache_key = (snapshot_id, record_type, where, tuple(params))
+        cached = self._count_cache.get(cache_key)
+        if cached is not None:
+            return cached
         query = ("SELECT COUNT(*) AS count FROM records "
                  "WHERE snapshot_id = ? AND record_type = ?")
         values: list[Any] = [snapshot_id, record_type]
@@ -521,7 +535,9 @@ class DataStore:
             query += " AND " + where
             values.extend(params)
         row = self.connection.execute(query, values).fetchone()
-        return int(row["count"])
+        result = int(row["count"])
+        self._count_cache[cache_key] = result
+        return result
 
     def fetch_all(self, snapshot_id: str, record_type: str) -> list[dict[str, Any]]:
         """Read every record of one type through bounded pages.
