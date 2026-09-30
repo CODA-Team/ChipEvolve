@@ -192,7 +192,9 @@ Data Foundation 只回答 **结构化 EDA 事实**。它不诊断、不建议、
 
 ### 4.10 `get_net_context(snapshot_id, name_or_id)`
 
-`data`: `{net, connected_entities[], relations[], physical_context[], evidence[]}`
+`data`: `{target, entities[], relations[], physical_context[], observations, timing_context?}`
+（`entities` 是**该 net 及其关系端点**的实体列表，不是单独的 `connected_entities` 字段；`target` 同时镜像在信封层。
+ evidence 在信封层，见 §7。）
 
 ### 4.11 `get_physical_context(snapshot_id, object_id)`
 
@@ -203,7 +205,7 @@ Data Foundation 只回答 **结构化 EDA 事实**。它不诊断、不建议、
 
 ### 4.12 `get_evidence(snapshot_id, record_type?, record_id?, artifact_id?, limit, offset)`
 
-`data.evidence[]`: §3 的引用对象；可按 record 或 artifact 过滤。
+信封 `evidence[]`（本 tool 的 evidence 引用在信封层，见 §7）: §3 的引用对象；可按 record 或 artifact 过滤。
 
 ---
 
@@ -257,7 +259,7 @@ Data Foundation 只回答 **结构化 EDA 事实**。它不诊断、不建议、
 
 | 部分 | 本文件状态 | 当前实现 |
 |---|---|---|
-| 通用信封 / 状态枚举 | 冻结 | **未实现**。非 context 的 tool 仍返回裸 payload；缺 `contract_version`、`tool`、`status`、`missing`、`limitations`。context pack 有 `scope`/`target` 但同样缺版本与 status。**冻结的是本文件的字段名；服务尚未填满，外部调用方按本文件写代码前请先看这一列。** |
+| 通用信封 / 状态枚举 | 冻结 | **已实现**。除 `/health` 外每个路由都返回 `contract_version`/`tool`/`scope`/`status`/`missing`/`data`/`evidence`/`limitations`；状态由 payload 推导（`not_found` 目标不存在、`truncated` 分页或被 `relation_limit` 截断、`partial` payload 自报不可用、`unavailable` 无法作答）。注意两点：`scope`/`target` 对 context pack 是**镜像**（pack 本身仍保留），`evidence`/`limitations` 是**上提**到信封（各 tool 的 `data` 里不再重复；§4.12 的列表即信封的 `evidence`）。 |
 | Evidence 表示 | 冻结 | 已实现，但**字段名与 §3 不完全一致**：实际发出 `artifact_id / artifact_kind / attempt_id / category / detail / logical_path / resolution / run_id / sha256 / size_bytes / source_type / stage`；§3 写的 `locator`、`parser`、`resolved` 未发出（对应物分别是 `detail`、`category`/`source_type`、`resolution`）。 |
 | 分页信封 | 冻结 | **已实现**：`/timing-paths`、`/metrics`、`/evidence`、`/observations` 均返回 `count/returned/limit/offset/truncated/next_offset`；`count>10000` 拒绝。 |
 | Tools 1–12 | 冻结 | DF 路由：3、4、6–12。1（`/designs`）与 5（`/runs/{id}/artifacts`）**不存在于 DF**，它们是 client 侧分组 / EF 路由，直接 `curl` 会 404。 |
