@@ -96,7 +96,8 @@ def test_original_metric_corners_do_not_reuse_declared_snapshot_label(tmp_path):
     logs = root / 'logs/p/chip/r'
     logs.mkdir(parents=True)
     (logs / '6_report.json').write_text(json.dumps({'finish__timing__setup__tns__corner:slow_hot': -1,
-                                                 'finish__timing__setup__tns__corner:fast': 0}))
+                                                 'finish__timing__setup__tns__corner:fast': 0,
+                                                 'finish__flow__platform__power_units': '1mW'}))
     pack = sample()
     pack['run_summary']['timing_context'] = {'corner': 'declared-label'}
     store = DataStore(tmp_path / 'scenario.sqlite')
@@ -106,5 +107,10 @@ def test_original_metric_corners_do_not_reuse_declared_snapshot_label(tmp_path):
         assert data['timing_context']['corner'] == 'declared-label'
         assert data['original_metric_scenarios'][0]['corner_names'] == ['fast', 'slow_hot']
         assert data['original_metric_scenarios'][0]['source']['relative_path'] == 'logs/p/chip/r/6_report.json'
+        assert data['units']['interface_values']['power_metric'] == 'W'
+        assert data['units']['interface_values']['dbu_per_micron'] == 2000
+        declaration = data['units']['original_stage_declarations'][0]
+        assert declaration['declarations'] == [{'raw_key': 'finish__flow__platform__power_units', 'value': '1mW'}]
+        assert declaration['source'] == data['original_metric_scenarios'][0]['source']
     finally:
         store.close()
