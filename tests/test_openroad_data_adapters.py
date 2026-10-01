@@ -378,3 +378,17 @@ def test_multilib_directed_sta_and_boundary_validation(tmp_path: Path) -> None:
         result = _run_adapter(tmp_path, _task({'adapter': 'opensta', 'odb_path': 'design.odb',
             'liberty_paths': paths}), expected_exit=2)
         assert result['failure']['category'] == 'configuration_error'
+
+
+def test_native_report_preserves_stdout_without_requiring_sta_redirect_file(tmp_path):
+    fake = tmp_path / 'fake-openroad'
+    fake.write_text('#!/usr/bin/env python3\nprint("SIGNAL_COUNT=58")\n')
+    fake.chmod(0o755)
+    (tmp_path / 'design.odb').write_bytes(b'odb')
+    result = _run_adapter(tmp_path, _task({'adapter': 'report', 'report': 'native',
+        'script': 'puts "SIGNAL_COUNT=58"', 'odb_path': 'design.odb', 'openroad_bin': str(fake)}))
+    assert result['status'] == 'succeeded'
+    assert (tmp_path / 'reports/native.rpt').read_text() == 'SIGNAL_COUNT=58\n'
+    assert 'sta::redirect_file_begin' not in (tmp_path / 'openroad_report.tcl').read_text()
+    report = next(a for a in result['artifacts'] if a['kind'] == 'analysis_report')
+    assert report['metadata']['report'] == 'native'
