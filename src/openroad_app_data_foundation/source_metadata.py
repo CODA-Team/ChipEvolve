@@ -76,6 +76,18 @@ def flow_timing(text):
             'unavailable_timing': [name for name, row in stages.items() if row['elapsed_s'] is None]}
 
 
+def reported_versions(text):
+    """Literal self-report lines from the actual flow log, including repeated locations."""
+    rows = {}
+    for number, line in enumerate(text.splitlines(), 1):
+        match = re.fullmatch(r'(Yosys|KLayout|OpenROAD)\s+(v?[0-9][^\r\n]*)', line.strip())
+        if match:
+            row = rows.setdefault((match[1], match[2]),
+                {'tool': match[1], 'version_text': match[2], 'original_line': line, 'line_numbers': []})
+            row['line_numbers'].append(number)
+    return list(rows.values())
+
+
 def source_metadata(store, snapshot_id, root):
     snapshot = store.snapshot(snapshot_id)
     context = snapshot.get('run_summary', {}).get('timing_context', {})
@@ -100,10 +112,13 @@ def source_metadata(store, snapshot_id, root):
                   re.findall(r'^\*(\w+)\s+(.*)$', text, re.M)}
         result['spef'] = {'source': ref, 'header': header}
     receipts = _receipt_files(snapshot, Path(root))
+    result['self_reported_tool_versions'] = None
     flow_log = 'receipts/' + snapshot['design_id'] + '.flow.log'
     if flow_log in receipts:
         text, ref = source_text(store, snapshot_id, flow_log, root)
         result['flow_timing'] = {'source': ref, **flow_timing(text)}
+        result['self_reported_tool_versions'] = {'source': ref, 'records': reported_versions(text),
+            'basis': 'literal version banners in the original flow log; no missing version inferred from source commits'}
         marks = {}
         for line in context.get('producer', {}).get('status_log', []):
             for state in ('running', 'finished'):
@@ -123,6 +138,18 @@ def source_metadata(store, snapshot_id, root):
             result['original_inputs'].append({'role': artifact['category'], 'staged_path': artifact.get('logical_path'),
                 'sha256': artifact.get('sha256'), 'original_paths': sorted(path for path, ref in manifest.items()
                     if ref.get('sha256') == artifact.get('sha256'))})
+    result['run_origin'] = {'snapshot': snapshot_identity(snapshot),
+        'top_module': snapshot.get('run_summary', {}).get('top_module'),
+        'native_flow_run_id': context.get('producer', {}).get('native_run_id'),
+        'loaded_database': [item for item in result['original_inputs'] if item['role'] == 'raw_design_database'],
+        'manifest_receipt': None,
+        'basis': 'snapshot indexing identity and original loaded-database digests/paths; extraction runs are distinct from the original flow run'}
+    receipt = 'receipts/' + snapshot['design_id'] + '.native_manifest.json'
+    if receipt in receipts:
+        text, ref = source_text(store, snapshot_id, receipt, root)
+        original = json.loads(text)
+        result['run_origin']['manifest_receipt'] = {'source': ref, 'identity':
+            {key: original.get(key) for key in ('design', 'platform', 'variant', 'native_run_id')}}
     result['evidence'] = [artifact for artifact in snapshot.get('source_artifacts', [])
                           if artifact.get('category') == 'raw_design_database']
     result['original_metric_scenarios'] = []

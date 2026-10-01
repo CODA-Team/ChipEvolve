@@ -13,7 +13,7 @@ BATCH_ID_LIMIT = 100
 
 def object_filter(store, snapshot_id, query):
     """Shared complete filter semantics for pages and server-side aggregation."""
-    allowed = {'kind', 'parent_id', 'master', 'driver_count', 'signal_type', 'name',
+    allowed = {'kind', 'parent_id', 'parent_instance', 'master', 'driver_count', 'signal_type', 'name',
                'name_contains', 'name_prefix', 'driver_min', 'driver_max', 'port_driven',
                'port', 'is_macro', 'region', 'region_units', 'intersection', 'ids', 'connected_to',
                'net_role', 'sort', 'order', 'limit', 'offset', 'fields', 'format', 'group_by', 'include_physical', 'include_engineering'}
@@ -45,7 +45,7 @@ def object_filter(store, snapshot_id, query):
             # An exact name/parent/id is much narrower than an entire object
             # kind. Without statistics, SQLite picked the new kind index and
             # scanned millions of pins for two names or seven children.
-            prefix = '+' if key == 'kind' and any(query.get(k) for k in ('name', 'parent_id', 'ids', 'connected_to')) else ''
+            prefix = '+' if key == 'kind' and any(query.get(k) for k in ('name', 'parent_id', 'parent_instance', 'ids', 'connected_to')) else ''
             filters.append(f"{prefix}json_extract(payload, '{path}') = ?")
             value = query[key]
             params.append(int(value) if key in numeric else value)
@@ -53,6 +53,13 @@ def object_filter(store, snapshot_id, query):
         variants = name_variants(query['name'])
         filters.append("json_extract(payload, '$.name') IN (" + ','.join('?' for _ in variants) + ')')
         params.extend(variants)
+    if query.get('parent_instance'):
+        if query.get('kind') != 'pin' or query.get('parent_id'):
+            raise ValueError('parent_instance requires kind=pin and no parent_id')
+        from .engineering import _entity
+        parent = _entity(store, snapshot_id, query['parent_instance'], 'instance')
+        filters.append("json_extract(payload, '$.parent_id') = ?")
+        params.append(parent['object_id'])
     if query.get('name_contains'):
         filters.append("instr(replace(json_extract(payload, '$.name'), char(92), ''), ?) > 0")
         params.append(query['name_contains'].replace('\\', ''))
@@ -165,7 +172,7 @@ def list_objects(store, snapshot_id, query):
     # 0.17 s.  A caller that needs a ranking still asks for one explicitly.
     # Connected neighbours are small sets: return their natural name order.
     # Whole-design inventories retain indexed stored order to avoid a full sort.
-    sort = query.get('sort', 'name' if query.get('connected_to') or query.get('parent_id') else None)
+    sort = query.get('sort', 'name' if query.get('connected_to') or query.get('parent_id') or query.get('parent_instance') else None)
     if sort is not None and sort not in ('name', 'fanout', 'bbox_area'):
         raise ValueError('sort must be name|fanout|bbox_area')
     if sort is None:

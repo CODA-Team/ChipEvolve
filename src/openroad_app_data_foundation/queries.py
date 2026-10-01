@@ -185,7 +185,7 @@ def list_metrics_for_run(store: DataStore, run_id: str,
             f"(it may exist in the execution service but was never imported)")
     projection = project_run(store, snapshots)
     filters = {key: query[key]
-               for key in ("stage", "name", "scene", "snapshot_id")
+               for key in ("stage", "name", "scene", "snapshot_id", "corner")
                if query.get(key)}
     names = query.get('names')
     if names is not None:
@@ -237,7 +237,7 @@ def list_metrics_for_run(store: DataStore, run_id: str,
         columns = query['fields'].split(',')
         allowed = {'name', 'raw_key', 'value', 'raw_value', 'unit', 'status', 'reason',
                    'value_basis', 'quantity_scope', 'stage', 'snapshot_id', 'scene',
-                   'analysis', 'check', 'corner', 'corner_status', 'canonical', 'unit_declared'}
+                   'analysis', 'check', 'corner', 'corner_status', 'corner_basis', 'context_corner', 'canonical', 'unit_declared'}
         if not set(columns) <= allowed:
             raise ValueError('unknown metric projection field')
         result['evidence'] = list({json.dumps(ref, sort_keys=True): ref

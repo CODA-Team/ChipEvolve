@@ -29,6 +29,7 @@ from .api_help import api_help
 from .excerpts import excerpt_view
 from .pin_geometry import pin_engineering
 from .native_inventory import net_inventory
+from .analysis_setup import analysis_setup
 from .path_endpoints import path_endpoints
 from .batch_reads import read_batch
 from .source_search import search_source
@@ -265,6 +266,13 @@ class Handler(BaseHTTPRequestHandler):
                 if self.execution_client is None:
                     raise KernelUnavailable('execution service is not configured')
                 return net_inventory(store, self.execution_client, parts[1], self.native_root)
+            if len(parts) == 3 and parts[2] == 'analysis-setup':
+                if set(query) - {'fields', 'detail'}:
+                    raise ValueError('analysis-setup accepts fields and detail')
+                if self.execution_client is None:
+                    raise KernelUnavailable('execution service is not configured')
+                payload = analysis_setup(store, self.execution_client, parts[1], self.native_root)
+                return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 3 and parts[2] == 'timing-overview':
                 payload = timing_overview(store, parts[1], query)
                 return metadata_view(payload, query, path) if query.get('fields') else payload

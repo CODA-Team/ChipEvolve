@@ -91,6 +91,8 @@ def placement_geometry(fact, scale, orientation=None):
                  'MY': 'FN', 'MYR90': 'FE', 'MX': 'FS', 'MXR90': 'FW'}
     return {'dbu_per_micron': scale, 'bbox_dbu': box,
             'bbox_um': {key: value / scale for key, value in box.items()} if box else None,
+            'bbox_um_array': [box[key] / scale for key in ('x_min', 'y_min', 'x_max', 'y_max')] if box else None,
+            'bbox_array_order': ['x_min', 'y_min', 'x_max', 'y_max'],
             'location_dbu': location,
             'location_um': [value / scale if value is not None else None for value in location],
             'location_basis': 'OpenDB dbInst.getLocation; lower-left placement location in block coordinates',

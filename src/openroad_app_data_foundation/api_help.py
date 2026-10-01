@@ -27,6 +27,8 @@ they are not silently relabeled original flow outputs, and remain accessible in 
 S/source-metadata returns literal config variables with continued lines joined, the actually loaded library units/nominal values,
 SPEF headers and deduplicated per-stage flow timing/wall time, each with its original source.
 Stage metric snapshots: {design}-{variant}-metrics-{stage}-functional-v3.
+Canonical metrics preserve both unqualified source aggregates and EVERY literal raw-key corner separately;
+corner_basis identifies literal labels versus observation context. Add corner=<literal> to select one declared corner.
 GET /snapshots?design_id={design}&fields=snapshot_id,design_id,revision_id,run_id,stage discovers original snapshots and other runs.
 Add origin=flow for original stage indexes, origin=query for supplemental timing snapshots; default all retains both.
 This uses actual parent metadata/query identity, so earlier query outputs do not inflate stage discovery.
@@ -40,6 +42,15 @@ S?fields=snapshot.source_artifacts,snapshot.run_summary.timing_context.producer.
 Default metadata omits repeated full manifests; delivery.full_details retrieves everything. Use exact fields when possible.
 
 S/source-metadata includes toolchain_receipt, timing_context, original_inputs, original_metric_scenarios and units.
+S/analysis-setup reads actual native report_units, get_scenes, get_analysis_corners and loaded Liberty names,
+using this snapshot's original timing inputs. native_ui_units are the tool's display units, distinct from interface s/F.
+Actual scene names, explicitly defined analysis corners, command corner and configured snapshot labels stay separate;
+an empty explicit corner list does not mean there is no default scene. Fresh query status and original source remain visible.
+run_origin joins original flow identity, snapshot stage/top module, loaded ODB's original paths/digests and the literal
+native manifest receipt design/platform/variant/run identity. It distinguishes flow runs from later extraction runs.
+self_reported_tool_versions contains actual version banners in the original flow log, with original line positions/source.
+Use fields=run_origin,configuration,libraries for design/config/loaded-library identity;
+fields=toolchain_receipt,self_reported_tool_versions for tool binary identity and reported versions.
 units separates interface SI/dbu values from literal original stage UI declarations, with sources.
 original_metric_scenarios reads literal corner names from original metric keys, separately from the declared snapshot corner label.
 Use fields=configuration,libraries,spef,timing_context (or other comma-separated top-level fields) for only needed sections.
@@ -56,6 +67,8 @@ distinct_signal_net_count counts different SIGNAL net IDs, not pins; shared conn
 S/net-inventory returns all native SigType counts and special_net_count from the actual dbNet.isSpecial flag
 in one native read of this original snapshot; do not substitute POWER+GROUND for this separate flag.
 S/objects supports kind=instance|net|pin, name (exact), name_contains, name_prefix, ids=<comma-separated up to100 IDs>, parent_id, master, is_macro=0|1,
+For pins, parent_instance=<native instance name> directly resolves the instance and returns its filtered pins;
+no separate object-ID lookup is needed. Use signal_type=SIGNAL&fields=name,attributes.direction,attributes.net_name.
 signal_type=SIGNAL|CLOCK|POWER|GROUND, port=0|1, driver_count/min/max, port_driven=0|1,
 connected_to=<net id>&net_role=driver|load; sort=name|fanout|bbox_area&order=asc|desc;
 region=xmin,ymin,xmax,ymax with region_units=dbu|um (default dbu) and intersection=positive_area|touching.
@@ -68,6 +81,8 @@ Physical bbox_um is a named x_min/y_min/x_max/y_max box. This avoids per-object 
 For long inventories add format=columns with explicit fields. object_columns declares the exact field order,
 object_rows contains ordered arrays of their original values; page counts, sort order and recovery are unchanged.
 This avoids repeating field names for every row and reduces list output size without losing facts.
+physical.bbox_um_array supplies the same bbox as [x_min,y_min,x_max,y_max] in um,
+so long geometry tables can carry the four coordinates directly, without repeated named-box keys or model conversion.
 For largest macro use S/objects?kind=instance&is_macro=1&sort=bbox_area&order=desc&limit=1; ties use name descending.
 ranking reports the full candidate count, leading integer dbu^2 area, tie count/rule and missing geometry count,
 independent of pagination. Use compact fields=object_id,name plus a dependent batch to retrieve selected engineering facts.

@@ -107,15 +107,14 @@ def project_run(store: DataStore, snapshots: list[dict[str, Any]]) -> dict[str, 
         hints = {**run_hints, **_unit_hints(rows)}
         available_units.update(_resolved_units(hints).keys())
         consumed: set[int] = set()
-        by_tail: dict[str, dict[str, Any]] = {}
+        by_tail: dict[str, list[dict[str, Any]]] = {}
         for row in rows:
-            by_tail.setdefault(_tail(observation_name(row)), row)
+            by_tail.setdefault(_tail(observation_name(row)), []).append(row)
         for name, spec in CANONICAL_METRICS.items():
-            row = next((by_tail[key] for key in spec["raw_keys"] if key in by_tail), None)
-            if row is None:
-                continue
-            consumed.add(id(row))
-            canonical.append(_canonical_row(name, spec, row, snapshot, hints))
+            matches = next((by_tail[key] for key in spec["raw_keys"] if key in by_tail), [])
+            for row in matches:
+                consumed.add(id(row))
+                canonical.append(_canonical_row(name, spec, row, snapshot, hints))
         for row in rows:
             if id(row) in consumed:
                 continue
@@ -163,7 +162,10 @@ def _canonical_row(name: str, spec: dict[str, Any], row: dict[str, Any],
     # left as a bare null.  ORFS run-level reports carry no corner at all, so
     # marking every metric unavailable would destroy the metric surface; saying
     # "not_declared" keeps the value and keeps the gap visible.
-    corner = context.get("corner")
+    labels = [part[len('corner:'):] for part in observation_name(row).split('__') if part.startswith('corner:')]
+    if len(labels) > 1 or (labels and not labels[0]):
+        raise ValueError('metric raw key must declare at most one nonempty corner')
+    corner = labels[0] if labels else context.get("corner")
     value = row.get("value")
     if name in ("WNS", "HOLD_WNS") and isinstance(value, (int, float)):
         value = min(0.0, value)
@@ -175,6 +177,8 @@ def _canonical_row(name: str, spec: dict[str, Any], row: dict[str, Any],
         "value_basis": "min(0, worst slack)" if name in ("WNS", "HOLD_WNS") else "source value",
         "quantity_scope": spec.get("quantity_scope", "original source metric identified by raw_key"),
         "corner_status": "declared" if corner else "not_declared",
+        "corner_basis": 'literal raw-key component' if labels else 'observation context' if corner else 'not declared',
+        "context_corner": context.get('corner'),
         "unit": unit,
         "unit_declared": unit_note,
         "stage": snapshot.get("stage"),
@@ -194,7 +198,8 @@ def _canonical_row(name: str, spec: dict[str, Any], row: dict[str, Any],
 
 def _tail(name: str) -> str:
     """``finish__timing__setup__ws`` -> ``timing__setup__ws``."""
-    return name.split("__", 1)[1] if "__" in name else name
+    tail = name.split("__", 1)[1] if "__" in name else name
+    return '__'.join(part for part in tail.split('__') if not part.startswith('corner:'))
 
 
 def _unit_hints(rows: list[dict[str, Any]]) -> dict[str, str]:
