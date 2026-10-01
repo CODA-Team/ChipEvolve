@@ -5,11 +5,21 @@ from .bundle import load_run_bundle
 
 
 def submit_timing_query(store, client, snapshot_id, query):
-    if set(query) - {'from_pin', 'to_pin', 'path_group', 'path_count'}:
+    fields = {'from_pin', 'to_pin', 'path_group', 'path_count', 'endpoint_path_count'}
+    if set(query) - fields:
         raise ValueError('unknown timing query field')
     count = query.get('path_count', 5)
     if type(count) is not int or not 1 <= count <= 200:
         raise ValueError('path_count must be between 1 and 200')
+    # OpenSTA's -endpoint_path_count: how many paths one endpoint may contribute.
+    # The default equals path_count (N variants of one endpoint, the historical
+    # behaviour); 1 makes the N reported paths N distinct endpoints, which is
+    # what "the N worst paths" means when the reference flow reports one path per
+    # endpoint.  Without it the sampler is the only place that distinction could
+    # live, and it does not exist there.
+    endpoints = query.get('endpoint_path_count')
+    if endpoints is not None and (type(endpoints) is not int or not 1 <= endpoints <= 200):
+        raise ValueError('endpoint_path_count must be between 1 and 200')
     for key in ('from_pin', 'to_pin', 'path_group'):
         if key in query and (not isinstance(query[key], str) or not query[key] or len(query[key]) > 4096):
             raise ValueError(f'{key} must be a native name')
