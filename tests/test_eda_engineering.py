@@ -35,6 +35,58 @@ def sample():
                  'path_section': 'source_path'}]}
 
 
+def test_instance_and_timing_join_retains_point_witness_and_complete_pin_counts(tmp_path):
+    from openroad_app_data_foundation.engineering import instance_engineering
+    pack = sample()
+    pack['entities'][0]['attributes']['orientation'] = 'MX'
+    pack['physical_context'][0].update(x=0, y=0)
+    pack['entities'].extend([
+        {'object_id': 'a', 'kind': 'pin', 'name': 'u/A', 'parent_id': 'i'},
+        {'object_id': 'z', 'kind': 'pin', 'name': 'u/Z', 'parent_id': 'i'},
+        {'object_id': 'unconnected', 'kind': 'pin', 'name': 'u/NC', 'parent_id': 'i'}])
+    pack['relations'] = [{'relation_id': key, 'subject_id': key, 'object_id': 'n',
+                          'predicate': 'connected_to'} for key in ('a', 'z')]
+    pack['timing_points'][1].update(load=1, evidence=[{'artifact_id': 'report'}])
+    pack['timing_points'][2].update(load=2, evidence=[{'artifact_id': 'report', 'detail': {'point': 2}}])
+    store = DataStore(tmp_path / 'd.sqlite')
+    try:
+        store.register(pack)
+        instance = instance_engineering(store, 's', 'u')['instance']
+        assert instance['signal_pin_count'] == 2
+        assert instance['total_pin_count'] == 3 and instance['unclassified_pin_count'] == 1
+        assert instance['orientation_names'] == {'odb': 'MX', 'def': 'FS'}
+        result = timing_overview(store, 's', {'check': 'setup', 'limit': '1', 'include_physical': '1',
+                                            'fields': 'paths,data_point_extrema'})
+        point = result['data_point_extrema']['load']['selected_point']
+        assert point['point_id'] == 'out' and point['load'] == 2
+        assert point['evidence'][0]['detail']['point'] == 2
+        assert point['instance'] == instance
+        assert result['association_coverage']['status'] == 'complete'
+    finally:
+        store.close()
+
+
+def test_missing_point_net_association_never_claims_full_domain_ranking(tmp_path):
+    from openroad_app_data_foundation.envelope import envelope
+    pack = sample()
+    pack['timing_points'][2].pop('net_id')
+    pack['timing_points'][2].update(net_name='missing-native-net', mapping_status='unmapped')
+    store = DataStore(tmp_path / 'd.sqlite')
+    try:
+        store.register(pack)
+        result = path_engineering(store, 's', 'p', {'limit': '1'})
+        assert result['association_coverage']['status'] == 'partial'
+        assert result['association_coverage']['unresolved_point_ids'] == ['out']
+        assert result['association_coverage']['ranking_scope'] == 'resolved nets only'
+        view = envelope('/snapshots/s/timing-paths/p/engineering', {}, result)
+        # Pagination remains visible and coverage never changes to complete.
+        assert view['data']['availability']['complete_association_aggregates']['status'] == 'unavailable'
+        overview = timing_overview(store, 's', {'limit': '1'})
+        assert overview['association_coverage']['incomplete_path_ids'] == ['p']
+    finally:
+        store.close()
+
+
 def test_object_page_joins_chip_geometry_and_reports_missing_geometry(tmp_path):
     from openroad_app_data_foundation.discovery import list_objects
     store = DataStore(tmp_path / 'd.sqlite')

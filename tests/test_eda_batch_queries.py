@@ -94,6 +94,11 @@ def test_original_stage_discovery_keeps_substage_metrics_separate(tmp_path):
         assert not row['original_metrics']['has_area']
         assert [(r['relative_path'].rsplit('/', 1)[-1], r['has_area']) for r in row['metric_reports']] == [
             ('5_1_grt.json', True), ('5_2_route.json', False)]
+        selected = run_inventory(store, 's', root, stage='route', metric_names=('instance__area',))
+        reports = selected['stages'][0]['metric_reports']
+        assert reports[0]['metric_values'] == [{'raw_key': 'globalroute__design__instance__area', 'value': 85,
+                                              'source': 'logs/platform/chip/revision/5_1_grt.json'}]
+        assert reports[1]['metric_values'] == []
         with pytest.raises(ValueError, match='unknown original flow stage'):
             run_inventory(store, 's', root, stage='invented')
     finally:
