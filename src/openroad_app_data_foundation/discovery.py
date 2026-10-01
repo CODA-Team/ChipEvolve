@@ -11,6 +11,14 @@ from .repository import name_variants
 BATCH_ID_LIMIT = 100
 
 
+def query_boolean(query, key):
+    value = str(query[key]).lower()
+    values = {'0': 0, '1': 1, 'false': 0, 'true': 1}
+    if value not in values:
+        raise ValueError(key + ' must be 0|1 or false|true')
+    return values[value]
+
+
 def object_filter(store, snapshot_id, query):
     """Shared complete filter semantics for pages and server-side aggregation."""
     allowed = {'kind', 'parent_id', 'parent_instance', 'master', 'driver_count', 'signal_type', 'name',
@@ -72,20 +80,14 @@ def object_filter(store, snapshot_id, query):
             filters.append(f"json_extract(payload, '$.attributes.driver_count') {operator} ?")
             params.append(int(query[key]))
     if query.get('port_driven') is not None:
-        if query['port_driven'] not in ('0', '1'):
-            raise ValueError('port_driven must be 0|1')
-        filters.append(('' if query['port_driven'] == '1' else 'NOT ') + """EXISTS (
+        filters.append(('' if query_boolean(query, 'port_driven') else 'NOT ') + """EXISTS (
             SELECT 1 FROM json_each(json_extract(payload, '$.attributes.driver_ids'))
             WHERE value LIKE 'bterm:%')""")
     if query.get('port') is not None:
-        if query['port'] not in ('0', '1'):
-            raise ValueError('port must be 0|1')
-        filters.append("record_id " + ("LIKE" if query['port'] == '1' else "NOT LIKE") + " 'bterm:%'")
+        filters.append("record_id " + ("LIKE" if query_boolean(query, 'port') else "NOT LIKE") + " 'bterm:%'")
     if query.get('is_macro') is not None:
-        if query['is_macro'] not in ('0', '1'):
-            raise ValueError('is_macro must be 0|1')
         filters.append("json_extract(payload, '$.attributes.is_macro') = ?")
-        params.append(int(query['is_macro']))
+        params.append(query_boolean(query, 'is_macro'))
     if query.get('region'):
         box = [float(x) for x in query['region'].split(',')]
         if len(box) != 4 or not all(math.isfinite(x) for x in box) or box[0] > box[2] or box[1] > box[3]:
@@ -201,16 +203,14 @@ def list_objects(store, snapshot_id, query):
                           order_by=clause, limit=limit, offset=offset)
     _pin_details(store, snapshot_id, rows)
     if query.get('include_engineering') is not None:
-        if query['include_engineering'] not in ('0', '1') or query.get('kind') != 'instance':
+        if query.get('kind') != 'instance':
             raise ValueError('include_engineering must be 0|1 with kind=instance')
-        if query['include_engineering'] == '1':
+        if query_boolean(query, 'include_engineering'):
             from .engineering import instance_engineering
             for row in rows:
                 row['engineering'] = instance_engineering(store, snapshot_id, row['object_id'])['instance']
     if query.get('include_physical') is not None:
-        if query['include_physical'] not in ('0', '1'):
-            raise ValueError('include_physical must be 0|1')
-        if query['include_physical'] == '1':
+        if query_boolean(query, 'include_physical'):
             _object_geometry(store, snapshot_id, rows)
     found = {str(row.get('object_id')) for row in rows}
     columns = query.get('fields')

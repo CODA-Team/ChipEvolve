@@ -52,3 +52,40 @@ def search_source(store, snapshot_id, query, root):
     return {'snapshot_id': snapshot_id, 'source': source, 'pattern': pattern,
             'matches': matches, **_page(count, len(matches), limit, offset),
             'coverage_scope': 'all lines in this original file; offsets count matching lines'}
+
+
+def source_lines(store, snapshot_id, query, root):
+    """Read a requested inclusive line range from the actual full source file."""
+    start = int(query.get('start_line', 1))
+    end = int(query.get('end_line', start + 79))
+    maximum = int(query.get('max_bytes', 8192))
+    if start < 1 or end < start or not 1 <= maximum <= 65536:
+        raise ValueError('line range must be positive/increasing and max_bytes between 1 and 65536')
+    source = native_excerpt(store, snapshot_id, {'path': query.get('path'), 'max_bytes': '1'}, Path(root))['source']
+    chunks, byte_offset, first_offset, last_line, partial, returned = [], 0, None, None, False, 0
+    with Path(source['path']).open('rb') as stream:
+        for number, raw in enumerate(stream, 1):
+            if number < start:
+                byte_offset += len(raw)
+                continue
+            if number > end:
+                break
+            if first_offset is None:
+                first_offset = byte_offset
+            chunk = raw[:maximum - returned]
+            chunks.append(chunk)
+            returned += len(chunk)
+            byte_offset += len(chunk)
+            last_line = number
+            partial = len(chunk) < len(raw)
+            if partial or returned == maximum:
+                break
+    if first_offset is None:
+        raise KeyError('requested start_line is outside the original source')
+    complete = last_line == end and not partial
+    return {'snapshot_id': snapshot_id, 'source': source, 'text': b''.join(chunks).decode('utf-8', errors='replace'),
+            'offset': first_offset, 'returned_bytes': byte_offset - first_offset,
+            'truncated': not complete, 'next_offset': byte_offset if not complete and byte_offset < source['size_bytes'] else None,
+            'requested_start_line': start, 'requested_end_line': end, 'line_start': start, 'line_end': last_line,
+            'line_end_complete': not partial, 'range_complete': complete,
+            'coverage_scope': 'actual inclusive original line range; next_offset continues original bytes when bounded'}

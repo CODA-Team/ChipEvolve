@@ -193,6 +193,9 @@ def _file_digest(path: str, size: int, modified_ns: int) -> str:
 
 def native_excerpt(store, snapshot_id: str, query: dict, root: Path) -> dict:
     """Read any original file of this run, including files never staged by an adapter."""
+    if 'start_line' in query or 'end_line' in query:
+        from .source_search import source_lines
+        return source_lines(store, snapshot_id, query, root)
     snapshot = store.snapshot(snapshot_id)
     requested = query.get('path')
     if not requested:

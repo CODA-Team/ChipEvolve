@@ -77,6 +77,7 @@ distinct_signal_net_count counts different SIGNAL net IDs, not pins; shared conn
 S/net-inventory returns all native SigType counts and special_net_count from the actual dbNet.isSpecial flag
 in one native read of this original snapshot; do not substitute POWER+GROUND for this separate flag.
 S/objects supports kind=instance|net|pin, name (exact), name_contains, name_prefix, ids=<comma-separated up to100 IDs>, parent_id, master, is_macro=0|1,
+Object boolean filters/joins accept 0/1 or false/true; invalid values are explicit errors.
 For pins, parent_instance=<native instance name> directly resolves the instance and returns its filtered pins;
 no separate object-ID lookup is needed. Use signal_type=SIGNAL&fields=name,attributes.direction,attributes.net_name.
 signal_type=SIGNAL|CLOCK|POWER|GROUND, port=0|1, driver_count/min/max, port_driven=0|1,
@@ -122,6 +123,8 @@ Use pin_name together with path_id when a pin's timing on one particular path is
 fields=pin_name,net_name,slew,load,arrival,instance_id keeps results small.
 Projected path/point facts retain deduplicated sources plus record_sources routes to every original locator/fragment;
 selecting fewer fields does not remove their provenance. The source list covers the returned page.
+For projected paths/points, source_detail=compact returns every record_id and shared evidence/fragments
+URL templates instead of repeating two long URLs per row; URL-encode the record_id before substitution.
 S/timing-context exposes all original clocks, analysis setup and producer identity. S/artifacts lists attached originals
 and the original manifest (digests, flow/tool identity), with limit/offset.
 S/timing-paths/<path_id>/context?detail=summary&relation_limit=2 bounds graph relationships and states truncation.
@@ -181,6 +184,8 @@ Specify file for a particular iteration report; final DRC count comes from the s
     'sources': '''S/artifacts/files lists original report/log/result files, with producer_manifest_entry (literal original declared digest/size)
 separate from current size_bytes. This does not claim current bytes have been rehashed; absent manifest entries remain null.
 S/artifacts/files/excerpt?path=<relative>&offset=0&max_bytes=8192 reads original bytes, including configs/libs declared by producer and receipts/<design>.flow.log etc.
+S/artifacts/files/excerpt also accepts start_line=<1-based>&end_line=<inclusive> to retrieve specific original lines,
+with exact source identity/byte positions and explicit range completion. Byte continuation remains available.
 S/artifacts/files/search?path=<relative>&pattern=<regular expression>&ignore_case=1&context_lines=0&limit=20
 searches ALL original lines and returns matching text, source digest, line numbers and byte offsets;
 offset/next_offset page the matches. Use it for report/SDC/log facts beyond the compact endpoints.

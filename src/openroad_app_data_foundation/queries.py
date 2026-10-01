@@ -96,7 +96,7 @@ def list_timing_paths(store: DataStore, snapshot_id: str, query: dict[str, str])
         candidates = [row for row in candidates if all(row.get(k) == v for k, v in clock_filters.items())]
         total, rows = len(candidates), candidates[offset:offset + limit]
         filters.update(clock_filters)
-    sources = projected_sources(snapshot_id, 'timing_paths', 'path_id', rows) if query.get('fields') else {}
+    sources = projected_sources(snapshot_id, 'timing_paths', 'path_id', rows, query.get('source_detail', 'links')) if query.get('fields') else {}
     if query.get('fields'):
         columns = query['fields'].split(',')
         allowed = {'path_id', 'startpoint', 'endpoint', 'group', 'check', 'slack', 'required_time',
@@ -117,7 +117,7 @@ def list_timing_points(store: DataStore, snapshot_id: str,
     slew" meant all 776 points of ibex, path by path.
     """
     names = ('path_id', 'path_section', 'pin_name', 'instance_id', 'net_id')
-    allowed = {*names, 'check', 'sort', 'order', 'fields', 'limit', 'offset'}
+    allowed = {*names, 'check', 'sort', 'order', 'fields', 'limit', 'offset', 'source_detail'}
     if set(query) - allowed:
         raise ValueError('unknown timing point query fields: ' + ','.join(sorted(set(query) - allowed)))
     filters = {key: query[key] for key in names if query.get(key)}
@@ -138,7 +138,7 @@ def list_timing_points(store: DataStore, snapshot_id: str,
                           limit=limit, offset=offset, order_by=clause)
     return {"snapshot_id": snapshot_id, "snapshot": snapshot_identity(store.snapshot(snapshot_id)),
             "timing_points": _point_projection(rows, query), **ranking,
-            **(projected_sources(snapshot_id, 'timing_points', 'point_id', rows) if query.get('fields') else {}),
+            **(projected_sources(snapshot_id, 'timing_points', 'point_id', rows, query.get('source_detail', 'links')) if query.get('fields') else {}),
             **_page(total, len(rows), limit, offset), "filters": filters}
 
 
@@ -432,7 +432,7 @@ def path_points(store: DataStore, snapshot_id: str, path_id: str, query: dict[st
     return {"snapshot_id": snapshot_id, "snapshot": snapshot_identity(store.snapshot(snapshot_id)),
             "path_id": path_id,
             "timing_points": _point_projection(page, query), **_page(len(points), len(page), limit, offset),
-            **(projected_sources(snapshot_id, 'timing_points', 'point_id', page) if query.get('fields') else {})}
+            **(projected_sources(snapshot_id, 'timing_points', 'point_id', page, query.get('source_detail', 'links')) if query.get('fields') else {})}
 
 
 def path_nets(store: DataStore, snapshot_id: str, path_id: str,
