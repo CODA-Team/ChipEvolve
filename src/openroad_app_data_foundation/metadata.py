@@ -5,13 +5,17 @@ from urllib.parse import urlencode
 from .identity import snapshot_identity
 
 
+def recovery_path(path, query):
+    return path + '?' + urlencode({**{key: value for key, value in query.items()
+                                     if key not in ('fields', 'detail')}, 'detail': 'full'})
+
+
 def metadata_view(payload, query, path):
     """Project requested facts or expose a compact summary with a full continuation."""
     detail = query.get('detail', 'summary')
     if detail not in ('summary', 'full'):
         raise ValueError('metadata detail must be summary|full')
-    full_details = path + '?' + urlencode({**{key: value for key, value in query.items()
-                                               if key not in ('fields', 'detail')}, 'detail': 'full'})
+    full_details = recovery_path(path, query)
     fields = query.get('fields')
     if fields:
         selection = {}

@@ -7,6 +7,7 @@ import hashlib
 import json
 from functools import lru_cache
 from .projected_sources import projected_sources
+from .metadata import recovery_path
 
 from typing import Any
 from urllib.parse import quote
@@ -79,6 +80,17 @@ def _order(record_type: str, query: dict[str, str]) -> tuple[str, dict[str, Any]
                     "worst_means": f"{worst_direction}ending"}
 
 
+def _timing_delivery(path, query, omitted):
+    detail = query.get('detail', 'summary')
+    if detail not in ('summary', 'full'):
+        raise ValueError('timing detail must be summary|full')
+    result = {'detail': detail, 'full_details': recovery_path(path, query),
+              'omitted_fields': omitted if detail == 'summary' and not query.get('fields') else []}
+    if query.get('fields'):
+        result['fields'] = query['fields'].split(',')
+    return result
+
+
 def list_timing_paths(store: DataStore, snapshot_id: str, query: dict[str, str]) -> dict[str, Any]:
     filters = {key: query[key] for key in ("analysis", "check", "group", "startpoint", "endpoint", "corner") if query.get(key)}
     where = " AND ".join(f"json_extract(payload, '$.{key}') = ?" for key in filters)
@@ -96,7 +108,7 @@ def list_timing_paths(store: DataStore, snapshot_id: str, query: dict[str, str])
         candidates = [row for row in candidates if all(row.get(k) == v for k, v in clock_filters.items())]
         total, rows = len(candidates), candidates[offset:offset + limit]
         filters.update(clock_filters)
-    sources = projected_sources(snapshot_id, 'timing_paths', 'path_id', rows, query.get('source_detail', 'links')) if query.get('fields') else {}
+    sources = projected_sources(snapshot_id, 'timing_paths', 'path_id', rows, query.get('source_detail', 'compact'))
     if query.get('fields'):
         columns = query['fields'].split(',')
         allowed = {'path_id', 'startpoint', 'endpoint', 'group', 'check', 'slack', 'required_time',
@@ -104,8 +116,14 @@ def list_timing_paths(store: DataStore, snapshot_id: str, query: dict[str, str])
         if not set(columns) <= allowed:
             raise ValueError('unknown timing path projection field')
         rows = [{key: row.get(key) for key in columns} for row in rows]
+    elif query.get('detail', 'summary') == 'summary':
+        rows = [{key: value for key, value in row.items() if key not in ('evidence', 'point_ids', 'path_identity')} for row in rows]
+    elif query['detail'] != 'full':
+        raise ValueError('timing detail must be summary|full')
     return {"snapshot_id": snapshot_id, "snapshot": snapshot_identity(store.snapshot(snapshot_id)),
             "timing_paths": rows, **ranking, **sources,
+            'delivery': _timing_delivery('/snapshots/' + snapshot_id + '/timing-paths', query,
+                ['timing_paths.evidence', 'timing_paths.point_ids', 'timing_paths.path_identity']),
             **_page(total, len(rows), limit, offset), "filters": filters}
 
 
@@ -117,7 +135,7 @@ def list_timing_points(store: DataStore, snapshot_id: str,
     slew" meant all 776 points of ibex, path by path.
     """
     names = ('path_id', 'path_section', 'pin_name', 'instance_id', 'net_id')
-    allowed = {*names, 'check', 'sort', 'order', 'fields', 'limit', 'offset', 'source_detail'}
+    allowed = {*names, 'check', 'sort', 'order', 'fields', 'limit', 'offset', 'source_detail', 'detail'}
     if set(query) - allowed:
         raise ValueError('unknown timing point query fields: ' + ','.join(sorted(set(query) - allowed)))
     filters = {key: query[key] for key in names if query.get(key)}
@@ -138,7 +156,9 @@ def list_timing_points(store: DataStore, snapshot_id: str,
                           limit=limit, offset=offset, order_by=clause)
     return {"snapshot_id": snapshot_id, "snapshot": snapshot_identity(store.snapshot(snapshot_id)),
             "timing_points": _point_projection(rows, query), **ranking,
-            **(projected_sources(snapshot_id, 'timing_points', 'point_id', rows, query.get('source_detail', 'links')) if query.get('fields') or query.get('source_detail') == 'compact' else {}),
+            **projected_sources(snapshot_id, 'timing_points', 'point_id', rows, query.get('source_detail', 'compact')),
+            'delivery': _timing_delivery('/snapshots/' + snapshot_id + '/timing-points', query,
+                ['timing_points.evidence', 'timing_points.identity_references']),
             **_page(total, len(rows), limit, offset), "filters": filters}
 
 
@@ -416,11 +436,15 @@ def timing_path(store: DataStore, snapshot_id: str, path_id: str,
 
 
 def _point_projection(rows, query):
+    detail = query.get('detail', 'summary')
+    if detail not in ('summary', 'full'):
+        raise ValueError('timing detail must be summary|full')
     if not query.get('fields'):
-        return [{key: value for key, value in row.items() if key != 'evidence'} for row in rows] if query.get('source_detail') == 'compact' else rows
+        return rows if detail == 'full' else [{key: value for key, value in row.items()
+                                             if key not in ('evidence', 'identity_references')} for row in rows]
     fields = query['fields'].split(',')
     allowed = {'point_id', 'path_id', 'ordinal', 'pin_name', 'instance_id', 'instance_name',
-               'net_id', 'net_name', 'cell_name', 'path_section', 'arrival', 'load', 'slew', 'evidence'}
+               'net_id', 'net_name', 'cell_name', 'path_section', 'arrival', 'load', 'slew', 'evidence', 'identity_references'}
     if not set(fields) <= allowed:
         raise ValueError('unknown timing point projection field')
     return [{key: row.get(key) for key in fields} for row in rows]
@@ -437,7 +461,9 @@ def path_points(store: DataStore, snapshot_id: str, path_id: str, query: dict[st
     return {"snapshot_id": snapshot_id, "snapshot": snapshot_identity(store.snapshot(snapshot_id)),
             "path_id": path_id,
             "timing_points": _point_projection(page, query), **_page(len(points), len(page), limit, offset),
-            **(projected_sources(snapshot_id, 'timing_points', 'point_id', page, query.get('source_detail', 'links')) if query.get('fields') or query.get('source_detail') == 'compact' else {})}
+            **projected_sources(snapshot_id, 'timing_points', 'point_id', page, query.get('source_detail', 'compact')),
+            'delivery': _timing_delivery('/snapshots/' + snapshot_id + '/timing-paths/' + quote(path_id, safe='') + '/points', query,
+                ['timing_points.evidence', 'timing_points.identity_references'])}
 
 
 def path_nets(store: DataStore, snapshot_id: str, path_id: str,

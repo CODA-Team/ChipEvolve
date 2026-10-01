@@ -116,7 +116,10 @@ even when group rows are paged. The latter counts POWER+GROUND and is explicitly
 Engineering instance names preserve the stored name and also provide native_name without DEF escapes.
 To retrieve the exact original spelling, use native queries against the original database; never invent its escape representation.
 ''',
-    'timing': '''S/timing-paths/<path_id>/clock-paths returns BOTH complete clock trees and the original path delay header,
+    'timing': '''Path/point lists default to engineering facts with shared source references. Heavy repeated identity
+reference maps, per-row evidence and path point-ID catalogs remain at detail=full; delivery.full_details
+preserves this request's original filters/order/pagination. All points, names and numeric facts remain present.
+S/timing-paths/<path_id>/clock-paths returns BOTH complete clock trees and the original path delay header,
 in exact native report order/units. Original instance/net values (including null/empty/undeclared fields)
 remain untouched; database mappings do not replace native report fields. This is one joined original-report read.
 S/timing-paths?check=setup|hold&sort=slack&order=worst&limit=N returns ranked stored paths;
