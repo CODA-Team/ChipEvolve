@@ -285,6 +285,8 @@ def routing_summary(store, snapshot_id, object_id):
                     via_layers[layer] = via_layers.get(layer, 0) + 1
     return {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(store.snapshot(snapshot_id)),
             'object_id': object_id, 'layers': layers, 'vias': vias,
+            'segment_layers': sorted(layers), 'via_layers': sorted(via_layers),
+            'routing_layers_used': sorted(set(layers) | set(via_layers)),
             'via_distribution_by_layer': via_layers,
             'via_layer_basis': 'each via contributes once to its bottom layer and once to its top layer',
             'wirelength_um': sum(x['centerline_length_dbu'] for x in layers.values()) /
