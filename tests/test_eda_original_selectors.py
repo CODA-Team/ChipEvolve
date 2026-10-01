@@ -93,3 +93,28 @@ def test_original_stage_inventory_separates_temporary_query_indexes(tmp_path):
         assert store.snapshot('query-result')['snapshot_id'] == 'query-result'
     finally:
         store.close()
+
+
+def test_original_metric_substrings_keep_full_names_values_corners_and_substages(tmp_path):
+    root = tmp_path / 'flow'
+    logs = root / 'logs/p/chip/r'
+    logs.mkdir(parents=True)
+    original = {'globalroute__global_route__fastroute__overflow_iterations_s': [1, 0],
+                'globalroute__custom__overflow__corner:slow': 2,
+                'globalroute__route__vias': 7,
+                'globalroute__flow__platform__time_units': '1ns'}
+    (logs / '5_1_grt.json').write_text(json.dumps(original))
+    (logs / '5_2_route.json').write_text(json.dumps({'detailedroute__route__vias': 8}))
+    store = DataStore(tmp_path / 'substring.sqlite')
+    try:
+        store.register(sample())
+        result = run_inventory(store, 's', root, stage='route', metric_names=('vias',),
+                               metric_contains=('OVERFLOW',))
+        reports = result['stages'][0]['metric_reports']
+        first = {row['raw_key']: row['value'] for row in reports[0]['metric_values']}
+        assert first == {key: value for key, value in original.items() if 'overflow' in key or 'vias' in key}
+        assert reports[0]['unit_declarations'] == {'globalroute__flow__platform__time_units': '1ns'}
+        assert reports[1]['metric_values'][0]['value'] == 8
+        assert reports[1]['metric_values'][0]['source'].endswith('/5_2_route.json')
+    finally:
+        store.close()
