@@ -256,7 +256,7 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) == 3 and parts[2] == 'routing-totals':
                 return routing_totals(store, parts[1])
             if len(parts) == 3 and parts[2] == 'run-inventory':
-                return run_inventory(store, parts[1], self.native_root)
+                return run_inventory(store, parts[1], self.native_root, stage=query.get('stage'))
             if len(parts) == 3 and parts[2] == 'source-metadata':
                 return source_metadata(store, parts[1], self.native_root)
             if len(parts) == 5 and parts[2] == 'timing-paths' and parts[4] == 'engineering':

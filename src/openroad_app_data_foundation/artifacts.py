@@ -89,7 +89,27 @@ def _native_file(path: Path, relative: str) -> dict:
             "modified": int(stat.st_mtime)}
 
 
-def run_inventory(store, snapshot_id, root):
+def _metric_inventory(store, snapshot_id, path, root, manifest):
+    relative = path.relative_to(root).as_posix()
+    text, offset = [], 0
+    while True:
+        page = native_excerpt(store, snapshot_id,
+            {'path': relative, 'offset': str(offset), 'max_bytes': '65536'}, Path(root))
+        text.append(page['text'])
+        if page['next_offset'] is None:
+            break
+        offset = page['next_offset']
+    metrics = json.loads(''.join(text))
+    if not isinstance(metrics, dict):
+        raise ValueError('original metric JSON must be an object')
+    return {'relative_path': relative, 'size_bytes': path.stat().st_size,
+            **manifest.get(relative, {}), 'key_count': len(metrics),
+            'has_timing': any('timing__' in key for key in metrics),
+            'has_area': any('instance__area' in key for key in metrics),
+            'has_wirelength': any('wirelength' in key for key in metrics)}
+
+
+def run_inventory(store, snapshot_id, root, *, stage=None):
     """Original flow outputs and metric availability, separately from indexed snapshots."""
     snapshot = store.snapshot(snapshot_id)
     directories = _run_dirs(snapshot, Path(root))
@@ -101,11 +121,15 @@ def run_inventory(store, snapshot_id, root):
                ('cts', '4_cts.odb', '4_1_cts.json'),
                ('route', '5_route.odb', '5_2_route.json'),
                ('finish', '6_final.odb', '6_report.json')]
+    if stage is not None and stage not in {row[0] for row in outputs}:
+        raise ValueError('unknown original flow stage')
     producer = snapshot.get('run_summary', {}).get('timing_context', {}).get('producer', {})
     manifest = producer.get('artifacts', {})
-    for stage, odb, metric in outputs:
-        item = {'stage': stage, 'original_database': None, 'original_metrics': None,
-                'indexed_snapshots': [s['snapshot_id'] for s in indexed if s['stage'] == stage]}
+    for stage_name, odb, metric in outputs:
+        if stage is not None and stage_name != stage:
+            continue
+        item = {'stage': stage_name, 'original_database': None, 'original_metrics': None,
+                'indexed_snapshots': [s['snapshot_id'] for s in indexed if s['stage'] == stage_name]}
         for category, name, field in [('results', odb, 'original_database'),
                                        ('logs', metric, 'original_metrics')]:
             directory = directories[category]['path']
@@ -116,24 +140,22 @@ def run_inventory(store, snapshot_id, root):
             item[field] = {'relative_path': relative, 'size_bytes': path.stat().st_size,
                            **manifest.get(relative, {})}
             if category == 'logs':
-                text, offset = [], 0
-                while True:
-                    page = native_excerpt(store, snapshot_id,
-                        {'path': relative, 'offset': str(offset), 'max_bytes': '65536'}, Path(root))
-                    text.append(page['text'])
-                    if page['next_offset'] is None:
-                        break
-                    offset = page['next_offset']
-                metrics = json.loads(''.join(text))
-                item[field].update(key_count=len(metrics),
-                    has_timing=any('timing__' in key for key in metrics),
-                    has_area=any('instance__area' in key for key in metrics),
-                    has_wirelength=any('wirelength' in key for key in metrics))
+                item[field] = _metric_inventory(store, snapshot_id, path, root, manifest)
+        directory = directories['logs']['path']
+        item['metric_reports'] = []
+        if directory is not None:
+            for path in sorted(Path(directory).glob(odb.split('_', 1)[0] + '_*.json')):
+                if path.name == metric and item['original_metrics'] is not None:
+                    entry = item['original_metrics']
+                else:
+                    entry = _metric_inventory(store, snapshot_id, path, root, manifest)
+                item['metric_reports'].append(entry)
         item['availability'] = 'available' if item['original_database'] else 'not_produced'
         stages.append(item)
     return {'snapshot_id': snapshot_id, 'run_id': snapshot['run_id'], 'stages': stages,
             'original_stage_count': sum(s['availability'] == 'available' for s in stages),
             'coverage_rule': 'original files determine availability; missing index does not mean missing original',
+            'metric_report_rule': 'all original stage JSON reports are listed separately; earlier substage values do not replace the representative stage report',
             'native_manifest': {'native_run_id': producer.get('native_run_id'),
                                 'toolchain': producer.get('toolchain')}}
 
