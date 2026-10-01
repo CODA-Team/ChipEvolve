@@ -77,8 +77,15 @@ def constraint_context(store, client, snapshot_id, query):
         delay_values[kind] = sorted(values)
     limit, offset = _limit(query), _offset(query)
     context = snapshot.get('run_summary', {}).get('timing_context', {})
+    manifest = context.get('producer', {}).get('artifacts', {})
+    original_constraints = [{'staged_source': ref,
+        'original_paths': sorted(path for path, item in manifest.items()
+            if path.endswith('.sdc') and item['sha256'] == ref['sha256'])}
+        for ref in refs if ref.get('logical_path') == context.get('constraints')]
     result = {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(snapshot),
               'clocks': context.get('clocks', []), 'analysis': context.get('analysis'),
+              'clock_source_semantics': 'clock sources are native ports/pins; source file citations are separate',
+              'original_constraints': original_constraints,
               'corner': context.get('corner'), 'parasitic_mode': context.get('parasitic_mode'),
               'libraries': context.get('libraries', []),
               'declaration_counts': {key: len(rows) for key, rows in declarations.items()},
