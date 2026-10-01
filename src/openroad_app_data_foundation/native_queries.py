@@ -50,11 +50,16 @@ def native_query_result(client, run_id, query):
     if run['project_id'] != 'eda-ai-native-query':
         raise KeyError('run is not a native engineering query')
     result = {'run_id': run_id, 'status': run['status'], 'terminal_reason': run.get('terminal_reason')}
-    if run['status'] != 'succeeded':
+    if run['status'] not in ('succeeded', 'failed', 'timed_out', 'cancelled', 'lost'):
         return result
+    if run['status'] != 'succeeded':
+        result['failure_details'] = [attempt['failure'] for stage in run.get('stages', [])
+            for attempt in stage.get('attempts', []) if attempt.get('failure')]
     artifacts = client.artifacts(run_id)
     refs = [r for r in artifacts if r['kind'] == 'analysis_report' and
             (r.get('metadata') or {}).get('report') == 'native']
+    if not refs and run['status'] != 'succeeded':
+        return result
     if len(refs) != 1:
         raise ValueError('native query must produce exactly one original report')
     ref = refs[0]
