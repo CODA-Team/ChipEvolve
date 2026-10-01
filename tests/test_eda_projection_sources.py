@@ -31,3 +31,25 @@ def test_compact_path_and_point_facts_keep_deduplicated_source_and_exact_record_
                 assert original['sha256'] == result['evidence'][0]['sha256']
     finally:
         store.close()
+
+
+def test_compact_source_templates_recover_every_original_point_locator(tmp_path):
+    from urllib.parse import quote
+    pack = sample()
+    ref = {'artifact_id': 'report', 'sha256': 'a' * 64, 'logical_path': 'original.json'}
+    for point in pack['timing_points']:
+        point['evidence'] = [{**ref, 'detail': {'point_id': point['point_id']}}]
+    store = DataStore(tmp_path / 'templates.sqlite')
+    try:
+        store.register(pack)
+        result = path_points(store, 's', 'p', {'fields': 'pin_name', 'source_detail': 'compact'})
+        sources = result['record_sources']
+        assert sources['record_ids'] == ['clock', 'in', 'out']
+        assert result['evidence'][0]['sha256'] == ref['sha256']
+        for record_id in sources['record_ids']:
+            route = sources['evidence_template'].replace('{record_id}', quote(record_id, safe=''))
+            assert unquote(route.split('/')[-2]) == record_id
+            original = store.record_evidence('s', 'timing_points', record_id)[0]['evidence']
+            assert original['detail']['point_id'] == record_id
+    finally:
+        store.close()

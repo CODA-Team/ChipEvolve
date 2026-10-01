@@ -118,3 +118,48 @@ def test_original_metric_substrings_keep_full_names_values_corners_and_substages
         assert reports[1]['metric_values'][0]['source'].endswith('/5_2_route.json')
     finally:
         store.close()
+
+
+def test_line_range_reads_original_positions_and_exposes_partial_continuation(tmp_path):
+    from openroad_app_data_foundation.artifacts import native_excerpt
+    import pytest
+    root = tmp_path / 'flow'
+    logs = root / 'logs/p/chip/r'
+    logs.mkdir(parents=True)
+    lines = [f'row {i} \n'.encode() for i in range(1, 151)]
+    (logs / 'large.log').write_bytes(b''.join(lines))
+    store = DataStore(tmp_path / 'lines.sqlite')
+    try:
+        store.register(sample())
+        query = {'path': 'logs/p/chip/r/large.log', 'start_line': '101', 'end_line': '103', 'max_bytes': '100'}
+        result = native_excerpt(store, 's', query, root)
+        assert result['text'].encode() == b''.join(lines[100:103])
+        assert result['offset'] == len(b''.join(lines[:100]))
+        assert result['range_complete'] and result['line_end'] == 103
+        partial = native_excerpt(store, 's', {**query, 'max_bytes': '4'}, root)
+        assert not partial['range_complete'] and not partial['line_end_complete']
+        resumed = native_excerpt(store, 's', {'path': query['path'], 'offset': str(partial['next_offset']), 'max_bytes': str(len(b''.join(lines[100:103])) - 4)}, root)
+        assert partial['text'] + resumed['text'] == b''.join(lines[100:103]).decode()
+        with pytest.raises(KeyError, match='outside the original source'):
+            native_excerpt(store, 's', {**query, 'start_line': '151', 'end_line': '153'}, root)
+    finally:
+        store.close()
+
+
+def test_boolean_object_queries_accept_both_http_boolean_forms(tmp_path):
+    from openroad_app_data_foundation.discovery import list_objects
+    import pytest
+    store = DataStore(tmp_path / 'boolean.sqlite')
+    try:
+        pack = sample()
+        pack['entities'][0]['attributes']['is_macro'] = 1
+        store.register(pack)
+        for enabled in ('true', '1'):
+            result = list_objects(store, 's', {'kind': 'instance', 'is_macro': enabled, 'include_physical': enabled})
+            assert [row['name'] for row in result['objects']] == ['u']
+            assert result['objects'][0]['physical']['bbox_um_array'] == [0, 0, .005, .01]
+        assert list_objects(store, 's', {'kind': 'instance', 'is_macro': 'false'})['count'] == 0
+        with pytest.raises(ValueError, match='must be 0'):
+            list_objects(store, 's', {'kind': 'instance', 'is_macro': 'maybe'})
+    finally:
+        store.close()
