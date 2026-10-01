@@ -35,6 +35,46 @@ def sample():
                  'path_section': 'source_path'}]}
 
 
+def test_object_page_joins_chip_geometry_and_reports_missing_geometry(tmp_path):
+    from openroad_app_data_foundation.discovery import list_objects
+    store = DataStore(tmp_path / 'd.sqlite')
+    try:
+        store.register(sample())
+        page = list_objects(store, 's', {'kind': 'instance', 'sort': 'name',
+                            'include_physical': '1', 'fields': 'name,physical', 'limit': '1'})
+        assert page['objects'][0]['physical']['status'] == 'not_extracted'
+        other = list_objects(store, 's', {'kind': 'instance', 'sort': 'name',
+                             'include_physical': '1', 'fields': 'name,physical', 'offset': '1'})
+        assert other['objects'][0]['physical']['bbox_um']['x_max'] == 0.005
+        assert other['objects'][0]['physical']['bbox_dbu']['y_max'] == 20
+    finally:
+        store.close()
+
+
+def test_source_search_pages_original_matches_with_correct_byte_locations(tmp_path):
+    from openroad_app_data_foundation.source_search import search_source
+    pack = sample()
+    source = tmp_path / 'report.txt'
+    source.write_text('header\n错误 one\ncontext\nerror two\nend\n')
+    from openroad_platform_runtime.digest import sha256
+    pack['run_summary']['timing_context'] = {'producer': {'artifacts': {
+        'report.txt': {'sha256': sha256(source)}}}}
+    store = DataStore(tmp_path / 'd.sqlite')
+    try:
+        store.register(pack)
+        query = {'path': 'report.txt', 'pattern': '错误|error', 'context_lines': '1', 'limit': '1'}
+        first = search_source(store, 's', query, tmp_path)
+        assert first['count'] == 2 and first['next_offset'] == 1
+        second = search_source(store, 's', {**query, 'offset': '1'}, tmp_path)
+        assert second['next_offset'] is None
+        row = second['matches'][0]
+        assert row['match_line'] == 4 and row['line_start'] == 3 and row['line_end'] == 5
+        assert source.read_bytes()[row['byte_start']:row['byte_end']].decode() == row['text']
+        assert first['source']['sha256'] == sha256(source)
+    finally:
+        store.close()
+
+
 def test_clean_design_has_zero_wns_but_positive_worst_slack(tmp_path):
     pack = sample()
     pack['observations'] = [
