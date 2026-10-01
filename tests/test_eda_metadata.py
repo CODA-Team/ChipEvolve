@@ -61,3 +61,13 @@ def test_dotted_selection_reads_ordered_array_fields_without_full_objects():
     with pytest.raises(ValueError, match='instances.no_such_fact'):
         metadata_view(payload, {'fields': 'instances.no_such_fact'}, '/path')
     assert metadata_view(payload, {'fields': 'instances,instances.name'}, '/path')['instances'] == payload['instances']
+
+
+def test_projected_recovery_retains_stage_selector_and_pagination_semantics():
+    from urllib.parse import urlsplit, parse_qs
+    query = {'stage': 'route', 'metrics': 'setup__ws,hold__ws', 'offset': '3', 'limit': '3',
+             'traverse': '1', 'fields': 'value'}
+    projected = metadata_view({'value': 7}, query, '/snapshots/s/run-inventory')
+    full = parse_qs(urlsplit(projected['delivery']['full_details']).query)
+    assert full == {key: [value] for key, value in {**{k: v for k, v in query.items() if k != 'fields'}, 'detail': 'full'}.items()}
+    assert 'fields' not in full

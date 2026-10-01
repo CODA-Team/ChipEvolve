@@ -113,6 +113,9 @@ def test_object_provenance_joins_only_its_actual_digest_and_native_locator(tmp_p
         assert result['sources'][0]['sha256'] == 'a' * 64
         assert result['producer_identity']['native_run_id'] == 'original-flow'
         assert result['record_sources']['evidence_path'].endswith('/records/entities/i/evidence')
+        assert result['extraction_identity'][0]['source_type'] == 'opendb'
+        assert result['native_locators'][0]['object_key'] == 'u'
+        assert result['native_locators'][0]['artifact_sha256'] == 'a' * 64
     finally:
         store.close()
 

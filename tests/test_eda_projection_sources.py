@@ -53,3 +53,18 @@ def test_compact_source_templates_recover_every_original_point_locator(tmp_path)
             assert original['detail']['point_id'] == record_id
     finally:
         store.close()
+
+
+def test_compact_sources_without_field_selection_preserve_full_point_facts(tmp_path):
+    pack = sample()
+    pack['timing_points'][1].update(arrival=.2, evidence=[{'artifact_id': 'report', 'detail': {'point': 1}}])
+    store = DataStore(tmp_path / 'compact-default.sqlite')
+    try:
+        store.register(pack)
+        full = path_points(store, 's', 'p', {})
+        compact = path_points(store, 's', 'p', {'source_detail': 'compact'})
+        assert compact['timing_points'] == [{k: v for k, v in row.items() if k != 'evidence'} for row in full['timing_points']]
+        assert compact['record_sources']['record_ids'] == ['clock', 'in', 'out']
+        assert compact['evidence'][0]['artifact_id'] == 'report'
+    finally:
+        store.close()
