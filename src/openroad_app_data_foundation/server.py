@@ -14,7 +14,7 @@ from openroad_platform_client import (KernelClient, KernelError, KernelUnavailab
 from openroad_platform_contracts import ContractError
 
 from .artifacts import (DEFAULT_NATIVE_ROOT, artifact_manifest, native_files,
-                        violations, native_excerpt)
+                        violations, native_excerpt, run_inventory)
 from .bundle import import_ready_bundles, load_run_bundle
 from .context import net_context, object_context, timing_path_context
 from .metric_queries import compare_metric
@@ -22,6 +22,7 @@ from .discovery import list_objects, timing_context, routing_summary
 from .parasitics import net_parasitics
 from .engineering import object_statistics, path_engineering, timing_overview, routing_totals
 from .constraints import constraint_context
+from .source_metadata import source_metadata
 from .native_queries import submit_native_query, native_query_result
 from .timing_queries import submit_timing_query, timing_query_status
 from .identity import snapshot_identity
@@ -250,6 +251,10 @@ class Handler(BaseHTTPRequestHandler):
                 return timing_overview(store, parts[1], query)
             if len(parts) == 3 and parts[2] == 'routing-totals':
                 return routing_totals(store, parts[1])
+            if len(parts) == 3 and parts[2] == 'run-inventory':
+                return run_inventory(store, parts[1], self.native_root)
+            if len(parts) == 3 and parts[2] == 'source-metadata':
+                return source_metadata(store, parts[1], self.native_root)
             if len(parts) == 5 and parts[2] == 'timing-paths' and parts[4] == 'engineering':
                 return path_engineering(store, parts[1], parts[3], query)
             if len(parts) == 3 and parts[2] == "timing-context":

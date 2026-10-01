@@ -89,6 +89,55 @@ def _native_file(path: Path, relative: str) -> dict:
             "modified": int(stat.st_mtime)}
 
 
+def run_inventory(store, snapshot_id, root):
+    """Original flow outputs and metric availability, separately from indexed snapshots."""
+    snapshot = store.snapshot(snapshot_id)
+    directories = _run_dirs(snapshot, Path(root))
+    indexed = store.snapshots(run_id=snapshot['run_id'])
+    stages = []
+    outputs = [('synth', '1_synth.odb', '1_synth.json'),
+               ('floorplan', '2_floorplan.odb', '2_1_floorplan.json'),
+               ('place', '3_place.odb', '3_5_place_dp.json'),
+               ('cts', '4_cts.odb', '4_1_cts.json'),
+               ('route', '5_route.odb', '5_2_route.json'),
+               ('finish', '6_final.odb', '6_report.json')]
+    producer = snapshot.get('run_summary', {}).get('timing_context', {}).get('producer', {})
+    manifest = producer.get('artifacts', {})
+    for stage, odb, metric in outputs:
+        item = {'stage': stage, 'original_database': None, 'original_metrics': None,
+                'indexed_snapshots': [s['snapshot_id'] for s in indexed if s['stage'] == stage]}
+        for category, name, field in [('results', odb, 'original_database'),
+                                       ('logs', metric, 'original_metrics')]:
+            directory = directories[category]['path']
+            path = Path(directory) / name if directory else None
+            if path is None or not path.is_file():
+                continue
+            relative = path.relative_to(root).as_posix()
+            item[field] = {'relative_path': relative, 'size_bytes': path.stat().st_size,
+                           **manifest.get(relative, {})}
+            if category == 'logs':
+                text, offset = [], 0
+                while True:
+                    page = native_excerpt(store, snapshot_id,
+                        {'path': relative, 'offset': str(offset), 'max_bytes': '65536'}, Path(root))
+                    text.append(page['text'])
+                    if page['next_offset'] is None:
+                        break
+                    offset = page['next_offset']
+                metrics = json.loads(''.join(text))
+                item[field].update(key_count=len(metrics),
+                    has_timing=any('timing__' in key for key in metrics),
+                    has_area=any('instance__area' in key for key in metrics),
+                    has_wirelength=any('wirelength' in key for key in metrics))
+        item['availability'] = 'available' if item['original_database'] else 'not_produced'
+        stages.append(item)
+    return {'snapshot_id': snapshot_id, 'run_id': snapshot['run_id'], 'stages': stages,
+            'original_stage_count': sum(s['availability'] == 'available' for s in stages),
+            'coverage_rule': 'original files determine availability; missing index does not mean missing original',
+            'native_manifest': {'native_run_id': producer.get('native_run_id'),
+                                'toolchain': producer.get('toolchain')}}
+
+
 @lru_cache(maxsize=64)
 def _file_digest(path: str, size: int, modified_ns: int) -> str:
     return _sha256(Path(path))

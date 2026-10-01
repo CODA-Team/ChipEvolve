@@ -49,6 +49,28 @@ def _bbox_union(boxes):
             [('x_min', min), ('y_min', min), ('x_max', max), ('y_max', max)]}
 
 
+def point_extrema(points):
+    """Complete maxima and ties from numeric data points, preserving source units."""
+    result = {}
+    for field, unit in [('slew', 's'), ('load', 'F')]:
+        values = [p for p in points if isinstance(p.get(field), (int, float))]
+        if not values:
+            result[field] = {'status': 'not_extracted', 'max_value': None, 'unit': unit,
+                             'pin_names': [], 'selected_point': None}
+            continue
+        maximum = max(p[field] for p in values)
+        tied = {p['pin_name']: p for p in values if p[field] == maximum}
+        names = sorted(tied)
+        selected = tied[names[-1]]
+        result[field] = {'status': 'available', 'max_value': maximum, 'unit': unit,
+                         'pin_names': names, 'tie_count': len(names),
+                         'selection_rule': 'greatest full pin name among exact numeric ties',
+                         'selected_point': {key: selected.get(key) for key in
+                                            ('pin_name', 'instance_id', 'instance_name', 'net_id',
+                                             'net_name', 'cell_name', 'slew', 'load', 'arrival')}}
+    return result
+
+
 def routing_totals(store, snapshot_id):
     """Compute full-design geometry from every stored native wire shape."""
     snapshot = store.snapshot(snapshot_id)
@@ -104,7 +126,7 @@ def path_engineering(store, snapshot_id, path_id, query):
                      'signal_type': attr.get('signal_type')})
     nets.sort(key=lambda n: (-(n['fanout'] if n['fanout'] is not None else -1), n['name']))
     compact_points = [{key: p.get(key) for key in
-                       ('pin_name', 'instance_id', 'net_id', 'net_name', 'slew', 'load', 'arrival')}
+                       ('pin_name', 'instance_id', 'instance_name', 'cell_name', 'net_id', 'net_name', 'slew', 'load', 'arrival')}
                       for p in points]
     masters = Counter(item['master'] for item in instances)
     snapshot = store.snapshot(snapshot_id)
@@ -119,6 +141,7 @@ def path_engineering(store, snapshot_id, path_id, query):
               'unmapped_instance_ids': unmapped,
               'evidence': path.get('evidence', []),
               'units': {'slack': path.get('unit'), 'slew': 's', 'load': 'F'},
+              'data_point_extrema': point_extrema(points),
               'clock_points_excluded': True}
     limit, offset = _limit(query), _offset(query)
     for name, rows in [('points', compact_points), ('instances', instances), ('nets', nets)]:
@@ -151,12 +174,13 @@ def timing_overview(store, snapshot_id, query):
     options = {**query, 'sort': 'slack', 'order': 'worst', 'offset': '0'}
     rows = list_timing_paths(store, snapshot_id, options)
     instance_paths, master_occurrences, net_ids = Counter(), Counter(), set()
-    paths = []
+    paths, data_points = [], []
     for path in rows['timing_paths']:
         detail = path_engineering(store, snapshot_id, path['path_id'], {'limit': '10000'})
         instance_paths.update(item['name'] for item in detail['instances'])
         master_occurrences.update(detail['master_counts'])
         net_ids.update(item['net_id'] for item in detail['nets'])
+        data_points.extend(detail['points'])
         paths.append(detail['path'])
     nets = []
     for item in store.entities_by_ids(snapshot_id, sorted(net_ids)):
@@ -177,6 +201,7 @@ def timing_overview(store, snapshot_id, query):
             'repeated_instances': [{'name': name, 'path_count': count} for name, count in
                                    sorted(instance_paths.items(), key=lambda x: (-x[1], x[0]))[:limit]],
             'master_occurrences': dict(sorted(master_occurrences.items())),
+            'data_point_extrema': point_extrema(data_points),
             'net_union_count': len(nets), 'nets': nets[:limit],
             'nets_truncated': len(nets) > limit,
             'net_names': sorted(n['name'] for n in nets)}
