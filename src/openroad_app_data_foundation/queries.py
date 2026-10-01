@@ -302,7 +302,7 @@ def timing_path(store: DataStore, snapshot_id: str, path_id: str,
     result: dict[str, Any] = {"snapshot_id": snapshot_id, "snapshot": snapshot_identity(store.snapshot(snapshot_id)),
                               "timing_path": path,
                               "analysis_context": build_analysis_context(
-                                  snapshot_identity(store.snapshot(snapshot_id)), path)}
+                                  store.snapshot(snapshot_id), path)}
     if points_limit:
         result["timing_points"] = selected[:points_limit]
         result["points_returned"] = min(points_limit, len(selected))
@@ -672,7 +672,7 @@ def _path_evidence(store: DataStore, snapshot_id: str, path_id: str,
                                     "reason": "no evidence reference"}})
     return result + [{"record_type": "snapshot", "record_id": snapshot_id,
                       "artifact": item}
-                     for item in snapshot_identity(store.snapshot(snapshot_id)).get("source_artifacts", [])
+                     for item in store.snapshot(snapshot_id).get("source_artifacts", [])
                      if isinstance(item, dict)]
 
 

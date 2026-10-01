@@ -20,6 +20,7 @@ from openroad_app_data_foundation.queries import (
     list_metrics_for_run,
     list_observations,
     list_timing_paths,
+    timing_path,
 )
 from openroad_app_data_foundation.repository import DataStore
 
@@ -283,6 +284,31 @@ def test_placeholder_evidence_resolves_to_real_bundle_artifact(tmp_path: Path) -
         assert evidence["resolution"] == "bundle_member"
         assert evidence["nested_path"] == "query-data/timing_report.json"
         assert evidence["artifact_id"] != "timing-report"
+    finally:
+        store.close()
+
+
+def test_path_context_keeps_the_native_timing_context(tmp_path: Path) -> None:
+    """A path's analysis context reads the snapshot's native values, not its scope.
+
+    ``identity.snapshot_identity`` belongs in a response *payload*; handing it to
+    ``build_analysis_context`` instead drops ``parasitic_mode``,
+    ``parasitic_source`` and ``rc_source`` silently - the answer still says
+    ``available``, it just knows less.  The pilot's cross-domain questions are
+    exactly the ones that read these.
+    """
+    value = pack()
+    # `register` reads the pack-level run_summary, not the snapshot's own key.
+    value["run_summary"] = {"timing_context": {
+        "parasitic_mode": "spef", "parasitics": "inputs/design.spef",
+        "rc_script": "scripts/rc.tcl"}}
+    store = DataStore(tmp_path / "native.db")
+    try:
+        store.register(value)
+        context = timing_path(store, "snap-1", "path-1")["analysis_context"]
+        assert context["parasitic_mode"] == "spef", context
+        assert context["parasitic_source"] == "inputs/design.spef", context
+        assert context["rc_source"] == "scripts/rc.tcl", context
     finally:
         store.close()
 
