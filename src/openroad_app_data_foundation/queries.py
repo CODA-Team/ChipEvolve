@@ -131,6 +131,15 @@ def list_metrics_for_run(store: DataStore, run_id: str,
     stays small by default.
     """
     snapshots = store.snapshots(run_id=run_id)
+    if not snapshots:
+        # Same signal as /runs/{run}/summary, for the same reason: a long list of
+        # `unavailable` metrics under `status: available` says "this run exists and
+        # its metrics are missing", which is the one thing that is not true.  A run
+        # this store has never imported is not found here, whatever the execution
+        # service knows about it.
+        raise KeyError(
+            f"run not found: {run_id} has no snapshot in this store "
+            f"(it may exist in the execution service but was never imported)")
     projection = project_run(store, snapshots)
     filters = {key: query[key]
                for key in ("stage", "name", "scene", "snapshot_id")

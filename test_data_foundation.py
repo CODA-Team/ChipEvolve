@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 import pytest
@@ -1283,3 +1284,93 @@ def test_worst_means_the_metrics_own_worst_direction(tmp_path: Path) -> None:
             raise AssertionError("an unknown sort field was accepted")
     finally:
         store.close()
+
+
+def test_spef_index_resolves_names_and_parses_one_record(tmp_path):
+    """The SPEF reader: NAME_MAP indirection, `\\`-escaped names, R/C sums.
+
+    Built from a real record's shape (ariane136 `*D_NET *96532`): node tokens
+    are NAME_MAP ids, ground capacitors have three fields and coupling
+    capacitors four, and the header total equals ground + coupling.
+    """
+    from openroad_app_data_foundation.parasitics import _parse_block, _read_block, spef_index
+
+    spef = tmp_path / "tiny.spef"
+    spef.write_text(
+        '*SPEF "ieee 1481-1999"\n'
+        '*DESIGN "chip"\n'
+        "*T_UNIT 1 NS\n*C_UNIT 1 PF\n*R_UNIT 1 OHM\n"
+        "*NAME_MAP\n"
+        "*1 _00000_\n"
+        "*2 amo_req\\[0\\]\n"
+        "*3 FILLER_1_2:A\n"
+        "*4 FILLER_1_2:Z\n"
+        "*5 u_other:B1\n"
+        "*PORTS\n"
+        "clk_i I\n"
+        "*D_NET *1 7.5e-05\n"
+        "*CONN\n"
+        "*I *3 I *D INV_X1\n"
+        "*I *4 O *D INV_X1\n"
+        "*CAP\n"
+        "1 *3 5e-05\n"
+        "2 *4 2e-05\n"
+        "3 *3 *5 5e-06\n"
+        "*RES\n"
+        "1 *4 *3 12.5\n"
+        "*END\n"
+        "*D_NET *2 1e-06\n"
+        "*CAP\n"
+        "1 *2 1e-06\n"
+        "*END\n", encoding="utf-8")
+
+    index = spef_index(spef, None)
+    assert index.stats()["net_count"] == 2
+    assert index.stats()["name_map_entries"] == 5
+    assert index.stats()["name_map_literal_lines"] == 0
+    assert index.header["C_UNIT"] == "1 PF" and index.header["design"] == "chip"
+    # the DEF-escaped spelling and the plain one are the same net
+    assert index.offsets["amo_req[0]"] == index.offsets["amo_req[0]".replace("\\", "")]
+
+    data, truncated = _read_block(spef, index.offsets["_00000_"])
+    assert not truncated and data.endswith(b"*END\n")
+    record = _parse_block(data)
+    assert record["total_capacitance"] == 7.5e-05
+    assert record["malformed_lines"] == 0
+    assert [pin["node"] for pin in record["pins"]] == ["*3", "*4"]
+    ground = sum(value for _, _, coupled, value in record["capacitors"] if coupled is None)
+    coupling = sum(value for _, _, coupled, value in record["capacitors"] if coupled)
+    assert math.isclose(ground, 7e-05) and math.isclose(coupling, 5e-06)
+    assert math.isclose(record["total_capacitance"], ground + coupling)
+    assert [value for _, _, _, value in record["resistors"]] == [12.5]
+    # node tokens are NAME_MAP ids, so the answer names real pins
+    assert index.node_name("*3") == "FILLER_1_2:A"
+    assert index.node_name("*2") == "amo_req[0]"
+    assert index.node_name("clk_i") == "clk_i"
+
+
+def test_violation_report_records_and_empty_final_report(tmp_path):
+    """A report is per-violation facts; an empty one is a real, reported fact."""
+    from openroad_app_data_foundation.artifacts import _parse_report
+
+    report = tmp_path / "5_route_drc.rpt-5.rpt"
+    report.write_text(
+        "violation type: Short\n"
+        "\tsrcs: net:a\\[1\\] net:b\n"
+        "\tbbox = (386.9850, 273.8400) - (387.1250, 273.9800) on Layer metal5\n"
+        "violation type: Vertical congestion\n"
+        "\tsrcs: net:c net:d\n"
+        "\tcomment: capacity:22 usage:23 congestion:1\n"
+        "\tbbox = (453.1500, 290.7000) - (456.0000, 293.5500) on Layer -\n",
+        encoding="utf-8")
+    records = _parse_report(report, "reports/x/5_route_drc.rpt-5.rpt")
+    assert [item["type"] for item in records] == ["Short", "Vertical congestion"]
+    assert records[0]["sources"] == ["net:a\\[1\\]", "net:b"]
+    assert records[0]["bbox"] == {"x_min": 386.985, "y_min": 273.84,
+                                  "x_max": 387.125, "y_max": 273.98}
+    assert records[0]["layer"] == "metal5" and records[0]["index"] == 0
+    assert records[1]["comment"] == "capacity:22 usage:23 congestion:1"
+
+    empty = tmp_path / "5_route_drc.rpt"
+    empty.write_text("", encoding="utf-8")
+    assert _parse_report(empty, "reports/x/5_route_drc.rpt") == []

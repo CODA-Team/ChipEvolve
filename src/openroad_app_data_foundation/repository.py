@@ -229,6 +229,14 @@ class DataStore:
             -- Not dead code: an adapter that starts populating
             -- attributes.hierarchical_name needs this index to exist, and the
             -- name lookup below reads it.  Today it holds a single entry.
+            -- A ranking is a scan without this.  Measured on ariane136 before it
+            -- existed: `?kind=net&sort=fanout&order=desc&limit=5` took **5.2 s**
+            -- every time, because SQLite had to evaluate fanout on every row and
+            -- sort.  Only nets carry a fanout, so the partial index stays small.
+            CREATE INDEX IF NOT EXISTS records_json_fanout
+                ON records(snapshot_id, record_type,
+                           json_extract(payload, '$.attributes.fanout') DESC)
+                WHERE json_extract(payload, '$.attributes.fanout') IS NOT NULL;
             CREATE INDEX IF NOT EXISTS records_json_hier_name
                 ON records(snapshot_id, record_type,
                            json_extract(payload,
