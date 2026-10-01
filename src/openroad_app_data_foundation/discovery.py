@@ -15,7 +15,7 @@ def object_filter(snapshot_id, query):
     allowed = {'kind', 'parent_id', 'master', 'driver_count', 'signal_type', 'name',
                'name_contains', 'name_prefix', 'driver_min', 'driver_max', 'port_driven',
                'port', 'is_macro', 'region', 'intersection', 'ids', 'connected_to',
-               'net_role', 'sort', 'order', 'limit', 'offset', 'fields', 'group_by'}
+               'net_role', 'sort', 'order', 'limit', 'offset', 'fields', 'group_by', 'include_physical'}
     unknown = set(query) - allowed
     if unknown:
         raise ValueError('unknown object query fields: ' + ','.join(sorted(unknown)))
@@ -172,20 +172,27 @@ def list_objects(store, snapshot_id, query):
     rows = store.filtered(snapshot_id, 'entities', where=where, params=params,
                           order_by=clause, limit=limit, offset=offset)
     _pin_details(store, snapshot_id, rows)
+    if query.get('include_physical') is not None:
+        if query['include_physical'] not in ('0', '1'):
+            raise ValueError('include_physical must be 0|1')
+        if query['include_physical'] == '1':
+            _object_geometry(store, snapshot_id, rows)
     found = {str(row.get('object_id')) for row in rows}
     columns = query.get('fields')
     if columns:
         columns = columns.split(',')
-        allowed = {'object_id', 'name', 'kind', 'parent_id', 'attributes', 'identity', 'evidence'}
-        if any(key not in allowed and not (key.startswith('attributes.') and
-                key[11:].isidentifier()) for key in columns):
+        allowed = {'object_id', 'name', 'kind', 'parent_id', 'attributes', 'identity', 'evidence', 'physical'}
+        if any(key not in allowed and not (key.partition('.')[0] in ('attributes', 'physical') and
+                key.partition('.')[2].isidentifier()) for key in columns):
             raise ValueError('unknown object projection field')
         projected = []
         for row in rows:
             item = {key: row.get(key) for key in columns if '.' not in key}
-            if 'attributes' not in item and any(key.startswith('attributes.') for key in columns):
-                item['attributes'] = {key[11:]: (row.get('attributes') or {}).get(key[11:])
-                                      for key in columns if key.startswith('attributes.')}
+            for section in ('attributes', 'physical'):
+                prefix = section + '.'
+                if section not in item and any(key.startswith(prefix) for key in columns):
+                    item[section] = {key[len(prefix):]: (row.get(section) or {}).get(key[len(prefix):])
+                                     for key in columns if key.startswith(prefix)}
             projected.append(item)
         rows = projected
     result = {'snapshot_id': snapshot_id, 'objects': rows, 'filters': query,
@@ -203,6 +210,29 @@ def list_objects(store, snapshot_id, query):
         result['found'] = len(found)
         result['missing_ids'] = [item for item in wanted if item not in found]
     return result
+
+
+def _object_geometry(store, snapshot_id, rows):
+    """Join compact placed geometry for a whole object page; never ship wire shapes."""
+    scale = store.snapshot(snapshot_id)['run_summary']['dbu_per_micron']
+    ids = [r['object_id'] for r in rows]
+    if not ids:
+        return
+    marks = ','.join('?' for _ in ids)
+    facts = store.filtered(snapshot_id, 'physical_context',
+                           where=f'record_id IN ({marks})', params=ids)
+    by_id = {r['object_id']: r for r in facts}
+    for row in rows:
+        fact = by_id.get(row['object_id'])
+        if fact is None:
+            row['physical'] = {'status': 'not_extracted'}
+            continue
+        box = fact.get('bbox')
+        row['physical'] = {'status': 'available', 'dbu_per_micron': scale,
+                           'bbox_dbu': box,
+                           'bbox_um': {k: v / scale for k, v in box.items()} if box else None,
+                           'origin_dbu': [fact.get('x'), fact.get('y')],
+                           'evidence': fact.get('evidence', [])}
 
 
 def _pin_details(store, snapshot_id, rows):

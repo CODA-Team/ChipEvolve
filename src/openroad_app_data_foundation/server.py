@@ -23,6 +23,7 @@ from .parasitics import net_parasitics
 from .engineering import object_statistics, path_engineering, timing_overview, routing_totals
 from .constraints import constraint_context
 from .source_metadata import source_metadata
+from .source_search import search_source
 from .native_queries import submit_native_query, native_query_result
 from .timing_queries import submit_timing_query, timing_query_status
 from .identity import snapshot_identity
@@ -277,6 +278,8 @@ class Handler(BaseHTTPRequestHandler):
                 return native_files(store, parts[1], query, self.native_root)
             if len(parts) == 5 and parts[2:5] == ['artifacts', 'files', 'excerpt']:
                 return native_excerpt(store, parts[1], query, self.native_root)
+            if len(parts) == 5 and parts[2:5] == ['artifacts', 'files', 'search']:
+                return search_source(store, parts[1], query, self.native_root)
             if len(parts) == 3 and parts[2] == "violations":
                 return violations(store, parts[1], query, self.native_root)
             if len(parts) == 2:
