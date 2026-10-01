@@ -73,3 +73,28 @@ def test_batch_rejects_external_sources(api):
         opener.open(request, timeout=2)
     assert caught.value.code == 400
     assert 'local snapshot/run' in json.load(caught.value)['error']
+
+
+def test_original_stage_discovery_keeps_substage_metrics_separate(tmp_path):
+    from openroad_app_data_foundation.artifacts import run_inventory
+    root = tmp_path / 'flow'
+    logs = root / 'logs/platform/chip/revision'
+    logs.mkdir(parents=True)
+    (logs / '5_1_grt.json').write_text(json.dumps({'globalroute__design__instance__area': 85}))
+    (logs / '5_2_route.json').write_text(json.dumps({'detailedroute__route__wirelength': 12}))
+    (logs / '6_report.json').write_text(json.dumps({'finish__design__instance__area': 85}))
+    store = DataStore(tmp_path / 'inventory.sqlite')
+    try:
+        store.register({'snapshot': {'snapshot_id': 's', 'design_id': 'chip', 'revision_id': 'revision',
+                                    'run_id': 'run', 'stage': 'finish', 'created_at': '2026-10-01'}})
+        result = run_inventory(store, 's', root, stage='route')
+        assert len(result['stages']) == 1
+        row = result['stages'][0]
+        assert row['original_metrics']['relative_path'].endswith('/5_2_route.json')
+        assert not row['original_metrics']['has_area']
+        assert [(r['relative_path'].rsplit('/', 1)[-1], r['has_area']) for r in row['metric_reports']] == [
+            ('5_1_grt.json', True), ('5_2_route.json', False)]
+        with pytest.raises(ValueError, match='unknown original flow stage'):
+            run_inventory(store, 's', root, stage='invented')
+    finally:
+        store.close()
