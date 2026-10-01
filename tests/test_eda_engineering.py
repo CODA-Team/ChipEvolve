@@ -447,3 +447,57 @@ def test_source_headers_keep_continued_configuration_actual_nominal_values_and_u
     times=flow_timing(log)
     assert len(times['stages'])==2 and times['unavailable_timing']==['1_synth.sdc']
     assert times['reported_total']=={'elapsed_s':3,'peak_mb':100}
+
+
+def test_violation_nets_link_to_same_snapshot_and_preserve_unresolved_history(tmp_path):
+    from openroad_app_data_foundation.artifacts import violations
+    from openroad_app_data_foundation.discovery import list_objects
+    root = tmp_path / 'flow'
+    reports = root / 'reports/p/chip/r'
+    reports.mkdir(parents=True)
+    (reports / '5_route_drc.rpt').write_text('')
+    (reports / '5_route_drc.rpt-5.rpt').write_text(
+        'violation type: Short\n\tsrcs: net:signal net:removed inst:u\n'
+        '\tbbox = (1.0, 2.0) - (3.0, 4.0) on Layer metal2\n')
+    store = DataStore(tmp_path / 'violations.sqlite')
+    try:
+        store.register(sample())
+        data = violations(store, 's', {'limit': '1'}, root)
+        record = data['records']['items'][0]
+        assert record['sources'] == ['net:signal', 'net:removed', 'inst:u']
+        assert record['nets'] == ['signal', 'removed']
+        current, missing = record['net_objects']
+        assert current['status'] == 'available'
+        object_id = current['matches'][0]['object_id']
+        assert list_objects(store, 's', {'ids': object_id})['objects'][0]['name'] == 'signal'
+        assert missing == {'name': 'removed', 'status': 'not_present_in_snapshot', 'matches': []}
+        assert data['coordinate_unit'] == 'um'
+        assert next(f for f in data['files'] if f['is_final_report'])['violation_count'] == 0
+        assert data['violation_count'] == 1
+    finally:
+        store.close()
+
+
+def test_connected_pin_pages_are_complete_in_native_name_order(tmp_path):
+    from openroad_app_data_foundation.discovery import list_objects
+    pack = sample()
+    pack['relations'] = []
+    for index, name in enumerate(['z/A', 'a/A', 'm/A']):
+        oid = f'pin-{index}'
+        pack['entities'].append({'object_id': oid, 'kind': 'pin', 'name': name,
+                                 'attributes': {'direction': 'INPUT'}})
+        pack['relations'].append({'relation_id': f'connection-{index}', 'subject_id': oid,
+                                  'predicate': 'connected_to', 'object_id': 'n'})
+        pack['relations'].append({'relation_id': f'load-{index}', 'subject_id': 'n',
+                                  'predicate': 'loads', 'object_id': oid})
+    store = DataStore(tmp_path / 'connections.sqlite')
+    try:
+        store.register(pack)
+        first = list_objects(store, 's', {'kind': 'pin', 'connected_to': 'n', 'net_role': 'load', 'limit': '2'})
+        last = list_objects(store, 's', {'kind': 'pin', 'connected_to': 'n', 'net_role': 'load', 'offset': '2'})
+        assert [p['name'] for p in first['objects'] + last['objects']] == ['a/A', 'm/A', 'z/A']
+        assert first['count'] == 3 and first['next_offset'] == 2 and last['next_offset'] is None
+        assert first['order'] == 'name'
+        assert list_objects(store, 's', {'kind': 'instance'})['order'] == 'stored'
+    finally:
+        store.close()
