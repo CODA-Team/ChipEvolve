@@ -1,4 +1,4 @@
-"""Small allowlisted bridge to OpenROAD's built-in report commands."""
+"""Native query/report bridge bound to original OpenROAD design inputs."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from opendb_adapter import _tcl
 
 
 REPORTS = {
+    "native": ("native.rpt", None),
     "timing": ("timing.json", "report_checks -path_delay max -format json -digits 6"),
     "area": ("area.rpt", "report_design_area"),
     "power": ("power.json", "report_power -format json"),
@@ -27,6 +28,10 @@ def prepare(inputs: dict[str, Any], workspace: Path) -> dict[str, Any]:
     output_dir = workspace / output_name
     output_dir.mkdir(parents=True, exist_ok=True)
     report_name_on_disk, command = REPORTS[report_name]
+    if report_name == "native":
+        command = inputs.get("script")
+        if not isinstance(command, str) or not command.strip() or len(command.encode()) > 65536:
+            raise ValueError('native query script must be nonempty and at most 64 KiB')
     report_path = output_dir / report_name_on_disk
     script = workspace / "openroad_report.tcl"
     script.write_text(_script(inputs, odb_path, report_path, command), encoding="utf-8")
@@ -221,10 +226,12 @@ def _script(inputs: dict[str, Any], odb_path: str, report_path: Path,
         extra_lines, extra_options = directed_options(inputs, _tcl)
         lines.extend(extra_lines)
         command += " " + extra_options
+    if inputs.get("report") == "native":
+        lines.append(command)
+        return "\n".join(lines) + "\n"
     lines.extend([
         f"sta::redirect_file_begin {_tcl(str(report_path))}",
         command,
         "sta::redirect_file_end",
     ])
     return "\n".join(lines) + "\n"
-

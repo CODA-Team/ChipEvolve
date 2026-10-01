@@ -198,6 +198,13 @@ def _raw_input_declarations(inputs: dict[str, Any], workspace: Path,
     sources = [(field, kind, inputs.get(field)) for field, kind in _RAW_INPUTS.items()
                if field != "liberty_path"]
     sources.extend(("liberty_paths", "raw_library", value) for value in library_paths(inputs))
+    extra_paths = inputs.get('native_extra_paths', [])
+    if not isinstance(extra_paths, list) or any(not isinstance(p, str) for p in extra_paths):
+        raise ValueError('native_extra_paths must be a list of staged paths')
+    kinds = {'.odb': 'raw_design_database', '.lib': 'raw_library', '.sdc': 'raw_constraints',
+             '.spef': 'raw_parasitics', '.def': 'raw_layout', '.gds': 'raw_layout',
+             '.lef': 'raw_technology', '.v': 'raw_netlist', '.tcl': 'analysis_script', '.rpt': 'analysis_report'}
+    sources.extend(('native_extra_paths', kinds.get(Path(p).suffix, 'raw_flow_metadata'), p) for p in extra_paths)
     for field, kind, value in sources:
         if value is None:
             continue
@@ -229,6 +236,9 @@ def _run_report(result_path: Path, started: str, workspace: Path,
                                text=True, capture_output=True, check=False)
     (workspace / "extractor.log").write_text(
         completed.stdout + completed.stderr, encoding="utf-8")
+    if plan['report'] == 'native':
+        (workspace / plan['report_path']).write_text(
+            completed.stdout + completed.stderr, encoding='utf-8')
     _write_receipt(workspace, {
         **report_receipt(plan, returncode=completed.returncode),
         "started_at": started, "ended_at": now(),
