@@ -51,6 +51,26 @@ def test_object_page_joins_chip_geometry_and_reports_missing_geometry(tmp_path):
         store.close()
 
 
+def test_pin_timing_filters_do_not_return_an_unrelated_or_wrong_check_point(tmp_path):
+    from openroad_app_data_foundation.queries import list_timing_points
+    pack = sample()
+    pack['timing_paths'].append({'path_id':'h','check':'hold','slack':0,'unit':'s'})
+    pack['timing_points'].append({'point_id':'hold-in','path_id':'h','pin_name':'u/A',
+                                 'instance_id':'i','net_id':'n','path_section':'source_path','slew':2})
+    store = DataStore(tmp_path / 'd.sqlite')
+    try:
+        store.register(pack)
+        setup = list_timing_points(store,'s',{'pin_name':'u/A','check':'setup'})
+        assert setup['count'] == 1 and setup['timing_points'][0]['path_id'] == 'p'
+        both = list_timing_points(store,'s',{'pin_name':'u/A'})
+        assert both['count'] == 2
+        assert list_timing_points(store,'s',{'pin_name':'missing'})['count'] == 0
+        with pytest.raises(ValueError,match='unknown timing point query fields'):
+            list_timing_points(store,'s',{'pin':'u/A'})
+    finally:
+        store.close()
+
+
 def test_source_search_pages_original_matches_with_correct_byte_locations(tmp_path):
     from openroad_app_data_foundation.source_search import search_source
     pack = sample()
