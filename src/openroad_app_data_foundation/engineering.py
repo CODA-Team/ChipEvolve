@@ -21,6 +21,8 @@ def _entity(store, snapshot_id, identifier, kind):
 def net_engineering(store, snapshot_id, identifier, query):
     """Named connectivity with complete counts and bounded, ordered pin lists."""
     entity = _entity(store, snapshot_id, identifier, 'net')
+    if query.get('traverse', '0') not in ('0', '1'):
+        raise ValueError('traverse must be 0|1')
     result = {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(store.snapshot(snapshot_id)),
               'net': {'object_id': entity['object_id'], 'name': entity['name'],
                       **{key: (entity.get('attributes') or {}).get(key) for key in
@@ -34,6 +36,8 @@ def net_engineering(store, snapshot_id, identifier, query):
         result[role + '_count'] = page['count']
         result[role + '_page'] = {key: page[key] for key in
                                ('count', 'returned', 'limit', 'offset', 'truncated', 'next_offset')}
+        if query.get('traverse') == '1':
+            result[role + '_traversal'] = _connection_traversal(store, snapshot_id, entity['object_id'], role, _limit(query))
     result['state'] = ('no_driver' if result['driver_count'] == 0 else
                        'single_driver' if result['driver_count'] == 1 else 'multi_driver')
     result['truncated'] = any(result[role + '_page']['truncated'] for role in ('driver', 'load'))
@@ -43,6 +47,40 @@ def net_engineering(store, snapshot_id, identifier, query):
         result['availability'] = {'complete_connectivity': {'status': 'unavailable',
             'reason': 'stored native counts and resolved pin relations disagree; use native query to complete connectivity'}}
     return result
+
+
+def _connection_traversal(store, snapshot_id, net_id, role, page_size):
+    """Walk the actual paged query and verify complete identity/order coverage."""
+    rows, pages, offset, total = [], [], 0, None
+    while True:
+        page = list_objects(store, snapshot_id, {'kind': 'pin', 'connected_to': net_id,
+            'net_role': role, 'sort': 'name', 'fields': 'object_id,name',
+            'limit': str(page_size), 'offset': str(offset)})
+        if total is not None and page['count'] != total:
+            raise ValueError('connectivity changed during traversal')
+        total = page['count']
+        current = [{'object_id': row['object_id'], 'name': row['name'].replace('\\', '')} for row in page['objects']]
+        rows.extend(current)
+        pages.append({'offset': offset, 'returned': len(current), 'next_offset': page['next_offset'],
+                      'first_name': current[0]['name'] if current else None,
+                      'last_name': current[-1]['name'] if current else None})
+        if page['next_offset'] is None:
+            break
+        offset = page['next_offset']
+    names = [row['name'] for row in rows]
+    ids = [row['object_id'] for row in rows]
+    first = names[:page_size]
+    last_offset = pages[-1]['offset']
+    unique_count = len(set(ids))
+    ordered = names == sorted(names)
+    return {'page_size': page_size, 'pages_read': len(pages), 'total_count': total,
+            'returned_count': len(rows), 'unique_object_count': unique_count,
+            'unique_name_count': len(set(names)), 'duplicate_object_count': len(ids) - unique_count,
+            'missing_object_count': total - unique_count, 'ordering_verified': ordered,
+            'completed': len(rows) == total == unique_count and ordered,
+            'first_page': first, 'last_page': names[last_offset:],
+            'pin_names': names, 'pages': pages,
+            'basis': 'actual successive paged queries from offset zero; counts/identities/order verified over every returned row'}
 
 
 def instance_engineering(store, snapshot_id, identifier):

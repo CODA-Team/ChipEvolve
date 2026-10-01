@@ -67,6 +67,10 @@ Its recovery routes use the actual record type entities (not objects or instance
 S/nets/<native name or id>/engineering?limit=N&offset=N returns complete driver/load counts and state,
 sorted native driver_pins/load_pins with separate page metadata, net identity/type and original database evidence.
 Choose limit large enough when the task requires all names; counts are independent of the returned page.
+Add traverse=1&limit=<page size> to walk EVERY actual page internally from offset zero.
+load_traversal/driver_traversal include full pin_names, actual page ranges, first/last pages,
+returned/unique counts, missing/duplicate counts and verified name order. No count is inferred from a page.
+fields=<dotted fields> projects this net engineering result; omitted details remain retrievable.
 S/instances/<native name or id>/engineering returns master/type, placed location, bbox, both ODB/DEF orientation names,
 and complete pin counts grouped by connected-net type in one call. Unconnected pins are explicitly unclassified.
 distinct_signal_net_count counts different SIGNAL net IDs, not pins; shared connections count once.

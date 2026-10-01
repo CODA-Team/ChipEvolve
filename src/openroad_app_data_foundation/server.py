@@ -307,7 +307,8 @@ class Handler(BaseHTTPRequestHandler):
                 kind = {'instances': 'instance', 'nets': 'net', 'pins': 'pin'}[parts[2]]
                 return object_provenance(store, parts[1], parts[3], kind)
             if len(parts) == 5 and parts[2] == 'nets' and parts[4] == 'engineering':
-                return net_engineering(store, parts[1], parts[3], query)
+                payload = net_engineering(store, parts[1], parts[3], query)
+                return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 3 and parts[2] == "timing-context":
                 return metadata_view(timing_context(store, parts[1]), query, path)
             if len(parts) == 3 and parts[2] == 'constraints':
