@@ -29,6 +29,7 @@ from .api_help import api_help
 from .excerpts import excerpt_view
 from .pin_geometry import pin_engineering
 from .path_endpoints import path_endpoints
+from .batch_reads import read_batch
 from .source_search import search_source
 from .native_queries import submit_native_query, native_query_result
 from .timing_queries import submit_timing_query, timing_query_status
@@ -146,20 +147,11 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(202, payload)
                 return
             if self.path == "/query":
-                requests = self._read_body().get("requests")
-                if not isinstance(requests, list) or not 1 <= len(requests) <= 20 or not all(
-                        isinstance(path, str) and (path.split('?', 1)[0] == '/snapshots' or
-                            path.startswith(("/snapshots/", "/runs/"))) and
-                        not urllib.parse.urlparse(path).netloc for path in requests):
-                    raise ValueError("requests must contain 1 to 20 local snapshot/run query paths")
-                results = []
+                body = self._read_body()
                 with (self.read_pool.connection() if self.read_pool is not None
                       else nullcontext(self.store)) as store:
-                    for path in requests:
-                        parsed = urllib.parse.urlparse(path)
-                        query = {k: v[0] for k, v in urllib.parse.parse_qs(parsed.query).items()}
-                        results.append(envelope(parsed.path, query, self._get(parsed.path, query, store)))
-                self._send(200, {"results": results})
+                    result = read_batch(body, lambda path, query: self._get(path, query, store))
+                self._send(200, result)
                 return
             if self.path == "/snapshots/from-run":
                 payload = self._read_body()

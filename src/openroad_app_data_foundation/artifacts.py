@@ -103,15 +103,18 @@ def _metric_inventory(store, snapshot_id, path, root, manifest, metric_names=())
     if not isinstance(metrics, dict):
         raise ValueError('original metric JSON must be an object')
     result = {'relative_path': relative, 'size_bytes': path.stat().st_size,
-            **manifest.get(relative, {}), 'key_count': len(metrics),
+            **manifest.get(relative, {}), 'source': page['source'], 'key_count': len(metrics),
             'has_timing': any('timing__' in key for key in metrics),
             'has_area': any('instance__area' in key for key in metrics),
             'has_wirelength': any('wirelength' in key for key in metrics)}
     if metric_names:
         result['metric_values'] = [{'raw_key': key, 'value': value, 'source': relative}
             for key, value in metrics.items()
-            if any(key == name or key.endswith('__' + name) for name in metric_names)]
+            if any(key == name or '__' + name + '__' in '__' + key + '__' for name in metric_names)]
         result['value_basis'] = 'literal original report values; substage identity is preserved'
+        result['metric_selector_basis'] = 'exact raw key or consecutive namespace components; all matching corners retained'
+        result['unit_declarations'] = {key: value for key, value in metrics.items()
+                                       if '__flow__platform__' in key and key.endswith('_units')}
     return result
 
 
@@ -120,6 +123,11 @@ def run_inventory(store, snapshot_id, root, *, stage=None, metric_names=()):
     snapshot = store.snapshot(snapshot_id)
     directories = _run_dirs(snapshot, Path(root))
     indexed = store.snapshots(run_id=snapshot['run_id'])
+    query_ids = {s['snapshot_id'] for s in indexed
+                 if s.get('run_summary', {}).get('timing_context', {}).get('parent_snapshot_id')
+                 or re.search(r'-query-[0-9a-f]{12}$', s['snapshot_id'])}
+    query_count = len(query_ids)
+    indexed = [s for s in indexed if s['snapshot_id'] not in query_ids]
     stages = []
     outputs = [('synth', '1_synth.odb', '1_synth.json'),
                ('floorplan', '2_floorplan.odb', '2_1_floorplan.json'),
@@ -159,6 +167,10 @@ def run_inventory(store, snapshot_id, root, *, stage=None, metric_names=()):
         item['availability'] = 'available' if item['original_database'] else 'not_produced'
         stages.append(item)
     return {'snapshot_id': snapshot_id, 'run_id': snapshot['run_id'], 'stages': stages,
+            'additional_query_snapshot_count': query_count,
+            'additional_query_snapshots_path': '/snapshots?run_id=' + snapshot['run_id'],
+            'indexed_snapshot_scope': 'original stage indexes; separately created timing queries are counted above and remain in the snapshot catalog',
+            'evidence': [report['source'] for item in stages for report in item['metric_reports']],
             'original_stage_count': sum(s['availability'] == 'available' for s in stages),
             'coverage_rule': 'original files determine availability; missing index does not mean missing original',
             'metric_report_rule': 'all original stage JSON reports are listed separately; earlier substage values do not replace the representative stage report',
@@ -237,15 +249,20 @@ def native_files(store, snapshot_id: str, query: dict, root: Path) -> dict:
                 entries.append({'category': 'receipts', **_native_file(path, relative)})
     limit, offset = _limit(query), _offset(query)
     page = entries[offset:offset + limit]
+    manifest = snapshot.get('run_summary', {}).get('timing_context', {}).get('producer', {}).get('artifacts', {})
+    for entry in page:
+        entry['producer_manifest_entry'] = manifest.get(entry['relative_path'])
     counts = _page(len(entries), len(page), limit, offset)
     return {"snapshot_id": snapshot_id, "native_root": str(root),
+            'evidence': [ref for ref in snapshot.get('source_artifacts', []) if ref.get('category') == 'raw_flow_metadata'],
             "design_id": snapshot["design_id"], "revision_id": snapshot["revision_id"],
             "directories": directories, "filters": query,
             "files": {**counts, "total": counts["count"], "items": page},
             "counts_by_category": {kind: sum(1 for item in entries
                                              if item["category"] == kind)
                                    for kind in NATIVE_KINDS},
-            "truncated": counts["truncated"]}
+            "truncated": counts["truncated"],
+            "digest_basis": "producer_manifest_entry is the literal original producer declaration; excerpt reads verify current bytes"}
 
 
 def _parse_report(path: Path, relative: str) -> list[dict]:

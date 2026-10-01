@@ -16,10 +16,14 @@ Add ?stage=route (or another stage) for compact discovery. metric_reports lists 
 including substage files with quantities absent from its representative report. Read the needed original with files/excerpt
 or files/search, preserving its substage/source identity. Avoid full snapshot summaries or STA initialization for a quantity
 already recorded in an original metric file. Never silently substitute an earlier iteration for a requested final-stage value.
-Add metrics=<exact raw key or namespace suffix, comma separated> to return literal matching values directly from each
-original report, with its raw key and source. For example metrics=instance__area retrieves recorded cell area;
+Add metrics=<exact raw key or consecutive namespace components, comma separated> to return literal matching values from each
+original report. Components such as hold, instance or setup__ws match entire component sequences, including keys carrying
+a corner suffix. ALL matching corners remain separately labeled. Selected reports include literal unit_declarations.
+For example metrics=instance__area retrieves recorded cell area;
 each substage stays separately identified, including an empty match in a report that does not declare that quantity.
 Use it to distinguish original availability from index coverage; no indexed snapshot does not mean no original file.
+indexed_snapshots identifies original stage indexes. Additional timing-query snapshots have a separate count and catalog route;
+they are not silently relabeled original flow outputs, and remain accessible in the full snapshot catalog.
 S/source-metadata returns literal config variables with continued lines joined, the actually loaded library units/nominal values,
 SPEF headers and deduplicated per-stage flow timing/wall time, each with its original source.
 Stage metric snapshots: {design}-{variant}-metrics-{stage}-functional-v3.
@@ -76,6 +80,8 @@ S/timing-points?path_section=source_path&sort=slew|load|arrival&order=worst&limi
 Optional path_id restricts a path; pin_name, instance_id, net_id and check=setup|hold filter occurrences.
 Use pin_name together with path_id when a pin's timing on one particular path is needed;
 fields=pin_name,net_name,slew,load,arrival,instance_id keeps results small.
+Projected path/point facts retain deduplicated sources plus record_sources routes to every original locator/fragment;
+selecting fewer fields does not remove their provenance. The source list covers the returned page.
 S/timing-context exposes all original clocks, analysis setup and producer identity. S/artifacts lists attached originals
 and the original manifest (digests, flow/tool identity), with limit/offset.
 S/timing-paths/<path_id>/context?detail=summary&relation_limit=2 bounds graph relationships and states truncation.
@@ -126,8 +132,9 @@ S/violations reads native DRC reports, locations and relevant names. Report bbox
 convert named x_min/y_min/x_max/y_max boxes to [xmin,ymin,xmax,ymax] when the answer schema requests an array.
 Specify file for a particular iteration report; final DRC count comes from the stage metric, not an earlier iteration.
 ''',
-    'sources': '''S/artifacts/files lists original report/log/result files. S/artifacts/files/excerpt?path=<relative>&offset=0&max_bytes=8192
-reads original bytes, including configs/libs declared by producer and receipts/<design>.flow.log etc.
+    'sources': '''S/artifacts/files lists original report/log/result files, with producer_manifest_entry (literal original declared digest/size)
+separate from current size_bytes. This does not claim current bytes have been rehashed; absent manifest entries remain null.
+S/artifacts/files/excerpt?path=<relative>&offset=0&max_bytes=8192 reads original bytes, including configs/libs declared by producer and receipts/<design>.flow.log etc.
 S/artifacts/files/search?path=<relative>&pattern=<regular expression>&ignore_case=1&context_lines=0&limit=20
 searches ALL original lines and returns matching text, source digest, line numbers and byte offsets;
 offset/next_offset page the matches. Use it for report/SDC/log facts beyond the compact endpoints.
@@ -144,6 +151,11 @@ The same name/stage/snapshot_id/scene filters apply to original keys. Request on
 STDCELL_COUNT/MACRO_COUNT/AREA/STDCELL_AREA/MACRO_AREA instead of reading an entire metric inventory.
 Canonical rows carry raw_key, value_basis and quantity_scope; AREA is cell instance area, not die/core area.
 POST /query payload {"requests":["/snapshots/...", "/runs/.../metrics?...", ...]} batches up to20 snapshot/run read paths.
+Each actual failure stays visible in its result; failed_query_count reports failures and other independent reads continue.
+For dependent reads, use {variable} in a later path and bindings:{"variable":{"request":0,"pointer":"/data/..."}}.
+request is the zero-based EARLIER result index; pointer addresses that result's actual JSON, including its data wrapper.
+Strings/numbers are URL-encoded automatically. Null/missing values or failed source reads cannot supply a binding.
+This joins discovery, the discovered object's engineering facts and original evidence in ONE model tool call.
 ''',
     'native': '''For engineering facts beyond these queries, POST S/native-queries with payload {"script":"Tcl query","with_timing":false}.
 For original sources from other stages not indexed as snapshots, extra_files:["results/nangate45/<design>/<variant>/1_synth.odb", ...]

@@ -6,6 +6,7 @@ import hashlib
 
 import json
 from functools import lru_cache
+from .projected_sources import projected_sources
 
 from typing import Any
 from urllib.parse import quote
@@ -95,6 +96,7 @@ def list_timing_paths(store: DataStore, snapshot_id: str, query: dict[str, str])
         candidates = [row for row in candidates if all(row.get(k) == v for k, v in clock_filters.items())]
         total, rows = len(candidates), candidates[offset:offset + limit]
         filters.update(clock_filters)
+    sources = projected_sources(snapshot_id, 'timing_paths', 'path_id', rows) if query.get('fields') else {}
     if query.get('fields'):
         columns = query['fields'].split(',')
         allowed = {'path_id', 'startpoint', 'endpoint', 'group', 'check', 'slack', 'required_time',
@@ -103,7 +105,7 @@ def list_timing_paths(store: DataStore, snapshot_id: str, query: dict[str, str])
             raise ValueError('unknown timing path projection field')
         rows = [{key: row.get(key) for key in columns} for row in rows]
     return {"snapshot_id": snapshot_id, "snapshot": snapshot_identity(store.snapshot(snapshot_id)),
-            "timing_paths": rows, **ranking,
+            "timing_paths": rows, **ranking, **sources,
             **_page(total, len(rows), limit, offset), "filters": filters}
 
 
@@ -136,6 +138,7 @@ def list_timing_points(store: DataStore, snapshot_id: str,
                           limit=limit, offset=offset, order_by=clause)
     return {"snapshot_id": snapshot_id, "snapshot": snapshot_identity(store.snapshot(snapshot_id)),
             "timing_points": _point_projection(rows, query), **ranking,
+            **(projected_sources(snapshot_id, 'timing_points', 'point_id', rows) if query.get('fields') else {}),
             **_page(total, len(rows), limit, offset), "filters": filters}
 
 
@@ -229,7 +232,7 @@ def list_metrics_for_run(store: DataStore, run_id: str,
         matching = rows + (raw if 'raw_metrics' in result else [])
         result['requested_names'] = names
         result['missing_names'] = [name for name in names if not any(
-            row.get('name') == name or row.get('raw_key') == name for row in matching)]
+            _metric_matches(row, {'name': name}) for row in matching)]
     if query.get('fields'):
         columns = query['fields'].split(',')
         allowed = {'name', 'raw_key', 'value', 'raw_value', 'unit', 'status', 'reason',
@@ -256,10 +259,12 @@ def _one_or_all(values: set[str]) -> Any:
 def _metric_matches(row: dict[str, Any], filters: dict[str, Any]) -> bool:
     for key, value in filters.items():
         if key == "name":
-            if row.get("name") != value and row.get("raw_key") != value:
+            if row.get("name") != value and row.get("raw_key") != value and not (
+                    row.get('canonical') and str(row.get('name')).casefold() == value.casefold()):
                 return False
         elif key == 'names':
-            if row.get('name') not in value and row.get('raw_key') not in value:
+            if row.get('name') not in value and row.get('raw_key') not in value and not (
+                    row.get('canonical') and str(row.get('name')).casefold() in {name.casefold() for name in value}):
                 return False
         elif key == 'name_contains':
             if not any(value in str(row.get(field) or '') for field in ('name', 'raw_key')):
@@ -426,7 +431,8 @@ def path_points(store: DataStore, snapshot_id: str, path_id: str, query: dict[st
     page = points[offset:offset + limit]
     return {"snapshot_id": snapshot_id, "snapshot": snapshot_identity(store.snapshot(snapshot_id)),
             "path_id": path_id,
-            "timing_points": _point_projection(page, query), **_page(len(points), len(page), limit, offset)}
+            "timing_points": _point_projection(page, query), **_page(len(points), len(page), limit, offset),
+            **(projected_sources(snapshot_id, 'timing_points', 'point_id', page) if query.get('fields') else {})}
 
 
 def path_nets(store: DataStore, snapshot_id: str, path_id: str,
