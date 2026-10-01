@@ -37,6 +37,8 @@ def test_mirrored_placement_does_not_claim_transformed_origin_or_pin_coordinates
     assert result['location_dbu'] == [125780, 44800]
     assert result['location_um'] == [62.89, 22.4]
     assert result['bbox_um']['y_max'] == 23.8
+    assert result['bbox_um_array'] == [62.89, 22.4, 66.69, 23.8]
+    assert result['bbox_array_order'] == ['x_min', 'y_min', 'x_max', 'y_max']
     assert result['orientation'] == 'MX'
     assert 'getLocation' in result['location_basis']
     assert 'getOrigin' in result['native_origin_note']

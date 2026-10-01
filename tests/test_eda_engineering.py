@@ -56,6 +56,12 @@ def test_instance_and_timing_join_retains_point_witness_and_complete_pin_counts(
         assert instance['distinct_signal_net_count'] == 1
         assert instance['distinct_connected_net_count'] == 1
         assert instance['total_pin_count'] == 3 and instance['unclassified_pin_count'] == 1
+        from openroad_app_data_foundation.discovery import list_objects
+        pins = list_objects(store, 's', {'kind': 'pin', 'parent_instance': 'u', 'signal_type': 'SIGNAL',
+                                        'fields': 'name,attributes.net_name'})
+        assert [row['name'] for row in pins['objects']] == ['u/A', 'u/Z']
+        with pytest.raises(KeyError, match='instance not found'):
+            list_objects(store, 's', {'kind': 'pin', 'parent_instance': 'absent-instance'})
         assert instance['orientation_names'] == {'odb': 'MX', 'def': 'FS'}
         result = timing_overview(store, 's', {'check': 'setup', 'limit': '1', 'include_physical': '1',
                                             'fields': 'paths,data_point_extrema'})
@@ -229,6 +235,27 @@ def test_clean_design_has_zero_wns_but_positive_worst_slack(tmp_path):
         assert metrics['WNS']['value'] == 0
         assert metrics['WS']['value'] == metrics['WNS']['raw_value'] == 0.207
         assert metrics['HOLD_WNS']['value'] == metrics['HOLD_WS']['value'] == -0.02
+    finally:
+        store.close()
+
+
+def test_canonical_metrics_keep_every_literal_corner_and_unqualified_aggregate(tmp_path):
+    from openroad_app_data_foundation.queries import list_metrics_for_run
+    pack = sample()
+    pack['observations'] = [
+        {'observation_id': 'metric:finish__timing__setup__ws', 'kind': 'metric', 'value': -0.2},
+        {'observation_id': 'metric:finish__timing__setup__ws__corner:slow', 'kind': 'metric', 'value': -0.2},
+        {'observation_id': 'metric:finish__timing__setup__ws__corner:fast', 'kind': 'metric', 'value': 0.3}]
+    store = DataStore(tmp_path / 'corners.sqlite')
+    try:
+        store.register(pack)
+        all_rows = list_metrics_for_run(store, 'run', {'name': 'WNS'})['metrics']
+        assert len(all_rows) == 3
+        assert {row['corner']: row['value'] for row in all_rows} == {None: -0.2, 'slow': -0.2, 'fast': 0}
+        assert len({row['raw_key'] for row in all_rows}) == 3
+        selected = list_metrics_for_run(store, 'run', {'name': 'WS', 'corner': 'fast'})['metrics']
+        assert len(selected) == 1 and selected[0]['value'] == 0.3
+        assert selected[0]['corner_basis'] == 'literal raw-key component'
     finally:
         store.close()
 
@@ -578,6 +605,18 @@ def test_source_headers_keep_continued_configuration_actual_nominal_values_and_u
     times=flow_timing(log)
     assert len(times['stages'])==2 and times['unavailable_timing']==['1_synth.sdc']
     assert times['reported_total']=={'elapsed_s':3,'peak_mb':100}
+
+
+def test_tool_versions_are_literal_banners_not_source_commit_guesses():
+    from openroad_app_data_foundation.source_metadata import reported_versions
+    text = ('Yosys 0.68+post (git sha1 UNKNOWN, Release)\n'
+            'Launching OpenROAD source commit c487fc7086\n'
+            'KLayout 0.30.12\nYosys 0.68+post (git sha1 UNKNOWN, Release)\n')
+    rows = reported_versions(text)
+    assert rows == [
+        {'tool': 'Yosys', 'version_text': '0.68+post (git sha1 UNKNOWN, Release)',
+         'original_line': 'Yosys 0.68+post (git sha1 UNKNOWN, Release)', 'line_numbers': [1, 4]},
+        {'tool': 'KLayout', 'version_text': '0.30.12', 'original_line': 'KLayout 0.30.12', 'line_numbers': [3]}]
 
 
 def test_violation_nets_link_to_same_snapshot_and_preserve_unresolved_history(tmp_path):
