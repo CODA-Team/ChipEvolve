@@ -47,7 +47,9 @@ def timing_path_context(store: DataStore, snapshot_id: str,
     snapshot = store.snapshot(snapshot_id)
     # note: `detail` is this function's verbosity argument, so the path record
     # needs its own name here.
-    path_detail = timing_path(store, snapshot_id, path_id)
+    # Every point, because the pack derives the path's nets and instances from
+    # them; the response's point list is bounded later, with its own cursor.
+    path_detail = timing_path(store, snapshot_id, path_id, points_limit=0)
     path = path_detail["timing_path"]
     points = path_detail["timing_points"]
     analysis_context = build_analysis_context(snapshot, path)

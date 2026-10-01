@@ -153,9 +153,15 @@ class DataStore:
             target = f"file:{path}?mode=ro"
         else:
             target = str(path)
-        self.connection = _LockedConnection(
-            sqlite3.connect(target, check_same_thread=False, uri=read_only),
-            self._lock)
+        connection = sqlite3.connect(target, check_same_thread=False, uri=read_only)
+        if not read_only:
+            # The default is 5 s.  With several read-only services on the same file
+            # under a rollback journal, a writer's COMMIT can wait longer than that
+            # and fail - which is how an import lost its fragment payloads.  Waiting
+            # for the readers is the correct behaviour; the alternative is a
+            # half-written snapshot.
+            connection.execute("PRAGMA busy_timeout = 600000")
+        self.connection = _LockedConnection(connection, self._lock)
         self.connection.row_factory = sqlite3.Row
         # A large design is tens of gigabytes, and the default page cache is 2 MiB:
         # a two-line query could wait on a cold read of a file the kernel had long
@@ -358,6 +364,12 @@ class DataStore:
                     self.connection.execute(
                         "INSERT INTO imported_artifacts(artifact_id) VALUES (?)",
                         (artifact_id,))
+                # Inside the transaction, not after it.  This used to run on its
+                # own afterwards, and an import that hit "database is locked" on
+                # that second write left a snapshot that was complete, an artifact
+                # marked imported and fragment_sources empty - and the next run
+                # skipped it silently because imported() was already true.
+                self._write_fragment_rows(snapshot_id, pack)
         except sqlite3.IntegrityError as exc:
             # Since the snapshot, its records and its artifact identity share one
             # transaction, an integrity error can come from any of them; naming the
@@ -465,6 +477,22 @@ class DataStore:
         if row is None:
             return None
         return {"sha256": row["sha256"], "payload": bytes(row["payload"])}
+
+    def _write_fragment_rows(self, snapshot_id: str,
+                             pack: Mapping[str, Any]) -> None:
+        """Insert fragment payloads on the caller's connection and transaction."""
+        values = pack.get("fragment_sources")
+        if not isinstance(values, dict) or not values:
+            return
+        for logical_path in self.FRAGMENT_PATHS:
+            payload = values.get(logical_path)
+            if not isinstance(payload, bytes):
+                continue
+            self.connection.execute(
+                "INSERT OR REPLACE INTO fragment_sources"
+                "(snapshot_id, logical_path, sha256, payload) VALUES (?, ?, ?, ?)",
+                (snapshot_id, logical_path, hashlib.sha256(payload).hexdigest(),
+                 sqlite3.Binary(payload)))
 
     def _store_pack_fragments(self, snapshot_id: str, pack: Mapping[str, Any]) -> None:
         values = pack.get("fragment_sources")

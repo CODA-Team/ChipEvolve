@@ -3,6 +3,11 @@ import math
 from .queries import _limit, _offset, _page
 
 
+#: Ids one ``?ids=`` call accepts.  Beyond this the answer stops fitting an
+#: envelope that is bounded by construction, so the caller is told to split.
+BATCH_ID_LIMIT = 100
+
+
 def list_objects(store, snapshot_id, query):
     filters, params = [], []
     fields = {'kind': '$.kind', 'parent_id': '$.parent_id', 'master': '$.attributes.master', 'driver_count': '$.attributes.driver_count', 'signal_type': '$.attributes.signal_type'}
@@ -35,6 +40,19 @@ def list_objects(store, snapshot_id, query):
             AND json_extract(payload, '$.bbox.x_min') <= ?
             AND json_extract(payload, '$.bbox.y_min') <= ?)""")
         params.extend([snapshot_id, *box])
+    if query.get('ids'):
+        # One call for many objects, because the alternative costs a call per id and
+        # each call carries ~2.3 KB of envelope: ariane cross_domain-01 spends 105
+        # steps to find the busiest net among the nets on five paths, almost all of
+        # them "fetch one net to read its fanout".
+        wanted = [item for item in query['ids'].split(',') if item]
+        if len(wanted) > BATCH_ID_LIMIT:
+            raise ValueError(
+                f'ids accepts at most {BATCH_ID_LIMIT} ids in one call, got {len(wanted)}; '
+                f'send the rest in another call, or page a filter with limit/offset')
+        marks = ', '.join('?' for _ in wanted)
+        filters.append(f'record_id IN ({marks})')
+        params.extend(wanted)
     if query.get('connected_to'):
         # The other end of every relation touching this object - the set
         # `expand_net` stops at CONNECTED_ENTITY_LIMIT, but pageable, so a
@@ -74,6 +92,10 @@ def list_objects(store, snapshot_id, query):
                   f"json_extract(payload, '{path}') {order}, record_id")
     total = store.count_records(snapshot_id, 'entities', where=where, params=params)
     limit, offset = _limit(query), _offset(query)
+    if query.get('ids'):
+        # Answer the batch whole: a page of it would make every id past the page
+        # look like it does not exist.
+        limit, offset = len(wanted), 0
     rows = store.filtered(snapshot_id, 'entities', where=where, params=params,
                           order_by=clause, limit=limit, offset=offset)
     columns = query.get('fields')
@@ -83,15 +105,28 @@ def list_objects(store, snapshot_id, query):
         if not set(columns) <= allowed:
             raise ValueError('unknown object projection field')
         rows = [{key: row.get(key) for key in columns} for row in rows]
-    return {'snapshot_id': snapshot_id, 'objects': rows, 'filters': query,
-            'order': sort or 'stored',
-            **_page(total, len(rows), limit, offset)}
+    result = {'snapshot_id': snapshot_id, 'objects': rows, 'filters': query,
+              'order': sort or 'stored',
+              # Snapshot identity travels with the rows so the envelope's scope can
+              # name design/revision/run/stage instead of leaving a caller to parse
+              # the snapshot_id.  ibex already has two revisions whose final ODB is
+              # byte-identical, so "which run is this number from" is a real
+              # question, and `snapshot()` is cached - this costs no query.
+              'snapshot': store.snapshot(snapshot_id),
+              **_page(total, len(rows), limit, offset)}
+    if query.get('ids'):
+        # Distinguish an id that does not exist from one this call did not return:
+        # the batch is answered in full, so anything absent is genuinely absent.
+        found = {str(row.get('object_id')) for row in rows}
+        result['found'] = len(found)
+        result['missing_ids'] = [item for item in wanted if item not in found]
+    return result
 
 
 def timing_context(store, snapshot_id):
     snapshot = store.snapshot(snapshot_id)
     context = snapshot.get('run_summary', {}).get('timing_context')
-    return {'snapshot_id': snapshot_id, 'timing_context': context,
+    return {'snapshot_id': snapshot_id, 'snapshot': snapshot, 'timing_context': context,
             'evidence': snapshot.get('source_artifacts', []),
             'availability': {'timing_context': {'status': 'available' if context else 'unavailable'}}}
 
@@ -110,7 +145,8 @@ def routing_summary(store, snapshot_id, object_id):
             value['centerline_length_dbu'] += shape['centerline_length_dbu']
         elif shape.get('routing_type') == 'via':
             name = shape['via']; vias[name] = vias.get(name, 0) + 1
-    return {'snapshot_id': snapshot_id, 'object_id': object_id, 'layers': layers, 'vias': vias,
+    return {'snapshot_id': snapshot_id, 'snapshot': store.snapshot(snapshot_id),
+            'object_id': object_id, 'layers': layers, 'vias': vias,
             'segment_count': sum(x['segments'] for x in layers.values()),
             'via_count': sum(vias.values()), 'unit': 'database_units',
             'length_basis': 'Manhattan distance between native dbWirePath iterator points, excludes rectangle endcaps',

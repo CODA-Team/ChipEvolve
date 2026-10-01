@@ -7,6 +7,7 @@ import hashlib
 import json
 
 from typing import Any
+from urllib.parse import quote
 
 from .analysis_context import (
     build_analysis_context, context_availability, context_differences,
@@ -14,6 +15,13 @@ from .analysis_context import (
 from .identity import canonical_key
 from .metrics import CANONICAL_METRICS, project_run
 from .repository import RECORD_TYPES, DataStore, record_identifier
+
+
+#: Rows a timing-points page returns when the caller did not ask for a size.
+#: A point is about 2 KB, so the shared default of 100 made a 312 KB response -
+#: over the harness's 32 KiB clip and therefore unparseable to the model.  Every
+#: one of the pilot's 70 over-cap steps was this endpoint.
+POINTS_PAGE = 20
 
 
 #: Which field a ranking reads, and which direction "worst" means for it.
@@ -76,7 +84,8 @@ def list_timing_paths(store: DataStore, snapshot_id: str, query: dict[str, str])
     clause, ranking = _order("timing_paths", query)
     rows = store.filtered(snapshot_id, "timing_paths", where=where, params=params,
                           limit=limit, offset=offset, order_by=clause)
-    return {"snapshot_id": snapshot_id, "timing_paths": rows, **ranking,
+    return {"snapshot_id": snapshot_id, "snapshot": store.snapshot(snapshot_id),
+            "timing_paths": rows, **ranking,
             **_page(total, len(rows), limit, offset), "filters": filters}
 
 
@@ -91,11 +100,12 @@ def list_timing_points(store: DataStore, snapshot_id: str,
     where = " AND ".join(f"json_extract(payload, '$.{key}') = ?" for key in filters)
     params = list(filters.values())
     total = store.count_records(snapshot_id, "timing_points", where=where, params=params)
-    limit, offset = _limit(query), _offset(query)
+    limit, offset = _point_limit(query), _offset(query)
     clause, ranking = _order("timing_points", query)
     rows = store.filtered(snapshot_id, "timing_points", where=where, params=params,
                           limit=limit, offset=offset, order_by=clause)
-    return {"snapshot_id": snapshot_id, "timing_points": rows, **ranking,
+    return {"snapshot_id": snapshot_id, "snapshot": store.snapshot(snapshot_id),
+            "timing_points": rows, **ranking,
             **_page(total, len(rows), limit, offset), "filters": filters}
 
 
@@ -253,6 +263,7 @@ def list_evidence(store: DataStore, snapshot_id: str,
         if not complete:
             break
     result: dict[str, Any] = {"snapshot_id": snapshot_id, "evidence": page,
+                              "snapshot": store.snapshot(snapshot_id),
                               "filters": ({"record_type": requested}
                                           if requested else {})}
     if complete:
@@ -266,7 +277,18 @@ def list_evidence(store: DataStore, snapshot_id: str,
     return result
 
 
-def timing_path(store: DataStore, snapshot_id: str, path_id: str) -> dict[str, Any]:
+def timing_path(store: DataStore, snapshot_id: str, path_id: str,
+                points_limit: int | None = POINTS_PAGE) -> dict[str, Any]:
+    """One path and its points, bounded by default.
+
+    A path on ariane carries 190 points at ~2 KB each and this returned every one
+    of them: 605,179 B for the path record and 312,262 B for a default page of 100
+    points, which is where all 70 of the pilot's over-32 KiB steps came from.  The
+    path header itself is 5 KB and stays whole; only the point list is a page, and
+    ``points_total`` plus the already-paged ``/timing-paths/{id}/points`` route say
+    how to walk the rest.  Internal callers that need every point (the comparison,
+    the context pack) pass ``points_limit=0``.
+    """
     rows = store.records(snapshot_id, "timing_paths", record_id=path_id, limit=1)
     if not rows:
         raise KeyError(f"timing path not found: {path_id}")
@@ -275,17 +297,32 @@ def timing_path(store: DataStore, snapshot_id: str, path_id: str) -> dict[str, A
                               where="json_extract(payload, '$.path_id') = ?",
                               params=(path_id,))
     selected.sort(key=lambda row: row.get("ordinal", 0))
-    return {"snapshot_id": snapshot_id, "timing_path": path, "timing_points": selected,
-            "analysis_context": build_analysis_context(store.snapshot(snapshot_id), path)}
+    result: dict[str, Any] = {"snapshot_id": snapshot_id, "snapshot": store.snapshot(snapshot_id),
+                              "timing_path": path,
+                              "analysis_context": build_analysis_context(
+                                  store.snapshot(snapshot_id), path)}
+    if points_limit:
+        result["timing_points"] = selected[:points_limit]
+        result["points_returned"] = min(points_limit, len(selected))
+        result["points_total"] = len(selected)
+        if len(selected) > points_limit:
+            result["points_truncated"] = True
+            result["next"] = (f"/snapshots/{snapshot_id}/timing-paths/"
+                              f"{quote(path_id, safe='')}/points?limit={points_limit}"
+                              f"&offset={points_limit}")
+    else:
+        result["timing_points"] = selected
+    return result
 
 
 def path_points(store: DataStore, snapshot_id: str, path_id: str, query: dict[str, str]) -> dict[str, Any]:
-    result = timing_path(store, snapshot_id, path_id)
+    result = timing_path(store, snapshot_id, path_id, points_limit=0)
     points = result["timing_points"]
-    limit = _limit(query)
+    limit = _point_limit(query)
     offset = _offset(query)
     page = points[offset:offset + limit]
-    return {"snapshot_id": snapshot_id, "path_id": path_id,
+    return {"snapshot_id": snapshot_id, "snapshot": store.snapshot(snapshot_id),
+            "path_id": path_id,
             "timing_points": page, **_page(len(points), len(page), limit, offset)}
 
 
@@ -295,9 +332,9 @@ def compare_timing_path(store: DataStore, from_snapshot_id: str,
     """Compare paths only after proving their semantic prerequisites."""
     from_snapshot = store.snapshot(from_snapshot_id)
     to_snapshot = store.snapshot(to_snapshot_id)
-    before = timing_path(store, from_snapshot_id, path_id)
+    before = timing_path(store, from_snapshot_id, path_id, points_limit=0)
     target_path_id = to_path_id or path_id
-    after = timing_path(store, to_snapshot_id, target_path_id)
+    after = timing_path(store, to_snapshot_id, target_path_id, points_limit=0)
     before_path, after_path = before["timing_path"], after["timing_path"]
     before_context = before["analysis_context"]
     after_context = after["analysis_context"]
@@ -624,6 +661,14 @@ def _change(before: Any, after: Any) -> dict[str, Any]:
     if isinstance(before, (int, float)) and isinstance(after, (int, float)):
         result["delta"] = after - before
     return result
+
+
+def _point_limit(query: dict[str, str]) -> int:
+    """A points page that survives the harness clip unless the caller says otherwise.
+
+    An explicit ``limit`` is still honoured in full.
+    """
+    return _limit(query) if "limit" in query else POINTS_PAGE
 
 
 def _page(total: int, returned: int, limit: int, offset: int) -> dict[str, Any]:
