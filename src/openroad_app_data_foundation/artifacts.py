@@ -29,6 +29,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from .queries import _limit, _offset, _page
+from .identity import is_query_snapshot
 
 #: Where an ORFS flow tree lives on this host.  Override with
 #: ``--native-root`` or ``OPENROAD_NATIVE_ROOT``; a different deployment has a
@@ -131,8 +132,7 @@ def run_inventory(store, snapshot_id, root, *, stage=None, metric_names=()):
     directories = _run_dirs(snapshot, Path(root))
     indexed = store.snapshots(run_id=snapshot['run_id'])
     query_ids = {s['snapshot_id'] for s in indexed
-                 if s.get('run_summary', {}).get('timing_context', {}).get('parent_snapshot_id')
-                 or re.search(r'-query-[0-9a-f]{12}$', s['snapshot_id'])}
+                 if is_query_snapshot(s)}
     query_count = len(query_ids)
     indexed = [s for s in indexed if s['snapshot_id'] not in query_ids]
     stages = []

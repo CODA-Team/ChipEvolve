@@ -2,8 +2,15 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable, Mapping
 from typing import Any
+
+
+def is_query_snapshot(snapshot: Mapping[str, Any]) -> bool:
+    """Recognize actual supplemental timing snapshots separately from flow stages."""
+    return bool(snapshot.get('run_summary', {}).get('timing_context', {}).get('parent_snapshot_id')
+                or re.search(r'-query-[0-9a-f]{12}$', snapshot['snapshot_id']))
 
 
 #: The fields a timing point's identity references resolve through.  The

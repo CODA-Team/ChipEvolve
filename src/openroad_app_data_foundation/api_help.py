@@ -28,6 +28,10 @@ S/source-metadata returns literal config variables with continued lines joined, 
 SPEF headers and deduplicated per-stage flow timing/wall time, each with its original source.
 Stage metric snapshots: {design}-{variant}-metrics-{stage}-functional-v3.
 GET /snapshots?design_id={design}&fields=snapshot_id,design_id,revision_id,run_id,stage discovers original snapshots and other runs.
+Add origin=flow for original stage indexes, origin=query for supplemental timing snapshots; default all retains both.
+This uses actual parent metadata/query identity, so earlier query outputs do not inflate stage discovery.
+S/run-inventory also accepts fields=<dotted paths through stages/report arrays> for compact selections,
+preserving source/evidence and full-details recovery.
 Let S=/snapshots/<snapshot_id>. URL-encode object names/IDs and query values.
 S/summary gives compact run_summary, including DBU, die/core, counts and metric metadata.
 S, S/summary and S/timing-context accept fields=<comma-separated dotted metadata paths> or detail=full.

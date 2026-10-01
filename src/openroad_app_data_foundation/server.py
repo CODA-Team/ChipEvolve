@@ -34,7 +34,7 @@ from .batch_reads import read_batch
 from .source_search import search_source
 from .native_queries import submit_native_query, native_query_result
 from .timing_queries import submit_timing_query, timing_query_status
-from .identity import snapshot_identity
+from .identity import snapshot_identity, is_query_snapshot
 from .metadata import metadata_view, placement_geometry
 from .envelope import envelope, error_envelope
 from .queries import (
@@ -209,6 +209,11 @@ class Handler(BaseHTTPRequestHandler):
                 self.store, self.execution_client, path.split('/')[-1], _int_param(query, 'wait_seconds', 0)))
         if path == "/snapshots":
             snapshots = store.snapshots(design_id=query.get("design_id"), run_id=query.get("run_id"))
+            origin = query.get('origin', 'all')
+            if origin not in ('all', 'flow', 'query'):
+                raise ValueError('snapshot origin must be all|flow|query')
+            if origin != 'all':
+                snapshots = [s for s in snapshots if is_query_snapshot(s) == (origin == 'query')]
             if query.get("fields"):
                 fields = query["fields"].split(",")
                 allowed = {"snapshot_id", "design_id", "revision_id", "run_id", "stage", "created_at"}
@@ -266,8 +271,9 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) == 3 and parts[2] == 'routing-totals':
                 return routing_totals(store, parts[1])
             if len(parts) == 3 and parts[2] == 'run-inventory':
-                return run_inventory(store, parts[1], self.native_root, stage=query.get('stage'),
-                                     metric_names=tuple(query.get('metrics', '').split(',')) if query.get('metrics') else ())
+                payload = run_inventory(store, parts[1], self.native_root, stage=query.get('stage'),
+                                        metric_names=tuple(query.get('metrics', '').split(',')) if query.get('metrics') else ())
+                return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 3 and parts[2] == 'help':
                 return api_help(store, parts[1], query)
             if len(parts) == 3 and parts[2] == 'source-metadata':
