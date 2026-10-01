@@ -144,7 +144,9 @@ def list_objects(store, snapshot_id, query):
     # *every* page - on ariane136 a single page of 10,000 instances did not return
     # in 190 s, while the same page over the store's own ordinal index takes
     # 0.17 s.  A caller that needs a ranking still asks for one explicitly.
-    sort = query.get('sort')
+    # Connected neighbours are small sets: return their natural name order.
+    # Whole-design inventories retain indexed stored order to avoid a full sort.
+    sort = query.get('sort', 'name' if query.get('connected_to') or query.get('parent_id') else None)
     if sort is not None and sort not in ('name', 'fanout', 'bbox_area'):
         raise ValueError('sort must be name|fanout|bbox_area')
     if sort is None:

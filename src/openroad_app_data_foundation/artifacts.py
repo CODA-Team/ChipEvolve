@@ -299,6 +299,19 @@ def violations(store, snapshot_id: str, query: dict, root: Path) -> dict:
             record["index"] = position
     limit, offset = _limit(query), _offset(query)
     page = records[offset:offset + limit]
+    net_objects = {}
+    for record in page:
+        record['nets'] = [source[4:].replace('\\', '') for source in record['sources']
+                          if source.startswith('net:')]
+        record['net_objects'] = []
+        for name in record['nets']:
+            if name not in net_objects:
+                matches = store.find_net(snapshot_id, name)
+                net_objects[name] = {'name': name,
+                    'status': 'available' if matches else 'not_present_in_snapshot',
+                    'matches': [{'object_id': row['object_id'], 'name': row['name']}
+                                for row in matches]}
+            record['net_objects'].append(net_objects[name])
     counts = _page(len(records), len(page), limit, offset)
     return {"snapshot_id": snapshot_id, "report": name, "tool": family["tool"],
             "coordinate_unit": "um",
