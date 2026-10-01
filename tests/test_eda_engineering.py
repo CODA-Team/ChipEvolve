@@ -95,6 +95,28 @@ def test_missing_point_net_association_never_claims_full_domain_ranking(tmp_path
         store.close()
 
 
+def test_object_provenance_joins_only_its_actual_digest_and_native_locator(tmp_path):
+    from openroad_app_data_foundation.evidence import object_provenance
+    pack = sample()
+    pack['snapshot']['source_artifacts'] = [{'artifact_id': 'odb', 'category': 'raw_design_database',
+        'logical_path': 'inputs/design.odb', 'sha256': 'a' * 64, 'run_id': 'extract', 'stage': 'main'}]
+    pack['entities'][0].update(locator={'native_id': '1'}, evidence=[{
+        'artifact_id': 'odb', 'logical_path': 'inputs/design.odb', 'source_type': 'opendb', 'locator': {'native_id': '1'}}])
+    pack['run_summary']['timing_context'] = {'producer': {'native_run_id': 'original-flow',
+        'artifacts': {'results/original.odb': {'sha256': 'a' * 64}, 'results/other.odb': {'sha256': 'b' * 64}}}}
+    store = DataStore(tmp_path / 'provenance.sqlite')
+    try:
+        store.register(pack)
+        result = object_provenance(store, 's', 'u', 'instance')
+        assert result['object']['locator'] == {'native_id': '1'}
+        assert result['sources'][0]['original_paths'] == ['results/original.odb']
+        assert result['sources'][0]['sha256'] == 'a' * 64
+        assert result['producer_identity']['native_run_id'] == 'original-flow'
+        assert result['record_sources']['evidence_path'].endswith('/records/entities/i/evidence')
+    finally:
+        store.close()
+
+
 def test_joined_net_pages_restore_all_named_loads_and_keep_multi_driver_state(tmp_path):
     from openroad_app_data_foundation.engineering import net_engineering
     pack = sample()
