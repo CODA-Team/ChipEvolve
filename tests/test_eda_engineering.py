@@ -117,6 +117,31 @@ def test_object_provenance_joins_only_its_actual_digest_and_native_locator(tmp_p
         store.close()
 
 
+def test_net_traversal_walks_actual_pages_and_verifies_complete_identity_order(tmp_path):
+    from openroad_app_data_foundation.engineering import net_engineering
+    pack = sample()
+    names = ['u/Z', 'u/A10', 'u/A2', 'u/B', 'u/C']
+    pack['entities'][2]['attributes']['fanout'] = len(names)
+    pack['entities'].extend({'object_id': str(i), 'name': name, 'kind': 'pin'} for i, name in enumerate(names))
+    pack['relations'] = [{'relation_id': str(i), 'subject_id': 'n', 'object_id': str(i), 'predicate': 'loads'}
+                         for i in range(len(names))]
+    store = DataStore(tmp_path / 'traversal.sqlite')
+    try:
+        store.register(pack)
+        result = net_engineering(store, 's', 'n', {'traverse': '1', 'limit': '2'})
+        walk = result['load_traversal']
+        assert walk['completed'] and walk['ordering_verified']
+        assert walk['returned_count'] == walk['unique_object_count'] == walk['total_count'] == result['load_count']
+        assert walk['missing_object_count'] == walk['duplicate_object_count'] == 0
+        assert walk['pages_read'] == 3
+        assert [page['offset'] for page in walk['pages']] == [0, 2, 4]
+        assert walk['pin_names'] == sorted(names)
+        assert walk['first_page'] == sorted(names)[:2] and walk['last_page'] == sorted(names)[4:]
+        assert result['driver_traversal']['completed'] and result['driver_traversal']['total_count'] == 0
+    finally:
+        store.close()
+
+
 def test_joined_net_pages_restore_all_named_loads_and_keep_multi_driver_state(tmp_path):
     from openroad_app_data_foundation.engineering import net_engineering
     pack = sample()
