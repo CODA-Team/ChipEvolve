@@ -25,6 +25,8 @@ from .engineering import (object_statistics, path_engineering, timing_overview,
                           routing_totals, instance_engineering, net_engineering, compare_inventory)
 from .constraints import constraint_context
 from .source_metadata import source_metadata
+from .api_help import api_help
+from .excerpts import excerpt_view
 from .source_search import search_source
 from .native_queries import submit_native_query, native_query_result
 from .timing_queries import submit_timing_query, timing_query_status
@@ -128,7 +130,9 @@ class Handler(BaseHTTPRequestHandler):
                 if self.execution_client is None:
                     raise KernelUnavailable('execution service is not configured')
                 query = self._read_body()
-                self._send(202, submit_native_query(self.store, self.execution_client, parts[1], query, self.native_root))
+                payload = submit_native_query(self.store, self.execution_client, parts[1], query, self.native_root)
+                self._send(200 if payload.get('status') in ('succeeded', 'failed', 'timed_out', 'cancelled', 'lost')
+                           else 202, payload)
                 return
             if len(parts) == 3 and parts[0] == 'snapshots' and parts[2] == 'timing-queries':
                 if self.execution_client is None:
@@ -250,7 +254,7 @@ class Handler(BaseHTTPRequestHandler):
                 ref = refs[0]
                 result = self.execution_client.artifact_excerpt(ref['run_id'], parts[3],
                     offset=_int_param(query, 'offset', 0), max_bytes=_int_param(query, 'max_bytes', 8192))
-                return {'snapshot_id': parts[1], 'source': ref, 'excerpt': result}
+                return {'snapshot_id': parts[1], 'source': ref, 'excerpt': excerpt_view(result, query)}
             if len(parts) == 3 and parts[2] == "objects":
                 return list_objects(store, parts[1], query)
             if len(parts) == 4 and parts[2:4] == ['objects', 'statistics']:
@@ -263,8 +267,11 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) == 3 and parts[2] == 'run-inventory':
                 return run_inventory(store, parts[1], self.native_root, stage=query.get('stage'),
                                      metric_names=tuple(query.get('metrics', '').split(',')) if query.get('metrics') else ())
+            if len(parts) == 3 and parts[2] == 'help':
+                return api_help(store, parts[1], query)
             if len(parts) == 3 and parts[2] == 'source-metadata':
-                return source_metadata(store, parts[1], self.native_root)
+                payload = source_metadata(store, parts[1], self.native_root)
+                return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 5 and parts[2] == 'timing-paths' and parts[4] == 'engineering':
                 payload = path_engineering(store, parts[1], parts[3], query)
                 return metadata_view(payload, query, path) if query.get('fields') else payload

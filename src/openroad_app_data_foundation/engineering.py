@@ -56,6 +56,7 @@ def instance_engineering(store, snapshot_id, identifier):
     groups = {row['value']: row['count'] for row in counts['groups']}
     return {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(snapshot),
             'instance': {'object_id': entity['object_id'], 'name': entity['name'],
+                         'native_name': entity['name'].replace('\\', ''),
                          'master': attr.get('master'), 'master_type': attr.get('master_type'),
                          'is_macro': attr.get('is_macro'),
                          **placement_geometry(physical, snapshot['run_summary']['dbu_per_micron'], attr.get('orientation')),

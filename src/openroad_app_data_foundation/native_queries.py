@@ -1,20 +1,30 @@
 """General native engineering queries, scoped to original snapshot inputs."""
 import uuid
 from pathlib import Path
+from .excerpts import excerpt_view
 from .artifacts import DEFAULT_NATIVE_ROOT, native_excerpt
 from .query_inputs import snapshot_inputs
 from .timing_queries import wait_query_run
 
 
 def submit_native_query(store, client, snapshot_id, query, native_root=DEFAULT_NATIVE_ROOT):
-    if set(query) - {'script', 'with_timing', 'extra_files', 'odb_file'}:
-        raise ValueError('native query accepts script, with_timing, extra_files and odb_file')
+    if set(query) - {'script', 'with_timing', 'extra_files', 'odb_file', 'wait_seconds', 'max_bytes', 'format'}:
+        raise ValueError('native query accepts script, with_timing, extra_files, odb_file, wait_seconds, max_bytes and format')
     script = query.get('script')
     if not isinstance(script, str) or not script.strip() or len(script.encode()) > 65536:
         raise ValueError('script must be nonempty Tcl of at most64 KiB')
     with_timing = query.get('with_timing', False)
     if type(with_timing) is not bool:
         raise ValueError('with_timing must be boolean')
+    wait = query.get('wait_seconds', 0)
+    maximum = query.get('max_bytes', 8192)
+    if type(wait) is not int or not 0 <= wait <= 120:
+        raise ValueError('wait_seconds must be an integer between 0 and 120')
+    if type(maximum) is not int or not 1 <= maximum <= 65536:
+        raise ValueError('max_bytes must be an integer between 1 and 65536')
+    representation = query.get('format', 'text')
+    if representation not in ('text', 'base64', 'full'):
+        raise ValueError('excerpt format must be text|base64|full')
     snapshot = store.snapshot(snapshot_id)
     original, staged = snapshot_inputs(snapshot, with_timing)
     extras = query.get('extra_files', [])
@@ -42,7 +52,12 @@ def submit_native_query(store, client, snapshot_id, query, native_root=DEFAULT_N
                        'parent_snapshot_id': snapshot_id}, 'staged_inputs': staged,
             'resources': {'cpu_cores': 2, 'memory_bytes': 6 * 1024**3, 'processes': 128},
             'timeout_seconds': 180, 'max_attempts': 1, 'expected_artifacts': ['analysis_report']}
-    return {'run': client.submit(task)['run'], 'parent_snapshot_id': snapshot_id}
+    run = client.submit(task)['run']
+    result = {'run': run, 'parent_snapshot_id': snapshot_id}
+    if wait:
+        result.update(native_query_result(client, run['run_id'],
+                      {'wait_seconds': str(wait), 'max_bytes': str(maximum), 'format': representation}))
+    return result
 
 
 def native_query_result(client, run_id, query):
@@ -67,7 +82,7 @@ def native_query_result(client, run_id, query):
     if offset < 0 or not 1 <= max_bytes <= 65536:
         raise ValueError('offset must be nonnegative; max_bytes must be1..65536')
     excerpt = client.artifact_excerpt(run_id, ref['artifact_id'], offset=offset, max_bytes=max_bytes)
-    return {**result, 'source': ref, 'excerpt': excerpt,
+    return {**result, 'source': ref, 'excerpt': excerpt_view(excerpt, query),
             'parent_snapshot_id': (run.get('labels') or {}).get('parent_snapshot_id'),
             'original_input_artifacts': [r for r in artifacts
                                          if r['kind'].startswith('raw_') or

@@ -1,0 +1,168 @@
+"""Public API usage, retrieved by topic instead of copied into every model turn."""
+TOPICS = {'run': 'Run identity, stage/source availability, metrics, library units and analysis setup.',
+ 'objects': 'Instance/pin/net discovery, statistics, connectivity and complete names.',
+ 'timing': 'Timing paths, extrema, engineering joins, constraints, comparisons and fresh path queries.',
+ 'physical': 'Placement, wire/via geometry, parasitics and violations.',
+ 'sources': 'Original files, source search/excerpts, evidence fragments and metric/batch reading.',
+ 'native': 'Real native OpenROAD queries, alternate-stage inputs and waiting for actual results.'}
+
+GUIDES = {
+    'run': '''Use the EDA data HTTP tool. GET responses usually carry their result in data.
+Current design finish snapshot: {design}-{variant}-finish-functional-v3.
+Other indexed physical stages replace finish with place/cts/route; discover existing snapshots before use.
+Synth/floorplan originals are accessed through files or native-queries with odb_file.
+S/run-inventory returns all six original stages, ODB digests, actual metric filenames/key coverage and indexed snapshot names.
+Add ?stage=route (or another stage) for compact discovery. metric_reports lists EVERY original JSON report in that stage,
+including substage files with quantities absent from its representative report. Read the needed original with files/excerpt
+or files/search, preserving its substage/source identity. Avoid full snapshot summaries or STA initialization for a quantity
+already recorded in an original metric file. Never silently substitute an earlier iteration for a requested final-stage value.
+Add metrics=<exact raw key or namespace suffix, comma separated> to return literal matching values directly from each
+original report, with its raw key and source. For example metrics=instance__area retrieves recorded cell area;
+each substage stays separately identified, including an empty match in a report that does not declare that quantity.
+Use it to distinguish original availability from index coverage; no indexed snapshot does not mean no original file.
+S/source-metadata returns literal config variables with continued lines joined, the actually loaded library units/nominal values,
+SPEF headers and deduplicated per-stage flow timing/wall time, each with its original source.
+Stage metric snapshots: {design}-{variant}-metrics-{stage}-functional-v3.
+GET /snapshots?design_id={design}&fields=snapshot_id,design_id,revision_id,run_id,stage discovers original snapshots and other runs.
+Let S=/snapshots/<snapshot_id>. URL-encode object names/IDs and query values.
+S/summary gives compact run_summary, including DBU, die/core, counts and metric metadata.
+S, S/summary and S/timing-context accept fields=<comma-separated dotted metadata paths> or detail=full.
+For DBU use S/summary?fields=run_summary.dbu_per_micron; for original inputs use
+S?fields=snapshot.source_artifacts,snapshot.run_summary.timing_context.producer.
+Default metadata omits repeated full manifests; delivery.full_details retrieves everything. Use exact fields when possible.
+
+S/source-metadata includes toolchain_receipt, timing_context, original_inputs and original_metric_scenarios.
+original_metric_scenarios reads literal corner names from original metric keys, separately from the declared snapshot corner label.
+Use fields=configuration,libraries,spef,timing_context (or other comma-separated top-level fields) for only needed sections.
+Metadata detail=full retains all original sections. Receipt self-reported version "unknown" stays unknown.
+S/artifacts/files supports kind=receipts, name_contains=<filename>, limit/offset. Use its real filters, not path=receipts.
+''',
+    'objects': '''S/instances?name=... or S/nets?name=... looks up native names.
+S/nets/<native name or id>/engineering?limit=N&offset=N returns complete driver/load counts and state,
+sorted native driver_pins/load_pins with separate page metadata, net identity/type and original database evidence.
+Choose limit large enough when the task requires all names; counts are independent of the returned page.
+S/instances/<native name or id>/engineering returns master/type, placed location, bbox, both ODB/DEF orientation names,
+and complete pin counts grouped by connected-net type in one call. Unconnected pins are explicitly unclassified.
+S/objects supports kind=instance|net|pin, name (exact), name_contains, name_prefix, ids=<comma-separated up to100 IDs>, parent_id, master, is_macro=0|1,
+signal_type=SIGNAL|CLOCK|POWER|GROUND, port=0|1, driver_count/min/max, port_driven=0|1,
+connected_to=<net id>&net_role=driver|load; sort=name|fanout|bbox_area&order=asc|desc;
+region=xmin,ymin,xmax,ymax (dbu) with intersection=positive_area|touching.
+Pin attributes include pin_name (local), native_name (full), net_name/net_id and signal_type of the connected native net; CLOCK is excluded from SIGNAL.
+Use fields=object_id,name,attributes.pin_name,attributes.direction,attributes.net_name,attributes.signal_type for compact pins;
+fields=object_id,name,attributes.master,attributes.fanout is compact for instances/nets. Omit fields to get full facts including geometry; limit/offset and next_offset page complete lists.
+Add include_physical=1 to join placed geometry for every object on the page. For an entire macro inventory use
+kind=instance&is_macro=1&sort=name&limit=200&include_physical=1&fields=name,attributes.master,attributes.orientation,physical.bbox_um.
+Physical bbox_um is a named x_min/y_min/x_max/y_max box. This avoids per-object geometry operations and repeated evidence.
+For largest macro use S/objects?kind=instance&is_macro=1&sort=bbox_area&order=desc&limit=1; ties use name descending.
+S/objects/statistics accepts the SAME filters as objects and gives complete aggregation over matching objects;
+group_by=master|kind|master_type|signal_type|driver_count|direction. For example kind=pin&parent_id=<instance>&group_by=signal_type
+returns distinct SIGNAL/CLOCK/POWER/GROUND counts; never infer SIGNAL by merely excluding power.
+
+Engineering instance names preserve the stored name and also provide native_name without DEF escapes.
+To retrieve the exact original spelling, use native queries against the original database; never invent its escape representation.
+''',
+    'timing': '''S/timing-paths?check=setup|hold&sort=slack&order=worst&limit=N returns ranked stored paths;
+filters include startpoint, endpoint, group, source_clock, target_clock, corner; fields=path_id,startpoint,endpoint,group,slack projects only those fields.
+S/timing-points?path_section=source_path&sort=slew|load|arrival&order=worst&limit=N ranks data points over all stored paths.
+Optional path_id restricts a path; pin_name, instance_id, net_id and check=setup|hold filter occurrences.
+Use pin_name together with path_id when a pin's timing on one particular path is needed;
+fields=pin_name,net_name,slew,load,arrival,instance_id keeps results small.
+S/timing-context exposes all original clocks, analysis setup and producer identity. S/artifacts lists attached originals
+and the original manifest (digests, flow/tool identity), with limit/offset.
+S/timing-paths/<path_id>/context?detail=summary&relation_limit=2 bounds graph relationships and states truncation.
+For field-based context budgets, request just the needed path fields and name the omitted fields with continuation routes.
+S/compare/<other_snapshot>/timing-paths/<path_id>?to_path_id=... compares paths and scenarios;
+S/compare/<other_snapshot>/metrics?name=... compares metrics. S/objects/<id>/context and S/nets/<id>/context
+provide provenance-bearing related facts with detail=summary and relation_limit.
+S/compare/<other_snapshot>/inventory?metrics=<raw key or suffix> returns complete native instance/net/SIGNAL-net
+counts for both snapshots, their deltas and matching literal metric values from each stage's original reports.
+The response explicitly distinguishes native inventory counts including fillers from the reported cell area;
+reports retain substage identity rather than being relabeled final. Prefer this joined comparison over repeated inventories.
+S/timing-paths/<path_id>/points?limit=N&offset=N&path_section=source_path&fields=pin_name,instance_id,net_id,net_name,cell_name,arrival,load,slew gives compact data points; omit fields/path_section for all facts/sections. It gives points by path_section (source_path is the data path;
+source_clock_path/target_clock_path are clock paths); slew and arrival in seconds, load in Farads.
+S/timing-paths/<path_id>/engineering gives joined data-side pins, instances, nets, master_counts and bbox union;
+arrays are paged by limit/offset. Add include_routing=1 to obtain the full routing_layers_crossed union,
+including both sides of every via on ALL data-path nets. This avoids querying their wire shapes individually.
+data_point_extrema provides complete maximum slew/load, ALL tied pin_names, tie_count and selected_point,
+independent of the returned point page. Use these complete statistics rather than estimating ties from a page.
+S/timing-overview?check=setup&limit=5&signal_type=SIGNAL gives selected paths, net_names (complete sorted union),
+nets (ranked by fanout), instance_names (complete sorted union), common_instances and master_occurrences.
+It also gives complete data_point_extrema over the selected paths. Add include_physical=1 to attach the selected extrema
+pins' owning instance engineering facts. Use fields=paths,data_point_extrema to read only those complete results.
+Selected points carry point_id, path_id and source references: S/records/timing_points/<point_id>/fragments returns
+the actual small original point and native mapping, avoiding full-path context expansion for a single fact.
+Prefer these joins/aggregations for multi-object analysis rather than repeatedly fetching individual objects.
+Stored path lists are samples. For any other endpoint or exact start/end pair, POST S/timing-queries
+payload {"from_pin":"native start", "to_pin":"native end", "path_group":"optional group", "path_count":5,"endpoint_path_count":1}.
+Omit unneeded filters. It returns run.run_id and a new snapshot_id; GET /timing-queries/<run_id>?wait_seconds=120 waits for completion in one tool operation; repeat if still running, not rapid polling.
+Once succeeded, then query the snapshot_ids returned there. Both setup and hold paths are generated.
+S/constraints returns effective SDC, declared clocks/delays and native check_setup coverage (not sampled path coverage).
+original_constraints maps each staged input digest to every matching original SDC path in the producer manifest;
+cite the requested stage's original file. Clock-source ports/pins are in the create_clock target or native STA query,
+and are distinct from those file paths. A virtual clock has no source ports/pins.
+kind=propagation returns clock propagation statements; kind=all pages every original non-comment SDC line
+in original order, including statements beyond named-clock creation. Read later matching declarations too.
+''',
+    'physical': '''S/physical/<object_id>?routing_limit=1 gives location_dbu/location_um, orientation and bbox (dbu/um), or pageable routing with routing_offset;
+location_basis explicitly identifies dbInst.getLocation. Objects with include_physical=1 carry the same location fields;
+use these extracted placement facts rather than requerying dbInst.getOrigin for a different coordinate definition.
+routing_limit=0 returns all geometry. S/nets/<net_id>/routing-summary gives full layer/via/centerline totals, wirelength_um and via_distribution_by_layer (each via counted on BOTH bottom and top layers).
+For all metal layers used by a net, read routing_layers_used (union of segment_layers and via_layers),
+not just keys of layers, which is the segment-length dictionary and excludes via-only participation.
+S/routing-totals gives full-design geometric length/vias. S/nets/<net name or id>/parasitics?limit=N&offset=N
+reads the original SPEF and gives total capacitance, RES sums, units, paged branches and source offsets.
+S/violations reads native DRC reports, locations and relevant names. Report bbox coordinates are um;
+convert named x_min/y_min/x_max/y_max boxes to [xmin,ymin,xmax,ymax] when the answer schema requests an array.
+Specify file for a particular iteration report; final DRC count comes from the stage metric, not an earlier iteration.
+''',
+    'sources': '''S/artifacts/files lists original report/log/result files. S/artifacts/files/excerpt?path=<relative>&offset=0&max_bytes=8192
+reads original bytes, including configs/libs declared by producer and receipts/<design>.flow.log etc.
+S/artifacts/files/search?path=<relative>&pattern=<regular expression>&ignore_case=1&context_lines=0&limit=20
+searches ALL original lines and returns matching text, source digest, line numbers and byte offsets;
+offset/next_offset page the matches. Use it for report/SDC/log facts beyond the compact endpoints.
+Relative run sources are results|logs|reports/nangate45/<design>/{variant}/<filename>.
+S/sources/<artifact_id>/excerpt?offset=...&max_bytes=... reads attached originals; next_offset continues.
+S/records/<record_type>/<record_id>/fragments retrieves original fragment evidence.
+GET /runs/<run_id>/metrics?stage=finish&name=WNS filters a specific canonical metric; omit name for all metrics in that stage.
+GET /runs/<run_id>/metrics?include_raw=1 provides canonical and original metric keys.
+The same name/stage/snapshot_id/scene filters apply to original keys. Request one exact raw key or canonical
+STDCELL_COUNT/MACRO_COUNT/AREA/STDCELL_AREA/MACRO_AREA instead of reading an entire metric inventory.
+Canonical rows carry raw_key, value_basis and quantity_scope; AREA is cell instance area, not die/core area.
+POST /query payload {"requests":["/snapshots/...", "/runs/.../metrics?...", ...]} batches up to20 snapshot/run read paths.
+''',
+    'native': '''For engineering facts beyond these queries, POST S/native-queries with payload {"script":"Tcl query","with_timing":false}.
+For original sources from other stages not indexed as snapshots, extra_files:["results/nangate45/<design>/<variant>/1_synth.odb", ...]
+stages those declared original files at their same relative paths. Set odb_file to the declared .odb path to query
+synth/floorplan instead of the snapshot ODB; OpenROAD cannot read_db twice into an already populated database.
+For alternate-stage timing use with_timing=false and load that stage's declared libraries/SDC/SPEF in the script.
+The original ODB is already loaded, so use set block [[[ord::get_db] getChip] getBlock]. For STA facts set with_timing=true
+so the snapshot's original libraries/SDC/parasitics are loaded. Native master pin classification uses [$iterm getMTerm] getSigType.
+GET /native-queries/<run_id>?wait_seconds=120 returns actual process output in excerpt.text and source artifact information;
+continue with offset/max_bytes when excerpt.truncated. This is a real native query, not a stored question answer.
+Source excerpts default to text without duplicate base64; format=base64 returns exact original bytes, format=full returns both.
+Failed native queries retain status=failed and expose the actual error report; read it to correct the Tcl method.
+For placed ITerm coordinates, $iterm getAvgXY returns {success x y} in dbu; check success before using x/y.
+Timing values from paths/points are s, loads F; stage timing metrics ns; power W; physical values dbu unless stated otherwise.
+WNS is min(0,worst slack), so positive WS means WNS0. Keep analysis scenario (clock mode, parasitics, corner) explicit.
+
+POST S/native-queries also accepts wait_seconds=120 and max_bytes=8192 in its JSON body.
+This submits and waits in one request; if status is still running use the returned run_id to continue.
+Snapshot timing_context.corner is the declared snapshot label, not a guaranteed native OpenSTA corner name.
+Use report_units to read loaded STA units. For native corner names inspect the current engine's supported commands;
+do not assume sta::corners exists or infer a named native corner from an empty query result.
+Read excerpt.text for actual output, failure_details for actual errors, and excerpt's continuation when truncated.
+''',
+}
+
+def api_help(store, snapshot_id, query):
+    snapshot = store.snapshot(snapshot_id)
+    topic = query.get('topic')
+    base = '/snapshots/' + snapshot_id
+    if topic is None:
+        return {'snapshot_id': snapshot_id, 'usage': 'S=' + base + '; URL-encode object names/query values; GET results are in data',
+                'topics': [{'topic': key, 'description': value, 'path': base + '/help?topic=' + key}
+                           for key, value in TOPICS.items()]}
+    if topic not in GUIDES:
+        raise ValueError('help topic must be ' + '|'.join(GUIDES))
+    guide = GUIDES[topic].replace('{design}', snapshot['design_id']).replace('{variant}', snapshot['revision_id'])
+    return {'snapshot_id': snapshot_id, 'topic': topic, 'guide': guide, 'topic_index': base + '/help'}

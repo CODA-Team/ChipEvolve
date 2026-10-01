@@ -1,8 +1,11 @@
 """Compact configuration, library/SPEF headers and actual flow timing receipts."""
+import json
 import re
 from datetime import datetime
 from pathlib import Path
-from .artifacts import native_excerpt, _receipt_files
+from .artifacts import native_excerpt, _receipt_files, run_inventory
+from .discovery import timing_context
+from .identity import snapshot_identity
 
 
 def source_text(store, snapshot_id, path, root, stop=None):
@@ -108,4 +111,32 @@ def source_metadata(store, snapshot_id, root):
                     marks[state] = datetime.fromisoformat(line.split()[0])
         result['flow_timing']['wall_seconds'] = (
             (marks['finished'] - marks['running']).total_seconds() if len(marks) == 2 else None)
+    result['timing_context'] = timing_context(store, snapshot_id)['timing_context']
+    result['timing_context'] = {key: value for key, value in (result['timing_context'] or {}).items()
+                                if key != 'producer'}
+    result['snapshot'] = snapshot_identity(snapshot)
+    result['original_inputs'] = []
+    loaded_paths = {context.get('constraints'), context.get('parasitics'), context.get('rc_script'),
+                    *context.get('libraries', [])} - {None}
+    for artifact in snapshot.get('source_artifacts', []):
+        if artifact.get('category') == 'raw_design_database' or artifact.get('logical_path') in loaded_paths:
+            result['original_inputs'].append({'role': artifact['category'], 'staged_path': artifact.get('logical_path'),
+                'sha256': artifact.get('sha256'), 'original_paths': sorted(path for path, ref in manifest.items()
+                    if ref.get('sha256') == artifact.get('sha256'))})
+    result['evidence'] = [artifact for artifact in snapshot.get('source_artifacts', [])
+                          if artifact.get('category') == 'raw_design_database']
+    result['original_metric_scenarios'] = []
+    inventory = run_inventory(store, snapshot_id, root, stage=snapshot['stage'])
+    for stage in inventory['stages']:
+        for report in stage['metric_reports']:
+            text, ref = source_text(store, snapshot_id, report['relative_path'], root)
+            metrics = json.loads(text)
+            corners = sorted({part[len('corner:'):] for key in metrics
+                              for part in key.split('__') if part.startswith('corner:')})
+            result['original_metric_scenarios'].append({'source': ref, 'corner_names': corners,
+                'basis': 'literal corner labels in this original stage metric file; distinct from snapshot labels'})
+    result['toolchain_receipt'] = None
+    if 'receipts/toolchain.json' in receipts:
+        text, ref = source_text(store, snapshot_id, 'receipts/toolchain.json', root)
+        result['toolchain_receipt'] = {'source': ref, 'values': json.loads(text)}
     return result

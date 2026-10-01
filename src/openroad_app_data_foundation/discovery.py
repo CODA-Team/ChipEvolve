@@ -84,13 +84,16 @@ def object_filter(snapshot_id, query):
         if mode == 'positive_area' and (box[0] == box[2] or box[1] == box[3]):
             filters.append('0')
         greater, less = ('>', '<') if mode == 'positive_area' else ('>=', '<=')
-        filters.append(f"""record_id IN (SELECT record_id FROM records
-            WHERE snapshot_id = ? AND record_type = 'physical_context'
-            AND json_extract(payload, '$.bbox.x_max') {greater} ?
-            AND json_extract(payload, '$.bbox.y_max') {greater} ?
-            AND json_extract(payload, '$.bbox.x_min') {less} ?
-            AND json_extract(payload, '$.bbox.y_min') {less} ?)""")
-        params.extend([snapshot_id, *box])
+        # Read geometry only for the candidate objects. A global physical scan
+        # parses huge unrelated routed-net payloads before counting instances.
+        filters.append(f"""EXISTS (SELECT 1 FROM records p INDEXED BY records_physical_bbox
+            WHERE p.snapshot_id = records.snapshot_id AND p.record_type = 'physical_context'
+            AND p.record_id = records.record_id
+            AND json_extract(p.payload, '$.bbox.x_max') {greater} ?
+            AND json_extract(p.payload, '$.bbox.y_max') {greater} ?
+            AND json_extract(p.payload, '$.bbox.x_min') {less} ?
+            AND json_extract(p.payload, '$.bbox.y_min') {less} ?)""")
+        params.extend(box)
     if query.get('ids'):
         # One call for many objects, because the alternative costs a call per id and
         # each call carries ~2.3 KB of envelope: ariane cross_domain-01 spends 105

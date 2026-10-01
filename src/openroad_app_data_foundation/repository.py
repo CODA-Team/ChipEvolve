@@ -242,6 +242,25 @@ class DataStore:
                 ON records(snapshot_id, record_type,
                            json_extract(payload, '$.path_id'))
                 WHERE json_extract(payload, '$.path_id') IS NOT NULL;
+            -- Object filters must not parse every pin/net payload to find
+            -- instances, or every instance to find a small macro inventory.
+            CREATE INDEX IF NOT EXISTS records_entity_kind
+                ON records(snapshot_id, record_type,
+                           json_extract(payload, '$.kind'), ordinal)
+                WHERE record_type = 'entities';
+            CREATE INDEX IF NOT EXISTS records_entity_macro
+                ON records(snapshot_id, record_type,
+                           json_extract(payload, '$.attributes.is_macro'), ordinal)
+                WHERE record_type = 'entities'
+                  AND json_extract(payload, '$.attributes.is_macro') IS NOT NULL;
+            CREATE INDEX IF NOT EXISTS records_physical_bbox
+                ON records(snapshot_id, record_type, record_id,
+                           json_extract(payload, '$.bbox.x_max'),
+                           json_extract(payload, '$.bbox.y_max'),
+                           json_extract(payload, '$.bbox.x_min'),
+                           json_extract(payload, '$.bbox.y_min'))
+                WHERE record_type = 'physical_context'
+                  AND json_extract(payload, '$.bbox.x_min') IS NOT NULL;
             -- Not dead code: an adapter that starts populating
             -- attributes.hierarchical_name needs this index to exist, and the
             -- name lookup below reads it.  Today it holds a single entry.
