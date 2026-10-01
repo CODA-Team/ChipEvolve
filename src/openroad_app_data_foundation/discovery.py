@@ -134,7 +134,9 @@ def timing_context(store, snapshot_id):
 
 
 def routing_summary(store, snapshot_id, object_id):
-    physical = store.physical(snapshot_id, object_id)
+    # Every shape, deliberately: this counts segments per layer and vias by name, so
+    # a paged list would produce a confidently wrong total rather than a short one.
+    physical = store.physical(snapshot_id, object_id, routing_limit=0)
     layers, vias = {}, {}
     for shape in physical.get('routing', []):
         if shape.get('routing_type') == 'segment':

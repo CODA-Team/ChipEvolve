@@ -45,6 +45,25 @@ from .connections import ReadPool
 from .repository import DataStore
 
 
+def _routing_limit(query: dict[str, str]) -> int | None:
+    """`routing_limit=0` means every shape; absent means the default page."""
+    raw = query.get("routing_limit")
+    if raw is None:
+        return None
+    value = int(raw)
+    if value < 0:
+        raise ValueError("routing_limit must be >= 0")
+    return value
+
+
+def _routing_offset(query: dict[str, str]) -> int:
+    raw = query.get("routing_offset", "0")
+    value = int(raw)
+    if value < 0:
+        raise ValueError("routing_offset must be >= 0")
+    return value
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "design-data-foundation/0.1"
     store: DataStore
@@ -276,8 +295,27 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) == 5 and parts[2] == "nets" and parts[4] == "expand":
                 return store.expand_net(parts[1], parts[3])
             if len(parts) == 4 and parts[2] == "physical":
-                return {"snapshot_id": parts[1], "snapshot": snapshot_identity(store.snapshot(parts[1])),
-                        "physical_context": store.physical(parts[1], parts[3])}
+                physical = store.physical(parts[1], parts[3],
+                                          routing_limit=_routing_limit(query),
+                                          routing_offset=_routing_offset(query))
+                payload = {"snapshot_id": parts[1],
+                           "snapshot": snapshot_identity(store.snapshot(parts[1])),
+                           "physical_context": physical}
+                if physical.get("routing_truncated"):
+                    # The page is a bounded view, so the envelope has to say so.
+                    # Reporting `available` for a 100-of-1970 routing list is the
+                    # silent truncation this project keeps having to remove.
+                    payload["truncated"] = True
+                    payload["limitations"] = [{
+                        "field": "physical_context.routing",
+                        "status": "truncated",
+                        "returned": physical.get("routing_returned"),
+                        "total": physical.get("routing_total"),
+                        "next_offset": physical.get("next_offset"),
+                        "reason": "routing list is paged; pass routing_limit=0 for "
+                                  "every shape, or use routing-summary for totals",
+                    }]
+                return payload
         raise KeyError("not found")
 
     def _read_body(self) -> dict[str, Any]:

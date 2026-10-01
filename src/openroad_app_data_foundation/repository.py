@@ -878,11 +878,47 @@ class DataStore:
             result["relations"] = self._related(snapshot_id, object_id)
         return result
 
-    def physical(self, snapshot_id: str, object_id: str) -> dict[str, Any]:
+    #: A net's routing list is the whole response: ariane136's worst net carries
+    #: 1,970 segments = 310,603 B of 311,733 B, so `/physical/{id}` went past the
+    #: caller's 32 KiB read cap and arrived as unreadable JSON.  The first page is
+    #: enough to see the shape, and `/nets/{id}/routing-summary` answers "which
+    #: layers, how much" from the aggregate rather than from raw shapes.
+    ROUTING_PAGE = 100
+
+    def physical(self, snapshot_id: str, object_id: str, *,
+                 routing_limit: int | None = None,
+                 routing_offset: int = 0) -> dict[str, Any]:
+        """One object's physical context, with the routing list paged by default.
+
+        ``routing_limit=0`` means every shape, for callers that aggregate over the
+        whole list (``discovery.routing_summary`` counts per layer and per via, so a
+        silently shortened list would give a wrong answer rather than a short one).
+        """
         rows = self.records(snapshot_id, "physical_context", record_id=object_id, limit=1)
         if not rows:
             raise KeyError(f"physical context not found: {object_id}")
-        return rows[0]
+        result = dict(rows[0])
+        routing = result.get("routing")
+        if not isinstance(routing, list):
+            return result
+        total = len(routing)
+        limit = self.ROUTING_PAGE if routing_limit is None else routing_limit
+        result["routing_total"] = total
+        if not limit:
+            result["routing_returned"] = total - routing_offset
+            result["routing"] = routing[routing_offset:]
+            return result
+        window = routing[routing_offset:routing_offset + limit]
+        result["routing"] = window
+        result["routing_returned"] = len(window)
+        result["routing_offset"] = routing_offset
+        if routing_offset + len(window) < total:
+            result["routing_truncated"] = True
+            result["next_offset"] = routing_offset + len(window)
+        result["routing_note"] = (
+            "page with ?routing_limit=&routing_offset=; /nets/{id}/routing-summary "
+            "gives per-layer totals without the raw shapes")
+        return result
 
     def evidence(self, snapshot_id: str, artifact_id: str | None = None) -> list[dict[str, Any]]:
         """Return fact locations that cite one registered artifact."""
