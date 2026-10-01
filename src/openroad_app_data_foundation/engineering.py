@@ -3,20 +3,51 @@ from collections import Counter
 
 from .identity import snapshot_identity
 from .queries import _limit, _offset, _page, list_timing_paths, timing_path
-from .discovery import object_filter
+from .discovery import object_filter, list_objects
 from .metadata import placement_geometry
+
+
+def _entity(store, snapshot_id, identifier, kind):
+    rows = store.entities_by_ids(snapshot_id, [identifier])
+    if not rows:
+        rows = store.entities_named(snapshot_id, kind, identifier)
+    if not rows:
+        raise KeyError(kind + ' not found: ' + identifier)
+    if len(rows) != 1 or rows[0].get('kind') != kind:
+        raise ValueError('identifier must resolve to one ' + kind)
+    return rows[0]
+
+
+def net_engineering(store, snapshot_id, identifier, query):
+    """Named connectivity with complete counts and bounded, ordered pin lists."""
+    entity = _entity(store, snapshot_id, identifier, 'net')
+    result = {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(store.snapshot(snapshot_id)),
+              'net': {'object_id': entity['object_id'], 'name': entity['name'],
+                      **{key: (entity.get('attributes') or {}).get(key) for key in
+                         ('signal_type', 'fanout', 'fanout_basis', 'inout_pin_count')}},
+              'evidence': entity.get('evidence', []), 'order': 'bytewise native name ascending'}
+    for role in ('driver', 'load'):
+        page = list_objects(store, snapshot_id, {'kind': 'pin', 'connected_to': entity['object_id'],
+            'net_role': role, 'sort': 'name', 'fields': 'object_id,name',
+            'limit': query.get('limit', '50'), 'offset': query.get('offset', '0')})
+        result[role + '_pins'] = [row['name'].replace('\\', '') for row in page['objects']]
+        result[role + '_count'] = page['count']
+        result[role + '_page'] = {key: page[key] for key in
+                               ('count', 'returned', 'limit', 'offset', 'truncated', 'next_offset')}
+    result['state'] = ('no_driver' if result['driver_count'] == 0 else
+                       'single_driver' if result['driver_count'] == 1 else 'multi_driver')
+    result['truncated'] = any(result[role + '_page']['truncated'] for role in ('driver', 'load'))
+    expected = entity.get('attributes') or {}
+    if (expected.get('fanout') is not None and result['load_count'] != expected['fanout']) or (
+            expected.get('driver_count') is not None and result['driver_count'] != expected['driver_count']):
+        result['availability'] = {'complete_connectivity': {'status': 'unavailable',
+            'reason': 'stored native counts and resolved pin relations disagree; use native query to complete connectivity'}}
+    return result
 
 
 def instance_engineering(store, snapshot_id, identifier):
     """Instance identity, placed geometry and complete pin counts in one read."""
-    rows = store.entities_by_ids(snapshot_id, [identifier])
-    if not rows:
-        rows = store.find_instance(snapshot_id, identifier)
-    if not rows:
-        raise KeyError('instance not found: ' + identifier)
-    if len(rows) != 1 or rows[0].get('kind') != 'instance':
-        raise ValueError('identifier must resolve to one instance')
-    entity = rows[0]
+    entity = _entity(store, snapshot_id, identifier, 'instance')
     attr = entity.get('attributes') or {}
     snapshot = store.snapshot(snapshot_id)
     physical = store.physical(snapshot_id, entity['object_id'], routing_limit=1)
@@ -35,6 +66,34 @@ def instance_engineering(store, snapshot_id, identifier):
                          'unclassified_pin_count': groups.get(None, 0),
                          'pin_type_basis': 'connected native OpenDB net SigType; unconnected pins are explicitly unclassified'},
             'evidence': physical.get('evidence', [])}
+
+
+def compare_inventory(store, left_id, right_id, query, root):
+    """Compare native inventories and separately identified original stage reports."""
+    from .artifacts import run_inventory
+    metric_names = tuple(query.get('metrics', '').split(',')) if query.get('metrics') else ()
+    sides = []
+    for sid in (left_id, right_id):
+        snapshot = store.snapshot(sid)
+        instances = object_statistics(store, sid, {'kind': 'instance', 'group_by': 'kind'})
+        nets = object_statistics(store, sid, {'kind': 'net', 'group_by': 'signal_type'})
+        groups = {row['value']: row['count'] for row in nets['groups']}
+        side = {'snapshot': snapshot_identity(snapshot), 'instance_count': instances['object_count'],
+                'net_count': nets['object_count'], 'signal_net_count': groups.get('SIGNAL', 0),
+                'count_basis': 'complete native object inventory; instances include fillers; SIGNAL excludes CLOCK/POWER/GROUND',
+                'evidence': [ref for ref in snapshot.get('source_artifacts', [])
+                             if ref.get('category') == 'raw_design_database']}
+        if metric_names:
+            inventory = run_inventory(store, sid, root, stage=snapshot['stage'], metric_names=metric_names)
+            side['original_metric_reports'] = [{'source': report['relative_path'],
+                 'metric_values': report['metric_values'], 'value_basis': report['value_basis']}
+                 for stage in inventory['stages'] for report in stage['metric_reports']]
+        sides.append(side)
+    return {'from': sides[0], 'to': sides[1],
+            'deltas': {key: sides[1][key] - sides[0][key] for key in
+                       ('instance_count', 'net_count', 'signal_net_count')},
+            'metric_basis': 'original reports retain substage/source identity; no earlier report is silently relabeled as final',
+            'evidence': sides[0]['evidence'] + sides[1]['evidence']}
 
 
 def object_statistics(store, snapshot_id, query):

@@ -205,6 +205,8 @@ def list_objects(store, snapshot_id, query):
               # byte-identical, so "which run is this number from" is a real
               # question, and `snapshot()` is cached - this costs no query.
               'snapshot': snapshot_identity(store.snapshot(snapshot_id)),
+              'evidence': [ref for ref in store.snapshot(snapshot_id).get('source_artifacts', [])
+                           if ref.get('category') == 'raw_design_database'],
               **_page(total, len(rows), limit, offset)}
     if query.get('ids'):
         # Distinguish an id that does not exist from one this call did not return:

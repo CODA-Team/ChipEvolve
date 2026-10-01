@@ -22,7 +22,7 @@ from .metric_queries import compare_metric
 from .discovery import list_objects, timing_context, routing_summary
 from .parasitics import net_parasitics
 from .engineering import (object_statistics, path_engineering, timing_overview,
-                          routing_totals, instance_engineering)
+                          routing_totals, instance_engineering, net_engineering, compare_inventory)
 from .constraints import constraint_context
 from .source_metadata import source_metadata
 from .source_search import search_source
@@ -238,6 +238,8 @@ class Handler(BaseHTTPRequestHandler):
                     raise ValueError("name is required")
                 return compare_metric(store, parts[1], parts[3], name,
                                       query.get("scene"))
+            if len(parts) == 5 and parts[2] == 'compare' and parts[4] == 'inventory':
+                return compare_inventory(store, parts[1], parts[3], query, self.native_root)
             if len(parts) == 5 and parts[2] == 'sources' and parts[4] == 'excerpt':
                 snapshot = store.snapshot(parts[1])
                 refs = [r for r in snapshot.get('source_artifacts', []) if r.get('artifact_id') == parts[3]]
@@ -268,6 +270,8 @@ class Handler(BaseHTTPRequestHandler):
                 return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 5 and parts[2] == 'instances' and parts[4] == 'engineering':
                 return instance_engineering(store, parts[1], parts[3])
+            if len(parts) == 5 and parts[2] == 'nets' and parts[4] == 'engineering':
+                return net_engineering(store, parts[1], parts[3], query)
             if len(parts) == 3 and parts[2] == "timing-context":
                 return metadata_view(timing_context(store, parts[1]), query, path)
             if len(parts) == 3 and parts[2] == 'constraints':
