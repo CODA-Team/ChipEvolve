@@ -256,6 +256,9 @@ def test_routing_summary_states_via_membership_of_both_layers(tmp_path):
         result = routing_summary(store, 's', 'n')
         assert result['via_count'] == 2
         assert result['via_distribution_by_layer'] == {'metal1': 1, 'metal2': 2, 'metal3': 1}
+        assert result['segment_layers'] == ['metal2']
+        assert result['via_layers'] == ['metal1','metal2','metal3']
+        assert result['routing_layers_used'] == ['metal1','metal2','metal3']
         assert result['wirelength_um'] == 1.95
     finally:
         store.close()
