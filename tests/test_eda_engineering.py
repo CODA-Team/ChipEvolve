@@ -87,6 +87,55 @@ def test_missing_point_net_association_never_claims_full_domain_ranking(tmp_path
         store.close()
 
 
+def test_joined_net_pages_restore_all_named_loads_and_keep_multi_driver_state(tmp_path):
+    from openroad_app_data_foundation.engineering import net_engineering
+    pack = sample()
+    pack['entities'][2]['attributes']['driver_count'] = 2
+    pack['entities'].extend({'object_id': name, 'name': name, 'kind': 'pin'}
+                            for name in ('d1', 'd2', 'a', 'b', 'c0'))
+    pack['relations'] = [{'relation_id': name, 'subject_id': 'n', 'object_id': name,
+                          'predicate': 'driven_by' if name.startswith('d') else 'loads'}
+                         for name in ('d1', 'd2', 'a', 'b', 'c0')]
+    store = DataStore(tmp_path / 'd.sqlite')
+    try:
+        store.register(pack)
+        first = net_engineering(store, 's', 'signal', {'limit': '2'})
+        second = net_engineering(store, 's', 'n', {'limit': '2', 'offset': '2'})
+        assert first['state'] == second['state'] == 'multi_driver'
+        assert first['driver_pins'] == ['d1', 'd2'] and first['driver_count'] == 2
+        assert first['load_pins'] + second['load_pins'] == ['a', 'b', 'c0']
+        assert first['load_count'] == second['load_count'] == 3
+        assert first['load_page']['next_offset'] == 2
+        assert not second['load_page']['truncated']
+    finally:
+        store.close()
+
+
+def test_inventory_comparison_keeps_native_counts_and_original_substage_values_separate(tmp_path):
+    from copy import deepcopy
+    from openroad_app_data_foundation.engineering import compare_inventory
+    root = tmp_path / 'flow'
+    logs = root / 'logs/platform/chip/r'
+    logs.mkdir(parents=True)
+    (logs / '5_1_grt.json').write_text(json.dumps({'globalroute__design__instance__area': 85}))
+    (logs / '5_2_route.json').write_text(json.dumps({'detailedroute__route__drc_errors': 0}))
+    (logs / '6_report.json').write_text(json.dumps({'finish__design__instance__area': 86}))
+    left = sample();left['snapshot']['snapshot_id'] = 'left';left['snapshot']['stage'] = 'route'
+    right = deepcopy(left);right['snapshot']['snapshot_id'] = 'right';right['snapshot']['stage'] = 'finish'
+    right['entities'].append({'object_id': 'new', 'kind': 'instance', 'name': 'new'})
+    store = DataStore(tmp_path / 'd.sqlite')
+    try:
+        store.register(left);store.register(right)
+        result = compare_inventory(store, 'left', 'right', {'metrics': 'instance__area'}, root)
+        assert result['deltas']['instance_count'] == 1
+        assert result['deltas']['signal_net_count'] == 0
+        assert result['from']['original_metric_reports'][0]['metric_values'][0]['value'] == 85
+        assert result['from']['original_metric_reports'][1]['metric_values'] == []
+        assert result['to']['original_metric_reports'][0]['metric_values'][0]['value'] == 86
+    finally:
+        store.close()
+
+
 def test_object_page_joins_chip_geometry_and_reports_missing_geometry(tmp_path):
     from openroad_app_data_foundation.discovery import list_objects
     store = DataStore(tmp_path / 'd.sqlite')
