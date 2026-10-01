@@ -501,3 +501,33 @@ def test_connected_pin_pages_are_complete_in_native_name_order(tmp_path):
         assert list_objects(store, 's', {'kind': 'instance'})['order'] == 'stored'
     finally:
         store.close()
+
+
+def test_original_metric_filter_and_continuation_respect_source_scope(tmp_path):
+    from openroad_app_data_foundation.queries import list_metrics_for_run
+    pack = sample()
+    pack['observations'] = [{'observation_id': f'metric:finish__custom_{i}', 'kind': 'metric',
+                             'value': i, 'context': {'scene': 'original'}} for i in range(5)]
+    other = sample()
+    other['snapshot']['snapshot_id'] = 'other'
+    other['snapshot']['stage'] = 'route'
+    other['observations'] = [{'observation_id': 'metric:finish__custom_3', 'kind': 'metric',
+                              'value': 999, 'context': {'scene': 'other-scene'}}]
+    store = DataStore(tmp_path / 'metrics.sqlite')
+    try:
+        store.register(pack)
+        store.register(other)
+        one = list_metrics_for_run(store, 'run', {'include_raw': '1', 'snapshot_id': 's',
+                                                  'name': 'finish__custom_3', 'scene': 'original'})
+        assert [r['value'] for r in one['raw_metrics']] == [3]
+        assert one['raw_metric_count'] == 1 and not one['truncated']
+        wrong = list_metrics_for_run(store, 'run', {'include_raw': '1', 'snapshot_id': 's',
+                                                    'name': 'finish__custom_3', 'scene': 'other-scene'})
+        assert wrong['raw_metrics'] == []
+        first = list_metrics_for_run(store, 'run', {'include_raw': '1', 'stage': 'finish', 'limit': '2'})
+        last = list_metrics_for_run(store, 'run', {'include_raw': '1', 'stage': 'finish', 'limit': '2', 'offset': '4'})
+        assert first['raw_metric_count'] == 5 and first['truncated'] and first['next_offset'] == 2
+        assert last['raw_metrics_page']['returned'] == 1 and last['next_offset'] is None
+        assert last['raw_metrics'][0]['value'] == 4
+    finally:
+        store.close()
