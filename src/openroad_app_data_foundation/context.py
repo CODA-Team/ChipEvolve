@@ -10,22 +10,30 @@ from .repository import DataStore
 from .analysis_context import build_analysis_context, context_availability
 
 
-#: Provenance entries one context pack returns.  Bounded because the list grows with
-#: the fanout of whatever object was asked about, not with the question.
+#: Provenance entries a context pack may return.  This is the *ceiling*, reached
+#: only when a caller asks for ``detail=full``; the default screen is far smaller.
 EVIDENCE_LIMIT = 200
 
-#: Rows of each neighbouring collection one pack returns before it hands back a
-#: cursor.  Measured on ariane136 net:194943 (fanout 336): the pack was 782,204 B
-#: - the net's own 1,970 wire segments 310,603 B, 674 neighbour physical rows
-#: 99,101 B, 675 entities 243,281 B - for a question that needs the net, its
-#: driver and the load count.  A packet's cost has to grow with the question, not
-#: with the fanout of what the question happens to touch.
-FIRST_SCREEN_LIMIT = 200
+#: The first screen: rows of each neighbouring collection a default pack returns
+#: before it hands back a cursor.  Measured on ariane136 net:194943 (fanout 336):
+#: the pack was 782,204 B - the net's own 1,970 wire segments 310,603 B, 674
+#: neighbour physical rows 99,101 B, 675 entities 243,281 B - for a question that
+#: needs the net, its driver and the load count.
+#:
+#: 20, not 200, because the harness clips every tool result at 32 KiB and a clip
+#: lands mid-JSON: every one of the pilot's 54 clipped responses reached the model
+#: unparseable.  A default that cannot be clipped is worth more than a fuller
+#: default nobody can read.  ``detail=full`` raises these to ``FULL_LIMIT``.
+FIRST_SCREEN_LIMIT = 20
+
+#: What ``detail=full`` raises the collection bounds to.  Beyond this a caller is
+#: expected to page, which is what the cursor on every bound is for.
+FULL_LIMIT = 200
 
 #: Wire segments kept on a physical row in a summary.  1,970 of them were 310 KB
 #: of one 782 KB pack; ``routing_total`` states the real count and
 #: ``GET /snapshots/{s}/physical/{id}`` returns all of them.
-ROUTING_LIMIT = 50
+ROUTING_LIMIT = 5
 
 
 def timing_path_context(store: DataStore, snapshot_id: str,
@@ -247,11 +255,16 @@ def _summarize(pack: dict[str, Any], target_id: str | None,
     # without a way back is a capability cut, and this one is not.
     snapshot_id = _scope_snapshot(pack)
     target_type = (pack.get("target") or {}).get("type")
+    # A default response has to survive the 32 KiB clip whole, so the screen is 20
+    # rows and `detail=full` is the explicit request that raises it to 200.  A
+    # zero relation_limit stays "unlimited": it is already an explicit ask.
+    screen = FIRST_SCREEN_LIMIT if detail == "summary" else FULL_LIMIT
+    relations_limit = 0 if relation_limit == 0 else min(relation_limit, screen)
     for field, limit in (
-            ("relations", relation_limit),
-            ("entities", FIRST_SCREEN_LIMIT),
-            ("physical_context", FIRST_SCREEN_LIMIT),
-            ("observations", FIRST_SCREEN_LIMIT)):
+            ("relations", relations_limit),
+            ("entities", screen),
+            ("physical_context", screen),
+            ("observations", screen)):
         rows = pack.get(field)
         if not limit or not isinstance(rows, list) or len(rows) <= limit:
             continue
@@ -283,7 +296,7 @@ def _summarize(pack: dict[str, Any], target_id: str | None,
                 point["identity_references"] = {
                     key: _trim_identity(value) if isinstance(value, dict) else value
                     for key, value in references.items()}
-        _bound_points(pack, timing, snapshot_id, target_id, target_type)
+        _bound_points(pack, timing, snapshot_id, target_id, target_type, screen)
     for collection in ("entities", "physical_context", "relations", "observations"):
         for row in pack.get(collection, []):
             if isinstance(row, dict):
@@ -325,16 +338,16 @@ def _summarize(pack: dict[str, Any], target_id: str | None,
     # provenance, and nothing bounded it: a synthetic high-fanout net returned
     # 31.26 MB of which 31.22 MB was this list (764x the payload it describes).
     evidence = pack.get("evidence")
-    if isinstance(evidence, list) and len(evidence) > EVIDENCE_LIMIT:
-        pack["evidence"] = evidence[:EVIDENCE_LIMIT]
+    if isinstance(evidence, list) and len(evidence) > screen:
+        pack["evidence"] = evidence[:screen]
         pack["evidence_truncated"] = True
         pack["evidence_total"] = len(evidence)
-        pack["evidence_returned"] = EVIDENCE_LIMIT
+        pack["evidence_returned"] = screen
         pack.setdefault("limitations", []).append({
             "field": "evidence", "status": "truncated",
-            "returned": EVIDENCE_LIMIT, "total": len(evidence),
-            "next_offset": EVIDENCE_LIMIT,
-            **_continuation("evidence", snapshot_id, target_id, target_type, EVIDENCE_LIMIT)})
+            "returned": screen, "total": len(evidence),
+            "next_offset": screen,
+            **_continuation("evidence", snapshot_id, target_id, target_type, screen)})
     pack.setdefault("limitations", []).append({
         "field": "records[].evidence",
         "status": "projected",
@@ -430,7 +443,7 @@ def _entity_continuation(snapshot_id: str | None, target: str | None,
 
 
 def _bound_points(pack: dict[str, Any], timing: dict[str, Any], snapshot_id: str | None,
-                  target_id: str | None, target_type: str | None) -> None:
+                  target_id: str | None, target_type: str | None, screen: int) -> None:
     """Sample the path's own points: the one collection that grows with the path.
 
     190 points were 388,983 B of a 628,423 B pack - 62% of the answer - while the
@@ -439,17 +452,17 @@ def _bound_points(pack: dict[str, Any], timing: dict[str, Any], snapshot_id: str
     bounded and the rest is one request away.
     """
     points = timing.get("points")
-    if not isinstance(points, list) or len(points) <= FIRST_SCREEN_LIMIT:
+    if not isinstance(points, list) or len(points) <= screen:
         return
-    timing["points"] = points[:FIRST_SCREEN_LIMIT]
-    timing["points_returned"] = FIRST_SCREEN_LIMIT
+    timing["points"] = points[:screen]
+    timing["points_returned"] = screen
     timing["points_total"] = len(points)
     pack.setdefault("limitations", []).append({
         "field": "timing_context.points", "status": "truncated",
-        "returned": FIRST_SCREEN_LIMIT, "total": len(points),
-        "next_offset": FIRST_SCREEN_LIMIT,
+        "returned": screen, "total": len(points),
+        "next_offset": screen,
         **_continuation("timing_context.points", snapshot_id, target_id, target_type,
-                        FIRST_SCREEN_LIMIT, FIRST_SCREEN_LIMIT, None)})
+                        screen, screen, None)})
 
 
 def _bound_routing(pack: dict[str, Any], record: dict[str, Any],

@@ -11,6 +11,7 @@ import json
 import sqlite3
 import threading
 from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -371,11 +372,11 @@ class DataStore:
         self._store_pack_fragments(snapshot_id, pack)
         return {"snapshot": snapshot, "record_counts": counts}
 
-    def _write_records(self, snapshot_id: str, snapshot: Mapping[str, Any],
-                       record_type: str, values: Sequence[dict[str, Any]],
-                       identity_index: dict[str, dict[str, Any]],
+    def _write_records(self, snapshot_id: str, record_type: str,
+                       values: Sequence[dict[str, Any]],
+                       enrich: Callable[[list[dict[str, Any]]], Iterable[dict[str, Any]]],
                        insert: str) -> int:
-        """Enrich, write and release one record type in bounded batches.
+        """Read, enrich, write and release one record type in bounded batches.
 
         ``values`` is a list or a stream (:class:`ingest.JsonlRows`); both are
         walked one batch at a time, so what is resident is the batch, never the
@@ -386,20 +387,44 @@ class DataStore:
         for ordinal, value in enumerate(values):
             batch.append(_object(value, f"{record_type}[{ordinal}]"))
             if len(batch) >= IMPORT_BATCH_ROWS:
-                written = self._write_batch(snapshot_id, snapshot, record_type, batch,
-                                            written, identity_index, insert)
+                written = self._write_batch(snapshot_id, record_type, batch, written,
+                                            enrich, insert)
                 batch = []
         if batch:
-            written = self._write_batch(snapshot_id, snapshot, record_type, batch,
-                                        written, identity_index, insert)
+            written = self._write_batch(snapshot_id, record_type, batch, written,
+                                        enrich, insert)
         return written
 
-    def _write_batch(self, snapshot_id: str, snapshot: Mapping[str, Any],
-                     record_type: str, batch: list[dict[str, Any]], ordinal: int,
-                     identity_index: dict[str, dict[str, Any]], insert: str) -> int:
+    def _write_pairs(self, snapshot_id: str, snapshot: Mapping[str, Any],
+                     pairs: Iterable[tuple[dict[str, Any], dict[str, Any]]],
+                     ambiguous: Mapping[tuple[Any, ...], list[str]],
+                     insert: str) -> int:
+        """Write physical records whose entities are read beside them.
+
+        The identity of a physical record is the identity of the entity at the
+        same position in the objects file, so it never needs a map of the whole
+        snapshot - only the keys an ambiguous identity would have to be marked
+        with, which is what `ambiguous` holds.
+        """
+        written = 0
+        batch: list[dict[str, Any]] = []
+        for entity, physical in pairs:
+            batch.append(physical_row(physical, row_identity(snapshot, entity, ambiguous)))
+            if len(batch) >= IMPORT_BATCH_ROWS:
+                written = self._write_batch(snapshot_id, "physical_context", batch,
+                                            written, _as_given, insert)
+                batch = []
+        if batch:
+            written = self._write_batch(snapshot_id, "physical_context", batch,
+                                        written, _as_given, insert)
+        return written
+
+    def _write_batch(self, snapshot_id: str, record_type: str,
+                     batch: list[dict[str, Any]], ordinal: int,
+                     enrich: Callable[[list[dict[str, Any]]], Iterable[dict[str, Any]]],
+                     insert: str) -> int:
         """Enrich, serialise and insert one batch; returns the next ordinal."""
-        rows = enrich_records(snapshot, record_type, batch, None,
-                              identity_index=identity_index)
+        rows = list(enrich(batch))
         self.connection.executemany(insert, [
             (snapshot_id, record_type, _record_id(record_type, row, ordinal + offset),
              ordinal + offset, json.dumps(row, ensure_ascii=False, sort_keys=True))
@@ -961,6 +986,11 @@ def _object(value: Any, name: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ContractError(f"{name} must be an object")
     return value
+
+
+def _as_given(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Rows that are already final: the paired writer enriches as it reads."""
+    return rows
 
 
 def _required(value: Mapping[str, Any], name: str) -> str:
