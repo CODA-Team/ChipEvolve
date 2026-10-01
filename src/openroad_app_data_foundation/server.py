@@ -101,6 +101,7 @@ class Handler(BaseHTTPRequestHandler):
                 query = self._read_body()
                 with self.request_lock:
                     payload = submit_timing_query(self.store, self.execution_client, parts[1], query)
+                payload["name_check"] = _name_check(self.store, parts[1], query)
                 self._send(202, payload)
                 return
             if self.path == "/query":
@@ -159,7 +160,8 @@ class Handler(BaseHTTPRequestHandler):
         if path.startswith('/timing-queries/'):
             if self.execution_client is None:
                 raise KernelUnavailable('execution service is not configured')
-            return timing_query_status(self.store, self.execution_client, path.split('/')[-1])
+            return _timing_query_outcome(store, timing_query_status(
+                self.store, self.execution_client, path.split('/')[-1]))
         if path == "/snapshots":
             return {"snapshots": store.snapshots(
                 design_id=query.get("design_id"), run_id=query.get("run_id"))}
@@ -307,6 +309,49 @@ def serve(*, host: str, port: int, store: DataStore,
                               if kernel_url else None),
     })
     ThreadingHTTPServer((host, port), handler).serve_forever()
+
+
+def _name_check(store, snapshot_id: str, query: dict) -> dict:
+    """Whether each requested timing name is an object of the snapshot it ran on."""
+    checked = {}
+    for key in ("from_pin", "to_pin"):
+        name = query.get(key)
+        if not name:
+            continue
+        found = {}
+        for kind in ("pin", "instance", "net"):
+            rows = store.entities_named(snapshot_id, kind, name)
+            if rows:
+                found[kind] = [row["object_id"] for row in rows[:5]]
+        checked[key] = {"name": name, "exists": bool(found), "objects": found}
+    return checked
+
+
+def _timing_query_outcome(store, status: dict) -> dict:
+    """Say what the snapshot a query produced actually contains.
+
+    A directed STA query answers with a report set, not a census, so an empty
+    result has two causes that the report alone cannot separate: the requested
+    name does not exist, or it exists outside the set this query asked for.
+    ``name_check`` on submission rules out the first; these counts state the
+    second, instead of leaving a caller to read zero paths as "not found".
+    """
+    if status.get("status") != "succeeded":
+        return status
+    results = []
+    for snapshot_id in status.get("snapshot_ids", []):
+        summary = store.run_summary(snapshot_id)
+        counts = summary["record_counts"]
+        context = summary["run_summary"].get("timing_context") or {}
+        paths = counts.get("timing_paths", 0)
+        results.append({
+            "snapshot_id": snapshot_id, "timing_path_count": paths,
+            "timing_point_count": counts.get("timing_points", 0),
+            "coverage_scope": context.get("coverage_scope"),
+            "reason": None if paths else "no_path_in_requested_set",
+            "timing_paths": f"/snapshots/{snapshot_id}/timing-paths",
+        })
+    return {**status, "results": results}
 
 
 def _int_param(query: dict[str, str], name: str, default: int) -> int:

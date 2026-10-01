@@ -184,7 +184,8 @@ def net_context(store: DataStore, snapshot_id: str, net_id: str,
     evidence.extend(_snapshot_evidence(snapshot, snapshot_id))
     pack = _object_pack(snapshot, entity, observations, entities, relations, physical,
                         evidence, target_type="net", detail=detail,
-                        relation_limit=relation_limit)
+                        relation_limit=relation_limit,
+                        neighbour_total=view.get("connected_total"))
     # Carry the bound the net expansion applied, so the answer says how much of the
     # fanout it actually looked at instead of just stopping.
     for key in ("connected_total", "connected_truncated", "connected_limit"):
@@ -199,7 +200,8 @@ def _object_pack(snapshot: dict[str, Any], entity: dict[str, Any],
                  observations: list[dict[str, Any]], entities: list[dict[str, Any]],
                  relations: list[dict[str, Any]], physical: list[dict[str, Any]],
                  evidence: list[dict[str, Any]], *, target_type: str = "object",
-                 detail: str = "summary", relation_limit: int = 200) -> dict[str, Any]:
+                 detail: str = "summary", relation_limit: int = 200,
+                 neighbour_total: int | None = None) -> dict[str, Any]:
     return _summarize({
         "task": {"type": f"{target_type}_context"},
         "scope": {key: snapshot.get(key) for key in (
@@ -212,11 +214,12 @@ def _object_pack(snapshot: dict[str, Any], entity: dict[str, Any],
         "evidence": evidence,
         "evidence_policy": {"relationship_source": "data_foundation",
                              "inference_performed": False},
-    }, entity.get("object_id"), detail, relation_limit)
+    }, entity.get("object_id"), detail, relation_limit, neighbour_total)
 
 
 def _summarize(pack: dict[str, Any], target_id: str | None,
-               detail: str = "summary", relation_limit: int = 200) -> dict[str, Any]:
+               detail: str = "summary", relation_limit: int = 200,
+               neighbour_total: int | None = None) -> dict[str, Any]:
     """Project a context pack so a partner can actually afford it.
 
     Measured composition of one gcd net context (269,892 B in total):
@@ -263,7 +266,7 @@ def _summarize(pack: dict[str, Any], target_id: str | None,
             "field": field, "status": "truncated",
             "returned": limit, "total": len(rows), "next_offset": limit,
             **_continuation(field, snapshot_id, target_id, target_type, limit,
-                            len(pack[field]))})
+                            len(pack[field]), neighbour_total)})
     if detail == "full":
         return pack
     timing = pack.get("timing_context")
@@ -341,7 +344,8 @@ def _scope_snapshot(pack: dict[str, Any]) -> str | None:
 
 def _continuation(field: str, snapshot_id: str | None, target_id: str | None,
                   target_type: str | None, limit: int,
-                  returned: int | None = None) -> dict[str, Any]:
+                  returned: int | None = None,
+                  neighbour_total: int | None = None) -> dict[str, Any]:
     """The routes that carry the rest of a collection a first screen cut.
 
     Every step is an existing tool on the same snapshot, and the steps are written
@@ -355,7 +359,8 @@ def _continuation(field: str, snapshot_id: str | None, target_id: str | None,
     target = quote(target_id, safe="") if target_id else None
     is_object = target_type in {"object", "net"}
     if field == "entities":
-        return _entity_continuation(snapshot_id, target, target_type, limit, returned)
+        return _entity_continuation(snapshot_id, target, target_type, limit, returned,
+                                    neighbour_total)
     if field == "relations" and snapshot_id and target and is_object:
         return {"next": [
             f"/snapshots/{snapshot_id}/objects/{target}/context?relation_limit=0",
@@ -379,30 +384,36 @@ def _continuation(field: str, snapshot_id: str | None, target_id: str | None,
 
 def _entity_continuation(snapshot_id: str | None, target: str | None,
                          target_type: str | None, limit: int,
-                         returned: int | None) -> dict[str, Any]:
-    """Where the entity sample stopped, counted per source, with a route for each.
+                         returned: int | None, neighbour_total: int | None) -> dict[str, Any]:
+    """The route that carries the rest of the entity sample, and where to resume.
 
-    ``connected_total`` is the size of the paged source, so the offset the cursor
-    needs is the number of *neighbour* rows already in the screen - not the number
-    of rows, which also counts the target and the neighbours' parents.  Getting
-    that wrong would make the cursor skip rows or repeat them.
+    The screen is ``[target] + neighbours + neighbours' parents``.  The neighbour
+    part can be re-enumerated in full with ``connected_to``, but *not* from a row
+    offset: the pack walks the relations while the paged route walks the store's
+    key order, so "199 rows in, resume at 199" would silently skip and repeat
+    rows.  The route is therefore given from offset 0 and the caller skips ids it
+    already holds - one page of overlap, no gap.  When the count says every
+    neighbour is already on screen, no neighbour route is offered at all, because
+    the only rows still missing are the parents each row already names.
     """
     if not snapshot_id:
         return {}
     parents = (f"/snapshots/{snapshot_id}/objects/{{parent_id}} for the parent_id a neighbour "
                f"row carries, and /snapshots/{snapshot_id}/objects/{{object_id}} for one row")
-    if target_type not in {"object", "net"} or not target:
+    if target_type in {"object", "net"} and target:
+        if neighbour_total is not None and neighbour_total <= (returned or 0) - 1:
+            return {"next_offset": None, "next": [
+                f"all {neighbour_total} neighbours are in this screen; the rows still missing "
+                f"are their parents - {parents}"]}
         return {"next_offset": 0, "next": [
-            f"/snapshots/{snapshot_id}/timing-paths/{target}/points?limit={limit}&offset=0",
-            f"then /snapshots/{snapshot_id}/objects?connected_to={{net_id}}&limit={limit}"
-            f"&offset=0 for each net_id on that page, skipping ids already returned"]}
-    neighbours = 0 if returned is None else max(0, returned - 1)
-    routes = []
-    if neighbours < limit - 1 or limit == 0:
-        routes.append(f"/snapshots/{snapshot_id}/objects?connected_to={target}"
-                      f"&limit={limit}&offset={neighbours}")
-    routes.append(parents)
-    return {"next_offset": neighbours if routes and neighbours < limit else None, "next": routes}
+            f"/snapshots/{snapshot_id}/objects?connected_to={target}&limit={limit}&offset=0 "
+            f"walks the whole neighbourhood, in a different order than the pack, so skip the ids "
+            f"already returned",
+            parents]}
+    return {"next_offset": 0, "next": [
+        f"/snapshots/{snapshot_id}/timing-paths/{target}/points?limit={limit}&offset=0",
+        f"then /snapshots/{snapshot_id}/objects?connected_to={{net_id}}&limit={limit}&offset=0 "
+        f"for each net_id on that page, skipping ids already returned"]}
 
 
 def _bound_routing(pack: dict[str, Any], record: dict[str, Any],

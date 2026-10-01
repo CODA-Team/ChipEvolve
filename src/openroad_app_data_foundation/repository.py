@@ -150,12 +150,14 @@ class DataStore:
         # A large design is tens of gigabytes, and the default page cache is 2 MiB:
         # a two-line query could wait on a cold read of a file the kernel had long
         # since evicted.  These are per-connection settings, not a schema change.
-        self.connection.executescript(
-            """
-            PRAGMA cache_size = -262144;      -- 256 MiB of page cache per connection
-            PRAGMA mmap_size = 8589934592;    -- let the kernel page in the file
-            PRAGMA temp_store = MEMORY;
-            """)
+        # One statement each, not executescript: a script opens a transaction and
+        # a read-only connection cannot take the write lock it wants, so under
+        # concurrent readers it failed with "database is locked" and the service
+        # dropped the connection instead of answering.
+        for pragma in ("PRAGMA cache_size = -262144",      # 256 MiB page cache
+                       "PRAGMA mmap_size = 8589934592",     # let the kernel page it in
+                       "PRAGMA temp_store = MEMORY"):
+            self.connection.execute(pragma)
         #: A snapshot is immutable once registered, so its catalogue and artifact
         #: list - the two things a record's evidence resolves against - are read
         #: once per process instead of once per row.
