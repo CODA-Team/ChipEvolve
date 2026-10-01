@@ -89,7 +89,7 @@ def _native_file(path: Path, relative: str) -> dict:
             "modified": int(stat.st_mtime)}
 
 
-def _metric_inventory(store, snapshot_id, path, root, manifest):
+def _metric_inventory(store, snapshot_id, path, root, manifest, metric_names=()):
     relative = path.relative_to(root).as_posix()
     text, offset = [], 0
     while True:
@@ -102,14 +102,20 @@ def _metric_inventory(store, snapshot_id, path, root, manifest):
     metrics = json.loads(''.join(text))
     if not isinstance(metrics, dict):
         raise ValueError('original metric JSON must be an object')
-    return {'relative_path': relative, 'size_bytes': path.stat().st_size,
+    result = {'relative_path': relative, 'size_bytes': path.stat().st_size,
             **manifest.get(relative, {}), 'key_count': len(metrics),
             'has_timing': any('timing__' in key for key in metrics),
             'has_area': any('instance__area' in key for key in metrics),
             'has_wirelength': any('wirelength' in key for key in metrics)}
+    if metric_names:
+        result['metric_values'] = [{'raw_key': key, 'value': value, 'source': relative}
+            for key, value in metrics.items()
+            if any(key == name or key.endswith('__' + name) for name in metric_names)]
+        result['value_basis'] = 'literal original report values; substage identity is preserved'
+    return result
 
 
-def run_inventory(store, snapshot_id, root, *, stage=None):
+def run_inventory(store, snapshot_id, root, *, stage=None, metric_names=()):
     """Original flow outputs and metric availability, separately from indexed snapshots."""
     snapshot = store.snapshot(snapshot_id)
     directories = _run_dirs(snapshot, Path(root))
@@ -140,7 +146,7 @@ def run_inventory(store, snapshot_id, root, *, stage=None):
             item[field] = {'relative_path': relative, 'size_bytes': path.stat().st_size,
                            **manifest.get(relative, {})}
             if category == 'logs':
-                item[field] = _metric_inventory(store, snapshot_id, path, root, manifest)
+                item[field] = _metric_inventory(store, snapshot_id, path, root, manifest, metric_names)
         directory = directories['logs']['path']
         item['metric_reports'] = []
         if directory is not None:
@@ -148,7 +154,7 @@ def run_inventory(store, snapshot_id, root, *, stage=None):
                 if path.name == metric and item['original_metrics'] is not None:
                     entry = item['original_metrics']
                 else:
-                    entry = _metric_inventory(store, snapshot_id, path, root, manifest)
+                    entry = _metric_inventory(store, snapshot_id, path, root, manifest, metric_names)
                 item['metric_reports'].append(entry)
         item['availability'] = 'available' if item['original_database'] else 'not_produced'
         stages.append(item)

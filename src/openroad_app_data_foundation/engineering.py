@@ -4,6 +4,37 @@ from collections import Counter
 from .identity import snapshot_identity
 from .queries import _limit, _offset, _page, list_timing_paths, timing_path
 from .discovery import object_filter
+from .metadata import placement_geometry
+
+
+def instance_engineering(store, snapshot_id, identifier):
+    """Instance identity, placed geometry and complete pin counts in one read."""
+    rows = store.entities_by_ids(snapshot_id, [identifier])
+    if not rows:
+        rows = store.find_instance(snapshot_id, identifier)
+    if not rows:
+        raise KeyError('instance not found: ' + identifier)
+    if len(rows) != 1 or rows[0].get('kind') != 'instance':
+        raise ValueError('identifier must resolve to one instance')
+    entity = rows[0]
+    attr = entity.get('attributes') or {}
+    snapshot = store.snapshot(snapshot_id)
+    physical = store.physical(snapshot_id, entity['object_id'], routing_limit=1)
+    counts = object_statistics(store, snapshot_id, {'kind': 'pin',
+        'parent_id': entity['object_id'], 'group_by': 'signal_type', 'limit': '100'})
+    groups = {row['value']: row['count'] for row in counts['groups']}
+    return {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(snapshot),
+            'instance': {'object_id': entity['object_id'], 'name': entity['name'],
+                         'master': attr.get('master'), 'master_type': attr.get('master_type'),
+                         'is_macro': attr.get('is_macro'),
+                         **placement_geometry(physical, snapshot['run_summary']['dbu_per_micron'], attr.get('orientation')),
+                         'total_pin_count': counts['object_count'],
+                         'signal_pin_count': groups.get('SIGNAL', 0),
+                         'pin_counts_by_connected_net_type': [{'signal_type': key, 'count': value}
+                             for key, value in groups.items()],
+                         'unclassified_pin_count': groups.get(None, 0),
+                         'pin_type_basis': 'connected native OpenDB net SigType; unconnected pins are explicitly unclassified'},
+            'evidence': physical.get('evidence', [])}
 
 
 def object_statistics(store, snapshot_id, query):
@@ -66,8 +97,8 @@ def point_extrema(points):
                          'pin_names': names, 'tie_count': len(names),
                          'selection_rule': 'greatest full pin name among exact numeric ties',
                          'selected_point': {key: selected.get(key) for key in
-                                            ('pin_name', 'instance_id', 'instance_name', 'net_id',
-                                             'net_name', 'cell_name', 'slew', 'load', 'arrival')}}
+                                            ('point_id', 'path_id', 'pin_id', 'pin_name', 'instance_id',
+                                             'instance_name', 'net_id', 'net_name', 'cell_name', 'slew', 'load', 'arrival', 'evidence')}}
     return result
 
 
@@ -125,8 +156,15 @@ def path_engineering(store, snapshot_id, path_id, query):
                      'fanout': attr.get('fanout'), 'driver_count': attr.get('driver_count'),
                      'signal_type': attr.get('signal_type')})
     nets.sort(key=lambda n: (-(n['fanout'] if n['fanout'] is not None else -1), n['name']))
+    unresolved_points = [p.get('point_id') or p.get('pin_name') for p in points
+                         if p.get('mapping_status') == 'unmapped'
+                         or (p.get('net_name') and not p.get('net_id'))
+                         or (p.get('instance_name') and not p.get('instance_id'))]
+    found_nets = {n['net_id'] for n in nets}
+    unresolved_nets = [oid for oid in net_ids if oid not in found_nets]
+    incomplete = bool(unresolved_points or unresolved_nets or unmapped)
     compact_points = [{key: p.get(key) for key in
-                       ('pin_name', 'instance_id', 'instance_name', 'cell_name', 'net_id', 'net_name', 'slew', 'load', 'arrival')}
+                       ('point_id', 'path_id', 'pin_id', 'pin_name', 'instance_id', 'instance_name', 'cell_name', 'net_id', 'net_name', 'slew', 'load', 'arrival')}
                       for p in points]
     masters = Counter(item['master'] for item in instances)
     snapshot = store.snapshot(snapshot_id)
@@ -139,10 +177,19 @@ def path_engineering(store, snapshot_id, path_id, query):
               'instance_bbox_union': _bbox_union([r['bbox'] for r in instances if r['bbox']]),
               'dbu_per_micron': snapshot.get('run_summary', {}).get('dbu_per_micron'),
               'unmapped_instance_ids': unmapped,
+              'association_coverage': {'status': 'partial' if incomplete else 'complete',
+                                       'unresolved_point_ids': unresolved_points,
+                                       'unresolved_net_ids': unresolved_nets,
+                                       'candidate_domain': 'all data points of this selected stored path',
+                                       'ranking_scope': 'resolved nets only' if incomplete else 'all associated nets'},
               'evidence': path.get('evidence', []),
               'units': {'slack': path.get('unit'), 'slew': 's', 'load': 'F'},
               'data_point_extrema': point_extrema(points),
               'clock_points_excluded': True}
+    if incomplete:
+        result['availability'] = {'complete_association_aggregates': {'status': 'unavailable',
+            'reason': 'some point/object associations are missing; resolved-subset counts and rankings are not full-domain results',
+            'native_completion': f'/snapshots/{snapshot_id}/native-queries'}}
     limit, offset = _limit(query), _offset(query)
     for name, rows in [('points', compact_points), ('instances', instances), ('nets', nets)]:
         result[name] = rows[offset:offset + limit]
@@ -171,16 +218,23 @@ def routing_layers(store, snapshot_id, net_ids):
 
 def timing_overview(store, snapshot_id, query):
     """Worst paths and repeated instances/masters, over the declared sample."""
-    options = {**query, 'sort': 'slack', 'order': 'worst', 'offset': '0'}
+    options = {**{key: value for key, value in query.items() if key not in ('fields', 'include_physical')},
+               'sort': 'slack', 'order': 'worst', 'offset': '0'}
     rows = list_timing_paths(store, snapshot_id, options)
     instance_paths, master_occurrences, net_ids = Counter(), Counter(), set()
-    paths, data_points = [], []
+    paths, data_points, extrema_sources, incomplete_paths = [], [], {}, []
     for path in rows['timing_paths']:
         detail = path_engineering(store, snapshot_id, path['path_id'], {'limit': '10000'})
         instance_paths.update(item['name'] for item in detail['instances'])
         master_occurrences.update(detail['master_counts'])
         net_ids.update(item['net_id'] for item in detail['nets'])
         data_points.extend(detail['points'])
+        for value in detail['data_point_extrema'].values():
+            point = value.get('selected_point')
+            if point:
+                extrema_sources[point.get('point_id')] = point.get('evidence')
+        if detail['association_coverage']['status'] != 'complete':
+            incomplete_paths.append(path['path_id'])
         paths.append(detail['path'])
     nets = []
     for item in store.entities_by_ids(snapshot_id, sorted(net_ids)):
@@ -191,7 +245,21 @@ def timing_overview(store, snapshot_id, query):
                      'fanout': attr.get('fanout'), 'driver_count': attr.get('driver_count')})
     nets.sort(key=lambda n: (-(n['fanout'] if n['fanout'] is not None else -1), n['name']))
     limit = _limit(query)
-    return {'snapshot_id': snapshot_id, 'snapshot': rows['snapshot'], 'paths': paths,
+    extrema = point_extrema(data_points)
+    for value in extrema.values():
+        point = value.get('selected_point')
+        if point:
+            point['evidence'] = extrema_sources.get(point.get('point_id'))
+    if query.get('include_physical') == '1':
+        joined = {}
+        for value in extrema.values():
+            point = value.get('selected_point') or {}
+            instance_id = point.get('instance_id')
+            if instance_id:
+                if instance_id not in joined:
+                    joined[instance_id] = instance_engineering(store, snapshot_id, instance_id)['instance']
+                point['instance'] = joined[instance_id]
+    result = {'snapshot_id': snapshot_id, 'snapshot': rows['snapshot'], 'paths': paths,
             'coverage_scope': 'ranked stored paths; use timing-queries for other endpoints',
             'selected_path_count': len(paths), 'stored_matching_paths': rows['count'],
             'instance_union_count': len(instance_paths),
@@ -201,7 +269,13 @@ def timing_overview(store, snapshot_id, query):
             'repeated_instances': [{'name': name, 'path_count': count} for name, count in
                                    sorted(instance_paths.items(), key=lambda x: (-x[1], x[0]))[:limit]],
             'master_occurrences': dict(sorted(master_occurrences.items())),
-            'data_point_extrema': point_extrema(data_points),
+            'data_point_extrema': extrema,
             'net_union_count': len(nets), 'nets': nets[:limit],
             'nets_truncated': len(nets) > limit,
-            'net_names': sorted(n['name'] for n in nets)}
+            'net_names': sorted(n['name'] for n in nets),
+            'association_coverage': {'status': 'partial' if incomplete_paths else 'complete',
+                                     'incomplete_path_ids': incomplete_paths}}
+    if incomplete_paths:
+        result['availability'] = {'complete_association_aggregates': {'status': 'unavailable',
+            'reason': 'some selected paths have unresolved associations; do not report subset rankings as complete'}}
+    return result

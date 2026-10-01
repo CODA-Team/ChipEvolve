@@ -216,6 +216,7 @@ def list_objects(store, snapshot_id, query):
 
 def _object_geometry(store, snapshot_id, rows):
     """Join compact placed geometry for a whole object page; never ship wire shapes."""
+    from .metadata import placement_geometry
     scale = store.snapshot(snapshot_id)['run_summary']['dbu_per_micron']
     ids = [r['object_id'] for r in rows]
     if not ids:
@@ -229,11 +230,10 @@ def _object_geometry(store, snapshot_id, rows):
         if fact is None:
             row['physical'] = {'status': 'not_extracted'}
             continue
-        box = fact.get('bbox')
-        row['physical'] = {'status': 'available', 'dbu_per_micron': scale,
-                           'bbox_dbu': box,
-                           'bbox_um': {k: v / scale for k, v in box.items()} if box else None,
+        row['physical'] = {'status': 'available',
+                           **placement_geometry(fact, scale, (row.get('attributes') or {}).get('orientation')),
                            'origin_dbu': [fact.get('x'), fact.get('y')],
+                           'origin_basis': 'placement location from dbInst.getLocation; not dbInst.getOrigin',
                            'evidence': fact.get('evidence', [])}
 
 
