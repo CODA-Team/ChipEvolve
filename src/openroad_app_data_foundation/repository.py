@@ -10,7 +10,7 @@ import hashlib
 import json
 import sqlite3
 import threading
-from collections.abc import Iterable, Iterator, Mapping, Sequence, Sequence
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -22,7 +22,16 @@ from openroad_platform_contracts import (
     validate_sha256,
 )
 
-from .identity import _entity_rows, enrich_records
+from .ingest import PairedRows
+from .identity import (
+    _entity_rows,
+    ambiguous_keys,
+    enrich_records,
+    entity_row,
+    physical_row,
+    point_reference_ids,
+    row_identity,
+)
 from .evidence import materialize
 
 
@@ -270,15 +279,40 @@ class DataStore:
             if not isinstance(values, Sequence):
                 raise ContractError(f"{record_type} must be a list")
             streams[record_type] = values
-        # identity.enrich_records needs the snapshot's identity index: a canonical
-        # key can only be called ambiguous once every entity has been seen, so the
-        # index is what has to stay resident.  It is an order of magnitude smaller
-        # than the entities it is built from, and the entity records themselves
-        # are read, enriched and released in batches.
-        identity_index = _entity_rows(snapshot, streams["entities"])
         # Evidence is stored compact (source_ref + locator) and resolved on read;
         # see evidence.materialize.  Resolving it here is what inflated every row.
         #
+        # A bundle read by ingest hands its physical records over paired with the
+        # entities they belong to, and its timing points are enriched from a map
+        # of the ids they actually reference.  That leaves the import holding the
+        # keys an ambiguous identity needs (0.73 GiB on ariane136) instead of every
+        # identity of the snapshot (2.63 GiB) - the difference between a peak of
+        # 3.87 GiB and one near the native extraction's own 0.94 GiB.  A snapshot
+        # posted as plain lists has no file to walk beside it and keeps the whole
+        # index, which is what it always did.
+        paired = isinstance(streams["physical_context"], PairedRows)
+        identity_index: dict[str, dict[str, Any]] = {}
+        ambiguous: dict[tuple[Any, ...], list[str]] = {}
+        wanted: set[str] = set()
+        entity_map: dict[str, dict[str, Any]] = {}
+        if paired:
+            ambiguous = ambiguous_keys(snapshot, streams["entities"])
+            wanted = point_reference_ids(streams["timing_points"])
+        else:
+            identity_index = _entity_rows(snapshot, streams["entities"])
+
+        def enrich(record_type: str, batch: list[dict[str, Any]]) -> Iterable[dict[str, Any]]:
+            """Enrich one batch of one record type, reusing identity.py's rules."""
+            if record_type == "entities" and paired:
+                for row in batch:
+                    identity = row_identity(snapshot, row, ambiguous)
+                    if identity is not None and row.get("object_id") in wanted:
+                        entity_map[row["object_id"]] = identity
+                    yield entity_row(row, identity)
+                return
+            index = entity_map if record_type == "timing_points" and paired else identity_index
+            yield from enrich_records(snapshot, record_type, batch, None, identity_index=index)
+
         # Every record type is read, enriched, serialised and written in bounded
         # batches, and released before the next one is read.  Holding the whole
         # stage - as parsed rows, as enriched rows, or as one list of every
@@ -306,9 +340,13 @@ class DataStore:
                     (snapshot_id, json.dumps(snapshot, ensure_ascii=False, sort_keys=True)),
                 )
                 for record_type in RECORD_TYPES:
+                    if record_type == "physical_context" and paired:
+                        counts[record_type] = self._write_pairs(
+                            snapshot_id, snapshot, streams[record_type], ambiguous, insert)
+                        continue
                     counts[record_type] = self._write_records(
-                        snapshot_id, snapshot, record_type, streams[record_type],
-                        identity_index, insert)
+                        snapshot_id, record_type, streams[record_type],
+                        partial(enrich, record_type), insert)
                 snapshot = {**snapshot, "record_counts": counts}
                 self.connection.execute(
                     "UPDATE snapshots SET payload = ? WHERE snapshot_id = ?",
@@ -469,6 +507,22 @@ class DataStore:
                 "record_counts": counts,
                 "coverage": snapshot.get("coverage", {})}
 
+    def require_run(self, run_id: str) -> list[dict[str, Any]]:
+        """The snapshots of a run, or a KeyError if this store never saw it.
+
+        One implementation, called by every run-scoped endpoint.  Two copies of
+        this guard drifted apart once already: `/runs/<unknown>/summary` and
+        `/runs/<unknown>/metrics` both answered `status: available` with nothing
+        in it, which reads like a run whose stages were all skipped rather than a
+        run that is not here.
+        """
+        snapshots = self.snapshots(run_id=run_id)
+        if not snapshots:
+            raise KeyError(
+                f"run not found: {run_id} has no snapshot in this store "
+                f"(it may exist in the execution service but was never imported)")
+        return snapshots
+
     def run_summary_for_run(self, run_id: str) -> dict[str, Any]:
         """Return all indexed stage snapshots belonging to one execution run.
 
@@ -480,7 +534,7 @@ class DataStore:
         the nearest thing.  The caller now gets ``run_found`` plus the designs the
         run covers, so attribution is checkable and absence is explicit.
         """
-        snapshots = self.snapshots(run_id=run_id)
+        snapshots = self.require_run(run_id)
         designs: list[str] = []
         revisions: list[str] = []
         for item in snapshots:
@@ -488,15 +542,6 @@ class DataStore:
                 designs.append(item["design_id"])
             if item.get("revision_id") and item["revision_id"] not in revisions:
                 revisions.append(item["revision_id"])
-        if not snapshots:
-            # Answering `available` with an empty list looked exactly like a run
-            # whose every stage was skipped.  404 with the reason is the honest
-            # signal, and the question bank needs it: one class of question wants
-            # the caller to refuse attributing another run's evidence, which it
-            # cannot do if a missing run looks like an empty one.
-            raise KeyError(
-                f"run not found: {run_id} has no snapshot in this store "
-                f"(it may exist in the execution service but was never imported)")
         return {"run_id": run_id,
                 "run_found": True,
                 "design_id": designs[0] if len(designs) == 1 else designs,

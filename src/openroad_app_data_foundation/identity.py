@@ -2,8 +2,15 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from typing import Any
+
+
+#: The fields a timing point's identity references resolve through.  The
+#: streamed import asks for exactly these ids before the entities are written,
+#: so the list has to live beside the rule that consumes it.
+POINT_REFERENCE_FIELDS = ("pin_id", "instance_id", "net_id", "object_id")
+
 
 def enrich_records(snapshot: Mapping[str, Any], record_type: str,
                    rows: list[dict[str, Any]],
@@ -21,16 +28,75 @@ def enrich_records(snapshot: Mapping[str, Any], record_type: str,
         return rows
     entities = identity_index if identity_index is not None else _entity_rows(snapshot, entity_rows or rows)
     if record_type == "entities":
-        return [
-            {**row, "identity": entities[row["object_id"]]}
-            if row.get("object_id") in entities else row
-            for row in rows
-        ]
+        return [entity_row(row, entities.get(row.get("object_id"))) for row in rows]
     if record_type == "timing_points":
         return [_point_identity(row, entities) for row in rows]
     if record_type == "physical_context":
         return [_physical_identity(row, entities) for row in rows]
     return rows
+
+
+def ambiguous_keys(snapshot: Mapping[str, Any],
+                   rows: Iterable[Mapping[str, Any]]) -> dict[tuple[Any, ...], list[str]]:
+    """The canonical keys more than one entity shares, with their member ids.
+
+    ``_entity_rows`` answers this while holding every identity of the snapshot.
+    A streamed import only needs the answer, and on a real design the answer is
+    usually empty - ariane136 finish shares no canonical key at all - so the rows
+    are walked once and only the keys are kept.
+    """
+    first: dict[tuple[Any, ...], str] = {}
+    shared: dict[tuple[Any, ...], list[str]] = {}
+    for row in rows:
+        if not isinstance(row.get("object_id"), str):
+            continue
+        identity = _identity(snapshot, row)
+        if identity is None:
+            continue
+        key = canonical_key(identity)
+        if key is None:
+            continue
+        object_id = str(row["object_id"])
+        if key in shared:
+            shared[key].append(object_id)
+        elif key in first:
+            shared[key] = [first.pop(key), object_id]
+        else:
+            first[key] = object_id
+    return {key: sorted(ids) for key, ids in shared.items()}
+
+
+def marked_identity(identity: dict[str, Any],
+                    ambiguous: Mapping[tuple[Any, ...], list[str]]) -> dict[str, Any]:
+    """One identity as it is stored: marked when its canonical key is shared."""
+    key = canonical_key(identity)
+    members = ambiguous.get(key) if key is not None else None
+    if members is None:
+        return identity
+    return {**identity, "matching_status": "ambiguous", "ambiguous_candidates": members}
+
+
+def row_identity(snapshot: Mapping[str, Any], row: Mapping[str, Any],
+                 ambiguous: Mapping[tuple[Any, ...], list[str]]) -> dict[str, Any] | None:
+    """One entity row's identity, or ``None`` when the row does not carry one."""
+    identity = _identity(snapshot, row)
+    return None if identity is None else marked_identity(identity, ambiguous)
+
+
+def entity_row(row: dict[str, Any], identity: dict[str, Any] | None) -> dict[str, Any]:
+    """One entity record with its identity attached."""
+    return {**row, "identity": identity} if identity is not None else row
+
+
+def physical_row(row: dict[str, Any], identity: dict[str, Any] | None) -> dict[str, Any]:
+    """One physical record with its identity attached."""
+    return {**row, "identity": identity} if identity is not None else row
+
+
+def point_reference_ids(rows: Iterable[Mapping[str, Any]]) -> set[str]:
+    """The entity ids these timing points resolve their identity through."""
+    return {value for row in rows for field in POINT_REFERENCE_FIELDS
+            if isinstance(value := row.get(field), str)}
 
 
 def _entity_rows(snapshot: Mapping[str, Any], rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -46,17 +112,11 @@ def _entity_rows(snapshot: Mapping[str, Any], rows: list[dict[str, Any]]) -> dic
         key = canonical_key(identity)
         if key is not None:
             groups.setdefault(key, []).append(object_id)
-    for object_ids in groups.values():
-        if len(object_ids) < 2:
-            continue
-        for object_id in object_ids:
-            identity = identities[object_id]
-            identities[object_id] = {
-                **identity,
-                "matching_status": "ambiguous",
-                "ambiguous_candidates": sorted(object_ids),
-            }
-    return identities
+    ambiguous = {key: sorted(ids) for key, ids in groups.items() if len(ids) > 1}
+    if not ambiguous:
+        return identities
+    return {object_id: marked_identity(identity, ambiguous)
+            for object_id, identity in identities.items()}
 
 
 def _identity(snapshot: Mapping[str, Any], row: Mapping[str, Any]) -> dict[str, Any] | None:
@@ -90,18 +150,15 @@ def _identity(snapshot: Mapping[str, Any], row: Mapping[str, Any]) -> dict[str, 
 
 
 def _point_identity(row: dict[str, Any], entities: dict[str, dict[str, Any]]) -> dict[str, Any]:
-    references = {
-        field: entities[field_id]
-        for field in ("pin_id", "instance_id", "net_id", "object_id")
-        if isinstance(field_id := row.get(field), str) and field_id in entities
-    }
+    references = {field: entities[field_id] for field in POINT_REFERENCE_FIELDS
+                  if isinstance(field_id := row.get(field), str) and field_id in entities}
     return {**row, "identity_references": references} if references else row
 
 
 def _physical_identity(row: dict[str, Any], entities: dict[str, dict[str, Any]]) -> dict[str, Any]:
     object_id = row.get("object_id")
     identity = entities.get(object_id) if isinstance(object_id, str) else None
-    return {**row, "identity": identity} if identity is not None else row
+    return physical_row(row, identity)
 
 
 def _path_identity(snapshot: Mapping[str, Any], row: dict[str, Any]) -> dict[str, Any]:

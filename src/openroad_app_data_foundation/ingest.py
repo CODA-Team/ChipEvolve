@@ -87,6 +87,59 @@ class JsonlRows(Sequence):
         raise IndexError(index)
 
 
+class PairedRows(Sequence):
+    """Two JSONL members read line for line, one beside the other.
+
+    The markers file walks the same objects in the same order as the objects file
+    on every stage the adapter produces, so a streamed import can take each
+    physical record's identity from the entity it belongs to instead of holding a
+    map of every identity in the snapshot.  The alignment is checked rather than
+    trusted: a marker whose object is not the one at that position fails the
+    import by name, instead of attaching somebody else's identity.
+    """
+
+    def __init__(self, entities: JsonlRows, markers: JsonlRows,
+                 project: Callable[[dict[str, Any]], dict[str, Any] | None]) -> None:
+        self._entities = entities
+        self._markers = markers
+        self._project = project
+
+    def __iter__(self) -> Iterator[tuple[dict[str, Any], dict[str, Any]]]:
+        entities = iter(self._entities)
+        markers = iter(self._markers)
+        marker = next(markers, None)
+        if marker is None:
+            # No markers member: this snapshot holds no physical facts, and the
+            # entities have nothing to be paired with.
+            return
+        for entity in entities:
+            physical = self._project(marker)
+            if physical is not None:
+                if physical["object_id"] != entity.get("object_id"):
+                    raise ContractError(
+                        f"{self._markers._path.name} does not line up with "
+                        f"{self._entities._path.name}: {physical['object_id']} is "
+                        f"not the object at that position")
+                yield entity, physical
+            marker = next(markers, None)
+            if marker is None:
+                if next(entities, None) is not None:
+                    raise ContractError(f"{self._markers._path.name} ends before "
+                                        f"{self._entities._path.name}")
+                return
+        raise ContractError(f"{self._entities._path.name} ends before "
+                            f"{self._markers._path.name}")
+
+    def __len__(self) -> int:
+        return sum(1 for _ in self)
+
+    def __getitem__(self, index: int) -> tuple[dict[str, Any], dict[str, Any]]:
+        for position, item in enumerate(self):
+            if position == index:
+                return item
+        raise IndexError(index)
+
+
 def load_snapshot_directory(directory: str | Path) -> dict[str, Any]:
     """Read a snapshot directory without reading any host design directory.
 
@@ -118,7 +171,12 @@ def load_snapshot_directory(directory: str | Path) -> dict[str, Any]:
             continue
         pack["entities" if name == "objects" else name] = JsonlRows(root / f"{name}.jsonl")
     pack["coverage"] = _read_object(root / "coverage.json", required=False) or {}
-    pack["physical_context"] = JsonlRows(root / "markers.jsonl", project=_physical_record)
+    # The markers walk their objects in the same order as the objects file, so a
+    # physical record's identity can come from the entity beside it instead of
+    # from a map of every identity in the snapshot (2.63 GiB on ariane136).
+    pack["physical_context"] = PairedRows(entities=pack["entities"],
+                                          markers=JsonlRows(root / "markers.jsonl"),
+                                          project=_physical_record)
     # Keep the JSON members a fragment read can slice.  They arrived with the bundle,
     # so no extra download is needed and the 4 MiB download cap never applies.
     pack["fragment_sources"] = {
