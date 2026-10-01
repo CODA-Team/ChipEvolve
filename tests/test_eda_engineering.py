@@ -140,6 +140,13 @@ def test_constraint_coverage_comes_from_native_check_not_sampled_paths(tmp_path)
                                 'logical_path': 'query-data/' + ('effective.sdc' if aid == 'sdc'
                                                                 else 'check_setup.rpt')}
                                for aid, text in sources.items()]
+    pack['run_summary']['timing_context'] = {
+        'constraints': 'inputs/constraints.sdc', 'producer': {'artifacts': {
+            'results/p/chip/r/6_final.sdc': {'sha256': 'b' * 64},
+            'results/p/chip/r/4_cts.sdc': {'sha256': 'c' * 64}}}}
+    pack['snapshot']['source_artifacts'].append({
+        'artifact_id': 'input-sdc', 'logical_path': 'inputs/constraints.sdc', 'sha256': 'b' * 64,
+        'run_id': 'run', 'size_bytes': 1, 'category': 'raw_constraints', 'stage': 'finish'})
     class SourceClient:
         def artifact_excerpt(self, run_id, artifact_id, *, offset, max_bytes):
             return {'text': sources[artifact_id][offset:offset + max_bytes]}
@@ -150,6 +157,7 @@ def test_constraint_coverage_comes_from_native_check_not_sampled_paths(tmp_path)
         assert data['unconstrained_endpoint_count'] == 2
         assert data['unconstrained_endpoints'] == ['u/D', 'v/D']
         assert data['delay_values']['input_delay'] == [0.4]
+        assert data['original_constraints'][0]['original_paths'] == ['results/p/chip/r/6_final.sdc']
     finally:
         store.close()
 
