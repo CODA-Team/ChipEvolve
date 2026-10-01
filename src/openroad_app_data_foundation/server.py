@@ -28,6 +28,7 @@ from .source_metadata import source_metadata
 from .api_help import api_help
 from .excerpts import excerpt_view
 from .pin_geometry import pin_engineering
+from .path_endpoints import path_endpoints
 from .source_search import search_source
 from .native_queries import submit_native_query, native_query_result
 from .timing_queries import submit_timing_query, timing_query_status
@@ -275,6 +276,9 @@ class Handler(BaseHTTPRequestHandler):
                 return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 5 and parts[2] == 'timing-paths' and parts[4] == 'engineering':
                 payload = path_engineering(store, parts[1], parts[3], query)
+                return metadata_view(payload, query, path) if query.get('fields') else payload
+            if len(parts) == 5 and parts[2] == 'timing-paths' and parts[4] == 'endpoints':
+                payload = path_endpoints(store, parts[1], parts[3])
                 return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 5 and parts[2] == 'pins' and parts[4] == 'engineering':
                 if self.execution_client is None:

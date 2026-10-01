@@ -867,7 +867,7 @@ class DataStore:
                       f"'$.attributes.hierarchical_name') IN ({marks})"):
             for row in self.filtered(
                     snapshot_id, "entities",
-                    where=f"json_extract(payload, '$.kind') = ? AND {where}",
+                    where=f"+json_extract(payload, '$.kind') = ? AND {where}",
                     params=(kind, *variants)):
                 key = str(row.get("object_id"))
                 if key not in seen:

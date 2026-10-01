@@ -61,11 +61,16 @@ kind=instance&group_by=is_macro&region=<xmin,ymin,xmax,ymax>&region_units=um&int
 object_count counts ALL matching instances; group value 1 counts macros, 0 nonmacros, null unclassified.
 For example kind=pin&parent_id=<instance>&group_by=signal_type
 returns distinct SIGNAL/CLOCK/POWER/GROUND counts; never infer SIGNAL by merely excluding power.
+For kind=net&group_by=signal_type, counts_by_signal_type and power_ground_net_count cover ALL matching nets
+even when group rows are paged. The latter counts POWER+GROUND and is explicitly distinct from native isSpecial flags.
 
 Engineering instance names preserve the stored name and also provide native_name without DEF escapes.
 To retrieve the exact original spelling, use native queries against the original database; never invent its escape representation.
 ''',
     'timing': '''S/timing-paths?check=setup|hold&sort=slack&order=worst&limit=N returns ranked stored paths;
+S/timing-paths/<path_id>/endpoints joins both endpoints' native pin/connection, owning-instance placement/counts,
+original timing-point fragments and source references. Report net/instance values remain separate from native facts.
+Top-level ports have instance=null. Missing native mappings remain explicit; fields=path,endpoints.endpoint selects one end.
 filters include startpoint, endpoint, group, source_clock, target_clock, corner; fields=path_id,startpoint,endpoint,group,slack projects only those fields.
 S/timing-points?path_section=source_path&sort=slew|load|arrival&order=worst&limit=N ranks data points over all stored paths.
 Optional path_id restricts a path; pin_name, instance_id, net_id and check=setup|hold filter occurrences.

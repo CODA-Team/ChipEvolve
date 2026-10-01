@@ -127,12 +127,18 @@ def object_statistics(store, snapshot_id, query):
         values).fetchall()
     limit, offset = _limit(query), _offset(query)
     groups = [dict(row) for row in rows]
-    return {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(store.snapshot(snapshot_id)),
+    result = {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(store.snapshot(snapshot_id)),
             'group_by': group, 'object_count': sum(row['count'] for row in groups),
             'groups': groups[offset:offset + limit],
             'evidence': [ref for ref in store.snapshot(snapshot_id).get('source_artifacts', [])
                          if ref.get('category') == 'raw_design_database'],
             **_page(len(groups), len(groups[offset:offset + limit]), limit, offset)}
+    if group == 'signal_type' and query.get('kind') == 'net':
+        result['counts_by_signal_type'] = {row['value']: row['count'] for row in groups if row['value'] is not None}
+        result['unclassified_net_count'] = sum(row['count'] for row in groups if row['value'] is None)
+        result['power_ground_net_count'] = sum(row['count'] for row in groups if row['value'] in ('POWER', 'GROUND'))
+        result['power_ground_count_basis'] = 'native SigType POWER + GROUND over all matching nets; distinct from OpenDB isSpecial flag'
+    return result
 
 
 def _bbox_union(boxes):

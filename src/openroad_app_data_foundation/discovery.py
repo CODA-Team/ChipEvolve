@@ -42,7 +42,11 @@ def object_filter(store, snapshot_id, query):
                     AND json_extract(n.payload, '$.attributes.signal_type') = ?)""")
                 params.extend([snapshot_id, query[key]])
                 continue
-            filters.append(f"json_extract(payload, '{path}') = ?")
+            # An exact name/parent/id is much narrower than an entire object
+            # kind. Without statistics, SQLite picked the new kind index and
+            # scanned millions of pins for two names or seven children.
+            prefix = '+' if key == 'kind' and any(query.get(k) for k in ('name', 'parent_id', 'ids', 'connected_to')) else ''
+            filters.append(f"{prefix}json_extract(payload, '{path}') = ?")
             value = query[key]
             params.append(int(value) if key in numeric else value)
     if query.get('name'):
