@@ -58,6 +58,9 @@ Metadata detail=full retains all original sections. Receipt self-reported versio
 S/artifacts/files supports kind=receipts, name_contains=<filename>, limit/offset. Use its real filters, not path=receipts.
 ''',
     'objects': '''S/instances?name=... or S/nets?name=... looks up native names.
+S/instances|nets|pins/<native name or id>/provenance returns the native identity/locator,
+exact source digests and declared original paths, plus literal original flow/toolchain identity in one read.
+Its recovery routes use the actual record type entities (not objects or instances).
 S/nets/<native name or id>/engineering?limit=N&offset=N returns complete driver/load counts and state,
 sorted native driver_pins/load_pins with separate page metadata, net identity/type and original database evidence.
 Choose limit large enough when the task requires all names; counts are independent of the returned page.

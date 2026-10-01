@@ -30,6 +30,7 @@ from .excerpts import excerpt_view
 from .pin_geometry import pin_engineering
 from .native_inventory import net_inventory
 from .analysis_setup import analysis_setup
+from .evidence import object_provenance
 from .path_endpoints import path_endpoints
 from .batch_reads import read_batch
 from .source_search import search_source
@@ -299,6 +300,11 @@ class Handler(BaseHTTPRequestHandler):
                 return pin_engineering(store, self.execution_client, parts[1], parts[3], self.native_root)
             if len(parts) == 5 and parts[2] == 'instances' and parts[4] == 'engineering':
                 return instance_engineering(store, parts[1], parts[3])
+            if len(parts) == 5 and parts[2] in ('instances', 'nets', 'pins') and parts[4] == 'provenance':
+                if query:
+                    raise ValueError('object provenance accepts no query filters')
+                kind = {'instances': 'instance', 'nets': 'net', 'pins': 'pin'}[parts[2]]
+                return object_provenance(store, parts[1], parts[3], kind)
             if len(parts) == 5 and parts[2] == 'nets' and parts[4] == 'engineering':
                 return net_engineering(store, parts[1], parts[3], query)
             if len(parts) == 3 and parts[2] == "timing-context":

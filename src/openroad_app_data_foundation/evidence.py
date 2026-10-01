@@ -9,6 +9,32 @@ from typing import Any
 PLACEHOLDER_ARTIFACT_IDS = frozenset({"timing-report", "orfs-metadata"})
 
 
+def original_paths(manifest, digest):
+    """Only declared paths with an actual matching digest identify an original."""
+    return sorted(path for path, entry in manifest.items()
+                  if digest is not None and entry.get('sha256') == digest)
+
+
+def object_provenance(store, snapshot_id, identifier, kind):
+    """Join the native object locator to its exact input identities and producer."""
+    from urllib.parse import quote
+    from .engineering import _entity
+    from .identity import snapshot_identity
+    entity = _entity(store, snapshot_id, identifier, kind)
+    snapshot = store.snapshot(snapshot_id)
+    producer = snapshot.get('run_summary', {}).get('timing_context', {}).get('producer', {})
+    manifest = producer.get('artifacts', {})
+    sources = [{**ref, 'original_paths': original_paths(manifest, ref.get('sha256'))}
+               for ref in entity.get('evidence', [])]
+    record = '/snapshots/' + snapshot_id + '/records/entities/' + quote(entity['object_id'], safe='')
+    return {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(snapshot),
+        'object': {key: entity.get(key) for key in ('object_id', 'kind', 'name', 'identity', 'locator', 'source_ref')},
+        'producer_identity': {key: producer.get(key) for key in ('design', 'platform', 'variant', 'native_run_id', 'toolchain')},
+        'sources': sources, 'evidence': entity.get('evidence', []),
+        'record_sources': {'evidence_path': record + '/evidence', 'fragments_path': record + '/fragments'},
+        'basis': 'resolved original artifact digests/native locators and literal producer metadata; original_paths are producer declarations'}
+
+
 def resolve_records(snapshot: Mapping[str, Any],
                    values: dict[str, list[dict[str, Any]]]) -> dict[str, list[dict[str, Any]]]:
     """Attach an artifact identity only when the registered catalogue proves it.

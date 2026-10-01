@@ -6,6 +6,7 @@ from pathlib import Path
 from .artifacts import native_excerpt, _receipt_files, run_inventory
 from .discovery import timing_context
 from .identity import snapshot_identity
+from .evidence import original_paths
 
 
 def source_text(store, snapshot_id, path, root, stop=None):
@@ -99,7 +100,7 @@ def source_metadata(store, snapshot_id, root):
         result['configuration'].append({'source': ref, **configuration(text)})
     library_refs = [ref for ref in snapshot.get('source_artifacts', []) if ref.get('category') == 'raw_library']
     for library in library_refs:
-        matches = [path for path, ref in manifest.items() if path.endswith('.lib') and ref['sha256']==library['sha256']]
+        matches = [path for path in original_paths(manifest, library['sha256']) if path.endswith('.lib')]
         if not matches:
             raise KeyError('loaded library has no original manifest source')
         path = sorted(matches)[0]
@@ -136,8 +137,7 @@ def source_metadata(store, snapshot_id, root):
     for artifact in snapshot.get('source_artifacts', []):
         if artifact.get('category') == 'raw_design_database' or artifact.get('logical_path') in loaded_paths:
             result['original_inputs'].append({'role': artifact['category'], 'staged_path': artifact.get('logical_path'),
-                'sha256': artifact.get('sha256'), 'original_paths': sorted(path for path, ref in manifest.items()
-                    if ref.get('sha256') == artifact.get('sha256'))})
+                'sha256': artifact.get('sha256'), 'original_paths': original_paths(manifest, artifact.get('sha256'))})
     result['run_origin'] = {'snapshot': snapshot_identity(snapshot),
         'top_module': snapshot.get('run_summary', {}).get('top_module'),
         'native_flow_run_id': context.get('producer', {}).get('native_run_id'),
