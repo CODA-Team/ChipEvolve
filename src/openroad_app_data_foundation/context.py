@@ -262,7 +262,8 @@ def _summarize(pack: dict[str, Any], target_id: str | None,
         pack.setdefault("limitations", []).append({
             "field": field, "status": "truncated",
             "returned": limit, "total": len(rows), "next_offset": limit,
-            **_continuation(field, snapshot_id, target_id, target_type, limit)})
+            **_continuation(field, snapshot_id, target_id, target_type, limit,
+                            len(pack[field]))})
     if detail == "full":
         return pack
     timing = pack.get("timing_context")
@@ -339,33 +340,69 @@ def _scope_snapshot(pack: dict[str, Any]) -> str | None:
 
 
 def _continuation(field: str, snapshot_id: str | None, target_id: str | None,
-                  target_type: str | None, limit: int) -> dict[str, Any]:
-    """The route that carries the rest of the collection a first screen cut.
+                  target_type: str | None, limit: int,
+                  returned: int | None = None) -> dict[str, Any]:
+    """The routes that carry the rest of a collection a first screen cut.
 
-    Each of these is an existing, paged tool on the same snapshot, so the facts a
-    pack no longer inlines stay one request away instead of becoming unreachable.
+    Every step is an existing tool on the same snapshot, and the steps are written
+    out rather than implied because a bound whose continuation cannot actually be
+    followed is a capability cut.  A pack's collections are *merged* views - one
+    net context lists the target, its neighbours and the neighbours' parents -
+    so ``next_offset`` counts rows of the *paged* source, which is what the first
+    route pages, and the rows that are not from that source are named by the
+    route that reaches them instead of being lumped under one offset.
     """
     target = quote(target_id, safe="") if target_id else None
-    if field == "entities" and snapshot_id:
-        if target_type in {"object", "net"} and target:
-            return {"next": f"/snapshots/{snapshot_id}/objects?connected_to={target}"
-                            f"&limit={limit}&offset={limit}"}
-        return {"next": f"/snapshots/{snapshot_id}/timing-paths/{target}/points"
-                        f"?limit={limit}&offset={limit}, then "
-                        f"/snapshots/{snapshot_id}/objects?connected_to=<net_id> "
-                        f"for each net_id on the page"}
-    if field == "relations" and snapshot_id and target:
-        return {"next": f"/snapshots/{snapshot_id}/objects/{target}/context?relation_limit=0"}
+    is_object = target_type in {"object", "net"}
+    if field == "entities":
+        return _entity_continuation(snapshot_id, target, target_type, limit, returned)
+    if field == "relations" and snapshot_id and target and is_object:
+        return {"next": [
+            f"/snapshots/{snapshot_id}/objects/{target}/context?relation_limit=0",
+            f"and /snapshots/{snapshot_id}/objects/{{object_id}}/context?relation_limit=0 for "
+            f"every other object the pack lists: the pack merges their relations"]}
     if field == "physical_context" and snapshot_id:
-        return {"next": f"/snapshots/{snapshot_id}/physical/<object_id> for each object_id "
-                        f"on the entities page, or {field}_limit=0 in a direct call"}
+        return {"next": [
+            f"/snapshots/{snapshot_id}/physical/{{object_id}} for each object_id the entities "
+            f"page returns, and /snapshots/{snapshot_id}/objects/{{object_id}} for the object"]}
     if field == "physical_context[].routing" and snapshot_id and target:
-        return {"next": f"/snapshots/{snapshot_id}/physical/{target}"}
-    if field == "evidence" and snapshot_id and target:
-        return {"next": f"/snapshots/{snapshot_id}/records/{target_type}/{target}/evidence"}
+        return {"next": [f"/snapshots/{snapshot_id}/physical/{target}"]}
+    if field == "evidence":
+        return {"next": [
+            "/snapshots/{snapshot_id}/records/{record_type}/{record_id}/evidence for the "
+            "record_type and record_id each entry carries"]}
     if field == "observations" and snapshot_id:
-        return {"next": f"/snapshots/{snapshot_id}/observations?limit={limit}&offset={limit}"}
+        return {"next": [
+            f"/snapshots/{snapshot_id}/observations?limit={limit}&offset={limit}"]}
     return {}
+
+
+def _entity_continuation(snapshot_id: str | None, target: str | None,
+                         target_type: str | None, limit: int,
+                         returned: int | None) -> dict[str, Any]:
+    """Where the entity sample stopped, counted per source, with a route for each.
+
+    ``connected_total`` is the size of the paged source, so the offset the cursor
+    needs is the number of *neighbour* rows already in the screen - not the number
+    of rows, which also counts the target and the neighbours' parents.  Getting
+    that wrong would make the cursor skip rows or repeat them.
+    """
+    if not snapshot_id:
+        return {}
+    parents = (f"/snapshots/{snapshot_id}/objects/{{parent_id}} for the parent_id a neighbour "
+               f"row carries, and /snapshots/{snapshot_id}/objects/{{object_id}} for one row")
+    if target_type not in {"object", "net"} or not target:
+        return {"next_offset": 0, "next": [
+            f"/snapshots/{snapshot_id}/timing-paths/{target}/points?limit={limit}&offset=0",
+            f"then /snapshots/{snapshot_id}/objects?connected_to={{net_id}}&limit={limit}"
+            f"&offset=0 for each net_id on that page, skipping ids already returned"]}
+    neighbours = 0 if returned is None else max(0, returned - 1)
+    routes = []
+    if neighbours < limit - 1 or limit == 0:
+        routes.append(f"/snapshots/{snapshot_id}/objects?connected_to={target}"
+                      f"&limit={limit}&offset={neighbours}")
+    routes.append(parents)
+    return {"next_offset": neighbours if routes and neighbours < limit else None, "next": routes}
 
 
 def _bound_routing(pack: dict[str, Any], record: dict[str, Any],

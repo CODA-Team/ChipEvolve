@@ -6,10 +6,16 @@ from .queries import _limit, _offset, _page
 def list_objects(store, snapshot_id, query):
     filters, params = [], []
     fields = {'kind': '$.kind', 'parent_id': '$.parent_id', 'master': '$.attributes.master', 'driver_count': '$.attributes.driver_count', 'signal_type': '$.attributes.signal_type'}
+    #: Query parameters arrive as text.  ``driver_count`` is a JSON *number* in the
+    #: payload, so comparing it with the string "1" matched nothing at all - a
+    #: caller filtering driver_count=1 got an empty page on a snapshot whose first
+    #: nets all have driver_count 1, which reads as "no such net".
+    numeric = {'driver_count'}
     for key, path in fields.items():
         if query.get(key):
             filters.append(f"json_extract(payload, '{path}') = ?")
-            params.append(query[key])
+            value = query[key]
+            params.append(int(value) if key in numeric else value)
     if query.get('name_contains'):
         filters.append("instr(json_extract(payload, '$.name'), ?) > 0")
         params.append(query['name_contains'])
