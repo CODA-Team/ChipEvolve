@@ -531,3 +531,42 @@ def test_original_metric_filter_and_continuation_respect_source_scope(tmp_path):
         assert last['raw_metrics'][0]['value'] == 4
     finally:
         store.close()
+
+
+def test_normalized_cell_counts_and_areas_keep_report_basis_and_original_keys(tmp_path):
+    pack = sample()
+    values = {'design__instance__count__stdcell': 17, 'design__instance__count__macros': 2,
+              'design__instance__area': 85, 'design__instance__area__stdcell': 30,
+              'design__instance__area__macros': 55, 'flow__platform__distance_units': '1um'}
+    pack['observations'] = [{'observation_id': 'metric:finish__' + k, 'kind': 'metric', 'value': v}
+                            for k, v in values.items()]
+    store = DataStore(tmp_path / 'normalized.sqlite')
+    try:
+        store.register(pack)
+        rows = {r['name']: r for r in project_run(store, [store.snapshot('s')])['metrics']}
+        assert rows['STDCELL_COUNT']['value'] == 17 and rows['STDCELL_COUNT']['unit'] == 'count'
+        assert rows['MACRO_COUNT']['value'] == 2
+        assert rows['AREA']['value'] == 85 and rows['AREA']['unit'] == 'um^2'
+        assert rows['STDCELL_AREA']['value'] == 30 and rows['MACRO_AREA']['value'] == 55
+        assert 'not die/core' in rows['AREA']['quantity_scope']
+        assert rows['STDCELL_COUNT']['raw_key'] == 'finish__design__instance__count__stdcell'
+        assert all(r['authoritative_source'] == 'orfs_stage_report' for r in rows.values()
+                   if r['status'] == 'available')
+    finally:
+        store.close()
+
+
+def test_failed_native_query_exposes_actual_error_without_claiming_success():
+    from openroad_app_data_foundation.native_queries import native_query_result
+    class Client:
+        def run(self, run_id):
+            return {'project_id': 'eda-ai-native-query', 'status': 'failed', 'terminal_reason': 'report_error',
+                    'stages': [{'attempts': [{'failure': {'category': 'report_error', 'message': 'exit 1'}}]}]}
+        def artifacts(self, run_id):
+            return [{'artifact_id': 'native-error', 'kind': 'analysis_report', 'metadata': {'report': 'native'}}]
+        def artifact_excerpt(self, run_id, artifact_id, **kwargs):
+            return {'text': 'invalid command name dbITerm_getBox', 'truncated': False}
+    result = native_query_result(Client(), 'failed-run', {})
+    assert result['status'] == 'failed' and result['terminal_reason'] == 'report_error'
+    assert result['excerpt']['text'] == 'invalid command name dbITerm_getBox'
+    assert result['failure_details'][0]['message'] == 'exit 1'
