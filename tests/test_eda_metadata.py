@@ -48,3 +48,14 @@ def test_native_orientation_aliases_preserve_all_eight_transformations():
              'MY': 'FN', 'MYR90': 'FE', 'MX': 'FS', 'MXR90': 'FW'}
     for odb, lefdef in names.items():
         assert placement_geometry({}, 2000, odb)['orientation_names'] == {'odb': odb, 'def': lefdef}
+
+
+def test_dotted_selection_reads_ordered_array_fields_without_full_objects():
+    payload = {'instances': [{'name': 'a', 'master': 'BUF', 'bbox': {'x_min': 1, 'x_max': 4}},
+                             {'name': 'b', 'master': 'INV', 'bbox': {'x_min': 2, 'x_max': 5}}]}
+    result = metadata_view(payload, {'fields': 'instances.name,instances.bbox.x_min'}, '/path')
+    assert result['instances'] == [{'name': 'a', 'bbox': {'x_min': 1}},
+                                   {'name': 'b', 'bbox': {'x_min': 2}}]
+    with pytest.raises(ValueError, match='instances.no_such_fact'):
+        metadata_view(payload, {'fields': 'instances.no_such_fact'}, '/path')
+    assert metadata_view(payload, {'fields': 'instances,instances.name'}, '/path')['instances'] == payload['instances']

@@ -53,6 +53,8 @@ def test_instance_and_timing_join_retains_point_witness_and_complete_pin_counts(
         store.register(pack)
         instance = instance_engineering(store, 's', 'u')['instance']
         assert instance['signal_pin_count'] == 2
+        assert instance['distinct_signal_net_count'] == 1
+        assert instance['distinct_connected_net_count'] == 1
         assert instance['total_pin_count'] == 3 and instance['unclassified_pin_count'] == 1
         assert instance['orientation_names'] == {'odb': 'MX', 'def': 'FS'}
         result = timing_overview(store, 's', {'check': 'setup', 'limit': '1', 'include_physical': '1',
@@ -219,6 +221,7 @@ def test_engineering_counts_unique_data_instances_not_clock_buffers(tmp_path):
         detail = path_engineering(store, 's', 'p', {'limit': '1'})
         assert detail['instance_count'] == 1
         assert detail['data_path_pin_count'] == 2
+        assert detail['data_pin_names'] == ['u/A', 'u/Z']
         assert detail['master_counts'] == {'BUF': 1}
         assert detail['points_page']['truncated']
         other = path_engineering(store, 's', 'p', {'limit': '1', 'offset': '1'})
