@@ -1,5 +1,6 @@
 """Bounded metadata views; original metadata remains directly addressable."""
 from copy import deepcopy
+from urllib.parse import urlencode
 
 from .identity import snapshot_identity
 
@@ -9,6 +10,8 @@ def metadata_view(payload, query, path):
     detail = query.get('detail', 'summary')
     if detail not in ('summary', 'full'):
         raise ValueError('metadata detail must be summary|full')
+    full_details = path + '?' + urlencode({**{key: value for key, value in query.items()
+                                               if key not in ('fields', 'detail')}, 'detail': 'full'})
     fields = query.get('fields')
     if fields:
         selection = {}
@@ -31,7 +34,7 @@ def metadata_view(payload, query, path):
         for key in ('availability', 'association_coverage'):
             if key in payload:
                 result[key] = deepcopy(payload[key])
-        result['delivery'] = {'fields': fields.split(','), 'full_details': path + '?detail=full'}
+        result['delivery'] = {'fields': fields.split(','), 'full_details': full_details}
         return result
     if detail == 'full':
         return payload
@@ -59,11 +62,11 @@ def metadata_view(payload, query, path):
             del item['raw_metrics']
             omitted.append('run_summary.raw_metrics')
     result['delivery'] = {'detail': 'summary', 'omitted_fields': omitted,
-                          'full_details': path + '?detail=full',
+                          'full_details': full_details,
                           'selection': 'metadata only; engineering fact counts are unchanged'}
     if len(result.get('evidence', [])) > 1:
         result['delivery']['evidence_count'] = len(result['evidence'])
-        result['delivery']['evidence_details'] = path + '?detail=full'
+        result['delivery']['evidence_details'] = full_details
         result['evidence'] = result['evidence'][:1]
     return result
 

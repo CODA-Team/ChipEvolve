@@ -144,7 +144,7 @@ def run_inventory(store, snapshot_id, root, *, stage=None, metric_names=(), metr
                ('route', '5_route.odb', '5_2_route.json'),
                ('finish', '6_final.odb', '6_report.json')]
     if stage is not None and stage not in {row[0] for row in outputs}:
-        raise ValueError('unknown original flow stage')
+        raise ValueError('unknown original flow stage; choose synth|floorplan|place|cts|route|finish; route includes global and detailed route substage reports')
     producer = snapshot.get('run_summary', {}).get('timing_context', {}).get('producer', {})
     manifest = producer.get('artifacts', {})
     for stage_name, odb, metric in outputs:

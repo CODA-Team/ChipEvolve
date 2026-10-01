@@ -13,7 +13,9 @@ Other indexed physical stages replace finish with place/cts/route; discover exis
 Synth/floorplan originals are accessed through files or native-queries with odb_file.
 S/run-inventory returns all six original stages, ODB digests, actual metric filenames/key coverage and indexed snapshot names.
 Add ?stage=route (or another stage) for compact discovery. metric_reports lists EVERY original JSON report in that stage,
-including substage files with quantities absent from its representative report. Read the needed original with files/excerpt
+including substage files with quantities absent from its representative report.
+Metric selection defaults to one complete metric_reports collection without duplicating the representative report/database catalog;
+detail=full or fields retrieves the catalog too. Every returned metric source/value/unit/analysis command is retained. Read the needed original with files/excerpt
 or files/search, preserving its substage/source identity. Avoid full snapshot summaries or STA initialization for a quantity
 already recorded in an original metric file. Never silently substitute an earlier iteration for a requested final-stage value.
 Add metrics=<exact raw key or consecutive namespace components, comma separated> to return literal matching values from each
@@ -63,6 +65,8 @@ S/artifacts/files supports kind=receipts, name_contains=<filename>, limit/offset
     'objects': '''S/instances?name=... or S/nets?name=... looks up native names.
 S/instances|nets|pins/<native name or id>/provenance returns the native identity/locator,
 exact source digests and declared original paths, plus literal original flow/toolchain identity in one read.
+extraction_identity exposes each actual extraction run/attempt/source_type/declared_tool; native_locators
+join by-name object keys and numeric locators to the exact ODB digest/path. No private parser ID/version is invented.
 Its recovery routes use the actual record type entities (not objects or instances).
 S/nets/<native name or id>/engineering?limit=N&offset=N returns complete driver/load counts and state,
 sorted native driver_pins/load_pins with separate page metadata, net identity/type and original database evidence.
@@ -112,7 +116,10 @@ even when group rows are paged. The latter counts POWER+GROUND and is explicitly
 Engineering instance names preserve the stored name and also provide native_name without DEF escapes.
 To retrieve the exact original spelling, use native queries against the original database; never invent its escape representation.
 ''',
-    'timing': '''S/timing-paths?check=setup|hold&sort=slack&order=worst&limit=N returns ranked stored paths;
+    'timing': '''S/timing-paths/<path_id>/clock-paths returns BOTH complete clock trees and the original path delay header,
+in exact native report order/units. Original instance/net values (including null/empty/undeclared fields)
+remain untouched; database mappings do not replace native report fields. This is one joined original-report read.
+S/timing-paths?check=setup|hold&sort=slack&order=worst&limit=N returns ranked stored paths;
 S/timing-paths/<path_id>/endpoints joins both endpoints' native pin/connection, owning-instance placement/counts,
 original timing-point fragments and source references. Report net/instance values remain separate from native facts.
 Top-level ports have instance=null. Missing native mappings remain explicit; fields=path,endpoints.endpoint selects one end.

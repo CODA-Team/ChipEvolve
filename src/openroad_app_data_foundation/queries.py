@@ -138,7 +138,7 @@ def list_timing_points(store: DataStore, snapshot_id: str,
                           limit=limit, offset=offset, order_by=clause)
     return {"snapshot_id": snapshot_id, "snapshot": snapshot_identity(store.snapshot(snapshot_id)),
             "timing_points": _point_projection(rows, query), **ranking,
-            **(projected_sources(snapshot_id, 'timing_points', 'point_id', rows, query.get('source_detail', 'links')) if query.get('fields') else {}),
+            **(projected_sources(snapshot_id, 'timing_points', 'point_id', rows, query.get('source_detail', 'links')) if query.get('fields') or query.get('source_detail') == 'compact' else {}),
             **_page(total, len(rows), limit, offset), "filters": filters}
 
 
@@ -353,23 +353,28 @@ def _timing_document(payload: bytes):
     return json.loads(payload)
 
 
-def _path_fields(store, snapshot_id, row):
-    """Expose the native clock and arrival facts the stored row's own evidence names."""
-    fields = ('data_arrival_time', 'crpr', 'source_clock', 'target_clock',
-              'source_clock_edge', 'target_clock_edge')
-    if all(key in row for key in fields):
-        return row
+def original_timing_path(store, snapshot_id, row):
+    """Recover the exact native report entry identified by this stored path."""
     for ref in row.get('evidence', []):
         index = (ref.get('detail') or {}).get('path_index')
         if not isinstance(index, int):
             continue
         source = store.fragment_source(snapshot_id, ref.get('logical_path'))
         if source is not None:
-            document = _timing_document(source['payload'])
-            paths = document.get('checks', [])
-            if index < len(paths):
-                return {**row, **{key: paths[index].get(key) for key in fields}}
-    return row
+            paths = _timing_document(source['payload']).get('checks', [])
+            if 0 <= index < len(paths):
+                return paths[index]
+    return None
+
+
+def _path_fields(store, snapshot_id, row):
+    """Expose native clock/arrival facts from the row's own original report."""
+    fields = ('data_arrival_time', 'crpr', 'source_clock', 'target_clock',
+              'source_clock_edge', 'target_clock_edge')
+    if all(key in row for key in fields):
+        return row
+    report = original_timing_path(store, snapshot_id, row)
+    return {**row, **{key: report.get(key) for key in fields}} if report is not None else row
 
 
 def timing_path(store: DataStore, snapshot_id: str, path_id: str,
@@ -412,7 +417,7 @@ def timing_path(store: DataStore, snapshot_id: str, path_id: str,
 
 def _point_projection(rows, query):
     if not query.get('fields'):
-        return rows
+        return [{key: value for key, value in row.items() if key != 'evidence'} for row in rows] if query.get('source_detail') == 'compact' else rows
     fields = query['fields'].split(',')
     allowed = {'point_id', 'path_id', 'ordinal', 'pin_name', 'instance_id', 'instance_name',
                'net_id', 'net_name', 'cell_name', 'path_section', 'arrival', 'load', 'slew', 'evidence'}
@@ -432,7 +437,7 @@ def path_points(store: DataStore, snapshot_id: str, path_id: str, query: dict[st
     return {"snapshot_id": snapshot_id, "snapshot": snapshot_identity(store.snapshot(snapshot_id)),
             "path_id": path_id,
             "timing_points": _point_projection(page, query), **_page(len(points), len(page), limit, offset),
-            **(projected_sources(snapshot_id, 'timing_points', 'point_id', page, query.get('source_detail', 'links')) if query.get('fields') else {})}
+            **(projected_sources(snapshot_id, 'timing_points', 'point_id', page, query.get('source_detail', 'links')) if query.get('fields') or query.get('source_detail') == 'compact' else {})}
 
 
 def path_nets(store: DataStore, snapshot_id: str, path_id: str,

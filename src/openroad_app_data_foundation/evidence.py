@@ -31,6 +31,12 @@ def object_provenance(store, snapshot_id, identifier, kind):
         'object': {key: entity.get(key) for key in ('object_id', 'kind', 'name', 'identity', 'locator', 'source_ref')},
         'producer_identity': {key: producer.get(key) for key in ('design', 'platform', 'variant', 'native_run_id', 'toolchain')},
         'sources': sources, 'evidence': entity.get('evidence', []),
+        'extraction_identity': [{'run_id': ref.get('run_id'), 'attempt_id': ref.get('attempt_id'),
+            'source_type': ref.get('source_type'), 'declared_tool': ref.get('detail', {}).get('tool')} for ref in sources],
+        'native_locators': [{'artifact_sha256': ref.get('sha256'), 'original_paths': ref['original_paths'],
+            'object_class': kind, 'object_key': entity['name'], 'lookup_kind': kind + '-by-name',
+            'numeric_locator': entity.get('locator')} for ref in sources if ref.get('source_type') == 'opendb'],
+        'parser_identity_scope': 'source_type and declared_tool identify the recorded tool family; a private parser implementation ID/version is not recorded',
         'record_sources': {'evidence_path': record + '/evidence', 'fragments_path': record + '/fragments'},
         'basis': 'resolved original artifact digests/native locators and literal producer metadata; original_paths are producer declarations'}
 

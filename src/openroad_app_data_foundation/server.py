@@ -31,6 +31,7 @@ from .pin_geometry import pin_engineering
 from .native_inventory import net_inventory
 from .analysis_setup import analysis_setup
 from .evidence import object_provenance
+from .clock_paths import clock_paths
 from .path_endpoints import path_endpoints
 from .batch_reads import read_batch
 from .source_search import search_source
@@ -283,6 +284,8 @@ class Handler(BaseHTTPRequestHandler):
                 payload = run_inventory(store, parts[1], self.native_root, stage=query.get('stage'),
                                         metric_names=tuple(query.get('metrics', '').split(',')) if query.get('metrics') else (),
                                         metric_contains=tuple(query.get('metric_name_contains', '').split(',')) if query.get('metric_name_contains') else ())
+                if not query.get('fields') and query.get('detail') != 'full' and (query.get('metrics') or query.get('metric_name_contains')):
+                    query = {**query, 'fields': 'run_id,stages.stage,stages.metric_reports'}
                 return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 3 and parts[2] == 'help':
                 return api_help(store, parts[1], query)
@@ -291,6 +294,9 @@ class Handler(BaseHTTPRequestHandler):
                 return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 5 and parts[2] == 'timing-paths' and parts[4] == 'engineering':
                 payload = path_engineering(store, parts[1], parts[3], query)
+                return metadata_view(payload, query, path) if query.get('fields') else payload
+            if len(parts) == 5 and parts[2] == 'timing-paths' and parts[4] == 'clock-paths':
+                payload = clock_paths(store, parts[1], parts[3])
                 return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 5 and parts[2] == 'timing-paths' and parts[4] == 'endpoints':
                 payload = path_endpoints(store, parts[1], parts[3])
