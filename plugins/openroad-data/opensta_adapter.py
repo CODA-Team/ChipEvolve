@@ -105,6 +105,12 @@ def normalize(output_dir: Path, inputs: dict[str, Any]) -> None:
                     "parasitic_mode": inputs.get("parasitic_mode", "spef" if inputs.get("spef_path") else "unavailable"),
                     "analysis": inputs.get("analysis"), "corner": inputs.get("corner"),
                     "executor": inputs.get("openroad_bin"), "path_count_per_group": inputs.get("path_count", 5),
+                    # How many paths per endpoint the report kept.  `1` means the
+                    # N reported paths are N distinct endpoints, which is a
+                    # different (and stronger) coverage claim than N variants of
+                    # one endpoint, so the snapshot records which one it is.
+                    "path_count_per_endpoint": inputs.get("endpoint_path_count", inputs.get("path_count", 5)),
+                    "endpoint_report": inputs.get("endpoint_path_count", inputs.get("path_count", 5)) == 1,
                     "coverage_scope": "sampled report_checks paths; not all timing paths",
                     "parent_snapshot_id": inputs.get("parent_snapshot_id")})
     producer_path = inputs.get("producer_metadata_path")
@@ -260,6 +266,14 @@ def _script(inputs: dict[str, Any], odb_path: str, output_name: str) -> str:
     count = inputs.get("path_count", 5)
     if not isinstance(count, int) or not 1 <= count <= 200:
         raise ValueError("inputs.path_count must be an integer between 1 and 200")
+    # OpenSTA keeps at most this many paths *per endpoint*.  The default matches
+    # ``path_count`` (the historical behaviour: N variants of one endpoint);
+    # ``endpoint_path_count=1`` is the per-endpoint report the reference flow
+    # produces, and is what "the N worst paths" means for N distinct endpoints.
+    endpoints = inputs.get("endpoint_path_count", count)
+    if not isinstance(endpoints, int) or not 1 <= endpoints <= 200:
+        raise ValueError(
+            "inputs.endpoint_path_count must be an integer between 1 and 200")
     extra_lines, extra_options = directed_options(inputs, _tcl)
     lines.extend(extra_lines)
     # Non-deprecated option names matter: -group_count / -endpoint_count print a
@@ -269,7 +283,8 @@ def _script(inputs: dict[str, Any], odb_path: str, output_name: str) -> str:
         lines.append("sta::redirect_file_begin [file join "
                      f"{_tcl(output_name)} {_tcl(filename)}]")
         lines.append(f"report_checks -path_delay {delay} -group_path_count {count} "
-                     f"-endpoint_path_count {count} {extra_options} -format json -digits 6")
+                     f"-endpoint_path_count {endpoints} {extra_options} "
+                     f"-format json -digits 6")
         lines.append("sta::redirect_file_end")
     lines.append(_mapping_script(output_name))
     return "\n".join(lines) + "\n"
