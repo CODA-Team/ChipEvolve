@@ -172,8 +172,13 @@ class Handler(BaseHTTPRequestHandler):
     def _get(self, path: str, query: dict[str, str],
              store: "DataStore | None" = None) -> dict[str, Any]:
         if path == "/health":
+            # The fingerprint says which build is running; it does not say which file
+            # that build opened.  A service restarted against the wrong path answers
+            # every request perfectly from the wrong store, so the identity travels
+            # with the health answer and a caller can refuse to use it.
             return {"app": "data_foundation", "status": "ok",
-                    "source_fingerprint": STARTUP_FINGERPRINT}
+                    "source_fingerprint": STARTUP_FINGERPRINT,
+                    "database": self.store.identity()}
         store = store if store is not None else self.store
         if self.execution_client is not None and self.auto_import:
             # Importing is a write, so it uses the writable store, not the reader.

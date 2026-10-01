@@ -539,6 +539,61 @@ class DataStore:
             raise KeyError(f"snapshot not found: {snapshot_id}")
         return json.loads(row["payload"])
 
+    def manifest_fingerprint(self) -> dict[str, Any]:
+        """A hash over what this store contains, independent of how it is stored.
+
+        The file's sha256 pins exactly which bytes a run read, but it moves when
+        nothing anyone would call the data moved: a VACUUM, a page-layout change, an
+        appended query snapshot.  This hash covers the snapshots themselves - design,
+        revision, run, stage, record counts and artifact digests - ordered so it does
+        not depend on row order or insertion sequence.  Both are worth keeping, and
+        they answer different questions.
+        """
+        entries = []
+        for snapshot in self.snapshots():
+            artifacts = sorted(
+                (str(a.get("logical_path")), str(a.get("sha256")), str(a.get("artifact_id")))
+                for a in (snapshot.get("source_artifacts") or [])
+                if isinstance(a, dict))
+            counts = snapshot.get("record_counts") or {}
+            entries.append({
+                "snapshot_id": snapshot.get("snapshot_id"),
+                "design_id": snapshot.get("design_id"),
+                "revision_id": snapshot.get("revision_id"),
+                "run_id": snapshot.get("run_id"),
+                "stage": snapshot.get("stage"),
+                "record_counts": {k: counts[k] for k in sorted(counts)} if counts else {},
+                "artifacts": artifacts,
+            })
+        entries.sort(key=lambda e: (e["design_id"] or "", e["revision_id"] or "",
+                                    e["stage"] or "", e["snapshot_id"] or ""))
+        canonical = json.dumps(entries, sort_keys=True, separators=(",", ":"),
+                               ensure_ascii=False).encode()
+        return {
+            "snapshots": len(entries),
+            "designs": sorted({e["design_id"] for e in entries if e["design_id"]}),
+            "runs": sorted({e["run_id"] for e in entries if e["run_id"]}),
+            "manifest_sha256": hashlib.sha256(canonical).hexdigest(),
+        }
+
+    def identity(self) -> dict[str, Any]:
+        """What this process is actually serving, for a caller to verify.
+
+        A fingerprint says which build is running.  It does not say which file that
+        build opened - and a service restarted against the wrong path answers every
+        request perfectly while reading the wrong store.  That is the failure this
+        exists to make visible.
+        """
+        path = Path(self.path)
+        stat = path.stat() if path.exists() else None
+        return {
+            "path": str(path.resolve()) if path.exists() else str(path),
+            "bytes": stat.st_size if stat else None,
+            "mtime_ns": stat.st_mtime_ns if stat else None,
+            "read_only": self.read_only,
+            **self.manifest_fingerprint(),
+        }
+
     def run_summary(self, snapshot_id: str) -> dict[str, Any]:
         """Return the run/stage boundary and indexed record counts."""
         snapshot = self.snapshot(snapshot_id)
