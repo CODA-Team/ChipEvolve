@@ -61,9 +61,15 @@ fields=object_id,name,attributes.master,attributes.fanout is compact for instanc
 Add include_physical=1 to join placed geometry for every object on the page. For an entire macro inventory use
 kind=instance&is_macro=1&sort=name&limit=200&include_physical=1&fields=name,attributes.master,attributes.orientation,physical.bbox_um.
 Physical bbox_um is a named x_min/y_min/x_max/y_max box. This avoids per-object geometry operations and repeated evidence.
+For long inventories add format=columns with explicit fields. object_columns declares the exact field order,
+object_rows contains ordered arrays of their original values; page counts, sort order and recovery are unchanged.
+This avoids repeating field names for every row and reduces list output size without losing facts.
 For largest macro use S/objects?kind=instance&is_macro=1&sort=bbox_area&order=desc&limit=1; ties use name descending.
 ranking reports the full candidate count, leading integer dbu^2 area, tie count/rule and missing geometry count,
 independent of pagination. Use compact fields=object_id,name plus a dependent batch to retrieve selected engineering facts.
+Alternatively include_engineering=1 joins selected instance facts directly to the ranked page;
+fields=name,engineering.bbox_um,engineering.signal_pin_count,engineering.distinct_signal_net_count
+retrieves the selected geometry and two different connection counts together.
 S/objects/statistics accepts the SAME filters as objects and gives complete aggregation over matching objects;
 group_by=master|kind|master_type|signal_type|driver_count|direction|is_macro. For regional counts use
 kind=instance&group_by=is_macro&region=<xmin,ymin,xmax,ymax>&region_units=um&intersection=positive_area:
@@ -98,6 +104,10 @@ S/compare/<other_snapshot>/inventory?metrics=<raw key or suffix> returns complet
 counts for both snapshots, their deltas and matching literal metric values from each stage's original reports.
 The response explicitly distinguishes native inventory counts including fillers from the reported cell area;
 reports retain substage identity rather than being relabeled final. Prefer this joined comparison over repeated inventories.
+Add include_native_area=1 for the actual report_design_area values on BOTH selected databases,
+native_area evidence and native_area_um2 delta. Earlier substage metrics remain separately labeled.
+Selected original timing metric reports include analysis_command_excerpt from the corresponding original log;
+these are actual estimate_parasitics/read_* commands with source line/byte positions, not the later snapshot's setup.
 S/timing-paths/<path_id>/points?limit=N&offset=N&path_section=source_path&fields=pin_name,instance_id,net_id,net_name,cell_name,arrival,load,slew gives compact data points; omit fields/path_section for all facts/sections. It gives points by path_section (source_path is the data path;
 source_clock_path/target_clock_path are clock paths); slew and arrival in seconds, load in Farads.
 S/timing-paths/<path_id>/engineering gives joined data-side pins, instances, nets, master_counts and bbox union;

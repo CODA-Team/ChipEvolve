@@ -16,7 +16,7 @@ def object_filter(store, snapshot_id, query):
     allowed = {'kind', 'parent_id', 'master', 'driver_count', 'signal_type', 'name',
                'name_contains', 'name_prefix', 'driver_min', 'driver_max', 'port_driven',
                'port', 'is_macro', 'region', 'region_units', 'intersection', 'ids', 'connected_to',
-               'net_role', 'sort', 'order', 'limit', 'offset', 'fields', 'group_by', 'include_physical'}
+               'net_role', 'sort', 'order', 'limit', 'offset', 'fields', 'format', 'group_by', 'include_physical', 'include_engineering'}
     unknown = set(query) - allowed
     if unknown:
         raise ValueError('unknown object query fields: ' + ','.join(sorted(unknown)))
@@ -150,6 +150,11 @@ def object_filter(store, snapshot_id, query):
 
 def list_objects(store, snapshot_id, query):
     where, params = object_filter(store, snapshot_id, query)
+    representation = query.get('format', 'rows')
+    if representation not in ('rows', 'columns'):
+        raise ValueError('object format must be rows|columns')
+    if representation == 'columns' and not query.get('fields'):
+        raise ValueError('column format requires explicit fields')
     if query.get('ids'):
         wanted = [item for item in query['ids'].split(',') if item]
     # The default is the stored order, which `records_lookup`
@@ -188,6 +193,13 @@ def list_objects(store, snapshot_id, query):
     rows = store.filtered(snapshot_id, 'entities', where=where, params=params,
                           order_by=clause, limit=limit, offset=offset)
     _pin_details(store, snapshot_id, rows)
+    if query.get('include_engineering') is not None:
+        if query['include_engineering'] not in ('0', '1') or query.get('kind') != 'instance':
+            raise ValueError('include_engineering must be 0|1 with kind=instance')
+        if query['include_engineering'] == '1':
+            from .engineering import instance_engineering
+            for row in rows:
+                row['engineering'] = instance_engineering(store, snapshot_id, row['object_id'])['instance']
     if query.get('include_physical') is not None:
         if query['include_physical'] not in ('0', '1'):
             raise ValueError('include_physical must be 0|1')
@@ -197,14 +209,14 @@ def list_objects(store, snapshot_id, query):
     columns = query.get('fields')
     if columns:
         columns = columns.split(',')
-        allowed = {'object_id', 'name', 'kind', 'parent_id', 'attributes', 'identity', 'evidence', 'physical'}
-        if any(key not in allowed and not (key.partition('.')[0] in ('attributes', 'physical') and
+        allowed = {'object_id', 'name', 'kind', 'parent_id', 'attributes', 'identity', 'evidence', 'physical', 'engineering'}
+        if any(key not in allowed and not (key.partition('.')[0] in ('attributes', 'physical', 'engineering') and
                 key.partition('.')[2].isidentifier()) for key in columns):
             raise ValueError('unknown object projection field')
         projected = []
         for row in rows:
             item = {key: row.get(key) for key in columns if '.' not in key}
-            for section in ('attributes', 'physical'):
+            for section in ('attributes', 'physical', 'engineering'):
                 prefix = section + '.'
                 if section not in item and any(key.startswith(prefix) for key in columns):
                     item[section] = {key[len(prefix):]: (row.get(section) or {}).get(key[len(prefix):])
@@ -242,6 +254,14 @@ def list_objects(store, snapshot_id, query):
             'missing_value_count': store.connection.execute(
                 f"SELECT COUNT(*) FROM records WHERE {' AND '.join(conditions)} AND ({expression}) IS NULL",
                 [snapshot_id, *params]).fetchone()[0]}
+    if representation == 'columns':
+        def value(row, field):
+            section, dot, key = field.partition('.')
+            return (row.get(section) or {}).get(key) if dot else row.get(section)
+        result['object_columns'] = columns
+        result['object_rows'] = [[value(row, field) for field in columns] for row in rows]
+        del result['objects']
+        result['row_format'] = 'each object_rows item follows object_columns order; pagination and values unchanged'
     return result
 
 

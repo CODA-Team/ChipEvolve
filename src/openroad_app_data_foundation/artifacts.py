@@ -115,6 +115,13 @@ def _metric_inventory(store, snapshot_id, path, root, manifest, metric_names=())
         result['metric_selector_basis'] = 'exact raw key or consecutive namespace components; all matching corners retained'
         result['unit_declarations'] = {key: value for key, value in metrics.items()
                                        if '__flow__platform__' in key and key.endswith('_units')}
+        log = path.with_suffix('.log')
+        if any('timing__' in item['raw_key'] for item in result['metric_values']) and log.is_file():
+            from .source_search import search_source
+            result['analysis_command_excerpt'] = search_source(store, snapshot_id,
+                {'path': log.relative_to(root).as_posix(),
+                 'pattern': r'^\s*(estimate_parasitics|read_spef|read_liberty|read_sdc|read_db)\b',
+                 'limit': '10000'}, root)
     return result
 
 

@@ -238,7 +238,7 @@ class Handler(BaseHTTPRequestHandler):
                 return compare_metric(store, parts[1], parts[3], name,
                                       query.get("scene"))
             if len(parts) == 5 and parts[2] == 'compare' and parts[4] == 'inventory':
-                return compare_inventory(store, parts[1], parts[3], query, self.native_root)
+                return compare_inventory(store, parts[1], parts[3], query, self.native_root, self.execution_client)
             if len(parts) == 5 and parts[2] == 'sources' and parts[4] == 'excerpt':
                 snapshot = store.snapshot(parts[1])
                 refs = [r for r in snapshot.get('source_artifacts', []) if r.get('artifact_id') == parts[3]]
@@ -408,7 +408,7 @@ class Handler(BaseHTTPRequestHandler):
         return payload
 
     def _send(self, status: int, payload: Any) -> None:
-        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        body = json.dumps(payload, ensure_ascii=False, separators=(',', ':')).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))

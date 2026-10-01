@@ -87,9 +87,14 @@ def instance_engineering(store, snapshot_id, identifier):
             'evidence': physical.get('evidence', [])}
 
 
-def compare_inventory(store, left_id, right_id, query, root):
+def compare_inventory(store, left_id, right_id, query, root, client=None):
     """Compare native inventories and separately identified original stage reports."""
     from .artifacts import run_inventory
+    include_area = query.get('include_native_area', '0')
+    if include_area not in ('0', '1'):
+        raise ValueError('include_native_area must be 0|1')
+    if include_area == '1' and client is None:
+        raise ValueError('native area comparison requires an execution service')
     metric_names = tuple(query.get('metrics', '').split(',')) if query.get('metrics') else ()
     sides = []
     for sid in (left_id, right_id):
@@ -107,12 +112,22 @@ def compare_inventory(store, left_id, right_id, query, root):
             side['original_metric_reports'] = [{'source': report['relative_path'],
                  'metric_values': report['metric_values'], 'value_basis': report['value_basis']}
                  for stage in inventory['stages'] for report in stage['metric_reports']]
+        if include_area == '1':
+            from .native_inventory import design_area
+            side['native_area'] = design_area(store, client, sid, root)
         sides.append(side)
-    return {'from': sides[0], 'to': sides[1],
+    result = {'from': sides[0], 'to': sides[1],
             'deltas': {key: sides[1][key] - sides[0][key] for key in
                        ('instance_count', 'net_count', 'signal_net_count')},
             'metric_basis': 'original reports retain substage/source identity; no earlier report is silently relabeled as final',
             'evidence': sides[0]['evidence'] + sides[1]['evidence']}
+    if include_area == '1':
+        if all(side['native_area']['status'] == 'succeeded' for side in sides):
+            result['deltas']['native_area_um2'] = sides[1]['native_area']['value'] - sides[0]['native_area']['value']
+        else:
+            result['availability'] = {'native_area_delta': {'status': 'unavailable',
+                'reason': 'one or both actual native area queries did not succeed; inspect their reports'}}
+    return result
 
 
 def object_statistics(store, snapshot_id, query):
