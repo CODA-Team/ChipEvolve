@@ -47,6 +47,8 @@ def tool_name_for(path: str) -> str:
             return "get_stage_summary"
         if tail == ["timing-paths"]:
             return "get_timing_paths"
+        if tail[0] == "timing-paths" and tail[-1] == "nets":
+            return "get_timing_path_nets"
         if tail[0] == "timing-paths":
             return "get_timing_path"
         if tail == ["instances"]:
