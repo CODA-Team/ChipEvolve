@@ -138,6 +138,25 @@ def test_inventory_comparison_keeps_native_counts_and_original_substage_values_s
         store.close()
 
 
+def test_native_area_comparison_does_not_relabel_earlier_report_values(tmp_path, monkeypatch):
+    from copy import deepcopy
+    from openroad_app_data_foundation.engineering import compare_inventory
+    left = sample(); left['snapshot']['snapshot_id'] = 'left'
+    right = deepcopy(left); right['snapshot']['snapshot_id'] = 'right'
+    def actual_area(store, client, sid, root):
+        return {'status': 'succeeded', 'value': 85 if sid == 'left' else 99,
+                'evidence': [{'artifact_id': 'actual-' + sid}]}
+    monkeypatch.setattr('openroad_app_data_foundation.native_inventory.design_area', actual_area)
+    store = DataStore(tmp_path / 'area.sqlite')
+    try:
+        store.register(left); store.register(right)
+        result = compare_inventory(store, 'left', 'right', {'include_native_area': '1'}, tmp_path, object())
+        assert result['deltas']['native_area_um2'] == 14
+        assert result['to']['native_area']['evidence'] == [{'artifact_id': 'actual-right'}]
+    finally:
+        store.close()
+
+
 def test_object_page_joins_chip_geometry_and_reports_missing_geometry(tmp_path):
     from openroad_app_data_foundation.discovery import list_objects
     store = DataStore(tmp_path / 'd.sqlite')

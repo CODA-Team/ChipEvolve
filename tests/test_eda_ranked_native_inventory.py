@@ -28,6 +28,16 @@ def test_ranked_area_counts_ties_and_missing_geometry_across_all_pages(tmp_path)
         assert first['ranking']['leading_value'] == 200
         assert first['ranking']['leading_tie_count'] == 2
         assert first['ranking']['missing_value_count'] == 1
+        joined = list_objects(store, 's', {**query, 'include_engineering': '1',
+            'fields': 'name,engineering.bbox_um,engineering.distinct_signal_net_count'})
+        assert joined['objects'][0]['name'] == 'z'
+        assert joined['objects'][0]['engineering']['distinct_signal_net_count'] == 0
+        assert joined['objects'][0]['engineering']['bbox_um']['x_max'] == 0.01
+        table = list_objects(store, 's', {**query, 'format': 'columns', 'fields': 'name,object_id'})
+        assert table['object_columns'] == ['name', 'object_id']
+        assert table['object_rows'] == [['z', 'z']]
+        assert table['ranking'] == first['ranking']
+        assert table['next_offset'] == first['next_offset']
     finally:
         store.close()
 
