@@ -1,0 +1,33 @@
+"""Selecting facts must not lose their real source or claim a false locator."""
+from urllib.parse import unquote
+
+from openroad_app_data_foundation.queries import list_timing_paths, list_timing_points, path_points
+from openroad_app_data_foundation.repository import DataStore
+from tests.test_eda_engineering import sample
+
+
+def test_compact_path_and_point_facts_keep_deduplicated_source_and_exact_record_links(tmp_path):
+    pack = sample()
+    ref = {'artifact_id': 'report', 'sha256': 'a' * 64, 'logical_path': 'original.json'}
+    pack['timing_paths'][0]['evidence'] = [{**ref, 'detail': {'path_index': 0}}]
+    for point in pack['timing_points']:
+        point['evidence'] = [{**ref, 'detail': {'point_id': point['point_id']}}]
+    store = DataStore(tmp_path / 'projection.sqlite')
+    try:
+        store.register(pack)
+        paths = list_timing_paths(store, 's', {'fields': 'path_id,slack'})
+        assert paths['evidence'][0]['artifact_id'] == 'report'
+        assert 'detail' not in paths['evidence'][0]
+        assert paths['record_sources'][0]['record_id'] == 'p'
+        for result in (list_timing_points(store, 's', {'fields': 'pin_name,arrival'}),
+                       path_points(store, 's', 'p', {'fields': 'pin_name,arrival'})):
+            assert len(result['evidence']) == 1
+            assert {item['record_id'] for item in result['record_sources']} == {'clock', 'in', 'out'}
+            for link in result['record_sources']:
+                record_id = unquote(link['evidence_path'].split('/')[-2])
+                assert record_id == link['record_id']
+                original = store.record_evidence('s', 'timing_points', record_id)[0]['evidence']
+                assert original['detail']['point_id'] == record_id
+                assert original['sha256'] == result['evidence'][0]['sha256']
+    finally:
+        store.close()

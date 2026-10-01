@@ -75,6 +75,38 @@ def test_batch_rejects_external_sources(api):
     assert 'local snapshot/run' in json.load(caught.value)['error']
 
 
+def test_batch_keeps_independent_successes_and_each_actual_error(api):
+    base, _ = api
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    paths = ['/snapshots/s/summary', '/snapshots/absent/summary',
+             '/snapshots/s/summary?fields=run_summary.invented', '/runs/run/metrics?name=AREA']
+    request = urllib.request.Request(base + '/query', json.dumps({'requests': paths}).encode(),
+                                     headers={'Content-Type': 'application/json'})
+    with opener.open(request, timeout=2) as response:
+        result = json.load(response)
+    assert result['failed_query_count'] == 2
+    assert [item['status'] for item in result['results']] == ['available', 'not_found', 'unavailable', 'available']
+    assert 'absent' in result['results'][1]['data']['error']
+    assert 'unknown metadata field' in result['results'][2]['data']['error']
+    assert result['results'][3]['data']['metrics'][0]['value'] == 85
+
+
+def test_dependent_http_reads_resolve_actual_snapshot_then_read_its_metrics(api):
+    base, _ = api
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    body = {'requests': ['/snapshots?fields=snapshot_id,run_id',
+                         '/snapshots/{sid}/summary', '/runs/{rid}/metrics?name=area'],
+            'bindings': {'sid': {'request': 0, 'pointer': '/data/snapshots/0/snapshot_id'},
+                         'rid': {'request': 0, 'pointer': '/data/snapshots/0/run_id'}}}
+    request = urllib.request.Request(base + '/query', json.dumps(body).encode(),
+                                     headers={'Content-Type': 'application/json'})
+    with opener.open(request, timeout=2) as response:
+        result = json.load(response)
+    assert result['failed_query_count'] == 0
+    assert result['results'][1]['scope']['snapshot_id'] == 's'
+    assert result['results'][2]['data']['metrics'][0]['value'] == 85
+
+
 def test_original_stage_discovery_keeps_substage_metrics_separate(tmp_path):
     from openroad_app_data_foundation.artifacts import run_inventory
     root = tmp_path / 'flow'
