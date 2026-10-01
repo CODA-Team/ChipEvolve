@@ -12,16 +12,18 @@ from urllib.parse import quote
 from .analysis_context import (
     build_analysis_context, context_availability, context_differences,
 )
-from .identity import canonical_key
+from .identity import canonical_key, snapshot_identity
 from .metrics import CANONICAL_METRICS, project_run
 from .repository import RECORD_TYPES, DataStore, record_identifier
 
 
 #: Rows a timing-points page returns when the caller did not ask for a size.
-#: A point is about 2 KB, so the shared default of 100 made a 312 KB response -
-#: over the harness's 32 KiB clip and therefore unparseable to the model.  Every
-#: one of the pilot's 70 over-cap steps was this endpoint.
-POINTS_PAGE = 20
+#: A raw point measures ~2.2 KB on ariane, so the shared default of 100 made a
+#: 312 KB response and even 20 rows is 44 KB - both over the harness's 32 KiB
+#: clip and therefore unparseable to the model.  10 rows is ~22 KB plus the
+#: envelope, which fits.  A context pack's points are trimmed by identity first
+#: and are small enough to show 20, which is why the two limits differ.
+POINTS_PAGE = 10
 
 
 #: Which field a ranking reads, and which direction "worst" means for it.
@@ -84,7 +86,7 @@ def list_timing_paths(store: DataStore, snapshot_id: str, query: dict[str, str])
     clause, ranking = _order("timing_paths", query)
     rows = store.filtered(snapshot_id, "timing_paths", where=where, params=params,
                           limit=limit, offset=offset, order_by=clause)
-    return {"snapshot_id": snapshot_id, "snapshot": store.snapshot(snapshot_id),
+    return {"snapshot_id": snapshot_id, "snapshot": snapshot_identity(store.snapshot(snapshot_id)),
             "timing_paths": rows, **ranking,
             **_page(total, len(rows), limit, offset), "filters": filters}
 
@@ -104,7 +106,7 @@ def list_timing_points(store: DataStore, snapshot_id: str,
     clause, ranking = _order("timing_points", query)
     rows = store.filtered(snapshot_id, "timing_points", where=where, params=params,
                           limit=limit, offset=offset, order_by=clause)
-    return {"snapshot_id": snapshot_id, "snapshot": store.snapshot(snapshot_id),
+    return {"snapshot_id": snapshot_id, "snapshot": snapshot_identity(store.snapshot(snapshot_id)),
             "timing_points": rows, **ranking,
             **_page(total, len(rows), limit, offset), "filters": filters}
 
@@ -124,7 +126,7 @@ def list_observations(store: DataStore, snapshot_id: str,
         _observation_value(row, key) == value for key, value in filters.items())]
     limit, offset = _limit(query), _offset(query)
     page = rows[offset:offset + limit]
-    snapshot = store.snapshot(snapshot_id)
+    snapshot = snapshot_identity(store.snapshot(snapshot_id))
     return {"snapshot_id": snapshot_id, "design_id": snapshot["design_id"],
             "revision_id": snapshot["revision_id"], "run_id": snapshot["run_id"],
             "stage": snapshot["stage"], "observations": page,
@@ -263,7 +265,7 @@ def list_evidence(store: DataStore, snapshot_id: str,
         if not complete:
             break
     result: dict[str, Any] = {"snapshot_id": snapshot_id, "evidence": page,
-                              "snapshot": store.snapshot(snapshot_id),
+                              "snapshot": snapshot_identity(store.snapshot(snapshot_id)),
                               "filters": ({"record_type": requested}
                                           if requested else {})}
     if complete:
@@ -297,10 +299,10 @@ def timing_path(store: DataStore, snapshot_id: str, path_id: str,
                               where="json_extract(payload, '$.path_id') = ?",
                               params=(path_id,))
     selected.sort(key=lambda row: row.get("ordinal", 0))
-    result: dict[str, Any] = {"snapshot_id": snapshot_id, "snapshot": store.snapshot(snapshot_id),
+    result: dict[str, Any] = {"snapshot_id": snapshot_id, "snapshot": snapshot_identity(store.snapshot(snapshot_id)),
                               "timing_path": path,
                               "analysis_context": build_analysis_context(
-                                  store.snapshot(snapshot_id), path)}
+                                  snapshot_identity(store.snapshot(snapshot_id)), path)}
     if points_limit:
         result["timing_points"] = selected[:points_limit]
         result["points_returned"] = min(points_limit, len(selected))
@@ -321,7 +323,7 @@ def path_points(store: DataStore, snapshot_id: str, path_id: str, query: dict[st
     limit = _point_limit(query)
     offset = _offset(query)
     page = points[offset:offset + limit]
-    return {"snapshot_id": snapshot_id, "snapshot": store.snapshot(snapshot_id),
+    return {"snapshot_id": snapshot_id, "snapshot": snapshot_identity(store.snapshot(snapshot_id)),
             "path_id": path_id,
             "timing_points": page, **_page(len(points), len(page), limit, offset)}
 
@@ -360,7 +362,7 @@ def path_nets(store: DataStore, snapshot_id: str, path_id: str,
                                str(row["net_id"])))
     limit, offset = _limit(query), _offset(query)
     page = nets[offset:offset + limit]
-    return {"snapshot_id": snapshot_id, "snapshot": store.snapshot(snapshot_id),
+    return {"snapshot_id": snapshot_id, "snapshot": snapshot_identity(store.snapshot(snapshot_id)),
             "path_id": path_id, "nets": page, "count": len(nets),
             "ordered_by": "fanout descending, then net_id",
             **_page(len(nets), len(page), limit, offset)}
@@ -670,7 +672,7 @@ def _path_evidence(store: DataStore, snapshot_id: str, path_id: str,
                                     "reason": "no evidence reference"}})
     return result + [{"record_type": "snapshot", "record_id": snapshot_id,
                       "artifact": item}
-                     for item in store.snapshot(snapshot_id).get("source_artifacts", [])
+                     for item in snapshot_identity(store.snapshot(snapshot_id)).get("source_artifacts", [])
                      if isinstance(item, dict)]
 
 

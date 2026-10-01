@@ -11,6 +11,17 @@ from typing import Any
 #: so the list has to live beside the rule that consumes it.
 POINT_REFERENCE_FIELDS = ("pin_id", "instance_id", "net_id", "object_id")
 
+#: What a payload carries so the response envelope can name the fact's boundary.
+#: The envelope's ``_scope`` reads exactly these five; handing it the whole
+#: snapshot record instead cost 14,720 B on ibex - 92% of a five-row response -
+#: which is the same over-exposure this module's callers exist to avoid.
+SCOPE_FIELDS = ("design_id", "revision_id", "run_id", "snapshot_id", "stage")
+
+
+def snapshot_identity(snapshot: Mapping[str, Any]) -> dict[str, Any]:
+    """The snapshot's scope, and nothing else."""
+    return {key: snapshot[key] for key in SCOPE_FIELDS if snapshot.get(key) is not None}
+
 
 def enrich_records(snapshot: Mapping[str, Any], record_type: str,
                    rows: list[dict[str, Any]],

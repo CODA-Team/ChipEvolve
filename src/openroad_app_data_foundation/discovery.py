@@ -1,5 +1,6 @@
 """Bounded object discovery over the same immutable snapshot records."""
 import math
+from .identity import snapshot_identity
 from .queries import _limit, _offset, _page
 
 
@@ -112,7 +113,7 @@ def list_objects(store, snapshot_id, query):
               # the snapshot_id.  ibex already has two revisions whose final ODB is
               # byte-identical, so "which run is this number from" is a real
               # question, and `snapshot()` is cached - this costs no query.
-              'snapshot': store.snapshot(snapshot_id),
+              'snapshot': snapshot_identity(store.snapshot(snapshot_id)),
               **_page(total, len(rows), limit, offset)}
     if query.get('ids'):
         # Distinguish an id that does not exist from one this call did not return:
@@ -126,7 +127,8 @@ def list_objects(store, snapshot_id, query):
 def timing_context(store, snapshot_id):
     snapshot = store.snapshot(snapshot_id)
     context = snapshot.get('run_summary', {}).get('timing_context')
-    return {'snapshot_id': snapshot_id, 'snapshot': snapshot, 'timing_context': context,
+    return {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(snapshot),
+            'timing_context': context,
             'evidence': snapshot.get('source_artifacts', []),
             'availability': {'timing_context': {'status': 'available' if context else 'unavailable'}}}
 
@@ -145,7 +147,7 @@ def routing_summary(store, snapshot_id, object_id):
             value['centerline_length_dbu'] += shape['centerline_length_dbu']
         elif shape.get('routing_type') == 'via':
             name = shape['via']; vias[name] = vias.get(name, 0) + 1
-    return {'snapshot_id': snapshot_id, 'snapshot': store.snapshot(snapshot_id),
+    return {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(store.snapshot(snapshot_id)),
             'object_id': object_id, 'layers': layers, 'vias': vias,
             'segment_count': sum(x['segments'] for x in layers.values()),
             'via_count': sum(vias.values()), 'unit': 'database_units',
