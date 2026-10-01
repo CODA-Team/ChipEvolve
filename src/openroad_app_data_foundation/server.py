@@ -14,12 +14,15 @@ from openroad_platform_client import (KernelClient, KernelError, KernelUnavailab
 from openroad_platform_contracts import ContractError
 
 from .artifacts import (DEFAULT_NATIVE_ROOT, artifact_manifest, native_files,
-                        violations)
+                        violations, native_excerpt)
 from .bundle import import_ready_bundles, load_run_bundle
 from .context import net_context, object_context, timing_path_context
 from .metric_queries import compare_metric
 from .discovery import list_objects, timing_context, routing_summary
 from .parasitics import net_parasitics
+from .engineering import object_statistics, path_engineering, timing_overview, routing_totals
+from .constraints import constraint_context
+from .native_queries import submit_native_query, native_query_result
 from .timing_queries import submit_timing_query, timing_query_status
 from .identity import snapshot_identity
 from .envelope import envelope, error_envelope
@@ -116,6 +119,12 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802
         try:
             parts = [urllib.parse.unquote(item) for item in self.path.split('/') if item]
+            if len(parts) == 3 and parts[0] == 'snapshots' and parts[2] == 'native-queries':
+                if self.execution_client is None:
+                    raise KernelUnavailable('execution service is not configured')
+                query = self._read_body()
+                self._send(202, submit_native_query(self.store, self.execution_client, parts[1], query, self.native_root))
+                return
             if len(parts) == 3 and parts[0] == 'snapshots' and parts[2] == 'timing-queries':
                 if self.execution_client is None:
                     raise KernelUnavailable('execution service is not configured')
@@ -183,14 +192,24 @@ class Handler(BaseHTTPRequestHandler):
         if self.execution_client is not None and self.auto_import:
             # Importing is a write, so it uses the writable store, not the reader.
             import_ready_bundles(self.store, self.execution_client)
+        if path.startswith('/native-queries/'):
+            if self.execution_client is None:
+                raise KernelUnavailable('execution service is not configured')
+            return native_query_result(self.execution_client, path.split('/')[-1], query)
         if path.startswith('/timing-queries/'):
             if self.execution_client is None:
                 raise KernelUnavailable('execution service is not configured')
             return _timing_query_outcome(store, timing_query_status(
-                self.store, self.execution_client, path.split('/')[-1]))
+                self.store, self.execution_client, path.split('/')[-1], _int_param(query, 'wait_seconds', 0)))
         if path == "/snapshots":
-            return {"snapshots": store.snapshots(
-                design_id=query.get("design_id"), run_id=query.get("run_id"))}
+            snapshots = store.snapshots(design_id=query.get("design_id"), run_id=query.get("run_id"))
+            if query.get("fields"):
+                fields = query["fields"].split(",")
+                allowed = {"snapshot_id", "design_id", "revision_id", "run_id", "stage", "created_at"}
+                if not set(fields) <= allowed:
+                    raise ValueError("unknown snapshot projection field")
+                snapshots = [{key: row.get(key) for key in fields} for row in snapshots]
+            return {"snapshots": snapshots}
         if path.startswith("/runs/") and path.endswith("/summary"):
             run_id = urllib.parse.unquote(path[len("/runs/"):-len("/summary")]).strip("/")
             if not run_id:
@@ -200,17 +219,17 @@ class Handler(BaseHTTPRequestHandler):
             run_id = urllib.parse.unquote(path[len("/runs/"):-len("/metrics")]).strip("/")
             if not run_id:
                 raise ValueError("run_id is required")
-            return list_metrics_for_run(self.store, run_id, query)
+            return list_metrics_for_run(store, run_id, query)
         if path.startswith("/snapshots/"):
             parts = [urllib.parse.unquote(item) for item in path.split("/") if item]
             if len(parts) == 6 and parts[2] == "compare" and parts[4] == "timing-paths":
                 return compare_timing_path(
-                    self.store, parts[1], parts[3], parts[5], query.get("to_path_id"))
+                    store, parts[1], parts[3], parts[5], query.get("to_path_id"))
             if len(parts) == 5 and parts[2] == "compare" and parts[4] == "metrics":
                 name = query.get("name")
                 if not name:
                     raise ValueError("name is required")
-                return compare_metric(self.store, parts[1], parts[3], name,
+                return compare_metric(store, parts[1], parts[3], name,
                                       query.get("scene"))
             if len(parts) == 5 and parts[2] == 'sources' and parts[4] == 'excerpt':
                 snapshot = store.snapshot(parts[1])
@@ -224,11 +243,23 @@ class Handler(BaseHTTPRequestHandler):
                     offset=_int_param(query, 'offset', 0), max_bytes=_int_param(query, 'max_bytes', 8192))
                 return {'snapshot_id': parts[1], 'source': ref, 'excerpt': result}
             if len(parts) == 3 and parts[2] == "objects":
-                return list_objects(self.store, parts[1], query)
+                return list_objects(store, parts[1], query)
+            if len(parts) == 4 and parts[2:4] == ['objects', 'statistics']:
+                return object_statistics(store, parts[1], query)
+            if len(parts) == 3 and parts[2] == 'timing-overview':
+                return timing_overview(store, parts[1], query)
+            if len(parts) == 3 and parts[2] == 'routing-totals':
+                return routing_totals(store, parts[1])
+            if len(parts) == 5 and parts[2] == 'timing-paths' and parts[4] == 'engineering':
+                return path_engineering(store, parts[1], parts[3], query)
             if len(parts) == 3 and parts[2] == "timing-context":
-                return timing_context(self.store, parts[1])
+                return timing_context(store, parts[1])
+            if len(parts) == 3 and parts[2] == 'constraints':
+                if self.execution_client is None:
+                    raise KernelUnavailable('execution service is not configured')
+                return constraint_context(store, self.execution_client, parts[1], query)
             if len(parts) == 5 and parts[2] == "nets" and parts[4] == "routing-summary":
-                return routing_summary(self.store, parts[1], parts[3])
+                return routing_summary(store, parts[1], parts[3])
             # Facts no bundle carries, read from the flow's own tree: the SPEF
             # the run was timed with, the reports it wrote, and the producer
             # manifest naming artifacts the adapter never staged.
@@ -239,6 +270,8 @@ class Handler(BaseHTTPRequestHandler):
                 return artifact_manifest(store, self.execution_client, parts[1], query)
             if len(parts) == 4 and parts[2] == "artifacts" and parts[3] == "files":
                 return native_files(store, parts[1], query, self.native_root)
+            if len(parts) == 5 and parts[2:5] == ['artifacts', 'files', 'excerpt']:
+                return native_excerpt(store, parts[1], query, self.native_root)
             if len(parts) == 3 and parts[2] == "violations":
                 return violations(store, parts[1], query, self.native_root)
             if len(parts) == 2:
@@ -248,51 +281,51 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) == 3 and parts[2] == "instances":
                 name = query.get("name")
                 if not name:
-                    return list_objects(self.store, parts[1], {**query, "kind": "instance"})
+                    return list_objects(store, parts[1], {**query, "kind": "instance"})
                 return {"snapshot_id": parts[1], "snapshot": snapshot_identity(store.snapshot(parts[1])),
                         "instances": store.find_instance(parts[1], name)}
             if len(parts) == 3 and parts[2] == "nets":
                 name = query.get("name")
                 if not name:
-                    return list_objects(self.store, parts[1], {**query, "kind": "net"})
+                    return list_objects(store, parts[1], {**query, "kind": "net"})
                 return {"snapshot_id": parts[1], "snapshot": snapshot_identity(store.snapshot(parts[1])),
                         "nets": store.find_net(parts[1], name)}
             if len(parts) >= 4 and parts[2] == "timing-paths":
                 snapshot_id, path_id = parts[1], parts[3]
                 if len(parts) == 4:
-                    return timing_path(self.store, snapshot_id, path_id)
+                    return timing_path(store, snapshot_id, path_id)
                 if len(parts) == 5 and parts[4] == "points":
-                    return path_points(self.store, snapshot_id, path_id, query)
+                    return path_points(store, snapshot_id, path_id, query)
                 if len(parts) == 5 and parts[4] == "nets":
-                    return path_nets(self.store, snapshot_id, path_id, query)
+                    return path_nets(store, snapshot_id, path_id, query)
                 if len(parts) == 5 and parts[4] == "context":
                     return timing_path_context(
-                        self.store, snapshot_id, path_id,
+                        store, snapshot_id, path_id,
                         query.get("detail", "summary"),
                         _int_param(query, "relation_limit", 200))
                 if len(parts) == 5 and parts[4] == "expand":
-                    return timing_path_context(self.store, snapshot_id, path_id)
+                    return timing_path_context(store, snapshot_id, path_id)
             if len(parts) == 3 and parts[2] == "timing-paths":
-                return list_timing_paths(self.store, parts[1], query)
+                return list_timing_paths(store, parts[1], query)
             if len(parts) == 3 and parts[2] == "timing-points":
-                return list_timing_points(self.store, parts[1], query)
+                return list_timing_points(store, parts[1], query)
             if len(parts) == 3 and parts[2] == "observations":
-                return list_observations(self.store, parts[1], query)
+                return list_observations(store, parts[1], query)
             if len(parts) == 3 and parts[2] == "evidence":
-                return list_evidence(self.store, parts[1], query)
+                return list_evidence(store, parts[1], query)
             if len(parts) == 6 and parts[2] == "records" and parts[5] == "fragments":
-                return read_evidence(self.store, parts[1], parts[3], parts[4])
+                return read_evidence(store, parts[1], parts[3], parts[4])
             if len(parts) == 6 and parts[2] == "records" and parts[5] == "evidence":
                 return {"evidence": store.record_evidence(
                     parts[1], parts[3], parts[4])}
             if len(parts) == 5 and parts[2] == "objects" and parts[4] == "context":
-                return object_context(self.store, parts[1], parts[3],
+                return object_context(store, parts[1], parts[3],
                                       query.get("detail", "summary"),
                                       _int_param(query, "relation_limit", 200))
             if len(parts) == 4 and parts[2] == "objects":
                 return store.object(parts[1], parts[3], expansion=query.get("expansion", "summary"))
             if len(parts) == 5 and parts[2] == "nets" and parts[4] == "context":
-                return net_context(self.store, parts[1], parts[3],
+                return net_context(store, parts[1], parts[3],
                                    query.get("detail", "summary"),
                                    _int_param(query, "relation_limit", 200))
             if len(parts) == 4 and parts[2] == "nets":

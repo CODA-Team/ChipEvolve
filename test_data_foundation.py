@@ -737,8 +737,9 @@ def test_canonical_metrics_project_orfs_stage_keys(tmp_path: Path) -> None:
         assert rows["WNS"]["status"] == "available"
         assert rows["TNS"]["value"] == -0.737691
         assert rows["INSTANCE_COUNT"]["unit"] == "count"
-        assert rows["POWER_TOTAL"]["status"] == "partial"
-        assert "1nW" in rows["POWER_TOTAL"]["reason"]
+        assert rows["POWER_TOTAL"]["status"] == "available"
+        assert rows["POWER_TOTAL"]["unit"] == "W"
+        assert rows["POWER_TOTAL"]["value"] == 0.00373869
         assert rows["RUNTIME"]["status"] == "unavailable"
         assert "finish__clock__skew__setup" not in rows
         raw_result = list_metrics_for_run(store, "run-1", {"include_raw": "1"})

@@ -2,6 +2,7 @@
 import math
 from .identity import snapshot_identity
 from .queries import _limit, _offset, _page
+from .repository import name_variants
 
 
 #: Ids one ``?ids=`` call accepts.  Beyond this the answer stops fitting an
@@ -9,7 +10,15 @@ from .queries import _limit, _offset, _page
 BATCH_ID_LIMIT = 100
 
 
-def list_objects(store, snapshot_id, query):
+def object_filter(snapshot_id, query):
+    """Shared complete filter semantics for pages and server-side aggregation."""
+    allowed = {'kind', 'parent_id', 'master', 'driver_count', 'signal_type', 'name',
+               'name_contains', 'name_prefix', 'driver_min', 'driver_max', 'port_driven',
+               'port', 'is_macro', 'region', 'intersection', 'ids', 'connected_to',
+               'net_role', 'sort', 'order', 'limit', 'offset', 'fields', 'group_by'}
+    unknown = set(query) - allowed
+    if unknown:
+        raise ValueError('unknown object query fields: ' + ','.join(sorted(unknown)))
     filters, params = [], []
     fields = {'kind': '$.kind', 'parent_id': '$.parent_id', 'master': '$.attributes.master', 'driver_count': '$.attributes.driver_count', 'signal_type': '$.attributes.signal_type'}
     #: Query parameters arrive as text.  ``driver_count`` is a JSON *number* in the
@@ -19,12 +28,47 @@ def list_objects(store, snapshot_id, query):
     numeric = {'driver_count'}
     for key, path in fields.items():
         if query.get(key):
+            if key == 'signal_type' and query.get('kind') == 'pin':
+                # Unary + removes TEXT affinity so SQLite can use full subject index equality.
+                filters.append("""EXISTS (SELECT 1
+                    FROM records r JOIN records n
+                    ON n.snapshot_id = r.snapshot_id AND n.record_type = 'entities'
+                    AND n.record_id = json_extract(r.payload, '$.object_id')
+                    WHERE r.snapshot_id = ? AND r.record_type = 'relations'
+                    AND json_extract(r.payload, '$.subject_id') IS NOT NULL
+                    AND json_extract(r.payload, '$.subject_id') = +records.record_id
+                    AND json_extract(r.payload, '$.predicate') = 'connected_to'
+                    AND json_extract(n.payload, '$.attributes.signal_type') = ?)""")
+                params.extend([snapshot_id, query[key]])
+                continue
             filters.append(f"json_extract(payload, '{path}') = ?")
             value = query[key]
             params.append(int(value) if key in numeric else value)
+    if query.get('name'):
+        variants = name_variants(query['name'])
+        filters.append("json_extract(payload, '$.name') IN (" + ','.join('?' for _ in variants) + ')')
+        params.extend(variants)
     if query.get('name_contains'):
-        filters.append("instr(json_extract(payload, '$.name'), ?) > 0")
-        params.append(query['name_contains'])
+        filters.append("instr(replace(json_extract(payload, '$.name'), char(92), ''), ?) > 0")
+        params.append(query['name_contains'].replace('\\', ''))
+    if query.get('name_prefix'):
+        prefix = query['name_prefix'].replace('\\', '')
+        filters.append("substr(replace(json_extract(payload, '$.name'), char(92), ''), 1, ?) = ?")
+        params.extend([len(prefix), prefix])
+    for key, operator in [('driver_min', '>='), ('driver_max', '<=')]:
+        if query.get(key) is not None:
+            filters.append(f"json_extract(payload, '$.attributes.driver_count') {operator} ?")
+            params.append(int(query[key]))
+    if query.get('port_driven') is not None:
+        if query['port_driven'] not in ('0', '1'):
+            raise ValueError('port_driven must be 0|1')
+        filters.append(('' if query['port_driven'] == '1' else 'NOT ') + """EXISTS (
+            SELECT 1 FROM json_each(json_extract(payload, '$.attributes.driver_ids'))
+            WHERE value LIKE 'bterm:%')""")
+    if query.get('port') is not None:
+        if query['port'] not in ('0', '1'):
+            raise ValueError('port must be 0|1')
+        filters.append("record_id " + ("LIKE" if query['port'] == '1' else "NOT LIKE") + " 'bterm:%'")
     if query.get('is_macro') is not None:
         if query['is_macro'] not in ('0', '1'):
             raise ValueError('is_macro must be 0|1')
@@ -34,12 +78,18 @@ def list_objects(store, snapshot_id, query):
         box = [float(x) for x in query['region'].split(',')]
         if len(box) != 4 or not all(math.isfinite(x) for x in box) or box[0] > box[2] or box[1] > box[3]:
             raise ValueError('region must be xmin,ymin,xmax,ymax in database units')
-        filters.append("""record_id IN (SELECT record_id FROM records
+        mode = query.get('intersection', 'touching')
+        if mode not in ('touching', 'positive_area'):
+            raise ValueError('intersection must be touching|positive_area')
+        if mode == 'positive_area' and (box[0] == box[2] or box[1] == box[3]):
+            filters.append('0')
+        greater, less = ('>', '<') if mode == 'positive_area' else ('>=', '<=')
+        filters.append(f"""record_id IN (SELECT record_id FROM records
             WHERE snapshot_id = ? AND record_type = 'physical_context'
-            AND json_extract(payload, '$.bbox.x_max') >= ?
-            AND json_extract(payload, '$.bbox.y_max') >= ?
-            AND json_extract(payload, '$.bbox.x_min') <= ?
-            AND json_extract(payload, '$.bbox.y_min') <= ?)""")
+            AND json_extract(payload, '$.bbox.x_max') {greater} ?
+            AND json_extract(payload, '$.bbox.y_max') {greater} ?
+            AND json_extract(payload, '$.bbox.x_min') {less} ?
+            AND json_extract(payload, '$.bbox.y_min') {less} ?)""")
         params.extend([snapshot_id, *box])
     if query.get('ids'):
         # One call for many objects, because the alternative costs a call per id and
@@ -72,7 +122,22 @@ def list_objects(store, snapshot_id, query):
         filters.append(other)
         params.extend([snapshot_id, query['connected_to'],
                        snapshot_id, query['connected_to']])
-    where = ' AND '.join(filters)
+    if query.get('net_role'):
+        roles = {'driver': 'driven_by', 'load': 'loads'}
+        if query['net_role'] not in roles or not query.get('connected_to'):
+            raise ValueError('net_role must be driver|load with connected_to=<net id>')
+        filters.append("""record_id IN (SELECT json_extract(payload, '$.object_id') FROM records
+            WHERE snapshot_id = ? AND record_type = 'relations'
+            AND json_extract(payload, '$.subject_id') = ?
+            AND json_extract(payload, '$.predicate') = ?)""")
+        params.extend([snapshot_id, query['connected_to'], roles[query['net_role']]])
+    return ' AND '.join(filters), params
+
+
+def list_objects(store, snapshot_id, query):
+    where, params = object_filter(snapshot_id, query)
+    if query.get('ids'):
+        wanted = [item for item in query['ids'].split(',') if item]
     # The default is the stored order, which `records_lookup`
     # (snapshot_id, record_type, ordinal) serves directly: a page costs
     # O(offset + limit).  Ordering by name by default re-sorted the whole kind on
@@ -80,17 +145,24 @@ def list_objects(store, snapshot_id, query):
     # in 190 s, while the same page over the store's own ordinal index takes
     # 0.17 s.  A caller that needs a ranking still asks for one explicitly.
     sort = query.get('sort')
-    if sort is not None and sort not in ('name', 'fanout'):
-        raise ValueError('sort must be name|fanout')
+    if sort is not None and sort not in ('name', 'fanout', 'bbox_area'):
+        raise ValueError('sort must be name|fanout|bbox_area')
     if sort is None:
         clause = ''
     else:
         order = query.get('order', 'desc' if sort == 'fanout' else 'asc')
         if order not in ('asc', 'desc'):
             raise ValueError('order must be asc|desc')
-        path = '$.attributes.fanout' if sort == 'fanout' else '$.name'
-        clause = (f" ORDER BY json_extract(payload, '{path}') IS NULL, "
-                  f"json_extract(payload, '{path}') {order}, record_id")
+        native_name = "replace(json_extract(payload, '$.name'), char(92), '')"
+        if sort == 'bbox_area':
+            expression = """(SELECT (json_extract(p.payload,'$.bbox.x_max')-json_extract(p.payload,'$.bbox.x_min'))
+                * (json_extract(p.payload,'$.bbox.y_max')-json_extract(p.payload,'$.bbox.y_min'))
+                FROM records p WHERE p.snapshot_id=records.snapshot_id AND p.record_type='physical_context'
+                AND p.record_id=records.record_id LIMIT 1)"""
+        else:
+            expression = "json_extract(payload, '$.attributes.fanout')" if sort == 'fanout' else native_name
+        tie_order = order if sort == 'bbox_area' else 'asc'
+        clause = f" ORDER BY {expression} IS NULL, {expression} {order}, {native_name} {tie_order}, record_id"
     total = store.count_records(snapshot_id, 'entities', where=where, params=params)
     limit, offset = _limit(query), _offset(query)
     if query.get('ids'):
@@ -99,13 +171,23 @@ def list_objects(store, snapshot_id, query):
         limit, offset = len(wanted), 0
     rows = store.filtered(snapshot_id, 'entities', where=where, params=params,
                           order_by=clause, limit=limit, offset=offset)
+    _pin_details(store, snapshot_id, rows)
+    found = {str(row.get('object_id')) for row in rows}
     columns = query.get('fields')
     if columns:
         columns = columns.split(',')
         allowed = {'object_id', 'name', 'kind', 'parent_id', 'attributes', 'identity', 'evidence'}
-        if not set(columns) <= allowed:
+        if any(key not in allowed and not (key.startswith('attributes.') and
+                key[11:].isidentifier()) for key in columns):
             raise ValueError('unknown object projection field')
-        rows = [{key: row.get(key) for key in columns} for row in rows]
+        projected = []
+        for row in rows:
+            item = {key: row.get(key) for key in columns if '.' not in key}
+            if 'attributes' not in item and any(key.startswith('attributes.') for key in columns):
+                item['attributes'] = {key[11:]: (row.get('attributes') or {}).get(key[11:])
+                                      for key in columns if key.startswith('attributes.')}
+            projected.append(item)
+        rows = projected
     result = {'snapshot_id': snapshot_id, 'objects': rows, 'filters': query,
               'order': sort or 'stored',
               # Snapshot identity travels with the rows so the envelope's scope can
@@ -118,10 +200,29 @@ def list_objects(store, snapshot_id, query):
     if query.get('ids'):
         # Distinguish an id that does not exist from one this call did not return:
         # the batch is answered in full, so anything absent is genuinely absent.
-        found = {str(row.get('object_id')) for row in rows}
         result['found'] = len(found)
         result['missing_ids'] = [item for item in wanted if item not in found]
     return result
+
+
+def _pin_details(store, snapshot_id, rows):
+    """Attach connected-net classification/name to just the pins on this page."""
+    pins = {r['object_id']: r for r in rows if r.get('kind') == 'pin'}
+    if not pins:
+        return
+    connections = {r['subject_id']: r['object_id'] for r in store.relations_touching(snapshot_id, list(pins))
+                   if r['subject_id'] in pins and r['predicate'] == 'connected_to'}
+    nets = {r['object_id']: r for r in store.entities_by_ids(snapshot_id, list(connections.values()))}
+    for oid, row in pins.items():
+        net = nets.get(connections.get(oid))
+        attrs = dict(row.get('attributes') or {})
+        attrs.update(pin_name=row['name'].rsplit('/', 1)[-1].replace('\\', ''),
+                     native_name=row['name'].replace('\\', ''),
+                     net_id=net['object_id'] if net else None,
+                     net_name=net['name'].replace('\\', '') if net else None,
+                     signal_type=(net.get('attributes') or {}).get('signal_type') if net else None,
+                     signal_type_basis='connected native OpenDB net; CLOCK/POWER/GROUND are separate from SIGNAL')
+        row['attributes'] = attrs
 
 
 def timing_context(store, snapshot_id):
@@ -137,7 +238,7 @@ def routing_summary(store, snapshot_id, object_id):
     # Every shape, deliberately: this counts segments per layer and vias by name, so
     # a paged list would produce a confidently wrong total rather than a short one.
     physical = store.physical(snapshot_id, object_id, routing_limit=0)
-    layers, vias = {}, {}
+    layers, vias, via_layers = {}, {}, {}
     for shape in physical.get('routing', []):
         if shape.get('routing_type') == 'segment':
             width, height = shape['x_max'] - shape['x_min'], shape['y_max'] - shape['y_min']
@@ -149,8 +250,15 @@ def routing_summary(store, snapshot_id, object_id):
             value['centerline_length_dbu'] += shape['centerline_length_dbu']
         elif shape.get('routing_type') == 'via':
             name = shape['via']; vias[name] = vias.get(name, 0) + 1
+            for layer in (shape.get('bottom_layer'), shape.get('top_layer')):
+                if layer:
+                    via_layers[layer] = via_layers.get(layer, 0) + 1
     return {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(store.snapshot(snapshot_id)),
             'object_id': object_id, 'layers': layers, 'vias': vias,
+            'via_distribution_by_layer': via_layers,
+            'via_layer_basis': 'each via contributes once to its bottom layer and once to its top layer',
+            'wirelength_um': sum(x['centerline_length_dbu'] for x in layers.values()) /
+                             store.snapshot(snapshot_id)['run_summary']['dbu_per_micron'],
             'segment_count': sum(x['segments'] for x in layers.values()),
             'via_count': sum(vias.values()), 'unit': 'database_units',
             'length_basis': 'Manhattan distance between native dbWirePath iterator points, excludes rectangle endcaps',

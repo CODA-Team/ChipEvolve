@@ -25,6 +25,7 @@ import hashlib
 import json
 import os
 import re
+from functools import lru_cache
 from pathlib import Path
 
 from .queries import _limit, _offset, _page
@@ -38,6 +39,13 @@ DEFAULT_NATIVE_ROOT = Path(
 
 #: The three subtrees a flow run writes into, in the order a caller reads them.
 NATIVE_KINDS = ("results", "reports", "logs")
+
+
+def _receipt_files(snapshot, root):
+    directory = root.parent.parent / 'experiments' / snapshot['revision_id']
+    names = (snapshot['design_id'] + '.flow.log', snapshot['design_id'] + '.native_manifest.json',
+             'toolchain.json', 'status.txt')
+    return {f'receipts/{name}': directory / name for name in names if (directory / name).is_file()}
 
 #: Report families the flow emits per run.  ``prefix`` matches the file name
 #: the tool writes; ``final`` is the file ORFS leaves in place when it finishes.
@@ -81,12 +89,57 @@ def _native_file(path: Path, relative: str) -> dict:
             "modified": int(stat.st_mtime)}
 
 
+@lru_cache(maxsize=64)
+def _file_digest(path: str, size: int, modified_ns: int) -> str:
+    return _sha256(Path(path))
+
+
+def native_excerpt(store, snapshot_id: str, query: dict, root: Path) -> dict:
+    """Read any original file of this run, including files never staged by an adapter."""
+    snapshot = store.snapshot(snapshot_id)
+    requested = query.get('path')
+    if not requested:
+        raise ValueError('path must name a file returned by artifacts/files')
+    root = root.resolve()
+    receipts = _receipt_files(snapshot, root)
+    path = (receipts[requested] if requested in receipts else root / requested).resolve()
+    directories = _run_dirs(snapshot, root)
+    allowed = [Path(row['path']).resolve() for row in directories.values() if row['path']]
+    producer = snapshot.get('run_summary', {}).get('timing_context', {}).get('producer', {})
+    declared = producer.get('artifacts', {}).get(requested)
+    if requested not in receipts and (not path.is_relative_to(root) or
+            (declared is None and not any(path.is_relative_to(directory) for directory in allowed))):
+        raise ValueError('path must belong to this design and revision')
+    if not path.is_file():
+        raise KeyError(f'original file not found: {requested}')
+    offset, maximum = _offset(query), int(query.get('max_bytes', 8192))
+    if not 1 <= maximum <= 65536:
+        raise ValueError('max_bytes must be between 1 and 65536')
+    stat = path.stat()
+    digest = _file_digest(str(path), stat.st_size, stat.st_mtime_ns)
+    if declared is not None and digest != declared['sha256']:
+        raise ValueError('producer input changed after this run')
+    with path.open('rb') as stream:
+        stream.seek(offset)
+        chunk = stream.read(maximum)
+    next_offset = offset + len(chunk)
+    return {'snapshot_id': snapshot_id, 'source': {
+                'design_id': snapshot['design_id'], 'revision_id': snapshot['revision_id'],
+                'run_id': snapshot['run_id'], 'relative_path': requested,
+                'path': str(path),
+                'sha256': digest,
+                'size_bytes': stat.st_size},
+            'text': chunk.decode('utf-8', errors='replace'), 'offset': offset,
+            'returned_bytes': len(chunk), 'truncated': next_offset < stat.st_size,
+            'next_offset': next_offset if next_offset < stat.st_size else None}
+
+
 def native_files(store, snapshot_id: str, query: dict, root: Path) -> dict:
     """Every file the flow wrote for this run, paged, with its size."""
     snapshot = store.snapshot(snapshot_id)
     directories = _run_dirs(snapshot, root)
     wanted = query.get("kind")
-    if wanted and wanted not in NATIVE_KINDS:
+    if wanted and wanted not in (*NATIVE_KINDS, 'receipts'):
         raise ValueError(f"kind must be one of {', '.join(NATIVE_KINDS)}")
     contains = query.get("name_contains")
     entries = []
@@ -101,6 +154,10 @@ def native_files(store, snapshot_id: str, query: dict, root: Path) -> dict:
             if contains and contains not in path.name:
                 continue
             entries.append({"category": kind, **_native_file(path, relative)})
+    if wanted in (None, 'receipts'):
+        for relative, path in _receipt_files(snapshot, root).items():
+            if not contains or contains in path.name:
+                entries.append({'category': 'receipts', **_native_file(path, relative)})
     limit, offset = _limit(query), _offset(query)
     page = entries[offset:offset + limit]
     counts = _page(len(entries), len(page), limit, offset)

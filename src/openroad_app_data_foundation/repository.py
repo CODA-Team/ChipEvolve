@@ -700,7 +700,11 @@ class DataStore:
 
     def _decode(self, payload: str, snapshot_id: str) -> dict[str, Any]:
         """Read one stored row and restore its full evidence entry."""
-        return materialize(json.loads(payload), self._catalog_snapshot(snapshot_id))
+        row = materialize(json.loads(payload), self._catalog_snapshot(snapshot_id))
+        if row.get('snapshot_id') and row['snapshot_id'] != snapshot_id:
+            row['source_snapshot_id'] = row['snapshot_id']
+            row['snapshot_id'] = snapshot_id
+        return row
 
     def records(self, snapshot_id: str, record_type: str, *, record_id: str | None = None,
                 limit: int = 100, offset: int = 0) -> list[dict[str, Any]]:

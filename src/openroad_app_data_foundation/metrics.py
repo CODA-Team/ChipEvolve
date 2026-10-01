@@ -10,9 +10,8 @@ Two rules this module exists to enforce:
 * runtime is **not** a canonical design metric here - it is an execution fact
   owned by the execution foundation, so it is reported unavailable rather than
   re-derived from a flow stage JSON;
-* a unit is whatever the flow declared, verbatim.  Where the declaration and
-  the reported magnitude disagree (ORFS power), the row is `partial` and says
-  so instead of silently labelling the number.
+* units follow the producer of each metric. OpenSTA power metrics use SI Watts;
+  Liberty leakage-table units are a separate declaration.
 """
 
 from __future__ import annotations
@@ -24,10 +23,18 @@ from .repository import DataStore
 #: canonical name -> the raw key suffix it is projected from (the flow prefixes
 #: raw names with the stage, e.g. ``finish__timing__setup__ws``).
 CANONICAL_METRICS: dict[str, dict[str, Any]] = {
+    "WS": {"raw_keys": ("timing__setup__ws",), "unit_family": "time",
+           "kind": "timing", "analysis": "setup"},
     "WNS": {"raw_keys": ("timing__setup__ws",), "unit_family": "time",
             "kind": "timing", "analysis": "setup"},
     "TNS": {"raw_keys": ("timing__setup__tns",), "unit_family": "time",
             "kind": "timing", "analysis": "setup"},
+    "HOLD_WS": {"raw_keys": ("timing__hold__ws",), "unit_family": "time",
+                "kind": "timing", "analysis": "hold"},
+    "HOLD_WNS": {"raw_keys": ("timing__hold__ws",), "unit_family": "time",
+                 "kind": "timing", "analysis": "hold"},
+    "HOLD_TNS": {"raw_keys": ("timing__hold__tns",), "unit_family": "time",
+                 "kind": "timing", "analysis": "hold"},
     "SETUP_VIOLATIONS": {"raw_keys": ("timing__drv__setup_violation_count",),
                          "unit_family": "count", "kind": "timing", "analysis": "setup"},
     "AREA": {"raw_keys": ("design__instance__area",), "unit_family": "area",
@@ -133,23 +140,28 @@ def _canonical_row(name: str, spec: dict[str, Any], row: dict[str, Any],
     reason = None
     if unit is None:
         status, reason = "partial", unit_note or "unit is not declared by the source"
-    if name == "POWER_TOTAL" and unit == "nW":
-        # ORFS declares 1nW while the reported magnitude is consistent with W.
-        # Reporting the declaration verbatim would put a wrong number into a
-        # benchmark answer, so the row says it is unresolved instead.
-        status = "partial"
-        reason = ("flow declares power units as 1nW while the reported magnitude "
-                  "is consistent with W; unit reconciliation is an open item")
+    if name == "POWER_TOTAL":
+        # report_power_metric writes design_power's SI values directly, without
+        # power-unit conversion. Native report_power confirms Watts on both designs.
+        # The Liberty declaration (1nW) describes library leakage tables, not this metric.
+        unit = "W"
+        unit_note = "OpenSTA design_power SI Watts; library power declaration is not the metric unit"
+        status, reason = "available", None
     context = row.get("context") if isinstance(row.get("context"), dict) else {}
     # CONTRACT 5 rule 3: a corner the source does not declare is *stated*, not
     # left as a bare null.  ORFS run-level reports carry no corner at all, so
     # marking every metric unavailable would destroy the metric surface; saying
     # "not_declared" keeps the value and keeps the gap visible.
     corner = context.get("corner")
+    value = row.get("value")
+    if name in ("WNS", "HOLD_WNS") and isinstance(value, (int, float)):
+        value = min(0.0, value)
     return {
         "name": name,
         "canonical": True,
-        "value": row.get("value"),
+        "value": value,
+        "raw_value": row.get("value"),
+        "value_basis": "min(0, worst slack)" if name in ("WNS", "HOLD_WNS") else "source value",
         "corner_status": "declared" if corner else "not_declared",
         "unit": unit,
         "unit_declared": unit_note,

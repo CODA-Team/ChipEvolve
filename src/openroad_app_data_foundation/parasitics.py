@@ -286,7 +286,14 @@ def net_parasitics(store, client, snapshot_id: str, name: str, query: dict) -> d
     snapshot = store.snapshot(snapshot_id)
     limit, offset = _limit(query), _offset(query)
     indexed = store.find_net(snapshot_id, name)
+    if not indexed:
+        indexed = [row for row in store.records(snapshot_id, 'entities', record_id=name, limit=1)
+                   if row.get('kind') == 'net']
+    requested = name
+    if indexed:
+        name = indexed[0]['name'].replace('\\', '')
     base = {"snapshot_id": snapshot_id, "net": name,
+            "requested_net": requested,
             "indexed_net": bool(indexed),
             "indexed_net_record": indexed[0] if indexed else None,
             "design_id": snapshot["design_id"], "stage": snapshot["stage"]}

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 
 import json
+from functools import lru_cache
 
 from typing import Any
 from urllib.parse import quote
@@ -86,6 +87,21 @@ def list_timing_paths(store: DataStore, snapshot_id: str, query: dict[str, str])
     clause, ranking = _order("timing_paths", query)
     rows = store.filtered(snapshot_id, "timing_paths", where=where, params=params,
                           limit=limit, offset=offset, order_by=clause)
+    rows = [_path_fields(store, snapshot_id, row) for row in rows]
+    clock_filters = {key: query[key] for key in ('source_clock', 'target_clock') if query.get(key)}
+    if clock_filters:
+        candidates = [_path_fields(store, snapshot_id, row) for row in store.filtered(
+            snapshot_id, 'timing_paths', where=where, params=params, order_by=clause)]
+        candidates = [row for row in candidates if all(row.get(k) == v for k, v in clock_filters.items())]
+        total, rows = len(candidates), candidates[offset:offset + limit]
+        filters.update(clock_filters)
+    if query.get('fields'):
+        columns = query['fields'].split(',')
+        allowed = {'path_id', 'startpoint', 'endpoint', 'group', 'check', 'slack', 'required_time',
+                   'data_arrival_time', 'source_clock', 'target_clock', 'unit', 'corner', 'evidence'}
+        if not set(columns) <= allowed:
+            raise ValueError('unknown timing path projection field')
+        rows = [{key: row.get(key) for key in columns} for row in rows]
     return {"snapshot_id": snapshot_id, "snapshot": snapshot_identity(store.snapshot(snapshot_id)),
             "timing_paths": rows, **ranking,
             **_page(total, len(rows), limit, offset), "filters": filters}
@@ -107,7 +123,7 @@ def list_timing_points(store: DataStore, snapshot_id: str,
     rows = store.filtered(snapshot_id, "timing_points", where=where, params=params,
                           limit=limit, offset=offset, order_by=clause)
     return {"snapshot_id": snapshot_id, "snapshot": snapshot_identity(store.snapshot(snapshot_id)),
-            "timing_points": rows, **ranking,
+            "timing_points": _point_projection(rows, query), **ranking,
             **_page(total, len(rows), limit, offset), "filters": filters}
 
 
@@ -279,6 +295,30 @@ def list_evidence(store: DataStore, snapshot_id: str,
     return result
 
 
+@lru_cache(maxsize=4)
+def _timing_document(payload: bytes):
+    return json.loads(payload)
+
+
+def _path_fields(store, snapshot_id, row):
+    """Expose the native clock and arrival facts the stored row's own evidence names."""
+    fields = ('data_arrival_time', 'crpr', 'source_clock', 'target_clock',
+              'source_clock_edge', 'target_clock_edge')
+    if all(key in row for key in fields):
+        return row
+    for ref in row.get('evidence', []):
+        index = (ref.get('detail') or {}).get('path_index')
+        if not isinstance(index, int):
+            continue
+        source = store.fragment_source(snapshot_id, ref.get('logical_path'))
+        if source is not None:
+            document = _timing_document(source['payload'])
+            paths = document.get('checks', [])
+            if index < len(paths):
+                return {**row, **{key: paths[index].get(key) for key in fields}}
+    return row
+
+
 def timing_path(store: DataStore, snapshot_id: str, path_id: str,
                 points_limit: int | None = POINTS_PAGE) -> dict[str, Any]:
     """One path and its points, bounded by default.
@@ -294,7 +334,7 @@ def timing_path(store: DataStore, snapshot_id: str, path_id: str,
     rows = store.records(snapshot_id, "timing_paths", record_id=path_id, limit=1)
     if not rows:
         raise KeyError(f"timing path not found: {path_id}")
-    path = rows[0]
+    path = _path_fields(store, snapshot_id, rows[0])
     selected = store.filtered(snapshot_id, "timing_points",
                               where="json_extract(payload, '$.path_id') = ?",
                               params=(path_id,))
@@ -317,15 +357,28 @@ def timing_path(store: DataStore, snapshot_id: str, path_id: str,
     return result
 
 
+def _point_projection(rows, query):
+    if not query.get('fields'):
+        return rows
+    fields = query['fields'].split(',')
+    allowed = {'point_id', 'path_id', 'ordinal', 'pin_name', 'instance_id', 'instance_name',
+               'net_id', 'net_name', 'cell_name', 'path_section', 'arrival', 'load', 'slew', 'evidence'}
+    if not set(fields) <= allowed:
+        raise ValueError('unknown timing point projection field')
+    return [{key: row.get(key) for key in fields} for row in rows]
+
+
 def path_points(store: DataStore, snapshot_id: str, path_id: str, query: dict[str, str]) -> dict[str, Any]:
     result = timing_path(store, snapshot_id, path_id, points_limit=0)
     points = result["timing_points"]
+    if query.get('path_section'):
+        points = [p for p in points if p.get('path_section') == query['path_section']]
     limit = _point_limit(query)
     offset = _offset(query)
     page = points[offset:offset + limit]
     return {"snapshot_id": snapshot_id, "snapshot": snapshot_identity(store.snapshot(snapshot_id)),
             "path_id": path_id,
-            "timing_points": page, **_page(len(points), len(page), limit, offset)}
+            "timing_points": _point_projection(page, query), **_page(len(points), len(page), limit, offset)}
 
 
 def path_nets(store: DataStore, snapshot_id: str, path_id: str,
