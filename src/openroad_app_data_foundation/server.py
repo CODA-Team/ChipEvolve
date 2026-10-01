@@ -6,16 +6,20 @@ import json
 import threading
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Any
 
 from openroad_platform_client import (KernelClient, KernelError, KernelUnavailable,
                                       LocalFirstKernelClient)
 from openroad_platform_contracts import ContractError
 
+from .artifacts import (DEFAULT_NATIVE_ROOT, artifact_manifest, native_files,
+                        violations)
 from .bundle import import_ready_bundles, load_run_bundle
 from .context import net_context, object_context, timing_path_context
 from .metric_queries import compare_metric
 from .discovery import list_objects, timing_context, routing_summary
+from .parasitics import net_parasitics
 from .timing_queries import submit_timing_query, timing_query_status
 from .envelope import envelope, error_envelope
 from .queries import (
@@ -35,6 +39,7 @@ from . import source_fingerprint
 #: actually loaded.  Computing it per request would hash whatever is on disk at
 #: that moment, which always matches and therefore detects nothing.
 STARTUP_FINGERPRINT = source_fingerprint()
+from .connections import ReadPool
 from .repository import DataStore
 
 
@@ -43,13 +48,18 @@ class Handler(BaseHTTPRequestHandler):
     store: DataStore
     execution_client: KernelClient | None = None
     auto_import: bool = True
-    #: The server is threaded but the store is one SQLite connection.  The
-    #: connection itself is locked, and this serialises a whole request on top of
-    #: that: a concurrent caller still managed to reach sqlite3 with a statement
-    #: in flight ("InterfaceError: bad parameter or other API misuse"), which came
-    #: back as an error for a snapshot that exists.  /health is exempt so a
-    #: readiness probe never waits behind a slow query.
+    #: The flow tree this run's own reports and results were written to.  Only
+    #: used for facts no bundle carries; see artifacts.py.
+    native_root: Path = DEFAULT_NATIVE_ROOT
+    #: Writes still take a lock; reads do not, because each request thread reads
+    #: through its own read-only connection (see connections.ReadPool).  The lock
+    #: used to cover every request, which serialised readers: measured against the
+    #: real ariane136 store, 8 concurrent clients got 1.12x the throughput of one
+    #: and a 0.6 ms request waited 14.7 s behind a single net-context request.
     request_lock = threading.Lock()
+    #: Per-thread read connections.  Set by ``serve``; absent in tests that bind a
+    #: store directly, in which case reads fall back to that store.
+    read_pool: "ReadPool | None" = None
 
     def do_GET(self) -> None:  # noqa: N802
         parsed = urllib.parse.urlparse(self.path)
@@ -57,9 +67,13 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if parsed.path == "/health":
                 payload = self._get(parsed.path, query)
+            elif self.read_pool is not None:
+                # One borrowed read-only connection for this request; no request
+                # lock, so a slow query no longer blocks every other caller.
+                with self.read_pool.connection() as store:
+                    payload = self._get(parsed.path, query, store)
             else:
-                with self.request_lock:
-                    payload = self._get(parsed.path, query)
+                payload = self._get(parsed.path, query)
             if parsed.path == "/health":
                 self._send(200, payload)
                 return
@@ -133,24 +147,27 @@ class Handler(BaseHTTPRequestHandler):
             self._send(500, error_envelope(self.path, "unavailable",
                                            f"{type(exc).__name__}: {exc}"))
 
-    def _get(self, path: str, query: dict[str, str]) -> dict[str, Any]:
+    def _get(self, path: str, query: dict[str, str],
+             store: "DataStore | None" = None) -> dict[str, Any]:
         if path == "/health":
             return {"app": "data_foundation", "status": "ok",
                     "source_fingerprint": STARTUP_FINGERPRINT}
+        store = store if store is not None else self.store
         if self.execution_client is not None and self.auto_import:
+            # Importing is a write, so it uses the writable store, not the reader.
             import_ready_bundles(self.store, self.execution_client)
         if path.startswith('/timing-queries/'):
             if self.execution_client is None:
                 raise KernelUnavailable('execution service is not configured')
             return timing_query_status(self.store, self.execution_client, path.split('/')[-1])
         if path == "/snapshots":
-            return {"snapshots": self.store.snapshots(
+            return {"snapshots": store.snapshots(
                 design_id=query.get("design_id"), run_id=query.get("run_id"))}
         if path.startswith("/runs/") and path.endswith("/summary"):
             run_id = urllib.parse.unquote(path[len("/runs/"):-len("/summary")]).strip("/")
             if not run_id:
                 raise ValueError("run_id is required")
-            return self.store.run_summary_for_run(run_id)
+            return store.run_summary_for_run(run_id)
         if path.startswith("/runs/") and path.endswith("/metrics"):
             run_id = urllib.parse.unquote(path[len("/runs/"):-len("/metrics")]).strip("/")
             if not run_id:
@@ -168,7 +185,7 @@ class Handler(BaseHTTPRequestHandler):
                 return compare_metric(self.store, parts[1], parts[3], name,
                                       query.get("scene"))
             if len(parts) == 5 and parts[2] == 'sources' and parts[4] == 'excerpt':
-                snapshot = self.store.snapshot(parts[1])
+                snapshot = store.snapshot(parts[1])
                 refs = [r for r in snapshot.get('source_artifacts', []) if r.get('artifact_id') == parts[3]]
                 if len(refs) != 1:
                     raise KeyError('artifact is not attached to this snapshot')
@@ -184,22 +201,34 @@ class Handler(BaseHTTPRequestHandler):
                 return timing_context(self.store, parts[1])
             if len(parts) == 5 and parts[2] == "nets" and parts[4] == "routing-summary":
                 return routing_summary(self.store, parts[1], parts[3])
+            # Facts no bundle carries, read from the flow's own tree: the SPEF
+            # the run was timed with, the reports it wrote, and the producer
+            # manifest naming artifacts the adapter never staged.
+            if len(parts) == 5 and parts[2] == "nets" and parts[4] == "parasitics":
+                return net_parasitics(store, self.execution_client, parts[1],
+                                      parts[3], query)
+            if len(parts) == 3 and parts[2] == "artifacts":
+                return artifact_manifest(store, self.execution_client, parts[1], query)
+            if len(parts) == 4 and parts[2] == "artifacts" and parts[3] == "files":
+                return native_files(store, parts[1], query, self.native_root)
+            if len(parts) == 3 and parts[2] == "violations":
+                return violations(store, parts[1], query, self.native_root)
             if len(parts) == 2:
-                return {"snapshot": self.store.snapshot(parts[1])}
+                return {"snapshot": store.snapshot(parts[1])}
             if len(parts) == 3 and parts[2] == "summary":
-                return self.store.run_summary(parts[1])
+                return store.run_summary(parts[1])
             if len(parts) == 3 and parts[2] == "instances":
                 name = query.get("name")
                 if not name:
                     return list_objects(self.store, parts[1], {**query, "kind": "instance"})
                 return {"snapshot_id": parts[1],
-                        "instances": self.store.find_instance(parts[1], name)}
+                        "instances": store.find_instance(parts[1], name)}
             if len(parts) == 3 and parts[2] == "nets":
                 name = query.get("name")
                 if not name:
                     return list_objects(self.store, parts[1], {**query, "kind": "net"})
                 return {"snapshot_id": parts[1],
-                        "nets": self.store.find_net(parts[1], name)}
+                        "nets": store.find_net(parts[1], name)}
             if len(parts) >= 4 and parts[2] == "timing-paths":
                 snapshot_id, path_id = parts[1], parts[3]
                 if len(parts) == 4:
@@ -224,24 +253,24 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) == 6 and parts[2] == "records" and parts[5] == "fragments":
                 return read_evidence(self.store, parts[1], parts[3], parts[4])
             if len(parts) == 6 and parts[2] == "records" and parts[5] == "evidence":
-                return {"evidence": self.store.record_evidence(
+                return {"evidence": store.record_evidence(
                     parts[1], parts[3], parts[4])}
             if len(parts) == 5 and parts[2] == "objects" and parts[4] == "context":
                 return object_context(self.store, parts[1], parts[3],
                                       query.get("detail", "summary"),
                                       _int_param(query, "relation_limit", 200))
             if len(parts) == 4 and parts[2] == "objects":
-                return self.store.object(parts[1], parts[3], expansion=query.get("expansion", "summary"))
+                return store.object(parts[1], parts[3], expansion=query.get("expansion", "summary"))
             if len(parts) == 5 and parts[2] == "nets" and parts[4] == "context":
                 return net_context(self.store, parts[1], parts[3],
                                    query.get("detail", "summary"),
                                    _int_param(query, "relation_limit", 200))
             if len(parts) == 4 and parts[2] == "nets":
-                return self.store.net(parts[1], parts[3])
+                return store.net(parts[1], parts[3])
             if len(parts) == 5 and parts[2] == "nets" and parts[4] == "expand":
-                return self.store.expand_net(parts[1], parts[3])
+                return store.expand_net(parts[1], parts[3])
             if len(parts) == 4 and parts[2] == "physical":
-                return {"physical_context": self.store.physical(parts[1], parts[3])}
+                return {"physical_context": store.physical(parts[1], parts[3])}
         raise KeyError("not found")
 
     def _read_body(self) -> dict[str, Any]:
@@ -267,9 +296,13 @@ class Handler(BaseHTTPRequestHandler):
 
 def serve(*, host: str, port: int, store: DataStore,
           kernel_url: str | None = None, kernel_token: str | None = None,
-          auto_import: bool = True) -> None:
+          auto_import: bool = True,
+          native_root: str | Path = DEFAULT_NATIVE_ROOT) -> None:
     handler = type("BoundHandler", (Handler,), {
         "store": store, "auto_import": auto_import,
+        "native_root": Path(native_root),
+        # A reader per request thread; the writable store above stays for imports.
+        "read_pool": ReadPool(store.path) if hasattr(store, "path") else None,
         "execution_client": (LocalFirstKernelClient(kernel_url, token=kernel_token)
                               if kernel_url else None),
     })

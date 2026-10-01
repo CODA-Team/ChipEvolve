@@ -22,7 +22,7 @@ from openroad_platform_contracts import (
     validate_sha256,
 )
 
-from .identity import enrich_records
+from .identity import _entity_rows, enrich_records
 from .evidence import materialize
 
 
@@ -127,10 +127,25 @@ class _LockedConnection:
 class DataStore:
     """A local snapshot store owned by this application."""
 
-    def __init__(self, path: str | Path):
+    def __init__(self, path: str | Path, *, read_only: bool = False):
+        """Open the store.  ``read_only`` is for serving threads only.
+
+        A read-only connection is opened through SQLite's URI form, which refuses
+        every write at the driver level, and skips the schema script: creating
+        tables is a write, and N serving threads doing it on every connection
+        would reintroduce the serialisation they exist to remove.
+        """
         self._lock = threading.RLock()
+        self.read_only = read_only
+        #: Kept so a server can hand the same file to a pool of reader connections.
+        self.path = str(path)
+        if read_only:
+            target = f"file:{path}?mode=ro"
+        else:
+            target = str(path)
         self.connection = _LockedConnection(
-            sqlite3.connect(str(path), check_same_thread=False), self._lock)
+            sqlite3.connect(target, check_same_thread=False, uri=read_only),
+            self._lock)
         self.connection.row_factory = sqlite3.Row
         # A large design is tens of gigabytes, and the default page cache is 2 MiB:
         # a two-line query could wait on a cold read of a file the kernel had long
@@ -148,6 +163,8 @@ class DataStore:
         #: Counts for an immutable snapshot cannot change; paging re-asked for the
         #: same one on every page.
         self._count_cache: dict[tuple[Any, ...], int] = {}
+        if read_only:
+            return
         self.connection.executescript(
             """
             CREATE TABLE IF NOT EXISTS snapshots (
@@ -237,42 +254,39 @@ class DataStore:
             "coverage": dict(pack.get("coverage") or {}),
             "run_summary": dict(pack.get("run_summary") or {}),
         }, version)
-        values_by_type: dict[str, list[dict[str, Any]]] = {}
+        streams: dict[str, Sequence[dict[str, Any]]] = {}
         for record_type in RECORD_TYPES:
             values = pack.get(record_type, [])
-            if not isinstance(values, list):
+            if not isinstance(values, Sequence):
                 raise ContractError(f"{record_type} must be a list")
-            values_by_type[record_type] = [
-                _object(value, f"{record_type}[{ordinal}]")
-                for ordinal, value in enumerate(values)
-            ]
-        entity_rows = values_by_type.get("entities", [])
-        enriched_entities = enrich_records(snapshot, "entities", entity_rows, entity_rows)
-        identity_index = {row["object_id"]: row["identity"] for row in enriched_entities
-                          if "identity" in row}
-        values_by_type["entities"] = enriched_entities
-        values_by_type = {
-            record_type: enrich_records(snapshot, record_type, rows, entity_rows,
-                                        identity_index=identity_index)
-            for record_type, rows in values_by_type.items()
-        }
+            streams[record_type] = values
+        # identity.enrich_records needs the snapshot's identity index: a canonical
+        # key can only be called ambiguous once every entity has been seen, so the
+        # index is what has to stay resident.  It is an order of magnitude smaller
+        # than the entities it is built from, and the entity records themselves
+        # are read, enriched and released in batches.
+        identity_index = _entity_rows(snapshot, streams["entities"])
         # Evidence is stored compact (source_ref + locator) and resolved on read;
         # see evidence.materialize.  Resolving it here is what inflated every row.
         #
-        # Rows are written in bounded batches and each record type is released as
-        # soon as it has been written.  Building one list of every serialised row
-        # first doubled the peak: an ariane136 routing stage is 3.7 GB of JSONL and
-        # the old shape needed ~34 GB of RSS to land it, which is memory
-        # proportional to design size rather than to batch size.  The write, the
-        # duplicate-identity check and the returned counts do not change.
-        # A snapshot is immutable, so its record counts are computed once here and
+        # Every record type is read, enriched, serialised and written in bounded
+        # batches, and released before the next one is read.  Holding the whole
+        # stage - as parsed rows, as enriched rows, or as one list of every
+        # serialised row - is what made an ariane136 stage need ~36 GB of RSS:
+        # memory proportional to the design rather than to the batch.
+        #
+        # A duplicate identity used to be caught by a set holding every
+        # (record_type, record_id) of the snapshot.  The primary key of `records`
+        # is the same constraint, so the writer relies on it instead of keeping a
+        # second copy of every identity in memory to re-check it.
+        #
+        # A snapshot is immutable, so its record counts are computed once and
         # stored with it.  Recomputing them per request turned a run summary into 70
         # COUNT scans over tens of millions of rows - and because one request holds
         # the service lock, asking for a run summary blocked every other caller.
-        counts = {name: len(values_by_type.get(name) or []) for name in RECORD_TYPES}
-        snapshot = {**snapshot, "record_counts": counts}
-        seen: set[tuple[str, str]] = set()
-        batch: list[tuple[str, str, str, int, str]] = []
+        # A streamed import only knows the counts once every row has been written,
+        # so they are folded into the snapshot row at the end of the transaction.
+        counts = {name: 0 for name in RECORD_TYPES}
         insert = ("INSERT INTO records(snapshot_id, record_type, record_id, ordinal, "
                   "payload) VALUES (?, ?, ?, ?, ?)")
         try:
@@ -282,22 +296,13 @@ class DataStore:
                     (snapshot_id, json.dumps(snapshot, ensure_ascii=False, sort_keys=True)),
                 )
                 for record_type in RECORD_TYPES:
-                    for ordinal, row in enumerate(values_by_type.get(record_type) or []):
-                        record_id = _record_id(record_type, row, ordinal)
-                        key = (record_type, record_id)
-                        if key in seen:
-                            raise ContractError(
-                                f"duplicate {record_type} identity: {record_id}")
-                        seen.add(key)
-                        batch.append((snapshot_id, record_type, record_id, ordinal,
-                                      json.dumps(row, ensure_ascii=False, sort_keys=True)))
-                        if len(batch) >= IMPORT_BATCH_ROWS:
-                            self.connection.executemany(insert, batch)
-                            batch.clear()
-                    values_by_type[record_type] = []
-                if batch:
-                    self.connection.executemany(insert, batch)
-                    batch.clear()
+                    counts[record_type] = self._write_records(
+                        snapshot_id, snapshot, record_type, streams[record_type],
+                        identity_index, insert)
+                snapshot = {**snapshot, "record_counts": counts}
+                self.connection.execute(
+                    "UPDATE snapshots SET payload = ? WHERE snapshot_id = ?",
+                    (json.dumps(snapshot, ensure_ascii=False, sort_keys=True), snapshot_id))
                 if artifact_id is not None:
                     # Same transaction as the snapshot: either both are visible or
                     # neither is, so a retry after a crash is always well defined.
@@ -317,6 +322,42 @@ class DataStore:
             raise ContractError(f"snapshot already exists: {snapshot_id}") from exc
         self._store_pack_fragments(snapshot_id, pack)
         return {"snapshot": snapshot, "record_counts": counts}
+
+    def _write_records(self, snapshot_id: str, snapshot: Mapping[str, Any],
+                       record_type: str, values: Sequence[dict[str, Any]],
+                       identity_index: dict[str, dict[str, Any]],
+                       insert: str) -> int:
+        """Enrich, write and release one record type in bounded batches.
+
+        ``values`` is a list or a stream (:class:`ingest.JsonlRows`); both are
+        walked one batch at a time, so what is resident is the batch, never the
+        stage.  Returns the number of rows written.
+        """
+        written = 0
+        batch: list[dict[str, Any]] = []
+        for ordinal, value in enumerate(values):
+            batch.append(_object(value, f"{record_type}[{ordinal}]"))
+            if len(batch) >= IMPORT_BATCH_ROWS:
+                written = self._write_batch(snapshot_id, snapshot, record_type, batch,
+                                            written, identity_index, insert)
+                batch = []
+        if batch:
+            written = self._write_batch(snapshot_id, snapshot, record_type, batch,
+                                        written, identity_index, insert)
+        return written
+
+    def _write_batch(self, snapshot_id: str, snapshot: Mapping[str, Any],
+                     record_type: str, batch: list[dict[str, Any]], ordinal: int,
+                     identity_index: dict[str, dict[str, Any]], insert: str) -> int:
+        """Enrich, serialise and insert one batch; returns the next ordinal."""
+        rows = enrich_records(snapshot, record_type, batch, None,
+                              identity_index=identity_index)
+        self.connection.executemany(insert, [
+            (snapshot_id, record_type, _record_id(record_type, row, ordinal + offset),
+             ordinal + offset, json.dumps(row, ensure_ascii=False, sort_keys=True))
+            for offset, row in enumerate(rows)
+        ])
+        return ordinal + len(rows)
 
     #: members worth keeping for fragment reads: parseable JSON that evidence
     #: points into.  The binary database is deliberately absent - the adapter

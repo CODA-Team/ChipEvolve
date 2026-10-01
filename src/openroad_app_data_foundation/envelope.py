@@ -181,14 +181,17 @@ def _status(data: Mapping[str, Any],
     """Derive the status and the missing-field list from the payload itself."""
     if data.get("count_status") == "unavailable":
         return "partial", list(data.get("missing_fields") or ["count"])
-    if data.get("relations_truncated") is True:
-        return "truncated", ["relations"]
     if data.get("truncated") is True:
         return "truncated", []
-    if isinstance(limitations, list) and any(
-            isinstance(item, Mapping) and item.get("status") == "truncated"
-            for item in limitations):
-        return "truncated", []
+    # A context pack lists what it cut, so the envelope can name the fields
+    # instead of reporting only that something was.  `relations` used to be
+    # special-cased here; every bounded collection now reports the same way.
+    if isinstance(limitations, list):
+        cut = [str(item.get("field")) for item in limitations
+               if isinstance(item, Mapping) and item.get("status") == "truncated"
+               and item.get("field")]
+        if cut:
+            return "truncated", cut
     if data.get("availability") and _declares_unavailable(data["availability"]):
         return "partial", []
     return "available", []

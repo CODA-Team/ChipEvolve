@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -15,8 +16,85 @@ FILES = (
 )
 
 
+#: Records handed over per batch.  One ariane136 stage is a 1.18 GB
+#: objects.jsonl, a 1.47 GB relations.jsonl and a 1.53 GB markers.jsonl;
+#: materialising those as lists is what made importing one stage need ~36 GiB of
+#: RSS.  Reading them in batches is what makes the resident set track the batch
+#: instead of the design, without changing one record that reaches the store.
+BATCH_ROWS = 10000
+
+
+class JsonlRows(Sequence):
+    """The records of one ``*.jsonl`` member, read in bounded batches.
+
+    The file is held open rather than re-opened per pass: a bundle is unpacked
+    into a ``TemporaryDirectory`` that is removed as soon as the download
+    returns, so an open descriptor is the one form of those bytes that outlives
+    the directory the pack was read from.
+
+    ``project`` maps a source record to the record that is stored, and drops it
+    when it maps to ``None``.  The markers file needs that: it is the source of
+    the physical records, and it holds 2.42 M of them on ariane136.
+    """
+
+    def __init__(self, path: Path, *,
+                 project: Callable[[dict[str, Any]], dict[str, Any] | None] | None = None,
+                 batch_rows: int = BATCH_ROWS) -> None:
+        self._path = path
+        self._project = project
+        self._batch_rows = batch_rows
+        self._handle = path.open(encoding="utf-8") if path.is_file() else None
+        self._count: int | None = None
+
+    def batches(self) -> Iterator[list[dict[str, Any]]]:
+        if self._handle is None:
+            return
+        self._handle.seek(0)
+        batch: list[dict[str, Any]] = []
+        for line_number, line in enumerate(self._handle, 1):
+            if not line.strip():
+                continue
+            value = json.loads(line)
+            if not isinstance(value, dict):
+                raise ContractError(f"{self._path.name}:{line_number} "
+                                    f"must contain an object")
+            if self._project is not None:
+                value = self._project(value)
+                if value is None:
+                    continue
+            batch.append(value)
+            if len(batch) >= self._batch_rows:
+                yield batch
+                batch = []
+        if batch:
+            yield batch
+
+    def __iter__(self) -> Iterator[dict[str, Any]]:
+        for batch in self.batches():
+            yield from batch
+
+    def __len__(self) -> int:
+        if self._count is None:
+            self._count = sum(len(batch) for batch in self.batches())
+        return self._count
+
+    def __getitem__(self, index: int) -> dict[str, Any]:
+        position = 0
+        for batch in self.batches():
+            if index < position + len(batch):
+                return batch[index - position]
+            position += len(batch)
+        raise IndexError(index)
+
+
 def load_snapshot_directory(directory: str | Path) -> dict[str, Any]:
-    """Read a snapshot directory without reading any host design directory."""
+    """Read a snapshot directory without reading any host design directory.
+
+    Each record member comes back as a :class:`JsonlRows` the caller walks batch
+    by batch, so a stage is never held in memory as one Python list.  The small
+    members - manifest, catalog, coverage, the fragment sources - are still read
+    whole, because each of them is a single whole-file fact.
+    """
     root = Path(directory)
     manifest = _read_object(root / "manifest.json", required=True)
     summary = _read_object(root / "summary.json", required=False)
@@ -33,16 +111,14 @@ def load_snapshot_directory(directory: str | Path) -> dict[str, Any]:
     refs = catalog.get("refs") if isinstance(catalog.get("refs"), dict) else {}
     if refs:
         snapshot["source_catalog"] = refs
-    marker_rows: list[dict[str, Any]] = []
     for name in FILES:
-        values = list(_read_lines(root / f"{name}.jsonl"))
         if name == "markers":
-            marker_rows = [{"marker_id": row.get("marker_id", str(index)), **row}
-                           for index, row in enumerate(values)]
+            # The markers are not stored as themselves; they are the source of
+            # the physical records, projected as they are read (see below).
             continue
-        pack["entities" if name == "objects" else name] = values
+        pack["entities" if name == "objects" else name] = JsonlRows(root / f"{name}.jsonl")
     pack["coverage"] = _read_object(root / "coverage.json", required=False) or {}
-    pack["physical_context"] = _physical_records(marker_rows)
+    pack["physical_context"] = JsonlRows(root / "markers.jsonl", project=_physical_record)
     # Keep the JSON members a fragment read can slice.  They arrived with the bundle,
     # so no extra download is needed and the 4 MiB download cap never applies.
     pack["fragment_sources"] = {
@@ -126,24 +202,27 @@ def _read_lines(path: Path) -> list[dict[str, Any]]:
     return result
 
 
-def _physical_records(markers: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    records = []
-    for marker in markers:
-        object_id = marker.get("object_id") or marker.get("instance_id")
-        if not object_id:
-            continue
-        records.append({
-            "object_id": object_id,
-            "snapshot_id": marker.get("snapshot_id"),
-            "instance_name": marker.get("instance_name"),
-            # the adapter emits the placement origin; the record used to drop it,
-            # which left CONTRACT 4.11 promising x/y that no record carried.
-            "x": marker.get("x"),
-            "y": marker.get("y"),
-            "bbox": marker.get("bbox"),
-            "layer": marker.get("layer"),
-            "geometry": marker.get("geometry", []),
-            "routing": marker.get("routing", []),
-            "evidence": marker.get("evidence", []),
-        })
-    return records
+def _physical_records(markers: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The placement records of markers that are already in hand."""
+    return [row for row in map(_physical_record, markers) if row is not None]
+
+
+def _physical_record(marker: dict[str, Any]) -> dict[str, Any] | None:
+    """One placement record, or ``None`` for a marker that places nothing."""
+    object_id = marker.get("object_id") or marker.get("instance_id")
+    if not object_id:
+        return None
+    return {
+        "object_id": object_id,
+        "snapshot_id": marker.get("snapshot_id"),
+        "instance_name": marker.get("instance_name"),
+        # the adapter emits the placement origin; the record used to drop it,
+        # which left CONTRACT 4.11 promising x/y that no record carried.
+        "x": marker.get("x"),
+        "y": marker.get("y"),
+        "bbox": marker.get("bbox"),
+        "layer": marker.get("layer"),
+        "geometry": marker.get("geometry", []),
+        "routing": marker.get("routing", []),
+        "evidence": marker.get("evidence", []),
+    }

@@ -29,6 +29,24 @@ def list_objects(store, snapshot_id, query):
             AND json_extract(payload, '$.bbox.x_min') <= ?
             AND json_extract(payload, '$.bbox.y_min') <= ?)""")
         params.extend([snapshot_id, *box])
+    if query.get('connected_to'):
+        # The other end of every relation touching this object - the set
+        # `expand_net` stops at CONNECTED_ENTITY_LIMIT, but pageable, so a
+        # caller told `entities_total: 675` can walk all of it instead of being
+        # handed a sample with no way forward.  Each branch is one index search
+        # (`records_json_subject` / `records_json_object`); the same two-branch
+        # union is what `relations_touching` uses, for the same reasons.
+        other = """record_id IN (
+            SELECT json_extract(payload, '$.object_id') FROM records
+              WHERE snapshot_id = ? AND record_type = 'relations'
+              AND json_extract(payload, '$.subject_id') = ?
+            UNION
+            SELECT json_extract(payload, '$.subject_id') FROM records
+              WHERE snapshot_id = ? AND record_type = 'relations'
+              AND json_extract(payload, '$.object_id') = ?)"""
+        filters.append(other)
+        params.extend([snapshot_id, query['connected_to'],
+                       snapshot_id, query['connected_to']])
     where = ' AND '.join(filters)
     # The default is the stored order, which `records_lookup`
     # (snapshot_id, record_type, ordinal) serves directly: a page costs
