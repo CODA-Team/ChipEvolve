@@ -330,3 +330,57 @@ def test_exact_name_filter_cannot_silently_return_all_nets(tmp_path):
             list_objects(store, 's', {'kind': 'net', 'misspelled_name': 'signal[0]'})
     finally:
         store.close()
+
+
+def test_point_extrema_keep_all_ties_and_singleton_without_clock_points(tmp_path):
+    pack = sample()
+    pack['timing_points'][0].update(slew=999, load=999)
+    pack['timing_points'][1].update(slew=0.2, load=0.5)
+    pack['timing_points'][2].update(slew=0.2, load=0.3)
+    store = DataStore(tmp_path / 'maxima.sqlite')
+    try:
+        store.register(pack)
+        result = path_engineering(store, 's', 'p', {'limit': '1'})['data_point_extrema']
+        assert result['slew']['max_value'] == 0.2
+        assert result['slew']['pin_names'] == ['u/A', 'u/Z']
+        assert result['slew']['selected_point']['pin_name'] == 'u/Z'
+        assert result['load']['pin_names'] == ['u/A']
+        assert result['load']['tie_count'] == 1
+        overview = timing_overview(store, 's', {'limit': '5'})
+        assert overview['data_point_extrema']['slew']['pin_names'] == ['u/A', 'u/Z']
+    finally:
+        store.close()
+
+
+def test_original_stage_inventory_does_not_confuse_missing_index_with_missing_file(tmp_path):
+    from openroad_app_data_foundation.artifacts import run_inventory
+    root = tmp_path / 'flow';result = root / 'results/p/chip/r';logs = root / 'logs/p/chip/r'
+    result.mkdir(parents=True);logs.mkdir(parents=True)
+    (result / '1_synth.odb').write_bytes(b'original synth')
+    (logs / '1_synth.json').write_text(json.dumps({'synth__timing__setup__ws':0.1,'synth__design__instance__area':3}))
+    pack=sample();pack['snapshot']['stage']='finish'
+    store=DataStore(tmp_path/'inventory.sqlite')
+    try:
+        store.register(pack)
+        data=run_inventory(store,'s',root)
+        synth=data['stages'][0]
+        assert synth['availability']=='available' and synth['indexed_snapshots']==[]
+        assert synth['original_metrics']['key_count']==2
+        assert synth['original_metrics']['has_timing'] and synth['original_metrics']['has_area']
+        assert data['original_stage_count']==1
+        assert data['stages'][-1]['availability']=='not_produced'
+    finally:
+        store.close()
+
+
+def test_source_headers_keep_continued_configuration_actual_nominal_values_and_unique_times():
+    from openroad_app_data_foundation.source_metadata import configuration, library_header, flow_timing
+    text='export VERILOG_FILES = $(wildcard src/*.sv) \\\n  src/clock.sv\nexport DENSITY = 0.3\n'
+    assert configuration(text)['variables']['VERILOG_FILES']=='$(wildcard src/*.sv) src/clock.sv'
+    header=library_header('library (L) {\n time_unit : "1ns";\n capacitive_load_unit (1, ff);\n nom_voltage : 1.10;\n nom_temperature : 25.00;\n}')
+    assert header['nominal_voltage']==1.1 and header['nominal_temperature']==25
+    assert header['capacitive_load_unit']=='1,ff'
+    log='1_synth .odb 3 100 abcdef01234567890123\n1_synth .sdc abcdef01234567890123\n1_synth .odb 3 100 abcdef01234567890123\n1_synth .sdc abcdef01234567890123\nTotal 3 100\n'
+    times=flow_timing(log)
+    assert len(times['stages'])==2 and times['unavailable_timing']==['1_synth.sdc']
+    assert times['reported_total']=={'elapsed_s':3,'peak_mb':100}
