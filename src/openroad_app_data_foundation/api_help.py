@@ -48,6 +48,9 @@ sorted native driver_pins/load_pins with separate page metadata, net identity/ty
 Choose limit large enough when the task requires all names; counts are independent of the returned page.
 S/instances/<native name or id>/engineering returns master/type, placed location, bbox, both ODB/DEF orientation names,
 and complete pin counts grouped by connected-net type in one call. Unconnected pins are explicitly unclassified.
+distinct_signal_net_count counts different SIGNAL net IDs, not pins; shared connections count once.
+S/net-inventory returns all native SigType counts and special_net_count from the actual dbNet.isSpecial flag
+in one native read of this original snapshot; do not substitute POWER+GROUND for this separate flag.
 S/objects supports kind=instance|net|pin, name (exact), name_contains, name_prefix, ids=<comma-separated up to100 IDs>, parent_id, master, is_macro=0|1,
 signal_type=SIGNAL|CLOCK|POWER|GROUND, port=0|1, driver_count/min/max, port_driven=0|1,
 connected_to=<net id>&net_role=driver|load; sort=name|fanout|bbox_area&order=asc|desc;
@@ -59,6 +62,8 @@ Add include_physical=1 to join placed geometry for every object on the page. For
 kind=instance&is_macro=1&sort=name&limit=200&include_physical=1&fields=name,attributes.master,attributes.orientation,physical.bbox_um.
 Physical bbox_um is a named x_min/y_min/x_max/y_max box. This avoids per-object geometry operations and repeated evidence.
 For largest macro use S/objects?kind=instance&is_macro=1&sort=bbox_area&order=desc&limit=1; ties use name descending.
+ranking reports the full candidate count, leading integer dbu^2 area, tie count/rule and missing geometry count,
+independent of pagination. Use compact fields=object_id,name plus a dependent batch to retrieve selected engineering facts.
 S/objects/statistics accepts the SAME filters as objects and gives complete aggregation over matching objects;
 group_by=master|kind|master_type|signal_type|driver_count|direction|is_macro. For regional counts use
 kind=instance&group_by=is_macro&region=<xmin,ymin,xmax,ymax>&region_units=um&intersection=positive_area:
@@ -96,6 +101,8 @@ reports retain substage identity rather than being relabeled final. Prefer this 
 S/timing-paths/<path_id>/points?limit=N&offset=N&path_section=source_path&fields=pin_name,instance_id,net_id,net_name,cell_name,arrival,load,slew gives compact data points; omit fields/path_section for all facts/sections. It gives points by path_section (source_path is the data path;
 source_clock_path/target_clock_path are clock paths); slew and arrival in seconds, load in Farads.
 S/timing-paths/<path_id>/engineering gives joined data-side pins, instances, nets, master_counts and bbox union;
+data_pin_names is the COMPLETE ordered data path sequence, including repeated pins and excluding clocks,
+independent of point pagination. fields=path,data_pin_names,data_path_pin_count,clock_points_excluded is compact.
 arrays are paged by limit/offset. Add include_routing=1 to obtain the full routing_layers_crossed union,
 including both sides of every via on ALL data-path nets. This avoids querying their wire shapes individually.
 data_point_extrema provides complete maximum slew/load, ALL tied pin_names, tie_count and selected_point,

@@ -227,6 +227,21 @@ def list_objects(store, snapshot_id, query):
         # the batch is answered in full, so anything absent is genuinely absent.
         result['found'] = len(found)
         result['missing_ids'] = [item for item in wanted if item not in found]
+    if sort in ('bbox_area', 'fanout'):
+        conditions = ['snapshot_id=?', "record_type='entities'"] + ([where] if where else [])
+        ranked = store.connection.execute(f"""SELECT value, COUNT(*) AS tie_count FROM
+            (SELECT {expression} AS value FROM records WHERE {' AND '.join(conditions)})
+            GROUP BY value ORDER BY value IS NULL, value {order} LIMIT 1""",
+            [snapshot_id, *params]).fetchone()
+        result['ranking'] = {'candidate_count': total, 'scope': 'all objects matching filters before pagination',
+            'value_basis': 'integer native bbox width times height' if sort == 'bbox_area' else 'stored native fanout',
+            'unit': 'dbu^2' if sort == 'bbox_area' else 'count',
+            'leading_value': ranked['value'] if ranked else None,
+            'leading_tie_count': ranked['tie_count'] if ranked and ranked['value'] is not None else 0,
+            'tie_rule': 'native name ' + tie_order + ', then object ID',
+            'missing_value_count': store.connection.execute(
+                f"SELECT COUNT(*) FROM records WHERE {' AND '.join(conditions)} AND ({expression}) IS NULL",
+                [snapshot_id, *params]).fetchone()[0]}
     return result
 
 

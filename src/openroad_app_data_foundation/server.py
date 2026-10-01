@@ -28,6 +28,7 @@ from .source_metadata import source_metadata
 from .api_help import api_help
 from .excerpts import excerpt_view
 from .pin_geometry import pin_engineering
+from .native_inventory import net_inventory
 from .path_endpoints import path_endpoints
 from .batch_reads import read_batch
 from .source_search import search_source
@@ -253,6 +254,12 @@ class Handler(BaseHTTPRequestHandler):
                 return list_objects(store, parts[1], query)
             if len(parts) == 4 and parts[2:4] == ['objects', 'statistics']:
                 return object_statistics(store, parts[1], query)
+            if len(parts) == 3 and parts[2] == 'net-inventory':
+                if query:
+                    raise ValueError('net-inventory covers all native nets and accepts no filters')
+                if self.execution_client is None:
+                    raise KernelUnavailable('execution service is not configured')
+                return net_inventory(store, self.execution_client, parts[1], self.native_root)
             if len(parts) == 3 and parts[2] == 'timing-overview':
                 payload = timing_overview(store, parts[1], query)
                 return metadata_view(payload, query, path) if query.get('fields') else payload

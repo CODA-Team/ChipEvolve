@@ -54,6 +54,20 @@ def instance_engineering(store, snapshot_id, identifier):
     counts = object_statistics(store, snapshot_id, {'kind': 'pin',
         'parent_id': entity['object_id'], 'group_by': 'signal_type', 'limit': '100'})
     groups = {row['value']: row['count'] for row in counts['groups']}
+    connections = store.connection.execute("""SELECT
+        json_extract(n.payload,'$.attributes.signal_type') AS signal_type,
+        COUNT(DISTINCT n.record_id) AS count
+        FROM records p CROSS JOIN records r ON r.snapshot_id=p.snapshot_id
+        AND r.record_type='relations' AND json_extract(r.payload,'$.subject_id')=+p.record_id
+        AND json_extract(r.payload,'$.subject_id') IS NOT NULL
+        AND json_extract(r.payload,'$.predicate')='connected_to'
+        CROSS JOIN records n ON n.snapshot_id=r.snapshot_id AND n.record_type='entities'
+        AND n.record_id=json_extract(r.payload,'$.object_id')
+        WHERE p.snapshot_id=? AND p.record_type='entities'
+        AND json_extract(p.payload,'$.parent_id')=?
+        AND +json_extract(p.payload,'$.kind')='pin'
+        GROUP BY signal_type""", (snapshot_id, entity['object_id'])).fetchall()
+    net_counts = {row['signal_type']: row['count'] for row in connections}
     return {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(snapshot),
             'instance': {'object_id': entity['object_id'], 'name': entity['name'],
                          'native_name': entity['name'].replace('\\', ''),
@@ -62,6 +76,10 @@ def instance_engineering(store, snapshot_id, identifier):
                          **placement_geometry(physical, snapshot['run_summary']['dbu_per_micron'], attr.get('orientation')),
                          'total_pin_count': counts['object_count'],
                          'signal_pin_count': groups.get('SIGNAL', 0),
+                         'distinct_connected_net_count': sum(net_counts.values()),
+                         'distinct_signal_net_count': net_counts.get('SIGNAL', 0),
+                         'distinct_net_counts_by_signal_type': [dict(row) for row in connections],
+                         'net_count_basis': 'distinct native net IDs connected to this instance; shared pin connections counted once',
                          'pin_counts_by_connected_net_type': [{'signal_type': key, 'count': value}
                              for key, value in groups.items()],
                          'unclassified_pin_count': groups.get(None, 0),
@@ -241,6 +259,8 @@ def path_engineering(store, snapshot_id, path_id, query):
                        ('path_id', 'startpoint', 'endpoint', 'check', 'group', 'slack',
                         'required_time', 'source_clock', 'target_clock', 'unit')},
               'data_path_pin_count': len(points), 'instance_count': len(instances),
+              'data_pin_names': [p.get('pin_name') for p in points],
+              'data_pin_names_scope': 'complete source_path sequence in report order, preserving repeated pins; independent of point pagination',
               'net_count': len(nets), 'master_counts': dict(sorted(masters.items())),
               'instance_bbox_union': _bbox_union([r['bbox'] for r in instances if r['bbox']]),
               'dbu_per_micron': snapshot.get('run_summary', {}).get('dbu_per_micron'),

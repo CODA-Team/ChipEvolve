@@ -11,17 +11,20 @@ def metadata_view(payload, query, path):
         raise ValueError('metadata detail must be summary|full')
     fields = query.get('fields')
     if fields:
-        result = {}
+        selection = {}
         for field in sorted(fields.split(','), key=lambda field: field.count('.')):
             parts = field.split('.')
-            source, target = payload, result
-            for part in parts:
-                if not isinstance(source, dict) or part not in source:
-                    raise ValueError('unknown metadata field: ' + field)
-                source = source[part]
+            if any(not part for part in parts):
+                raise ValueError('unknown metadata field: ' + field)
+            target = selection
             for part in parts[:-1]:
-                target = target.setdefault(part, {})
-            target[parts[-1]] = deepcopy(source)
+                child = target.setdefault(part, {})
+                if child is None:
+                    break  # An explicitly selected parent already includes its children.
+                target = child
+            else:
+                target[parts[-1]] = None
+        result = _selected_metadata(payload, selection)
         result['snapshot'] = {**snapshot_identity(payload.get('snapshot', {})),
                               **result.get('snapshot', {})}
         result['evidence'] = payload.get('evidence', payload.get('snapshot', {}).get('source_artifacts', []))[:1]
@@ -62,6 +65,21 @@ def metadata_view(payload, query, path):
         result['delivery']['evidence_count'] = len(result['evidence'])
         result['delivery']['evidence_details'] = path + '?detail=full'
         result['evidence'] = result['evidence'][:1]
+    return result
+
+
+def _selected_metadata(value, selection, prefix=''):
+    """Apply the same field selection through dictionaries and ordered list items."""
+    if selection is None:
+        return deepcopy(value)
+    if isinstance(value, list):
+        return [_selected_metadata(item, selection, prefix) for item in value]
+    result = {}
+    for key, children in selection.items():
+        field = prefix + key
+        if not isinstance(value, dict) or key not in value:
+            raise ValueError('unknown metadata field: ' + field)
+        result[key] = _selected_metadata(value[key], children, field + '.')
     return result
 
 

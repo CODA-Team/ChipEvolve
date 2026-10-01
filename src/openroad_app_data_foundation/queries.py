@@ -870,6 +870,7 @@ def read_evidence(store: DataStore, snapshot_id: str, record_type: str,
             "sha256": entry.get("sha256"),
             "locator": entry.get("locator"),
             "detail": entry.get("detail"),
+            **{key: entry.get(key) for key in ('run_id', 'attempt_id', 'stage', 'category')},
         }
         if source is not None and hashlib.sha256(source["payload"]).hexdigest() != source["sha256"]:
             # the stored digest is a claim about the bytes; check the bytes
@@ -898,6 +899,15 @@ def read_evidence(store: DataStore, snapshot_id: str, record_type: str,
         "snapshot_id": snapshot_id, "record_type": record_type, "record_id": record_id,
         "fragments": fragments, "available": available, "returned": len(fragments),
     }
+    productions = {}
+    for entry in entries:
+        run, attempt = entry.get('run_id'), entry.get('attempt_id')
+        if run is not None and attempt is not None:
+            productions.setdefault((run, attempt), []).append(entry.get('logical_path'))
+    result['source_productions'] = [{'run_id': run, 'attempt_id': attempt,
+        'logical_paths': sorted({path for path in paths if path is not None})}
+        for (run, attempt), paths in productions.items()]
+    result['production_basis'] = 'literal source run/attempt IDs; different files from one attempt are not independent executions'
     if not fragments:
         raise KeyError(f"no evidence for {record_type}/{record_id}")
     return result
