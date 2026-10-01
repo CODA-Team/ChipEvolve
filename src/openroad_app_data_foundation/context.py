@@ -269,8 +269,20 @@ def _summarize(pack: dict[str, Any], target_id: str | None,
     timing = pack.get("timing_context")
     if isinstance(timing, dict):
         for point in timing.get("points") or []:
-            if isinstance(point, dict):
-                point.pop("evidence", None)
+            if not isinstance(point, dict):
+                continue
+            point.pop("evidence", None)
+            # The same snapshot-wide echo `_trim_identity` already removes from
+            # entities sits one level deeper on a point: 271,515 B of one
+            # 388,983 B point list was ``design_id``/``revision_id``/
+            # ``snapshot_id``/``canonical_basis``/``matching_status`` repeated per
+            # reference, and the point itself already carries pin_id, instance_id
+            # and net_id.  ``detail=full`` and GET /objects/{id} keep them.
+            references = point.get("identity_references")
+            if isinstance(references, dict):
+                point["identity_references"] = {
+                    key: _trim_identity(value) if isinstance(value, dict) else value
+                    for key, value in references.items()}
         _bound_points(pack, timing, snapshot_id, target_id, target_type)
     for collection in ("entities", "physical_context", "relations", "observations"):
         for row in pack.get(collection, []):

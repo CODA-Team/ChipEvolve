@@ -462,11 +462,40 @@ class DataStore:
                 "coverage": snapshot.get("coverage", {})}
 
     def run_summary_for_run(self, run_id: str) -> dict[str, Any]:
-        """Return all indexed stage snapshots belonging to one execution run."""
+        """Return all indexed stage snapshots belonging to one execution run.
+
+        A run this store has never seen used to answer ``status: available`` with an
+        empty snapshot list, which reads exactly like a run whose stages were all
+        skipped.  An agent asking "what is in run X" could not tell "X does not
+        exist here" from "X is empty", and the question bank has cases where the
+        right answer is to refuse attribution to another run rather than return
+        the nearest thing.  The caller now gets ``run_found`` plus the designs the
+        run covers, so attribution is checkable and absence is explicit.
+        """
         snapshots = self.snapshots(run_id=run_id)
-        return {"run_id": run_id, "snapshots": [
-            self.run_summary(item["snapshot_id"]) for item in snapshots
-        ]}
+        designs: list[str] = []
+        revisions: list[str] = []
+        for item in snapshots:
+            if item.get("design_id") and item["design_id"] not in designs:
+                designs.append(item["design_id"])
+            if item.get("revision_id") and item["revision_id"] not in revisions:
+                revisions.append(item["revision_id"])
+        if not snapshots:
+            # Answering `available` with an empty list looked exactly like a run
+            # whose every stage was skipped.  404 with the reason is the honest
+            # signal, and the question bank needs it: one class of question wants
+            # the caller to refuse attributing another run's evidence, which it
+            # cannot do if a missing run looks like an empty one.
+            raise KeyError(
+                f"run not found: {run_id} has no snapshot in this store "
+                f"(it may exist in the execution service but was never imported)")
+        return {"run_id": run_id,
+                "run_found": True,
+                "design_id": designs[0] if len(designs) == 1 else designs,
+                "revision_id": revisions[0] if len(revisions) == 1 else revisions,
+                "snapshots": [
+                    self.run_summary(item["snapshot_id"]) for item in snapshots
+                ]}
 
     def find_instance(self, snapshot_id: str, name: str) -> list[dict[str, Any]]:
         """Find instances by an exact canonical or hierarchical name."""
