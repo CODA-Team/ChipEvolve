@@ -281,7 +281,8 @@ class Handler(BaseHTTPRequestHandler):
                 return routing_totals(store, parts[1])
             if len(parts) == 3 and parts[2] == 'run-inventory':
                 payload = run_inventory(store, parts[1], self.native_root, stage=query.get('stage'),
-                                        metric_names=tuple(query.get('metrics', '').split(',')) if query.get('metrics') else ())
+                                        metric_names=tuple(query.get('metrics', '').split(',')) if query.get('metrics') else (),
+                                        metric_contains=tuple(query.get('metric_name_contains', '').split(',')) if query.get('metric_name_contains') else ())
                 return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 3 and parts[2] == 'help':
                 return api_help(store, parts[1], query)

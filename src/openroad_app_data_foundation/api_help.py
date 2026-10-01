@@ -19,6 +19,9 @@ already recorded in an original metric file. Never silently substitute an earlie
 Add metrics=<exact raw key or consecutive namespace components, comma separated> to return literal matching values from each
 original report. Components such as hold, instance or setup__ws match entire component sequences, including keys carrying
 a corner suffix. ALL matching corners remain separately labeled. Selected reports include literal unit_declarations.
+When only part of a metric name is known, metric_name_contains=<comma-separated substrings>
+selects matching original keys case-insensitively, with values/units/source and all literal corners.
+Combine with stage and fields to avoid reading whole JSON files. It ORs with exact metrics selectors.
 For example metrics=instance__area retrieves recorded cell area;
 each substage stays separately identified, including an empty match in a report that does not declare that quantity.
 Use it to distinguish original availability from index coverage; no indexed snapshot does not mean no original file.

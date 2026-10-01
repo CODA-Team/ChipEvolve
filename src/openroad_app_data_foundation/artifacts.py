@@ -90,7 +90,7 @@ def _native_file(path: Path, relative: str) -> dict:
             "modified": int(stat.st_mtime)}
 
 
-def _metric_inventory(store, snapshot_id, path, root, manifest, metric_names=()):
+def _metric_inventory(store, snapshot_id, path, root, manifest, metric_names=(), metric_contains=()):
     relative = path.relative_to(root).as_posix()
     text, offset = [], 0
     while True:
@@ -108,12 +108,13 @@ def _metric_inventory(store, snapshot_id, path, root, manifest, metric_names=())
             'has_timing': any('timing__' in key for key in metrics),
             'has_area': any('instance__area' in key for key in metrics),
             'has_wirelength': any('wirelength' in key for key in metrics)}
-    if metric_names:
+    if metric_names or metric_contains:
         result['metric_values'] = [{'raw_key': key, 'value': value, 'source': relative}
             for key, value in metrics.items()
-            if any(key == name or '__' + name + '__' in '__' + key + '__' for name in metric_names)]
+            if (any(key == name or '__' + name + '__' in '__' + key + '__' for name in metric_names)
+                or any(term.casefold() in key.casefold() for term in metric_contains))]
         result['value_basis'] = 'literal original report values; substage identity is preserved'
-        result['metric_selector_basis'] = 'exact raw key or consecutive namespace components; all matching corners retained'
+        result['metric_selector_basis'] = 'exact raw key/component selectors OR case-insensitive name substrings; all matching corners retained'
         result['unit_declarations'] = {key: value for key, value in metrics.items()
                                        if '__flow__platform__' in key and key.endswith('_units')}
         log = path.with_suffix('.log')
@@ -126,7 +127,7 @@ def _metric_inventory(store, snapshot_id, path, root, manifest, metric_names=())
     return result
 
 
-def run_inventory(store, snapshot_id, root, *, stage=None, metric_names=()):
+def run_inventory(store, snapshot_id, root, *, stage=None, metric_names=(), metric_contains=()):
     """Original flow outputs and metric availability, separately from indexed snapshots."""
     snapshot = store.snapshot(snapshot_id)
     directories = _run_dirs(snapshot, Path(root))
@@ -161,7 +162,7 @@ def run_inventory(store, snapshot_id, root, *, stage=None, metric_names=()):
             item[field] = {'relative_path': relative, 'size_bytes': path.stat().st_size,
                            **manifest.get(relative, {})}
             if category == 'logs':
-                item[field] = _metric_inventory(store, snapshot_id, path, root, manifest, metric_names)
+                item[field] = _metric_inventory(store, snapshot_id, path, root, manifest, metric_names, metric_contains)
         directory = directories['logs']['path']
         item['metric_reports'] = []
         if directory is not None:
@@ -169,7 +170,7 @@ def run_inventory(store, snapshot_id, root, *, stage=None, metric_names=()):
                 if path.name == metric and item['original_metrics'] is not None:
                     entry = item['original_metrics']
                 else:
-                    entry = _metric_inventory(store, snapshot_id, path, root, manifest, metric_names)
+                    entry = _metric_inventory(store, snapshot_id, path, root, manifest, metric_names, metric_contains)
                 item['metric_reports'].append(entry)
         item['availability'] = 'available' if item['original_database'] else 'not_produced'
         stages.append(item)
