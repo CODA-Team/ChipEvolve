@@ -117,6 +117,8 @@ def project_run(store: DataStore, snapshots: list[dict[str, Any]]) -> dict[str, 
                 "value": row.get("value"),
                 "stage": stage,
                 "snapshot_id": snapshot_id,
+                "scene": (row.get("context") or {}).get("scene")
+                if isinstance(row.get("context"), dict) else None,
                 "analysis": (row.get("context") or {}).get("analysis")
                 if isinstance(row.get("context"), dict) else None,
                 "evidence": row.get("evidence", []),

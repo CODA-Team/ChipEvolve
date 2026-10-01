@@ -209,11 +209,14 @@ def list_metrics_for_run(store: DataStore, run_id: str,
         "filters": filters,
     }
     if str(query.get("include_raw", "")).lower() in {"1", "true", "yes"}:
-        raw = projection["raw_metrics"]
-        if filters.get("stage"):
-            raw = [row for row in raw if row.get("stage") == filters["stage"]]
-        result["raw_metrics"] = raw[offset:offset + limit]
+        raw = [row for row in projection["raw_metrics"] if _metric_matches(row, filters)]
+        raw_page = raw[offset:offset + limit]
+        result["raw_metrics"] = raw_page
         result["raw_metric_count"] = len(raw)
+        result["raw_metrics_page"] = _page(len(raw), len(raw_page), limit, offset)
+        result["truncated"] = result["truncated"] or result["raw_metrics_page"]["truncated"]
+        if result["next_offset"] is None:
+            result["next_offset"] = result["raw_metrics_page"]["next_offset"]
     return result
 
 
