@@ -30,6 +30,7 @@ from .queries import (
     list_observations,
     list_timing_paths,
     list_timing_points,
+    path_nets,
     path_points,
     timing_path,
 )
@@ -223,13 +224,13 @@ class Handler(BaseHTTPRequestHandler):
                 name = query.get("name")
                 if not name:
                     return list_objects(self.store, parts[1], {**query, "kind": "instance"})
-                return {"snapshot_id": parts[1],
+                return {"snapshot_id": parts[1], "snapshot": store.snapshot(parts[1]),
                         "instances": store.find_instance(parts[1], name)}
             if len(parts) == 3 and parts[2] == "nets":
                 name = query.get("name")
                 if not name:
                     return list_objects(self.store, parts[1], {**query, "kind": "net"})
-                return {"snapshot_id": parts[1],
+                return {"snapshot_id": parts[1], "snapshot": store.snapshot(parts[1]),
                         "nets": store.find_net(parts[1], name)}
             if len(parts) >= 4 and parts[2] == "timing-paths":
                 snapshot_id, path_id = parts[1], parts[3]
@@ -237,6 +238,8 @@ class Handler(BaseHTTPRequestHandler):
                     return timing_path(self.store, snapshot_id, path_id)
                 if len(parts) == 5 and parts[4] == "points":
                     return path_points(self.store, snapshot_id, path_id, query)
+                if len(parts) == 5 and parts[4] == "nets":
+                    return path_nets(self.store, snapshot_id, path_id, query)
                 if len(parts) == 5 and parts[4] == "context":
                     return timing_path_context(
                         self.store, snapshot_id, path_id,
@@ -272,7 +275,8 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) == 5 and parts[2] == "nets" and parts[4] == "expand":
                 return store.expand_net(parts[1], parts[3])
             if len(parts) == 4 and parts[2] == "physical":
-                return {"physical_context": store.physical(parts[1], parts[3])}
+                return {"snapshot_id": parts[1], "snapshot": store.snapshot(parts[1]),
+                        "physical_context": store.physical(parts[1], parts[3])}
         raise KeyError("not found")
 
     def _read_body(self) -> dict[str, Any]:

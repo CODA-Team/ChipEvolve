@@ -381,7 +381,6 @@ class DataStore:
                 raise ContractError(
                     f"duplicate record identity in {snapshot_id}") from exc
             raise ContractError(f"snapshot already exists: {snapshot_id}") from exc
-        self._store_pack_fragments(snapshot_id, pack)
         return {"snapshot": snapshot, "record_counts": counts}
 
     def _write_records(self, snapshot_id: str, record_type: str,
@@ -493,11 +492,6 @@ class DataStore:
                 "(snapshot_id, logical_path, sha256, payload) VALUES (?, ?, ?, ?)",
                 (snapshot_id, logical_path, hashlib.sha256(payload).hexdigest(),
                  sqlite3.Binary(payload)))
-
-    def _store_pack_fragments(self, snapshot_id: str, pack: Mapping[str, Any]) -> None:
-        values = pack.get("fragment_sources")
-        if isinstance(values, dict) and values:
-            self.store_fragments(snapshot_id, values)
 
     def imported(self, artifact_id: str) -> bool:
         return self.connection.execute(

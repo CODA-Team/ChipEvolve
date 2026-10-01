@@ -326,6 +326,46 @@ def path_points(store: DataStore, snapshot_id: str, path_id: str, query: dict[st
             "timing_points": page, **_page(len(points), len(page), limit, offset)}
 
 
+def path_nets(store: DataStore, snapshot_id: str, path_id: str,
+              query: dict[str, str]) -> dict[str, Any]:
+    """The nets one timing path touches, deduplicated, busiest first.
+
+    "Which net on this path has the most fanout" is a fact about the path, but
+    answering it used to cost every point (190 on an ariane path, ~280 KB) plus a
+    lookup per distinct net (337 calls on the design's busiest net).  The points
+    still name their nets and that is where this reads them, but what comes back
+    is the answer's inputs - net, fanout, driver - not the raw rows.  Sorted by
+    fanout descending, so the first row is the one the question asks for and a
+    page of 20 settles it.
+    """
+    detail = timing_path(store, snapshot_id, path_id, points_limit=0)
+    net_ids: list[str] = []
+    for point in detail["timing_points"]:
+        net_id = point.get("net_id")
+        if isinstance(net_id, str) and net_id not in net_ids:
+            net_ids.append(net_id)
+    by_id = {row.get("object_id"): row
+             for row in store.entities_by_ids(snapshot_id, net_ids)}
+    nets = []
+    for net_id in net_ids:
+        entity = by_id.get(net_id)
+        if entity is None:
+            continue
+        attributes = entity.get("attributes") or {}
+        nets.append({"net_id": net_id, "name": entity.get("name"),
+                     "fanout": attributes.get("fanout"),
+                     "driver_id": attributes.get("driver_id"),
+                     "driver_count": attributes.get("driver_count")})
+    nets.sort(key=lambda row: (row["fanout"] is None, -(row["fanout"] or 0),
+                               str(row["net_id"])))
+    limit, offset = _limit(query), _offset(query)
+    page = nets[offset:offset + limit]
+    return {"snapshot_id": snapshot_id, "snapshot": store.snapshot(snapshot_id),
+            "path_id": path_id, "nets": page, "count": len(nets),
+            "ordered_by": "fanout descending, then net_id",
+            **_page(len(nets), len(page), limit, offset)}
+
+
 def compare_timing_path(store: DataStore, from_snapshot_id: str,
                         to_snapshot_id: str, path_id: str,
                         to_path_id: str | None = None) -> dict[str, Any]:
