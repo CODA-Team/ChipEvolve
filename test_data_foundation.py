@@ -1374,3 +1374,34 @@ def test_violation_report_records_and_empty_final_report(tmp_path):
     empty = tmp_path / "5_route_drc.rpt"
     empty.write_text("", encoding="utf-8")
     assert _parse_report(empty, "reports/x/5_route_drc.rpt") == []
+
+
+def test_timing_query_endpoint_path_count_is_a_field_and_is_bounded():
+    """`endpoint_path_count` is the per-endpoint report option, and it is checked.
+
+    Its default keeps the old behaviour (N paths per endpoint); `1` is the
+    reference flow's protocol, where N reported paths are N distinct endpoints.
+    Validation runs before the snapshot is read, so no store is needed here.
+    """
+    from openroad_app_data_foundation.timing_queries import submit_timing_query
+
+    for bad, message in (({"endpoint_path_count": 0}, "endpoint_path_count"),
+                         ({"endpoint_path_count": 201}, "endpoint_path_count"),
+                         ({"endpoint_path_count": "1"}, "endpoint_path_count"),
+                         ({"endpoint_path_count": True}, "endpoint_path_count"),
+                         ({"endpoint_paths": 1}, "unknown timing query field")):
+        try:
+            submit_timing_query(None, None, "snap-1", bad)
+        except ValueError as exc:
+            assert message in str(exc), (bad, str(exc))
+        else:                                                # pragma: no cover
+            raise AssertionError(f"accepted {bad!r}")
+
+    # a well-formed request gets past validation and fails on the missing
+    # snapshot, i.e. the field itself is accepted
+    try:
+        submit_timing_query(None, None, "snap-1", {"path_count": 5, "endpoint_path_count": 1})
+    except AttributeError:
+        pass
+    else:                                                    # pragma: no cover
+        raise AssertionError("a valid endpoint_path_count did not reach the store")
