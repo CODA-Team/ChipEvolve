@@ -114,9 +114,21 @@ def list_timing_points(store: DataStore, snapshot_id: str,
     Points were only reachable through their path, so "which point has the worst
     slew" meant all 776 points of ibex, path by path.
     """
-    filters = {key: query[key] for key in ("path_id", "path_section") if query.get(key)}
+    names = ('path_id', 'path_section', 'pin_name', 'instance_id', 'net_id')
+    allowed = {*names, 'check', 'sort', 'order', 'fields', 'limit', 'offset'}
+    if set(query) - allowed:
+        raise ValueError('unknown timing point query fields: ' + ','.join(sorted(set(query) - allowed)))
+    filters = {key: query[key] for key in names if query.get(key)}
     where = " AND ".join(f"json_extract(payload, '$.{key}') = ?" for key in filters)
     params = list(filters.values())
+    if query.get('check'):
+        if query['check'] not in ('setup', 'hold'):
+            raise ValueError('check must be setup|hold')
+        where += (' AND ' if where else '') + """json_extract(payload, '$.path_id') IN (
+            SELECT record_id FROM records WHERE snapshot_id=? AND record_type='timing_paths'
+            AND json_extract(payload, '$.check')=?)"""
+        params.extend([snapshot_id, query['check']])
+        filters['check'] = query['check']
     total = store.count_records(snapshot_id, "timing_points", where=where, params=params)
     limit, offset = _point_limit(query), _offset(query)
     clause, ranking = _order("timing_points", query)

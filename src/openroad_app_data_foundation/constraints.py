@@ -27,11 +27,14 @@ def constraint_context(store, client, snapshot_id, query):
         raise KeyError('snapshot has no constraints source')
     text = _text(client, sdc)
     declarations = {key: [] for key in ('clocks', 'generated', 'input_delay', 'output_delay',
-                                       'uncertainty', 'latency')}
+                                       'uncertainty', 'latency', 'propagation', 'all')}
     commands = {'create_clock': 'clocks', 'create_generated_clock': 'generated',
                 'set_input_delay': 'input_delay', 'set_output_delay': 'output_delay',
-                'set_clock_uncertainty': 'uncertainty', 'set_clock_latency': 'latency'}
+                'set_clock_uncertainty': 'uncertainty', 'set_clock_latency': 'latency',
+                'set_propagated_clock': 'propagation'}
     for line in text.splitlines():
+        if line.strip() and not line.strip().startswith('#'):
+            declarations['all'].append(line.strip())
         command = line.strip().split(' ', 1)[0]
         if command in commands:
             declarations[commands[command]].append(line.strip())
@@ -88,7 +91,7 @@ def constraint_context(store, client, snapshot_id, query):
               'evidence': [sdc, *([report] if report else [])]}
     wanted = query.get('kind', 'clocks')
     if wanted not in declarations:
-        raise ValueError('kind must be clocks|generated|input_delay|output_delay|uncertainty|latency')
+        raise ValueError('kind must be clocks|generated|input_delay|output_delay|uncertainty|latency|propagation|all')
     rows = declarations[wanted]
     result.update({'kind': wanted, 'declarations': rows[offset:offset + limit],
                    **_page(len(rows), len(rows[offset:offset + limit]), limit, offset)})

@@ -301,6 +301,7 @@ def violations(store, snapshot_id: str, query: dict, root: Path) -> dict:
     page = records[offset:offset + limit]
     counts = _page(len(records), len(page), limit, offset)
     return {"snapshot_id": snapshot_id, "report": name, "tool": family["tool"],
+            "coordinate_unit": "um",
             "native_root": str(root), "directories": directories,
             "files": files, "violation_count": len(records),
             "type_counts": {record_type: sum(1 for record in records
