@@ -49,7 +49,6 @@ def timing_path_context(store: DataStore, snapshot_id: str,
     evidence: list[dict[str, Any]] = []
     seen_entities: set[str] = set()
     seen_relations: set[str] = set()
-    seen_physical: set[str] = set()
 
     for point in points:
         for object_id in _point_objects(point):
@@ -84,14 +83,12 @@ def timing_path_context(store: DataStore, snapshot_id: str,
         relations.append(relation)
     _append_related_entities(store, snapshot_id, relations, entities, seen_entities)
 
-    for entity in entities:
-        object_id = entity.get("object_id")
-        if not isinstance(object_id, str) or object_id in seen_physical:
-            continue
-        rows = store.records(snapshot_id, "physical_context", record_id=object_id, limit=1)
-        if rows:
-            seen_physical.add(object_id)
-            physical.append(rows[0])
+    # Batched like the rest: this loop was one point query per entity, and a path
+    # through high-fanout nets has thousands of entities.
+    physical.extend(_physical_rows(
+        store, snapshot_id,
+        [str(row["object_id"]) for row in entities
+         if isinstance(row.get("object_id"), str)]))
 
     for item in path.get("evidence", []):
         if isinstance(item, dict):
@@ -274,6 +271,7 @@ def _summarize(pack: dict[str, Any], target_id: str | None,
         for point in timing.get("points") or []:
             if isinstance(point, dict):
                 point.pop("evidence", None)
+        _bound_points(pack, timing, snapshot_id, target_id, target_type)
     for collection in ("entities", "physical_context", "relations", "observations"):
         for row in pack.get(collection, []):
             if isinstance(row, dict):
@@ -372,6 +370,9 @@ def _continuation(field: str, snapshot_id: str | None, target_id: str | None,
             f"page returns, and /snapshots/{snapshot_id}/objects/{{object_id}} for the object"]}
     if field == "physical_context[].routing" and snapshot_id and target:
         return {"next": [f"/snapshots/{snapshot_id}/physical/{target}"]}
+    if field == "timing_context.points" and snapshot_id and target:
+        return {"next": [f"/snapshots/{snapshot_id}/timing-paths/{target}/points"
+                         f"?limit={limit}&offset={limit}"]}
     if field == "evidence":
         return {"next": [
             "/snapshots/{snapshot_id}/records/{record_type}/{record_id}/evidence for the "
@@ -414,6 +415,29 @@ def _entity_continuation(snapshot_id: str | None, target: str | None,
         f"/snapshots/{snapshot_id}/timing-paths/{target}/points?limit={limit}&offset=0",
         f"then /snapshots/{snapshot_id}/objects?connected_to={{net_id}}&limit={limit}&offset=0 "
         f"for each net_id on that page, skipping ids already returned"]}
+
+
+def _bound_points(pack: dict[str, Any], timing: dict[str, Any], snapshot_id: str | None,
+                  target_id: str | None, target_type: str | None) -> None:
+    """Sample the path's own points: the one collection that grows with the path.
+
+    190 points were 388,983 B of a 628,423 B pack - 62% of the answer - while the
+    questions those paths were fetched for needed the nets they name, not all of
+    them.  ``/timing-paths/{id}/points`` is already a paged tool, so the sample is
+    bounded and the rest is one request away.
+    """
+    points = timing.get("points")
+    if not isinstance(points, list) or len(points) <= FIRST_SCREEN_LIMIT:
+        return
+    timing["points"] = points[:FIRST_SCREEN_LIMIT]
+    timing["points_returned"] = FIRST_SCREEN_LIMIT
+    timing["points_total"] = len(points)
+    pack.setdefault("limitations", []).append({
+        "field": "timing_context.points", "status": "truncated",
+        "returned": FIRST_SCREEN_LIMIT, "total": len(points),
+        "next_offset": FIRST_SCREEN_LIMIT,
+        **_continuation("timing_context.points", snapshot_id, target_id, target_type,
+                        FIRST_SCREEN_LIMIT, FIRST_SCREEN_LIMIT, None)})
 
 
 def _bound_routing(pack: dict[str, Any], record: dict[str, Any],

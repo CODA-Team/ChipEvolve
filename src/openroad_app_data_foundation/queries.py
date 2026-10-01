@@ -114,7 +114,10 @@ def list_observations(store: DataStore, snapshot_id: str,
         _observation_value(row, key) == value for key, value in filters.items())]
     limit, offset = _limit(query), _offset(query)
     page = rows[offset:offset + limit]
-    return {"snapshot_id": snapshot_id, "observations": page,
+    snapshot = store.snapshot(snapshot_id)
+    return {"snapshot_id": snapshot_id, "design_id": snapshot["design_id"],
+            "revision_id": snapshot["revision_id"], "run_id": snapshot["run_id"],
+            "stage": snapshot["stage"], "observations": page,
             **_page(len(rows), len(page), limit, offset), "filters": filters}
 
 
@@ -127,7 +130,8 @@ def list_metrics_for_run(store: DataStore, run_id: str,
     its original key in ``raw_metrics`` (``include_raw=1``) so the response
     stays small by default.
     """
-    projection = project_run(store, store.snapshots(run_id=run_id))
+    snapshots = store.snapshots(run_id=run_id)
+    projection = project_run(store, snapshots)
     filters = {key: query[key]
                for key in ("stage", "name", "scene", "snapshot_id")
                if query.get(key)}
@@ -136,6 +140,15 @@ def list_metrics_for_run(store: DataStore, run_id: str,
     page = rows[offset:offset + limit]
     result: dict[str, Any] = {
         "run_id": run_id, "metrics": page,
+        # A metric key is the same string on every design - `WNS`,
+        # `globalroute__timing__setup__ws` - and the numbers look plausible in
+        # both, so the response must say whose numbers these are.  The scope is
+        # read from the run's own snapshots, and a run covering more than one
+        # design or stage reports the list rather than picking one.
+        "design_id": _one_or_all({item["design_id"] for item in snapshots}),
+        "revision_id": _one_or_all({item["revision_id"] for item in snapshots}),
+        "stage": filters.get("stage") or _one_or_all(
+            {item["stage"] for item in snapshots}),
         **_page(len(rows), len(page), limit, offset),
         "canonical_names": sorted(CANONICAL_METRICS),
         # Scope this to the rows the response actually covers.  Reporting the
@@ -153,6 +166,12 @@ def list_metrics_for_run(store: DataStore, run_id: str,
         result["raw_metrics"] = raw[offset:offset + limit]
         result["raw_metric_count"] = len(raw)
     return result
+
+
+def _one_or_all(values: set[str]) -> Any:
+    """The single value, or every value when the run itself does not agree."""
+    ordered = sorted(values)
+    return ordered[0] if len(ordered) == 1 else (ordered or None)
 
 
 def _metric_matches(row: dict[str, Any], filters: dict[str, str]) -> bool:
