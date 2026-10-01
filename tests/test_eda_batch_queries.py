@@ -43,6 +43,27 @@ def api(tmp_path, request):
         database.close()
 
 
+def test_catalog_filters_real_query_origins_before_projection_in_batches(api):
+    base, handler = api
+    for identifier, parent in [('query-chip-flow-stage', None), ('s-query-0123456789ab', None),
+                               ('separately-created-path', 's')]:
+        handler.store.register({'snapshot': {'snapshot_id': identifier, 'design_id': 'chip',
+            'revision_id': 'r', 'run_id': 'run', 'stage': 'finish', 'created_at': '2026-10-02'},
+            'run_summary': {'timing_context': {'parent_snapshot_id': parent}}})
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    def ids(origin):
+        data = json.load(opener.open(base + '/snapshots?origin=' + origin + '&fields=snapshot_id'))['data']
+        return {row['snapshot_id'] for row in data['snapshots']}
+    assert ids('flow') == {'s', 'query-chip-flow-stage'}
+    assert ids('query') == {'s-query-0123456789ab', 'separately-created-path'}
+    assert ids('all') == ids('flow') | ids('query')
+    request = urllib.request.Request(base + '/query', data=json.dumps({
+        'requests': ['/snapshots?origin=flow&fields=snapshot_id']}).encode(), method='POST',
+        headers={'Content-Type': 'application/json'})
+    rows = json.load(opener.open(request))['results'][0]['data']['snapshots']
+    assert {row['snapshot_id'] for row in rows} == ids('flow')
+
+
 def test_metric_and_snapshot_batch_matches_individual_queries_without_write_lock(api):
     base, handler = api
     paths = ['/snapshots?fields=snapshot_id', '/snapshots/s/summary',
