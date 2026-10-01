@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import threading
 import urllib.parse
+from contextlib import nullcontext
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -139,15 +140,17 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/query":
                 requests = self._read_body().get("requests")
                 if not isinstance(requests, list) or not 1 <= len(requests) <= 20 or not all(
-                        isinstance(path, str) and path.startswith("/snapshots/") and
+                        isinstance(path, str) and (path.split('?', 1)[0] == '/snapshots' or
+                            path.startswith(("/snapshots/", "/runs/"))) and
                         not urllib.parse.urlparse(path).netloc for path in requests):
-                    raise ValueError("requests must contain 1 to 20 snapshot query paths")
+                    raise ValueError("requests must contain 1 to 20 local snapshot/run query paths")
                 results = []
-                with self.request_lock:
+                with (self.read_pool.connection() if self.read_pool is not None
+                      else nullcontext(self.store)) as store:
                     for path in requests:
                         parsed = urllib.parse.urlparse(path)
                         query = {k: v[0] for k, v in urllib.parse.parse_qs(parsed.query).items()}
-                        results.append(envelope(parsed.path, query, self._get(parsed.path, query)))
+                        results.append(envelope(parsed.path, query, self._get(parsed.path, query, store)))
                 self._send(200, {"results": results})
                 return
             if self.path == "/snapshots/from-run":

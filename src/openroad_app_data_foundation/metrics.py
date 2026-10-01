@@ -38,7 +38,7 @@ CANONICAL_METRICS: dict[str, dict[str, Any]] = {
     "SETUP_VIOLATIONS": {"raw_keys": ("timing__drv__setup_violation_count",),
                          "unit_family": "count", "kind": "timing", "analysis": "setup"},
     "AREA": {"raw_keys": ("design__instance__area",), "unit_family": "area",
-             "kind": "physical", "quantity_scope": "source-reported cell instance area; not die/core footprint"},
+             "kind": "physical", "quantity_scope": "source-reported cell instance area; filler area excluded; not die/core footprint or the sum of all master footprints"},
     "STDCELL_COUNT": {"raw_keys": ("design__instance__count__stdcell",),
                       "unit_family": "count", "kind": "design",
                       "quantity_scope": "source standard-cell classification; filler/tap class counts are separate facts"},
