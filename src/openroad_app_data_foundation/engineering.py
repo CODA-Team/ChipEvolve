@@ -103,13 +103,13 @@ def object_statistics(store, snapshot_id, query):
                   'master_type': '$.attributes.master_type',
                   'signal_type': '$.attributes.signal_type',
                   'driver_count': '$.attributes.driver_count',
-                  'direction': '$.attributes.direction'}
+                  'direction': '$.attributes.direction', 'is_macro': '$.attributes.is_macro'}
     group = query.get('group_by', 'kind')
     if group not in dimensions:
-        raise ValueError('group_by must be kind|master|master_type|signal_type|driver_count|direction')
+        raise ValueError('group_by must be kind|master|master_type|signal_type|driver_count|direction|is_macro')
     store.snapshot(snapshot_id)
     filters, values = ['snapshot_id = ?', "record_type = 'entities'"], [snapshot_id]
-    where, params = object_filter(snapshot_id, query)
+    where, params = object_filter(store, snapshot_id, query)
     if where:
         filters.append(where)
         values.extend(params)
@@ -130,6 +130,8 @@ def object_statistics(store, snapshot_id, query):
     return {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(store.snapshot(snapshot_id)),
             'group_by': group, 'object_count': sum(row['count'] for row in groups),
             'groups': groups[offset:offset + limit],
+            'evidence': [ref for ref in store.snapshot(snapshot_id).get('source_artifacts', [])
+                         if ref.get('category') == 'raw_design_database'],
             **_page(len(groups), len(groups[offset:offset + limit]), limit, offset)}
 
 

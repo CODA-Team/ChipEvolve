@@ -31,7 +31,8 @@ For DBU use S/summary?fields=run_summary.dbu_per_micron; for original inputs use
 S?fields=snapshot.source_artifacts,snapshot.run_summary.timing_context.producer.
 Default metadata omits repeated full manifests; delivery.full_details retrieves everything. Use exact fields when possible.
 
-S/source-metadata includes toolchain_receipt, timing_context, original_inputs and original_metric_scenarios.
+S/source-metadata includes toolchain_receipt, timing_context, original_inputs, original_metric_scenarios and units.
+units separates interface SI/dbu values from literal original stage UI declarations, with sources.
 original_metric_scenarios reads literal corner names from original metric keys, separately from the declared snapshot corner label.
 Use fields=configuration,libraries,spef,timing_context (or other comma-separated top-level fields) for only needed sections.
 Metadata detail=full retains all original sections. Receipt self-reported version "unknown" stays unknown.
@@ -46,7 +47,7 @@ and complete pin counts grouped by connected-net type in one call. Unconnected p
 S/objects supports kind=instance|net|pin, name (exact), name_contains, name_prefix, ids=<comma-separated up to100 IDs>, parent_id, master, is_macro=0|1,
 signal_type=SIGNAL|CLOCK|POWER|GROUND, port=0|1, driver_count/min/max, port_driven=0|1,
 connected_to=<net id>&net_role=driver|load; sort=name|fanout|bbox_area&order=asc|desc;
-region=xmin,ymin,xmax,ymax (dbu) with intersection=positive_area|touching.
+region=xmin,ymin,xmax,ymax with region_units=dbu|um (default dbu) and intersection=positive_area|touching.
 Pin attributes include pin_name (local), native_name (full), net_name/net_id and signal_type of the connected native net; CLOCK is excluded from SIGNAL.
 Use fields=object_id,name,attributes.pin_name,attributes.direction,attributes.net_name,attributes.signal_type for compact pins;
 fields=object_id,name,attributes.master,attributes.fanout is compact for instances/nets. Omit fields to get full facts including geometry; limit/offset and next_offset page complete lists.
@@ -55,7 +56,10 @@ kind=instance&is_macro=1&sort=name&limit=200&include_physical=1&fields=name,attr
 Physical bbox_um is a named x_min/y_min/x_max/y_max box. This avoids per-object geometry operations and repeated evidence.
 For largest macro use S/objects?kind=instance&is_macro=1&sort=bbox_area&order=desc&limit=1; ties use name descending.
 S/objects/statistics accepts the SAME filters as objects and gives complete aggregation over matching objects;
-group_by=master|kind|master_type|signal_type|driver_count|direction. For example kind=pin&parent_id=<instance>&group_by=signal_type
+group_by=master|kind|master_type|signal_type|driver_count|direction|is_macro. For regional counts use
+kind=instance&group_by=is_macro&region=<xmin,ymin,xmax,ymax>&region_units=um&intersection=positive_area:
+object_count counts ALL matching instances; group value 1 counts macros, 0 nonmacros, null unclassified.
+For example kind=pin&parent_id=<instance>&group_by=signal_type
 returns distinct SIGNAL/CLOCK/POWER/GROUND counts; never infer SIGNAL by merely excluding power.
 
 Engineering instance names preserve the stored name and also provide native_name without DEF escapes.
@@ -103,7 +107,9 @@ and are distinct from those file paths. A virtual clock has no source ports/pins
 kind=propagation returns clock propagation statements; kind=all pages every original non-comment SDC line
 in original order, including statements beyond named-clock creation. Read later matching declarations too.
 ''',
-    'physical': '''S/physical/<object_id>?routing_limit=1 gives location_dbu/location_um, orientation and bbox (dbu/um), or pageable routing with routing_offset;
+    'physical': '''S/pins/<native name or id>/engineering gives original native pin position and bbox in dbu/um, source and getter basis.
+ITerm uses getAvgXY; BTerm uses getFirstPinLocation. Check position_success; a failed getter has no coordinate value.
+S/physical/<object_id>?routing_limit=1 gives location_dbu/location_um, orientation and bbox (dbu/um), or pageable routing with routing_offset;
 location_basis explicitly identifies dbInst.getLocation. Objects with include_physical=1 carry the same location fields;
 use these extracted placement facts rather than requerying dbInst.getOrigin for a different coordinate definition.
 routing_limit=0 returns all geometry. S/nets/<net_id>/routing-summary gives full layer/via/centerline totals, wirelength_um and via_distribution_by_layer (each via counted on BOTH bottom and top layers).
@@ -124,6 +130,10 @@ Relative run sources are results|logs|reports/nangate45/<design>/{variant}/<file
 S/sources/<artifact_id>/excerpt?offset=...&max_bytes=... reads attached originals; next_offset continues.
 S/records/<record_type>/<record_id>/fragments retrieves original fragment evidence.
 GET /runs/<run_id>/metrics?stage=finish&name=WNS filters a specific canonical metric; omit name for all metrics in that stage.
+Use names=WS,WNS,TNS,HOLD_WS,HOLD_WNS,HOLD_TNS to get several exact names in one operation.
+name_contains matches canonical names or original keys; include_raw=1 includes literal original metrics.
+fields=name,value,unit,raw_key,value_basis,corner,status selects compact rows with deduplicated evidence at top level.
+requested_names/missing_names refer to the full matching set, not just this page; next_offset continues pages.
 GET /runs/<run_id>/metrics?include_raw=1 provides canonical and original metric keys.
 The same name/stage/snapshot_id/scene filters apply to original keys. Request one exact raw key or canonical
 STDCELL_COUNT/MACRO_COUNT/AREA/STDCELL_AREA/MACRO_AREA instead of reading an entire metric inventory.

@@ -1,5 +1,6 @@
 """Bounded object discovery over the same immutable snapshot records."""
 import math
+from decimal import Decimal
 from .identity import snapshot_identity
 from .queries import _limit, _offset, _page
 from .repository import name_variants
@@ -10,11 +11,11 @@ from .repository import name_variants
 BATCH_ID_LIMIT = 100
 
 
-def object_filter(snapshot_id, query):
+def object_filter(store, snapshot_id, query):
     """Shared complete filter semantics for pages and server-side aggregation."""
     allowed = {'kind', 'parent_id', 'master', 'driver_count', 'signal_type', 'name',
                'name_contains', 'name_prefix', 'driver_min', 'driver_max', 'port_driven',
-               'port', 'is_macro', 'region', 'intersection', 'ids', 'connected_to',
+               'port', 'is_macro', 'region', 'region_units', 'intersection', 'ids', 'connected_to',
                'net_role', 'sort', 'order', 'limit', 'offset', 'fields', 'group_by', 'include_physical'}
     unknown = set(query) - allowed
     if unknown:
@@ -77,7 +78,13 @@ def object_filter(snapshot_id, query):
     if query.get('region'):
         box = [float(x) for x in query['region'].split(',')]
         if len(box) != 4 or not all(math.isfinite(x) for x in box) or box[0] > box[2] or box[1] > box[3]:
-            raise ValueError('region must be xmin,ymin,xmax,ymax in database units')
+            raise ValueError('region must be finite xmin,ymin,xmax,ymax in the selected region_units')
+        unit = query.get('region_units', 'dbu')
+        if unit not in ('dbu', 'um'):
+            raise ValueError('region_units must be dbu|um')
+        if unit == 'um':
+            scale = store.snapshot(snapshot_id)['run_summary']['dbu_per_micron']
+            box = [float(Decimal(value) * scale) for value in query['region'].split(',')]
         mode = query.get('intersection', 'touching')
         if mode not in ('touching', 'positive_area'):
             raise ValueError('intersection must be touching|positive_area')
@@ -138,7 +145,7 @@ def object_filter(snapshot_id, query):
 
 
 def list_objects(store, snapshot_id, query):
-    where, params = object_filter(snapshot_id, query)
+    where, params = object_filter(store, snapshot_id, query)
     if query.get('ids'):
         wanted = [item for item in query['ids'].split(',') if item]
     # The default is the stored order, which `records_lookup`

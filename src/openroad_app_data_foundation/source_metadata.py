@@ -126,6 +126,12 @@ def source_metadata(store, snapshot_id, root):
     result['evidence'] = [artifact for artifact in snapshot.get('source_artifacts', [])
                           if artifact.get('category') == 'raw_design_database']
     result['original_metric_scenarios'] = []
+    result['units'] = {
+        'interface_values': {'timing_points': 's', 'timing_load': 'F',
+            'native_geometry': 'dbu', 'dbu_per_micron': snapshot.get('run_summary', {}).get('dbu_per_micron'),
+            'power_metric': 'W'},
+        'power_basis': 'OpenSTA design_power SI Watts; original UI/library power declarations describe a different quantity',
+        'original_stage_declarations': []}
     inventory = run_inventory(store, snapshot_id, root, stage=snapshot['stage'])
     for stage in inventory['stages']:
         for report in stage['metric_reports']:
@@ -135,6 +141,9 @@ def source_metadata(store, snapshot_id, root):
                               for part in key.split('__') if part.startswith('corner:')})
             result['original_metric_scenarios'].append({'source': ref, 'corner_names': corners,
                 'basis': 'literal corner labels in this original stage metric file; distinct from snapshot labels'})
+            result['units']['original_stage_declarations'].append({'source': ref,
+                'declarations': [{'raw_key': key, 'value': value} for key, value in metrics.items()
+                                 if '__flow__platform__' in key and key.endswith('_units')]})
     result['toolchain_receipt'] = None
     if 'receipts/toolchain.json' in receipts:
         text, ref = source_text(store, snapshot_id, 'receipts/toolchain.json', root)

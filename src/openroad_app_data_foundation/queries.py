@@ -184,6 +184,14 @@ def list_metrics_for_run(store: DataStore, run_id: str,
     filters = {key: query[key]
                for key in ("stage", "name", "scene", "snapshot_id")
                if query.get(key)}
+    names = query.get('names')
+    if names is not None:
+        names = names.split(',')
+        if not 1 <= len(names) <= 32 or any(not name for name in names):
+            raise ValueError('names must contain 1 to 32 nonempty metric names')
+        filters['names'] = names
+    if query.get('name_contains'):
+        filters['name_contains'] = query['name_contains']
     rows = [row for row in projection["metrics"] if _metric_matches(row, filters)]
     limit, offset = _limit(query), _offset(query)
     page = rows[offset:offset + limit]
@@ -217,6 +225,25 @@ def list_metrics_for_run(store: DataStore, run_id: str,
         result["truncated"] = result["truncated"] or result["raw_metrics_page"]["truncated"]
         if result["next_offset"] is None:
             result["next_offset"] = result["raw_metrics_page"]["next_offset"]
+    if names is not None:
+        matching = rows + (raw if 'raw_metrics' in result else [])
+        result['requested_names'] = names
+        result['missing_names'] = [name for name in names if not any(
+            row.get('name') == name or row.get('raw_key') == name for row in matching)]
+    if query.get('fields'):
+        columns = query['fields'].split(',')
+        allowed = {'name', 'raw_key', 'value', 'raw_value', 'unit', 'status', 'reason',
+                   'value_basis', 'quantity_scope', 'stage', 'snapshot_id', 'scene',
+                   'analysis', 'check', 'corner', 'corner_status', 'canonical', 'unit_declared'}
+        if not set(columns) <= allowed:
+            raise ValueError('unknown metric projection field')
+        result['evidence'] = list({json.dumps(ref, sort_keys=True): ref
+            for key in ('metrics', 'raw_metrics') for row in result.get(key, [])
+            for ref in row.get('evidence', [])}.values())
+        for key in ('metrics', 'raw_metrics'):
+            if key in result:
+                result[key] = [{field: row.get(field) for field in columns} for row in result[key]]
+        result['fields'] = columns
     return result
 
 
@@ -226,10 +253,16 @@ def _one_or_all(values: set[str]) -> Any:
     return ordered[0] if len(ordered) == 1 else (ordered or None)
 
 
-def _metric_matches(row: dict[str, Any], filters: dict[str, str]) -> bool:
+def _metric_matches(row: dict[str, Any], filters: dict[str, Any]) -> bool:
     for key, value in filters.items():
         if key == "name":
             if row.get("name") != value and row.get("raw_key") != value:
+                return False
+        elif key == 'names':
+            if row.get('name') not in value and row.get('raw_key') not in value:
+                return False
+        elif key == 'name_contains':
+            if not any(value in str(row.get(field) or '') for field in ('name', 'raw_key')):
                 return False
         elif row.get(key) != value:
             return False
