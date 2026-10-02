@@ -74,6 +74,8 @@ Choose limit large enough when the task requires all names; counts are independe
 Add traverse=1&limit=<page size> to walk EVERY actual page internally from offset zero.
 load_traversal/driver_traversal include full pin_names, actual page ranges, first/last pages,
 returned/unique counts, missing/duplicate counts and verified name order. No count is inferred from a page.
+internal_instance_count counts distinct pin parents across all pages, excluding ports.
+For all loads and their instance count select fields=load_traversal.pin_names,load_traversal.internal_instance_count.
 fields=<dotted fields> projects this net engineering result; omitted details remain retrievable.
 S/instances/<native name or id>/engineering returns master/type, placed location, bbox, both ODB/DEF orientation names,
 and complete pin counts grouped by connected-net type in one call. Unconnected pins are explicitly unclassified.
@@ -85,7 +87,7 @@ Object boolean filters/joins accept 0/1 or false/true; invalid values are explic
 For pins, parent_instance=<native instance name> directly resolves the instance and returns its filtered pins;
 no separate object-ID lookup is needed. Use signal_type=SIGNAL&fields=name,attributes.direction,attributes.net_name.
 signal_type=SIGNAL|CLOCK|POWER|GROUND, port=0|1, driver_count/min/max, port_driven=0|1,
-connected_to=<net id>&net_role=driver|load; sort=name|fanout|bbox_area&order=asc|desc;
+connected_to=<net name or id>&net_role=driver|load; sort=name|fanout|bbox_area&order=asc|desc;
 region=xmin,ymin,xmax,ymax with region_units=dbu|um (default dbu) and intersection=positive_area|touching.
 Pin attributes include pin_name (local), native_name (full), net_name/net_id and signal_type of the connected native net; CLOCK is excluded from SIGNAL.
 Use fields=object_id,name,attributes.pin_name,attributes.direction,attributes.net_name,attributes.signal_type for compact pins;

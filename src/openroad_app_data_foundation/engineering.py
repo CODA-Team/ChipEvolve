@@ -55,12 +55,13 @@ def _connection_traversal(store, snapshot_id, net_id, role, page_size):
     rows, pages, offset, total = [], [], 0, None
     while True:
         page = list_objects(store, snapshot_id, {'kind': 'pin', 'connected_to': net_id,
-            'net_role': role, 'sort': 'name', 'fields': 'object_id,name',
+            'net_role': role, 'sort': 'name', 'fields': 'object_id,name,parent_id',
             'limit': str(page_size), 'offset': str(offset)})
         if total is not None and page['count'] != total:
             raise ValueError('connectivity changed during traversal')
         total = page['count']
-        current = [{'object_id': row['object_id'], 'name': row['name'].replace('\\', '')} for row in page['objects']]
+        current = [{'object_id': row['object_id'], 'name': row['name'].replace('\\', ''),
+                    'parent_id': row['parent_id']} for row in page['objects']]
         rows.extend(current)
         pages.append({'offset': offset, 'returned': len(current), 'next_offset': page['next_offset'],
                       'first_name': current[0]['name'] if current else None,
@@ -77,6 +78,8 @@ def _connection_traversal(store, snapshot_id, net_id, role, page_size):
     return {'page_size': page_size, 'pages_read': len(pages), 'total_count': total,
             'returned_count': len(rows), 'unique_object_count': unique_count,
             'unique_name_count': len(set(names)), 'duplicate_object_count': len(ids) - unique_count,
+            'internal_instance_count': len({row['parent_id'] for row in rows if row['parent_id'] is not None}),
+            'internal_instance_count_basis': 'distinct non-null pin parent IDs across every traversed page; ports excluded',
             'missing_object_count': total - unique_count, 'ordering_verified': ordered,
             'completed': len(rows) == total == unique_count and ordered,
             'first_page': first, 'last_page': names[last_offset:],

@@ -28,6 +28,12 @@ def object_filter(store, snapshot_id, query):
     unknown = set(query) - allowed
     if unknown:
         raise ValueError('unknown object query fields: ' + ','.join(sorted(unknown)))
+    roles = {'driver': 'driven_by', 'load': 'loads'}
+    if query.get('net_role'):
+        if query['net_role'] not in roles or not query.get('connected_to'):
+            raise ValueError('net_role must be driver|load with connected_to=<net name or id>')
+        from .engineering import _entity
+        query = {**query, 'connected_to': _entity(store, snapshot_id, query['connected_to'], 'net')['object_id']}
     filters, params = [], []
     fields = {'kind': '$.kind', 'parent_id': '$.parent_id', 'master': '$.attributes.master', 'driver_count': '$.attributes.driver_count', 'signal_type': '$.attributes.signal_type'}
     #: Query parameters arrive as text.  ``driver_count`` is a JSON *number* in the
@@ -146,9 +152,6 @@ def object_filter(store, snapshot_id, query):
         params.extend([snapshot_id, query['connected_to'],
                        snapshot_id, query['connected_to']])
     if query.get('net_role'):
-        roles = {'driver': 'driven_by', 'load': 'loads'}
-        if query['net_role'] not in roles or not query.get('connected_to'):
-            raise ValueError('net_role must be driver|load with connected_to=<net id>')
         filters.append("""record_id IN (SELECT json_extract(payload, '$.object_id') FROM records
             WHERE snapshot_id = ? AND record_type = 'relations'
             AND json_extract(payload, '$.subject_id') = ?
