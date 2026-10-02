@@ -620,6 +620,9 @@ def test_routing_summary_states_via_membership_of_both_layers(tmp_path):
     try:
         store.register(pack)
         result = routing_summary(store, 's', 'n')
+        assert routing_summary(store, 's', 'signal') == result
+        with pytest.raises(KeyError, match='net not found'):
+            routing_summary(store, 's', 'unknown-native-net')
         assert result['via_count'] == 2
         assert result['via_distribution_by_layer'] == {'metal1': 1, 'metal2': 2, 'metal3': 1}
         assert result['segment_layers'] == ['metal2']
@@ -980,5 +983,20 @@ def test_bad_projection_preserves_completed_query_address_and_does_not_require_r
         assert result['path_details'][0]['master_counts'] == {'BUF': 1}
         assert result['path_details'][0]['instance_names'] == ['u']
         assert submitted == ['native-run']
+    finally:
+        store.close()
+
+
+def test_path_engineering_and_overview_return_actual_arrival_without_rounded_subtraction(tmp_path):
+    pack = sample()
+    pack['timing_paths'][0].update(required_time=0.4, data_arrival_time=0.199)
+    store = DataStore(tmp_path / 'd.sqlite')
+    try:
+        store.register(pack)
+        detail = path_engineering(store, 's', 'p', {})
+        overview = timing_overview(store, 's', {'check': 'setup', 'limit': '1'})
+        for path in (detail['path'], overview['paths'][0]):
+            assert path['data_arrival_time'] == 0.199
+            assert path['data_arrival_time'] != path['required_time'] - path['slack']
     finally:
         store.close()
