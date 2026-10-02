@@ -55,7 +55,7 @@ def constraint_context(store, client, snapshot_id, query):
         elif not coverage_text.strip() or 'unconstrained' not in coverage_text.lower():
             count = 0
     ports = store.filtered(snapshot_id, 'entities',
-                           where="record_id LIKE 'bterm:%'")
+                           where="record_id GLOB 'bterm:*'")
     undeclared, port_coverage = {}, {}
     for direction, kind in [('INPUT', 'input_delay'), ('OUTPUT', 'output_delay')]:
         names = set()
