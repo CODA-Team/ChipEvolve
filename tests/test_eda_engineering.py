@@ -1028,3 +1028,27 @@ def test_path_engineering_and_overview_return_actual_arrival_without_rounded_sub
             assert path['data_arrival_time'] != path['required_time'] - path['slack']
     finally:
         store.close()
+
+
+def test_large_inventory_grouping_uses_narrow_indexes_and_keeps_missing_classifications(tmp_path):
+    from openroad_app_data_foundation.engineering import object_statistics
+    pack = sample()
+    pack['entities'].extend([
+        {'object_id': 'macro', 'kind': 'instance', 'name': 'ram', 'attributes': {'is_macro': 1}},
+        {'object_id': 'clknet', 'kind': 'net', 'name': 'clk', 'attributes': {'signal_type': 'CLOCK'}},
+        {'object_id': 'untyped', 'kind': 'net', 'name': 'unknown', 'attributes': {}}])
+    store = DataStore(tmp_path / 'indexed.sqlite')
+    try:
+        store.register(pack)
+        for kind, group, index, expected in [
+            ('instance', 'is_macro', 'records_instance_statistics', {None: 1, 0: 1, 1: 1}),
+            ('net', 'signal_type', 'records_net_statistics', {None: 1, 'SIGNAL': 1, 'CLOCK': 1})]:
+            result = object_statistics(store, 's', {'kind': kind, 'group_by': group})
+            assert {row['value']: row['count'] for row in result['groups']} == expected
+            assert result['object_count'] == 3
+            expression = f"json_extract(payload, '$.attributes.{group}')"
+            sql = f"SELECT {expression}, COUNT(*) FROM records WHERE snapshot_id = ? AND record_type = 'entities' AND json_extract(payload, '$.kind') = ? GROUP BY {expression}"
+            plan = store.connection.execute('EXPLAIN QUERY PLAN ' + sql, ('s', kind)).fetchall()
+            assert any(index in row['detail'] for row in plan)
+    finally:
+        store.close()

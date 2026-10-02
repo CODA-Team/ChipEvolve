@@ -253,6 +253,12 @@ class DataStore:
                            json_extract(payload, '$.attributes.is_macro'), ordinal)
                 WHERE record_type = 'entities'
                   AND json_extract(payload, '$.attributes.is_macro') IS NOT NULL;
+            CREATE INDEX IF NOT EXISTS records_instance_statistics
+                ON records(snapshot_id, json_extract(payload, '$.attributes.is_macro'))
+                WHERE record_type = 'entities' AND json_extract(payload, '$.kind') = 'instance';
+            CREATE INDEX IF NOT EXISTS records_net_statistics
+                ON records(snapshot_id, json_extract(payload, '$.attributes.signal_type'))
+                WHERE record_type = 'entities' AND json_extract(payload, '$.kind') = 'net';
             CREATE INDEX IF NOT EXISTS records_physical_bbox
                 ON records(snapshot_id, record_type, record_id,
                            json_extract(payload, '$.bbox.x_max'),
