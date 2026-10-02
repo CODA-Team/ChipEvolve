@@ -120,6 +120,8 @@ Engineering instance names preserve the stored name and also provide native_name
 To retrieve the exact original spelling, use native queries against the original database; never invent its escape representation.
 ''',
     'timing': '''Path/point lists default to engineering facts with shared source references. Heavy repeated identity
+Ranked S/timing-paths accepts tie_break=native_names to resolve equal values by full startpoint then endpoint ascending.
+Default tie_break=report_order preserves source report order. Ranking metadata declares the actual tie rule.
 reference maps, per-row evidence and path point-ID catalogs remain at detail=full; delivery.full_details
 preserves this request's original filters/order/pagination. All points, names and numeric facts remain present.
 S/timing-paths/<path_id>?fields=timing_path reads only the path header, without point pages;

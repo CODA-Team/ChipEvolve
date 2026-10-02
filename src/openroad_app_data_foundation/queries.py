@@ -68,16 +68,22 @@ def _order(record_type: str, query: dict[str, str]) -> tuple[str, dict[str, Any]
     if order == "best":
         ascending = not ascending
     direction = "ASC" if ascending else "DESC"
+    tie_break = query.get('tie_break', 'report_order')
+    if tie_break not in ('report_order', 'native_names') or (tie_break == 'native_names' and record_type != 'timing_paths'):
+        raise ValueError('tie_break must be report_order, or native_names for timing paths')
+    tie = ("replace(json_extract(payload,'$.startpoint'),char(92),''), "
+           "replace(json_extract(payload,'$.endpoint'),char(92),''), ordinal ASC"
+           if tie_break == 'native_names' else 'ordinal ASC')
     # NULLs last in both directions: a path without a slack is not the worst path
     # A deterministic tie-break, by the bundle's own order: several points can share
     # the extreme value (ibex has a five-way tie in slew), and an arbitrary member of
     # the tie is not reproducible.  Ordering by ordinal keeps the page stable and in
     # the order the artifact lists, which is also what a gold derived from it expects.
     clause = f" ORDER BY json_extract(payload, '{expression}') IS NULL, " \
-             f"json_extract(payload, '{expression}') {direction}, ordinal ASC"
+             f"json_extract(payload, '{expression}') {direction}, {tie}"
     return clause, {"sorted_by": sort, "order": order,
                     "ordered": "ascending" if ascending else "descending",
-                    "worst_means": f"{worst_direction}ending"}
+                    "worst_means": f"{worst_direction}ending", 'tie_break': tie_break}
 
 
 def _timing_delivery(path, query, omitted):
