@@ -3,6 +3,7 @@ from copy import deepcopy
 
 from openroad_app_data_foundation import resolved_timing
 from openroad_app_data_foundation.engineering import timing_overview
+from openroad_app_data_foundation.batch_reads import read_batch
 from openroad_app_data_foundation.repository import DataStore
 from openroad_app_data_foundation.server import Handler
 from test_eda_engineering import query_pair
@@ -66,5 +67,37 @@ def test_both_checks_keep_partial_association_visible(tmp_path):
         assert result['checks']['hold']['association_coverage']['status'] == 'partial'
         assert result['association_coverage'] == {'status': 'partial', 'incomplete_checks': ['hold']}
         assert result['availability']['complete_association_aggregates']['status'] == 'unavailable'
+    finally:
+        store.close()
+
+
+def test_batch_reuses_only_its_actual_completed_analysis_and_validates_each_request(tmp_path, monkeypatch):
+    parent, child = both_pair()
+    store = DataStore(tmp_path / 'db.sqlite')
+    calls = []
+    try:
+        store.register(parent)
+        def submit(writer, client, sid, query):
+            calls.append(sid)
+            return {'run': {'run_id': 'native'}, 'snapshot_id': 'child'}
+        def status(writer, client, run, wait):
+            writer.register(child)
+            return {'run_id': 'native', 'status': 'succeeded', 'snapshot_ids': ['child']}
+        monkeypatch.setattr(resolved_timing, 'submit_timing_query', submit)
+        monkeypatch.setattr(resolved_timing, 'timing_query_status', status)
+        handler = object.__new__(Handler)
+        handler.store, handler.auto_import, handler.execution_client = store, False, object()
+        response = read_batch({'requests': [
+            '/snapshots/s/timing-overview?resolve=1&check=setup&limit=1&fields=paths',
+            '/snapshots/s/timing-overview?resolve=1&check=hold&limit=1&fields=paths',
+            '/snapshots/s/timing-overview?resolve=1&check=invalid&limit=1&fields=paths']}, handler._get)
+        assert calls == ['s']
+        setup, hold, invalid = response['results']
+        assert setup['data']['paths'][0]['check'] == 'setup'
+        assert hold['data']['paths'][0]['check'] == 'hold'
+        assert setup['data']['query_execution']['run_id'] == hold['data']['query_execution']['run_id']
+        assert hold['data']['query_execution']['reuse_scope'] == 'one fresh native analysis within this read batch'
+        assert invalid['status'] == 'unavailable'
+        assert response['failed_query_count'] == 1
     finally:
         store.close()
