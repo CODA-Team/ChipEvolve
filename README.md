@@ -59,7 +59,7 @@ logs are written inside `flow/`.
 
 ## License
 
-This repository is released under the MIT License. See [LICENSE](A2-ORFO/flow/predict_model/transformer_code/LICENSE).
+This repository is released under the MIT License. See [LICENSE](./flow/predict_model/transformer_code/LICENSE).
 
 Third-party tools and libraries, including OpenROAD/OpenROAD-flow-scripts, are not redistributed by this repository and remain subject to their own licenses.
 
