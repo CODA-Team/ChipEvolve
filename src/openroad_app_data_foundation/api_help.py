@@ -169,7 +169,7 @@ Prefer these joins/aggregations for multi-object analysis rather than repeatedly
 Stored path lists are samples. S/timing-overview?resolve=1&check=setup|hold&startpoint=<native>&endpoint=<native>&limit=N
 submits a FRESH native query and waits internally (wait_seconds=0..120, default120). Omit unneeded startpoint/endpoint/group filters.
 It returns paths and their engineering aggregates in ONE operation, including paths outside the stored sample.
-include_path_details=1 adds ordered data_pin_names, all data instances/master_counts, net counts and per-path extrema.
+include_path_details=1 adds ordered data_pin_names, all data instance_names/master_counts, net counts, instance_bbox_union_um and per-path extrema.
 include_physical=1 adds complete data-instance geometry, bbox union/DBU and selected extrema's instance facts.
 include_connectivity=1 joins driver/load names and complete counts for ranked nets; net_limit bounds ranked net rows,
 connectivity_pin_limit controls each pin page (default5). net_names remains the COMPLETE sorted filtered net union.

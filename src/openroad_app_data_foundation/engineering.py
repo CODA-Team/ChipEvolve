@@ -318,6 +318,7 @@ def path_engineering(store, snapshot_id, path_id, query):
                        ('path_id', 'startpoint', 'endpoint', 'check', 'group', 'slack',
                         'required_time', 'source_clock', 'target_clock', 'unit')},
               'data_path_pin_count': len(points), 'instance_count': len(instances),
+              'instance_names': sorted(item['name'].replace('\\', '') for item in instances),
               'data_pin_names': [p.get('pin_name') for p in points],
               'data_pin_names_scope': 'complete source_path sequence in report order, preserving repeated pins; independent of point pagination',
               'net_count': len(nets), 'net_names': sorted(n['name'].replace('\\', '') for n in nets),
@@ -335,6 +336,9 @@ def path_engineering(store, snapshot_id, path_id, query):
               'units': {'slack': path.get('unit'), 'slew': 's', 'load': 'F'},
               'data_point_extrema': point_extrema(points),
               'clock_points_excluded': True}
+    scale = facts.get('run_summary', {}).get('dbu_per_micron')
+    result['instance_bbox_union_um'] = placement_geometry(
+        {'bbox': result['instance_bbox_union']}, scale)['bbox_um'] if scale else None
     if incomplete:
         result['availability'] = {'complete_association_aggregates': {'status': 'unavailable',
             'reason': 'some point/object associations are missing; resolved-subset counts and rankings are not full-domain results',
@@ -437,6 +441,8 @@ def timing_overview(store, snapshot_id, query):
         result['instances'] = sorted(instance_details.values(), key=lambda item: item['name'])
         result['instance_bbox_union'] = _bbox_union([item['bbox'] for item in instance_details.values() if item['bbox']])
         result['dbu_per_micron'] = facts.get('run_summary', {}).get('dbu_per_micron')
+        result['instance_bbox_union_um'] = placement_geometry(
+            {'bbox': result['instance_bbox_union']}, result['dbu_per_micron'])['bbox_um']
     if query.get('include_connectivity') == '1':
         for net in result['nets']:
             net['connectivity'] = net_engineering(store, facts_id, net['net_id'],
