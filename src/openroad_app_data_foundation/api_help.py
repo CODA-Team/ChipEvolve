@@ -118,6 +118,12 @@ Alternatively include_engineering=1 joins selected instance facts directly to th
 fields=name,engineering.bbox_um,engineering.signal_pin_count,engineering.distinct_signal_net_count
 retrieves the selected geometry and two different connection counts together.
 S/objects/statistics accepts the SAME filters as objects and gives complete aggregation over matching objects;
+For kind=instance, include_physical=1 also aggregates placed bbox areas and geometry coverage over ALL matches.
+For macro area and its core percentage use kind=instance&is_macro=1&include_physical=1:
+geometry.total_bbox_area_um2, geometry.percent_of_core_area and geometry.core_bbox_um are direct facts.
+Group rows include geometry statistics too; limit/offset only page the groups, never the overall aggregation.
+Missing geometry is explicit; total area is null until every matched object's geometry is present.
+Area is the sum of full object bboxes, including overlapping objects separately. Regional filters select whole objects.
 group_by=master|kind|master_type|signal_type|driver_count|direction|is_macro. For regional counts use
 kind=instance&group_by=is_macro&region=<xmin,ymin,xmax,ymax>&region_units=um&intersection=positive_area:
 object_count counts ALL matching instances; group value 1 counts macros, 0 nonmacros, null unclassified.

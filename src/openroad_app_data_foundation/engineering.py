@@ -3,7 +3,7 @@ from collections import Counter
 
 from .identity import snapshot_identity
 from .queries import _limit, _offset, _page, list_timing_paths, timing_path
-from .discovery import object_filter, list_objects
+from .discovery import object_filter, list_objects, query_boolean
 from .metadata import placement_geometry, timing_values
 from .timing_facts import timing_fact_snapshot, fact_source
 
@@ -172,6 +172,70 @@ def compare_inventory(store, left_id, right_id, query, root, client=None):
     return result
 
 
+def _geometry_groups(store, filters, values, expression):
+    """Aggregate every matched instance's placed bbox using integer DBU areas."""
+    return store.connection.execute(f"""
+        WITH candidates AS (
+            SELECT snapshot_id, record_id, {expression} AS value FROM records
+            WHERE {' AND '.join(filters)} LIMIT -1
+        ), boxes AS (
+            SELECT c.value,
+                json_extract(p.payload,'$.bbox.x_min') AS xmin,
+                json_extract(p.payload,'$.bbox.y_min') AS ymin,
+                json_extract(p.payload,'$.bbox.x_max') AS xmax,
+                json_extract(p.payload,'$.bbox.y_max') AS ymax
+            FROM candidates c LEFT JOIN records p
+              ON p.snapshot_id=c.snapshot_id AND p.record_type='physical_context'
+              AND p.record_id=c.record_id
+        ), measured AS (
+            SELECT *, CASE WHEN xmin IS NOT NULL AND ymin IS NOT NULL
+                AND xmax>=xmin AND ymax>=ymin THEN (xmax-xmin)*(ymax-ymin) END AS area
+            FROM boxes
+        )
+        SELECT value, COUNT(*) AS count, COUNT(area) AS geometry_count,
+            COALESCE(SUM(area),0) AS available_bbox_area_dbu2,
+            MIN(CASE WHEN area IS NOT NULL THEN xmin END) AS x_min,
+            MIN(CASE WHEN area IS NOT NULL THEN ymin END) AS y_min,
+            MAX(CASE WHEN area IS NOT NULL THEN xmax END) AS x_max,
+            MAX(CASE WHEN area IS NOT NULL THEN ymax END) AS y_max
+        FROM measured GROUP BY value ORDER BY count DESC, value
+        """, values).fetchall()
+
+
+def _geometry_summary(groups, snapshot):
+    scale = snapshot['run_summary'].get('dbu_per_micron')
+    if not isinstance(scale, (int, float)) or scale <= 0:
+        raise ValueError('physical statistics require a positive dbu_per_micron')
+    core = snapshot['run_summary'].get('core_bbox')
+    core_area = (core['x_max']-core['x_min'])*(core['y_max']-core['y_min']) / scale**2 if core else None
+    for row in groups:
+        matched, known = row['count'], row.pop('geometry_count')
+        area = row.pop('available_bbox_area_dbu2')
+        bbox = {key: row.pop(key) for key in ('x_min', 'y_min', 'x_max', 'y_max')}
+        complete = known == matched
+        row['geometry'] = {'status': 'complete' if complete else 'partial',
+            'matched_count': matched, 'geometry_count': known, 'missing_geometry_count': matched-known,
+            'available_bbox_area_dbu2': area, 'available_bbox_area_um2': area / scale**2,
+            'total_bbox_area_um2': area / scale**2 if complete else None,
+            'bbox_union_um': {key: value / scale for key, value in bbox.items()} if known else None}
+    details = [row['geometry'] for row in groups]
+    matched = sum(row['matched_count'] for row in details)
+    known = sum(row['geometry_count'] for row in details)
+    area = sum(row['available_bbox_area_dbu2'] for row in details)
+    complete = matched == known
+    total = area / scale**2 if complete else None
+    return {'status': 'complete' if complete else 'partial', 'matched_count': matched,
+        'geometry_count': known, 'missing_geometry_count': matched-known,
+        'available_bbox_area_dbu2': area, 'available_bbox_area_um2': area / scale**2,
+        'total_bbox_area_um2': total, 'core_bbox_um': {k: v / scale for k, v in core.items()} if core else None,
+        'core_area_um2': core_area,
+        'percent_of_core_area': 100*total/core_area if total is not None and core_area and core_area > 0 else None,
+        'bbox_union_um': _bbox_union([row['bbox_union_um'] for row in details if row['bbox_union_um']]),
+        'dbu_per_micron': scale,
+        'area_basis': 'sum of complete placed object bounding-box areas; overlaps counted for each object; regional filters select whole objects, not clipped pieces',
+        'aggregation_scope': 'all matching objects and groups, independent of result pagination'}
+
+
 def object_statistics(store, snapshot_id, query):
     """Count all objects by a declared engineering property without shipping rows."""
     dimensions = {'kind': '$.kind', 'master': '$.attributes.master',
@@ -201,18 +265,29 @@ def object_statistics(store, snapshot_id, query):
     # the existing identity/macro indexes to select the actual candidates first.
     grouping = '+' + expression if any(query.get(key) for key in
         ('name', 'parent_id', 'parent_instance', 'ids', 'connected_to')) else expression
-    rows = store.connection.execute(
-        f'SELECT {expression} AS value, COUNT(*) AS count FROM records '
-        f"WHERE {' AND '.join(filters)} GROUP BY {grouping} ORDER BY count DESC, value",
-        values).fetchall()
+    geometry = None
+    physical = query_boolean(query, 'include_physical') if 'include_physical' in query else False
+    if physical:
+        if query.get('kind') != 'instance':
+            raise ValueError('physical statistics require kind=instance')
+        rows = _geometry_groups(store, filters, values, expression)
+    else:
+        rows = store.connection.execute(
+            f'SELECT {expression} AS value, COUNT(*) AS count FROM records '
+            f"WHERE {' AND '.join(filters)} GROUP BY {grouping} ORDER BY count DESC, value",
+            values).fetchall()
     limit, offset = _limit(query), _offset(query)
     groups = [dict(row) for row in rows]
+    if physical:
+        geometry = _geometry_summary(groups, store.snapshot(snapshot_id))
     result = {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(store.snapshot(snapshot_id)),
             'group_by': group, 'object_count': sum(row['count'] for row in groups),
             'groups': groups[offset:offset + limit],
             'evidence': [ref for ref in store.snapshot(snapshot_id).get('source_artifacts', [])
                          if ref.get('category') == 'raw_design_database'],
             **_page(len(groups), len(groups[offset:offset + limit]), limit, offset)}
+    if geometry is not None:
+        result['geometry'] = geometry
     if group == 'signal_type' and query.get('kind') == 'net':
         result['counts_by_signal_type'] = {row['value']: row['count'] for row in groups if row['value'] is not None}
         result['unclassified_net_count'] = sum(row['count'] for row in groups if row['value'] is None)
