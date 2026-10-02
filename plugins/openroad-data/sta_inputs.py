@@ -20,6 +20,8 @@ def library_paths(inputs):
 
 
 def timing_commands(inputs, quote):
+    if type(inputs.get('ideal_clocks', False)) is not bool:
+        raise ValueError('ideal_clocks must be boolean')
     lines = [f'read_liberty {quote(path)}' for path in library_paths(inputs)]
     for field, command in [('sdc_path', 'read_sdc'), ('rc_script_path', 'source'),
                            ('spef_path', 'read_spef'),
@@ -30,6 +32,8 @@ def timing_commands(inputs, quote):
             if not value or path is None or path.is_absolute() or '..' in path.parts:
                 raise ValueError(f'inputs.{field} must be a relative staged path')
             lines.append(f'{command} {quote(value)}')
+            if field == 'sdc_path' and inputs.get('ideal_clocks'):
+                lines.append('set_ideal_network [all_clocks]')
     mode = inputs.get('parasitic_mode')
     if mode not in (None, 'spef', 'placement', 'global_routing'):
         raise ValueError('parasitic_mode must be spef|placement|global_routing')

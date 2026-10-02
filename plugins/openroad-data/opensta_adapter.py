@@ -111,6 +111,7 @@ def normalize(output_dir: Path, inputs: dict[str, Any]) -> None:
                     "rc_script": inputs.get("rc_script_path"),
                     "parasitics": inputs.get("spef_path"),
                     "global_routing_segments": inputs.get("global_routing_segments_path"),
+                    "ideal_clocks": inputs.get("ideal_clocks", False),
                     "parasitic_mode": inputs.get("parasitic_mode", "spef" if inputs.get("spef_path") else "unavailable"),
                     "analysis": inputs.get("analysis"), "corner": inputs.get("corner"),
                     "executor": inputs.get("openroad_bin"), "path_count_per_group": inputs.get("path_count", 5),

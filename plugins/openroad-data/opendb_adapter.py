@@ -110,9 +110,9 @@ proc db_pin_geometry {{boxes coordinate_space}} {{
   return [json_array {{*}}$items]
 }}
 proc write_json {{path value}} {{
-  set fd [open $path a]
-  puts $fd $value
-  close $fd
+  global json_channels
+  if {{![info exists json_channels($path)]}} {{ set json_channels($path) [open $path a] }}
+  puts $json_channels($path) $value
 }}
 set out [file normalize {_tcl(output_name)}]
 file mkdir $out
@@ -358,4 +358,5 @@ puts $fd [json_obj source [json_q opendb] instances [json_q parsed] pins [json_q
     pin_direction [json_q parsed] macro_classification [json_q parsed] \
     driver_loads [json_q parsed]]
 close $fd
+foreach path [array names json_channels] {{ close $json_channels($path) }}
 '''
