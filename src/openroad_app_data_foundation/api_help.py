@@ -126,6 +126,9 @@ Engineering instance names preserve the stored name and also provide native_name
 To retrieve the exact original spelling, use native queries against the original database; never invent its escape representation.
 ''',
     'timing': '''Path/point lists default to engineering facts with shared source references. Heavy repeated identity
+Timing paths and points also expose explicit slack_ns/arrival_ns/required_ns/slew_ns/load_ff when extracted.
+Data-point extrema carry max_value_ns for slew and max_value_ff for load; selected points carry slew_ns/arrival_ns/load_ff.
+These fields are already ns/fF; do not rescale them. Original slack/arrival/slew/load/max_value remain SI s/F with their original sources.
 Ranked S/timing-paths accepts tie_break=native_names to resolve equal values by full startpoint then endpoint ascending.
 Default tie_break=report_order preserves source report order. Ranking metadata declares the actual tie rule.
 reference maps, per-row evidence and path point-ID catalogs remain at detail=full; delivery.full_details

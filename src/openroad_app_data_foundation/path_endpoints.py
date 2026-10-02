@@ -5,6 +5,7 @@ from .discovery import list_objects
 from .engineering import instance_engineering
 from .identity import snapshot_identity
 from .queries import timing_path, read_evidence
+from .metadata import timing_values
 
 
 def path_endpoints(store, snapshot_id, path_id):
@@ -12,8 +13,8 @@ def path_endpoints(store, snapshot_id, path_id):
     path = detail['timing_path']
     points = [p for p in detail['timing_points'] if p.get('path_section') == 'source_path']
     result = {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(store.snapshot(snapshot_id)),
-        'path': {key: path.get(key) for key in ('path_id', 'startpoint', 'endpoint', 'check',
-            'group', 'slack', 'unit', 'source_clock', 'target_clock', 'corner')},
+        'path': timing_values({key: path.get(key) for key in ('path_id', 'startpoint', 'endpoint', 'check',
+            'group', 'slack', 'unit', 'source_clock', 'target_clock', 'corner')}),
         'evidence': path.get('evidence', []), 'endpoints': {},
         'basis': 'exact path pin names and native connectivity; report values remain separately identified'}
     for role in ('startpoint', 'endpoint'):
@@ -23,9 +24,9 @@ def path_endpoints(store, snapshot_id, path_id):
             continue
         matching = [p for p in points if (p.get('pin_name') or '').replace('\\', '') == name.replace('\\', '')]
         point = (matching[0] if role == 'startpoint' else matching[-1]) if matching else None
-        item = {'name': name, 'timing_point': {key: point.get(key) for key in
+        item = {'name': name, 'timing_point': timing_values({key: point.get(key) for key in
             ('point_id', 'path_id', 'ordinal', 'pin_name', 'instance_name', 'cell_name', 'net_name',
-             'arrival', 'slew', 'load', 'mapping_status')} if point else None,
+             'arrival', 'slew', 'load', 'mapping_status')}) if point else None,
             'timing_units': {'arrival': 's', 'slew': 's', 'load': 'F'}}
         if point:
             item['original_point'] = read_evidence(store, snapshot_id, 'timing_points', point['point_id'])

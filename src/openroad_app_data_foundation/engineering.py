@@ -4,7 +4,7 @@ from collections import Counter
 from .identity import snapshot_identity
 from .queries import _limit, _offset, _page, list_timing_paths, timing_path
 from .discovery import object_filter, list_objects
-from .metadata import placement_geometry
+from .metadata import placement_geometry, timing_values
 from .timing_facts import timing_fact_snapshot, fact_source
 
 
@@ -236,12 +236,14 @@ def point_extrema(points):
         tied = {p['pin_name']: p for p in values if p[field] == maximum}
         names = sorted(tied)
         selected = tied[names[-1]]
+        suffix = 'ns' if unit == 's' else 'ff'
         result[field] = {'status': 'available', 'max_value': maximum, 'unit': unit,
+                         'max_value_' + suffix: timing_values({field: maximum})[field + '_' + suffix],
                          'pin_names': names, 'tie_count': len(names),
                          'selection_rule': 'greatest full pin name among exact numeric ties',
-                         'selected_point': {key: selected.get(key) for key in
+                         'selected_point': timing_values({key: selected.get(key) for key in
                                             ('point_id', 'path_id', 'pin_id', 'pin_name', 'instance_id',
-                                             'instance_name', 'net_id', 'net_name', 'cell_name', 'slew', 'load', 'arrival', 'evidence')}}
+                                             'instance_name', 'net_id', 'net_name', 'cell_name', 'slew', 'load', 'arrival', 'evidence')})}
     return result
 
 
@@ -311,17 +313,17 @@ def path_engineering(store, snapshot_id, path_id, query):
                          or (p.get('instance_name') and not p.get('instance_id'))]
     unresolved_nets = [oid for oid in net_ids if oid not in found_nets]
     incomplete = bool(unresolved_points or unresolved_nets or unmapped)
-    compact_points = [{key: p.get(key) for key in
-                       ('point_id', 'path_id', 'pin_id', 'pin_name', 'instance_id', 'instance_name', 'cell_name', 'net_id', 'net_name', 'slew', 'load', 'arrival')}
+    compact_points = [timing_values({key: p.get(key) for key in
+                       ('point_id', 'path_id', 'pin_id', 'pin_name', 'instance_id', 'instance_name', 'cell_name', 'net_id', 'net_name', 'slew', 'load', 'arrival')})
                       for p in points]
     masters = Counter(item['master'] for item in instances)
     snapshot = store.snapshot(snapshot_id)
     result = {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(snapshot),
-              'path': {key: path.get(key) for key in
+              'path': timing_values({key: path.get(key) for key in
                        ('path_id', 'startpoint', 'endpoint', 'check', 'group', 'slack',
                         'data_arrival_time', 'required_time', 'margin', 'crpr', 'path_type',
                         'analysis', 'corner', 'source_clock', 'target_clock',
-                        'source_clock_edge', 'target_clock_edge', 'unit')},
+                        'source_clock_edge', 'target_clock_edge', 'unit')}),
               'data_path_pin_count': len(points), 'instance_count': len(instances),
               'instance_names': sorted(item['name'].replace('\\', '') for item in instances),
               'data_pin_names': [p.get('pin_name') for p in points],

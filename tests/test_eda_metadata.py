@@ -6,6 +6,22 @@ import pytest
 from openroad_app_data_foundation.metadata import metadata_view, placement_geometry
 
 
+def test_si_timing_values_have_explicit_engineering_units_without_changing_originals():
+    from openroad_app_data_foundation.metadata import timing_values
+    fact = {'slack': -2.022e-10, 'data_arrival_time': 8.452e-10, 'required_time': 6.43e-10,
+            'slew': 4.668e-11, 'load': 7.281e-15, 'unit': 's', 'evidence': [{'artifact_id': 'original'}]}
+    result = timing_values(fact)
+    assert result['slack_ns'] == pytest.approx(-0.2022)
+    assert result['arrival_ns'] == pytest.approx(0.8452)
+    assert result['required_ns'] == pytest.approx(0.643)
+    assert result['slew_ns'] == pytest.approx(0.04668)
+    assert result['load_ff'] == pytest.approx(7.281)
+    assert all(result[key] == value for key, value in fact.items())
+    assert timing_values({**fact, 'arrival': 1e-10})['arrival_ns'] == pytest.approx(0.8452)
+    assert 'load_ff' not in timing_values({'load': None})
+    assert 'slew_ns' not in timing_values({'slew': False})
+
+
 def test_compact_metadata_and_projection_restore_original_facts_without_duplicates():
     snapshot = {'snapshot_id': 's', 'design_id': 'chip', 'stage': 'finish',
                 'source_artifacts': [{'artifact_id': 'odb', 'sha256': 'abc'}]}

@@ -64,6 +64,31 @@ def query_pair():
     return parent, child
 
 
+def test_ranked_and_joined_native_timing_expose_same_explicit_ns_and_ff(tmp_path):
+    from openroad_app_data_foundation.queries import list_timing_paths, list_timing_points
+    pack = sample()
+    pack['timing_paths'][0].update(slack=-2.022e-10, data_arrival_time=8.452e-10,
+                                  required_time=6.43e-10, unit='s')
+    pack['timing_points'][1].update(slew=4.668e-11, load=7.281e-15, arrival=8.452e-10)
+    pack['timing_points'][2].update(slew=1e-11, load=1e-15, arrival=6.43e-10)
+    store = DataStore(tmp_path / 'units.sqlite')
+    try:
+        store.register(pack)
+        paths = list_timing_paths(store, 's', {'fields': 'path_id,slack_ns,arrival_ns,required_ns'})['timing_paths']
+        assert paths[0]['slack_ns'] == pytest.approx(-0.2022)
+        points = list_timing_points(store, 's', {'pin_name': 'u/A', 'fields': 'pin_name,slew_ns,load_ff'})['timing_points']
+        assert points[0]['load_ff'] == pytest.approx(7.281)
+        result = path_engineering(store, 's', 'p', {'limit': '1'})
+        assert result['path']['arrival_ns'] == pytest.approx(0.8452)
+        assert result['data_point_extrema']['load']['max_value_ff'] == pytest.approx(7.281)
+        assert result['data_point_extrema']['slew']['max_value_ns'] == pytest.approx(0.04668)
+        assert result['data_point_extrema']['load']['selected_point']['load_ff'] == pytest.approx(7.281)
+        assert store.records('s', 'timing_paths', record_id='p')[0]['slack'] == -2.022e-10
+        assert 'slack_ns' not in store.records('s', 'timing_paths', record_id='p')[0]
+    finally:
+        store.close()
+
+
 def test_supplemental_path_joins_exact_parent_geometry_and_filters_signal_nets(tmp_path):
     parent, child = query_pair()
     store = DataStore(tmp_path / 'd.sqlite')

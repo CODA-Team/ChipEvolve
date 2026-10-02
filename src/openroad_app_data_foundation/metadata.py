@@ -106,3 +106,19 @@ def placement_geometry(fact, scale, orientation=None):
             'orientation': orientation,
             'orientation_names': {'odb': orientation, 'def': def_names.get(orientation)},
             'native_origin_note': 'dbInst.getOrigin is the transformed master origin; query it natively if needed; this is not pin XY'}
+
+
+def timing_values(fact):
+    """Attach explicit ns/fF values to SI timing facts, retaining native evidence."""
+    result = dict(fact)
+    fields = [('slack', 'slack_ns', 1e9), ('arrival', 'arrival_ns', 1e9),
+              ('data_arrival_time', 'arrival_ns', 1e9), ('required_time', 'required_ns', 1e9),
+              ('slew', 'slew_ns', 1e9), ('load', 'load_ff', 1e15),
+              ('margin', 'margin_ns', 1e9), ('crpr', 'crpr_ns', 1e9),
+              ('source_clock_edge', 'source_clock_edge_ns', 1e9),
+              ('target_clock_edge', 'target_clock_edge_ns', 1e9)]
+    for source, target, factor in fields:
+        value = fact.get(source)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            result[target] = value * factor
+    return result
