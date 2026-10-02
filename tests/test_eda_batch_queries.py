@@ -79,6 +79,12 @@ def test_default_catalog_preserves_all_states_without_repeating_their_source_man
     large = next(row for row in full['snapshots'] if row['snapshot_id'] == 'large')
     assert len(large['run_summary']['timing_context']['producer']['artifacts']) == 200
     assert len(json.dumps(compact)) < len(json.dumps(full)) / 10
+    identity = json.load(opener.open(base + '/snapshots/large'))['data']
+    restored = json.load(opener.open(base + identity['delivery']['full_details']))['data']['snapshot']
+    assert identity['snapshot']['snapshot_id'] == 'large'
+    assert 'run_summary' not in identity['snapshot']
+    assert restored == large
+    assert len(json.dumps(identity)) < len(json.dumps(restored)) / 10
     with pytest.raises(urllib.error.HTTPError) as error:
         opener.open(base + '/snapshots?detail=invalid')
     assert error.value.code == 400

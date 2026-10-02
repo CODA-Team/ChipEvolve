@@ -377,7 +377,7 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) == 3 and parts[2] == "violations":
                 return violations(store, parts[1], query, self.native_root)
             if len(parts) == 2:
-                return metadata_view({"snapshot": store.snapshot(parts[1])}, {'detail': 'full', **query}, path)
+                return metadata_view({"snapshot": store.snapshot(parts[1])}, query, path)
             if len(parts) == 3 and parts[2] == "summary":
                 return metadata_view(store.run_summary(parts[1]), query, path)
             if len(parts) == 3 and parts[2] == "instances":
