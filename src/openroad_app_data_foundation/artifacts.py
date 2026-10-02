@@ -236,6 +236,9 @@ def native_excerpt(store, snapshot_id: str, query: dict, root: Path) -> dict:
 
 def native_files(store, snapshot_id: str, query: dict, root: Path) -> dict:
     """Every file the flow wrote for this run, paged, with its size."""
+    detail = query.get('detail', 'summary')
+    if detail not in ('summary', 'full'):
+        raise ValueError('file inventory detail must be summary|full')
     snapshot = store.snapshot(snapshot_id)
     directories = _run_dirs(snapshot, root)
     wanted = query.get("kind")
@@ -264,7 +267,7 @@ def native_files(store, snapshot_id: str, query: dict, root: Path) -> dict:
     for entry in page:
         entry['producer_manifest_entry'] = manifest.get(entry['relative_path'])
     counts = _page(len(entries), len(page), limit, offset)
-    return {"snapshot_id": snapshot_id, "native_root": str(root),
+    result = {"snapshot_id": snapshot_id, "native_root": str(root),
             'evidence': [ref for ref in snapshot.get('source_artifacts', []) if ref.get('category') == 'raw_flow_metadata'],
             "design_id": snapshot["design_id"], "revision_id": snapshot["revision_id"],
             "directories": directories, "filters": query,
@@ -274,6 +277,21 @@ def native_files(store, snapshot_id: str, query: dict, root: Path) -> dict:
                                    for kind in NATIVE_KINDS},
             "truncated": counts["truncated"],
             "digest_basis": "producer_manifest_entry is the literal original producer declaration; excerpt reads verify current bytes"}
+    from .metadata import metadata_view, recovery_path
+    path = '/snapshots/' + snapshot_id + '/artifacts/files'
+    if query.get('fields'):
+        return metadata_view(result, query, path)
+    if detail == 'full':
+        return result
+    result['files']['items'] = [{key: entry[key] for key in ('category', 'relative_path', 'size_bytes')}
+                               for entry in page]
+    result['directories'] = {kind: {'path': info['path']} for kind, info in directories.items()}
+    result['digest_basis'] = 'original producer declarations and filesystem timestamps remain in delivery.full_details; excerpt reads verify current bytes'
+    result['delivery'] = {'detail': 'summary', 'full_details': recovery_path(path, query),
+        'omitted_fields': ['files.items.modified', 'files.items.producer_manifest_entry',
+                           'directories.candidate_count', 'directories.candidates'],
+        'selection': 'Every matching filename, size, category, order and page boundary is preserved.'}
+    return result
 
 
 def _parse_report(path: Path, relative: str) -> list[dict]:

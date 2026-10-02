@@ -140,6 +140,8 @@ Timing paths and points also expose explicit slack_ns/arrival_ns/required_ns/sle
 Data-point extrema carry max_value_ns for slew and max_value_ff for load; selected points carry slew_ns/arrival_ns/load_ff.
 These fields are already ns/fF; do not rescale them. Original slack/arrival/slew/load/max_value remain SI s/F with their original sources.
 Ranked S/timing-paths accepts tie_break=native_names to resolve equal values by full startpoint then endpoint ascending.
+path_type=max|min filters by the actual native report type; max includes reported asynchronous groups.
+For worst max/min headers use path_type=max|min&sort=slack&order=worst&limit=1 with selected header fields.
 Default tie_break=report_order preserves source report order. Ranking metadata declares the actual tie rule.
 reference maps, per-row evidence and path point-ID catalogs remain at detail=full; delivery.full_details
 preserves this request's original filters/order/pagination. All points, names and numeric facts remain present.

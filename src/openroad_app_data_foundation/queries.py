@@ -100,7 +100,9 @@ def _timing_delivery(path, query, omitted):
 def list_timing_paths(store: DataStore, snapshot_id: str, query: dict[str, str]) -> dict[str, Any]:
     if query.get('check') and query['check'] not in ('setup', 'hold'):
         raise ValueError('check must be setup|hold; use setup for max-delay checks and hold for min-delay checks')
-    filters = {key: query[key] for key in ("analysis", "check", "group", "startpoint", "endpoint", "corner") if query.get(key)}
+    if query.get('path_type') and query['path_type'] not in ('max', 'min'):
+        raise ValueError('path_type must be max|min, as declared by the native timing report')
+    filters = {key: query[key] for key in ("analysis", "check", "path_type", "group", "startpoint", "endpoint", "corner") if query.get(key)}
     where = " AND ".join(f"json_extract(payload, '$.{key}') = ?" for key in filters)
     params = list(filters.values())
     total = store.count_records(snapshot_id, "timing_paths", where=where, params=params)

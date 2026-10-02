@@ -47,12 +47,19 @@ def test_file_inventory_returns_declared_digest_without_claiming_current_verific
     store = DataStore(tmp_path / 'file.sqlite')
     try:
         store.register(pack)
-        files = native_files(store, 's', {'kind': 'results'}, root)
+        compact = native_files(store, 's', {'kind': 'results'}, root)
+        files = native_files(store, 's', {'kind': 'results', 'detail': 'full'}, root)
+        assert [i['relative_path'] for i in compact['files']['items']] == [i['relative_path'] for i in files['files']['items']]
+        assert compact['files']['count'] == files['files']['count'] == 2
+        assert all('producer_manifest_entry' not in i for i in compact['files']['items'])
+        assert 'kind=results' in compact['delivery']['full_details'] and 'detail=full' in compact['delivery']['full_details']
         items = {item['relative_path'].rsplit('/', 1)[-1]: item for item in files['files']['items']}
         assert items['6_final.odb']['size_bytes'] == len(b'current bytes')
         assert items['6_final.odb']['producer_manifest_entry'] == declared
         assert items['extra.txt']['producer_manifest_entry'] is None
         assert 'literal original producer declaration' in files['digest_basis']
+        projected = native_files(store, 's', {'kind': 'results', 'fields': 'files.items.relative_path,files.items.producer_manifest_entry'}, root)
+        assert projected['files']['items'][0]['producer_manifest_entry'] == declared
     finally:
         store.close()
 
