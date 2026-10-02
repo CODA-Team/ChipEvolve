@@ -38,6 +38,7 @@ from .clock_paths import clock_paths
 from .path_endpoints import path_endpoints
 from .batch_reads import read_batch
 from .source_search import search_source
+from .source_json import source_json
 from .native_queries import submit_native_query, native_query_result
 from .timing_queries import submit_timing_query, timing_query_status
 from .identity import snapshot_identity, is_query_snapshot
@@ -375,6 +376,8 @@ class Handler(BaseHTTPRequestHandler):
                 return native_excerpt(store, parts[1], query, self.native_root)
             if len(parts) == 5 and parts[2:5] == ['artifacts', 'files', 'search']:
                 return search_source(store, parts[1], query, self.native_root)
+            if len(parts) == 5 and parts[2:5] == ['artifacts', 'files', 'json']:
+                return source_json(store, parts[1], query, self.native_root)
             if len(parts) == 3 and parts[2] == "violations":
                 return violations(store, parts[1], query, self.native_root)
             if len(parts) == 2:

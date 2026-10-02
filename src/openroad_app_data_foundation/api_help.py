@@ -253,6 +253,12 @@ with exact source identity/byte positions and explicit range completion. Byte co
 S/artifacts/files/search?path=<relative>&pattern=<regular expression>&ignore_case=1&context_lines=0&limit=20
 searches ALL original lines and returns matching text, source digest, line numbers and byte offsets;
 offset/next_offset page the matches. Use it for report/SDC/log facts beyond the compact endpoints.
+S/artifacts/files/json?path=<original JSON file>&json_path=$.checks&sort_field=slack&order=asc&tie_fields=startpoint,endpoint&limit=1
+queries EVERY object row in that original array, not a stored sample. fields=startpoint,endpoint,slack selects literal source fields;
+filters=<URL-encoded JSON object> applies exact typed row matches (for example {"path_type":"max"}). Dotted fields select nested objects.
+Counts and ranking cover the full array before paging; source_array_indices identify exact original rows and source carries its digest.
+For native report_checks JSON, literal time values use seconds; this raw-content query does not convert units or rerun timing.
+Use original files for historical flow questions; fresh native queries remain distinct for saved-state reanalysis.
 Discover exact relative source paths with S/artifacts/files; platform and stage filenames depend on the actual run.
 S/sources/<artifact_id>/excerpt?offset=...&max_bytes=... reads attached originals; next_offset continues.
 S/records/<record_type>/<record_id>/fragments retrieves original fragment evidence.
