@@ -12,6 +12,13 @@ def recovery_path(path, query):
 
 def metadata_view(payload, query, path):
     """Project requested facts or expose a compact summary with a full continuation."""
+    payload = deepcopy(payload)
+    for container in (payload, payload.get('snapshot', {})):
+        if 'timing_context' in container:
+            container['timing_context'] = clock_context(container['timing_context'])
+        summary = container.get('run_summary', {})
+        if 'timing_context' in summary:
+            summary['timing_context'] = clock_context(summary['timing_context'])
     detail = query.get('detail', 'summary')
     if detail not in ('summary', 'full'):
         raise ValueError('metadata detail must be summary|full')
@@ -116,9 +123,24 @@ def timing_values(fact):
               ('slew', 'slew_ns', 1e9), ('load', 'load_ff', 1e15),
               ('margin', 'margin_ns', 1e9), ('crpr', 'crpr_ns', 1e9),
               ('source_clock_edge', 'source_clock_edge_ns', 1e9),
-              ('target_clock_edge', 'target_clock_edge_ns', 1e9)]
+              ('target_clock_edge', 'target_clock_edge_ns', 1e9), ('period', 'period_ns', 1e9)]
     for source, target, factor in fields:
         value = fact.get(source)
         if isinstance(value, (int, float)) and not isinstance(value, bool):
             result[target] = value * factor
     return result
+
+
+def clock_context(context):
+    """Give every native SI clock an explicit engineering view without using period_ui."""
+    if context is None or 'clocks' not in context:
+        return context
+    clocks = []
+    for clock in context['clocks']:
+        result = timing_values(clock) if clock.get('unit') == 's' else dict(clock)
+        if clock.get('unit') == 's' and 'waveform' in clock:
+            result['waveform_ns'] = [edge * 1e9 for edge in clock['waveform']]
+        if 'period_ui' in clock:
+            result['period_ui_basis'] = 'native library display time unit; use period_ns for nanoseconds'
+        clocks.append(result)
+    return {**context, 'clocks': clocks}

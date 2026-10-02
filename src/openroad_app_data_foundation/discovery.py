@@ -2,6 +2,7 @@
 import math
 from decimal import Decimal
 from .identity import snapshot_identity
+from .metadata import clock_context
 from .queries import _limit, _offset, _page
 
 
@@ -335,7 +336,7 @@ def timing_context(store, snapshot_id):
     snapshot = store.snapshot(snapshot_id)
     context = snapshot.get('run_summary', {}).get('timing_context')
     return {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(snapshot),
-            'timing_context': context,
+            'timing_context': clock_context(context),
             'evidence': snapshot.get('source_artifacts', []),
             'availability': {'timing_context': {'status': 'available' if context else 'unavailable'}}}
 

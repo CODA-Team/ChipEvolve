@@ -2,6 +2,7 @@
 import re
 from collections import Counter
 from .identity import snapshot_identity
+from .metadata import clock_context
 from .queries import _limit, _offset, _page
 
 
@@ -87,7 +88,7 @@ def constraint_context(store, client, snapshot_id, query):
             if path.endswith('.sdc') and item['sha256'] == ref['sha256'])}
         for ref in refs if ref.get('logical_path') == context.get('constraints')]
     result = {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(snapshot),
-              'clocks': context.get('clocks', []), 'analysis': context.get('analysis'),
+              'clocks': clock_context(context).get('clocks', []), 'analysis': context.get('analysis'),
               'clock_source_semantics': 'clock sources are native ports/pins; source file citations are separate',
               'original_constraints': original_constraints,
               'corner': context.get('corner'), 'parasitic_mode': context.get('parasitic_mode'),

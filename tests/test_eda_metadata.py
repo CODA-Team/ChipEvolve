@@ -22,6 +22,46 @@ def test_si_timing_values_have_explicit_engineering_units_without_changing_origi
     assert 'slew_ns' not in timing_values({'slew': False})
 
 
+def test_clock_engineering_units_preserve_native_values_and_ignore_library_display_units():
+    from copy import deepcopy
+    from openroad_app_data_foundation.metadata import clock_context
+    context = {'clocks': [
+        {'name': 'core', 'unit': 's', 'period': 6.5e-10, 'period_ui': 650,
+         'waveform': [0, 3.25e-10], 'generated': 0, 'virtual': 0},
+        {'name': 'generated', 'unit': 's', 'period': 1.3e-9, 'period_ui': 1300,
+         'waveform': [6.5e-10, 1.3e-9], 'generated': 1, 'virtual': 1},
+        {'name': 'unidentified', 'period': 650}]}
+    original = deepcopy(context)
+    result = clock_context(context)
+    assert result['clocks'][0]['period_ns'] == pytest.approx(0.65)
+    assert result['clocks'][0]['waveform_ns'] == pytest.approx([0, 0.325])
+    assert result['clocks'][1]['period_ns'] == pytest.approx(1.3)
+    assert result['clocks'][1]['waveform_ns'] == pytest.approx([0.65, 1.3])
+    assert result['clocks'][1]['generated'] == result['clocks'][1]['virtual'] == 1
+    assert 'period_ns' not in result['clocks'][2]
+    assert 'native library' in result['clocks'][0]['period_ui_basis']
+    assert context == original
+    assert clock_context(result) == result
+    assert clock_context(None) is None
+
+
+def test_clock_units_agree_in_discovery_summary_full_details_and_projection():
+    native = {'clocks': [{'name': 'clock', 'period': 9e-10, 'period_ui': 900,
+                          'unit': 's', 'waveform': [0, 4.5e-10]}]}
+    payload = {'snapshot': {'snapshot_id': 's', 'run_summary': {'timing_context': native}},
+               'run_summary': {'timing_context': native}, 'timing_context': native}
+    full = metadata_view(payload, {'detail': 'full'}, '/snapshots/s')
+    compact = metadata_view(payload, {}, '/snapshots/s/summary')
+    selected = metadata_view(payload, {'fields': 'timing_context.clocks.name,timing_context.clocks.period_ns'},
+                             '/snapshots/s/timing-context')
+    for context in (full['snapshot']['run_summary']['timing_context'], full['timing_context'],
+                    full['run_summary']['timing_context'], compact['run_summary']['timing_context']):
+        assert context['clocks'][0]['period_ns'] == pytest.approx(0.9)
+        assert context['clocks'][0]['period_ui'] == 900
+    assert selected['timing_context']['clocks'][0]['period_ns'] == pytest.approx(0.9)
+    assert 'period_ns' not in native['clocks'][0]
+
+
 def test_compact_metadata_and_projection_restore_original_facts_without_duplicates():
     snapshot = {'snapshot_id': 's', 'design_id': 'chip', 'stage': 'finish',
                 'source_artifacts': [{'artifact_id': 'odb', 'sha256': 'abc'}]}
