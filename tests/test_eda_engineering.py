@@ -75,6 +75,8 @@ def test_supplemental_path_joins_exact_parent_geometry_and_filters_signal_nets(t
         assert result['object_facts_source']['snapshot']['snapshot_id'] == 's'
         assert result['instance_bbox_union'] == parent['physical_context'][0]['bbox']
         assert result['dbu_per_micron'] == 2000
+        assert result['instance_names'] == ['u']
+        assert result['instance_bbox_union_um'] == {'x_min': 0, 'y_min': 0, 'x_max': 0.005, 'y_max': 0.01}
         assert result['master_counts'] == {'BUF': 1}
         assert result['net_names'] == ['signal'] and result['net_count'] == 1
         assert result['association_coverage']['status'] == 'complete'
