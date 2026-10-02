@@ -4,7 +4,7 @@ from .engineering import timing_overview
 from .identity import snapshot_identity
 
 
-def resolved_timing_overview(store, write_store, client, snapshot_id, query):
+def timing_request(query):
     count = int(query.get('limit', '5'))
     wait = int(query.get('wait_seconds', '120'))
     endpoints = int(query.get('endpoint_path_count', '1'))
@@ -19,6 +19,11 @@ def resolved_timing_overview(store, write_store, client, snapshot_id, query):
     for public, field in [('startpoint', 'from_pin'), ('endpoint', 'to_pin'), ('group', 'path_group')]:
         if query.get(public):
             native[field] = query[public]
+    return native, wait
+
+
+def resolved_timing_overview(store, write_store, client, snapshot_id, query):
+    native, wait = timing_request(query)
     submitted = submit_timing_query(write_store, client, snapshot_id, native)
     outcome = timing_query_status(write_store, client, submitted['run']['run_id'], wait)
     execution = {**outcome, 'parent_snapshot_id': snapshot_id,

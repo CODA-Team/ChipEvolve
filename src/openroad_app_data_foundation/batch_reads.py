@@ -1,10 +1,12 @@
 """Complete ordered read batches, including dependencies on earlier real results."""
 import re
+import json
 import urllib.parse
 
 from openroad_platform_client import KernelError, KernelUnavailable
 from openroad_platform_contracts import ContractError
 from .envelope import envelope, error_envelope
+from .resolved_timing import timing_request
 
 
 def _pointer(value, pointer):
@@ -34,7 +36,7 @@ def read_batch(body, get):
         raise ValueError('requests must contain 1 to 20 local snapshot/run query paths')
     if not isinstance(bindings, dict) or any(not re.fullmatch(r'[A-Za-z_]\w*', name) for name in bindings):
         raise ValueError('bindings must be a mapping of variable names')
-    results = []
+    results, completed_queries = [], {}
     for index, path in enumerate(requests):
         try:
             def substitute(match):
@@ -51,7 +53,24 @@ def read_batch(body, get):
             resolved = re.sub(r'\{([A-Za-z_]\w*)\}', substitute, path)
             parsed = urllib.parse.urlparse(resolved)
             query = {key: values[0] for key, values in urllib.parse.parse_qs(parsed.query).items()}
-            result = envelope(parsed.path, query, get(parsed.path, query))
+            parts = parsed.path.strip('/').split('/')
+            key = None
+            if len(parts) == 3 and parts[0] == 'snapshots' and parts[2] == 'timing-overview' and query.get('resolve') == '1':
+                native, _ = timing_request(query)
+                key = (parts[1], json.dumps(native, sort_keys=True))
+            if key is not None and key in completed_queries:
+                execution = completed_queries[key]
+                child_path = '/snapshots/' + execution['query_snapshot_id'] + '/timing-overview'
+                options = {k: v for k, v in query.items() if k not in ('resolve', 'wait_seconds', 'endpoint_path_count')}
+                options['check'] = query.get('check', 'setup')
+                payload = get(child_path, options)
+                payload['query_execution'] = {**execution, 'reuse_scope': 'one fresh native analysis within this read batch'}
+            else:
+                payload = get(parsed.path, query)
+                execution = payload.get('query_execution')
+                if key is not None and execution and execution['status'] == 'succeeded':
+                    completed_queries[key] = execution
+            result = envelope(parsed.path, query, payload)
         except KeyError as exc:
             result = error_envelope(path.split('?', 1)[0], 'not_found', str(exc.args[0]))
         except (ValueError, ContractError, KernelUnavailable, KernelError) as exc:
