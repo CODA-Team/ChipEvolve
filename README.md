@@ -7,7 +7,7 @@ DRP-Agent implementation with ASAP7 and Nangate45 AES, IBEX, and JPEG benchmarks
 The comparison objective is **minimum terminal |TNS at fixed CP0|, subject to power
 not exceeding the baseline**. The supplied configuration retains `gpt-5.6-sol`.
 
-## Repository layout
+## Repository instructions
 
 ```text
 A2-ORFO/
