@@ -6,6 +6,7 @@ from .engineering import _entity
 from .identity import snapshot_identity
 from .native_queries import submit_native_query, native_query_result
 from .queries import _limit, _offset, _page
+from .pin_net_ranking import ranking_script, ranked_nets
 
 
 def _parse(text):
@@ -32,8 +33,9 @@ def _parse(text):
 
 
 def pin_inventory(store, client, snapshot_id, identifier, query, root):
-    if set(query) - {'limit', 'offset', 'fields', 'pin_type', 'direction'}:
-        raise ValueError('pin inventory accepts limit,offset,fields,pin_type,direction')
+    if set(query) - {'limit', 'offset', 'fields', 'pin_type', 'direction', 'net_sort'}:
+        raise ValueError('pin inventory accepts limit,offset,fields,pin_type,direction,net_sort')
+    net_script = ranking_script(query) if query.get('net_sort') else ''
     instance = _entity(store, snapshot_id, identifier, 'instance')
     native_id = instance.get('attributes', {}).get('native_id')
     if not isinstance(native_id, str) or not native_id.isdecimal() or int(native_id) <= 0:
@@ -50,6 +52,7 @@ foreach p [$i getITerms] {
     puts [join [list EDA_PIN [$p getId] [binary encode base64 -maxlen 0 [$m getName]] \
         [$m getSigType] [$m getIoType] [binary encode base64 -maxlen 0 $name] $type] "\\t"]
 }'''.replace('NATIVE_ID', native_id)
+    script += '\n' + net_script
     outcome = submit_native_query(store, client, snapshot_id,
         {'script': script, 'with_timing': False, 'wait_seconds': 120, 'max_bytes': 65536}, root)
     result = {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(store.snapshot(snapshot_id)),
@@ -64,7 +67,8 @@ foreach p [$i getITerms] {
         page = native_query_result(client, outcome['run']['run_id'],
             {'offset': str(page['excerpt']['next_offset']), 'max_bytes': '65536'})
         chunks.append(page['excerpt']['text'])
-    rows = _parse(''.join(chunks))
+    text = ''.join(chunks)
+    rows = _parse(text)
     pin_counts = Counter(r['native_pin_signal_type'] for r in rows)
     connected_counts = Counter(r['native_pin_signal_type'] for r in rows if r['net_name'] is not None)
     net_sets = defaultdict(set)
@@ -81,4 +85,6 @@ foreach p [$i getITerms] {
         classification_basis='dbMTerm.getSigType for pins; dbNet.getSigType for connected nets; neither inferred from the other',
         coverage_scope='every original native instance ITerm; summary counts independent of filtering and pagination',
         evidence=[outcome['source']], **_page(len(selected), len(selected[offset:offset + limit]), limit, offset))
+    if query.get('net_sort'):
+        result['net_ranking'] = ranked_nets(text, query)
     return result

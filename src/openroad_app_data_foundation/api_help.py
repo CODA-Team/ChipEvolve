@@ -83,6 +83,10 @@ S/instances/<name or id>/pin-inventory runs a native query for the pin's OWN dbM
 separately from connected dbNet classification. connected_pin_counts_by_native_type and distinct_net_counts_by_native_pin_type
 cover connected pins by their native pin type; pin_counts_by_native_type also includes unconnected pins.
 pin_type=SIGNAL|CLOCK|POWER|GROUND and direction filter the complete pin list; limit/offset page it.
+Add net_sort=load_count to obtain complete distinct-net rankings for those filtered pins,
+with load_count and distinct receiving_macro_count. net_ranking orders by load count descending
+then unescaped native name ascending; limit/offset page nets after the complete ranking.
+The original native_name is retained alongside the unescaped name. Counts include all native loads.
 Use this when the question refers to native SIGNAL pins: a CLOCK pin can temporarily connect to a SIGNAL-classified net.
 distinct_signal_net_count counts different SIGNAL net IDs, not pins; shared connections count once.
 S/net-inventory returns all native SigType counts and special_net_count from the actual dbNet.isSpecial flag
