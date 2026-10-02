@@ -159,6 +159,7 @@ _RAW_INPUTS = {
     "liberty_path": "raw_library",
     "sdc_path": "raw_constraints",
     "spef_path": "raw_parasitics",
+    "global_routing_segments_path": "raw_layout",
     "rc_script_path": "analysis_script",
     "timing_report_path": "raw_timing_report",
     "metadata_path": "raw_flow_metadata",
