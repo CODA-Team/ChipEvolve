@@ -14,6 +14,7 @@ def snapshot_inputs(snapshot, with_timing=True):
         if context.get('parasitics'): paths[context['parasitics']] = 'spef_path'
         if context.get('global_routing_segments'): paths[context['global_routing_segments']] = 'global_routing_segments_path'
         inputs['parasitic_mode'] = context['parasitic_mode']
+        inputs['ideal_clocks'] = context.get('ideal_clocks', False)
     staged, libraries = [], []
     for ref in snapshot.get('source_artifacts', []):
         key = roles.get(ref.get('category')) or paths.get(ref.get('logical_path'))
