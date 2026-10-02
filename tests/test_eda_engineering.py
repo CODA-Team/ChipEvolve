@@ -948,3 +948,37 @@ def test_failed_native_query_exposes_actual_error_without_claiming_success():
     assert result['status'] == 'failed' and result['terminal_reason'] == 'report_error'
     assert result['excerpt']['text'] == 'invalid command name dbITerm_getBox'
     assert result['failure_details'][0]['message'] == 'exit 1'
+
+
+def test_bad_projection_preserves_completed_query_address_and_does_not_require_resubmission(tmp_path, monkeypatch):
+    from openroad_app_data_foundation import resolved_timing
+    from openroad_app_data_foundation.server import Handler
+    parent, child = query_pair()
+    store = DataStore(tmp_path / 'd.sqlite')
+    store.register(parent)
+    store.register(child)
+    submitted = []
+    def submit(*args):
+        submitted.append('native-run')
+        return {'run': {'run_id': 'native-run'}, 'snapshot_id': 'child'}
+    monkeypatch.setattr(resolved_timing, 'submit_timing_query', submit)
+    monkeypatch.setattr(resolved_timing, 'timing_query_status', lambda *args: {
+        'run_id': 'native-run', 'status': 'succeeded', 'snapshot_ids': ['child'], 'terminal_reason': None})
+    handler = Handler.__new__(Handler)
+    handler.store, handler.execution_client, handler.auto_import = store, object(), False
+    try:
+        with pytest.raises(ValueError, match='unknown metadata field: path_details.master_occurrences') as error:
+            handler._get('/snapshots/s/timing-overview', {
+                'resolve': '1', 'limit': '1', 'include_path_details': '1',
+                'fields': 'path_details.master_occurrences'})
+        assert 'native query native-run already succeeded' in str(error.value)
+        assert '/snapshots/child/timing-overview?' in str(error.value)
+        assert 'resolve=' not in str(error.value)
+        result = handler._get('/snapshots/child/timing-overview', {
+            'check': 'setup', 'limit': '1', 'include_path_details': '1',
+            'fields': 'path_details.master_counts,path_details.instance_names'})
+        assert result['path_details'][0]['master_counts'] == {'BUF': 1}
+        assert result['path_details'][0]['instance_names'] == ['u']
+        assert submitted == ['native-run']
+    finally:
+        store.close()
