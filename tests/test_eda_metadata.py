@@ -127,3 +127,21 @@ def test_projected_recovery_retains_stage_selector_and_pagination_semantics():
     full = parse_qs(urlsplit(projected['delivery']['full_details']).query)
     assert full == {key: [value] for key, value in {**{k: v for k, v in query.items() if k != 'fields'}, 'detail': 'full'}.items()}
     assert 'fields' not in full
+
+
+def test_large_constraint_port_lists_have_explicit_counts_and_complete_recovery():
+    names = [f'port[{index}]' for index in range(1200)]
+    payload = {'clocks': [{'name': 'clk'}], 'ports_without_delay': {
+        'input_delay': names, 'output_delay': ['z']}, 'declaration_counts': {'clocks': 1}}
+    compact = metadata_view(payload, {'kind': 'all'}, '/snapshots/s/constraints')
+    full = metadata_view(payload, {'detail': 'full'}, '/snapshots/s/constraints')
+    selected = metadata_view(payload, {'fields': 'ports_without_delay.input_delay'}, '/snapshots/s/constraints')
+    assert compact['ports_without_delay_counts'] == {'input_delay': 1200, 'output_delay': 1}
+    assert compact['ports_without_delay']['input_delay'] == names[:20]
+    assert compact['ports_without_delay']['output_delay'] == ['z']
+    assert compact['declaration_counts'] == payload['declaration_counts']
+    assert 'ports_without_delay.input_delay[20:]' in compact['delivery']['omitted_fields']
+    assert 'kind=all' in compact['delivery']['full_details']
+    assert full == payload
+    assert selected['ports_without_delay']['input_delay'] == names
+    assert len(payload['ports_without_delay']['input_delay']) == 1200

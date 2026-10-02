@@ -72,9 +72,16 @@ def metadata_view(payload, query, path):
         if section == 'run_summary' and 'raw_metrics' in item:
             del item['raw_metrics']
             omitted.append('run_summary.raw_metrics')
+    if 'ports_without_delay' in result:
+        result['ports_without_delay_counts'] = {key: len(names)
+                                               for key, names in result['ports_without_delay'].items()}
+        for key, names in result['ports_without_delay'].items():
+            if len(names) > 20:
+                result['ports_without_delay'][key] = names[:20]
+                omitted.append('ports_without_delay.' + key + '[20:]')
     result['delivery'] = {'detail': 'summary', 'omitted_fields': omitted,
                           'full_details': full_details,
-                          'selection': 'metadata only; engineering fact counts are unchanged'}
+                          'selection': 'summary with explicit omissions; complete facts remain available through full_details'}
     if len(result.get('evidence', [])) > 1:
         result['delivery']['evidence_count'] = len(result['evidence'])
         result['delivery']['evidence_details'] = full_details

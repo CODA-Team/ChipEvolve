@@ -357,7 +357,7 @@ class Handler(BaseHTTPRequestHandler):
                 if self.execution_client is None:
                     raise KernelUnavailable('execution service is not configured')
                 payload = constraint_context(store, self.execution_client, parts[1], query)
-                return metadata_view(payload, query, path) if query.get('fields') else payload
+                return metadata_view(payload, query, path)
             if len(parts) == 5 and parts[2] == "nets" and parts[4] == "routing-summary":
                 return routing_summary(store, parts[1], parts[3])
             # Facts no bundle carries, read from the flow's own tree: the SPEF
