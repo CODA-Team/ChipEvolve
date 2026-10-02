@@ -89,6 +89,27 @@ def test_ranked_and_joined_native_timing_expose_same_explicit_ns_and_ff(tmp_path
         store.close()
 
 
+def test_timing_header_fields_are_selectable_and_invalid_check_is_explicit(tmp_path):
+    from openroad_app_data_foundation.queries import list_timing_paths
+    pack = sample()
+    pack['timing_paths'][0].update(path_type='max', group='clock', analysis='default',
+                                 margin=1e-12, crpr=0)
+    store = DataStore(tmp_path / 'header.sqlite')
+    try:
+        store.register(pack)
+        full = list_timing_paths(store, 's', {'check': 'setup'})['timing_paths'][0]
+        selected = list_timing_paths(store, 's', {'check': 'setup',
+            'fields': 'path_id,path_type,group,analysis,margin,margin_ns,crpr'})['timing_paths'][0]
+        assert selected == {key: full[key] for key in selected}
+        assert selected['margin_ns'] == pytest.approx(0.001)
+        with pytest.raises(ValueError, match='setup for max-delay'):
+            list_timing_paths(store, 's', {'check': 'max'})
+        with pytest.raises(ValueError, match='no_such_field; selectable fields:'):
+            list_timing_paths(store, 's', {'fields': 'no_such_field'})
+    finally:
+        store.close()
+
+
 def test_supplemental_path_joins_exact_parent_geometry_and_filters_signal_nets(tmp_path):
     parent, child = query_pair()
     store = DataStore(tmp_path / 'd.sqlite')

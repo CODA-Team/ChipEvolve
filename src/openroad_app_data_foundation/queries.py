@@ -98,6 +98,8 @@ def _timing_delivery(path, query, omitted):
 
 
 def list_timing_paths(store: DataStore, snapshot_id: str, query: dict[str, str]) -> dict[str, Any]:
+    if query.get('check') and query['check'] not in ('setup', 'hold'):
+        raise ValueError('check must be setup|hold; use setup for max-delay checks and hold for min-delay checks')
     filters = {key: query[key] for key in ("analysis", "check", "group", "startpoint", "endpoint", "corner") if query.get(key)}
     where = " AND ".join(f"json_extract(payload, '$.{key}') = ?" for key in filters)
     params = list(filters.values())
@@ -119,9 +121,12 @@ def list_timing_paths(store: DataStore, snapshot_id: str, query: dict[str, str])
         columns = query['fields'].split(',')
         allowed = {'path_id', 'startpoint', 'endpoint', 'group', 'check', 'slack', 'required_time',
                    'data_arrival_time', 'source_clock', 'target_clock', 'unit', 'corner', 'evidence',
+                   'analysis', 'path_type', 'margin', 'margin_ns', 'crpr', 'source_clock_edge',
+                   'target_clock_edge', 'point_ids', 'path_identity',
                    'slack_ns', 'arrival_ns', 'required_ns', 'crpr_ns', 'source_clock_edge_ns', 'target_clock_edge_ns'}
         if not set(columns) <= allowed:
-            raise ValueError('unknown timing path projection field')
+            raise ValueError('unknown timing path projection fields: ' + ','.join(sorted(set(columns) - allowed)) +
+                             '; selectable fields: ' + ','.join(sorted(allowed)))
         rows = [{key: row.get(key) for key in columns} for row in rows]
     elif query.get('detail', 'summary') == 'summary':
         rows = [{key: value for key, value in row.items() if key not in ('evidence', 'point_ids', 'path_identity')} for row in rows]
