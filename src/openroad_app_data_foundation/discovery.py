@@ -21,7 +21,7 @@ def query_boolean(query, key):
 
 def object_filter(store, snapshot_id, query):
     """Shared complete filter semantics for pages and server-side aggregation."""
-    allowed = {'kind', 'parent_id', 'parent_instance', 'master', 'driver_count', 'signal_type', 'name',
+    allowed = {'kind', 'parent_id', 'parent_instance', 'master', 'driver_count', 'signal_type', 'direction', 'name',
                'name_contains', 'name_prefix', 'driver_min', 'driver_max', 'port_driven',
                'port', 'is_macro', 'region', 'region_units', 'intersection', 'ids', 'connected_to',
                'net_role', 'sort', 'order', 'limit', 'offset', 'fields', 'format', 'group_by', 'include_physical', 'include_engineering'}
@@ -34,8 +34,11 @@ def object_filter(store, snapshot_id, query):
             raise ValueError('net_role must be driver|load with connected_to=<net name or id>')
         from .engineering import _entity
         query = {**query, 'connected_to': _entity(store, snapshot_id, query['connected_to'], 'net')['object_id']}
+    elif query.get('connected_to') and query.get('kind') == 'instance':
+        from .engineering import _entity
+        query = {**query, 'connected_to': _entity(store, snapshot_id, query['connected_to'], 'net')['object_id']}
     filters, params = [], []
-    fields = {'kind': '$.kind', 'parent_id': '$.parent_id', 'master': '$.attributes.master', 'driver_count': '$.attributes.driver_count', 'signal_type': '$.attributes.signal_type'}
+    fields = {'kind': '$.kind', 'parent_id': '$.parent_id', 'master': '$.attributes.master', 'driver_count': '$.attributes.driver_count', 'signal_type': '$.attributes.signal_type', 'direction': '$.attributes.direction'}
     #: Query parameters arrive as text.  ``driver_count`` is a JSON *number* in the
     #: payload, so comparing it with the string "1" matched nothing at all - a
     #: caller filtering driver_count=1 got an empty page on a snapshot whose first
@@ -133,7 +136,18 @@ def object_filter(store, snapshot_id, query):
         marks = ', '.join('?' for _ in wanted)
         filters.append(f'record_id IN ({marks})')
         params.extend(wanted)
-    if query.get('connected_to'):
+    if query.get('connected_to') and query.get('kind') == 'instance':
+        predicates = [roles[query['net_role']]] if query.get('net_role') else ['loads', 'driven_by']
+        marks = ','.join('?' for _ in predicates)
+        filters.append(f"""record_id IN (SELECT json_extract(p.payload, '$.parent_id')
+            FROM records r JOIN records p ON p.snapshot_id=r.snapshot_id
+            AND p.record_type='entities' AND p.record_id=json_extract(r.payload,'$.object_id')
+            WHERE r.snapshot_id=? AND r.record_type='relations'
+            AND json_extract(r.payload,'$.subject_id')=?
+            AND json_extract(r.payload,'$.predicate') IN ({marks})
+            AND json_extract(p.payload,'$.parent_id') IS NOT NULL)""")
+        params.extend([snapshot_id, query['connected_to'], *predicates])
+    elif query.get('connected_to'):
         # The other end of every relation touching this object - the set
         # `expand_net` stops at CONNECTED_ENTITY_LIMIT, but pageable, so a
         # caller told `entities_total: 675` can walk all of it instead of being
@@ -151,7 +165,7 @@ def object_filter(store, snapshot_id, query):
         filters.append(other)
         params.extend([snapshot_id, query['connected_to'],
                        snapshot_id, query['connected_to']])
-    if query.get('net_role'):
+    if query.get('net_role') and query.get('kind') != 'instance':
         filters.append("""record_id IN (SELECT json_extract(payload, '$.object_id') FROM records
             WHERE snapshot_id = ? AND record_type = 'relations'
             AND json_extract(payload, '$.subject_id') = ?

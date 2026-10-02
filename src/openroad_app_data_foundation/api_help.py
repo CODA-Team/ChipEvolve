@@ -87,6 +87,8 @@ For pins, parent_instance=<native instance name> directly resolves the instance 
 no separate object-ID lookup is needed. Use signal_type=SIGNAL&fields=name,attributes.direction,attributes.net_name.
 signal_type=SIGNAL|CLOCK|POWER|GROUND, port=0|1, driver_count/min/max, port_driven=0|1,
 connected_to=<net name or id>&net_role=driver|load; sort=name|fanout|bbox_area&order=asc|desc;
+For kind=instance, connected_to/net_role returns distinct owning instances of matching pins; ports are excluded.
+Combine with is_macro=1 or statistics to count receiving macros; multiple pins on one instance count it once.
 region=xmin,ymin,xmax,ymax with region_units=dbu|um (default dbu) and intersection=positive_area|touching.
 Pin attributes include pin_name (local), native_name (full), net_name/net_id and signal_type of the connected native net; CLOCK is excluded from SIGNAL.
 Use fields=object_id,name,attributes.pin_name,attributes.direction,attributes.net_name,attributes.signal_type for compact pins;
@@ -200,6 +202,10 @@ kind=propagation returns clock propagation statements; kind=all pages every orig
 in original order, including statements beyond named-clock creation. Read later matching declarations too.
 ''',
     'physical': '''S/pins/<native name or id>/engineering gives original native pin position and bbox in dbu/um, source and getter basis.
+S/congestion?file=<declared eight-column native TSV>&layers=<comma-separated layers>&limit=N&offset=N
+ranks ALL matching grid cells by overflow then utilization descending, natural layer/index ascending.
+Returns capacity, usage, overflow, native grid bbox and source line, with complete layer counts/overflow totals.
+Zero capacity uses utilization zero for ranking. fields can project compact facts; paging never changes full-domain counts.
 ITerm uses getAvgXY; BTerm uses getFirstPinLocation. Check position_success; a failed getter has no coordinate value.
 S/physical/<object_id>?routing_limit=1 gives location_dbu/location_um, orientation and bbox (dbu/um), or pageable routing with routing_offset;
 location_basis explicitly identifies dbInst.getLocation. Objects with include_physical=1 carry the same location fields;

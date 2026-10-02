@@ -24,6 +24,7 @@ from .parasitics import net_parasitics
 from .engineering import (object_statistics, path_engineering, timing_overview,
                           routing_totals, instance_engineering, net_engineering, compare_inventory)
 from .constraints import constraint_context
+from .congestion import congestion_grid
 from .resolved_timing import resolved_timing_overview
 from .source_metadata import source_metadata
 from .api_help import api_help
@@ -302,6 +303,9 @@ class Handler(BaseHTTPRequestHandler):
                 return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 3 and parts[2] == 'routing-totals':
                 return routing_totals(store, parts[1])
+            if len(parts) == 3 and parts[2] == 'congestion':
+                payload = congestion_grid(store, parts[1], query, self.native_root)
+                return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 3 and parts[2] == 'run-inventory':
                 payload = run_inventory(store, parts[1], self.native_root, stage=query.get('stage'),
                                         metric_names=tuple(query.get('metrics', '').split(',')) if query.get('metrics') else (),
