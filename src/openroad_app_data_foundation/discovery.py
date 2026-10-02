@@ -3,7 +3,6 @@ import math
 from decimal import Decimal
 from .identity import snapshot_identity
 from .queries import _limit, _offset, _page
-from .repository import name_variants
 
 
 #: Ids one ``?ids=`` call accepts.  Beyond this the answer stops fitting an
@@ -67,7 +66,7 @@ def object_filter(store, snapshot_id, query):
             value = query[key]
             params.append(int(value) if key in numeric else value)
     if query.get('name'):
-        variants = name_variants(query['name'])
+        variants = store.name_candidates(snapshot_id, query['name'], query.get('kind'))
         filters.append("json_extract(payload, '$.name') IN (" + ','.join('?' for _ in variants) + ')')
         params.extend(variants)
     if query.get('parent_instance'):

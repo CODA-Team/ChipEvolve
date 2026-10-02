@@ -845,6 +845,15 @@ class DataStore:
             if len(rows) < page:
                 return
 
+    def name_candidates(self, snapshot_id: str, name: str, kind: str | None = None) -> list[str]:
+        """Use the actual parent spelling for pins with independently escaped local names."""
+        variants = name_variants(name)
+        if kind in (None, 'pin') and '/' in name:
+            parent, _, local = name.rpartition('/')
+            for instance in self.entities_named(snapshot_id, 'instance', parent):
+                variants.extend(instance['name'] + '/' + value for value in name_variants(local))
+        return list(dict.fromkeys(variants))
+
     def entities_named(self, snapshot_id: str, kind: str,
                        name: str) -> list[dict[str, Any]]:
         """Exact name lookup inside one snapshot, by name or hierarchical name.
@@ -860,7 +869,7 @@ class DataStore:
         """
         rows: list[dict[str, Any]] = []
         seen: set[str] = set()
-        variants = name_variants(name)
+        variants = self.name_candidates(snapshot_id, name, kind)
         marks = ", ".join("?" for _ in variants)
         for where in (f"json_extract(payload, '$.name') IN ({marks})",
                       f"json_extract(payload, "
