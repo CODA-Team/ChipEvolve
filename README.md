@@ -53,6 +53,6 @@ logs are written inside `flow/`.
 
 ## Documentation
 
-- [Installation, execution and publishing](docs/RUNNING.md)
+- [Installation, execution and publishing](RUNNING.md)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
 
