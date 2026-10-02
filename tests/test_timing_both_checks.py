@@ -10,6 +10,7 @@ from test_eda_engineering import query_pair
 
 def both_pair():
     parent, child = query_pair()
+    child['timing_paths'][0].update(margin=0.03, crpr=0.02, path_type='max')
     hold = deepcopy(child['timing_paths'][0])
     hold.update(path_id='hold', check='hold', slack=0.1)
     child['timing_paths'].append(hold)
@@ -39,6 +40,8 @@ def test_one_submission_returns_each_check_and_its_complete_pin_sequence(tmp_pat
             'fields': 'checks.setup.paths,checks.hold.paths,checks.setup.path_details.data_pin_names'})
         assert len(calls) == 1
         assert result['checks']['setup']['paths'][0]['check'] == 'setup'
+        assert result['checks']['setup']['paths'][0]['margin'] == 0.03
+        assert result['checks']['setup']['paths'][0]['crpr'] == 0.02
         assert result['checks']['hold']['paths'][0]['check'] == 'hold'
         assert result['checks']['setup']['path_details'][0]['data_pin_names'] == ['u/A', 'u/Z', 'u/CLK']
         assert result['association_coverage']['status'] == 'complete'
