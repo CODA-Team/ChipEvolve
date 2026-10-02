@@ -218,6 +218,33 @@ def test_port_delay_counts_are_unique_direction_specific_and_include_undeclared_
         store.close()
 
 
+def test_connected_instance_statistics_deduplicate_load_pins_and_preserve_group_types(tmp_path):
+    from openroad_app_data_foundation.engineering import object_statistics
+    pack, _ = query_pair()
+    next(row for row in pack['entities'] if row['object_id'] == 'pin-a')['parent_id'] = 'i'
+    pack['entities'] += [
+        {'object_id': 'ram', 'kind': 'instance', 'name': 'ram',
+         'attributes': {'master': 'SRAM', 'is_macro': 1}},
+        {'object_id': 'ram-a', 'kind': 'pin', 'name': 'ram/A', 'parent_id': 'ram'},
+        {'object_id': 'ram-b', 'kind': 'pin', 'name': 'ram/B', 'parent_id': 'ram'}]
+    pack['relations'] += [{'relation_id': 'n-' + pin, 'subject_id': 'n',
+                          'predicate': 'loads', 'object_id': pin} for pin in ('ram-a', 'ram-b')]
+    store = DataStore(tmp_path / 'connected.sqlite')
+    try:
+        store.register(pack)
+        query = {'kind': 'instance', 'connected_to': 'signal', 'net_role': 'load'}
+        result = object_statistics(store, 's', {**query, 'is_macro': 'true'})
+        assert result['object_count'] == 1
+        assert result['groups'] == [{'value': 'instance', 'count': 1}]
+        result = object_statistics(store, 's', {**query, 'group_by': 'is_macro'})
+        assert result['object_count'] == 2
+        assert {r['value']: r['count'] for r in result['groups']} == {0: 1, 1: 1}
+        result = object_statistics(store, 's', {**query, 'group_by': 'master'})
+        assert {r['value']: r['count'] for r in result['groups']} == {'BUF': 1, 'SRAM': 1}
+    finally:
+        store.close()
+
+
 def test_instance_and_timing_join_retains_point_witness_and_complete_pin_counts(tmp_path):
     from openroad_app_data_foundation.engineering import instance_engineering
     pack = sample()

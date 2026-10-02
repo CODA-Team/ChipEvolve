@@ -196,9 +196,14 @@ def object_statistics(store, snapshot_id, query):
             WHERE r.snapshot_id=records.snapshot_id AND r.record_type='relations'
             AND json_extract(r.payload,'$.subject_id') = +records.record_id
             AND json_extract(r.payload,'$.predicate')='connected_to' LIMIT 1)"""
+    # Group ordering must not force a whole-kind scan for an exact, small
+    # connected/name/parent/id set. Unary + preserves values while permitting
+    # the existing identity/macro indexes to select the actual candidates first.
+    grouping = '+' + expression if any(query.get(key) for key in
+        ('name', 'parent_id', 'parent_instance', 'ids', 'connected_to')) else expression
     rows = store.connection.execute(
         f'SELECT {expression} AS value, COUNT(*) AS count FROM records '
-        f"WHERE {' AND '.join(filters)} GROUP BY {expression} ORDER BY count DESC, value",
+        f"WHERE {' AND '.join(filters)} GROUP BY {grouping} ORDER BY count DESC, value",
         values).fetchall()
     limit, offset = _limit(query), _offset(query)
     groups = [dict(row) for row in rows]
