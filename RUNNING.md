@@ -1,4 +1,4 @@
-# Installation, execution and publishing
+# Installation and execution
 
 ## Environment
 
