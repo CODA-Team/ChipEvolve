@@ -1,0 +1,82 @@
+{
+  "data": {
+    "run_manifest": "data/run_manifest.csv",
+    "pair_manifest": "data/pair_manifest.csv",
+    "checkpoint_column": "checkpoint",
+    "input_metrics": [
+      "setup_tns_ns",
+      "setup_wns_ns",
+      "power_total_w",
+      "power_leakage_w",
+      "instance_area_um2",
+      "instance_count"
+    ],
+    "checkpoint_order": [
+      "post_floorplan",
+      "post_global_placement",
+      "post_place_resize",
+      "post_detailed_placement",
+      "post_cts",
+      "post_global_route",
+      "final_report"
+    ],
+    "target_metrics": [
+      {
+        "name": "setup_tns_ns",
+        "direction": "higher",
+        "relative_tolerance": 0.0,
+        "absolute_tolerance": 0.0,
+        "loss_weight": 1.0,
+        "decision_weight": 1.0
+      },
+      {
+        "name": "power_total_w",
+        "direction": "lower",
+        "relative_tolerance": 0.05,
+        "absolute_tolerance": 0.0,
+        "loss_weight": 1.0,
+        "decision_weight": 1.0
+      }
+    ],
+    "split_column": "split",
+    "train_split_name": "train",
+    "val_split_name": "val",
+    "test_split_name": "test",
+    "min_prefix_checkpoints": 2,
+    "train_prefix_ratios": [
+      0.3,
+      0.5,
+      0.7,
+      0.85
+    ],
+    "eval_prefix_ratio": 0.5,
+    "normalization_eps": 1e-06,
+    "missing_value_fill": 0.0,
+    "append_missing_mask": true,
+    "strict_checkpoint_alignment": true
+  },
+  "model": {
+    "d_model": 32,
+    "nhead": 4,
+    "num_encoder_layers": 1,
+    "dim_feedforward": 64,
+    "dropout": 0.15,
+    "fusion_hidden_dim": 64,
+    "fusion_dropout": 0.15,
+    "use_hadamard_product": true,
+    "pooling": "masked_mean"
+  },
+  "training": {
+    "batch_size": 128,
+    "num_workers": 4,
+    "epochs": 80,
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "grad_clip_norm": 1.0,
+    "seed": 42,
+    "device": "auto",
+    "output_dir": "outputs",
+    "kill_threshold": 0.8,
+    "patience": 12
+  }
+}
