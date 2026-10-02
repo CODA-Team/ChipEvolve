@@ -64,6 +64,26 @@ def test_catalog_filters_real_query_origins_before_projection_in_batches(api):
     assert {row['snapshot_id'] for row in rows} == ids('flow')
 
 
+def test_default_catalog_preserves_all_states_without_repeating_their_source_manifests(api):
+    base, handler = api
+    handler.store.register({'snapshot': {'snapshot_id': 'large', 'design_id': 'chip',
+        'revision_id': 'r', 'run_id': 'run', 'stage': 'input', 'created_at': '2026-10-02'},
+        'run_summary': {'timing_context': {'producer': {'artifacts': {
+            f'original-{n}': {'sha256': 'a' * 64} for n in range(200)}}}}})
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    compact = json.load(opener.open(base + '/snapshots?design_id=chip'))['data']
+    full = json.load(opener.open(base + compact['delivery']['full_details']))['data']
+    assert {row['snapshot_id'] for row in compact['snapshots']} == {'s', 'large'}
+    assert [row['snapshot_id'] for row in compact['snapshots']] == [row['snapshot_id'] for row in full['snapshots']]
+    assert all('run_summary' not in row for row in compact['snapshots'])
+    large = next(row for row in full['snapshots'] if row['snapshot_id'] == 'large')
+    assert len(large['run_summary']['timing_context']['producer']['artifacts']) == 200
+    assert len(json.dumps(compact)) < len(json.dumps(full)) / 10
+    with pytest.raises(urllib.error.HTTPError) as error:
+        opener.open(base + '/snapshots?detail=invalid')
+    assert error.value.code == 400
+
+
 def test_metric_and_snapshot_batch_matches_individual_queries_without_write_lock(api):
     base, handler = api
     paths = ['/snapshots?fields=snapshot_id', '/snapshots/s/summary',

@@ -33,7 +33,8 @@ SPEF headers and deduplicated per-stage flow timing/wall time, each with its ori
 Discover metric snapshot IDs from the snapshot catalog; do not construct IDs from a naming convention.
 Canonical metrics preserve both unqualified source aggregates and EVERY literal raw-key corner separately;
 corner_basis identifies literal labels versus observation context. Add corner=<literal> to select one declared corner.
-GET /snapshots?design_id={design}&fields=snapshot_id,design_id,revision_id,run_id,stage discovers original snapshots and other runs.
+GET /snapshots?design_id={design} discovers original snapshots and other runs with compact identities by default.
+Use detail=full for complete catalog records; /snapshots/<snapshot_id>?detail=full restores any individual source manifest.
 Add origin=flow for original stage indexes, origin=query for supplemental timing snapshots; default all retains both.
 This uses actual parent metadata/query identity, so earlier query outputs do not inflate stage discovery.
 S/run-inventory also accepts fields=<dotted paths through stages/report arrays> for compact selections,

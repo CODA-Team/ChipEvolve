@@ -214,6 +214,8 @@ class Handler(BaseHTTPRequestHandler):
             return _timing_query_outcome(store, timing_query_status(
                 self.store, self.execution_client, path.split('/')[-1], _int_param(query, 'wait_seconds', 0)))
         if path == "/snapshots":
+            if query.get('detail', 'summary') not in ('summary', 'full'):
+                raise ValueError('snapshot catalog detail must be summary|full')
             snapshots = store.snapshots(design_id=query.get("design_id"), run_id=query.get("run_id"))
             origin = query.get('origin', 'all')
             if origin not in ('all', 'flow', 'query'):
@@ -226,7 +228,11 @@ class Handler(BaseHTTPRequestHandler):
                 if not set(fields) <= allowed:
                     raise ValueError("unknown snapshot projection field")
                 snapshots = [{key: row.get(key) for key in fields} for row in snapshots]
-            return {"snapshots": snapshots}
+            elif query.get('detail', 'summary') == 'summary':
+                snapshots = [{**snapshot_identity(row), 'created_at': row.get('created_at')} for row in snapshots]
+            return {"snapshots": snapshots, 'delivery': {'detail': query.get('detail', 'summary'),
+                    'full_details': recovery_path(path, query),
+                    'snapshot_details': '/snapshots/<snapshot_id>?detail=full'}}
         if path.startswith("/runs/") and path.endswith("/summary"):
             run_id = urllib.parse.unquote(path[len("/runs/"):-len("/summary")]).strip("/")
             if not run_id:
