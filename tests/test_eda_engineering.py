@@ -35,6 +35,162 @@ def sample():
                  'path_section': 'source_path'}]}
 
 
+def query_pair():
+    from copy import deepcopy
+    parent = sample()
+    parent['snapshot']['source_artifacts'] = [{
+        'artifact_id': 'odb', 'run_id': 'run', 'logical_path': 'inputs/design.odb',
+        'category': 'raw_design_database', 'stage': 'finish', 'sha256': 'a' * 64, 'size_bytes': 1}]
+    parent['entities'][2]['attributes'].update(fanout=1, driver_count=1)
+    parent['entities'].extend([
+        {'object_id': 'pin-a', 'kind': 'pin', 'name': 'u/A', 'attributes': {'direction': 'INPUT'}},
+        {'object_id': 'pin-z', 'kind': 'pin', 'name': 'u/Z', 'attributes': {'direction': 'OUTPUT'}},
+        {'object_id': 'clock-net', 'kind': 'net', 'name': 'clock',
+         'attributes': {'signal_type': 'CLOCK', 'fanout': 99}}])
+    parent['relations'] = [
+        {'relation_id': 'a-n', 'subject_id': 'pin-a', 'predicate': 'connected_to', 'object_id': 'n'},
+        {'relation_id': 'z-n', 'subject_id': 'pin-z', 'predicate': 'connected_to', 'object_id': 'n'},
+        {'relation_id': 'n-a', 'subject_id': 'n', 'predicate': 'loads', 'object_id': 'pin-a'},
+        {'relation_id': 'n-z', 'subject_id': 'n', 'predicate': 'driven_by', 'object_id': 'pin-z'}]
+    child = deepcopy(parent)
+    child['snapshot']['snapshot_id'] = 'child'
+    child['run_summary'] = {'timing_context': {'parent_snapshot_id': 's'}}
+    for kind in ('entities', 'physical_context', 'relations'):
+        child[kind] = []
+    child['timing_points'].append({
+        'point_id': 'clock-net-data', 'path_id': 'p', 'ordinal': 3,
+        'pin_name': 'u/CLK', 'instance_id': 'i', 'net_id': 'clock-net',
+        'path_section': 'source_path'})
+    return parent, child
+
+
+def test_supplemental_path_joins_exact_parent_geometry_and_filters_signal_nets(tmp_path):
+    parent, child = query_pair()
+    store = DataStore(tmp_path / 'd.sqlite')
+    try:
+        store.register(parent)
+        store.register(child)
+        result = path_engineering(store, 'child', 'p', {'signal_type': 'SIGNAL', 'limit': '1'})
+        assert result['snapshot']['snapshot_id'] == 'child'
+        assert result['object_facts_source']['snapshot']['snapshot_id'] == 's'
+        assert result['instance_bbox_union'] == parent['physical_context'][0]['bbox']
+        assert result['dbu_per_micron'] == 2000
+        assert result['master_counts'] == {'BUF': 1}
+        assert result['net_names'] == ['signal'] and result['net_count'] == 1
+        assert result['association_coverage']['status'] == 'complete'
+        assert result['association_coverage']['unresolved_net_ids'] == []
+        assert result['data_pin_names'] == ['u/A', 'u/Z', 'u/CLK']
+    finally:
+        store.close()
+
+
+@pytest.mark.parametrize('mismatch', ['database', 'run', 'stage'])
+def test_supplemental_path_never_joins_another_database_or_run(tmp_path, mismatch):
+    parent, child = query_pair()
+    if mismatch == 'database':
+        child['snapshot']['source_artifacts'][0]['sha256'] = 'b' * 64
+    else:
+        child['snapshot']['run_id' if mismatch == 'run' else 'stage'] = 'other'
+    store = DataStore(tmp_path / 'd.sqlite')
+    try:
+        store.register(parent)
+        store.register(child)
+        with pytest.raises(ValueError, match='different|same original database'):
+            path_engineering(store, 'child', 'p', {})
+    finally:
+        store.close()
+
+
+def test_fresh_join_imports_with_writer_and_reads_complete_facts_in_one_operation(tmp_path, monkeypatch):
+    from openroad_app_data_foundation import resolved_timing
+    from openroad_app_data_foundation.server import Handler
+    parent, child = query_pair()
+    store = DataStore(tmp_path / 'd.sqlite')
+    store.register(parent)
+    reader = DataStore(tmp_path / 'd.sqlite', read_only=True)
+    calls = []
+    def submit(writer, client, sid, query):
+        assert writer is store and sid == 's'
+        calls.append(query)
+        return {'run': {'run_id': 'native-run'}, 'snapshot_id': 'child'}
+    def status(writer, client, rid, wait):
+        assert writer is store and rid == 'native-run' and wait == 120
+        writer.register(child)
+        return {'run_id': rid, 'status': 'succeeded', 'snapshot_ids': ['child'], 'terminal_reason': None}
+    monkeypatch.setattr(resolved_timing, 'submit_timing_query', submit)
+    monkeypatch.setattr(resolved_timing, 'timing_query_status', status)
+    handler = Handler.__new__(Handler)
+    handler.store, handler.execution_client, handler.auto_import = store, object(), False
+    try:
+        result = handler._get('/snapshots/s/timing-overview', {
+            'resolve': '1', 'check': 'setup', 'startpoint': 'u/A', 'endpoint': 'u/Z', 'limit': '1',
+            'signal_type': 'SIGNAL', 'include_physical': '1', 'include_path_details': '1',
+            'include_connectivity': '1',
+            'fields': 'paths,path_details.data_pin_names,instances,instance_bbox_union,net_names,nets'}, reader)
+        assert calls == [{'path_count': 1, 'endpoint_path_count': 1, 'from_pin': 'u/A', 'to_pin': 'u/Z'}]
+        assert result['query_execution']['status'] == 'succeeded'
+        assert result['snapshot']['snapshot_id'] == 'child'
+        assert result['object_facts_source']['snapshot']['snapshot_id'] == 's'
+        assert result['path_details'][0]['data_pin_names'] == ['u/A', 'u/Z', 'u/CLK']
+        assert result['nets'][0]['connectivity']['load_pins'] == ['u/A']
+        assert result['nets'][0]['connectivity']['driver_pins'] == ['u/Z']
+        assert result['instance_bbox_union'] == parent['physical_context'][0]['bbox']
+        assert '/snapshots/child/timing-overview?' in result['delivery']['full_details']
+        assert 'resolve=' not in result['delivery']['full_details']
+    finally:
+        reader.close()
+        store.close()
+
+
+@pytest.mark.parametrize('state', ['running', 'failed', 'timed_out'])
+def test_fresh_join_exposes_pending_or_failed_native_job_without_sample_substitution(tmp_path, monkeypatch, state):
+    from openroad_app_data_foundation import resolved_timing
+    store = DataStore(tmp_path / 'd.sqlite')
+    store.register(sample())
+    monkeypatch.setattr(resolved_timing, 'submit_timing_query',
+                        lambda *args: {'run': {'run_id': 'native-run'}, 'snapshot_id': 'child'})
+    monkeypatch.setattr(resolved_timing, 'timing_query_status', lambda *args: {
+        'run_id': 'native-run', 'status': state, 'snapshot_ids': [], 'terminal_reason': 'actual reason'})
+    try:
+        result = resolved_timing.resolved_timing_overview(store, store, object(), 's', {'wait_seconds': '0'})
+        assert result['query_execution']['status'] == state
+        assert 'paths' not in result
+        assert result['availability']['fresh_path_facts']['reason'] == 'actual reason'
+        assert result['availability']['fresh_path_facts']['status_query'].startswith('/timing-queries/native-run')
+    finally:
+        store.close()
+
+
+def test_port_delay_counts_are_unique_direction_specific_and_include_undeclared_clock(tmp_path):
+    pack = sample()
+    pack['entities'] += [{'object_id': 'bterm:' + name, 'kind': 'pin', 'name': name,
+                         'attributes': {'direction': direction}}
+                        for name, direction in [('a', 'INPUT'), ('clk', 'INPUT'), ('z', 'OUTPUT'), ('io', 'INOUT')]]
+    text = ('create_clock -name clk -period 2 [get_ports {clk}]\n'
+            'set_input_delay 0.4 -max -clock [get_clocks {clk}] [get_ports {a}]\n'
+            'set_input_delay 0.2 -min -clock [get_clocks {clk}] [get_ports {a}]\n'
+            'set_output_delay 0.3 -clock [get_clocks {clk}] [get_ports {z}]\n')
+    pack['snapshot']['source_artifacts'] = [{
+        'artifact_id': 'sdc', 'run_id': 'run', 'logical_path': 'effective.sdc',
+        'category': 'raw_constraints', 'stage': 'finish', 'sha256': 'a' * 64, 'size_bytes': len(text)}]
+    class SourceClient:
+        def artifact_excerpt(self, run_id, artifact_id, *, offset, max_bytes):
+            return {'text': text[offset:offset + max_bytes]}
+    store = DataStore(tmp_path / 'd.sqlite')
+    try:
+        store.register(pack)
+        result = constraint_context(store, SourceClient(), 's', {})
+        assert result['port_delay_coverage']['input_delay'] == {
+            'direction': 'INPUT', 'port_count': 2, 'ports_with_explicit_delay_count': 1,
+            'ports_without_explicit_delay_count': 1}
+        assert result['port_delay_coverage']['output_delay']['port_count'] == 1
+        assert result['ports_without_delay'] == {'input_delay': ['clk'], 'output_delay': []}
+        assert result['other_port_directions'] == {'INOUT': 1}
+        assert result['declaration_counts']['input_delay'] == 2
+    finally:
+        store.close()
+
+
 def test_instance_and_timing_join_retains_point_witness_and_complete_pin_counts(tmp_path):
     from openroad_app_data_foundation.engineering import instance_engineering
     pack = sample()
