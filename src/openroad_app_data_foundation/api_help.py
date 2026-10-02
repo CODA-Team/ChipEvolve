@@ -8,11 +8,10 @@ TOPICS = {'run': 'Run identity, stage/source availability, metrics, library unit
 
 GUIDES = {
     'run': '''Use the EDA data HTTP tool. GET responses usually carry their result in data.
-Current design finish snapshot: {design}-{variant}-finish-functional-v3.
-Other indexed physical stages replace finish with place/cts/route; discover existing snapshots before use.
-Synth/floorplan originals are accessed through files or native-queries with odb_file.
-S/run-inventory returns all six original stages, ODB digests, actual metric filenames/key coverage and indexed snapshot names.
-Add ?stage=route (or another stage) for compact discovery. metric_reports lists EVERY original JSON report in that stage,
+Current snapshot: {snapshot_id}. Discover actual stages/IDs with GET /snapshots?design_id={design}.
+Original states without an indexed snapshot are accessed through files or native-queries with odb_file.
+S/run-inventory returns original stages, ODB digests, actual metric filenames/key coverage and indexed snapshot names.
+Add ?stage=<actual stage> for compact discovery. metric_reports lists EVERY original JSON report in that stage,
 including substage files with quantities absent from its representative report.
 Metric selection defaults to one complete metric_reports collection without duplicating the representative report/database catalog;
 detail=full or fields retrieves the catalog too. Every returned metric source/value/unit/analysis command is retained. Read the needed original with files/excerpt
@@ -31,7 +30,7 @@ indexed_snapshots identifies original stage indexes. Additional timing-query sna
 they are not silently relabeled original flow outputs, and remain accessible in the full snapshot catalog.
 S/source-metadata returns literal config variables with continued lines joined, the actually loaded library units/nominal values,
 SPEF headers and deduplicated per-stage flow timing/wall time, each with its original source.
-Stage metric snapshots: {design}-{variant}-metrics-{stage}-functional-v3.
+Discover metric snapshot IDs from the snapshot catalog; do not construct IDs from a naming convention.
 Canonical metrics preserve both unqualified source aggregates and EVERY literal raw-key corner separately;
 corner_basis identifies literal labels versus observation context. Add corner=<literal> to select one declared corner.
 GET /snapshots?design_id={design}&fields=snapshot_id,design_id,revision_id,run_id,stage discovers original snapshots and other runs.
@@ -222,10 +221,10 @@ with exact source identity/byte positions and explicit range completion. Byte co
 S/artifacts/files/search?path=<relative>&pattern=<regular expression>&ignore_case=1&context_lines=0&limit=20
 searches ALL original lines and returns matching text, source digest, line numbers and byte offsets;
 offset/next_offset page the matches. Use it for report/SDC/log facts beyond the compact endpoints.
-Relative run sources are results|logs|reports/nangate45/<design>/{variant}/<filename>.
+Discover exact relative source paths with S/artifacts/files; platform and stage filenames depend on the actual run.
 S/sources/<artifact_id>/excerpt?offset=...&max_bytes=... reads attached originals; next_offset continues.
 S/records/<record_type>/<record_id>/fragments retrieves original fragment evidence.
-GET /runs/<run_id>/metrics?stage=finish&name=WNS filters a specific canonical metric; omit name for all metrics in that stage.
+GET /runs/<run_id>/metrics?stage=<actual stage>&name=WNS filters a specific canonical metric; omit name for all metrics in that stage.
 Use names=WS,WNS,TNS,HOLD_WS,HOLD_WNS,HOLD_TNS to get several exact names in one operation.
 name_contains matches canonical names or original keys; include_raw=1 includes literal original metrics.
 fields=name,value,unit,raw_key,value_basis,corner,status selects compact rows with deduplicated evidence at top level.
@@ -242,9 +241,9 @@ Strings/numbers are URL-encoded automatically. Null/missing values or failed sou
 This joins discovery, the discovered object's engineering facts and original evidence in ONE model tool call.
 ''',
     'native': '''For engineering facts beyond these queries, POST S/native-queries with payload {"script":"Tcl query","with_timing":false}.
-For original sources from other stages not indexed as snapshots, extra_files:["results/nangate45/<design>/<variant>/1_synth.odb", ...]
-stages those declared original files at their same relative paths. Set odb_file to the declared .odb path to query
-synth/floorplan instead of the snapshot ODB; OpenROAD cannot read_db twice into an already populated database.
+For other original states, discover declared .odb paths with S/artifacts/files; extra_files:["<declared relative path>", ...]
+stages those original files at their same relative paths. Set odb_file to the declared .odb path to query
+that state instead of the snapshot ODB; OpenROAD cannot read_db twice into an already populated database.
 For alternate-stage timing use with_timing=false and load that stage's declared libraries/SDC/SPEF in the script.
 The original ODB is already loaded, so use set block [[[ord::get_db] getChip] getBlock]. For STA facts set with_timing=true
 so the snapshot's original libraries/SDC/parasitics are loaded. Native master pin classification uses [$iterm getMTerm] getSigType.
@@ -275,5 +274,5 @@ def api_help(store, snapshot_id, query):
                            for key, value in TOPICS.items()]}
     if topic not in GUIDES:
         raise ValueError('help topic must be ' + '|'.join(GUIDES))
-    guide = GUIDES[topic].replace('{design}', snapshot['design_id']).replace('{variant}', snapshot['revision_id'])
+    guide = GUIDES[topic].replace('{design}', snapshot['design_id']).replace('{variant}', snapshot['revision_id']).replace('{snapshot_id}', snapshot_id)
     return {'snapshot_id': snapshot_id, 'topic': topic, 'guide': guide, 'topic_index': base + '/help'}
