@@ -30,6 +30,7 @@ from .source_metadata import source_metadata
 from .api_help import api_help
 from .excerpts import excerpt_view
 from .pin_geometry import pin_engineering
+from .pin_inventory import pin_inventory
 from .native_inventory import net_inventory
 from .analysis_setup import analysis_setup
 from .evidence import object_provenance
@@ -333,6 +334,9 @@ class Handler(BaseHTTPRequestHandler):
                 return pin_engineering(store, self.execution_client, parts[1], parts[3], self.native_root)
             if len(parts) == 5 and parts[2] == 'instances' and parts[4] == 'engineering':
                 return instance_engineering(store, parts[1], parts[3])
+            if len(parts) == 5 and parts[2] == 'instances' and parts[4] == 'pin-inventory':
+                payload = pin_inventory(store, self.execution_client, parts[1], parts[3], query, self.native_root)
+                return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 5 and parts[2] in ('instances', 'nets', 'pins') and parts[4] == 'provenance':
                 if query:
                     raise ValueError('object provenance accepts no query filters')

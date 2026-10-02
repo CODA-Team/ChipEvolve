@@ -78,6 +78,11 @@ For all loads and their instance count select fields=load_traversal.pin_names,lo
 fields=<dotted fields> projects this net engineering result; omitted details remain retrievable.
 S/instances/<native name or id>/engineering returns master/type, placed location, bbox, both ODB/DEF orientation names,
 and complete pin counts grouped by connected-net type in one call. Unconnected pins are explicitly unclassified.
+S/instances/<name or id>/pin-inventory runs a native query for the pin's OWN dbMTerm classification,
+separately from connected dbNet classification. connected_pin_counts_by_native_type and distinct_net_counts_by_native_pin_type
+cover connected pins by their native pin type; pin_counts_by_native_type also includes unconnected pins.
+pin_type=SIGNAL|CLOCK|POWER|GROUND and direction filter the complete pin list; limit/offset page it.
+Use this when the question refers to native SIGNAL pins: a CLOCK pin can temporarily connect to a SIGNAL-classified net.
 distinct_signal_net_count counts different SIGNAL net IDs, not pins; shared connections count once.
 S/net-inventory returns all native SigType counts and special_net_count from the actual dbNet.isSpecial flag
 in one native read of this original snapshot; do not substitute POWER+GROUND for this separate flag.
