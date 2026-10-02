@@ -39,7 +39,7 @@ from .source_search import search_source
 from .native_queries import submit_native_query, native_query_result
 from .timing_queries import submit_timing_query, timing_query_status
 from .identity import snapshot_identity, is_query_snapshot
-from .metadata import metadata_view, placement_geometry
+from .metadata import metadata_view, placement_geometry, recovery_path
 from .envelope import envelope, error_envelope
 from .queries import (
     compare_timing_path,
@@ -289,7 +289,15 @@ class Handler(BaseHTTPRequestHandler):
                                       if key not in ('resolve', 'wait_seconds', 'endpoint_path_count')}
                     recovery_query['check'] = query.get('check', 'setup')
                     recovery = '/snapshots/' + payload['snapshot_id'] + '/timing-overview'
-                    return metadata_view(payload, recovery_query, recovery) if query.get('fields') else payload
+                    if not query.get('fields'):
+                        return payload
+                    try:
+                        return metadata_view(payload, recovery_query, recovery)
+                    except ValueError as exc:
+                        route = recovery_path(recovery, recovery_query)
+                        raise ValueError(str(exc) + '; native query ' + payload['query_execution']['run_id']
+                                         + ' already succeeded; correct the fields on ' + route
+                                         + ' to reuse its complete result without another submission') from exc
                 payload = timing_overview(store, parts[1], query)
                 return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 3 and parts[2] == 'routing-totals':
