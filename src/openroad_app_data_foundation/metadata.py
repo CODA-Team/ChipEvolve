@@ -99,7 +99,8 @@ def _selected_metadata(value, selection, prefix=''):
     for key, children in selection.items():
         field = prefix + key
         if not isinstance(value, dict) or key not in value:
-            raise ValueError('unknown metadata field: ' + field)
+            available = ','.join(sorted(value)) if isinstance(value, dict) else 'none (parent is not an object)'
+            raise ValueError('unknown metadata field: ' + field + '; available fields in this parent: ' + available)
         result[key] = _selected_metadata(value[key], children, field + '.')
     return result
 

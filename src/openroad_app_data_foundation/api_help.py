@@ -79,6 +79,7 @@ For all loads and their instance count select fields=load_traversal.pin_names,lo
 fields=<dotted fields> projects this net engineering result; omitted details remain retrievable.
 S/instances/<native name or id>/engineering returns master/type, placed location, bbox, both ODB/DEF orientation names,
 and complete pin counts grouped by connected-net type in one call. Unconnected pins are explicitly unclassified.
+These fields are under instance: use fields=instance.name,instance.bbox_um,instance.distinct_signal_net_count.
 S/instances/<name or id>/pin-inventory runs a native query for the pin's OWN dbMTerm classification,
 separately from connected dbNet classification. connected_pin_counts_by_native_type and distinct_net_counts_by_native_pin_type
 cover connected pins by their native pin type; pin_counts_by_native_type also includes unconnected pins.
@@ -88,7 +89,8 @@ with load_count and distinct receiving_macro_count. net_ranking orders by load c
 then unescaped native name ascending; limit/offset page nets after the complete ranking.
 The original native_name is retained alongside the unescaped name. Counts include all native loads.
 Use this when the question refers to native SIGNAL pins: a CLOCK pin can temporarily connect to a SIGNAL-classified net.
-distinct_signal_net_count counts different SIGNAL net IDs, not pins; shared connections count once.
+instance.distinct_signal_net_count in engineering counts SIGNAL NET IDs; for native SIGNAL PIN connections read
+pin-inventory's distinct_net_counts_by_native_pin_type.SIGNAL. Shared connections count once in either scope.
 S/net-inventory returns all native SigType counts and special_net_count from the actual dbNet.isSpecial flag
 in one native read of this original snapshot; do not substitute POWER+GROUND for this separate flag.
 S/objects supports kind=instance|net|pin, name (exact), name_contains, name_prefix, ids=<comma-separated up to100 IDs>, parent_id, master, is_macro=0|1,
@@ -242,8 +244,9 @@ S/violations reads native DRC reports, locations and relevant names. Report bbox
 convert named x_min/y_min/x_max/y_max boxes to [xmin,ymin,xmax,ymax] when the answer schema requests an array.
 Specify file for a particular iteration report; final DRC count comes from the stage metric, not an earlier iteration.
 ''',
-    'sources': '''S/artifacts/files lists original report/log/result files, with producer_manifest_entry (literal original declared digest/size)
-separate from current size_bytes. This does not claim current bytes have been rehashed; absent manifest entries remain null.
+    'sources': '''S/artifacts/files lists all original report/log/result paths, categories and current size_bytes with complete paging.
+Use detail=full or fields to recover producer_manifest_entry (literal original declared digest/size), timestamps and search directories.
+Declared digests are separate from current sizes; this does not claim current bytes were rehashed. Absent manifest entries remain null.
 S/artifacts/files/excerpt?path=<relative>&offset=0&max_bytes=8192 reads original bytes, including configs/libs declared by producer and receipts/<design>.flow.log etc.
 S/artifacts/files/excerpt also accepts start_line=<1-based>&end_line=<inclusive> to retrieve specific original lines,
 with exact source identity/byte positions and explicit range completion. Byte continuation remains available.

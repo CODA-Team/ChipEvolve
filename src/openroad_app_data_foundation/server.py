@@ -339,7 +339,8 @@ class Handler(BaseHTTPRequestHandler):
                     raise KernelUnavailable('execution service is not configured')
                 return pin_engineering(store, self.execution_client, parts[1], parts[3], self.native_root)
             if len(parts) == 5 and parts[2] == 'instances' and parts[4] == 'engineering':
-                return instance_engineering(store, parts[1], parts[3])
+                payload = instance_engineering(store, parts[1], parts[3])
+                return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 5 and parts[2] == 'instances' and parts[4] == 'pin-inventory':
                 payload = pin_inventory(store, self.execution_client, parts[1], parts[3], query, self.native_root)
                 return metadata_view(payload, query, path) if query.get('fields') else payload

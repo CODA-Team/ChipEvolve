@@ -35,6 +35,29 @@ def sample():
                  'path_section': 'source_path'}]}
 
 
+def test_instance_projection_is_applied_and_wrong_parent_explains_recovery(tmp_path):
+    from openroad_app_data_foundation.server import Handler
+    store = DataStore(tmp_path / 'projection.sqlite')
+    try:
+        store.register(sample())
+        handler = Handler.__new__(Handler)
+        handler.store, handler.auto_import = store, False
+        path = '/snapshots/s/instances/u/engineering'
+        full = handler._get(path, {})
+        selected = handler._get(path, {'fields': 'instance.name,instance.bbox_um'})
+        assert selected['instance'] == {'name': 'u', 'bbox_um': full['instance']['bbox_um']}
+        assert 'master' not in selected['instance']
+        assert selected['delivery']['full_details'].endswith('detail=full')
+        with pytest.raises(ValueError, match='available fields in this parent:') as error:
+            handler._get(path, {'fields': 'name,bbox_um'})
+        assert 'instance' in str(error.value)
+        with pytest.raises(ValueError, match='instance.no_such_fact') as nested:
+            handler._get(path, {'fields': 'instance.no_such_fact'})
+        assert 'bbox_um' in str(nested.value)
+    finally:
+        store.close()
+
+
 def query_pair():
     from copy import deepcopy
     parent = sample()
