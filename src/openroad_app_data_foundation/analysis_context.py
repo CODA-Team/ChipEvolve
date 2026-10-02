@@ -35,7 +35,7 @@ def build_analysis_context(snapshot: Mapping[str, Any],
     native = snapshot.get("run_summary", {}).get("timing_context")
     if isinstance(native, Mapping):
         values["rc_source"] = native.get("rc_script")
-        values["parasitic_source"] = native.get("parasitics")
+        values["parasitic_source"] = native.get("parasitics") or native.get("global_routing_segments")
         values["parasitic_mode"] = native.get("parasitic_mode")
     missing = [name for name in CONTEXT_FIELDS if not _present(values[name])]
     return {**values, "status": "available" if not missing else "unavailable",
@@ -73,7 +73,7 @@ def context_availability(context: Mapping[str, Any]) -> dict[str, Any]:
                if context.get("rc_source") else unavailable_capability("rc", "no indexed RC context")),
         "parasitic": ({"status": "available", "mode": context["parasitic_mode"],
                        "source": context.get("parasitic_source") or context.get("rc_source")}
-                      if context.get("parasitic_mode") in {"spef", "placement"}
+                      if context.get("parasitic_mode") in {"spef", "placement", "global_routing"}
                       else unavailable_capability("parasitic", "no indexed parasitic context")),
     }
 

@@ -12,6 +12,7 @@ def snapshot_inputs(snapshot, with_timing=True):
         paths = {context['constraints']: 'sdc_path', **{p: 'library' for p in context['libraries']}}
         if context.get('rc_script'): paths[context['rc_script']] = 'rc_script_path'
         if context.get('parasitics'): paths[context['parasitics']] = 'spef_path'
+        if context.get('global_routing_segments'): paths[context['global_routing_segments']] = 'global_routing_segments_path'
         inputs['parasitic_mode'] = context['parasitic_mode']
     staged, libraries = [], []
     for ref in snapshot.get('source_artifacts', []):
