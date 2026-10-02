@@ -10,8 +10,8 @@ def resolved_timing_overview(store, write_store, client, snapshot_id, query):
     endpoints = int(query.get('endpoint_path_count', '1'))
     if not 0 <= wait <= 120:
         raise ValueError('wait_seconds must be between 0 and 120')
-    if query.get('check', 'setup') not in ('setup', 'hold'):
-        raise ValueError('check must be setup|hold')
+    if query.get('check', 'setup') not in ('setup', 'hold', 'both'):
+        raise ValueError('check must be setup|hold|both')
     unsupported = {'source_clock', 'target_clock', 'analysis', 'corner'} & query.keys()
     if unsupported:
         raise ValueError('fresh query uses its original timing context; unsupported filters: ' + ','.join(sorted(unsupported)))

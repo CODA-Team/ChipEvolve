@@ -319,7 +319,9 @@ def path_engineering(store, snapshot_id, path_id, query):
     result = {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(snapshot),
               'path': {key: path.get(key) for key in
                        ('path_id', 'startpoint', 'endpoint', 'check', 'group', 'slack',
-                        'data_arrival_time', 'required_time', 'source_clock', 'target_clock', 'unit')},
+                        'data_arrival_time', 'required_time', 'margin', 'crpr', 'path_type',
+                        'analysis', 'corner', 'source_clock', 'target_clock',
+                        'source_clock_edge', 'target_clock_edge', 'unit')},
               'data_path_pin_count': len(points), 'instance_count': len(instances),
               'instance_names': sorted(item['name'].replace('\\', '') for item in instances),
               'data_pin_names': [p.get('pin_name') for p in points],
@@ -374,6 +376,20 @@ def routing_layers(store, snapshot_id, net_ids):
 
 def timing_overview(store, snapshot_id, query):
     """Worst paths and repeated instances/masters, over the declared sample."""
+    if query.get('check') == 'both':
+        views = {check: timing_overview(store, snapshot_id, {**query, 'check': check})
+                 for check in ('setup', 'hold')}
+        incomplete = [check for check, view in views.items()
+                      if view['association_coverage']['status'] != 'complete']
+        result = {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(store.snapshot(snapshot_id)),
+                'coverage_scope': 'separate setup and hold domains; limit applies to each check',
+                'checks': views, 'object_facts_source': views['setup']['object_facts_source'],
+                'association_coverage': {'status': 'partial' if incomplete else 'complete',
+                                         'incomplete_checks': incomplete}}
+        if incomplete:
+            result['availability'] = {'complete_association_aggregates': {'status': 'unavailable',
+                'reason': 'some selected checks have unresolved associations; inspect each check coverage'}}
+        return result
     options = {**{key: value for key, value in query.items() if key not in ('fields', 'include_physical')},
                'sort': 'slack', 'order': 'worst', 'offset': '0'}
     rows = list_timing_paths(store, snapshot_id, options)

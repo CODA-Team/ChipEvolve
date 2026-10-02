@@ -381,7 +381,8 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) >= 4 and parts[2] == "timing-paths":
                 snapshot_id, path_id = parts[1], parts[3]
                 if len(parts) == 4:
-                    return timing_path(store, snapshot_id, path_id)
+                    payload = timing_path(store, snapshot_id, path_id)
+                    return metadata_view(payload, query, path) if query.get('fields') else payload
                 if len(parts) == 5 and parts[4] == "points":
                     return path_points(store, snapshot_id, path_id, query)
                 if len(parts) == 5 and parts[4] == "nets":

@@ -121,6 +121,11 @@ To retrieve the exact original spelling, use native queries against the original
     'timing': '''Path/point lists default to engineering facts with shared source references. Heavy repeated identity
 reference maps, per-row evidence and path point-ID catalogs remain at detail=full; delivery.full_details
 preserves this request's original filters/order/pagination. All points, names and numeric facts remain present.
+S/timing-paths/<path_id>?fields=timing_path reads only the path header, without point pages;
+fields=<dotted fields> selects requested content, delivery.full_details restores the complete response.
+S/timing-overview?resolve=1&check=both runs ONE fresh query for setup and hold together.
+checks.setup and checks.hold each contain their own paths/associations; limit applies to EACH check.
+For just slack/arrival/required select fields=checks.setup.paths,checks.hold.paths.
 S/timing-paths/<path_id>/clock-paths returns BOTH complete clock trees and the original path delay header,
 in exact native report order/units. Original instance/net values (including null/empty/undeclared fields)
 remain untouched; database mappings do not replace native report fields. This is one joined original-report read.
