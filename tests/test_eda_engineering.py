@@ -303,6 +303,34 @@ def test_net_traversal_walks_actual_pages_and_verifies_complete_identity_order(t
         store.close()
 
 
+def test_named_net_loads_count_distinct_instances_across_pages_and_exclude_ports(tmp_path):
+    from openroad_app_data_foundation.discovery import list_objects
+    from openroad_app_data_foundation.engineering import net_engineering
+    pack = sample()
+    pins = [('p1', 'u/A', 'i'), ('p2', 'u/B', 'i'),
+            ('p3', 'clock_buf/A', 'c'), ('bterm:out', 'out', None)]
+    pack['entities'][2]['attributes']['fanout'] = len(pins)
+    pack['entities'].extend({'object_id': key, 'name': name, 'kind': 'pin', 'parent_id': parent}
+                           for key, name, parent in pins)
+    pack['relations'] = [{'relation_id': key, 'subject_id': 'n', 'object_id': key, 'predicate': 'loads'}
+                         for key, _, _ in pins]
+    store = DataStore(tmp_path / 'named-loads.sqlite')
+    try:
+        store.register(pack)
+        by_name = list_objects(store, 's', {'kind': 'pin', 'connected_to': 'signal',
+                                           'net_role': 'load', 'limit': '100', 'fields': 'name'})
+        assert [p['name'] for p in by_name['objects']] == sorted(name for _, name, _ in pins)
+        result = net_engineering(store, 's', 'signal', {'traverse': '1', 'limit': '1'})
+        assert result['load_traversal']['pages_read'] == len(pins)
+        assert result['load_traversal']['internal_instance_count'] == 2
+        assert result['load_traversal']['pin_names'] == sorted(name for _, name, _ in pins)
+        assert result['driver_traversal']['internal_instance_count'] == 0
+        with pytest.raises(KeyError, match='net not found'):
+            list_objects(store, 's', {'kind': 'pin', 'connected_to': 'u', 'net_role': 'load'})
+    finally:
+        store.close()
+
+
 def test_joined_net_pages_restore_all_named_loads_and_keep_multi_driver_state(tmp_path):
     from openroad_app_data_foundation.engineering import net_engineering
     pack = sample()
