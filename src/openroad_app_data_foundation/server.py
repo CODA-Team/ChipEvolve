@@ -24,6 +24,7 @@ from .parasitics import net_parasitics
 from .engineering import (object_statistics, path_engineering, timing_overview,
                           routing_totals, instance_engineering, net_engineering, compare_inventory)
 from .constraints import constraint_context
+from .resolved_timing import resolved_timing_overview
 from .source_metadata import source_metadata
 from .api_help import api_help
 from .excerpts import excerpt_view
@@ -276,6 +277,19 @@ class Handler(BaseHTTPRequestHandler):
                 payload = analysis_setup(store, self.execution_client, parts[1], self.native_root)
                 return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 3 and parts[2] == 'timing-overview':
+                if query.get('resolve', '0') not in ('0', '1'):
+                    raise ValueError('resolve must be 0|1')
+                if query.get('resolve') == '1':
+                    if self.execution_client is None:
+                        raise KernelUnavailable('execution service is not configured')
+                    payload = resolved_timing_overview(store, self.store, self.execution_client, parts[1], query)
+                    if payload['query_execution']['status'] != 'succeeded':
+                        return payload
+                    recovery_query = {key: value for key, value in query.items()
+                                      if key not in ('resolve', 'wait_seconds', 'endpoint_path_count')}
+                    recovery_query['check'] = query.get('check', 'setup')
+                    recovery = '/snapshots/' + payload['snapshot_id'] + '/timing-overview'
+                    return metadata_view(payload, recovery_query, recovery) if query.get('fields') else payload
                 payload = timing_overview(store, parts[1], query)
                 return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 3 and parts[2] == 'routing-totals':
@@ -320,7 +334,8 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) == 3 and parts[2] == 'constraints':
                 if self.execution_client is None:
                     raise KernelUnavailable('execution service is not configured')
-                return constraint_context(store, self.execution_client, parts[1], query)
+                payload = constraint_context(store, self.execution_client, parts[1], query)
+                return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 5 and parts[2] == "nets" and parts[4] == "routing-summary":
                 return routing_summary(store, parts[1], parts[3])
             # Facts no bundle carries, read from the flow's own tree: the SPEF

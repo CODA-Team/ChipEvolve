@@ -5,6 +5,7 @@ from .identity import snapshot_identity
 from .queries import _limit, _offset, _page, list_timing_paths, timing_path
 from .discovery import object_filter, list_objects
 from .metadata import placement_geometry
+from .timing_facts import timing_fact_snapshot, fact_source
 
 
 def _entity(store, snapshot_id, identifier, kind):
@@ -270,18 +271,21 @@ def routing_totals(store, snapshot_id):
 
 def path_engineering(store, snapshot_id, path_id, query):
     """Data-side pins, instances and nets, separate from the two clock trees."""
+    snapshot = store.snapshot(snapshot_id)
+    facts = timing_fact_snapshot(store, snapshot)
+    facts_id = facts['snapshot_id']
     detail = timing_path(store, snapshot_id, path_id, points_limit=0)
     path = detail['timing_path']
     points = [p for p in detail['timing_points'] if p.get('path_section') == 'source_path']
     ids = list(dict.fromkeys(p['instance_id'] for p in points if p.get('instance_id')))
     instances, unmapped = [], []
-    entities = {row['object_id']: row for row in store.entities_by_ids(snapshot_id, ids)}
+    entities = {row['object_id']: row for row in store.entities_by_ids(facts_id, ids)}
     for oid in ids:
         entity = entities.get(oid)
         if entity is None:
             unmapped.append(oid)
             continue
-        physical = store.physical(snapshot_id, oid, routing_limit=1)
+        physical = store.physical(facts_id, oid, routing_limit=1)
         attr = entity.get('attributes') or {}
         instances.append({'object_id': oid, 'name': entity['name'], 'master': attr.get('master'),
                           'is_macro': attr.get('is_macro'), 'bbox': physical.get('bbox'),
@@ -289,17 +293,19 @@ def path_engineering(store, snapshot_id, path_id, query):
                                         'orientation': attr.get('orientation')}})
     net_ids = list(dict.fromkeys(p['net_id'] for p in points if p.get('net_id')))
     nets = []
-    for entity in store.entities_by_ids(snapshot_id, net_ids):
+    for entity in store.entities_by_ids(facts_id, net_ids):
         attr = entity.get('attributes') or {}
         nets.append({'net_id': entity['object_id'], 'name': entity['name'],
                      'fanout': attr.get('fanout'), 'driver_count': attr.get('driver_count'),
                      'signal_type': attr.get('signal_type')})
+    found_nets = {n['net_id'] for n in nets}
+    if query.get('signal_type'):
+        nets = [n for n in nets if n['signal_type'] == query['signal_type']]
     nets.sort(key=lambda n: (-(n['fanout'] if n['fanout'] is not None else -1), n['name']))
     unresolved_points = [p.get('point_id') or p.get('pin_name') for p in points
                          if p.get('mapping_status') == 'unmapped'
                          or (p.get('net_name') and not p.get('net_id'))
                          or (p.get('instance_name') and not p.get('instance_id'))]
-    found_nets = {n['net_id'] for n in nets}
     unresolved_nets = [oid for oid in net_ids if oid not in found_nets]
     incomplete = bool(unresolved_points or unresolved_nets or unmapped)
     compact_points = [{key: p.get(key) for key in
@@ -314,9 +320,11 @@ def path_engineering(store, snapshot_id, path_id, query):
               'data_path_pin_count': len(points), 'instance_count': len(instances),
               'data_pin_names': [p.get('pin_name') for p in points],
               'data_pin_names_scope': 'complete source_path sequence in report order, preserving repeated pins; independent of point pagination',
-              'net_count': len(nets), 'master_counts': dict(sorted(masters.items())),
+              'net_count': len(nets), 'net_names': sorted(n['name'].replace('\\', '') for n in nets),
+              'net_signal_type_filter': query.get('signal_type'),
+              'object_facts_source': fact_source(facts), 'master_counts': dict(sorted(masters.items())),
               'instance_bbox_union': _bbox_union([r['bbox'] for r in instances if r['bbox']]),
-              'dbu_per_micron': snapshot.get('run_summary', {}).get('dbu_per_micron'),
+              'dbu_per_micron': facts.get('run_summary', {}).get('dbu_per_micron'),
               'unmapped_instance_ids': unmapped,
               'association_coverage': {'status': 'partial' if incomplete else 'complete',
                                        'unresolved_point_ids': unresolved_points,
@@ -338,7 +346,7 @@ def path_engineering(store, snapshot_id, path_id, query):
     result['truncated'] = any(result[name + '_page']['truncated']
                               for name in ('points', 'instances', 'nets'))
     if query.get('include_routing') == '1':
-        result['routing_layers_crossed'] = routing_layers(store, snapshot_id, net_ids)
+        result['routing_layers_crossed'] = routing_layers(store, facts_id, [n['net_id'] for n in nets])
     return result
 
 
@@ -362,10 +370,16 @@ def timing_overview(store, snapshot_id, query):
     options = {**{key: value for key, value in query.items() if key not in ('fields', 'include_physical')},
                'sort': 'slack', 'order': 'worst', 'offset': '0'}
     rows = list_timing_paths(store, snapshot_id, options)
+    facts = timing_fact_snapshot(store, store.snapshot(snapshot_id))
+    facts_id = facts['snapshot_id']
     instance_paths, master_occurrences, net_ids = Counter(), Counter(), set()
     paths, data_points, extrema_sources, incomplete_paths = [], [], {}, []
+    path_details, instance_details = [], {}
     for path in rows['timing_paths']:
-        detail = path_engineering(store, snapshot_id, path['path_id'], {'limit': '10000'})
+        detail = path_engineering(store, snapshot_id, path['path_id'],
+                                  {'limit': '10000', **({'signal_type': query['signal_type']} if query.get('signal_type') else {})})
+        path_details.append(detail)
+        instance_details.update((item['object_id'], item) for item in detail['instances'])
         instance_paths.update(item['name'] for item in detail['instances'])
         master_occurrences.update(detail['master_counts'])
         net_ids.update(item['net_id'] for item in detail['nets'])
@@ -378,14 +392,14 @@ def timing_overview(store, snapshot_id, query):
             incomplete_paths.append(path['path_id'])
         paths.append(detail['path'])
     nets = []
-    for item in store.entities_by_ids(snapshot_id, sorted(net_ids)):
+    for item in store.entities_by_ids(facts_id, sorted(net_ids)):
         attr = item.get('attributes') or {}
         if query.get('signal_type') and attr.get('signal_type') != query['signal_type']:
             continue
         nets.append({'net_id': item['object_id'], 'name': item['name'],
                      'fanout': attr.get('fanout'), 'driver_count': attr.get('driver_count')})
     nets.sort(key=lambda n: (-(n['fanout'] if n['fanout'] is not None else -1), n['name']))
-    limit = _limit(query)
+    limit = _limit({'limit': query.get('net_limit', query.get('limit', '50'))})
     extrema = point_extrema(data_points)
     for value in extrema.values():
         point = value.get('selected_point')
@@ -398,7 +412,7 @@ def timing_overview(store, snapshot_id, query):
             instance_id = point.get('instance_id')
             if instance_id:
                 if instance_id not in joined:
-                    joined[instance_id] = instance_engineering(store, snapshot_id, instance_id)['instance']
+                    joined[instance_id] = instance_engineering(store, facts_id, instance_id)['instance']
                 point['instance'] = joined[instance_id]
     result = {'snapshot_id': snapshot_id, 'snapshot': rows['snapshot'], 'paths': paths,
             'coverage_scope': 'ranked stored paths; use timing-queries for other endpoints',
@@ -413,9 +427,20 @@ def timing_overview(store, snapshot_id, query):
             'data_point_extrema': extrema,
             'net_union_count': len(nets), 'nets': nets[:limit],
             'nets_truncated': len(nets) > limit,
-            'net_names': sorted(n['name'] for n in nets),
+            'net_names': sorted(n['name'].replace('\\', '') for n in nets),
+            'object_facts_source': fact_source(facts),
             'association_coverage': {'status': 'partial' if incomplete_paths else 'complete',
                                      'incomplete_path_ids': incomplete_paths}}
+    if query.get('include_path_details') == '1':
+        result['path_details'] = path_details
+    if query.get('include_physical') == '1':
+        result['instances'] = sorted(instance_details.values(), key=lambda item: item['name'])
+        result['instance_bbox_union'] = _bbox_union([item['bbox'] for item in instance_details.values() if item['bbox']])
+        result['dbu_per_micron'] = facts.get('run_summary', {}).get('dbu_per_micron')
+    if query.get('include_connectivity') == '1':
+        for net in result['nets']:
+            net['connectivity'] = net_engineering(store, facts_id, net['net_id'],
+                {'limit': query.get('connectivity_pin_limit', '5')})
     if incomplete_paths:
         result['availability'] = {'complete_association_aggregates': {'status': 'unavailable',
             'reason': 'some selected paths have unresolved associations; do not report subset rankings as complete'}}

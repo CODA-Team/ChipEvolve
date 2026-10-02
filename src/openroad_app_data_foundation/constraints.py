@@ -1,5 +1,6 @@
 """Effective constraint declarations and native coverage, read from actual artifacts."""
 import re
+from collections import Counter
 from .identity import snapshot_identity
 from .queries import _limit, _offset, _page
 
@@ -54,16 +55,19 @@ def constraint_context(store, client, snapshot_id, query):
             count = 0
     ports = store.filtered(snapshot_id, 'entities',
                            where="record_id LIKE 'bterm:%'")
-    undeclared = {}
+    undeclared, port_coverage = {}, {}
     for direction, kind in [('INPUT', 'input_delay'), ('OUTPUT', 'output_delay')]:
         names = set()
         for line in declarations[kind]:
             match = re.search(r'\[get_ports\s+\{([^}]*)\}', line)
             if match:
                 names.update(match[1].split())
-        undeclared[kind] = sorted(row['name'] for row in ports
-                                 if row.get('attributes', {}).get('direction') == direction
-                                 and row['name'] not in names)
+        actual = {row['name'] for row in ports
+                  if row.get('attributes', {}).get('direction') == direction}
+        undeclared[kind] = sorted(actual - names)
+        port_coverage[kind] = {'direction': direction, 'port_count': len(actual),
+                               'ports_with_explicit_delay_count': len(actual & names),
+                               'ports_without_explicit_delay_count': len(actual - names)}
     delay_values, clocks = {}, set()
     for kind in ('input_delay', 'output_delay'):
         values = set()
@@ -91,6 +95,11 @@ def constraint_context(store, client, snapshot_id, query):
               'declaration_counts': {key: len(rows) for key, rows in declarations.items()},
               'delay_values': delay_values, 'delay_value_unit': 'SDC/liberty time unit',
               'referenced_clocks': sorted(clocks), 'ports_without_delay': undeclared,
+              'port_delay_coverage': port_coverage,
+              'other_port_directions': dict(sorted(Counter(
+                  row.get('attributes', {}).get('direction') for row in ports
+                  if row.get('attributes', {}).get('direction') not in ('INPUT', 'OUTPUT')).items())),
+              'port_delay_coverage_basis': 'unique native ports with explicit declarations in the selected SDC; clock ports included; absence is not a violation',
               'unconstrained_endpoint_count': count,
               'unconstrained_endpoints': endpoints[offset:offset + limit],
               'coverage_scope': 'native check_setup -verbose over this snapshot',

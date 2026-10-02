@@ -166,7 +166,19 @@ pins' owning instance engineering facts. Use fields=paths,data_point_extrema to 
 Selected points carry point_id, path_id and source references: S/records/timing_points/<point_id>/fragments returns
 the actual small original point and native mapping, avoiding full-path context expansion for a single fact.
 Prefer these joins/aggregations for multi-object analysis rather than repeatedly fetching individual objects.
-Stored path lists are samples. For any other endpoint or exact start/end pair, POST S/timing-queries
+Stored path lists are samples. S/timing-overview?resolve=1&check=setup|hold&startpoint=<native>&endpoint=<native>&limit=N
+submits a FRESH native query and waits internally (wait_seconds=0..120, default120). Omit unneeded startpoint/endpoint/group filters.
+It returns paths and their engineering aggregates in ONE operation, including paths outside the stored sample.
+include_path_details=1 adds ordered data_pin_names, all data instances/master_counts, net counts and per-path extrema.
+include_physical=1 adds complete data-instance geometry, bbox union/DBU and selected extrema's instance facts.
+include_connectivity=1 joins driver/load names and complete counts for ranked nets; net_limit bounds ranked net rows,
+connectivity_pin_limit controls each pin page (default5). net_names remains the COMPLETE sorted filtered net union.
+signal_type filters actual native net types without changing missing-association status. Object facts come from the explicitly
+recorded parent with identical original ODB digest and run/stage identity; timing values keep the new query snapshot identity.
+Project needed fields; query_execution and object_facts_source preserve both sources. delivery.full_details addresses the resulting
+snapshot WITHOUT submitting another job. If still pending or failed, inspect query_execution and the explicit continuation routes;
+never substitute a stored sample for a failed native query. Existing child path engineering also joins those same parent facts.
+For explicit asynchronous operation, POST S/timing-queries
 payload {"from_pin":"native start", "to_pin":"native end", "path_group":"optional group", "path_count":5,"endpoint_path_count":1}.
 Omit unneeded filters. It returns run.run_id and a new snapshot_id; GET /timing-queries/<run_id>?wait_seconds=120 waits for completion in one tool operation; repeat if still running, not rapid polling.
 Once succeeded, then query the snapshot_ids returned there. Both setup and hold paths are generated.
@@ -174,6 +186,9 @@ S/constraints returns effective SDC, declared clocks/delays and native check_set
 original_constraints maps each staged input digest to every matching original SDC path in the producer manifest;
 cite the requested stage's original file. Clock-source ports/pins are in the create_clock target or native STA query,
 and are distinct from those file paths. A virtual clock has no source ports/pins.
+port_delay_coverage gives INPUT/OUTPUT port_count, unique ports_with_explicit_delay_count and ports_without_explicit_delay_count;
+ports_without_delay gives COMPLETE sorted names, including clock ports. Duplicate min/max/rise/fall declarations count each port once.
+other_port_directions keeps INOUT separate. Missing explicit delay is a coverage fact, not by itself a violation.
 kind=propagation returns clock propagation statements; kind=all pages every original non-comment SDC line
 in original order, including statements beyond named-clock creation. Read later matching declarations too.
 ''',

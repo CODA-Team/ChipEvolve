@@ -35,7 +35,7 @@ def metadata_view(payload, query, path):
         result['snapshot'] = {**snapshot_identity(payload.get('snapshot', {})),
                               **result.get('snapshot', {})}
         result['evidence'] = payload.get('evidence', payload.get('snapshot', {}).get('source_artifacts', []))[:1]
-        for key in ('availability', 'association_coverage'):
+        for key in ('availability', 'association_coverage', 'object_facts_source', 'query_execution'):
             if key in payload:
                 result[key] = deepcopy(payload[key])
         result['delivery'] = {'fields': fields.split(','), 'full_details': full_details}
