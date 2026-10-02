@@ -169,6 +169,7 @@ Prefer these joins/aggregations for multi-object analysis rather than repeatedly
 Stored path lists are samples. S/timing-overview?resolve=1&check=setup|hold&startpoint=<native>&endpoint=<native>&limit=N
 submits a FRESH native query and waits internally (wait_seconds=0..120, default120). Omit unneeded startpoint/endpoint/group filters.
 It returns paths and their engineering aggregates in ONE operation, including paths outside the stored sample.
+paths includes actual native data_arrival_time, required_time and slack in s; do not infer arrival by subtracting rounded fields.
 include_path_details=1 adds ordered data_pin_names, all data instance_names/master_counts, net counts, instance_bbox_union_um and per-path extrema.
 include_physical=1 adds complete data-instance geometry, bbox union/DBU and selected extrema's instance facts.
 include_connectivity=1 joins driver/load names and complete counts for ranked nets; net_limit bounds ranked net rows,
@@ -197,7 +198,7 @@ ITerm uses getAvgXY; BTerm uses getFirstPinLocation. Check position_success; a f
 S/physical/<object_id>?routing_limit=1 gives location_dbu/location_um, orientation and bbox (dbu/um), or pageable routing with routing_offset;
 location_basis explicitly identifies dbInst.getLocation. Objects with include_physical=1 carry the same location fields;
 use these extracted placement facts rather than requerying dbInst.getOrigin for a different coordinate definition.
-routing_limit=0 returns all geometry. S/nets/<net_id>/routing-summary gives full layer/via/centerline totals, wirelength_um and via_distribution_by_layer (each via counted on BOTH bottom and top layers).
+routing_limit=0 returns all geometry. S/nets/<native net name or net_id>/routing-summary gives full layer/via/centerline totals, wirelength_um and via_distribution_by_layer (each via counted on BOTH bottom and top layers).
 For all metal layers used by a net, read routing_layers_used (union of segment_layers and via_layers),
 not just keys of layers, which is the segment-length dictionary and excludes via-only participation.
 S/routing-totals gives full-design geometric length/vias. S/nets/<net name or id>/parasitics?limit=N&offset=N

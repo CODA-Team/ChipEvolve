@@ -316,7 +316,7 @@ def path_engineering(store, snapshot_id, path_id, query):
     result = {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(snapshot),
               'path': {key: path.get(key) for key in
                        ('path_id', 'startpoint', 'endpoint', 'check', 'group', 'slack',
-                        'required_time', 'source_clock', 'target_clock', 'unit')},
+                        'data_arrival_time', 'required_time', 'source_clock', 'target_clock', 'unit')},
               'data_path_pin_count': len(points), 'instance_count': len(instances),
               'instance_names': sorted(item['name'].replace('\\', '') for item in instances),
               'data_pin_names': [p.get('pin_name') for p in points],

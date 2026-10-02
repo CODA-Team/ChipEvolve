@@ -325,6 +325,8 @@ def timing_context(store, snapshot_id):
 
 
 def routing_summary(store, snapshot_id, object_id):
+    from .engineering import _entity
+    object_id = _entity(store, snapshot_id, object_id, 'net')['object_id']
     # Every shape, deliberately: this counts segments per layer and vias by name, so
     # a paged list would produce a confidently wrong total rather than a short one.
     physical = store.physical(snapshot_id, object_id, routing_limit=0)
