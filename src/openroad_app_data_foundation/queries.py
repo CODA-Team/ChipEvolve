@@ -36,7 +36,7 @@ POINTS_PAGE = 10
 #: magnitudes, so the worst point has the *largest* value - descending.  Assuming one
 #: direction made the worst-slew query return the zero-slew clock roots.
 RANKINGS = {
-    "timing_paths": {"slack": ("$.slack", "asc"), "arrival": ("$.arrival", "desc")},
+    "timing_paths": {"slack": ("$.slack", "asc"), "arrival": ("$.data_arrival_time", "desc")},
     "timing_points": {"slew": ("$.slew", "desc"), "load": ("$.load", "desc"),
                       "arrival": ("$.arrival", "desc")},
 }
@@ -136,6 +136,12 @@ def list_timing_paths(store: DataStore, snapshot_id: str, query: dict[str, str])
         raise ValueError('timing detail must be summary|full')
     return {"snapshot_id": snapshot_id, "snapshot": snapshot_identity(store.snapshot(snapshot_id)),
             "timing_paths": rows, **ranking, **sources,
+            'selection': {'candidate_scope': 'all matching stored paths in this snapshot; unsampled native paths are outside this scope',
+                          'matching_count': total, 'filters_before_paging': True,
+                          'ranking_before_paging': bool(query.get('sort')),
+                          'first_returned_rank': offset + 1 if rows and query.get('sort') else None,
+                          'last_returned_rank': offset + len(rows) if rows and query.get('sort') else None,
+                          'pagination_meaning': 'truncated and next_offset describe additional paths; limit does not clip requested fields on returned rows'},
             'delivery': _timing_delivery('/snapshots/' + snapshot_id + '/timing-paths', query,
                 ['timing_paths.evidence', 'timing_paths.point_ids', 'timing_paths.path_identity']),
             **_page(total, len(rows), limit, offset), "filters": filters}

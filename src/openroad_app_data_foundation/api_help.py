@@ -174,6 +174,11 @@ S/timing-paths/<path_id>/clock-paths returns BOTH complete clock trees and the o
 in exact native report order/units. Original instance/net values (including null/empty/undeclared fields)
 remain untouched; database mappings do not replace native report fields. This is one joined original-report read.
 S/timing-paths?check=setup|hold&sort=slack&order=worst&limit=N returns ranked stored paths;
+sort=arrival ranks the native data_arrival_time (SI seconds), independently of slack ranking.
+selection states the complete matching stored-path count and returned ranks; filters and ranking apply BEFORE limit/offset.
+truncated/next_offset mean more matching paths remain, not clipped fields on a returned worst path.
+This covers the stored candidate set, not unsampled native paths; use a fresh native query for those.
+fields selects ROW columns such as startpoint,endpoint,slack_ns; paths is not a row column on this endpoint.
 S/timing-paths/<path_id>/endpoints joins both endpoints' native pin/connection, owning-instance placement/counts,
 original timing-point fragments and source references. Report net/instance values remain separate from native facts.
 Top-level ports have instance=null. Missing native mappings remain explicit; fields=path,endpoints.endpoint selects one end.
