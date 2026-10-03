@@ -3,6 +3,57 @@ import pytest
 from openroad_app_data_foundation.congestion import _rank
 
 
+@pytest.mark.parametrize('stage', ['input', 'placeopt', 'global_route'])
+def test_implicit_report_is_unique_current_stage_and_same_facts_as_explicit(tmp_path,monkeypatch,stage):
+    from openroad_app_data_foundation import congestion as module
+    path=tmp_path/(stage+'.congestion.tsv')
+    path.write_text('M2\t0\t0\t0\t0\t10\t12\t2\n')
+    sid='original-'+stage
+    snapshot={'snapshot_id':sid,'design_id':'design','revision_id':'revision','run_id':'run','stage':stage,
+              'run_summary':{'dbu_per_micron':1000,'die_bbox':{'x_max':10000,'y_max':10000}}}
+    class Store:
+        def snapshot(self,identifier):
+            assert identifier==sid
+            return snapshot
+    calls=[]
+    def catalog(store,identifier,query,root):
+        calls.append(query)
+        assert identifier==sid and query['kind']=='reports' and query['name_contains']==stage+'.congestion.tsv'
+        return {'files':{'count':1,'items':[{'relative_path':'reports/'+path.name}]}}
+    def excerpt(store,identifier,query,root):
+        assert query['path']=='reports/'+path.name
+        return {'source':{'path':str(path),'sha256':'a'*64}}
+    monkeypatch.setattr(module,'native_files',catalog)
+    monkeypatch.setattr(module,'native_excerpt',excerpt)
+    implicit=module.congestion_grid(Store(),sid,{'layers':'M2','limit':'1'},tmp_path)
+    explicit=module.congestion_grid(Store(),sid,{'layers':'M2','limit':'1','file':'reports/'+path.name},tmp_path)
+    assert implicit==explicit and len(calls)==1
+    assert implicit['count']==1 and implicit['total_overflow']==2
+    assert implicit['cells'][0]['bbox_um']==[0,0,10,10]
+
+
+@pytest.mark.parametrize('catalog',[
+    {'count':0,'items':[]},
+    {'count':2,'items':[{'relative_path':'reports/global_route.congestion.tsv'}]},
+    {'count':1,'items':[{'relative_path':'reports/old_global_route.congestion.tsv'}]},
+])
+def test_absent_ambiguous_or_another_stage_never_returns_an_invented_grid(tmp_path,monkeypatch,catalog):
+    from openroad_app_data_foundation import congestion as module
+    class Store:
+        def snapshot(self,identifier):return {'stage':'global_route'}
+    monkeypatch.setattr(module,'native_files',lambda *a: {'files':catalog})
+    monkeypatch.setattr(module,'native_excerpt',lambda *a: pytest.fail('ambiguous report must not be read'))
+    with pytest.raises(ValueError,match='no unique report for snapshot stage global_route'):
+        module.congestion_grid(Store(),'s',{},tmp_path)
+
+
+def test_public_physical_help_lists_actual_grid_fields():
+    from openroad_app_data_foundation import api_help
+    text=api_help.QUICK_GUIDES['physical']
+    assert 'fields=cells,count,overflow_cell_count,total_overflow,source' in text
+    assert 'cells/counts/sources' not in text
+
+
 def test_float_capacity_full_domain_ranking_and_layer_filter(tmp_path):
     path=tmp_path/'grid.tsv'
     path.write_text('M1\t0\t0\t0\t0\t0.0\t100.0\t100\n'
