@@ -109,3 +109,43 @@ def test_pin_getter_success_failure_and_original_native_identity(tmp_path, monke
                 assert result['pin']['position_success'] is False and result['pin']['position_dbu'] is None
     finally:
         store.close()
+
+
+@pytest.mark.parametrize('port', [True, False])
+def test_pin_query_joins_same_snapshot_ownership_and_connection_with_projection(tmp_path, monkeypatch, port):
+    from openroad_app_data_foundation.server import Handler
+    pack = sample()
+    pack['entities'][0]['attributes']['orientation'] = 'MY'
+    pin = {'object_id': ('bterm' if port else 'iterm') + ':12', 'kind': 'pin',
+           'name': 'port' if port else 'u/CLK',
+           'attributes': {'native_id': '12', 'direction': 'INPUT', 'native_pin_signal_type': 'CLOCK'}}
+    if not port:
+        pin['parent_id'] = 'i'
+    pack['entities'].append(pin)
+    pack['relations'] = [{'relation_id': 'pin-net', 'subject_id': pin['object_id'],
+                          'predicate': 'connected_to', 'object_id': 'n'}]
+    calls = []
+    def native(*args):
+        calls.append(args[3])
+        return {'status': 'succeeded', 'run': {'run_id': 'original'}, 'source': {'artifact_id': 'report'},
+            'excerpt': {'text': 'EDA_PIN_POSITION 1 20140 -2000\nEDA_PIN_BBOX 20000 -2100 20200 -1900\n', 'truncated': False}}
+    monkeypatch.setattr('openroad_app_data_foundation.pin_geometry.submit_native_query', native)
+    store = DataStore(tmp_path / 'joined.sqlite')
+    try:
+        store.register(pack)
+        handler = Handler.__new__(Handler)
+        handler.store, handler.auto_import, handler.execution_client, handler.native_root = store, False, object(), tmp_path
+        path = '/snapshots/s/pins/' + pin['object_id'] + '/engineering'
+        fields = 'pin.position_um,pin.position_success,native_connection.net_name,native_connection.signal_type,instance'
+        selected = handler._get(path, {'fields': fields})
+        assert len(calls) == 1 and not calls[0]['with_timing']
+        assert selected['pin'] == {'position_um': [10.07, -1], 'position_success': True}
+        assert selected['native_connection'] == {'net_name': 'signal', 'signal_type': 'SIGNAL'}
+        if port:
+            assert selected['instance'] is None
+        else:
+            assert selected['instance']['name'] == 'u' and selected['instance']['orientation'] == 'MY'
+            assert selected['instance']['orientation_names']['def'] == 'FN'
+        assert selected['delivery']['full_details'].endswith('detail=full')
+    finally:
+        store.close()

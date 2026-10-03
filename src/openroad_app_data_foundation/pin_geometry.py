@@ -1,13 +1,16 @@
 """Join stored pin identity with its actual native placement getters."""
 import re
 
-from .engineering import _entity
+from .engineering import _entity, instance_engineering
+from .discovery import list_objects
 from .identity import snapshot_identity
 from .native_queries import submit_native_query
 
 
 def pin_engineering(store, client, snapshot_id, identifier, native_root):
     pin = _entity(store, snapshot_id, identifier, 'pin')
+    pin = list_objects(store, snapshot_id, {'kind': 'pin', 'ids': pin['object_id'],
+                                         'limit': '1'})['objects'][0]
     snapshot = store.snapshot(snapshot_id)
     scale = snapshot['run_summary']['dbu_per_micron']
     kind = pin['object_id'].split(':', 1)[0]
@@ -31,6 +34,11 @@ def pin_engineering(store, client, snapshot_id, identifier, native_root):
                       'parent_id': pin.get('parent_id'), 'dbu_per_micron': scale,
                       'position_basis': 'OpenDB ' + cls + '.' + getter},
               'native_query': {'run_id': outcome['run']['run_id'], 'status': outcome['status']}}
+    attr = pin['attributes']
+    result['native_connection'] = {key: attr.get(key) for key in
+                                  ('net_id', 'net_name', 'signal_type', 'direction')}
+    result['native_connection']['signal_type_basis'] = attr['signal_type_basis']
+    result['instance'] = instance_engineering(store, snapshot_id, pin['parent_id'])['instance'] if pin.get('parent_id') else None
     if outcome['status'] != 'succeeded':
         result['native_query']['report'] = outcome
         result['availability'] = {'pin_geometry': {'status': 'unavailable',

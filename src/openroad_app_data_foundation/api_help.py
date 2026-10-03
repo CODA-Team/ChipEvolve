@@ -243,6 +243,9 @@ kind=propagation returns clock propagation statements; kind=all pages every orig
 in original order, including statements beyond named-clock creation. Read later matching declarations too.
 ''',
     'physical': '''S/pins/<native name or id>/engineering gives original native pin position and bbox in dbu/um, source and getter basis.
+instance joins its owning instance's placement/orientation, or null for a top-level port.
+native_connection gives connected net ID/name/type and direction using the same original ODB.
+Use fields=pin.position_um,pin.position_success,instance.orientation,native_connection.net_name for these facts together.
 S/congestion?file=<declared eight-column native TSV>&layers=<comma-separated layers>&limit=N&offset=N
 ranks ALL matching grid cells by overflow then utilization descending, natural layer/index ascending.
 Returns capacity, usage, overflow, native grid bbox and source line, with complete layer counts/overflow totals.
