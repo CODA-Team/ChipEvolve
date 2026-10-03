@@ -93,3 +93,40 @@ def test_regional_classification_preserves_complete_counts_names_and_boundary_mo
             list_objects(store, 's', {**query, 'fields': 'count,objects.name'})
     finally:
         store.close()
+
+
+def test_grouped_names_keep_null_classification_complete_counts_and_readable_pages(tmp_path):
+    from urllib.parse import parse_qs, urlsplit
+    from openroad_app_data_foundation.server import Handler
+    store = DataStore(tmp_path / 'group_names.sqlite')
+    try:
+        data = pack()
+        data['entities'].extend([
+            {'object_id': 'c', 'kind': 'instance', 'name': 'c', 'attributes': {'is_macro': 0}},
+            {'object_id': 'd', 'kind': 'instance', 'name': 'd', 'attributes': {}}])
+        store.register(data)
+        handler = Handler.__new__(Handler)
+        handler.store = store
+        path = '/snapshots/s/objects/statistics'
+        query = {'kind': 'instance', 'group_by': 'is_macro', 'include_names': '1', 'names_limit': '1',
+                 'limit': '1', 'fields': 'object_count,groups.value,groups.names'}
+        first = handler._get(path, query)
+        assert first['object_count'] == 4
+        assert first['groups'][0]['value'] == 1
+        page = first['groups'][0]['names']
+        assert page['count'] == 2 and page['items'] == ['a'] and page['truncated']
+        continuation = urlsplit(page['continuation'])
+        second = handler._get(continuation.path, {k: v[0] for k, v in parse_qs(continuation.query).items()})
+        assert second['groups'][0]['names']['items'] == ['b']
+        assert second['groups'][0]['names']['count'] == 2
+        assert second['groups'][0]['names']['next_offset'] is None
+        all_groups = object_statistics(store, 's', {**query, 'limit': '3'})
+        groups = {g['value']: g['names'] for g in all_groups['groups']}
+        assert groups[0]['items'] == ['c'] and groups[None]['items'] == ['d']
+        assert sum(g['count'] for g in groups.values()) == 4
+        with pytest.raises(ValueError, match='names paging requires'):
+            object_statistics(store, 's', {'kind': 'instance', 'names_limit': '1'})
+        with pytest.raises(ValueError, match='unknown object query fields'):
+            list_objects(store, 's', {'kind': 'instance', 'include_names': '1'})
+    finally:
+        store.close()
