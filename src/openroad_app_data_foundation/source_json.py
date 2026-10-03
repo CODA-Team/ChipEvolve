@@ -15,11 +15,11 @@ def _field_path(field):
     return '$.' + field
 
 
-def _ranking_field(store, array, field, total):
+def _existing_field(store, array, field, total, purpose):
     path = _field_path(field)
     if total and not store.connection.execute('SELECT 1 FROM json_each(?) WHERE json_type(value,?) IS NOT NULL LIMIT 1',
                                               (array, path)).fetchone():
-        raise ValueError('original JSON ranking field does not exist: ' + field)
+        raise ValueError('original JSON ' + purpose + ' field does not exist: ' + field)
     return path
 
 
@@ -63,21 +63,28 @@ def source_json(store, snapshot_id, query, root):
     total = store.connection.execute('SELECT json_array_length(?)', (array,)).fetchone()[0]
     ordering, sort_params = [], []
     if query.get('sort_field'):
-        path = _ranking_field(store, array, query['sort_field'], total)
+        path = _existing_field(store, array, query['sort_field'], total, 'ranking')
         ordering.extend(['json_extract(payload,?) IS NULL', 'json_extract(payload,?) ' + order.upper()])
         sort_params.extend((path, path))
     for field in query.get('tie_fields', '').split(','):
         if field:
             ordering.append('json_extract(payload,?) ASC')
-            sort_params.append(_ranking_field(store, array, field, total))
+            sort_params.append(_existing_field(store, array, field, total, 'ranking'))
     ordering.append('ordinal ASC')
     limit, offset = _limit(query), _offset(query)
     page = store.connection.execute(base + 'SELECT ordinal,payload FROM rows' + where +
         ' ORDER BY ' + ','.join(ordering) + ' LIMIT ? OFFSET ?', [*params, *sort_params, limit, offset]).fetchall()
     values = [json.loads(row['payload']) for row in page]
+    for field in query.get('fields', '').split(','):
+        if field:
+            _existing_field(store, array, field, total, 'projection')
     projected = metadata_view({'rows': values}, {**query, 'fields': ','.join('rows.' + f for f in query['fields'].split(','))}
                               if query.get('fields') else query,
-                              '/snapshots/' + snapshot_id + '/artifacts/files/json')
+                              '/snapshots/' + snapshot_id + '/artifacts/files/json', sparse_fields=True)
+    if query.get('fields'):
+        projected['delivery']['fields'] = query['fields'].split(',')
+        projected['delivery']['requested_fields_absent_in_some_returned_rows'] = [field.removeprefix('rows.')
+            for field in projected['delivery']['requested_fields_absent_in_some_returned_rows']]
     return {'snapshot_id': snapshot_id, 'source': source, 'json_path': selector, 'rows': projected['rows'],
             'original_array_count': total, 'source_array_indices': [row['ordinal'] for row in page],
             'filters': filters, 'sort_field': query.get('sort_field'), 'order': order,

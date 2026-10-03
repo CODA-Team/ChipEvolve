@@ -257,6 +257,8 @@ S/artifacts/files/json?path=<original JSON file>&json_path=$.checks&sort_field=s
 queries EVERY object row in that original array, not a stored sample. fields=startpoint,endpoint,slack selects literal source fields;
 filters=<URL-encoded JSON object> applies exact typed row matches (for example {"path_type":"max"}). Dotted fields select nested objects.
 Counts and ranking cover the full array before paging; source_array_indices identify exact original rows and source carries its digest.
+Rows lacking a requested field keep it absent; explicit nulls remain null. delivery names fields absent from some returned rows.
+Unknown fields absent from the complete source array are named errors; sparse report rows do not fail the whole projection.
 For native report_checks JSON, literal time values use seconds; this raw-content query does not convert units or rerun timing.
 Use original files for historical flow questions; fresh native queries remain distinct for saved-state reanalysis.
 Discover exact relative source paths with S/artifacts/files; platform and stage filenames depend on the actual run.

@@ -10,7 +10,7 @@ def recovery_path(path, query):
                                      if key not in ('fields', 'detail')}, 'detail': 'full'})
 
 
-def metadata_view(payload, query, path):
+def metadata_view(payload, query, path, *, sparse_fields=False):
     """Project requested facts or expose a compact summary with a full continuation."""
     payload = deepcopy(payload)
     for container in (payload, payload.get('snapshot', {})):
@@ -38,7 +38,8 @@ def metadata_view(payload, query, path):
                 target = child
             else:
                 target[parts[-1]] = None
-        result = _selected_metadata(payload, selection)
+        absent = set() if sparse_fields else None
+        result = _selected_metadata(payload, selection, absent=absent)
         result['snapshot'] = {**snapshot_identity(payload.get('snapshot', {})),
                               **result.get('snapshot', {})}
         result['evidence'] = payload.get('evidence', payload.get('snapshot', {}).get('source_artifacts', []))[:1]
@@ -46,6 +47,9 @@ def metadata_view(payload, query, path):
             if key in payload:
                 result[key] = deepcopy(payload[key])
         result['delivery'] = {'fields': fields.split(','), 'full_details': full_details}
+        if sparse_fields:
+            result['delivery']['requested_fields_absent_in_some_returned_rows'] = sorted(absent)
+            result['delivery']['absent_field_basis'] = 'Original fields absent from a row stay absent; explicit nulls stay null; no default value is invented'
         return result
     if detail == 'full':
         return payload
@@ -89,19 +93,25 @@ def metadata_view(payload, query, path):
     return result
 
 
-def _selected_metadata(value, selection, prefix=''):
+def _selected_metadata(value, selection, prefix='', absent=None):
     """Apply the same field selection through dictionaries and ordered list items."""
     if selection is None:
         return deepcopy(value)
     if isinstance(value, list):
-        return [_selected_metadata(item, selection, prefix) for item in value]
+        return [_selected_metadata(item, selection, prefix, absent) for item in value]
+    if absent is not None and not isinstance(value, dict):
+        absent.update(prefix + key for key in selection)
+        return deepcopy(value)
     result = {}
     for key, children in selection.items():
         field = prefix + key
         if not isinstance(value, dict) or key not in value:
+            if absent is not None:
+                absent.add(field)
+                continue
             available = ','.join(sorted(value)) if isinstance(value, dict) else 'none (parent is not an object)'
             raise ValueError('unknown metadata field: ' + field + '; available fields in this parent: ' + available)
-        result[key] = _selected_metadata(value[key], children, field + '.')
+        result[key] = _selected_metadata(value[key], children, field + '.', absent)
     return result
 
 

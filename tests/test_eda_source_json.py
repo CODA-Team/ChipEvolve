@@ -16,6 +16,9 @@ def original(tmp_path):
             {'startpoint': 'b', 'endpoint': 'q', 'slack': None, 'path_type': 'max', 'flag': None}]
     rows.extend({'startpoint': f'p{i}', 'endpoint': 'q', 'slack': i, 'path_type': 'min'} for i in range(45))
     rows.append({'startpoint': 'last', 'endpoint': 'q', 'slack': -9, 'path_type': 'max'})
+    rows[0].update(capacitance=1.3e-14, nested={'value': 5})
+    rows[1].update(capacitance=None, nested=None)
+    rows[2]['nested'] = {}
     source = tmp_path / 'source.json'
     source.write_text(json.dumps({'checks': rows}, ensure_ascii=False))
     digest = hashlib.sha256(source.read_bytes()).hexdigest()
@@ -57,9 +60,23 @@ def test_filters_keep_boolean_number_and_null_meanings_distinct(original):
     assert query(handler, filters='{"path_type":"missing"}')['count'] == 0
 
 
+def test_sparse_original_fields_preserve_absence_and_literal_null_without_defaults(original):
+    handler, _, _ = original
+    result = query(handler, filters='{"path_type":"max"}', fields='startpoint,capacitance,nested.value')
+    assert result['rows'] == [{'startpoint': 'z', 'capacitance': 1.3e-14, 'nested': {'value': 5}},
+                             {'startpoint': 'a', 'capacitance': None, 'nested': None},
+                             {'startpoint': 'b', 'nested': {}}, {'startpoint': 'last'}]
+    assert 'capacitance' in result['delivery']['requested_fields_absent_in_some_returned_rows']
+    # A page with no capacitance still uses the complete source field declaration.
+    last = query(handler, fields='startpoint,capacitance', offset='48', limit='1')
+    assert last['rows'] == [{'startpoint': 'last'}]
+    maximum = query(handler, sort_field='capacitance', order='desc', fields='startpoint,capacitance', limit='1')
+    assert maximum['rows'] == [{'startpoint': 'z', 'capacitance': 1.3e-14}]
+
+
 @pytest.mark.parametrize('options, error', [({'sort_field': 'unknown'}, 'ranking field does not exist'),
     ({'json_path': '$.missing'}, 'existing array'), ({'json_path': '$..'}, 'invalid json_path'),
-    ({'fields': 'unknown'}, 'available fields'), ({'order': 'worst'}, 'asc\\|desc'),
+    ({'fields': 'unknown'}, 'projection field does not exist'), ({'order': 'worst'}, 'asc\\|desc'),
     ({'filters': '{"slack":[1,2]}'}, 'scalar row field'), ({'path': '../outside.json'}, 'design and revision')])
 def test_invalid_source_queries_are_explicit(original, options, error):
     handler, _, _ = original
