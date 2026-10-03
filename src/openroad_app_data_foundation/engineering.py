@@ -317,8 +317,13 @@ def _bbox_union(boxes):
             [('x_min', min), ('y_min', min), ('x_max', max), ('y_max', max)]}
 
 
-def point_extrema(points):
+def point_extrema(points, tie_rule='name_desc'):
     """Complete maxima and ties from numeric data points, preserving source units."""
+    rules = {'name_desc': 'greatest full pin name among exact numeric ties',
+             'name_asc': 'smallest full pin name among exact numeric ties',
+             'source_order': 'first data point in report order among exact numeric ties'}
+    if tie_rule not in rules:
+        raise ValueError('point tie_rule must be name_desc|name_asc|source_order')
     result = {}
     for field, unit in [('slew', 's'), ('load', 'F')]:
         values = [p for p in points if isinstance(p.get(field), (int, float))]
@@ -329,12 +334,12 @@ def point_extrema(points):
         maximum = max(p[field] for p in values)
         tied = {p['pin_name']: p for p in values if p[field] == maximum}
         names = sorted(tied)
-        selected = tied[names[-1]]
+        selected = next(p for p in values if p[field] == maximum) if tie_rule == 'source_order' else tied[names[-1 if tie_rule == 'name_desc' else 0]]
         suffix = 'ns' if unit == 's' else 'ff'
         result[field] = {'status': 'available', 'max_value': maximum, 'unit': unit,
                          'max_value_' + suffix: timing_values({field: maximum})[field + '_' + suffix],
                          'pin_names': names, 'tie_count': len(names),
-                         'selection_rule': 'greatest full pin name among exact numeric ties',
+                         'selection_rule': rules[tie_rule],
                          'selected_point': timing_values({key: selected.get(key) for key in
                                             ('point_id', 'path_id', 'pin_id', 'pin_name', 'instance_id',
                                              'instance_name', 'net_id', 'net_name', 'cell_name', 'slew', 'load', 'arrival', 'evidence')})}
@@ -435,7 +440,7 @@ def path_engineering(store, snapshot_id, path_id, query):
                                        'ranking_scope': 'resolved nets only' if incomplete else 'all associated nets'},
               'evidence': path.get('evidence', []),
               'units': {'slack': path.get('unit'), 'slew': 's', 'load': 'F'},
-              'data_point_extrema': point_extrema(points),
+              'data_point_extrema': point_extrema(points, query.get('tie_rule', 'name_desc')),
               'clock_points_excluded': True}
     scale = facts.get('run_summary', {}).get('dbu_per_micron')
     result['instance_bbox_union_um'] = placement_geometry(
@@ -486,7 +491,7 @@ def timing_overview(store, snapshot_id, query):
             result['availability'] = {'complete_association_aggregates': {'status': 'unavailable',
                 'reason': 'some selected checks have unresolved associations; inspect each check coverage'}}
         return result
-    options = {**{key: value for key, value in query.items() if key not in ('fields', 'include_physical')},
+    options = {**{key: value for key, value in query.items() if key not in ('fields', 'include_physical', 'tie_rule')},
                'sort': 'slack', 'order': 'worst', 'offset': '0'}
     rows = list_timing_paths(store, snapshot_id, options)
     facts = timing_fact_snapshot(store, store.snapshot(snapshot_id))
@@ -496,7 +501,7 @@ def timing_overview(store, snapshot_id, query):
     path_details, instance_details = [], {}
     for path in rows['timing_paths']:
         detail = path_engineering(store, snapshot_id, path['path_id'],
-                                  {'limit': '10000', **({'signal_type': query['signal_type']} if query.get('signal_type') else {})})
+                                  {'limit': '10000', 'tie_rule': query.get('tie_rule', 'name_desc'), **({'signal_type': query['signal_type']} if query.get('signal_type') else {})})
         path_details.append(detail)
         instance_details.update((item['object_id'], item) for item in detail['instances'])
         instance_paths.update(item['name'] for item in detail['instances'])
@@ -519,7 +524,7 @@ def timing_overview(store, snapshot_id, query):
                      'fanout': attr.get('fanout'), 'driver_count': attr.get('driver_count')})
     nets.sort(key=lambda n: (-(n['fanout'] if n['fanout'] is not None else -1), n['name']))
     limit = _limit({'limit': query.get('net_limit', query.get('limit', '50'))})
-    extrema = point_extrema(data_points)
+    extrema = point_extrema(data_points, query.get('tie_rule', 'name_desc'))
     for value in extrema.values():
         point = value.get('selected_point')
         if point:

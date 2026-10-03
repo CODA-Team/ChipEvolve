@@ -904,6 +904,16 @@ def test_point_extrema_keep_all_ties_and_singleton_without_clock_points(tmp_path
         assert result['load']['tie_count'] == 1
         overview = timing_overview(store, 's', {'limit': '5'})
         assert overview['data_point_extrema']['slew']['pin_names'] == ['u/A', 'u/Z']
+        first = path_engineering(store, 's', 'p', {'limit': '1', 'tie_rule': 'source_order'})['data_point_extrema']['slew']
+        assert first['selected_point']['pin_name'] == 'u/A' and first['tie_count'] == 2
+        overview = timing_overview(store, 's', {'limit': '5', 'include_path_details': '1', 'tie_rule': 'source_order'})
+        assert overview['data_point_extrema']['slew']['selected_point']['pin_name'] == 'u/A'
+        assert overview['path_details'][0]['data_point_extrema']['slew']['selected_point']['pin_name'] == 'u/A'
+        with pytest.raises(ValueError, match='point tie_rule'):
+            timing_overview(store, 's', {'tie_rule': 'unknown'})
+        from openroad_app_data_foundation.resolved_timing import timing_request
+        with pytest.raises(ValueError, match='point tie_rule'):
+            timing_request({'resolve': '1', 'tie_rule': 'unknown'})
     finally:
         store.close()
 

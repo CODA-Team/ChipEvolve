@@ -50,6 +50,9 @@ def test_full_array_ranking_projection_and_original_index_recovery(original):
     assert restored['rows'] == [rows[1]] and restored['count'] == 4
     assert selected['source']['sha256'] == hashlib.sha256(source.read_bytes()).hexdigest()
     assert query(handler, sort_field='slack', order='desc', filters='{"path_type":"max"}', limit='4')['rows'][-1]['slack'] is None
+    ties = query(handler, sort_field='slack', tie_fields='startpoint', tie_order='desc',
+                 filters='{"slack":-1}', fields='startpoint', limit='1')
+    assert ties['rows'] == [{'startpoint': 'z'}] and ties['tie_order'] == 'desc'
 
 
 def test_filters_keep_boolean_number_and_null_meanings_distinct(original):
@@ -77,6 +80,7 @@ def test_sparse_original_fields_preserve_absence_and_literal_null_without_defaul
 @pytest.mark.parametrize('options, error', [({'sort_field': 'unknown'}, 'ranking field does not exist'),
     ({'json_path': '$.missing'}, 'existing array'), ({'json_path': '$..'}, 'invalid json_path'),
     ({'fields': 'unknown'}, 'projection field does not exist'), ({'order': 'worst'}, 'asc\\|desc'),
+    ({'tie_order': 'largest'}, 'tie_order must be asc\\|desc'),
     ({'filters': '{"slack":[1,2]}'}, 'scalar row field'), ({'path': '../outside.json'}, 'design and revision')])
 def test_invalid_source_queries_are_explicit(original, options, error):
     handler, _, _ = original

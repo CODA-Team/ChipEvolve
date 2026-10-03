@@ -24,7 +24,7 @@ def _existing_field(store, array, field, total, purpose):
 
 
 def source_json(store, snapshot_id, query, root):
-    allowed = {'path', 'json_path', 'fields', 'filters', 'sort_field', 'order', 'tie_fields', 'limit', 'offset', 'detail'}
+    allowed = {'path', 'json_path', 'fields', 'filters', 'sort_field', 'order', 'tie_fields', 'tie_order', 'limit', 'offset', 'detail'}
     if set(query) - allowed:
         raise ValueError('unknown original JSON query field')
     selector = query.get('json_path', '$')
@@ -33,6 +33,9 @@ def source_json(store, snapshot_id, query, root):
     order = query.get('order', 'asc')
     if order not in ('asc', 'desc'):
         raise ValueError('original JSON order must be asc|desc')
+    tie_order = query.get('tie_order', 'asc')
+    if tie_order not in ('asc', 'desc'):
+        raise ValueError('original JSON tie_order must be asc|desc')
     filters = json.loads(query.get('filters', '{}'))
     if not isinstance(filters, dict) or any(not isinstance(v, (str, int, float, bool)) and v is not None for v in filters.values()):
         raise ValueError('filters must be a JSON object of exact scalar row field values')
@@ -68,8 +71,9 @@ def source_json(store, snapshot_id, query, root):
         sort_params.extend((path, path))
     for field in query.get('tie_fields', '').split(','):
         if field:
-            ordering.append('json_extract(payload,?) ASC')
-            sort_params.append(_existing_field(store, array, field, total, 'ranking'))
+            path = _existing_field(store, array, field, total, 'ranking')
+            ordering.extend(['json_extract(payload,?) IS NULL', 'json_extract(payload,?) ' + tie_order.upper()])
+            sort_params.extend((path, path))
     ordering.append('ordinal ASC')
     limit, offset = _limit(query), _offset(query)
     page = store.connection.execute(base + 'SELECT ordinal,payload FROM rows' + where +
@@ -88,6 +92,6 @@ def source_json(store, snapshot_id, query, root):
     return {'snapshot_id': snapshot_id, 'source': source, 'json_path': selector, 'rows': projected['rows'],
             'original_array_count': total, 'source_array_indices': [row['ordinal'] for row in page],
             'filters': filters, 'sort_field': query.get('sort_field'), 'order': order,
-            'tie_fields': query.get('tie_fields', '').split(',') if query.get('tie_fields') else [],
+            'tie_fields': query.get('tie_fields', '').split(',') if query.get('tie_fields') else [], 'tie_order': tie_order,
             'coverage_scope': 'every element of the selected original array; counts and ranking precede pagination',
             **_page(count, len(values), limit, offset), 'delivery': projected.get('delivery')}

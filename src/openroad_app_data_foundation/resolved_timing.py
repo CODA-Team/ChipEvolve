@@ -1,10 +1,11 @@
 """Complete a fresh bounded path query and its engineering joins in one operation."""
 from .timing_queries import submit_timing_query, timing_query_status
-from .engineering import timing_overview
+from .engineering import timing_overview, point_extrema
 from .identity import snapshot_identity
 
 
 def timing_request(query):
+    point_extrema([], query.get('tie_rule', 'name_desc'))
     count = int(query.get('limit', '5'))
     wait = int(query.get('wait_seconds', '120'))
     endpoints = int(query.get('endpoint_path_count', '1'))

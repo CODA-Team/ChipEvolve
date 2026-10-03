@@ -196,6 +196,8 @@ arrays are paged by limit/offset. Add include_routing=1 to obtain the full routi
 including both sides of every via on ALL data-path nets. This avoids querying their wire shapes individually.
 data_point_extrema provides complete maximum slew/load, ALL tied pin_names, tie_count and selected_point,
 independent of the returned point page. Use these complete statistics rather than estimating ties from a page.
+For engineering and timing-overview, tie_rule=source_order selects the first original data-path occurrence;
+name_asc/name_desc select the smallest/greatest full pin name (default name_desc). All tied pin_names remain available.
 S/timing-overview?check=setup&limit=5&signal_type=SIGNAL gives selected paths, net_names (complete sorted union),
 nets (ranked by fanout), instance_names (complete sorted union), common_instances and master_occurrences.
 It also gives complete data_point_extrema over the selected paths. Add include_physical=1 to attach the selected extrema
@@ -258,6 +260,8 @@ S/artifacts/files/search?path=<relative>&pattern=<regular expression>&ignore_cas
 searches ALL original lines and returns matching text, source digest, line numbers and byte offsets;
 offset/next_offset page the matches. Use it for report/SDC/log facts beyond the compact endpoints.
 S/artifacts/files/json?path=<original JSON file>&json_path=$.checks&sort_field=slack&order=asc&tie_fields=startpoint,endpoint&limit=1
+tie_order=asc|desc controls equal-value tie fields independently of the main ranking; default asc.
+For greatest pin name among equal slew/capacitance values, use order=desc&tie_fields=pin&tie_order=desc.
 queries EVERY object row in that original array, not a stored sample. fields=startpoint,endpoint,slack selects literal source fields;
 filters=<URL-encoded JSON object> applies exact typed row matches (for example {"path_type":"max"}). Dotted fields select nested objects.
 Counts and ranking cover the full array before paging; source_array_indices identify exact original rows and source carries its digest.
