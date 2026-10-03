@@ -58,7 +58,21 @@ puts "EDA_INSTANCE_POWER_END"
     blocks = re.findall(r'^EDA_INSTANCE_POWER_BEGIN\s*\n(.*?)\nEDA_INSTANCE_POWER_END\s*$', text, re.M | re.S)
     if len(blocks) != 1:
         raise ValueError('native instance power report is incomplete or malformed; run ' + outcome['run']['run_id'])
-    reports = json.loads(blocks[0])
+    # OpenSTA emits literal identifier escapes in name fields. Consume complete
+    # escape tokens so a valid doubled backslash is never repaired a second time.
+    # This boundary normalization leaves numbers and the retained report intact;
+    # JSON decoding remains the standard decoder, not another response envelope.
+    def quote_native_name(match):
+        name = re.sub(r'\\.', lambda token: token[0] if token[0][1] in '"\\/bfnrtu'
+                      else '\\' + token[0], match[2])
+        return match[1] + name + match[3]
+    document = re.sub(r'("name"\s*:\s*")((?:\\.|[^"\\])*)(")',
+                      quote_native_name, blocks[0])
+    try:
+        reports = json.loads(document)
+    except json.JSONDecodeError as error:
+        raise ValueError('native instance power report could not be read; original completed report at /native-queries/'
+                         + outcome['run']['run_id'] + ': ' + str(error)) from error
     if (not isinstance(reports, list) or len(reports) != 1 or not isinstance(reports[0], dict)
             or not isinstance(reports[0].get('name'), str)
             or reports[0]['name'].replace('\\', '') != instance['name'].replace('\\', '')):
