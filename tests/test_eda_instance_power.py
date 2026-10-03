@@ -116,3 +116,21 @@ def test_large_native_log_is_fully_read_before_extracting_actual_power(store,mon
     assert len(submitted)==1 and len(reads)>1
     assert result['power_w']['total']==.0125
     assert result['evidence'][0]['artifact_id']=='original-report'
+
+
+@pytest.mark.parametrize('name',[r'unit\[2\]/ram',r'unit\\[2\\]/ram',r'unit\u005b2\u005d\/ram'])
+def test_native_literal_bus_escapes_are_decoded_without_changing_power_or_valid_json(store,monkeypatch,name):
+    raw='[{"name":"'+name+'","internal":1.23e-2,"switching":0.0,"leakage":2e-4,"total":1.25e-2}]'
+    native=outcome()
+    native['excerpt']['text']='EDA_INSTANCE_POWER_BEGIN\n'+raw+'\nEDA_INSTANCE_POWER_END\n'
+    monkeypatch.setattr(module,'submit_native_query',lambda *a:native)
+    result=module.instance_power(store,None,'s','i',{},None)
+    assert result['reported_name'].replace('\\','')=='unit[2]/ram'
+    assert result['power_w']=={'internal':.0123,'switching':0.0,'leakage':.0002,'total':.0125}
+
+
+def test_other_malformed_json_is_an_error_with_completed_report_address(store,monkeypatch):
+    native=outcome();native['excerpt']['text']='EDA_INSTANCE_POWER_BEGIN\n[{"name":"unit[2]/ram","internal":bad}]\nEDA_INSTANCE_POWER_END\n'
+    monkeypatch.setattr(module,'submit_native_query',lambda *a:native)
+    with pytest.raises(ValueError,match='/native-queries/fresh-power'):
+        module.instance_power(store,None,'s','i',{},None)
