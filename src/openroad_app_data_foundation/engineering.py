@@ -292,10 +292,13 @@ def object_statistics(store, snapshot_id, query):
     names = query_boolean(query, 'include_names') if 'include_names' in query else False
     if not names and any(key in query for key in ('names_limit', 'names_offset')):
         raise ValueError('names paging requires include_names=1')
+    spelling = query.get('names_spelling', 'native')
+    if spelling not in ('native', 'stored') or ('names_spelling' in query and not names):
+        raise ValueError('names_spelling requires include_names=1 and must be native|stored')
     store.snapshot(snapshot_id)
     filters, values = ['snapshot_id = ?', "record_type = 'entities'"], [snapshot_id]
     where, params = object_filter(store, snapshot_id, {k: v for k, v in query.items()
-        if k not in ('include_names', 'names_limit', 'names_offset')})
+        if k not in ('include_names', 'names_limit', 'names_offset', 'names_spelling')})
     if where:
         filters.append(where)
         values.extend(params)
@@ -346,14 +349,17 @@ def object_statistics(store, snapshot_id, query):
     if names:
         size = _limit({'limit': query.get('names_limit', '20')})
         start = _offset({'offset': query.get('names_offset', '0')})
+        name_expression = "json_extract(payload, '$.name')"
+        if spelling == 'native':
+            name_expression = f"replace({name_expression}, char(92), '')"
         for item in result['groups']:
             selected = store.connection.execute(
-                "SELECT json_extract(payload, '$.name') AS name FROM records WHERE " +
+                f"SELECT {name_expression} AS name FROM records WHERE " +
                 ' AND '.join(filters) + f' AND (+{expression}) IS ? ORDER BY name, record_id LIMIT ? OFFSET ?',
                 [*values, item['value'], size, start]).fetchall()
             page = _page(item['count'], len(selected), size, start)
             item['names'] = {'items': [r['name'] for r in selected], **page,
-                'order': 'bytewise stored name ascending, then object ID',
+                'spelling': spelling, 'order': 'bytewise ' + spelling + ' name ascending, then object ID',
                 'count_basis': 'all objects in this exact filtered group; page size never changes count'}
             if page['next_offset'] is not None:
                 item['names']['continuation'] = '/snapshots/' + snapshot_id + '/objects/statistics?' + urlencode(

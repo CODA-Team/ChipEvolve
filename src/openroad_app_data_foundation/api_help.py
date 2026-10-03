@@ -144,6 +144,8 @@ retrieves the selected geometry and two different connection counts together.
 S/objects/statistics accepts the SAME filters as objects and gives complete aggregation over matching objects;
 include_names=1 adds sorted names to every returned group in the SAME read. names_limit (default20)/names_offset page
 each group's names separately; names.count covers the complete group, names.continuation retrieves remaining names.
+Group names default to the same native spelling as instance/net engineering, retaining hierarchy and bus indices;
+names_spelling=stored retrieves the exact indexed escape spelling instead. Each mode sorts before pagination.
 For kind=instance, include_physical=1 also aggregates placed bbox areas and geometry coverage over ALL matches.
 geometry.bbox_union_um is the complete filtered collection's bbox union. Grouping keeps object_count and overall
 geometry in the SAME response, alongside each group's count/geometry; no separate ungrouped query is needed.
@@ -383,6 +385,7 @@ fields=name returns compact names; count/returned/next_offset remain separate re
 POST /query {"requests":["<full GET path>","<full GET path>"]} combines reads; /query is global, outside S.
 S/objects/statistics?kind=instance&group_by=is_macro|master&include_physical=1 gives COMPLETE counts and overall/group geometry.
 include_names=1 also joins sorted names to each group; names_limit/names_offset and names.continuation read complete group lists.
+Names default to native spelling; names_spelling=stored preserves the original indexed escapes.
 With group_by=is_macro, classification gives complete macro_count/nonmacro_count/unclassified_count, including verified zeros.
 Count/sum/bbox are independent of pages. Missing geometry/classification is partial, not zero. fields selects needed facts.
 S/instances/<name>/engineering: instance.bbox_um,instance.orientation,native_pin_classification (pin OWN type).
