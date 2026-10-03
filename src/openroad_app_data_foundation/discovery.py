@@ -62,7 +62,7 @@ def object_filter(store, snapshot_id, query):
             # An exact name/parent/id is much narrower than an entire object
             # kind. Without statistics, SQLite picked the new kind index and
             # scanned millions of pins for two names or seven children.
-            prefix = '+' if key == 'kind' and any(query.get(k) for k in ('name', 'parent_id', 'parent_instance', 'ids', 'connected_to')) else ''
+            prefix = '+' if key == 'kind' and any(query.get(k) for k in ('name', 'parent_id', 'parent_instance', 'ids', 'connected_to', 'region')) else ''
             filters.append(f"{prefix}json_extract(payload, '{path}') = ?")
             value = query[key]
             params.append(int(value) if key in numeric else value)
@@ -113,16 +113,18 @@ def object_filter(store, snapshot_id, query):
         if mode == 'positive_area' and (box[0] == box[2] or box[1] == box[3]):
             filters.append('0')
         greater, less = ('>', '<') if mode == 'positive_area' else ('>=', '<=')
-        # Read geometry only for the candidate objects. A global physical scan
-        # parses huge unrelated routed-net payloads before counting instances.
-        filters.append(f"""EXISTS (SELECT 1 FROM records p INDEXED BY records_physical_bbox
-            WHERE p.snapshot_id = records.snapshot_id AND p.record_type = 'physical_context'
-            AND p.record_id = records.record_id
+        # Filter the existing bbox index once, then look up matching identities.
+        # The index carries every compared coordinate: neither routed payloads
+        # nor one geometry lookup per unrelated instance is needed.
+        positive = """AND json_extract(p.payload, '$.bbox.x_max') > json_extract(p.payload, '$.bbox.x_min')
+            AND json_extract(p.payload, '$.bbox.y_max') > json_extract(p.payload, '$.bbox.y_min')""" if mode == 'positive_area' else ''
+        filters.append(f"""record_id IN (SELECT p.record_id FROM records p INDEXED BY records_physical_bbox
+            WHERE p.snapshot_id = ? AND p.record_type = 'physical_context'
             AND json_extract(p.payload, '$.bbox.x_max') {greater} ?
             AND json_extract(p.payload, '$.bbox.y_max') {greater} ?
             AND json_extract(p.payload, '$.bbox.x_min') {less} ?
-            AND json_extract(p.payload, '$.bbox.y_min') {less} ?)""")
-        params.extend(box)
+            AND json_extract(p.payload, '$.bbox.y_min') {less} ? {positive})""")
+        params.extend([snapshot_id, *box])
     if query.get('ids'):
         # One call for many objects, because the alternative costs a call per id and
         # each call carries ~2.3 KB of envelope: ariane cross_domain-01 spends 105

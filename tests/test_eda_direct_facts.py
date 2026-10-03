@@ -42,6 +42,38 @@ def test_micron_region_matches_dbu_boundary_and_complete_macro_counts(tmp_path):
         store.close()
 
 
+def test_regional_pages_and_statistics_exclude_zero_area_objects_without_losing_touching_points(tmp_path):
+    pack = sample()
+    pack['entities'].extend([
+        {'object_id': 'point', 'kind': 'instance', 'name': 'point', 'attributes': {'is_macro': 0}},
+        {'object_id': 'line', 'kind': 'instance', 'name': 'line', 'attributes': {'is_macro': 1}},
+        {'object_id': 'pin', 'kind': 'pin', 'name': 'u/a', 'attributes': {}}])
+    pack['physical_context'].extend([
+        {'object_id': 'point', 'bbox': dict(x_min=2, y_min=2, x_max=2, y_max=2)},
+        {'object_id': 'line', 'bbox': dict(x_min=3, y_min=2, x_max=3, y_max=8)},
+        {'object_id': 'pin', 'bbox': dict(x_min=4, y_min=4, x_max=4, y_max=4)}])
+    store = DataStore(tmp_path / 'zero-area-region.sqlite')
+    try:
+        store.register(pack)
+        base = {'region': '1,1,9,9', 'intersection': 'positive_area', 'sort': 'name'}
+        assert list_objects(store, 's', base)['count'] == 1
+        assert object_statistics(store, 's', {**base, 'group_by': 'kind'})['object_count'] == 1
+        assert list_objects(store, 's', {**base, 'kind': 'pin'})['count'] == 0
+        assert list_objects(store, 's', {**base, 'kind': 'instance', 'name': 'point'})['count'] == 0
+        touching = {**base, 'intersection': 'touching', 'limit': '1'}
+        pages, offset = [], 0
+        while True:
+            page = list_objects(store, 's', {**touching, 'offset': str(offset)})
+            pages.extend(row['object_id'] for row in page['objects'])
+            if page['next_offset'] is None:
+                break
+            offset = page['next_offset']
+        assert set(pages) == {'i', 'point', 'line', 'pin'}
+        assert object_statistics(store, 's', {**touching, 'group_by': 'kind'})['object_count'] == 4
+    finally:
+        store.close()
+
+
 def test_multi_metric_selection_preserves_units_sources_missing_names_and_pages(tmp_path):
     pack = sample()
     pack['observations'] = [

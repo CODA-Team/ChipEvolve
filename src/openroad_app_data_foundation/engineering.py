@@ -297,7 +297,7 @@ def object_statistics(store, snapshot_id, query):
     # connected/name/parent/id set. Unary + preserves values while permitting
     # the existing identity/macro indexes to select the actual candidates first.
     grouping = '+' + expression if any(query.get(key) for key in
-        ('name', 'parent_id', 'parent_instance', 'ids', 'connected_to')) else expression
+        ('name', 'parent_id', 'parent_instance', 'ids', 'connected_to', 'region')) else expression
     geometry = None
     physical = query_boolean(query, 'include_physical') if 'include_physical' in query else False
     if physical:
