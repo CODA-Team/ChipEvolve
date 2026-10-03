@@ -124,6 +124,14 @@ def test_grouped_names_keep_null_classification_complete_counts_and_readable_pag
         groups = {g['value']: g['names'] for g in all_groups['groups']}
         assert groups[0]['items'] == ['c'] and groups[None]['items'] == ['d']
         assert sum(g['count'] for g in groups.values()) == 4
+        classification = object_statistics(store, 's', query)['classification']
+        assert classification['macro_count'] == 2 and classification['nonmacro_count'] == 1
+        assert classification['unclassified_count'] == 1 and classification['status'] == 'partial'
+        assert classification == all_groups['classification']
+        absent = object_statistics(store, 's', {'kind': 'instance', 'is_macro': '1', 'group_by': 'is_macro'})
+        assert absent['classification']['nonmacro_count'] == 0
+        assert absent['classification']['unclassified_count'] == 0
+        assert absent['classification']['status'] == 'complete'
         with pytest.raises(ValueError, match='names paging requires'):
             object_statistics(store, 's', {'kind': 'instance', 'names_limit': '1'})
         with pytest.raises(ValueError, match='unknown object query fields'):
