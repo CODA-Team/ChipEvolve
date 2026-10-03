@@ -77,6 +77,11 @@ returned/unique counts, missing/duplicate counts and verified name order. No cou
 internal_instance_count counts distinct pin parents across all pages, excluding ports.
 For all loads and their instance count select fields=load_traversal.pin_names,load_traversal.internal_instance_count.
 fields=<dotted fields> projects this net engineering result; omitted details remain retrievable.
+include_instances=1 joins distinct driver_instances/load_instances with sorted native names and complete counts,
+excluding ports and counting a shared pin parent once. instance_is_macro=0|1 filters these instance lists only;
+pin counts still describe every native driver/load. instance_limit/instance_offset page the complete instance domain;
+instance_order=asc|desc controls native-name order independently of pin pages. Select fields=load_count,driver_pins,load_instances
+for load/driver facts and receiving instances together. Full names remain continuously readable with next_offset.
 S/instances/<native name or id>/engineering returns master/type, placed location, bbox, both ODB/DEF orientation names,
 and complete pin counts grouped by connected-net type in one call. Unconnected pins are explicitly unclassified.
 These fields are under instance: use fields=instance.name,instance.bbox_um,instance.distinct_signal_net_count.

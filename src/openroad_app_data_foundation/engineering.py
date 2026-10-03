@@ -25,6 +25,9 @@ def net_engineering(store, snapshot_id, identifier, query):
     entity = _entity(store, snapshot_id, identifier, 'net')
     if query.get('traverse', '0') not in ('0', '1'):
         raise ValueError('traverse must be 0|1')
+    include_instances = query_boolean(query, 'include_instances') if 'include_instances' in query else False
+    if not include_instances and any(key in query for key in ('instance_is_macro', 'instance_limit', 'instance_offset', 'instance_order')):
+        raise ValueError('instance filters and paging require include_instances=1')
     result = {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(store.snapshot(snapshot_id)),
               'net': {'object_id': entity['object_id'], 'name': entity['name'],
                       **{key: (entity.get('attributes') or {}).get(key) for key in
@@ -40,9 +43,24 @@ def net_engineering(store, snapshot_id, identifier, query):
                                ('count', 'returned', 'limit', 'offset', 'truncated', 'next_offset')}
         if query.get('traverse') == '1':
             result[role + '_traversal'] = _connection_traversal(store, snapshot_id, entity['object_id'], role, _limit(query))
+        if include_instances:
+            options = {'kind': 'instance', 'connected_to': entity['object_id'], 'net_role': role,
+                'sort': 'name', 'order': query.get('instance_order', 'asc'), 'fields': 'name',
+                'limit': query.get('instance_limit', query.get('limit', '50')),
+                'offset': query.get('instance_offset', query.get('offset', '0'))}
+            if 'instance_is_macro' in query:
+                options['is_macro'] = query['instance_is_macro']
+            instances = list_objects(store, snapshot_id, options)
+            result[role + '_instances'] = {'names': [row['name'].replace('\\', '') for row in instances['objects']],
+                'is_macro_filter': query_boolean(query, 'instance_is_macro') if 'instance_is_macro' in query else None,
+                'order': query.get('instance_order', 'asc'),
+                'count_basis': 'distinct owning instance IDs across all matching native pin relations; ports excluded; shared pin parents count once',
+                **{key: instances[key] for key in ('count', 'returned', 'limit', 'offset', 'truncated', 'next_offset')}}
     result['state'] = ('no_driver' if result['driver_count'] == 0 else
                        'single_driver' if result['driver_count'] == 1 else 'multi_driver')
     result['truncated'] = any(result[role + '_page']['truncated'] for role in ('driver', 'load'))
+    if include_instances:
+        result['truncated'] = result['truncated'] or any(result[role + '_instances']['truncated'] for role in ('driver', 'load'))
     expected = entity.get('attributes') or {}
     if (expected.get('fanout') is not None and result['load_count'] != expected['fanout']) or (
             expected.get('driver_count') is not None and result['driver_count'] != expected['driver_count']):

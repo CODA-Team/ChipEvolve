@@ -405,6 +405,7 @@ def test_named_net_loads_count_distinct_instances_across_pages_and_exclude_ports
     pack = sample()
     pins = [('p1', 'u/A', 'i'), ('p2', 'u/B', 'i'),
             ('p3', 'clock_buf/A', 'c'), ('bterm:out', 'out', None)]
+    pack['entities'][1]['attributes']['is_macro'] = 1
     pack['entities'][2]['attributes']['fanout'] = len(pins)
     pack['entities'].extend({'object_id': key, 'name': name, 'kind': 'pin', 'parent_id': parent}
                            for key, name, parent in pins)
@@ -421,6 +422,18 @@ def test_named_net_loads_count_distinct_instances_across_pages_and_exclude_ports
         assert result['load_traversal']['internal_instance_count'] == 2
         assert result['load_traversal']['pin_names'] == sorted(name for _, name, _ in pins)
         assert result['driver_traversal']['internal_instance_count'] == 0
+        joined = net_engineering(store, 's', 'signal', {'include_instances': '1', 'instance_limit': '1'})
+        assert joined['load_instances']['count'] == 2 and joined['load_instances']['names'] == ['clock_buf']
+        assert joined['load_instances']['truncated'] and joined['load_instances']['next_offset'] == 1
+        second = net_engineering(store, 's', 'signal', {'include_instances': '1', 'instance_limit': '1', 'instance_offset': '1'})
+        assert second['load_instances']['count'] == 2 and second['load_instances']['names'] == ['u']
+        macros = net_engineering(store, 's', 'signal', {'include_instances': 'true', 'instance_is_macro': 'true'})
+        assert macros['load_count'] == 4 and macros['load_instances']['count'] == 1
+        assert macros['load_instances']['names'] == ['clock_buf']
+        descending = net_engineering(store, 's', 'signal', {'include_instances': '1', 'instance_order': 'desc'})
+        assert descending['load_instances']['names'] == ['u', 'clock_buf']
+        with pytest.raises(ValueError, match='require include_instances'):
+            net_engineering(store, 's', 'signal', {'instance_is_macro': '1'})
         with pytest.raises(KeyError, match='net not found'):
             list_objects(store, 's', {'kind': 'pin', 'connected_to': 'u', 'net_role': 'load'})
     finally:
