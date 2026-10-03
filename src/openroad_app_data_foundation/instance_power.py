@@ -6,7 +6,7 @@ import re
 
 from .engineering import _entity
 from .identity import snapshot_identity
-from .native_queries import submit_native_query
+from .native_queries import submit_native_query, complete_native_text
 from .timing_facts import timing_fact_snapshot, fact_source
 
 
@@ -52,9 +52,9 @@ puts "EDA_INSTANCE_POWER_END"
     if outcome['status'] != 'succeeded':
         result['native_query']['report'] = outcome
         return result
-    text = outcome['excerpt']['text']
+    text = complete_native_text(client, outcome)
     blocks = re.findall(r'^EDA_INSTANCE_POWER_BEGIN\s*\n(.*?)\nEDA_INSTANCE_POWER_END\s*$', text, re.M | re.S)
-    if len(blocks) != 1 or outcome['excerpt'].get('truncated'):
+    if len(blocks) != 1:
         raise ValueError('native instance power report is incomplete or malformed; run ' + outcome['run']['run_id'])
     reports = json.loads(blocks[0])
     if (not isinstance(reports, list) or len(reports) != 1 or not isinstance(reports[0], dict)

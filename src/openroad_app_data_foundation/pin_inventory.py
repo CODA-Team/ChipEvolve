@@ -3,7 +3,7 @@ import base64
 
 from .engineering import _entity
 from .identity import snapshot_identity
-from .native_queries import submit_native_query, native_query_result
+from .native_queries import submit_native_query, complete_native_text
 from .queries import _limit, _offset, _page
 from .pin_net_ranking import ranking_script, ranked_nets
 from .pin_summary import pin_type_summary
@@ -61,13 +61,7 @@ foreach p [$i getITerms] {
     if outcome['status'] != 'succeeded':
         result['native_query']['report'] = outcome
         return result
-    page = outcome
-    chunks = [page['excerpt']['text']]
-    while page['excerpt']['truncated']:
-        page = native_query_result(client, outcome['run']['run_id'],
-            {'offset': str(page['excerpt']['next_offset']), 'max_bytes': '65536'})
-        chunks.append(page['excerpt']['text'])
-    text = ''.join(chunks)
+    text = complete_native_text(client, outcome)
     rows = _parse(text)
     selected = [r for r in rows if all(not query.get(k) or r[field] == query[k]
         for k, field in [('pin_type', 'native_pin_signal_type'), ('direction', 'direction')])]

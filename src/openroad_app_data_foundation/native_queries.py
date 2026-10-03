@@ -115,3 +115,13 @@ def native_query_view(payload, detail, query):
         'retained': 'actual excerpt, report source, status, failure details and continuation offsets',
         'original_input_artifact_count': len(payload['original_input_artifacts']) if 'original_input_artifacts' in payload else None}
     return result
+
+
+def complete_native_text(client, outcome):
+    """Read every original report chunk for deterministic engineering extraction."""
+    page, chunks = outcome, [outcome['excerpt']['text']]
+    while page['excerpt']['truncated']:
+        page = native_query_result(client, outcome['run']['run_id'],
+            {'offset': str(page['excerpt']['next_offset']), 'max_bytes': '65536'})
+        chunks.append(page['excerpt']['text'])
+    return ''.join(chunks)
