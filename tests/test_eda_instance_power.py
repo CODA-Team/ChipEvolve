@@ -41,7 +41,10 @@ def test_fresh_power_uses_exact_original_native_instance_not_report_sample(store
         calls.append((sid,query))
         assert sid=='s' and query['with_timing'] is True
         assert 'odb::dbInst_getInst $b 21' in query['script']
-        assert 'get_cells -quiet [list $native_name]' in query['script']
+        assert 'sta::find_instance $native_name' in query['script']
+        assert 'sta::sta_to_db_inst $cell' in query['script']
+        assert '[$mapped getId] != [$i getId]' in query['script']
+        assert 'get_cells' not in query['script']
         assert 'report_power -instances $cell -format json -digits 9' in query['script']
         return outcome()
     monkeypatch.setattr(module,'submit_native_query',native)
