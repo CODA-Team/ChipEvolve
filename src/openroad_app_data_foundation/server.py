@@ -304,7 +304,10 @@ class Handler(BaseHTTPRequestHandler):
                     try:
                         return metadata_view(payload, recovery_query, recovery)
                     except ValueError as exc:
-                        route = recovery_path(recovery, recovery_query)
+                        headers = 'checks.setup.paths,checks.hold.paths' if query.get('check') == 'both' else 'paths'
+                        route = recovery + '?' + urllib.parse.urlencode({
+                            **{key: value for key, value in recovery_query.items() if key not in ('fields', 'detail')},
+                            'fields': headers + ',object_facts_source,association_coverage'})
                         raise ValueError(str(exc) + '; native query ' + payload['query_execution']['run_id']
                                          + ' already succeeded; correct the fields on ' + route
                                          + ' to reuse its complete result without another submission') from exc

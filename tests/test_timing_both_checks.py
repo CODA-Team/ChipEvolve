@@ -1,5 +1,8 @@
 """One fresh query serves distinct setup/hold domains and compact path headers."""
 from copy import deepcopy
+from urllib.parse import parse_qs, urlsplit
+
+import pytest
 
 from openroad_app_data_foundation import resolved_timing
 from openroad_app_data_foundation.engineering import timing_overview
@@ -67,6 +70,38 @@ def test_both_checks_keep_partial_association_visible(tmp_path):
         assert result['checks']['hold']['association_coverage']['status'] == 'partial'
         assert result['association_coverage'] == {'status': 'partial', 'incomplete_checks': ['hold']}
         assert result['availability']['complete_association_aggregates']['status'] == 'unavailable'
+    finally:
+        store.close()
+
+
+def test_bad_both_projection_recovers_compact_check_headers_without_new_analysis(tmp_path, monkeypatch):
+    parent, child = both_pair()
+    store = DataStore(tmp_path / 'recovery.sqlite')
+    calls = []
+    try:
+        store.register(parent)
+        store.register(child)
+        def submit(*args):
+            calls.append('native')
+            return {'run': {'run_id': 'native'}, 'snapshot_id': 'child'}
+        monkeypatch.setattr(resolved_timing, 'submit_timing_query', submit)
+        monkeypatch.setattr(resolved_timing, 'timing_query_status', lambda *args: {
+            'run_id': 'native', 'status': 'succeeded', 'snapshot_ids': ['child']})
+        handler = Handler.__new__(Handler)
+        handler.store, handler.auto_import, handler.execution_client = store, False, object()
+        with pytest.raises(ValueError, match='unknown metadata field: paths') as error:
+            handler._get('/snapshots/s/timing-overview', {
+                'resolve': '1', 'check': 'both', 'include_path_details': '1', 'fields': 'paths'})
+        route = str(error.value).split('correct the fields on ', 1)[1].split(' to reuse', 1)[0]
+        url = urlsplit(route)
+        query = {k: v[0] for k, v in parse_qs(url.query).items()}
+        assert 'resolve' not in query and 'detail' not in query
+        assert query['fields'] == 'checks.setup.paths,checks.hold.paths,object_facts_source,association_coverage'
+        result = handler._get(url.path, query)
+        assert result['checks']['setup']['paths'][0]['path_type'] == 'max'
+        assert result['checks']['hold']['paths'][0]['check'] == 'hold'
+        assert 'path_details' not in result['checks']['setup']
+        assert calls == ['native']
     finally:
         store.close()
 

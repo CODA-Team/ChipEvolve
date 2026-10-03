@@ -3,7 +3,7 @@ from collections import Counter
 
 from .identity import snapshot_identity
 from .queries import _limit, _offset, _page, list_timing_paths, timing_path
-from .discovery import object_filter, list_objects, query_boolean
+from .discovery import BATCH_ID_LIMIT, object_filter, list_objects, query_boolean
 from .metadata import placement_geometry, timing_values
 from .timing_facts import timing_fact_snapshot, fact_source
 from .pin_summary import pin_type_summary
@@ -401,6 +401,23 @@ def routing_totals(store, snapshot_id):
                          if r.get('category') == 'raw_design_database']}
 
 
+def _path_instance_classification(store, snapshot_id, ids, incomplete):
+    counts, matched = Counter(), 0
+    for offset in range(0, len(ids), BATCH_ID_LIMIT):
+        statistics = object_statistics(store, snapshot_id, {'kind': 'instance',
+            'ids': ','.join(ids[offset:offset+BATCH_ID_LIMIT]), 'group_by': 'is_macro', 'limit': '10000'})
+        counts.update({row['value']: row['count'] for row in statistics['groups']})
+        matched += statistics['object_count']
+    missing = len(ids) - matched
+    unknown = sum(count for value, count in counts.items() if value not in (0, 1))
+    complete = not (incomplete or missing or unknown)
+    return {'macro_count': counts.get(1, 0) if complete else None,
+            'standard_cell_count': counts.get(0, 0) if complete else None,
+            'instance_classification_coverage': {'status': 'complete' if complete else 'partial',
+                'classified_instance_count': counts.get(0, 0) + counts.get(1, 0),
+                'unclassified_instance_count': unknown, 'missing_instance_count': missing}}
+
+
 def path_engineering(store, snapshot_id, path_id, query):
     """Data-side pins, instances and nets, separate from the two clock trees."""
     snapshot = store.snapshot(snapshot_id)
@@ -474,6 +491,7 @@ def path_engineering(store, snapshot_id, path_id, query):
     scale = facts.get('run_summary', {}).get('dbu_per_micron')
     result['instance_bbox_union_um'] = placement_geometry(
         {'bbox': result['instance_bbox_union']}, scale)['bbox_um'] if scale else None
+    result.update(_path_instance_classification(store, facts_id, ids, incomplete))
     if incomplete:
         result['availability'] = {'complete_association_aggregates': {'status': 'unavailable',
             'reason': 'some point/object associations are missing; resolved-subset counts and rankings are not full-domain results',
@@ -586,6 +604,7 @@ def timing_overview(store, snapshot_id, query):
                                      'incomplete_path_ids': incomplete_paths}}
     if query.get('include_path_details') == '1':
         result['path_details'] = path_details
+    result.update(_path_instance_classification(store, facts_id, list(instance_details), bool(incomplete_paths)))
     if query.get('include_physical') == '1':
         result['instances'] = sorted(instance_details.values(), key=lambda item: item['name'])
         result['instance_bbox_union'] = _bbox_union([item['bbox'] for item in instance_details.values() if item['bbox']])
