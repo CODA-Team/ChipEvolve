@@ -45,6 +45,32 @@ def test_incomplete_or_duplicated_native_pins_are_reported():
         module._parse('EDA_PIN_TOTAL 2\n'+one+'\n'+one+'\n')
 
 
+def test_native_pin_inventory_continues_original_output_before_counts_and_pages(tmp_path,monkeypatch):
+    from openroad_app_data_foundation import native_queries
+    pack=sample();pack['entities'][0]['attributes']['native_id']='17'
+    text='EDA_PIN_TOTAL 4\n'+'\n'.join(row(i,'A'+str(i),'SIGNAL','INPUT','n'+str(i),'SIGNAL') for i in range(1,5))+'\n'
+    submitted=[];reads=[]
+    def native(*args):
+        submitted.append(args)
+        return {'status':'succeeded','run':{'run_id':'native'},'excerpt':{'text':text[:30],
+                'truncated':True,'next_offset':30},'source':{'artifact_id':'original-pins'}}
+    def page(client,run_id,query):
+        assert run_id=='native'
+        offset=int(query['offset']);end=min(offset+37,len(text));reads.append(offset)
+        return {'excerpt':{'text':text[offset:end],'truncated':end<len(text),'next_offset':end if end<len(text) else None}}
+    monkeypatch.setattr(module,'submit_native_query',native)
+    monkeypatch.setattr(native_queries,'native_query_result',page)
+    store=DataStore(tmp_path/'continued.sqlite');store.register(pack)
+    try:
+        result=module.pin_inventory(store,None,'s','u',{'limit':'1','offset':'3'},tmp_path)
+        assert len(submitted)==1 and len(reads)>1
+        assert result['total_pin_count']==4 and result['count']==4 and result['returned']==1
+        assert result['pins'][0]['local_name']=='A4' and result['pins'][0]['net_name']=='n4'
+        assert result['distinct_net_counts_by_native_pin_type']=={'SIGNAL':4}
+        assert result['evidence'][0]['artifact_id']=='original-pins'
+    finally:store.close()
+
+
 def test_indexed_native_pin_summary_keeps_clock_pins_shared_nets_and_missing_classification(tmp_path):
     from openroad_app_data_foundation.engineering import instance_engineering
     pack = sample()

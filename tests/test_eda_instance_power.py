@@ -93,3 +93,23 @@ def test_invalid_original_native_id_never_executes_a_guess(store,monkeypatch):
     store.connection.commit()
     monkeypatch.setattr(module,'submit_native_query',lambda *a:pytest.fail('invalid ID must not execute'))
     with pytest.raises(ValueError,match='native ID'):module.instance_power(store,None,'s','i',{},None)
+
+
+def test_large_native_log_is_fully_read_before_extracting_actual_power(store,monkeypatch):
+    from openroad_app_data_foundation import native_queries
+    original=outcome()
+    text='original native warning\n'*4000+original['excerpt']['text']
+    first={**original,'excerpt':{'text':text[:1024],'truncated':True,'next_offset':1024}}
+    submitted=[];reads=[]
+    def submit(*args):submitted.append(args);return first
+    def read(client,run_id,query):
+        assert run_id=='fresh-power'
+        offset=int(query['offset']);maximum=int(query['max_bytes']);end=min(len(text),offset+maximum)
+        reads.append(offset)
+        return {**original,'excerpt':{'text':text[offset:end],'truncated':end<len(text),'next_offset':end if end<len(text) else None}}
+    monkeypatch.setattr(module,'submit_native_query',submit)
+    monkeypatch.setattr(native_queries,'native_query_result',read)
+    result=module.instance_power(store,None,'s','i',{},None)
+    assert len(submitted)==1 and len(reads)>1
+    assert result['power_w']['total']==.0125
+    assert result['evidence'][0]['artifact_id']=='original-report'
