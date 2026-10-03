@@ -77,12 +77,13 @@ returned/unique counts, missing/duplicate counts and verified name order. No cou
 internal_instance_count counts distinct pin parents across all pages, excluding ports.
 For all loads and their instance count select fields=load_traversal.pin_names,load_traversal.internal_instance_count.
 fields=<dotted fields> projects this net engineering result; omitted details remain retrievable.
-include_instances=1 joins distinct driver_instances/load_instances with sorted native names and complete counts,
+include_instances=1 joins distinct driver_instances/load_instances with sorted native names, complete counts and
+complete groups (is_macro=0|1|null), without requiring geometry. groups ignore instance/pin pagination.
 excluding ports and counting a shared pin parent once. instance_is_macro=0|1 filters these instance lists only;
 pin counts still describe every native driver/load. instance_limit/instance_offset page the complete instance domain;
 instance_order=asc|desc controls native-name order independently of pin pages. Select fields=load_count,driver_pins,load_instances
 for load/driver facts and receiving instances together. Full names remain continuously readable with next_offset.
-Add include_physical=1 to include_instances=1 to get each role's geometry and groups (is_macro=0|1|null)
+Add include_physical=1 to include_instances=1 to also get each role's geometry
 in the SAME net read. geometry.bbox_union_um/status cover ALL matching distinct instances, regardless of pin/name paging.
 The existing grouped object-statistics calculation supplies full counts/geometry; instance_is_macro filters both.
 S/instances/<native name or id>/engineering returns master/type, placed location, bbox, both ODB/DEF orientation names,
