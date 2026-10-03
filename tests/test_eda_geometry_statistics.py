@@ -138,3 +138,26 @@ def test_grouped_names_keep_null_classification_complete_counts_and_readable_pag
             list_objects(store, 's', {'kind': 'instance', 'include_names': '1'})
     finally:
         store.close()
+
+
+def test_group_names_use_native_spelling_and_order_before_pagination_with_original_recovery(tmp_path):
+    store = DataStore(tmp_path / 'native_names.sqlite')
+    try:
+        data = pack()
+        data['entities'][0]['name'] = r'a\$macro[0]/ram'
+        data['entities'][1]['name'] = 'aA/ram'
+        store.register(data)
+        query = {'kind': 'instance', 'group_by': 'is_macro', 'include_names': '1', 'names_limit': '1'}
+        native = object_statistics(store, 's', query)['groups'][0]['names']
+        assert native['spelling'] == 'native' and native['items'] == ['a$macro[0]/ram']
+        assert native['count'] == 2 and native['next_offset'] == 1
+        second = object_statistics(store, 's', {**query, 'names_offset': '1'})['groups'][0]['names']
+        assert second['items'] == ['aA/ram'] and second['next_offset'] is None
+        stored = object_statistics(store, 's', {**query, 'names_spelling': 'stored'})['groups'][0]['names']
+        assert stored['spelling'] == 'stored' and stored['items'] == ['aA/ram']
+        original = object_statistics(store, 's', {**query, 'names_spelling': 'stored', 'names_offset': '1'})
+        assert original['groups'][0]['names']['items'] == [r'a\$macro[0]/ram']
+        with pytest.raises(ValueError, match='names_spelling'):
+            object_statistics(store, 's', {**query, 'names_spelling': 'unknown'})
+    finally:
+        store.close()
