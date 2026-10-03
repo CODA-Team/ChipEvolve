@@ -176,6 +176,8 @@ fields=<dotted fields> selects requested content, delivery.full_details restores
 S/timing-overview?resolve=1&check=both runs ONE fresh query for setup and hold together.
 checks.setup and checks.hold each contain their own paths/associations; limit applies to EACH check.
 For just slack/arrival/required select fields=checks.setup.paths,checks.hold.paths.
+For both checks, path_details and all other per-check aggregates also sit under checks.setup/checks.hold;
+there is no top-level paths field. For ONE check, paths/path_details and aggregates sit at the top level.
 S/timing-paths/<path_id>/clock-paths returns BOTH complete clock trees and the original path delay header,
 in exact native report order/units. Original instance/net values (including null/empty/undeclared fields)
 remain untouched; database mappings do not replace native report fields. This is one joined original-report read.
@@ -215,6 +217,10 @@ these are actual estimate_parasitics/read_* commands with source line/byte posit
 S/timing-paths/<path_id>/points?limit=N&offset=N&path_section=source_path&fields=pin_name,instance_id,net_id,net_name,cell_name,arrival,load,slew gives compact data points; omit fields/path_section for all facts/sections. It gives points by path_section (source_path is the data path;
 source_clock_path/target_clock_path are clock paths); slew and arrival in seconds, load in Farads.
 S/timing-paths/<path_id>/engineering gives joined data-side pins, instances, nets, master_counts and bbox union;
+macro_count/standard_cell_count and instance_classification_coverage count COMPLETE distinct data-path instances,
+excluding clocks and ignoring pages. Missing native classification/associations make class totals null, not zero.
+Single-check timing-overview exposes the same class counts over its distinct union of selected path instances;
+check=both preserves separate nested setup/hold domains.
 data_pin_names is the COMPLETE ordered data path sequence, including repeated pins and excluding clocks,
 independent of point pagination. fields=path,data_pin_names,data_path_pin_count,clock_points_excluded is compact.
 data_path_increments sums adjacent source_path arrival differences over the COMPLETE original sequence.
@@ -347,6 +353,99 @@ Read excerpt.text for actual output, failure_details for actual errors, and exce
 ''',
 }
 
+QUICK_GUIDES = {
+    'run': '''Let S=/snapshots/<snapshot_id>; GET results are under data. URL-encode names/query values.
+GET /snapshots?design_id={design}&origin=flow discovers original states; origin=query discovers supplementary results.
+S/summary gives counts, core/die geometry and dbu_per_micron; fields selects dotted paths; detail=full restores all metadata.
+S/run-inventory?stage=<actual stage>&metrics=<exact key or namespace components> reads matching metrics in ALL original stage reports.
+Each original report/corner remains separately identified; missing index does not mean missing source data.
+S/source-metadata?fields=run_origin,configuration,libraries,units exposes actual design/tool/input identity and loaded units.
+S/timing-context gives declared clocks and analysis context. S/analysis-setup queries actual native units/scenes/corners.
+Native timing s/F differs from stage metrics ns and library display units. Unknown version banners remain unknown.
+Read the full guide for source manifests, corner selection and complete availability details.''',
+    'objects': '''Let S=/snapshots/<snapshot_id>; URL-encode all native names. GET results are under data.
+S/objects?kind=instance|pin|net supports exact name, name_contains, parent_instance (pins), master, is_macro,
+direction, signal_type, connected_to=<net>&net_role=load|driver, and region=xmin,ymin,xmax,ymax&region_units=um.
+intersection=positive_area excludes mere touching. sort=name|fanout|bbox_area&order=asc|desc ranks before limit/offset.
+include_physical=1 joins each returned object's bbox; include_engineering=1 joins instance engineering/pin classification.
+S/objects/statistics?kind=instance&group_by=is_macro|master&include_physical=1 gives COMPLETE counts and overall/group geometry.
+Count/sum/bbox are independent of pages. Missing geometry/classification is partial, not zero. fields selects needed facts.
+S/instances/<name>/engineering: instance.bbox_um,instance.orientation,native_pin_classification (pin OWN type).
+S/instances/<name>/pin-inventory?pin_type=SIGNAL&direction=INPUT returns filtered native pins with complete counts/paging.
+Add net_sort=load_count for COMPLETE distinct-net rankings and receiving_macro_count. Returned pin names retain full/local forms.
+S/nets/<name>/engineering gives all driver/load COUNTS with sorted paged driver_pins/load_pins.
+traverse=1 adds COMPLETE driver_traversal/load_traversal.pin_names and internal_instance_count (distinct parents; ports excluded).
+include_instances=1&include_physical=1 adds complete driver_instances/load_instances count,geometry,groups by is_macro.
+These geometry/class totals cover all matching distinct owners, regardless of pin/instance pages; instance_is_macro filters owners.
+S/instances/<name>/pair?with_instance=<other>&signal_type=SIGNAL returns geometry.bbox_center_manhattan_um and complete shared_nets.
+S/instances|pins|nets/<name>/provenance gives original native identity, database/source digests and locators.
+Use limit/offset/next_offset to continue complete lists. Full help describes all filters and schemas.''',
+    'timing': '''Let S=/snapshots/<snapshot_id>; URL-encode names; GET results are under data.
+S/timing-paths?path_type=max|min&sort=slack&order=worst&tie_break=native_names&limit=N
+returns ranked STORED samples (twenty/group). tie_break=native_names orders equal values by startpoint,endpoint;
+report_order preserves original row order. Native max/min includes the report's asynchronous checks.
+fields=path_id,startpoint,endpoint,slack_ns,arrival_ns,required_ns projects header rows. Missing sampled endpoints need native completion.
+S/timing-paths/<path_id>/engineering joins the COMPLETE data path; select fields=instance_count,net_count,
+instance_bbox_union_um,macro_count,standard_cell_count,instance_classification_coverage for full placement/class counts.
+Counts exclude clock sections and duplicate instances and ignore output pages. Partial classification gives null class totals.
+Other selectable fields: data_pin_names (complete ordered sequence),master_counts,data_point_extrema,data_path_increments.
+Extrema tie_rule=source_order|name_asc|name_desc; source_order chooses the first original point among numeric ties.
+data_path_increments returns adjacent source_path cell/wire sums and largest pair, excluding clocks/time before first point.
+S/timing-overview?check=setup|hold&limit=N joins selected path headers and instance/net unions.
+S/timing-overview?resolve=1&check=setup|hold&startpoint=<pin>&endpoint=<pin>&limit=1
+runs a FRESH original-state native analysis, waits internally and returns paths in ONE read (including outside the sample).
+For ONE check, fields uses TOP LEVEL paths,instance_union_count,net_union_count,macro_count,standard_cell_count,data_point_extrema.
+include_physical=1 adds instance_bbox_union_um. include_path_details=1 adds path_details.data_pin_names,
+path_details.master_counts,path_details.data_path_increments and per-path counts/extrema. Request only needed fields.
+For check=both, all those per-check fields are NESTED: fields=checks.setup.paths,checks.hold.paths;
+for detailed setup increments use checks.setup.path_details.data_path_increments. There is NO top-level paths for both.
+Both checks come from one fresh job; limit applies to EACH. inspect query_execution and continue pending jobs without resubmission.
+After a fresh query, timing results use its child snapshot; subsequent object/net/instance reads use
+/snapshots/<object_facts_source.snapshot.snapshot_id>, which cites the exact original database, run and stage.
+Explicit labeled *_ns/load_ff fields are already ns/fF; original report timing/capacitance fields remain s/F.
+S/constraints gives declared/effective constraints, native check_setup and complete port-delay coverage; missing delay is not proof of violation.
+Use help topic=sources for FULL original report-array queries, topic=native for arbitrary native queries; detail=full restores all timing help.''',
+    'physical': '''Let S=/snapshots/<snapshot_id>; URL-encode native names. GET results are under data.
+S/objects?kind=instance&include_physical=1 joins native placement geometry; fields selects needed columns.
+S/objects/statistics?kind=instance&region=xmin,ymin,xmax,ymax&region_units=um&intersection=positive_area
+counts the COMPLETE matching domain; include_physical=1 gives full bbox union/area; group_by=is_macro splits native types.
+S/pins/<name>/engineering?fields=pin.position_success,pin.position_um,instance.orientation,native_connection.net_name
+gives transformed native pin coordinates, owning orientation and actual connection in one read. Check position_success.
+S/nets/<name>/routing-summary gives full indexed native segment/via lengths and per-layer totals.
+routing_layers_used includes segment and via-only layers; each via participates once on BOTH top/bottom layers.
+S/nets/<name>/parasitics reads original SPEF with units/full counts and branch paging.
+S/congestion?file=<declared eight-column TSV>&layers=<actual layers>&limit=N ranks ALL matching original grid cells;
+ranking is overflow/utilization descending, then natural layer/x/y index ascending; zero-capacity utilization is zero.
+fields selects cells/counts/sources; output paging never limits complete grid totals.
+S/violations gives report locations/related names. Native ODB dbu converts with dbu_per_micron; *_um fields are already um.
+Full help explains original-source availability, placement-location basis and routing continuation.''',
+    'sources': '''Let S=/snapshots/<snapshot_id>; GET results are under data; URL-encode paths/query values.
+S/artifacts/files discovers ALL declared original report/log/result paths with limit/offset continuation.
+S/artifacts/files/excerpt?path=<relative>&max_bytes=8192&offset=0 reads original bytes; continue next_offset.
+start_line/end_line select exact inclusive lines. S/artifacts/files/search?path=<relative>&pattern=<regex>
+searches ALL original lines; context_lines/limit/offset control returned matches, not search coverage.
+S/artifacts/files/json?path=<original JSON>&json_path=$.checks&sort_field=slack&order=asc&tie_fields=startpoint,endpoint&limit=1
+queries the FULL original array before paging, not a stored path sample. filters=<JSON object> selects exact typed row values;
+fields selects literal source fields; tie_order=asc|desc orders equal-value tie fields. Units remain original; absent fields stay absent.
+S/records/<record_type>/<record_id>/fragments returns original point/object evidence without full context expansion.
+GET /runs/<run_id>/metrics?stage=<actual stage>&names=WS,WNS,TNS reads needed canonical metrics with original raw keys and units.
+include_raw=1 also reads original keys; source reports/corners stay distinct. Cell area differs from die/core area.
+POST /query {"requests":["<GET path>","<GET path>"]} batches independent reads; per-request failures remain visible.
+Dependent bindings use {"key":{"request":0,"pointer":"/data/<JSON pointer>"}} and {key} in later paths.
+Full help explains available source filters, corner selection, evidence fields and complete chunk recovery.''',
+    'native': '''Let S=/snapshots/<snapshot_id>; POST S/native-queries
+{"script":"Tcl query","with_timing":false,"wait_seconds":120,"max_bytes":8192} runs and waits for REAL native OpenROAD.
+Original ODB is already loaded: set block [ord::get_db_block]. with_timing=true also reconstructs original libraries/SDC/clocks/RC.
+Read status, excerpt.text and failure_details. If still running, GET /native-queries/<run_id>?wait_seconds=120;
+continue output with offset/max_bytes when excerpt.truncated. Do not submit a second job just to wait/read existing output.
+For another actual stage, discover original files via artifacts/files and use odb_file plus extra_files.
+Do not read_db again into the populated database. Alternate-stage timing must load that stage's own analysis context.
+Native getAvgXY returns {success x y} in dbu. Check success, divide x/y by native getDbUnitsPerMicron.
+Original native timing JSON is s/F; library display units may be ps/fF. Use actual report_units, not guessed corner/clock units.
+WNS=min(0,worst slack). Failed native queries retain their real errors; missing facts are not zeros.
+Use timing-overview?resolve=1 for joined directed-path queries. Full help gives alternate inputs, setup and continuation details.''',
+}
+
 def api_help(store, snapshot_id, query):
     snapshot = store.snapshot(snapshot_id)
     topic = query.get('topic')
@@ -357,5 +456,10 @@ def api_help(store, snapshot_id, query):
                            for key, value in TOPICS.items()]}
     if topic not in GUIDES:
         raise ValueError('help topic must be ' + '|'.join(GUIDES))
-    guide = GUIDES[topic].replace('{design}', snapshot['design_id']).replace('{variant}', snapshot['revision_id']).replace('{snapshot_id}', snapshot_id)
-    return {'snapshot_id': snapshot_id, 'topic': topic, 'guide': guide, 'topic_index': base + '/help'}
+    detail = query.get('detail', 'summary')
+    if detail not in ('summary', 'full'):
+        raise ValueError('help detail must be summary|full')
+    guide = (GUIDES if detail == 'full' else QUICK_GUIDES)[topic]
+    guide = guide.replace('{design}', snapshot['design_id']).replace('{variant}', snapshot['revision_id']).replace('{snapshot_id}', snapshot_id)
+    return {'snapshot_id': snapshot_id, 'topic': topic, 'detail': detail, 'guide': guide,
+            'full_details': base + '/help?topic=' + topic + '&detail=full', 'topic_index': base + '/help'}
