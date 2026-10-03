@@ -2,6 +2,7 @@
 import pytest
 
 from openroad_app_data_foundation.engineering import object_statistics
+from openroad_app_data_foundation.discovery import list_objects
 from openroad_app_data_foundation.repository import DataStore
 
 
@@ -55,5 +56,40 @@ def test_missing_geometry_cannot_be_reported_as_a_complete_small_area(tmp_path):
         assert empty['total_bbox_area_um2'] == 0 and empty['bbox_union_um'] is None
         with pytest.raises(ValueError, match='kind=instance'):
             object_statistics(store, 's', {'kind': 'net', 'include_physical': '1'})
+    finally:
+        store.close()
+
+
+@pytest.mark.parametrize('macro,positive,touching', [('0', ['a'], ['a', 'b']),
+                                                   ('false', ['a'], ['a', 'b']),
+                                                   ('1', ['c'], ['c']),
+                                                   ('true', ['c'], ['c'])])
+def test_regional_classification_preserves_complete_counts_names_and_boundary_modes(tmp_path, macro, positive, touching):
+    store = DataStore(tmp_path / 'region.sqlite')
+    try:
+        data = pack()
+        data['entities'] = [{'object_id': name, 'kind': 'instance', 'name': name,
+                             'attributes': attributes} for name, attributes in
+                            [('a', {'is_macro': 0}), ('b', {'is_macro': 0}),
+                             ('c', {'is_macro': 1}), ('unclassified', {})]]
+        data['physical_context'].extend([
+            {'object_id': 'c', 'bbox': {'x_min': 0, 'y_min': 0, 'x_max': 1000, 'y_max': 1000}},
+            {'object_id': 'unclassified', 'bbox': {'x_min': 0, 'y_min': 0, 'x_max': 1000, 'y_max': 1000}}])
+        store.register(data)
+        query = {'kind': 'instance', 'is_macro': macro, 'region': '0,0,100,100',
+                 'region_units': 'um', 'sort': 'name', 'fields': 'name', 'limit': '1'}
+        for mode, names in [('positive_area', positive), ('touching', touching)]:
+            filtered = {**query, 'intersection': mode}
+            page = list_objects(store, 's', filtered)
+            actual = [item['name'] for item in page['objects']]
+            assert page['count'] == len(names)
+            while page['next_offset'] is not None:
+                page = list_objects(store, 's', {**filtered, 'offset': str(page['next_offset'])})
+                actual.extend(item['name'] for item in page['objects'])
+            assert actual == names
+            statistics = object_statistics(store, 's', {k: v for k, v in filtered.items() if k != 'fields'})
+            assert statistics['object_count'] == len(names)
+        with pytest.raises(ValueError, match='use fields=name.*count/returned/next_offset'):
+            list_objects(store, 's', {**query, 'fields': 'count,objects.name'})
     finally:
         store.close()
