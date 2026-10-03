@@ -335,6 +335,14 @@ def object_statistics(store, snapshot_id, query):
             **_page(len(groups), len(groups[offset:offset + limit]), limit, offset)}
     if geometry is not None:
         result['geometry'] = geometry
+    if group == 'is_macro':
+        unknown = sum(row['count'] for row in groups if row['value'] not in (0, 1))
+        result['classification'] = {
+            'macro_count': sum(row['count'] for row in groups if row['value'] == 1),
+            'nonmacro_count': sum(row['count'] for row in groups if row['value'] == 0),
+            'unclassified_count': unknown, 'status': 'partial' if unknown else 'complete',
+            'basis': 'original attributes.is_macro 1/0; other or missing values remain unclassified; '
+                     'complete filtered collection, independent of group/name pages'}
     if names:
         size = _limit({'limit': query.get('names_limit', '20')})
         start = _offset({'offset': query.get('names_offset', '0')})

@@ -156,6 +156,8 @@ Area is the sum of full object bboxes, including overlapping objects separately.
 group_by=master|kind|master_type|signal_type|driver_count|direction|is_macro. For regional counts use
 kind=instance&group_by=is_macro&region=<xmin,ymin,xmax,ymax>&region_units=um&intersection=positive_area:
 object_count counts ALL matching instances; group value 1 counts macros, 0 nonmacros, null unclassified.
+classification directly gives complete macro_count,nonmacro_count,unclassified_count and classification coverage.
+An absent class has zero count only in this complete aggregation; unknown original classifications remain explicit.
 For example kind=pin&parent_id=<instance>&group_by=signal_type
 returns distinct SIGNAL/CLOCK/POWER/GROUND counts; never infer SIGNAL by merely excluding power.
 For kind=net&group_by=signal_type, counts_by_signal_type and power_ground_net_count cover ALL matching nets
@@ -381,6 +383,7 @@ fields=name returns compact names; count/returned/next_offset remain separate re
 POST /query {"requests":["<full GET path>","<full GET path>"]} combines reads; /query is global, outside S.
 S/objects/statistics?kind=instance&group_by=is_macro|master&include_physical=1 gives COMPLETE counts and overall/group geometry.
 include_names=1 also joins sorted names to each group; names_limit/names_offset and names.continuation read complete group lists.
+With group_by=is_macro, classification gives complete macro_count/nonmacro_count/unclassified_count, including verified zeros.
 Count/sum/bbox are independent of pages. Missing geometry/classification is partial, not zero. fields selects needed facts.
 S/instances/<name>/engineering: instance.bbox_um,instance.orientation,native_pin_classification (pin OWN type).
 S/instances/<name>/pin-inventory?pin_type=SIGNAL&direction=INPUT returns filtered native pins with complete counts/paging.
