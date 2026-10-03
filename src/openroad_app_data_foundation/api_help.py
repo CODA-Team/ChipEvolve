@@ -126,6 +126,8 @@ For largest macro use S/objects?kind=instance&is_macro=1&sort=bbox_area&order=de
 ranking reports the full candidate count, leading integer dbu^2 area, tie count/rule and missing geometry count,
 independent of pagination. Use compact fields=object_id,name plus a dependent batch to retrieve selected engineering facts.
 Alternatively include_engineering=1 joins selected instance facts directly to the ranked page;
+engineering.native_pin_classification includes the pin's OWN native counts and coverage in the SAME read,
+so ranking an unknown instance does not require another lookup to count its native SIGNAL pins or nets.
 fields=name,engineering.bbox_um,engineering.signal_pin_count,engineering.distinct_signal_net_count
 retrieves the selected geometry and two different connection counts together.
 S/objects/statistics accepts the SAME filters as objects and gives complete aggregation over matching objects;

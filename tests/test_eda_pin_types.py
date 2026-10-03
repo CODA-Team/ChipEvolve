@@ -118,3 +118,38 @@ def test_original_json_native_count_projection_remains_literal():
     result = metadata_view({'original': [summary]},
         {'fields': 'original.distinct_net_counts_by_native_pin_type'}, '/source', sparse_fields=True)
     assert result['original'] == [{'distinct_net_counts_by_native_pin_type': {}}]
+
+
+@pytest.mark.parametrize('classified', [True, False])
+@pytest.mark.parametrize('format', ['rows', 'columns'])
+def test_ranked_object_query_keeps_native_pin_counts_and_scope_in_same_read(tmp_path, classified, format):
+    from openroad_app_data_foundation.discovery import list_objects
+    from openroad_app_data_foundation.engineering import instance_engineering
+    pack = sample()
+    pack['relations'] = []
+    for name, pin_type in [('CLK', 'CLOCK'), ('A', 'SIGNAL')]:
+        pack['entities'].append({'object_id': name, 'kind': 'pin', 'name': 'u/' + name,
+            'parent_id': 'i', 'attributes': {'native_pin_signal_type': pin_type} if classified else {}})
+        pack['relations'].append({'relation_id': name + '-net', 'subject_id': name,
+                                  'predicate': 'connected_to', 'object_id': 'n'})
+    store = DataStore(tmp_path / 'ranked.sqlite')
+    try:
+        store.register(pack)
+        full = instance_engineering(store, 's', 'u')
+        response = list_objects(store, 's', {'kind': 'instance', 'sort': 'bbox_area', 'order': 'desc',
+            'limit': '1', 'include_engineering': '1', 'format': format,
+            'fields': 'name,engineering.bbox_um,engineering.native_pin_classification'})
+        if format == 'rows':
+            joined = response['objects'][0]['engineering']
+            assert response['objects'][0]['name'] == 'u'
+        else:
+            assert response['object_columns'] == ['name', 'engineering.bbox_um', 'engineering.native_pin_classification']
+            assert response['object_rows'][0][0] == 'u'
+            joined = dict(zip(['bbox_um', 'native_pin_classification'], response['object_rows'][0][1:]))
+        assert joined['bbox_um'] == full['instance']['bbox_um']
+        assert joined['native_pin_classification'] == full['native_pin_classification']
+        coverage = joined['native_pin_classification']['native_pin_classification_coverage']
+        assert coverage['status'] == ('complete' if classified else 'partial')
+        assert joined['native_pin_classification']['pin_counts_by_native_type'] == ({'CLOCK': 1, 'SIGNAL': 1} if classified else {})
+    finally:
+        store.close()

@@ -225,7 +225,9 @@ def list_objects(store, snapshot_id, query):
         if query_boolean(query, 'include_engineering'):
             from .engineering import instance_engineering
             for row in rows:
-                row['engineering'] = instance_engineering(store, snapshot_id, row['object_id'])['instance']
+                facts = instance_engineering(store, snapshot_id, row['object_id'])
+                row['engineering'] = {**facts['instance'],
+                                      'native_pin_classification': facts['native_pin_classification']}
     if query.get('include_physical') is not None:
         if query_boolean(query, 'include_physical'):
             _object_geometry(store, snapshot_id, rows)
