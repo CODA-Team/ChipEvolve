@@ -139,6 +139,9 @@ fields=name,engineering.bbox_um,engineering.signal_pin_count,engineering.distinc
 retrieves the selected geometry and two different connection counts together.
 S/objects/statistics accepts the SAME filters as objects and gives complete aggregation over matching objects;
 For kind=instance, include_physical=1 also aggregates placed bbox areas and geometry coverage over ALL matches.
+geometry.bbox_union_um is the complete filtered collection's bbox union. Grouping keeps object_count and overall
+geometry in the SAME response, alongside each group's count/geometry; no separate ungrouped query is needed.
+connected_to=<net>&net_role=load|driver uses distinct owning instances, excluding ports and counting each parent once.
 For macro area and its core percentage use kind=instance&is_macro=1&include_physical=1:
 geometry.total_bbox_area_um2, geometry.percent_of_core_area and geometry.core_bbox_um are direct facts.
 Group rows include geometry statistics too; limit/offset only page the groups, never the overall aggregation.
