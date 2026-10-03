@@ -27,6 +27,9 @@ def net_engineering(store, snapshot_id, identifier, query):
     if query.get('traverse', '0') not in ('0', '1'):
         raise ValueError('traverse must be 0|1')
     include_instances = query_boolean(query, 'include_instances') if 'include_instances' in query else False
+    include_physical = query_boolean(query, 'include_physical') if 'include_physical' in query else False
+    if include_physical and not include_instances:
+        raise ValueError('include_physical requires include_instances=1')
     if not include_instances and any(key in query for key in ('instance_is_macro', 'instance_limit', 'instance_offset', 'instance_order')):
         raise ValueError('instance filters and paging require include_instances=1')
     result = {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(store.snapshot(snapshot_id)),
@@ -57,6 +60,12 @@ def net_engineering(store, snapshot_id, identifier, query):
                 'order': query.get('instance_order', 'asc'),
                 'count_basis': 'distinct owning instance IDs across all matching native pin relations; ports excluded; shared pin parents count once',
                 **{key: instances[key] for key in ('count', 'returned', 'limit', 'offset', 'truncated', 'next_offset')}}
+            if include_physical:
+                statistics = object_statistics(store, snapshot_id, {**options, 'group_by': 'is_macro',
+                    'include_physical': '1', 'limit': '3', 'offset': '0'})
+                result[role + '_instances'].update(geometry=statistics['geometry'],
+                    groups=statistics['groups'], group_by='is_macro',
+                    aggregation_scope='all matching distinct owning instances; independent of instance or pin pages')
     result['state'] = ('no_driver' if result['driver_count'] == 0 else
                        'single_driver' if result['driver_count'] == 1 else 'multi_driver')
     result['truncated'] = any(result[role + '_page']['truncated'] for role in ('driver', 'load'))

@@ -82,6 +82,9 @@ excluding ports and counting a shared pin parent once. instance_is_macro=0|1 fil
 pin counts still describe every native driver/load. instance_limit/instance_offset page the complete instance domain;
 instance_order=asc|desc controls native-name order independently of pin pages. Select fields=load_count,driver_pins,load_instances
 for load/driver facts and receiving instances together. Full names remain continuously readable with next_offset.
+Add include_physical=1 to include_instances=1 to get each role's geometry and groups (is_macro=0|1|null)
+in the SAME net read. geometry.bbox_union_um/status cover ALL matching distinct instances, regardless of pin/name paging.
+The existing grouped object-statistics calculation supplies full counts/geometry; instance_is_macro filters both.
 S/instances/<native name or id>/engineering returns master/type, placed location, bbox, both ODB/DEF orientation names,
 and complete pin counts grouped by connected-net type in one call. Unconnected pins are explicitly unclassified.
 S/instances/<name or id>/pair?with_instance=<other name or id> compares two arbitrary instances in this state.
