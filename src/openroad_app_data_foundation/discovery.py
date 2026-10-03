@@ -95,7 +95,11 @@ def object_filter(store, snapshot_id, query):
     if query.get('port') is not None:
         filters.append("record_id " + ("LIKE" if query_boolean(query, 'port') else "NOT LIKE") + " 'bterm:%'")
     if query.get('is_macro') is not None:
-        filters.append("json_extract(payload, '$.attributes.is_macro') = ?")
+        # A small region/name/connection set must use its identity lookup rather
+        # than scan every nonmacro through the whole-design classification index.
+        prefix = '+' if any(query.get(k) for k in
+            ('name', 'parent_id', 'parent_instance', 'ids', 'connected_to', 'region')) else ''
+        filters.append(f"{prefix}json_extract(payload, '$.attributes.is_macro') = ?")
         params.append(query_boolean(query, 'is_macro'))
     if query.get('region'):
         box = [float(x) for x in query['region'].split(',')]
@@ -240,7 +244,9 @@ def list_objects(store, snapshot_id, query):
         allowed = {'object_id', 'name', 'kind', 'parent_id', 'attributes', 'identity', 'evidence', 'physical', 'engineering'}
         if any(key not in allowed and not (key.partition('.')[0] in ('attributes', 'physical', 'engineering') and
                 key.partition('.')[2].isidentifier()) for key in columns):
-            raise ValueError('unknown object projection field')
+            raise ValueError('unknown object projection field; fields selects each object: ' +
+                             ','.join(sorted(allowed)) + ',attributes.<key>,physical.<key>,engineering.<key>; ' +
+                             'use fields=name for names; count/returned/next_offset are always returned separately')
         projected = []
         for row in rows:
             item = {key: row.get(key) for key in columns if '.' not in key}

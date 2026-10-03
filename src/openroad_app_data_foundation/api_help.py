@@ -374,6 +374,8 @@ S/objects?kind=instance|pin|net supports exact name, name_contains, parent_insta
 direction, signal_type, connected_to=<net>&net_role=load|driver, and region=xmin,ymin,xmax,ymax&region_units=um.
 intersection=positive_area excludes mere touching. sort=name|fanout|bbox_area&order=asc|desc ranks before limit/offset.
 include_physical=1 joins each returned object's bbox; include_engineering=1 joins instance engineering/pin classification.
+fields=name returns compact names; count/returned/next_offset remain separate response totals, not projection fields.
+POST /query {"requests":["<full GET path>","<full GET path>"]} combines reads; /query is global, outside S.
 S/objects/statistics?kind=instance&group_by=is_macro|master&include_physical=1 gives COMPLETE counts and overall/group geometry.
 Count/sum/bbox are independent of pages. Missing geometry/classification is partial, not zero. fields selects needed facts.
 S/instances/<name>/engineering: instance.bbox_um,instance.orientation,native_pin_classification (pin OWN type).
