@@ -61,12 +61,12 @@ def net_engineering(store, snapshot_id, identifier, query):
                 'order': query.get('instance_order', 'asc'),
                 'count_basis': 'distinct owning instance IDs across all matching native pin relations; ports excluded; shared pin parents count once',
                 **{key: instances[key] for key in ('count', 'returned', 'limit', 'offset', 'truncated', 'next_offset')}}
+            statistics = object_statistics(store, snapshot_id, {**options, 'group_by': 'is_macro',
+                'include_physical': '1' if include_physical else '0', 'limit': '3', 'offset': '0'})
+            result[role + '_instances'].update(groups=statistics['groups'], group_by='is_macro',
+                aggregation_scope='all matching distinct owning instances; independent of instance or pin pages')
             if include_physical:
-                statistics = object_statistics(store, snapshot_id, {**options, 'group_by': 'is_macro',
-                    'include_physical': '1', 'limit': '3', 'offset': '0'})
-                result[role + '_instances'].update(geometry=statistics['geometry'],
-                    groups=statistics['groups'], group_by='is_macro',
-                    aggregation_scope='all matching distinct owning instances; independent of instance or pin pages')
+                result[role + '_instances']['geometry'] = statistics['geometry']
     result['state'] = ('no_driver' if result['driver_count'] == 0 else
                        'single_driver' if result['driver_count'] == 1 else 'multi_driver')
     result['truncated'] = any(result[role + '_page']['truncated'] for role in ('driver', 'load'))

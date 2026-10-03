@@ -387,6 +387,7 @@ Add net_sort=load_count for COMPLETE distinct-net rankings and receiving_macro_c
 S/nets/<name>/engineering gives all driver/load COUNTS with sorted paged driver_pins/load_pins.
 traverse=1 adds COMPLETE driver_traversal/load_traversal.pin_names and internal_instance_count (distinct parents; ports excluded).
 include_instances=1&include_physical=1 adds complete driver_instances/load_instances count,geometry,groups by is_macro.
+include_instances=1 alone already returns complete class groups (value1 macro,0 nonmacro,null unclassified); geometry is optional.
 These geometry/class totals cover all matching distinct owners, regardless of pin/instance pages; instance_is_macro filters owners.
 S/instances/<name>/pair?with_instance=<other>&signal_type=SIGNAL returns geometry.bbox_center_manhattan_um and complete shared_nets.
 S/instances|pins|nets/<name>/provenance gives original native identity, database/source digests and locators.
