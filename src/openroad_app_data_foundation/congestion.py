@@ -4,7 +4,7 @@ import re
 from functools import lru_cache
 from pathlib import Path
 
-from .artifacts import native_excerpt
+from .artifacts import native_excerpt, native_files
 from .identity import snapshot_identity
 from .queries import _limit, _offset, _page
 
@@ -61,7 +61,13 @@ def congestion_grid(store, snapshot_id, query, root):
     snapshot = store.snapshot(snapshot_id)
     file = query.get('file')
     if not file:
-        raise ValueError('file must name the original eight-column congestion TSV')
+        name = snapshot['stage'] + '.congestion.tsv'
+        catalog = native_files(store, snapshot_id,
+            {'kind': 'reports', 'name_contains': name, 'limit': '1'}, Path(root))['files']
+        if catalog['count'] != 1 or Path(catalog['items'][0]['relative_path']).name != name:
+            raise ValueError('file must select an original eight-column congestion TSV; '
+                             'no unique report for snapshot stage ' + snapshot['stage'])
+        file = catalog['items'][0]['relative_path']
     source = native_excerpt(store, snapshot_id, {'path': file, 'max_bytes': '1'}, Path(root))['source']
     stat = Path(source['path']).stat()
     layers = tuple(sorted(set(query['layers'].split(',')))) if query.get('layers') else ()

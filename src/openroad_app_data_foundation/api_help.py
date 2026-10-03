@@ -274,7 +274,8 @@ in original order, including statements beyond named-clock creation. Read later 
 instance joins its owning instance's placement/orientation, or null for a top-level port.
 native_connection gives connected net ID/name/type and direction using the same original ODB.
 Use fields=pin.position_um,pin.position_success,instance.orientation,native_connection.net_name for these facts together.
-S/congestion?file=<declared eight-column native TSV>&layers=<comma-separated layers>&limit=N&offset=N
+S/congestion?layers=<comma-separated layers>&limit=N&offset=N selects the unique original <stage>.congestion.tsv;
+file=<declared eight-column native TSV> selects an explicit report when needed.
 ranks ALL matching grid cells by overflow then utilization descending, natural layer/index ascending.
 Returns capacity, usage, overflow, native grid bbox and source line, with complete layer counts/overflow totals.
 Zero capacity uses utilization zero for ranking. fields can project compact facts; paging never changes full-domain counts.
@@ -419,9 +420,10 @@ gives transformed native pin coordinates, owning orientation and actual connecti
 S/nets/<name>/routing-summary gives full indexed native segment/via lengths and per-layer totals.
 routing_layers_used includes segment and via-only layers; each via participates once on BOTH top/bottom layers.
 S/nets/<name>/parasitics reads original SPEF with units/full counts and branch paging.
-S/congestion?file=<declared eight-column TSV>&layers=<actual layers>&limit=N ranks ALL matching original grid cells;
+S/congestion?layers=<actual layers>&limit=N ranks ALL matching original grid cells from the unique original <stage>.congestion.tsv;
 ranking is overflow/utilization descending, then natural layer/x/y index ascending; zero-capacity utilization is zero.
-fields selects cells/counts/sources; output paging never limits complete grid totals.
+file selects another original eight-column TSV. fields=cells,count,overflow_cell_count,total_overflow,source selects real fields;
+output paging never limits complete grid totals.
 S/violations gives report locations/related names. Native ODB dbu converts with dbu_per_micron; *_um fields are already um.
 Full help explains original-source availability, placement-location basis and routing continuation.''',
     'sources': '''Let S=/snapshots/<snapshot_id>; GET results are under data; URL-encode paths/query values.
