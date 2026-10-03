@@ -197,6 +197,11 @@ source_clock_path/target_clock_path are clock paths); slew and arrival in second
 S/timing-paths/<path_id>/engineering gives joined data-side pins, instances, nets, master_counts and bbox union;
 data_pin_names is the COMPLETE ordered data path sequence, including repeated pins and excluding clocks,
 independent of point pagination. fields=path,data_pin_names,data_path_pin_count,clock_points_excluded is compact.
+data_path_increments sums adjacent source_path arrival differences over the COMPLETE original sequence.
+cell_increment_ns is the sum for equal nonempty original report instance names; wire_increment_ns covers other pairs.
+total_increment_ns excludes clock sections and time before the first data point; negative increments stay signed.
+largest_increment gives both pins/point IDs, kind, value, and first-report-pair tie choice. Missing arrivals make totals null.
+Select fields=data_path_increments for the summary; original points remain available for individual differences.
 arrays are paged by limit/offset. Add include_routing=1 to obtain the full routing_layers_crossed union,
 including both sides of every via on ALL data-path nets. This avoids querying their wire shapes individually.
 data_point_extrema provides complete maximum slew/load, ALL tied pin_names, tie_count and selected_point,

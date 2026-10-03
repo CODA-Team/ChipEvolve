@@ -7,6 +7,7 @@ from .discovery import object_filter, list_objects, query_boolean
 from .metadata import placement_geometry, timing_values
 from .timing_facts import timing_fact_snapshot, fact_source
 from .pin_summary import pin_type_summary
+from .path_increments import data_path_increments
 
 
 def _entity(store, snapshot_id, identifier, kind):
@@ -459,6 +460,7 @@ def path_engineering(store, snapshot_id, path_id, query):
               'evidence': path.get('evidence', []),
               'units': {'slack': path.get('unit'), 'slew': 's', 'load': 'F'},
               'data_point_extrema': point_extrema(points, query.get('tie_rule', 'name_desc')),
+              'data_path_increments': data_path_increments(points),
               'clock_points_excluded': True}
     scale = facts.get('run_summary', {}).get('dbu_per_micron')
     result['instance_bbox_union_um'] = placement_geometry(
