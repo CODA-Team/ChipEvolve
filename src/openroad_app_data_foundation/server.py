@@ -26,6 +26,7 @@ from .engineering import (object_statistics, path_engineering, timing_overview,
 from .constraints import constraint_context
 from .congestion import congestion_grid
 from .resolved_timing import resolved_timing_overview
+from .timing_facts import timing_fact_snapshot
 from .source_metadata import source_metadata
 from .api_help import api_help
 from .excerpts import excerpt_view
@@ -514,6 +515,7 @@ def serve(*, host: str, port: int, store: DataStore,
 
 def _name_check(store, snapshot_id: str, query: dict) -> dict:
     """Whether each requested timing name is an object of the snapshot it ran on."""
+    facts_id = timing_fact_snapshot(store, store.snapshot(snapshot_id))['snapshot_id']
     checked = {}
     for key in ("from_pin", "to_pin"):
         name = query.get(key)
@@ -521,10 +523,11 @@ def _name_check(store, snapshot_id: str, query: dict) -> dict:
             continue
         found = {}
         for kind in ("pin", "instance", "net"):
-            rows = store.entities_named(snapshot_id, kind, name)
+            rows = store.entities_named(facts_id, kind, name)
             if rows:
                 found[kind] = [row["object_id"] for row in rows[:5]]
-        checked[key] = {"name": name, "exists": bool(found), "objects": found}
+        checked[key] = {"name": name, "exists": bool(found), "objects": found,
+                        "object_facts_snapshot_id": facts_id}
     return checked
 
 
