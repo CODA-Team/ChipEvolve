@@ -73,3 +73,25 @@ def test_missing_geometry_keeps_exact_counts_and_explicit_partial_coverage(store
     assert result['load_instances']['count'] == 2
     assert geometry['status'] == 'partial' and geometry['missing_geometry_count'] == 1
     assert geometry['total_bbox_area_um2'] is None and geometry['available_bbox_area_um2'] == 2
+
+
+def test_owner_class_counts_are_available_without_geometry_or_extra_reads(store):
+    store.connection.execute("DELETE FROM records WHERE record_type='physical_context'")
+    store.connection.commit()
+    query = {'include_instances': '1', 'instance_limit': '1', 'limit': '1'}
+    first = net_engineering(store, 's', 'signal', query)
+    owners = first['load_instances']
+    assert first['load_count'] == 4 and owners['count'] == 2
+    assert owners['names'] == ['a_ram'] and owners['truncated']
+    assert {g['value']: g['count'] for g in owners['groups']} == {0: 1, 1: 1}
+    assert 'geometry' not in owners
+    second = net_engineering(store, 's', 'signal', {**query, 'instance_offset': '1', 'offset': '3'})
+    assert second['load_instances']['names'] == ['z_logic']
+    assert second['load_instances']['groups'] == owners['groups']
+    assert second['driver_instances']['count'] == 0 and second['driver_instances']['groups'] == []
+    store.connection.execute("UPDATE records SET payload=json_remove(payload, '$.attributes.is_macro') "
+                             "WHERE record_type='entities' AND record_id='logic'")
+    store.connection.commit()
+    unknown = net_engineering(store, 's', 'signal', query)['load_instances']
+    assert {g['value']: g['count'] for g in unknown['groups']} == {None: 1, 1: 1}
+    assert sum(g['count'] for g in unknown['groups']) == unknown['count']
