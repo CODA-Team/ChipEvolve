@@ -192,7 +192,7 @@ foreach inst [$block getInsts] {{
     set pin [json_obj object_id [json_q $pin_id] snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] \
         kind [json_q pin] name [json_q "[$inst getName]/[$mterm getName]"] \
         parent_id [json_q $object_id] source_ref [json_q $source_ref] locator [json_obj native_id [json_q [$iterm getId]]] attributes [json_obj native_id [json_q [$iterm getId]] \
-        direction [json_q [$mterm getIoType]] geometry $geometry]]
+        direction [json_q [$mterm getIoType]] native_pin_signal_type [json_q [$mterm getSigType]] geometry $geometry]]
     write_json [file join $out objects.jsonl] $pin
     write_json [file join $out markers.jsonl] [json_obj object_id [json_q $pin_id] \
         snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] pin_name [json_q "[$inst getName]/[$mterm getName]"] \
@@ -222,7 +222,7 @@ foreach bterm [$block getBTerms] {{
   set pin [json_obj object_id [json_q $pin_id] snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] \
       kind [json_q pin] name [json_q [$bterm getName]] \
       source_ref [json_q $source_ref] locator [json_obj native_id [json_q [$bterm getId]]] attributes [json_obj native_id [json_q [$bterm getId]] \
-        direction [json_q [$bterm getIoType]] geometry $geometry]]
+        direction [json_q [$bterm getIoType]] native_pin_signal_type [json_q [$bterm getSigType]] geometry $geometry]]
   write_json [file join $out objects.jsonl] $pin
   write_json [file join $out markers.jsonl] [json_obj object_id [json_q $pin_id] \
       snapshot_id [json_q {_tcl(metadata['snapshot_id'])}] pin_name [json_q [$bterm getName]] \
