@@ -30,6 +30,16 @@ def test_implicit_report_is_unique_current_stage_and_same_facts_as_explicit(tmp_
     assert implicit==explicit and len(calls)==1
     assert implicit['count']==1 and implicit['total_overflow']==2
     assert implicit['cells'][0]['bbox_um']==[0,0,10,10]
+    from urllib.parse import urlparse,parse_qs
+    from openroad_app_data_foundation.server import Handler
+    handler=Handler.__new__(Handler)
+    handler.store,handler.native_root=Store(),tmp_path
+    route='/snapshots/'+sid+'/congestion'
+    projected=handler._get(route,{'layers':'M2','limit':'1','fields':'cells,count,source'})
+    continuation=urlparse(projected['delivery']['full_details'])
+    restored=handler._get(continuation.path,{key:values[0] for key,values in parse_qs(continuation.query).items()})
+    for key in ('cells','count','source','total_overflow'):
+        assert restored[key]==implicit[key]
 
 
 @pytest.mark.parametrize('catalog',[
