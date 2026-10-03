@@ -1,11 +1,14 @@
 """Path endpoint joins must preserve report/native distinctions and port semantics."""
 import pytest
+from copy import deepcopy
 
 from openroad_app_data_foundation.path_endpoints import path_endpoints
 from openroad_app_data_foundation.discovery import object_filter
 from openroad_app_data_foundation.engineering import object_statistics
 from openroad_app_data_foundation.repository import DataStore
 from tests.test_eda_engineering import sample
+from tests.test_eda_engineering import query_pair
+from openroad_app_data_foundation.server import _name_check
 
 
 @pytest.mark.parametrize('pin_case', ['instance', 'port', 'absent'])
@@ -40,6 +43,52 @@ def test_endpoint_join_retains_source_witness_and_native_placement(tmp_path, mon
             if pin_case == 'instance':
                 assert endpoint['instance']['master'] == 'BUF'
                 assert endpoint['instance']['bbox_dbu']['x_max'] == 10
+            else:
+                assert endpoint['instance'] is None
+    finally:
+        store.close()
+
+
+@pytest.mark.parametrize('depth', [1, 2])
+@pytest.mark.parametrize('pin_case', ['instance', 'port', 'absent'])
+def test_supplemental_endpoints_and_name_checks_use_validated_original_objects(tmp_path, monkeypatch, depth, pin_case):
+    parent, child = query_pair()
+    for pin in parent['entities']:
+        if pin['object_id'] in ('pin-a', 'pin-z'):
+            pin['parent_id'] = 'i' if pin['object_id'] == 'pin-a' or pin_case == 'instance' else None
+    if pin_case == 'absent':
+        parent['entities'] = [row for row in parent['entities'] if row['object_id'] != 'pin-z']
+    child['timing_points'][2]['net_name'] = 'original_report_net'
+    packs = [parent, child]
+    if depth == 2:
+        nested = deepcopy(child)
+        nested['snapshot']['snapshot_id'] = 'nested'
+        nested['run_summary']['timing_context']['parent_snapshot_id'] = 'child'
+        packs.append(nested)
+    sid = packs[-1]['snapshot']['snapshot_id']
+    def original(store, snapshot_id, record_type, record_id):
+        assert snapshot_id == sid and record_type == 'timing_points'
+        return {'fragments': [{'record_id': record_id, 'source_snapshot': snapshot_id}]}
+    monkeypatch.setattr('openroad_app_data_foundation.path_endpoints.read_evidence', original)
+    store = DataStore(tmp_path / 'supplemental-endpoints.sqlite')
+    try:
+        for pack in packs: store.register(pack)
+        result = path_endpoints(store, sid, 'p')
+        names = _name_check(store, sid, {'from_pin': 'u/A', 'to_pin': 'u/Z'})
+        assert result['snapshot']['snapshot_id'] == sid
+        assert result['object_facts_source']['snapshot']['snapshot_id'] == 's'
+        assert names['from_pin']['exists'] and names['from_pin']['object_facts_snapshot_id'] == 's'
+        endpoint = result['endpoints']['endpoint']
+        assert endpoint['original_point']['fragments'][0]['source_snapshot'] == sid
+        assert endpoint['timing_point']['net_name'] == 'original_report_net'
+        if pin_case == 'absent':
+            assert endpoint['status'] == 'unavailable' and not names['to_pin']['exists']
+        else:
+            assert endpoint['status'] == 'available' and names['to_pin']['exists']
+            assert endpoint['native_connection']['net_name'] == 'signal'
+            if pin_case == 'instance':
+                assert endpoint['instance']['master'] == 'BUF'
+                assert endpoint['instance']['bbox_um']['x_max'] == .005
             else:
                 assert endpoint['instance'] is None
     finally:
