@@ -248,6 +248,8 @@ recorded parent with identical original ODB digest and run/stage identity; timin
 Project needed fields; query_execution and object_facts_source preserve both sources. delivery.full_details addresses the resulting
 snapshot WITHOUT submitting another job. If still pending or failed, inspect query_execution and the explicit continuation routes;
 never substitute a stored sample for a failed native query. Existing child path engineering also joins those same parent facts.
+For a following net/instance/objects read, use /snapshots/<object_facts_source.snapshot.snapshot_id> as S;
+the resulting query snapshot holds timing results, while its exact cited parent holds the object inventory.
 For explicit asynchronous operation, POST S/timing-queries
 payload {"from_pin":"native start", "to_pin":"native end", "path_group":"optional group", "path_count":5,"endpoint_path_count":1}.
 Omit unneeded filters. It returns run.run_id and a new snapshot_id; GET /timing-queries/<run_id>?wait_seconds=120 waits for completion in one tool operation; repeat if still running, not rapid polling.
