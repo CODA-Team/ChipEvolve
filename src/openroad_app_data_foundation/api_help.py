@@ -338,6 +338,8 @@ The original ODB is already loaded, so use set block [[[ord::get_db] getChip] ge
 so the snapshot's original libraries/SDC/parasitics are loaded. Native master pin classification uses [$iterm getMTerm] getSigType.
 GET /native-queries/<run_id>?wait_seconds=120 returns actual process output in excerpt.text and source artifact information;
 continue with offset/max_bytes when excerpt.truncated. This is a real native query, not a stored question answer.
+Public native responses default to the actual outcome/output without large execution/input inventories.
+POST body detail="full" or GET detail=full reads complete execution/input metadata; delivery.full_details keeps the output offset/format.
 Source excerpts default to text without duplicate base64; format=base64 returns exact original bytes, format=full returns both.
 Failed native queries retain status=failed and expose the actual error report; read it to correct the Tcl method.
 For placed ITerm coordinates, $iterm getAvgXY returns {success x y} in dbu; check success before using x/y.
@@ -438,6 +440,7 @@ Full help explains available source filters, corner selection, evidence fields a
 Original ODB is already loaded: set block [ord::get_db_block]. with_timing=true also reconstructs original libraries/SDC/clocks/RC.
 Read status, excerpt.text and failure_details. If still running, GET /native-queries/<run_id>?wait_seconds=120;
 continue output with offset/max_bytes when excerpt.truncated. Do not submit a second job just to wait/read existing output.
+Defaults keep actual output/errors compact. POST detail="full" or GET detail=full retrieves execution/input inventories.
 For another actual stage, discover original files via artifacts/files and use odb_file plus extra_files.
 Do not read_db again into the populated database. Alternate-stage timing must load that stage's own analysis context.
 Native getAvgXY returns {success x y} in dbu. Check success, divide x/y by native getDbUnitsPerMicron.

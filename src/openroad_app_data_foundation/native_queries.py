@@ -1,13 +1,15 @@
 """General native engineering queries, scoped to original snapshot inputs."""
 import uuid
 from pathlib import Path
+from urllib.parse import urlencode
 from .excerpts import excerpt_view
 from .artifacts import DEFAULT_NATIVE_ROOT, native_excerpt
 from .query_inputs import snapshot_inputs
 from .timing_queries import wait_query_run
 
 
-def submit_native_query(store, client, snapshot_id, query, native_root=DEFAULT_NATIVE_ROOT):
+def submit_native_query(store, client, snapshot_id, query, native_root=DEFAULT_NATIVE_ROOT, *, detail='full'):
+    _validate_detail(detail)
     if set(query) - {'script', 'with_timing', 'extra_files', 'odb_file', 'wait_seconds', 'max_bytes', 'format'}:
         raise ValueError('native query accepts script, with_timing, extra_files, odb_file, wait_seconds, max_bytes and format')
     script = query.get('script')
@@ -57,16 +59,17 @@ def submit_native_query(store, client, snapshot_id, query, native_root=DEFAULT_N
     if wait:
         result.update(native_query_result(client, run['run_id'],
                       {'wait_seconds': str(wait), 'max_bytes': str(maximum), 'format': representation}))
-    return result
+    return native_query_view(result, detail, query)
 
 
-def native_query_result(client, run_id, query):
+def native_query_result(client, run_id, query, *, detail='full'):
+    _validate_detail(detail)
     run = wait_query_run(client, run_id, int(query.get('wait_seconds', 0)))
     if run['project_id'] != 'eda-ai-native-query':
         raise KeyError('run is not a native engineering query')
     result = {'run_id': run_id, 'status': run['status'], 'terminal_reason': run.get('terminal_reason')}
     if run['status'] not in ('succeeded', 'failed', 'timed_out', 'cancelled', 'lost'):
-        return result
+        return native_query_view(result, detail, query)
     if run['status'] != 'succeeded':
         result['failure_details'] = [attempt['failure'] for stage in run.get('stages', [])
             for attempt in stage.get('attempts', []) if attempt.get('failure')]
@@ -74,7 +77,7 @@ def native_query_result(client, run_id, query):
     refs = [r for r in artifacts if r['kind'] == 'analysis_report' and
             (r.get('metadata') or {}).get('report') == 'native']
     if not refs and run['status'] != 'succeeded':
-        return result
+        return native_query_view(result, detail, query)
     if len(refs) != 1:
         raise ValueError('native query must produce exactly one original report')
     ref = refs[0]
@@ -82,8 +85,33 @@ def native_query_result(client, run_id, query):
     if offset < 0 or not 1 <= max_bytes <= 65536:
         raise ValueError('offset must be nonnegative; max_bytes must be1..65536')
     excerpt = client.artifact_excerpt(run_id, ref['artifact_id'], offset=offset, max_bytes=max_bytes)
-    return {**result, 'source': ref, 'excerpt': excerpt_view(excerpt, query),
+    result = {**result, 'source': ref, 'excerpt': excerpt_view(excerpt, query),
             'parent_snapshot_id': (run.get('labels') or {}).get('parent_snapshot_id'),
             'original_input_artifacts': [r for r in artifacts
                                          if r['kind'].startswith('raw_') or
                                          (r.get('metadata') or {}).get('source_field')]}
+    return native_query_view(result, detail, query)
+
+
+def _validate_detail(detail):
+    if detail not in ('summary', 'full'):
+        raise ValueError('native query detail must be summary|full')
+
+
+def native_query_view(payload, detail, query):
+    """Keep actual output/status intact; move lengthy execution metadata to a read."""
+    if detail == 'full':
+        return payload
+    result = {k: v for k, v in payload.items() if k not in ('run', 'original_input_artifacts')}
+    run = payload.get('run', {})
+    run_id = payload.get('run_id', run.get('run_id'))
+    status = payload.get('status', run.get('status'))
+    result.update(run_id=run_id, status=status)
+    if run:
+        result['run'] = {'run_id': run_id, 'status': status}
+    options = {k: query[k] for k in ('offset', 'max_bytes', 'format') if k in query}
+    result['delivery'] = {'detail': 'summary',
+        'full_details': '/native-queries/' + run_id + '?' + urlencode({**options, 'detail': 'full'}),
+        'retained': 'actual excerpt, report source, status, failure details and continuation offsets',
+        'original_input_artifact_count': len(payload['original_input_artifacts']) if 'original_input_artifacts' in payload else None}
+    return result

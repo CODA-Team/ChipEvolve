@@ -143,7 +143,8 @@ class Handler(BaseHTTPRequestHandler):
                 if self.execution_client is None:
                     raise KernelUnavailable('execution service is not configured')
                 query = self._read_body()
-                payload = submit_native_query(self.store, self.execution_client, parts[1], query, self.native_root)
+                detail = query.pop('detail', 'summary')
+                payload = submit_native_query(self.store, self.execution_client, parts[1], query, self.native_root, detail=detail)
                 self._send(200 if payload.get('status') in ('succeeded', 'failed', 'timed_out', 'cancelled', 'lost')
                            else 202, payload)
                 return
@@ -210,7 +211,8 @@ class Handler(BaseHTTPRequestHandler):
         if path.startswith('/native-queries/'):
             if self.execution_client is None:
                 raise KernelUnavailable('execution service is not configured')
-            return native_query_result(self.execution_client, path.split('/')[-1], query)
+            return native_query_result(self.execution_client, path.split('/')[-1], query,
+                                       detail=query.get('detail', 'summary'))
         if path.startswith('/timing-queries/'):
             if self.execution_client is None:
                 raise KernelUnavailable('execution service is not configured')
