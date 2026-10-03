@@ -79,3 +79,42 @@ def test_indexed_native_pin_summary_keeps_clock_pins_shared_nets_and_missing_cla
         assert partial['connected_pin_counts_by_native_type']['SIGNAL'] == 1
     finally:
         store.close()
+
+
+@pytest.mark.parametrize('classified', [True, False])
+@pytest.mark.parametrize('field', ['pin_counts_by_native_type',
+    'connected_pin_counts_by_native_type', 'distinct_net_counts_by_native_pin_type'])
+def test_selected_native_counts_keep_scope_without_unrelated_geometry(tmp_path, classified, field):
+    from openroad_app_data_foundation.server import Handler
+    pack = sample()
+    attributes = {'native_pin_signal_type': 'CLOCK'} if classified else {}
+    pack['entities'].append({'object_id': 'clk-pin', 'kind': 'pin', 'name': 'u/CLK',
+                             'parent_id': 'i', 'attributes': attributes})
+    pack['relations'] = [{'relation_id': 'clk-net', 'subject_id': 'clk-pin',
+                          'predicate': 'connected_to', 'object_id': 'n'}]
+    store = DataStore(tmp_path / 'selected.sqlite')
+    try:
+        store.register(pack)
+        handler = Handler.__new__(Handler)
+        handler.store, handler.auto_import = store, False
+        path = '/snapshots/s/instances/u/engineering'
+        full = handler._get(path, {})['native_pin_classification']
+        selected = handler._get(path, {'fields': 'native_pin_classification.' + field})
+        assert 'instance' not in selected
+        assert selected['native_pin_classification'] == {key: full[key] for key in
+            (field, 'native_pin_classification_coverage', 'classification_basis')}
+        coverage = selected['native_pin_classification']['native_pin_classification_coverage']
+        assert coverage['status'] == ('complete' if classified else 'partial')
+        assert coverage['unclassified_pin_count'] == (0 if classified else 1)
+        assert selected['native_pin_classification'][field] == ({'CLOCK': 1} if classified else {})
+    finally:
+        store.close()
+
+
+def test_original_json_native_count_projection_remains_literal():
+    from openroad_app_data_foundation.metadata import metadata_view
+    from openroad_app_data_foundation.pin_summary import pin_type_summary
+    summary = pin_type_summary([{'native_pin_signal_type': None, 'net_name': 'n'}])
+    result = metadata_view({'original': [summary]},
+        {'fields': 'original.distinct_net_counts_by_native_pin_type'}, '/source', sparse_fields=True)
+    assert result['original'] == [{'distinct_net_counts_by_native_pin_type': {}}]

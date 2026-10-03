@@ -112,6 +112,13 @@ def _selected_metadata(value, selection, prefix='', absent=None):
             available = ','.join(sorted(value)) if isinstance(value, dict) else 'none (parent is not an object)'
             raise ValueError('unknown metadata field: ' + field + '; available fields in this parent: ' + available)
         result[key] = _selected_metadata(value[key], children, field + '.', absent)
+    # Classified counts need their scope even when the caller selects one map.
+    # Sparse original JSON selections must remain literal source projections.
+    if absent is None and 'native_pin_classification_coverage' in value and any(
+            key in selection for key in ('pin_counts_by_native_type',
+                'connected_pin_counts_by_native_type', 'distinct_net_counts_by_native_pin_type')):
+        for key in ('native_pin_classification_coverage', 'classification_basis'):
+            result[key] = deepcopy(value[key])
     return result
 
 
