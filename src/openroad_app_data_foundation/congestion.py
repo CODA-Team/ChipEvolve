@@ -55,9 +55,9 @@ def _rank(path, size, mtime_ns, layers, page_end):
 
 
 def congestion_grid(store, snapshot_id, query, root):
-    allowed = {'file', 'layers', 'limit', 'offset', 'fields'}
+    allowed = {'file', 'layers', 'limit', 'offset', 'fields', 'detail'}
     if set(query) - allowed:
-        raise ValueError('congestion accepts file,layers,limit,offset,fields')
+        raise ValueError('congestion accepts file,layers,limit,offset,fields,detail')
     snapshot = store.snapshot(snapshot_id)
     file = query.get('file')
     if not file:
