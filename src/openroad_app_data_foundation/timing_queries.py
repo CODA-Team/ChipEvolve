@@ -4,6 +4,7 @@ import time
 from datetime import datetime, timezone
 from .bundle import load_run_bundle
 from .query_inputs import snapshot_inputs
+from .timing_facts import timing_fact_snapshot
 
 
 def submit_timing_query(store, client, snapshot_id, query):
@@ -26,8 +27,9 @@ def submit_timing_query(store, client, snapshot_id, query):
         if key in query and (not isinstance(query[key], str) or not query[key] or len(query[key]) > 4096):
             raise ValueError(f'{key} must be a native name')
     snapshot = store.snapshot(snapshot_id)
+    facts = timing_fact_snapshot(store, snapshot)
     original, staged = snapshot_inputs(snapshot)
-    inputs = {**original, 'adapter': 'opensta', 'snapshot_id': snapshot_id + '-query-' + uuid.uuid4().hex[:12],
+    inputs = {**original, 'adapter': 'opensta', 'snapshot_id': facts['snapshot_id'] + '-query-' + uuid.uuid4().hex[:12],
               'design_id': snapshot['design_id'], 'revision_id': snapshot['revision_id'],
               'run_id': snapshot['run_id'], 'stage': snapshot['stage'],
               'created_at': datetime.now(timezone.utc).isoformat(), 'parent_snapshot_id': snapshot_id,
