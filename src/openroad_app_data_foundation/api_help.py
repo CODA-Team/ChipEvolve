@@ -84,6 +84,13 @@ instance_order=asc|desc controls native-name order independently of pin pages. S
 for load/driver facts and receiving instances together. Full names remain continuously readable with next_offset.
 S/instances/<native name or id>/engineering returns master/type, placed location, bbox, both ODB/DEF orientation names,
 and complete pin counts grouped by connected-net type in one call. Unconnected pins are explicitly unclassified.
+S/instances/<name or id>/pair?with_instance=<other name or id> compares two arbitrary instances in this state.
+left/right retain native names, bboxes and orientation; geometry.bbox_center_manhattan_um is their bbox-center distance.
+shared_nets contains the complete distinct shared-net count and ordered items (name,native_name,object_id,signal_type).
+signal_type=SIGNAL filters the NET's own type, not its pins' types. Omit it for every native net type.
+limit/offset page after complete intersection/counting; order=asc|desc sorts unescaped native names bytewise.
+Use fields=geometry,shared_nets for compact facts. Missing bboxes give null distance while connectivity stays readable.
+Shared direct nets do not imply a timed path. All original pins/lists remain separately accessible.
 These fields are under instance: use fields=instance.name,instance.bbox_um,instance.distinct_signal_net_count.
 native_pin_classification contains complete indexed native pin counts, connected counts and distinct connected nets
 grouped by the pin's OWN native type. Use fields=instance.bbox_um,instance.orientation,native_pin_classification
