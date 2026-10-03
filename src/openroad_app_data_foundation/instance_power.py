@@ -28,8 +28,10 @@ def instance_power(store, client, snapshot_id, identifier, query, native_root):
 set i [odb::dbInst_getInst $b NATIVE_ID]
 if {$i eq "NULL"} {error "original instance not found"}
 set native_name [$i getName]
-set cell [get_cells -quiet [list $native_name]]
-if {[llength $cell] != 1} {error "original instance must resolve to exactly one STA cell"}
+set cell [sta::find_instance $native_name]
+if {$cell eq "NULL"} {error "original instance has no exact STA instance"}
+set mapped [sta::sta_to_db_inst $cell]
+if {$mapped eq "NULL" || [$mapped getId] != [$i getId]} {error "STA instance does not match original native ID"}
 puts "EDA_INSTANCE_POWER_BEGIN"
 report_power -instances $cell -format json -digits 9 SCENE
 puts "EDA_INSTANCE_POWER_END"
