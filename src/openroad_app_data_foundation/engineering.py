@@ -1,5 +1,6 @@
 """Compact engineering joins over the existing facts, with complete aggregations."""
 from collections import Counter
+from urllib.parse import urlencode
 
 from .identity import snapshot_identity
 from .queries import _limit, _offset, _page, list_timing_paths, timing_path
@@ -288,9 +289,13 @@ def object_statistics(store, snapshot_id, query):
     group = query.get('group_by', 'kind')
     if group not in dimensions:
         raise ValueError('group_by must be kind|master|master_type|signal_type|driver_count|direction|is_macro')
+    names = query_boolean(query, 'include_names') if 'include_names' in query else False
+    if not names and any(key in query for key in ('names_limit', 'names_offset')):
+        raise ValueError('names paging requires include_names=1')
     store.snapshot(snapshot_id)
     filters, values = ['snapshot_id = ?', "record_type = 'entities'"], [snapshot_id]
-    where, params = object_filter(store, snapshot_id, query)
+    where, params = object_filter(store, snapshot_id, {k: v for k, v in query.items()
+        if k not in ('include_names', 'names_limit', 'names_offset')})
     if where:
         filters.append(where)
         values.extend(params)
@@ -330,6 +335,21 @@ def object_statistics(store, snapshot_id, query):
             **_page(len(groups), len(groups[offset:offset + limit]), limit, offset)}
     if geometry is not None:
         result['geometry'] = geometry
+    if names:
+        size = _limit({'limit': query.get('names_limit', '20')})
+        start = _offset({'offset': query.get('names_offset', '0')})
+        for item in result['groups']:
+            selected = store.connection.execute(
+                "SELECT json_extract(payload, '$.name') AS name FROM records WHERE " +
+                ' AND '.join(filters) + f' AND (+{expression}) IS ? ORDER BY name, record_id LIMIT ? OFFSET ?',
+                [*values, item['value'], size, start]).fetchall()
+            page = _page(item['count'], len(selected), size, start)
+            item['names'] = {'items': [r['name'] for r in selected], **page,
+                'order': 'bytewise stored name ascending, then object ID',
+                'count_basis': 'all objects in this exact filtered group; page size never changes count'}
+            if page['next_offset'] is not None:
+                item['names']['continuation'] = '/snapshots/' + snapshot_id + '/objects/statistics?' + urlencode(
+                    {**{k: v for k, v in query.items() if k != 'fields'}, 'names_offset': page['next_offset']})
     if group == 'signal_type' and query.get('kind') == 'net':
         result['counts_by_signal_type'] = {row['value']: row['count'] for row in groups if row['value'] is not None}
         result['unclassified_net_count'] = sum(row['count'] for row in groups if row['value'] is None)

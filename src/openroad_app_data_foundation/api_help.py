@@ -141,6 +141,8 @@ so ranking an unknown instance does not require another lookup to count its nati
 fields=name,engineering.bbox_um,engineering.signal_pin_count,engineering.distinct_signal_net_count
 retrieves the selected geometry and two different connection counts together.
 S/objects/statistics accepts the SAME filters as objects and gives complete aggregation over matching objects;
+include_names=1 adds sorted names to every returned group in the SAME read. names_limit (default20)/names_offset page
+each group's names separately; names.count covers the complete group, names.continuation retrieves remaining names.
 For kind=instance, include_physical=1 also aggregates placed bbox areas and geometry coverage over ALL matches.
 geometry.bbox_union_um is the complete filtered collection's bbox union. Grouping keeps object_count and overall
 geometry in the SAME response, alongside each group's count/geometry; no separate ungrouped query is needed.
@@ -377,6 +379,7 @@ include_physical=1 joins each returned object's bbox; include_engineering=1 join
 fields=name returns compact names; count/returned/next_offset remain separate response totals, not projection fields.
 POST /query {"requests":["<full GET path>","<full GET path>"]} combines reads; /query is global, outside S.
 S/objects/statistics?kind=instance&group_by=is_macro|master&include_physical=1 gives COMPLETE counts and overall/group geometry.
+include_names=1 also joins sorted names to each group; names_limit/names_offset and names.continuation read complete group lists.
 Count/sum/bbox are independent of pages. Missing geometry/classification is partial, not zero. fields selects needed facts.
 S/instances/<name>/engineering: instance.bbox_um,instance.orientation,native_pin_classification (pin OWN type).
 S/instances/<name>/pin-inventory?pin_type=SIGNAL&direction=INPUT returns filtered native pins with complete counts/paging.
