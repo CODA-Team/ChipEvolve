@@ -42,6 +42,7 @@ from .batch_reads import read_batch
 from .source_search import search_source
 from .source_json import source_json
 from .native_queries import submit_native_query, native_query_result
+from .instance_power import instance_power
 from .timing_queries import submit_timing_query, timing_query_status
 from .identity import snapshot_identity, is_query_snapshot
 from .metadata import metadata_view, placement_geometry, recovery_path
@@ -349,6 +350,11 @@ class Handler(BaseHTTPRequestHandler):
                 return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 5 and parts[2] == 'instances' and parts[4] == 'engineering':
                 payload = instance_engineering(store, parts[1], parts[3])
+                return metadata_view(payload, query, path) if query.get('fields') else payload
+            if len(parts) == 5 and parts[2] == 'instances' and parts[4] == 'power':
+                if self.execution_client is None:
+                    raise KernelUnavailable('execution service is not configured')
+                payload = instance_power(store, self.execution_client, parts[1], parts[3], query, self.native_root)
                 return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 5 and parts[2] == 'instances' and parts[4] == 'pair':
                 payload = instance_pair(store, parts[1], parts[3], query)
