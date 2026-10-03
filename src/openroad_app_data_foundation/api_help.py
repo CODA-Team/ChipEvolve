@@ -80,6 +80,10 @@ fields=<dotted fields> projects this net engineering result; omitted details rem
 S/instances/<native name or id>/engineering returns master/type, placed location, bbox, both ODB/DEF orientation names,
 and complete pin counts grouped by connected-net type in one call. Unconnected pins are explicitly unclassified.
 These fields are under instance: use fields=instance.name,instance.bbox_um,instance.distinct_signal_net_count.
+native_pin_classification contains complete indexed native pin counts, connected counts and distinct connected nets
+grouped by the pin's OWN native type. Use fields=instance.bbox_um,instance.orientation,native_pin_classification
+for geometry and native SIGNAL pin connections together. Check native_pin_classification_coverage:
+partial identifies missing original classification; pin-inventory can obtain it from the actual native database.
 S/instances/<name or id>/pin-inventory runs a native query for the pin's OWN dbMTerm classification,
 separately from connected dbNet classification. connected_pin_counts_by_native_type and distinct_net_counts_by_native_pin_type
 cover connected pins by their native pin type; pin_counts_by_native_type also includes unconnected pins.

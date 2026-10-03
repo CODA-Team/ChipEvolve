@@ -1,12 +1,12 @@
 """Native pin types and connected-net types are separate engineering facts."""
 import base64
-from collections import Counter, defaultdict
 
 from .engineering import _entity
 from .identity import snapshot_identity
 from .native_queries import submit_native_query, native_query_result
 from .queries import _limit, _offset, _page
 from .pin_net_ranking import ranking_script, ranked_nets
+from .pin_summary import pin_type_summary
 
 
 def _parse(text):
@@ -69,20 +69,11 @@ foreach p [$i getITerms] {
         chunks.append(page['excerpt']['text'])
     text = ''.join(chunks)
     rows = _parse(text)
-    pin_counts = Counter(r['native_pin_signal_type'] for r in rows)
-    connected_counts = Counter(r['native_pin_signal_type'] for r in rows if r['net_name'] is not None)
-    net_sets = defaultdict(set)
-    for row in rows:
-        if row['net_name'] is not None:
-            net_sets[row['native_pin_signal_type']].add(row['net_name'])
     selected = [r for r in rows if all(not query.get(k) or r[field] == query[k]
         for k, field in [('pin_type', 'native_pin_signal_type'), ('direction', 'direction')])]
     limit, offset = _limit(query), _offset(query)
-    result.update(total_pin_count=len(rows), pin_counts_by_native_type=dict(pin_counts),
-        connected_pin_counts_by_native_type=dict(connected_counts),
-        distinct_net_counts_by_native_pin_type={k: len(v) for k, v in net_sets.items()},
+    result.update(**pin_type_summary(rows),
         pins=selected[offset:offset + limit],
-        classification_basis='dbMTerm.getSigType for pins; dbNet.getSigType for connected nets; neither inferred from the other',
         coverage_scope='every original native instance ITerm; summary counts independent of filtering and pagination',
         evidence=[outcome['source']], **_page(len(selected), len(selected[offset:offset + limit]), limit, offset))
     if query.get('net_sort'):

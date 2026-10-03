@@ -6,6 +6,7 @@ from .queries import _limit, _offset, _page, list_timing_paths, timing_path
 from .discovery import object_filter, list_objects, query_boolean
 from .metadata import placement_geometry, timing_values
 from .timing_facts import timing_fact_snapshot, fact_source
+from .pin_summary import pin_type_summary
 
 
 def _entity(store, snapshot_id, identifier, kind):
@@ -110,6 +111,18 @@ def instance_engineering(store, snapshot_id, identifier):
         AND +json_extract(p.payload,'$.kind')='pin'
         GROUP BY signal_type""", (snapshot_id, entity['object_id'])).fetchall()
     net_counts = {row['signal_type']: row['count'] for row in connections}
+    native_pins = store.connection.execute("""SELECT
+        json_extract(p.payload,'$.attributes.native_pin_signal_type') AS native_pin_signal_type,
+        json_extract(n.payload,'$.name') AS net_name
+        FROM records p LEFT JOIN records r ON r.snapshot_id=p.snapshot_id
+        AND r.record_type='relations' AND json_extract(r.payload,'$.subject_id')=+p.record_id
+        AND json_extract(r.payload,'$.subject_id') IS NOT NULL
+        AND json_extract(r.payload,'$.predicate')='connected_to'
+        LEFT JOIN records n ON n.snapshot_id=r.snapshot_id AND n.record_type='entities'
+        AND n.record_id=json_extract(r.payload,'$.object_id')
+        WHERE p.snapshot_id=? AND p.record_type='entities'
+        AND json_extract(p.payload,'$.parent_id')=?
+        AND +json_extract(p.payload,'$.kind')='pin'""", (snapshot_id, entity['object_id'])).fetchall()
     return {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(snapshot),
             'instance': {'object_id': entity['object_id'], 'name': entity['name'],
                          'native_name': entity['name'].replace('\\', ''),
@@ -126,6 +139,7 @@ def instance_engineering(store, snapshot_id, identifier):
                              for key, value in groups.items()],
                          'unclassified_pin_count': groups.get(None, 0),
                          'pin_type_basis': 'connected native OpenDB net SigType; unconnected pins are explicitly unclassified'},
+            'native_pin_classification': pin_type_summary([dict(row) for row in native_pins]),
             'evidence': physical.get('evidence', [])}
 
 
