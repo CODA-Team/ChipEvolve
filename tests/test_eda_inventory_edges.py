@@ -99,3 +99,20 @@ def test_invalid_pin_tail_does_not_start_a_native_job(tmp_path, monkeypatch, siz
     monkeypatch.setattr(pins, 'submit_native_query', unexpected)
     with pytest.raises(ValueError):
         pins.pin_inventory(None, None, 's', 'u', {'tail_limit': size}, tmp_path)
+
+
+def test_full_pin_identity_unescapes_both_hierarchy_and_local_bus_name(tmp_path, monkeypatch):
+    data = sample()
+    data['entities'][0].update(name=r'u\[0\]')
+    data['entities'][0]['attributes']['native_id'] = '17'
+    text = 'EDA_PIN_TOTAL 1\n' + row(1, r'Q\[10\]', 'SIGNAL', 'OUTPUT', 'out', 'SIGNAL') + '\n'
+    monkeypatch.setattr(pins, 'submit_native_query', lambda *args: {
+        'status': 'succeeded', 'run': {'run_id': 'one'},
+        'excerpt': {'text': text, 'truncated': False}, 'source': {'artifact_id': 'original'}})
+    store = DataStore(tmp_path / 'pins.sqlite'); store.register(data)
+    try:
+        actual = pins.pin_inventory(store, None, 's', data['entities'][0]['object_id'], {}, tmp_path)
+        assert actual['pins'][0]['local_name'] == r'Q\[10\]'
+        assert actual['pins'][0]['full_name'] == 'u[0]/Q[10]'
+    finally:
+        store.close()
