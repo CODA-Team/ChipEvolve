@@ -39,7 +39,8 @@ def report(tmp_path):
                         'producer': {'artifacts': {relative: {'sha256': digest}}}}},
                     'entities': entities, 'physical_context': [
                         {'object_id': 'u', 'bbox': {'x_min': 0, 'y_min': 0, 'x_max': 1000, 'y_max': 1000}},
-                        {'object_id': 'v', 'bbox': {'x_min': 2000, 'y_min': 2000, 'x_max': 3000, 'y_max': 3000}}],
+                        {'object_id': 'v', 'bbox': {'x_min': 2000, 'y_min': 2000, 'x_max': 3000, 'y_max': 3000}},
+                        {'object_id': 'a', 'routing': []}, {'object_id': 'b', 'routing': []}],
                     'timing_paths': [{'path_id': 'p', 'check': 'setup', 'path_type': 'max',
                                       'startpoint': 'u/A', 'endpoint': 'v/Z', 'slack': -0.4e-9, 'unit': 's'}],
                     'timing_points': [{'point_id': 'native', 'path_id': 'p', 'ordinal': 0,
