@@ -118,6 +118,9 @@ fields=selection,pins.local_name,pins.net_name returns filtered totals and the r
 tail_limit=N also returns pins_tail.items from the end of the SAME filtered/sorted inventory in that one native read.
 fields=selection,pins.local_name,pins.net_name,pins_tail.items.local_name,pins_tail.items.net_name selects totals and both ends.
 Add net_sort=load_count to obtain complete distinct-net rankings for those filtered pins,
+including ALL sorted driver names, distinct receiving-instance/macro counts and explicit global ranks
+in the SAME native read. Equal loads use text-name order, including bus indices (10 precedes 2).
+pins.full_name gives the unescaped hierarchical instance/local-pin name; local_name remains local.
 with load_count and distinct receiving_macro_count. net_ranking orders by load count descending
 then unescaped native name ascending; limit/offset page nets after the complete ranking.
 The original native_name is retained alongside the unescaped name. Counts include all native loads.
@@ -193,6 +196,8 @@ fields selects any original/full joined field directly, including net_names, ins
 include_global_routing=1 joins ALL original .segments records on those same path nets; include_path_details=1 is required.
 path_details.global_routing.nets ranks routed nets by fanout descending/name ascending after signal_type filtering;
 route_net_limit/route_offset page after complete ranking. include_route_connections=1 adds driver/load/receiver facts
+Default joined connectivity keeps complete counts and driver names, with explicit continuations for load/owner
+name pages. detail=full or explicit fields restores complete associated records without changing totals/ranks.
 with independent route_pin_limit/route_pin_offset and route_instance_limit/route_instance_offset pages.
 Each net's route gives same-layer Manhattan wirelength_um, same_layer_segment_count (including zero-length rows),
 interlayer_transition_count and per-layer lengths/counts. These are global-route estimates, not detailed-route vias.

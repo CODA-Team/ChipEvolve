@@ -4,6 +4,7 @@ from pathlib import Path
 from .artifacts import _run_dirs, native_excerpt
 from .engineering import _entity, net_engineering
 from .identity import snapshot_identity
+from .metadata import recovery_path
 from .queries import _limit, _offset, _page
 
 
@@ -106,10 +107,30 @@ def path_global_routes(store, snapshot_id, net_names, query, root):
     selected = rows[offset:offset + limit]
     if query.get('include_route_connections') == '1':
         for row in selected:
-            row['connectivity'] = net_engineering(store, snapshot_id, row['net_id'], {
+            connectivity = net_engineering(store, snapshot_id, row['net_id'], {
                 'include_instances': '1', 'limit': query.get('route_pin_limit', '20'),
                 'offset': query.get('route_pin_offset', '0'), 'instance_limit': query.get('route_instance_limit', '20'),
                 'instance_offset': query.get('route_instance_offset', '0')})
+            if not query.get('fields') and query.get('detail', 'summary') == 'summary':
+                omitted = [key for key in ('snapshot_id', 'snapshot', 'net', 'evidence', 'load_pins')
+                           if key in connectivity]
+                for key in omitted:
+                    del connectivity[key]
+                for role in ('driver', 'load'):
+                    key = role + '_instances'
+                    if 'names' in connectivity[key]:
+                        del connectivity[key]['names']
+                        omitted.append(key + '.names')
+                original_query = {'include_instances': '1',
+                    'limit': query.get('route_pin_limit', '20'), 'offset': query.get('route_pin_offset', '0'),
+                    'instance_limit': query.get('route_instance_limit', '20'),
+                    'instance_offset': query.get('route_instance_offset', '0')}
+                connectivity['delivery'] = {'detail': 'summary', 'omitted_fields': omitted,
+                    'full_details': recovery_path('/snapshots/' + snapshot_id + '/nets/' +
+                                                 row['net_id'] + '/engineering', original_query),
+                    'selection': 'complete connection and distinct-owner counts; driver pin page retained; '
+                                 'load pin and owner name pages remain accessible through full_details'}
+            row['connectivity'] = connectivity
     missing = sum(row['fanout'] is None for row in rows)
     result = {**{k: v for k, v in facts.items() if k != 'nets'}, 'nets': selected,
             'candidate_path_net_count': len(entities), 'signal_type_filter': query.get('signal_type'),
