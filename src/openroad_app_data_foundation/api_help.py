@@ -89,6 +89,11 @@ The existing grouped object-statistics calculation supplies full counts/geometry
 S/instances/<native name or id>/engineering returns master/type, placed location, bbox, both ODB/DEF orientation names,
 and complete pin counts grouped by connected-net type in one call. Unconnected pins are explicitly unclassified.
 S/instances/<name or id>/pair?with_instance=<other name or id> compares two arbitrary instances in this state.
+S/objects?kind=instance&sort=distance&reference_instance=<name or id>&is_macro=1 ranks complete candidate sets by proximity.
+order=asc finds closest, desc farthest; exact integer placed bbox centers define Manhattan distance before limit/offset.
+The reference itself is excluded by default; exclude_reference=0 includes it if it matches the other filters.
+fields=name,spatial.bbox_center_manhattan_um returns compact names/distances. ranking retains full counts, ties,
+the original reference bbox and leading distance independently of the page. Unknown candidate geometry is null/partial.
 left/right retain native names, bboxes and orientation; geometry.bbox_center_manhattan_um is their bbox-center distance.
 shared_nets contains the complete distinct shared-net count and ordered items (name,native_name,object_id,signal_type).
 signal_type=SIGNAL filters the NET's own type, not its pins' types. Omit it for every native net type.
@@ -424,6 +429,8 @@ With group_by=is_macro, classification gives complete macro_count/nonmacro_count
 Count/sum/bbox are independent of pages. Missing geometry/classification is partial, not zero. fields selects needed facts.
 S/instances/<name>/engineering: instance.bbox_um,instance.orientation,native_pin_classification (pin OWN type).
 S/instances/<name>/pin-inventory?pin_type=SIGNAL&direction=INPUT returns filtered native pins with complete counts/paging.
+selection gives complete filtered pin/connected-pin/distinct-net counts; sort=name&order=asc|desc pages either end.
+fields=selection,pins.local_name,pins.net_name keeps counts/name pages concise; pins.net_native_name preserves exact source spelling.
 Add net_sort=load_count for COMPLETE distinct-net rankings and receiving_macro_count. Returned pin names retain full/local forms.
 S/nets/<name>/engineering gives all driver/load COUNTS with sorted paged driver_pins/load_pins.
 traverse=1 adds COMPLETE driver_traversal/load_traversal.pin_names and internal_instance_count (distinct parents; ports excluded).
@@ -431,6 +438,8 @@ include_instances=1&include_physical=1 adds complete driver_instances/load_insta
 include_instances=1 alone already returns complete class groups (value1 macro,0 nonmacro,null unclassified); geometry is optional.
 These geometry/class totals cover all matching distinct owners, regardless of pin/instance pages; instance_is_macro filters owners.
 S/instances/<name>/pair?with_instance=<other>&signal_type=SIGNAL returns geometry.bbox_center_manhattan_um and complete shared_nets.
+S/objects?kind=instance&sort=distance&reference_instance=<name>&is_macro=1 ranks all matching placed bboxes before paging.
+fields=name,spatial.bbox_center_manhattan_um returns names/distances; asc is closest, desc farthest. Reference excluded by default.
 S/instances|pins|nets/<name>/provenance gives original native identity, database/source digests and locators.
 Use limit/offset/next_offset to continue complete lists. Full help describes all filters and schemas.''',
     'timing': '''Let S=/snapshots/<snapshot_id>; URL-encode names; GET results are under data.

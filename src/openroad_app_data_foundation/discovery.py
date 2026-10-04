@@ -24,7 +24,8 @@ def object_filter(store, snapshot_id, query):
     allowed = {'kind', 'parent_id', 'parent_instance', 'master', 'driver_count', 'signal_type', 'direction', 'name',
                'name_contains', 'name_prefix', 'driver_min', 'driver_max', 'port_driven',
                'port', 'is_macro', 'region', 'region_units', 'intersection', 'ids', 'connected_to',
-               'net_role', 'sort', 'order', 'limit', 'offset', 'fields', 'format', 'group_by', 'include_physical', 'include_engineering'}
+               'net_role', 'sort', 'order', 'limit', 'offset', 'fields', 'format', 'group_by', 'include_physical', 'include_engineering',
+               'reference_instance', 'exclude_reference'}
     unknown = set(query) - allowed
     if unknown:
         raise ValueError('unknown object query fields: ' + ','.join(sorted(unknown)))
@@ -38,6 +39,14 @@ def object_filter(store, snapshot_id, query):
         from .engineering import _entity
         query = {**query, 'connected_to': _entity(store, snapshot_id, query['connected_to'], 'net')['object_id']}
     filters, params = [], []
+    if query.get('sort') == 'distance' or 'reference_instance' in query or 'exclude_reference' in query:
+        if query.get('sort') != 'distance' or query.get('kind') != 'instance' or not query.get('reference_instance'):
+            raise ValueError('distance ranking requires kind=instance, sort=distance and reference_instance=<name or id>')
+        from .engineering import _entity
+        reference = _entity(store, snapshot_id, query['reference_instance'], 'instance')
+        if query_boolean({'exclude_reference': query.get('exclude_reference', '1')}, 'exclude_reference'):
+            filters.append('record_id != ?')
+            params.append(reference['object_id'])
     fields = {'kind': '$.kind', 'parent_id': '$.parent_id', 'master': '$.attributes.master', 'driver_count': '$.attributes.driver_count', 'signal_type': '$.attributes.signal_type', 'direction': '$.attributes.direction'}
     #: Query parameters arrive as text.  ``driver_count`` is a JSON *number* in the
     #: payload, so comparing it with the string "1" matched nothing at all - a
@@ -198,8 +207,8 @@ def list_objects(store, snapshot_id, query):
     # Connected neighbours are small sets: return their natural name order.
     # Whole-design inventories retain indexed stored order to avoid a full sort.
     sort = query.get('sort', 'name' if query.get('connected_to') or query.get('parent_id') or query.get('parent_instance') else None)
-    if sort is not None and sort not in ('name', 'fanout', 'bbox_area'):
-        raise ValueError('sort must be name|fanout|bbox_area')
+    if sort is not None and sort not in ('name', 'fanout', 'bbox_area', 'distance'):
+        raise ValueError('sort must be name|fanout|bbox_area|distance')
     if sort is None:
         clause = ''
     else:
@@ -207,7 +216,9 @@ def list_objects(store, snapshot_id, query):
         if order not in ('asc', 'desc'):
             raise ValueError('order must be asc|desc')
         native_name = "replace(json_extract(payload, '$.name'), char(92), '')"
-        if sort == 'bbox_area':
+        if sort == 'distance':
+            expression, reference = _distance_expression(store, snapshot_id, query['reference_instance'])
+        elif sort == 'bbox_area':
             expression = """(SELECT (json_extract(p.payload,'$.bbox.x_max')-json_extract(p.payload,'$.bbox.x_min'))
                 * (json_extract(p.payload,'$.bbox.y_max')-json_extract(p.payload,'$.bbox.y_min'))
                 FROM records p WHERE p.snapshot_id=records.snapshot_id AND p.record_type='physical_context'
@@ -237,20 +248,32 @@ def list_objects(store, snapshot_id, query):
     if query.get('include_physical') is not None:
         if query_boolean(query, 'include_physical'):
             _object_geometry(store, snapshot_id, rows)
+    if sort == 'distance':
+        scale = store.snapshot(snapshot_id)['run_summary']['dbu_per_micron']
+    if sort == 'distance' and rows:
+        marks = ','.join('?' for _ in rows)
+        distances = store.connection.execute(f"SELECT record_id, {expression} AS value FROM records "
+            f"WHERE snapshot_id=? AND record_type='entities' AND record_id IN ({marks})",
+            [snapshot_id, *[row['object_id'] for row in rows]]).fetchall()
+        values = {r['record_id']: r['value'] for r in distances}
+        for row in rows:
+            value = values[row['object_id']]
+            row['spatial'] = {'distance_twice_dbu': value,
+                'bbox_center_manhattan_um': value / (2 * scale) if value is not None else None}
     found = {str(row.get('object_id')) for row in rows}
     columns = query.get('fields')
     if columns:
         columns = columns.split(',')
-        allowed = {'object_id', 'name', 'kind', 'parent_id', 'attributes', 'identity', 'evidence', 'physical', 'engineering'}
-        if any(key not in allowed and not (key.partition('.')[0] in ('attributes', 'physical', 'engineering') and
+        allowed = {'object_id', 'name', 'kind', 'parent_id', 'attributes', 'identity', 'evidence', 'physical', 'engineering', 'spatial'}
+        if any(key not in allowed and not (key.partition('.')[0] in ('attributes', 'physical', 'engineering', 'spatial') and
                 key.partition('.')[2].isidentifier()) for key in columns):
             raise ValueError('unknown object projection field; fields selects each object: ' +
-                             ','.join(sorted(allowed)) + ',attributes.<key>,physical.<key>,engineering.<key>; ' +
+                             ','.join(sorted(allowed)) + ',attributes.<key>,physical.<key>,engineering.<key>,spatial.<key>; ' +
                              'use fields=name for names; count/returned/next_offset are always returned separately')
         projected = []
         for row in rows:
             item = {key: row.get(key) for key in columns if '.' not in key}
-            for section in ('attributes', 'physical', 'engineering'):
+            for section in ('attributes', 'physical', 'engineering', 'spatial'):
                 prefix = section + '.'
                 if section not in item and any(key.startswith(prefix) for key in columns):
                     item[section] = {key[len(prefix):]: (row.get(section) or {}).get(key[len(prefix):])
@@ -273,7 +296,7 @@ def list_objects(store, snapshot_id, query):
         # the batch is answered in full, so anything absent is genuinely absent.
         result['found'] = len(found)
         result['missing_ids'] = [item for item in wanted if item not in found]
-    if sort in ('bbox_area', 'fanout'):
+    if sort in ('bbox_area', 'fanout', 'distance'):
         conditions = ['snapshot_id=?', "record_type='entities'"] + ([where] if where else [])
         ranked = store.connection.execute(f"""SELECT value, COUNT(*) AS tie_count FROM
             (SELECT {expression} AS value FROM records WHERE {' AND '.join(conditions)})
@@ -288,6 +311,14 @@ def list_objects(store, snapshot_id, query):
             'missing_value_count': store.connection.execute(
                 f"SELECT COUNT(*) FROM records WHERE {' AND '.join(conditions)} AND ({expression}) IS NULL",
                 [snapshot_id, *params]).fetchone()[0]}
+        if sort == 'distance':
+            value = result['ranking']['leading_value']
+            result['ranking'].update(reference_instance=reference,
+                status='partial' if result['ranking']['missing_value_count'] else 'complete',
+                value_basis='Manhattan distance between transformed native placed bbox centers; exact integer twice-dbu ranking',
+                unit='dbu', leading_value=value / 2 if value is not None else None,
+                leading_value_twice_dbu=value, leading_value_um=value / (2 * scale) if value is not None else None,
+                excludes_reference=bool(query_boolean({'exclude_reference': query.get('exclude_reference', '1')}, 'exclude_reference')))
     if representation == 'columns':
         def value(row, field):
             section, dot, key = field.partition('.')
@@ -297,6 +328,25 @@ def list_objects(store, snapshot_id, query):
         del result['objects']
         result['row_format'] = 'each object_rows item follows object_columns order; pagination and values unchanged'
     return result
+
+
+def _distance_expression(store, snapshot_id, identifier):
+    from .engineering import _entity
+    entity = _entity(store, snapshot_id, identifier, 'instance')
+    rows = store.records(snapshot_id, 'physical_context', record_id=entity['object_id'], limit=1)
+    bbox = rows[0].get('bbox', {}) if rows else {}
+    coords = [bbox.get(k) for k in ('x_min', 'y_min', 'x_max', 'y_max')]
+    if any(type(value) is not int for value in coords) or coords[0] > coords[2] or coords[1] > coords[3]:
+        raise ValueError('reference instance lacks an integer native placed bbox')
+    x, y = coords[0] + coords[2], coords[1] + coords[3]
+    valid = ' AND '.join(f"typeof(json_extract(p.payload,'$.bbox.{key}'))='integer'"
+                         for key in ('x_min', 'y_min', 'x_max', 'y_max'))
+    expression = f"""(SELECT CASE WHEN {valid} THEN abs(json_extract(p.payload,'$.bbox.x_min')+json_extract(p.payload,'$.bbox.x_max')-({x}))
+        +abs(json_extract(p.payload,'$.bbox.y_min')+json_extract(p.payload,'$.bbox.y_max')-({y}))
+        END
+        FROM records p WHERE p.snapshot_id=records.snapshot_id AND p.record_type='physical_context'
+        AND p.record_id=records.record_id LIMIT 1)"""
+    return expression, {'object_id': entity['object_id'], 'name': entity['name'], 'bbox_dbu': bbox}
 
 
 def _object_geometry(store, snapshot_id, rows):
