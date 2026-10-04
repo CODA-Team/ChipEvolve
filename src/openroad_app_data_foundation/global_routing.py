@@ -110,9 +110,15 @@ def path_global_routes(store, snapshot_id, net_names, query, root):
                 'include_instances': '1', 'limit': query.get('route_pin_limit', '20'),
                 'offset': query.get('route_pin_offset', '0'), 'instance_limit': query.get('route_instance_limit', '20'),
                 'instance_offset': query.get('route_instance_offset', '0')})
-    return {**{k: v for k, v in facts.items() if k != 'nets'}, 'nets': selected,
+    missing = sum(row['fanout'] is None for row in rows)
+    result = {**{k: v for k, v in facts.items() if k != 'nets'}, 'nets': selected,
             'candidate_path_net_count': len(entities), 'signal_type_filter': query.get('signal_type'),
             'ranking_scope': 'all selected original data-path nets with original global-route records; before pagination',
             'ranking': 'native fanout descending, full native name ascending',
-            'unranked_missing_fanout_count': sum(row['fanout'] is None for row in rows),
+            'missing_fanout_count': missing, 'ranking_status': 'partial' if missing else 'complete',
             **_page(len(rows), len(selected), limit, offset)}
+    if missing:
+        result['availability'] = {'complete_fanout_ranking': {'status': 'unavailable',
+            'reason': 'some routed nets lack native fanout; null fanouts are not verified zeros',
+            'native_completion': '/snapshots/' + snapshot_id + '/native-queries'}}
+    return result
