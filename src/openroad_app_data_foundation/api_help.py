@@ -168,7 +168,23 @@ even when group rows are paged. The latter counts POWER+GROUND and is explicitly
 Engineering instance names preserve the stored name and also provide native_name without DEF escapes.
 To retrieve the exact original spelling, use native queries against the original database; never invent its escape representation.
 ''',
-    'timing': '''Path/point lists default to engineering facts with shared source references. Heavy repeated identity
+    'timing': '''S/timing-reports reads the COMPLETE original flow report, separately from extraction-time native analysis.
+Use path_type=max|min, startpoint/endpoint/group, sort=slack|arrival, order=worst|best,
+tie_break=report_order|native_names and limit/offset. Filters and ranks cover every original check before paging.
+limit defaults to one path. detail_limit/detail_offset page its points/instances/nets independently of path selection;
+complete names, counts and aggregates are unchanged by either pagination.
+The unique <stage>.timing_max|min.json is selected automatically; path=<actual original file> selects another naming convention.
+paths includes explicit ns headers and the COMPLETE ordered data_pin_names, excluding clock sections.
+include_path_details=1 joins those SAME original points to the saved design's instance/net counts,
+master_counts, classification and instance_bbox_union_um. fields=paths,path_details.data_pin_names
+or fields=path_details.instance_count,path_details.net_count,path_details.master_counts selects joined facts.
+report_index/source_array_indices plus report_source.sha256 identify the actual original rows;
+report_path_id identifies a report row and is NOT an indexed /timing-paths ID. Continue delivery.full_details for the full read.
+Native OpenSTA JSON values are seconds/F; *_ns fields are nanoseconds. Missing object mappings remain explicitly partial.
+S/timing-paths indexes extraction-time native results. They can differ from the live flow's original reports,
+even for the same ODB/endpoints. Choose timing-reports when ORIGINAL flow report values are requested;
+use timing-overview?resolve=1 only for requested FRESH reconstruction, preserving its separate analysis identity.
+Path/point lists default to engineering facts with shared source references. Heavy repeated identity
 Timing paths and points also expose explicit slack_ns/arrival_ns/required_ns/slew_ns/load_ff when extracted.
 Data-point extrema carry max_value_ns for slew and max_value_ff for load; selected points carry slew_ns/arrival_ns/load_ff.
 These fields are already ns/fF; do not rescale them. Original slack/arrival/slew/load/max_value remain SI s/F with their original sources.
@@ -400,6 +416,13 @@ S/instances/<name>/pair?with_instance=<other>&signal_type=SIGNAL returns geometr
 S/instances|pins|nets/<name>/provenance gives original native identity, database/source digests and locators.
 Use limit/offset/next_offset to continue complete lists. Full help describes all filters and schemas.''',
     'timing': '''Let S=/snapshots/<snapshot_id>; URL-encode names; GET results are under data.
+For ORIGINAL flow reports use S/timing-reports?path_type=max|min&startpoint=<pin>&endpoint=<pin>&limit=1.
+paths has original ns headers and COMPLETE ordered data_pin_names. include_path_details=1 joins the same
+original path to instance/net counts, master_counts and instance_bbox_union_um; fields projects these facts.
+All original checks are searchable beyond the indexed sample. Automatic stage filename selection can be
+overridden with path=<actual file>. report_source.sha256 and report_index identify actual source rows.
+limit/offset select paths (default one); detail_limit/detail_offset page associated records independently.
+Stored extraction-time analysis and original flow report values can differ. Do not substitute one for the other.
 S/timing-paths?path_type=max|min&sort=slack&order=worst&tie_break=native_names&limit=N
 returns ranked STORED samples (twenty/group). tie_break=native_names orders equal values by startpoint,endpoint;
 report_order preserves original row order. Native max/min includes the report's asynchronous checks.

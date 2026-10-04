@@ -1115,12 +1115,22 @@ NAME_ESCAPES = (("[", "\\["), ("]", "\\]"))
 
 
 def name_variants(name: str) -> list[str]:
-    """The given spelling of a name plus the other legal spellings."""
+    """Exact legal spellings, including independently escaped hierarchy/local names."""
     variants = [name]
-    escaped = name
+    plain_name = name.replace("\\", "")
+    escaped = plain_name
     for plain, quoted in NAME_ESCAPES:
         escaped = escaped.replace(plain, quoted)
-    candidates = [escaped, escaped.replace("$", "\\$"), name.replace("\\", "")]
+    candidates = [escaped, escaped.replace("$", "\\$"), plain_name]
+    for index, char in enumerate(plain_name):
+        if char != '/':
+            continue
+        left, right = plain_name[:index], plain_name[index + 1:]
+        quoted_left, quoted_right = left, right
+        for plain, quoted in NAME_ESCAPES:
+            quoted_left = quoted_left.replace(plain, quoted)
+            quoted_right = quoted_right.replace(plain, quoted)
+        candidates.extend((quoted_left + '/' + right, left + '/' + quoted_right))
     for candidate in candidates:
         if candidate and candidate not in variants:
             variants.append(candidate)

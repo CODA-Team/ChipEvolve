@@ -454,10 +454,15 @@ def _path_instance_classification(store, snapshot_id, ids, incomplete):
 
 def path_engineering(store, snapshot_id, path_id, query):
     """Data-side pins, instances and nets, separate from the two clock trees."""
+    detail = timing_path(store, snapshot_id, path_id, points_limit=0)
+    return path_engineering_detail(store, snapshot_id, detail, query)
+
+
+def path_engineering_detail(store, snapshot_id, detail, query):
+    """Join the points of one explicitly selected report to its original objects."""
     snapshot = store.snapshot(snapshot_id)
     facts = timing_fact_snapshot(store, snapshot)
     facts_id = facts['snapshot_id']
-    detail = timing_path(store, snapshot_id, path_id, points_limit=0)
     path = detail['timing_path']
     points = [p for p in detail['timing_points'] if p.get('path_section') == 'source_path']
     ids = list(dict.fromkeys(p['instance_id'] for p in points if p.get('instance_id')))

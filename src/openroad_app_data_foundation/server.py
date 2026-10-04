@@ -41,6 +41,7 @@ from .path_endpoints import path_endpoints
 from .batch_reads import read_batch
 from .source_search import search_source
 from .source_json import source_json
+from .timing_reports import timing_report_paths
 from .native_queries import submit_native_query, native_query_result
 from .instance_power import instance_power
 from .timing_queries import submit_timing_query, timing_query_status
@@ -290,6 +291,9 @@ class Handler(BaseHTTPRequestHandler):
                     raise KernelUnavailable('execution service is not configured')
                 payload = analysis_setup(store, self.execution_client, parts[1], self.native_root)
                 return metadata_view(payload, query, path) if query.get('fields') else payload
+            if len(parts) == 3 and parts[2] == 'timing-reports':
+                payload = timing_report_paths(store, parts[1], query, self.native_root)
+                return metadata_view(payload, query, path) if query.get('fields') or 'detail' in query else payload
             if len(parts) == 3 and parts[2] == 'timing-overview':
                 if query.get('resolve', '0') not in ('0', '1'):
                     raise ValueError('resolve must be 0|1')
