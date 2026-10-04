@@ -22,10 +22,12 @@ def _parse(text):
         _, native_id, local, pin_type, direction, net, net_type = fields
         if not native_id.isdecimal() or int(native_id) <= 0:
             raise ValueError('native pin inventory ID is invalid')
+        native_net = base64.b64decode(net, validate=True).decode() if net else None
         rows.append({'native_id': native_id,
             'local_name': base64.b64decode(local, validate=True).decode(),
             'native_pin_signal_type': pin_type, 'direction': direction,
-            'net_name': base64.b64decode(net, validate=True).decode() if net else None,
+            'net_name': native_net.replace('\\', '') if native_net is not None else None,
+            'net_native_name': native_net,
             'connected_net_signal_type': net_type or None})
     if len(totals) != 1 or totals[0] != len(rows) or len({r['native_id'] for r in rows}) != len(rows):
         raise ValueError('native pin inventory is incomplete or has duplicate pins')
@@ -33,8 +35,16 @@ def _parse(text):
 
 
 def pin_inventory(store, client, snapshot_id, identifier, query, root):
-    if set(query) - {'limit', 'offset', 'fields', 'pin_type', 'direction', 'net_sort'}:
-        raise ValueError('pin inventory accepts limit,offset,fields,pin_type,direction,net_sort')
+    if set(query) - {'limit', 'offset', 'fields', 'pin_type', 'direction', 'net_sort', 'sort', 'order'}:
+        raise ValueError('pin inventory accepts limit,offset,fields,pin_type,direction,net_sort,sort,order')
+    query = {**query, 'pin_type': query.get('pin_type', '').upper(), 'direction': query.get('direction', '').upper()}
+    if query.get('pin_type', '') not in ('', 'SIGNAL', 'CLOCK', 'POWER', 'GROUND'):
+        raise ValueError('pin_type must be SIGNAL|CLOCK|POWER|GROUND')
+    if query.get('direction', '') not in ('', 'INPUT', 'OUTPUT', 'INOUT'):
+        raise ValueError('direction must be INPUT|OUTPUT|INOUT')
+    if query.get('sort', 'name') != 'name' or query.get('order', 'asc') not in ('asc', 'desc'):
+        raise ValueError('pin sort must be name; order must be asc|desc')
+    limit, offset = _limit(query), _offset(query)
     net_script = ranking_script(query) if query.get('net_sort') else ''
     instance = _entity(store, snapshot_id, identifier, 'instance')
     native_id = instance.get('attributes', {}).get('native_id')
@@ -65,9 +75,18 @@ foreach p [$i getITerms] {
     rows = _parse(text)
     selected = [r for r in rows if all(not query.get(k) or r[field] == query[k]
         for k, field in [('pin_type', 'native_pin_signal_type'), ('direction', 'direction')])]
-    limit, offset = _limit(query), _offset(query)
-    result.update(**pin_type_summary(rows),
+    if query.get('order', 'asc') == 'desc':
+        selected.reverse()
+    native_nets = {r['net_native_name'] for r in selected if r['net_native_name'] is not None}
+    result.update(**pin_type_summary(rows, net_key='net_native_name'),
         pins=selected[offset:offset + limit],
+        selection={'pin_type': query.get('pin_type') or None, 'direction': query.get('direction') or None,
+            'pin_count': len(selected), 'connected_pin_count': sum(r['net_native_name'] is not None for r in selected),
+            'distinct_net_count': len(native_nets),
+            'count_scope': 'all filtered native pins before pagination; distinct nets use exact native names'},
+        order='local pin name lexicographically ' + ('descending' if query.get('order') == 'desc' else 'ascending'),
+        name_spelling={'net_name': 'unescaped native name, as in object/engineering queries',
+                       'net_native_name': 'exact original dbNet.getName spelling'},
         coverage_scope='every original native instance ITerm; summary counts independent of filtering and pagination',
         evidence=[outcome['source']], **_page(len(selected), len(selected[offset:offset + limit]), limit, offset))
     if query.get('net_sort'):

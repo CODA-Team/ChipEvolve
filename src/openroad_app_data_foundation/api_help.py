@@ -103,7 +103,13 @@ partial identifies missing original classification; pin-inventory can obtain it 
 S/instances/<name or id>/pin-inventory runs a native query for the pin's OWN dbMTerm classification,
 separately from connected dbNet classification. connected_pin_counts_by_native_type and distinct_net_counts_by_native_pin_type
 cover connected pins by their native pin type; pin_counts_by_native_type also includes unconnected pins.
-pin_type=SIGNAL|CLOCK|POWER|GROUND and direction filter the complete pin list; limit/offset page it.
+pin_type=SIGNAL|CLOCK|POWER|GROUND and direction=INPUT|OUTPUT|INOUT filter the complete pin list.
+selection.pin_count/connected_pin_count/distinct_net_count count ALL filtered pins before limit/offset paging;
+the top-level native-type summaries describe the whole instance, independently of these filters.
+sort=name&order=asc|desc orders local pin names lexicographically before paging, including bus indices.
+pins.net_name uses the same unescaped spelling as object/engineering queries; pins.net_native_name retains
+the exact original dbNet.getName spelling. Neither spelling implies a different connection.
+fields=selection,pins.local_name,pins.net_name returns filtered totals and the requested name page together.
 Add net_sort=load_count to obtain complete distinct-net rankings for those filtered pins,
 with load_count and distinct receiving_macro_count. net_ranking orders by load count descending
 then unescaped native name ascending; limit/offset page nets after the complete ranking.

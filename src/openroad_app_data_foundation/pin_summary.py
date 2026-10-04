@@ -2,7 +2,7 @@
 from collections import Counter, defaultdict
 
 
-def pin_type_summary(rows):
+def pin_type_summary(rows, net_key='net_name'):
     counts, connected, nets = Counter(), Counter(), defaultdict(set)
     missing = 0
     for row in rows:
@@ -11,9 +11,9 @@ def pin_type_summary(rows):
             missing += 1
             continue
         counts[pin_type] += 1
-        if row['net_name'] is not None:
+        if row[net_key] is not None:
             connected[pin_type] += 1
-            nets[pin_type].add(row['net_name'])
+            nets[pin_type].add(row[net_key])
     return {'total_pin_count': len(rows), 'pin_counts_by_native_type': dict(counts),
             'connected_pin_counts_by_native_type': dict(connected),
             'distinct_net_counts_by_native_pin_type': {key: len(value) for key, value in nets.items()},
