@@ -75,7 +75,7 @@ foreach p [$i getITerms] {
     text = complete_native_text(client, outcome)
     rows = _parse(text)
     for row in rows:
-        row['full_name'] = instance['name'].replace('\\', '') + '/' + row['local_name']
+        row['full_name'] = instance['name'].replace('\\', '') + '/' + row['local_name'].replace('\\', '')
     selected = [r for r in rows if all(not query.get(k) or r[field] == query[k]
         for k, field in [('pin_type', 'native_pin_signal_type'), ('direction', 'direction')])]
     if query.get('order', 'asc') == 'desc':

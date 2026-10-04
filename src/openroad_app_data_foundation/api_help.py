@@ -121,7 +121,7 @@ Add net_sort=load_count to obtain complete distinct-net rankings for those filte
 including ALL sorted driver names, distinct receiving-instance/macro counts and explicit global ranks
 in the SAME native read. Equal loads use text-name order, including bus indices (10 precedes 2).
 pins.full_name gives the unescaped hierarchical instance/local-pin name; local_name remains local.
-with load_count and distinct receiving_macro_count. net_ranking orders by load count descending
+net_ranking orders by load count descending
 then unescaped native name ascending; limit/offset page nets after the complete ranking.
 The original native_name is retained alongside the unescaped name. Counts include all native loads.
 Use this when the question refers to native SIGNAL pins: a CLOCK pin can temporarily connect to a SIGNAL-classified net.
