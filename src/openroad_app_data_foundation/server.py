@@ -293,7 +293,7 @@ class Handler(BaseHTTPRequestHandler):
                 return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 3 and parts[2] == 'timing-reports':
                 payload = timing_report_paths(store, parts[1], query, self.native_root)
-                return metadata_view(payload, query, path) if query.get('fields') or 'detail' in query else payload
+                return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 3 and parts[2] == 'timing-overview':
                 if query.get('resolve', '0') not in ('0', '1'):
                     raise ValueError('resolve must be 0|1')

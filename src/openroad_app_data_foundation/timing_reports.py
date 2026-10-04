@@ -6,6 +6,7 @@ from .artifacts import _run_dirs
 from .engineering import path_engineering_detail
 from .identity import snapshot_identity
 from .metadata import timing_values
+from .metadata import recovery_path
 from .source_json import source_json
 from .timing_facts import timing_fact_snapshot, fact_source
 
@@ -70,6 +71,8 @@ def timing_report_paths(store, snapshot_id, query, root):
                'signal_type', 'include_routing', 'detail_limit', 'detail_offset'}
     if set(query) - allowed:
         raise ValueError('unknown original timing-report query fields: ' + ','.join(sorted(set(query) - allowed)))
+    if query.get('detail', 'summary') not in ('summary', 'full'):
+        raise ValueError('original timing-report detail must be summary|full')
     path_type = query.get('path_type', 'max')
     if path_type not in ('max', 'min'):
         raise ValueError('original report path_type must be max|min')
@@ -100,6 +103,8 @@ def timing_report_paths(store, snapshot_id, query, root):
     facts = timing_fact_snapshot(store, snapshot)
     result = {'snapshot_id': snapshot_id, 'snapshot': snapshot_identity(snapshot), 'paths': paths,
               'report_source': original['source'], 'source_array_indices': original['source_array_indices'],
+              'evidence': [{'source_type': 'original_flow_report', **original['source'],
+                            'locator': {'json_path': '$.checks', 'array_indices': original['source_array_indices']}}],
               'object_facts_source': {**fact_source(facts), 'timing_report': original['source'],
                                       'timing_basis': 'original_flow_report'},
               'selection': {'candidate_scope': 'all original report checks, not the indexed native sample',
@@ -128,4 +133,17 @@ def timing_report_paths(store, snapshot_id, query, root):
             item['report_index'] = header['report_index']
             details.append(item)
         result['path_details'] = details
+    if not query.get('fields') and query.get('detail', 'summary') == 'summary':
+        omitted = []
+        redundant = ('path', 'points', 'instances', 'nets', 'instance_names', 'net_names', 'data_pin_names',
+                     'evidence', 'snapshot', 'snapshot_id', 'object_facts_source', 'dbu_per_micron')
+        for index, detail in enumerate(result.get('path_details', [])):
+            for key in redundant:
+                if key in detail:
+                    del detail[key]
+                    omitted.append('path_details[' + str(index) + '].' + key)
+        result['delivery'] = {'detail': 'summary', 'omitted_fields': omitted,
+            'full_details': recovery_path('/snapshots/' + snapshot_id + '/timing-reports', query),
+            'selection': 'complete original path headers, ordered data pin sequence and joined aggregates; '
+                         'associated record pages remain accessible through full_details or explicit fields'}
     return result

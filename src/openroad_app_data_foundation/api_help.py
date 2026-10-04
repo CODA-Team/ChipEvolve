@@ -173,6 +173,8 @@ Use path_type=max|min, startpoint/endpoint/group, sort=slack|arrival, order=wors
 tie_break=report_order|native_names and limit/offset. Filters and ranks cover every original check before paging.
 limit defaults to one path. detail_limit/detail_offset page its points/instances/nets independently of path selection;
 complete names, counts and aggregates are unchanged by either pagination.
+Default output includes complete path pin order and aggregate facts once; detail=full expands associated record pages.
+fields selects any original/full joined field directly, including net_names, instance_names and points.
 The unique <stage>.timing_max|min.json is selected automatically; path=<actual original file> selects another naming convention.
 paths includes explicit ns headers and the COMPLETE ordered data_pin_names, excluding clock sections.
 include_path_details=1 joins those SAME original points to the saved design's instance/net counts,
@@ -422,6 +424,7 @@ original path to instance/net counts, master_counts and instance_bbox_union_um; 
 All original checks are searchable beyond the indexed sample. Automatic stage filename selection can be
 overridden with path=<actual file>. report_source.sha256 and report_index identify actual source rows.
 limit/offset select paths (default one); detail_limit/detail_offset page associated records independently.
+Default joined output keeps complete aggregates and header pin order; detail=full or fields expands object/point records.
 Stored extraction-time analysis and original flow report values can differ. Do not substitute one for the other.
 S/timing-paths?path_type=max|min&sort=slack&order=worst&tie_break=native_names&limit=N
 returns ranked STORED samples (twenty/group). tie_break=native_names orders equal values by startpoint,endpoint;
