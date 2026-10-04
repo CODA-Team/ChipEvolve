@@ -1,5 +1,6 @@
 """Original global-route rows must stay distinct from empty detailed dbWire records."""
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 
@@ -76,3 +77,27 @@ def test_missing_native_load_count_is_not_a_verified_zero_or_complete_ranking(tm
         assert result['availability']['complete_fanout_ranking']['status'] == 'unavailable'
     finally:
         store.close()
+
+
+def test_joined_route_summary_preserves_counts_and_recovers_original_pages(report):
+    handler, _, _, _ = report
+    routes(handler)
+    path = '/snapshots/s/timing-reports'
+    query = {'startpoint': 'u/A', 'endpoint': 'v/Z', 'include_path_details': '1',
+             'include_global_routing': '1', 'include_route_connections': '1', 'route_net_limit': '1'}
+    summary = handler._get(path, query)['path_details'][0]['global_routing']['nets'][0]['connectivity']
+    full = handler._get(path, {**query, 'detail': 'full'})['path_details'][0]['global_routing']['nets'][0]['connectivity']
+    assert 'load_pins' not in summary and 'names' not in summary['load_instances']
+    assert 'load_pins' in full and 'names' in full['load_instances']
+    assert summary['load_count'] == full['load_count']
+    assert summary['driver_pins'] == full['driver_pins']
+    assert summary['load_instances']['count'] == full['load_instances']['count']
+    assert summary['load_instances']['groups'] == full['load_instances']['groups']
+    continuation = urlsplit(summary['delivery']['full_details'])
+    restored = handler._get(continuation.path,
+        {key: values[0] for key, values in parse_qs(continuation.query).items()})
+    assert restored['load_pins'] == full['load_pins']
+    assert restored['load_instances']['names'] == full['load_instances']['names']
+    selected = handler._get(path, {**query,
+        'fields': 'path_details.global_routing.nets.connectivity.load_pins'})
+    assert selected['path_details'][0]['global_routing']['nets'][0]['connectivity']['load_pins'] == full['load_pins']

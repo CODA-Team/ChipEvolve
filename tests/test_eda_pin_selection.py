@@ -36,6 +36,7 @@ def test_filtered_direction_counts_and_both_name_orders_before_paging(tmp_path, 
         assert first['pin_counts_by_native_type'] == {'CLOCK': 1, 'SIGNAL': 4}
         assert first['distinct_net_counts_by_native_pin_type'] == {'CLOCK': 1, 'SIGNAL': 2}
         assert first['pins'][0]['local_name'] == 'A[10]'
+        assert first['pins'][0]['full_name'] == 'u/A[10]'
         assert middle['pins'][0]['local_name'] == 'A[2]'
         assert last['pins'][0]['local_name'] == 'Z'
         assert first['pins'][0]['net_name'] == 'root.bus[0]'
