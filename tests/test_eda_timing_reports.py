@@ -81,7 +81,7 @@ def test_original_report_query_recovers_unsampled_path_and_its_complete_associat
 
 def test_original_path_paging_does_not_change_complete_names_or_counts(report):
     handler, _, _, _ = report
-    options = {'startpoint': 'u/A', 'endpoint': 'v/Z', 'include_path_details': '1', 'limit': '1'}
+    options = {'startpoint': 'u/A', 'endpoint': 'v/Z', 'include_path_details': '1', 'limit': '1', 'detail': 'full'}
     first = handler._get('/snapshots/s/timing-reports', options)
     second = handler._get('/snapshots/s/timing-reports', {**options, 'offset': '1'})
     assert first['count'] == second['count'] == 2
@@ -108,3 +108,21 @@ def test_original_join_cannot_treat_unmapped_points_as_verified_zero_counts(repo
     detail = result['path_details'][0]
     assert detail['association_coverage']['status'] == 'partial'
     assert detail['macro_count'] is None and detail['standard_cell_count'] is None
+
+
+def test_default_original_path_read_keeps_complete_facts_and_expandable_record_pages(report):
+    handler, _, original, _ = report
+    result = handler._get('/snapshots/s/timing-reports', {'include_path_details': '1'})
+    detail = result['path_details'][0]
+    assert result['paths'][0]['data_pin_names'] == [p['pin'] for p in original['source_path']]
+    assert detail['instance_count'] == 2 and detail['macro_count'] == 1
+    assert 'points' not in detail and 'data_pin_names' not in detail and 'instances' not in detail
+    assert result['evidence'][0]['source_type'] == 'original_flow_report'
+    continuation = urlsplit(result['delivery']['full_details'])
+    full = handler._get(continuation.path, {k: v[0] for k, v in parse_qs(continuation.query).items()})
+    assert full['path_details'][0]['data_pin_names'] == result['paths'][0]['data_pin_names']
+    assert len(full['path_details'][0]['points']) == 4 and full['path_details'][0]['instance_count'] == 2
+    projected = handler._get('/snapshots/s/timing-reports', {
+        'include_path_details': '1', 'fields': 'path_details.points.pin_name,path_details.net_names'})
+    assert projected['path_details'][0]['net_names'] == ['a', 'b']
+    assert len(projected['path_details'][0]['points']) == 4
