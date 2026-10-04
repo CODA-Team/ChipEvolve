@@ -9,6 +9,7 @@ from .metadata import timing_values
 from .metadata import recovery_path
 from .source_json import source_json
 from .timing_facts import timing_fact_snapshot, fact_source
+from .global_routing import path_global_routes
 
 
 def _report_file(snapshot, query, root):
@@ -68,7 +69,9 @@ def _points(store, snapshot_id, header, row):
 def timing_report_paths(store, snapshot_id, query, root):
     allowed = {'path', 'path_type', 'startpoint', 'endpoint', 'group', 'sort', 'order', 'tie_break',
                'limit', 'offset', 'fields', 'detail', 'include_path_details', 'tie_rule',
-               'signal_type', 'include_routing', 'detail_limit', 'detail_offset'}
+               'signal_type', 'include_routing', 'detail_limit', 'detail_offset', 'include_global_routing',
+               'include_route_connections', 'route_path', 'route_net_limit', 'route_offset',
+               'route_pin_limit', 'route_pin_offset', 'route_instance_limit', 'route_instance_offset'}
     if set(query) - allowed:
         raise ValueError('unknown original timing-report query fields: ' + ','.join(sorted(set(query) - allowed)))
     if query.get('detail', 'summary') not in ('summary', 'full'):
@@ -78,6 +81,13 @@ def timing_report_paths(store, snapshot_id, query, root):
         raise ValueError('original report path_type must be max|min')
     if query.get('include_path_details', '0') not in ('0', '1'):
         raise ValueError('include_path_details must be 0|1')
+    for flag in ('include_global_routing', 'include_route_connections'):
+        if query.get(flag, '0') not in ('0', '1'):
+            raise ValueError(flag + ' must be 0|1')
+    if query.get('include_global_routing') == '1' and query.get('include_path_details') != '1':
+        raise ValueError('global routing joins require include_path_details=1')
+    if query.get('include_route_connections') == '1' and query.get('include_global_routing') != '1':
+        raise ValueError('route connection joins require include_global_routing=1')
     sort = query.get('sort', 'slack')
     if sort not in ('slack', 'arrival'):
         raise ValueError('original report sort must be slack|arrival')
@@ -131,6 +141,8 @@ def timing_report_paths(store, snapshot_id, query, root):
             item['object_facts_source']['timing_basis'] = 'original_flow_report'
             item['association_coverage']['candidate_domain'] = 'all source_path points of this original flow report row'
             item['report_index'] = header['report_index']
+            if query.get('include_global_routing') == '1':
+                item['global_routing'] = path_global_routes(store, facts['snapshot_id'], item['net_names'], query, root)
             details.append(item)
         result['path_details'] = details
     if not query.get('fields') and query.get('detail', 'summary') == 'summary':

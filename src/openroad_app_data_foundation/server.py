@@ -42,6 +42,7 @@ from .batch_reads import read_batch
 from .source_search import search_source
 from .source_json import source_json
 from .timing_reports import timing_report_paths
+from .global_routing import global_route_summary
 from .native_queries import submit_native_query, native_query_result
 from .instance_power import instance_power
 from .timing_queries import submit_timing_query, timing_query_status
@@ -382,6 +383,11 @@ class Handler(BaseHTTPRequestHandler):
                 payload = constraint_context(store, self.execution_client, parts[1], query)
                 return metadata_view(payload, query, path)
             if len(parts) == 5 and parts[2] == "nets" and parts[4] == "routing-summary":
+                if query.get('source', 'detailed') == 'global_route':
+                    payload = global_route_summary(store, parts[1], parts[3], query, self.native_root)
+                    return metadata_view(payload, query, path) if query.get('fields') else payload
+                if query.get('source', 'detailed') != 'detailed':
+                    raise ValueError('routing-summary source must be detailed|global_route')
                 return routing_summary(store, parts[1], parts[3])
             # Facts no bundle carries, read from the flow's own tree: the SPEF
             # the run was timed with, the reports it wrote, and the producer

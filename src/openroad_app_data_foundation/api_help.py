@@ -175,6 +175,12 @@ limit defaults to one path. detail_limit/detail_offset page its points/instances
 complete names, counts and aggregates are unchanged by either pagination.
 Default output includes complete path pin order and aggregate facts once; detail=full expands associated record pages.
 fields selects any original/full joined field directly, including net_names, instance_names and points.
+include_global_routing=1 joins ALL original .segments records on those same path nets; include_path_details=1 is required.
+path_details.global_routing.nets ranks routed nets by fanout descending/name ascending after signal_type filtering;
+route_net_limit/route_offset page after complete ranking. include_route_connections=1 adds driver/load/receiver facts
+with independent route_pin_limit/route_pin_offset and route_instance_limit/route_instance_offset pages.
+Each net's route gives same-layer Manhattan wirelength_um, same_layer_segment_count (including zero-length rows),
+interlayer_transition_count and per-layer lengths/counts. These are global-route estimates, not detailed-route vias.
 The unique <stage>.timing_max|min.json is selected automatically; path=<actual original file> selects another naming convention.
 paths includes explicit ns headers and the COMPLETE ordered data_pin_names, excluding clock sections.
 include_path_details=1 joins those SAME original points to the saved design's instance/net counts,
@@ -309,6 +315,10 @@ S/physical/<object_id>?routing_limit=1 gives location_dbu/location_um, orientati
 location_basis explicitly identifies dbInst.getLocation. Objects with include_physical=1 carry the same location fields;
 use these extracted placement facts rather than requerying dbInst.getOrigin for a different coordinate definition.
 routing_limit=0 returns all geometry. S/nets/<native net name or net_id>/routing-summary gives full layer/via/centerline totals, wirelength_um and via_distribution_by_layer (each via counted on BOTH bottom and top layers).
+source=global_route selects the original <stage>.segments instead of detailed dbWire. route contains COMPLETE
+wirelength_um, same_layer_segment_count, interlayer_transition_count and layers (length/count per original layer).
+Zero-length same-layer rows count as segments; interlayer rows add no planar length. route_path selects an explicit original file.
+has_route_section=false/route=null means the original file has no section for this net, not a verified zero-length route.
 For all metal layers used by a net, read routing_layers_used (union of segment_layers and via_layers),
 not just keys of layers, which is the segment-length dictionary and excludes via-only participation.
 S/routing-totals gives full-design geometric length/vias. S/nets/<net name or id>/parasitics?limit=N&offset=N
@@ -425,6 +435,8 @@ All original checks are searchable beyond the indexed sample. Automatic stage fi
 overridden with path=<actual file>. report_source.sha256 and report_index identify actual source rows.
 limit/offset select paths (default one); detail_limit/detail_offset page associated records independently.
 Default joined output keeps complete aggregates and header pin order; detail=full or fields expands object/point records.
+include_global_routing=1 joins and ranks original global-route net records; route_net_limit/route_offset page them.
+include_route_connections=1 joins selected nets' driver/load/receiver facts. Requires include_path_details=1.
 Stored extraction-time analysis and original flow report values can differ. Do not substitute one for the other.
 S/timing-paths?path_type=max|min&sort=slack&order=worst&tie_break=native_names&limit=N
 returns ranked STORED samples (twenty/group). tie_break=native_names orders equal values by startpoint,endpoint;
@@ -457,6 +469,8 @@ counts the COMPLETE matching domain; include_physical=1 gives full bbox union/ar
 S/pins/<name>/engineering?fields=pin.position_success,pin.position_um,instance.orientation,native_connection.net_name
 gives transformed native pin coordinates, owning orientation and actual connection in one read. Check position_success.
 S/nets/<name>/routing-summary gives full indexed native segment/via lengths and per-layer totals.
+Add source=global_route to read original global-route estimates: route.wirelength_um, same_layer_segment_count,
+interlayer_transition_count and layers. Detailed dbWire records can be empty at global_route; estimates retain their own source.
 routing_layers_used includes segment and via-only layers; each via participates once on BOTH top/bottom layers.
 S/nets/<name>/parasitics reads original SPEF with units/full counts and branch paging.
 S/congestion?layers=<actual layers>&limit=N ranks ALL matching original grid cells from the unique original <stage>.congestion.tsv;
