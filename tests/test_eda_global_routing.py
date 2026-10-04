@@ -4,6 +4,9 @@ from pathlib import Path
 import pytest
 
 from openroad_app_data_foundation.global_routing import segment_totals
+from openroad_app_data_foundation.global_routing import path_global_routes
+from openroad_app_data_foundation.repository import DataStore
+from tests.test_eda_engineering import sample
 from tests.test_eda_timing_reports import report
 
 
@@ -56,3 +59,20 @@ def test_original_path_routes_rank_full_domain_before_paging(report):
     assert first['next_offset'] == 1 and second['next_offset'] is None
     with pytest.raises(ValueError, match='require include_path_details'):
         handler._get('/snapshots/s/timing-reports', {'include_global_routing': '1'})
+
+
+def test_missing_native_load_count_is_not_a_verified_zero_or_complete_ranking(tmp_path):
+    pack = sample()
+    del pack['entities'][2]['attributes']['fanout']
+    path = tmp_path / 'results/pdk/chip/r/finish.segments'
+    path.parent.mkdir(parents=True)
+    path.write_text('signal\n(\n0 0 M2 2000 0 M2\n)\n')
+    store = DataStore(tmp_path / 'missing.sqlite')
+    try:
+        store.register(pack)
+        result = path_global_routes(store, 's', ['signal'], {}, tmp_path)
+        assert result['ranking_status'] == 'partial' and result['missing_fanout_count'] == 1
+        assert result['nets'][0]['fanout'] is None and result['nets'][0]['route']['wirelength_um'] == 1
+        assert result['availability']['complete_fanout_ranking']['status'] == 'unavailable'
+    finally:
+        store.close()
