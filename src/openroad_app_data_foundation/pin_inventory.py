@@ -35,8 +35,8 @@ def _parse(text):
 
 
 def pin_inventory(store, client, snapshot_id, identifier, query, root):
-    if set(query) - {'limit', 'offset', 'fields', 'pin_type', 'direction', 'net_sort', 'sort', 'order'}:
-        raise ValueError('pin inventory accepts limit,offset,fields,pin_type,direction,net_sort,sort,order')
+    if set(query) - {'limit', 'offset', 'fields', 'pin_type', 'direction', 'net_sort', 'sort', 'order', 'tail_limit'}:
+        raise ValueError('pin inventory accepts limit,offset,fields,pin_type,direction,net_sort,sort,order,tail_limit')
     query = {**query, 'pin_type': query.get('pin_type', '').upper(), 'direction': query.get('direction', '').upper()}
     if query.get('pin_type', '') not in ('', 'SIGNAL', 'CLOCK', 'POWER', 'GROUND'):
         raise ValueError('pin_type must be SIGNAL|CLOCK|POWER|GROUND')
@@ -45,6 +45,7 @@ def pin_inventory(store, client, snapshot_id, identifier, query, root):
     if query.get('sort', 'name') != 'name' or query.get('order', 'asc') not in ('asc', 'desc'):
         raise ValueError('pin sort must be name; order must be asc|desc')
     limit, offset = _limit(query), _offset(query)
+    tail_size = _limit({'limit': query['tail_limit']}) if 'tail_limit' in query else 0
     net_script = ranking_script(query) if query.get('net_sort') else ''
     instance = _entity(store, snapshot_id, identifier, 'instance')
     native_id = instance.get('attributes', {}).get('native_id')
@@ -89,6 +90,10 @@ foreach p [$i getITerms] {
                        'net_native_name': 'exact original dbNet.getName spelling'},
         coverage_scope='every original native instance ITerm; summary counts independent of filtering and pagination',
         evidence=[outcome['source']], **_page(len(selected), len(selected[offset:offset + limit]), limit, offset))
+    if tail_size:
+        start = max(len(selected) - tail_size, 0)
+        result['pins_tail'] = {'items': selected[start:],
+            'order': result['order'], **_page(len(selected), len(selected[start:]), tail_size, start)}
     if query.get('net_sort'):
         result['net_ranking'] = ranked_nets(text, query)
     return result

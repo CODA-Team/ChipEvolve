@@ -115,6 +115,8 @@ sort=name&order=asc|desc orders local pin names lexicographically before paging,
 pins.net_name uses the same unescaped spelling as object/engineering queries; pins.net_native_name retains
 the exact original dbNet.getName spelling. Neither spelling implies a different connection.
 fields=selection,pins.local_name,pins.net_name returns filtered totals and the requested name page together.
+tail_limit=N also returns pins_tail.items from the end of the SAME filtered/sorted inventory in that one native read.
+fields=selection,pins.local_name,pins.net_name,pins_tail.items.local_name,pins_tail.items.net_name selects totals and both ends.
 Add net_sort=load_count to obtain complete distinct-net rankings for those filtered pins,
 with load_count and distinct receiving_macro_count. net_ranking orders by load count descending
 then unescaped native name ascending; limit/offset page nets after the complete ranking.
@@ -155,6 +157,8 @@ retrieves the selected geometry and two different connection counts together.
 S/objects/statistics accepts the SAME filters as objects and gives complete aggregation over matching objects;
 include_names=1 adds sorted names to every returned group in the SAME read. names_limit (default20)/names_offset page
 each group's names separately; names.count covers the complete group, names.continuation retrieves remaining names.
+names_tail_limit=N additionally reads each group's last N names, in the SAME response under names.tail.items;
+tail offsets/counts are independent for every complete group and do not depend on the main names_offset.
 Group names default to the same native spelling as instance/net engineering, retaining hierarchy and bus indices;
 names_spelling=stored retrieves the exact indexed escape spelling instead. Each mode sorts before pagination.
 For kind=instance, include_physical=1 also aggregates placed bbox areas and geometry coverage over ALL matches.
@@ -424,12 +428,14 @@ fields=name returns compact names; count/returned/next_offset remain separate re
 POST /query {"requests":["<full GET path>","<full GET path>"]} combines reads; /query is global, outside S.
 S/objects/statistics?kind=instance&group_by=is_macro|master&include_physical=1 gives COMPLETE counts and overall/group geometry.
 include_names=1 also joins sorted names to each group; names_limit/names_offset and names.continuation read complete group lists.
+names_tail_limit=N also gives each group's last N names under names.tail.items in that SAME statistics read.
 Names default to native spelling; names_spelling=stored preserves the original indexed escapes.
 With group_by=is_macro, classification gives complete macro_count/nonmacro_count/unclassified_count, including verified zeros.
 Count/sum/bbox are independent of pages. Missing geometry/classification is partial, not zero. fields selects needed facts.
 S/instances/<name>/engineering: instance.bbox_um,instance.orientation,native_pin_classification (pin OWN type).
 S/instances/<name>/pin-inventory?pin_type=SIGNAL&direction=INPUT returns filtered native pins with complete counts/paging.
 selection gives complete filtered pin/connected-pin/distinct-net counts; sort=name&order=asc|desc pages either end.
+tail_limit=N adds pins_tail.items from the same complete filtered order, alongside pins, in ONE native read.
 fields=selection,pins.local_name,pins.net_name keeps counts/name pages concise; pins.net_native_name preserves exact source spelling.
 Add net_sort=load_count for COMPLETE distinct-net rankings and receiving_macro_count. Returned pin names retain full/local forms.
 S/nets/<name>/engineering gives all driver/load COUNTS with sorted paged driver_pins/load_pins.

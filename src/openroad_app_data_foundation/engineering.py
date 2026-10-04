@@ -290,15 +290,16 @@ def object_statistics(store, snapshot_id, query):
     if group not in dimensions:
         raise ValueError('group_by must be kind|master|master_type|signal_type|driver_count|direction|is_macro')
     names = query_boolean(query, 'include_names') if 'include_names' in query else False
-    if not names and any(key in query for key in ('names_limit', 'names_offset')):
+    if not names and any(key in query for key in ('names_limit', 'names_offset', 'names_tail_limit')):
         raise ValueError('names paging requires include_names=1')
     spelling = query.get('names_spelling', 'native')
     if spelling not in ('native', 'stored') or ('names_spelling' in query and not names):
         raise ValueError('names_spelling requires include_names=1 and must be native|stored')
+    tail_size = _limit({'limit': query['names_tail_limit']}) if 'names_tail_limit' in query else 0
     store.snapshot(snapshot_id)
     filters, values = ['snapshot_id = ?', "record_type = 'entities'"], [snapshot_id]
     where, params = object_filter(store, snapshot_id, {k: v for k, v in query.items()
-        if k not in ('include_names', 'names_limit', 'names_offset', 'names_spelling')})
+        if k not in ('include_names', 'names_limit', 'names_offset', 'names_spelling', 'names_tail_limit')})
     if where:
         filters.append(where)
         values.extend(params)
@@ -353,17 +354,25 @@ def object_statistics(store, snapshot_id, query):
         if spelling == 'native':
             name_expression = f"replace({name_expression}, char(92), '')"
         for item in result['groups']:
-            selected = store.connection.execute(
-                f"SELECT {name_expression} AS name FROM records WHERE " +
-                ' AND '.join(filters) + f' AND (+{expression}) IS ? ORDER BY name, record_id LIMIT ? OFFSET ?',
-                [*values, item['value'], size, start]).fetchall()
-            page = _page(item['count'], len(selected), size, start)
-            item['names'] = {'items': [r['name'] for r in selected], **page,
-                'spelling': spelling, 'order': 'bytewise ' + spelling + ' name ascending, then object ID',
-                'count_basis': 'all objects in this exact filtered group; page size never changes count'}
-            if page['next_offset'] is not None:
-                item['names']['continuation'] = '/snapshots/' + snapshot_id + '/objects/statistics?' + urlencode(
-                    {**{k: v for k, v in query.items() if k != 'fields'}, 'names_offset': page['next_offset']})
+            pages = [(None, size, start)]
+            if tail_size:
+                pages.append(('tail', tail_size, max(item['count'] - tail_size, 0)))
+            for label, page_size, page_start in pages:
+                selected = store.connection.execute(
+                    f"SELECT {name_expression} AS name FROM records WHERE " +
+                    ' AND '.join(filters) + f' AND (+{expression}) IS ? ORDER BY name, record_id LIMIT ? OFFSET ?',
+                    [*values, item['value'], page_size, page_start]).fetchall()
+                page = _page(item['count'], len(selected), page_size, page_start)
+                named_page = {'items': [r['name'] for r in selected], **page,
+                    'spelling': spelling, 'order': 'bytewise ' + spelling + ' name ascending, then object ID',
+                    'count_basis': 'all objects in this exact filtered group; page size never changes count'}
+                if page['next_offset'] is not None:
+                    named_page['continuation'] = '/snapshots/' + snapshot_id + '/objects/statistics?' + urlencode(
+                        {**{k: v for k, v in query.items() if k != 'fields'}, 'names_offset': page['next_offset']})
+                if label is None:
+                    item['names'] = named_page
+                else:
+                    item['names'][label] = named_page
     if group == 'signal_type' and query.get('kind') == 'net':
         result['counts_by_signal_type'] = {row['value']: row['count'] for row in groups if row['value'] is not None}
         result['unclassified_net_count'] = sum(row['count'] for row in groups if row['value'] is None)
