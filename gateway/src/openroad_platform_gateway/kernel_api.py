@@ -317,6 +317,7 @@ class KernelApi:
                     category=request.q("category"),
                     format=request.q("format"),
                     stage=request.q("stage"),
+                    kind=request.q("kind"),
                 )
             }
         )
