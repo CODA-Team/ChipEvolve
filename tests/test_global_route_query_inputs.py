@@ -1,6 +1,6 @@
 """Native supplement retains the exact global-routing file of its snapshot."""
 from openroad_app_data_foundation.analysis_context import build_analysis_context, context_availability
-from openroad_app_data_foundation.query_inputs import snapshot_inputs
+from eda_toolkits.inputs import snapshot_inputs
 
 
 def test_global_route_snapshot_preserves_native_reconstruction_inputs():

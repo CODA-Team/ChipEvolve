@@ -1,10 +1,10 @@
 """General native engineering queries, scoped to original snapshot inputs."""
-import uuid
 from pathlib import Path
 from urllib.parse import urlencode
 from .excerpts import excerpt_view
 from .artifacts import DEFAULT_NATIVE_ROOT, native_excerpt
-from .query_inputs import snapshot_inputs
+from eda_toolkits.inputs import snapshot_inputs
+from eda_toolkits.jobs import native_task
 from .timing_queries import wait_query_run
 
 
@@ -45,15 +45,7 @@ def submit_native_query(store, client, snapshot_id, query, native_root=DEFAULT_N
         if with_timing:
             raise ValueError('alternate ODB needs its own timing inputs; load these in script using extra_files')
         original['odb_path'] = odb_file
-    task_id = snapshot_id + '-native-' + uuid.uuid4().hex[:12]
-    task = {'schema_version': 3, 'task_id': task_id, 'project_id': 'eda-ai-native-query',
-            'design_id': snapshot['design_id'], 'plugin_id': 'openroad-data',
-            'labels': {'parent_snapshot_id': snapshot_id},
-            'inputs': {**original, 'adapter': 'report', 'report': 'native',
-                       'script': script, 'output_directory': 'reports',
-                       'parent_snapshot_id': snapshot_id}, 'staged_inputs': staged,
-            'resources': {'cpu_cores': 2, 'memory_bytes': 6 * 1024**3, 'processes': 128},
-            'timeout_seconds': 180, 'max_attempts': 1, 'expected_artifacts': ['analysis_report']}
+    task = native_task(snapshot, original, staged, script)
     run = client.submit(task)['run']
     result = {'run': run, 'parent_snapshot_id': snapshot_id}
     if wait:

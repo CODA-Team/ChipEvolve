@@ -1,4 +1,5 @@
 """Native pin types and connected-net types are separate engineering facts."""
+from eda_toolkits.openroad.pins import pin_inventory_script, _parse
 import base64
 
 from .engineering import _entity
@@ -9,29 +10,6 @@ from .pin_net_ranking import ranking_script, ranked_nets
 from .pin_summary import pin_type_summary
 
 
-def _parse(text):
-    rows, totals = [], []
-    for line in text.splitlines():
-        if line.startswith('EDA_PIN_TOTAL '):
-            totals.append(int(line.split()[1]))
-        if not line.startswith('EDA_PIN\t'):
-            continue
-        fields = line.split('\t')
-        if len(fields) != 7:
-            raise ValueError('native pin inventory row is malformed')
-        _, native_id, local, pin_type, direction, net, net_type = fields
-        if not native_id.isdecimal() or int(native_id) <= 0:
-            raise ValueError('native pin inventory ID is invalid')
-        native_net = base64.b64decode(net, validate=True).decode() if net else None
-        rows.append({'native_id': native_id,
-            'local_name': base64.b64decode(local, validate=True).decode(),
-            'native_pin_signal_type': pin_type, 'direction': direction,
-            'net_name': native_net.replace('\\', '') if native_net is not None else None,
-            'net_native_name': native_net,
-            'connected_net_signal_type': net_type or None})
-    if len(totals) != 1 or totals[0] != len(rows) or len({r['native_id'] for r in rows}) != len(rows):
-        raise ValueError('native pin inventory is incomplete or has duplicate pins')
-    return sorted(rows, key=lambda r: r['local_name'])
 
 
 def pin_inventory(store, client, snapshot_id, identifier, query, root):
@@ -51,18 +29,7 @@ def pin_inventory(store, client, snapshot_id, identifier, query, root):
     native_id = instance.get('attributes', {}).get('native_id')
     if not isinstance(native_id, str) or not native_id.isdecimal() or int(native_id) <= 0:
         raise ValueError('instance lacks a valid native ID')
-    script = '''set b [ord::get_db_block]
-set i [odb::dbInst_getInst $b NATIVE_ID]
-if {$i eq "NULL"} {error "original instance not found"}
-puts "EDA_PIN_TOTAL [llength [$i getITerms]]"
-foreach p [$i getITerms] {
-    set m [$p getMTerm]
-    set n [$p getNet]
-    set name {}; set type {}
-    if {$n ne "NULL"} {set name [$n getName]; set type [$n getSigType]}
-    puts [join [list EDA_PIN [$p getId] [binary encode base64 -maxlen 0 [$m getName]] \
-        [$m getSigType] [$m getIoType] [binary encode base64 -maxlen 0 $name] $type] "\\t"]
-}'''.replace('NATIVE_ID', native_id)
+    script = pin_inventory_script(native_id)
     script += '\n' + net_script
     outcome = submit_native_query(store, client, snapshot_id,
         {'script': script, 'with_timing': False, 'wait_seconds': 120, 'max_bytes': 65536}, root)

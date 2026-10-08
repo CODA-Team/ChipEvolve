@@ -1,47 +1,10 @@
 """Complete native net rankings for filtered instance pins, before pagination."""
+from eda_toolkits.openroad.pins import ranking_script
 import base64
 
 from .queries import _limit, _offset, _page
 
 
-def ranking_script(query):
-    if query.get('net_sort') != 'load_count':
-        raise ValueError('net_sort must be load_count')
-    pin_type, direction = query.get('pin_type', ''), query.get('direction', '')
-    if pin_type not in ('', 'SIGNAL', 'CLOCK', 'POWER', 'GROUND'):
-        raise ValueError('pin_type must be SIGNAL|CLOCK|POWER|GROUND')
-    if direction not in ('', 'INPUT', 'OUTPUT', 'INOUT'):
-        raise ValueError('direction must be INPUT|OUTPUT|INOUT')
-    return '''set selected_nets [dict create]
-foreach p [$i getITerms] {
-    set m [$p getMTerm]; set n [$p getNet]
-    if {$n eq "NULL"} {continue}
-    if {"PIN_TYPE" ne "" && [$m getSigType] ne "PIN_TYPE"} {continue}
-    if {"DIRECTION" ne "" && [$m getIoType] ne "DIRECTION"} {continue}
-    dict set selected_nets [$n getId] $n
-}
-puts "EDA_NET_TOTAL [dict size $selected_nets]"
-foreach n [dict values $selected_nets] {
-    set loads 0; set macros [dict create]; set receivers [dict create]; set drivers [list]
-    foreach p [$n getITerms] {
-        if {[[$p getMTerm] getIoType] eq "OUTPUT"} {
-            lappend drivers "[[$p getInst] getName]/[[$p getMTerm] getName]"
-            continue
-        }
-        incr loads
-        set receiver [$p getInst]
-        dict set receivers [$receiver getId] 1
-        if {[[$receiver getMaster] isBlock]} {dict set macros [$receiver getId] 1}
-    }
-    foreach p [$n getBTerms] {
-        if {[$p getIoType] eq "INPUT"} {lappend drivers [$p getName]} else {incr loads}
-    }
-    puts [join [list EDA_NET [$n getId] [binary encode base64 -maxlen 0 [$n getName]] \
-        $loads [dict size $macros] [dict size $receivers] [llength $drivers]] "\\t"]
-    foreach pin $drivers {
-        puts [join [list EDA_NET_DRIVER [$n getId] [binary encode base64 -maxlen 0 $pin]] "\\t"]
-    }
-}'''.replace('PIN_TYPE', pin_type).replace('DIRECTION', direction)
 
 
 def ranked_nets(text, query):

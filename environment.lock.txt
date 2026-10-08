@@ -1,3 +1,4 @@
+eda-toolkits==0.1.0
 iniconfig==2.3.1
 # Editable Git install with no remote (openroad-app-data_foundation==0.2.0)
 -e /home/wjyuan/projects/eda-development/data-foundation

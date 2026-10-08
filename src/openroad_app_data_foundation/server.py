@@ -10,6 +10,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
+from eda_toolkits.inputs import SnapshotExecutionClient
 from openroad_platform_client import (KernelClient, KernelError, KernelUnavailable,
                                       LocalFirstKernelClient)
 from openroad_platform_contracts import ContractError
@@ -508,7 +509,11 @@ class Handler(BaseHTTPRequestHandler):
         if self.execution_client is None:
             raise KernelUnavailable('execution service is not configured')
         client, store = self.execution_client, self.store
-        query = dict(query)
+        if any(not isinstance(key, str) or not isinstance(value, (str, int, float, bool))
+               for key, value in query.items()):
+            raise ValueError('analysis query options must be scalar strings, numbers or booleans')
+        query = {key: ('1' if value else '0') if isinstance(value, bool) else str(value)
+                 for key, value in query.items()}
         if operation == 'net-inventory':
             if query:
                 raise ValueError('net-inventory accepts no filters')
@@ -589,7 +594,8 @@ def serve(*, host: str, port: int, store: DataStore,
         # A reader per request thread; the writable store above stays for imports.
         "read_pool": ReadPool(store.path, archives=store.archives) if hasattr(store, "path") else None,
         "archive_client": (KernelClient(archive_kernel_url) if archive_kernel_url else None),
-        "execution_client": (LocalFirstKernelClient(kernel_url, token=kernel_token)
+        "execution_client": (SnapshotExecutionClient(kernel_url, token=kernel_token,
+                              source_client=KernelClient(archive_kernel_url) if archive_kernel_url else None)
                               if kernel_url else None),
     })
     ThreadingHTTPServer((host, port), handler).serve_forever()

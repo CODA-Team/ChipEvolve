@@ -1,45 +1,16 @@
 """Submit a bounded STA query using only artifacts attached to its snapshot."""
-import uuid
 import time
-from datetime import datetime, timezone
 from .bundle import load_run_bundle
-from .query_inputs import snapshot_inputs
+from eda_toolkits.jobs import timing_task, validate_timing_query
 from .timing_facts import timing_fact_snapshot
 
 
 def submit_timing_query(store, client, snapshot_id, query):
-    fields = {'from_pin', 'to_pin', 'path_group', 'path_count', 'endpoint_path_count'}
-    if set(query) - fields:
-        raise ValueError('unknown timing query field')
-    count = query.get('path_count', 5)
-    if type(count) is not int or not 1 <= count <= 200:
-        raise ValueError('path_count must be between 1 and 200')
-    # OpenSTA's -endpoint_path_count: how many paths one endpoint may contribute.
-    # The default equals path_count (N variants of one endpoint, the historical
-    # behaviour); 1 makes the N reported paths N distinct endpoints, which is
-    # what "the N worst paths" means when the reference flow reports one path per
-    # endpoint.  Without it the sampler is the only place that distinction could
-    # live, and it does not exist there.
-    endpoints = query.get('endpoint_path_count')
-    if endpoints is not None and (type(endpoints) is not int or not 1 <= endpoints <= 200):
-        raise ValueError('endpoint_path_count must be between 1 and 200')
-    for key in ('from_pin', 'to_pin', 'path_group'):
-        if key in query and (not isinstance(query[key], str) or not query[key] or len(query[key]) > 4096):
-            raise ValueError(f'{key} must be a native name')
+    validate_timing_query(query)
     snapshot = store.snapshot(snapshot_id)
     facts = timing_fact_snapshot(store, snapshot)
-    original, staged = snapshot_inputs(snapshot)
-    inputs = {**original, 'adapter': 'opensta', 'snapshot_id': facts['snapshot_id'] + '-query-' + uuid.uuid4().hex[:12],
-              'design_id': snapshot['design_id'], 'revision_id': snapshot['revision_id'],
-              'run_id': snapshot['run_id'], 'stage': snapshot['stage'],
-              'created_at': datetime.now(timezone.utc).isoformat(), 'parent_snapshot_id': snapshot_id,
-              'output_directory': 'query-data', 'analysis': snapshot['run_summary']['timing_context'].get('analysis'),
-              'corner': snapshot['run_summary']['timing_context'].get('corner'), 'unit': 's', **query}
-    task = {'schema_version': 3, 'task_id': inputs['snapshot_id'],
-            'project_id': 'eda-ai-timing-query', 'design_id': snapshot['design_id'],
-            'plugin_id': 'openroad-data', 'inputs': inputs, 'staged_inputs': staged,
-            'resources': {'cpu_cores': 2, 'memory_bytes': 6 * 1024**3, 'processes': 128},
-            'timeout_seconds': 180, 'max_attempts': 1, 'expected_artifacts': ['data_snapshot']}
+    task = timing_task(snapshot, query, facts_snapshot_id=facts["snapshot_id"])
+    inputs = task["inputs"]
     result = client.submit(task)["run"]
     return {'run': result, 'snapshot_id': inputs['snapshot_id'], 'parent_snapshot_id': snapshot_id}
 

@@ -73,7 +73,8 @@ def test_repeated_query_name_stays_bounded_while_immediate_parent_is_preserved(t
             self.task = task
             return {'run': {'run_id': 'native-job', 'status': 'queued'}}
     client = Client()
-    monkeypatch.setattr(module, 'snapshot_inputs', lambda snapshot: ({}, []))
+    from eda_toolkits import jobs
+    monkeypatch.setattr(jobs, 'snapshot_inputs', lambda snapshot: ({}, []))
     try:
         for pack in (parent, child, grandchild):
             store.register(pack)
