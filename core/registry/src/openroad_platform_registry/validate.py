@@ -1,29 +1,13 @@
-"""Check a plugin against the AgenticEDA plugin protocol.
+"""Report compliance with the plugin protocol; never grant admission.
 
     python3 -m openroad_platform_registry.validate <plugin-dir> [...]
     openroad-platform-plugin-validate <plugin-dir> [...]
 
-This tool reports; it does not admit.  Whether a plugin may execute on a given
-platform is that platform's decision, recorded in its own admissions directory,
-and no command-line tool can make it. This checks whether files could be accepted by a platform that
-follows the protocol.
-
-Two deliberate limits, both stated because a check that quietly does nothing is
-worse than no check:
-
-* **Shape, not existence, for an absolute entrypoint.**  A plugin may name an
-  interpreter that exists only in its deployment environment
-  (``/opt/team-x/venv/bin/python``).  Demanding that file on a developer laptop
-  would fail every plugin whose deployment is not the laptop.  A ``./`` entry is
-  different: it is resolved inside the plugin directory, so its existence is
-  checked.
-* **No execution.**  Nothing here runs the adapter.  Running it is what the
-  platform's own end-to-end checks do, with a request file and a result file.
-
-It lives in the registry package because the rules it applies are the registry's
-own: what a manifest must declare, and what an admission record must say.  A
-second implementation of those rules would be a second set of rules, and this one
-imports the contract rather than restating it.
+Admission remains the platform's explicit decision in its admissions directory.
+Absolute entrypoint interpreters may exist only on the deployment host; check
+shape here. Relative entrypoints must resolve inside the plugin directory and
+exist. Validation never executes an adapter. It imports the registry contract
+rather than restating the protocol; real execution is verified separately.
 """
 
 from __future__ import annotations
@@ -124,9 +108,9 @@ def check_artifact_rules(manifest: PluginManifest, report: Report) -> None:
     platform, and a validator that rejects what the platform accepts is lying.
     """
     reserved = sorted(
-        kind for rule in manifest.artifact_rules
-        if isinstance(kind := rule.get("kind"), str)
-        and kind in RESERVED_ARTIFACT_KINDS
+        kind
+        for rule in manifest.artifact_rules
+        if isinstance(kind := rule.get("kind"), str) and kind in RESERVED_ARTIFACT_KINDS
     )
     if reserved:
         report.note(
@@ -171,7 +155,8 @@ def check_admission(
         return
     try:
         admission = Admission.from_dict(
-            plugin_id, json.loads(path.read_text(encoding="utf-8")))
+            plugin_id, json.loads(path.read_text(encoding="utf-8"))
+        )
     except (OSError, json.JSONDecodeError, RegistryError) as exc:
         report.error(f"admission record is not admissible: {exc}")
         return
@@ -227,10 +212,15 @@ def validate_directory(directory: Path, admissions_root: Path | None) -> Report:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("plugins", nargs="+", type=Path,
-                        help="plugin directories to check")
-    parser.add_argument("--admissions-root", type=Path, default=None,
-                        help="report the platform's decision for each plugin")
+    parser.add_argument(
+        "plugins", nargs="+", type=Path, help="plugin directories to check"
+    )
+    parser.add_argument(
+        "--admissions-root",
+        type=Path,
+        default=None,
+        help="report the platform's decision for each plugin",
+    )
     args = parser.parse_args(argv)
 
     reports = [validate_directory(d, args.admissions_root) for d in args.plugins]
