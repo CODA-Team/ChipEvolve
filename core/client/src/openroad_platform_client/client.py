@@ -38,7 +38,7 @@ class KernelUnavailable(KernelError):
 
 @dataclass
 class KernelClient:
-    """A session against one kernel."""
+    """A transport connection to one kernel."""
 
     base_url: str
     token: str | None = None
@@ -108,29 +108,6 @@ class KernelClient:
             ) from exc
 
     # -- identity ---------------------------------------------------------
-
-    def register(self, username: str, password: str) -> dict[str, Any]:
-        session = self._call("POST", "/kernel/auth/register",
-                             payload={"username": username, "password": password})
-        self.token = session["token"]
-        return session
-
-    def login(self, username: str, password: str) -> dict[str, Any]:
-        session = self._call("POST", "/kernel/auth/login",
-                             payload={"username": username, "password": password})
-        self.token = session["token"]
-        return session
-
-    def session(self) -> dict[str, Any] | None:
-        """Who the current token belongs to, or None."""
-        reply = self._call("GET", "/kernel/auth/session")
-        return reply.get("session")
-
-    def logout(self) -> None:
-        self._call("POST", "/kernel/auth/logout")
-        self.token = None
-
-    # -- catalogue --------------------------------------------------------
 
     def health(self) -> dict[str, Any]:
         return self._call("GET", "/kernel/health")
