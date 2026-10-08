@@ -1,0 +1,14 @@
+iniconfig==2.3.1
+# Editable Git install with no remote (openroad-app-data_foundation==0.1.0)
+-e /home/wjyuan/projects/eda-development/data-foundation
+openroad-platform-client==0.1.0
+openroad-platform-contracts==0.1.0
+openroad-platform-runtime==0.1.0
+packaging==26.3
+pip==23.2.1
+pluggy==1.6.0
+Pygments==2.21.0
+pytest==9.1.1
+ruff==0.16.8
+setuptools==84.0.0
+wheel==0.48.0

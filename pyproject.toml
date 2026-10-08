@@ -18,3 +18,7 @@ openroad-app-data_foundation = "openroad_app_data_foundation.__main__:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["openroad_app_data_foundation*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "test_data_foundation.py"]
+addopts = "-ra --strict-markers"

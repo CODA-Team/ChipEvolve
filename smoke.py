@@ -14,9 +14,6 @@ from pathlib import Path
 
 
 APP_DIR = Path(__file__).resolve().parent
-SRC_DIR = APP_DIR / "src"
-CONTRACTS_DIR = APP_DIR.parents[1] / "contracts" / "src"
-CLIENT_DIR = APP_DIR.parents[1] / "core" / "client" / "src"
 DEFAULT_PORT = 8860
 
 
@@ -52,10 +49,7 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as directory:
         db = str(Path(directory) / "data.db")
         env = dict(os.environ)
-        env["PYTHONPATH"] = os.pathsep.join(
-            [str(SRC_DIR), str(CONTRACTS_DIR), str(CLIENT_DIR)]
-            + ([env["PYTHONPATH"]] if env.get("PYTHONPATH") else [])
-        )
+        env.pop("PYTHONPATH", None)
         proc = subprocess.Popen(
             [sys.executable, "-m", "openroad_app_data_foundation",
              "--host", "127.0.0.1", "--port", str(port), "--db", db],

@@ -6,7 +6,7 @@ import pytest
 from openroad_app_data_foundation.engineering import path_engineering, timing_overview
 from openroad_app_data_foundation.repository import DataStore
 from openroad_app_data_foundation.server import Handler
-from test_eda_engineering import sample
+from tests.test_eda_engineering import sample
 
 
 @pytest.fixture

@@ -36,7 +36,7 @@ from .identity import is_query_snapshot
 #: different path, which is why it is configuration and not a constant.
 DEFAULT_NATIVE_ROOT = Path(
     os.environ.get("OPENROAD_NATIVE_ROOT")
-    or "/home/wjyuan/projects/orfs-current/OpenROAD-flow-scripts/flow")
+    or "var/native-flow")
 
 #: The three subtrees a flow run writes into, in the order a caller reads them.
 NATIVE_KINDS = ("results", "reports", "logs")

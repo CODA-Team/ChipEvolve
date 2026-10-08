@@ -1,37 +1,30 @@
 """Deterministic design-data indexing and query service."""
-
 from .repository import DataStore
 
 __all__ = ("DataStore",)
 
 
 def source_fingerprint() -> str:
-    """A hash of the deployment's source: the service, the producer, the contracts.
+    """Hash this deployment's service and installed public contract/client code.
 
-    The adapters emit the logical paths and locators that evidence resolves against,
-    so a change there changes what the service means - leaving them out let the
-    drift probe report OK while the producing code had moved on.  Computed at
-    process start.
-
-    Deployment drift is a question about *content*: "was the running service built
-    from the source that is checked out now?".  mtime answers a different question
-    and answers it wrongly - a test run that imports a module can bump its mtime
-    without changing a byte, which made a drift probe report drift for two rounds.
+    External producer provenance belongs to imported snapshot artifacts, not
+    to an assumed sibling source directory on the service host.
     """
     import hashlib
-    from pathlib import Path as _Path
+    from importlib.util import find_spec
+    from pathlib import Path
 
-    root = _Path(__file__).parent
-    repository = root.parents[3]
-    covered = [root, repository / "plugins" / "openroad-data",
-               repository / "contracts" / "src"]
     digest = hashlib.sha256()
-    for base in covered:
-        if not base.is_dir():
-            continue
-        for path in sorted(base.rglob("*.py")):
-            if path.name.startswith("test_") or "__pycache__" in path.parts:
-                continue
-            digest.update(path.relative_to(repository).as_posix().encode())
-            digest.update(path.read_bytes())
+    for name in ("openroad_app_data_foundation", "openroad_platform_contracts",
+                 "openroad_platform_client"):
+        spec = find_spec(name)
+        if spec is None or not spec.submodule_search_locations:
+            raise ImportError(name)
+        for directory in spec.submodule_search_locations:
+            base = Path(directory)
+            for path in sorted(base.rglob("*.py")):
+                if path.name.startswith("test_") or "__pycache__" in path.parts:
+                    continue
+                digest.update((name + "/" + path.relative_to(base).as_posix()).encode())
+                digest.update(path.read_bytes())
     return digest.hexdigest()

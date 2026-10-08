@@ -7,7 +7,7 @@ from openroad_app_data_foundation.engineering import path_engineering
 from openroad_app_data_foundation.repository import DataStore
 from openroad_app_data_foundation.timing_facts import timing_fact_snapshot
 from openroad_app_data_foundation.timing_queries import submit_timing_query
-from test_eda_engineering import query_pair
+from tests.test_eda_engineering import query_pair
 
 
 def nested_pack():

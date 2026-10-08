@@ -9,7 +9,7 @@ from openroad_app_data_foundation.engineering import timing_overview
 from openroad_app_data_foundation.batch_reads import read_batch
 from openroad_app_data_foundation.repository import DataStore
 from openroad_app_data_foundation.server import Handler
-from test_eda_engineering import query_pair
+from tests.test_eda_engineering import query_pair
 
 
 def both_pair():
