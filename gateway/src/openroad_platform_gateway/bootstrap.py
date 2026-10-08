@@ -45,24 +45,31 @@ class KernelPaths:
     input_roots: tuple[Path, ...] = ()
 
     @classmethod
-    def of(cls, state_root: str | Path, plugins_root: str | Path,
-           admissions_root: str | Path | None = None,
-           capacity_cpu_cores: int | None = None,
-           capacity_memory_bytes: int | None = None,
-           platform_fraction: float = 0.60,
-           input_roots: tuple[str | Path, ...] = ()) -> KernelPaths:
+    def of(
+        cls,
+        state_root: str | Path,
+        plugins_root: str | Path,
+        admissions_root: str | Path | None = None,
+        capacity_cpu_cores: int | None = None,
+        capacity_memory_bytes: int | None = None,
+        platform_fraction: float = 0.60,
+        input_roots: tuple[str | Path, ...] = (),
+    ) -> KernelPaths:
         state = Path(state_root).expanduser().resolve()
         return cls(
             state_root=state,
             plugins_root=Path(plugins_root).expanduser().resolve(),
             admissions_root=Path(
-                admissions_root if admissions_root is not None
-                else state / "admissions"
-            ).expanduser().resolve(),
+                admissions_root if admissions_root is not None else state / "admissions"
+            )
+            .expanduser()
+            .resolve(),
             capacity_cpu_cores=capacity_cpu_cores,
             capacity_memory_bytes=capacity_memory_bytes,
             platform_fraction=platform_fraction,
-            input_roots=tuple(Path(item).expanduser().resolve() for item in input_roots),
+            input_roots=tuple(
+                Path(item).expanduser().resolve() for item in input_roots
+            ),
         )
 
 
@@ -77,7 +84,9 @@ class Kernel:
 
 
 def build_kernel_parts(
-    paths: KernelPaths, *, worker_id: str = DEFAULT_WORKER_ID,
+    paths: KernelPaths,
+    *,
+    worker_id: str = DEFAULT_WORKER_ID,
 ) -> Kernel:
     """Store, registry, evaluator and runtime, assembled once.
 
@@ -94,7 +103,8 @@ def build_kernel_parts(
         objects_root=paths.state_root / "runtime-objects",
     )
     registry = PluginRegistry.from_directory(
-        paths.plugins_root, admissions_root=paths.admissions_root,
+        paths.plugins_root,
+        admissions_root=paths.admissions_root,
     )
 
     evaluator_error = None
@@ -110,7 +120,8 @@ def build_kernel_parts(
     )
 
     runtime = WorkflowRuntime(
-        store, registry,
+        store,
+        registry,
         config=RuntimeConfig(
             workspace_root=paths.state_root / "runtime-workspaces",
             worker_id=worker_id,
@@ -121,15 +132,19 @@ def build_kernel_parts(
         ),
         protected_evaluator=evaluator,
     )
-    return Kernel(store=store, registry=registry, runtime=runtime,
-                  evaluator_error=evaluator_error)
+    return Kernel(
+        store=store, registry=registry, runtime=runtime, evaluator_error=evaluator_error
+    )
 
 
 def build_kernel(paths: KernelPaths) -> KernelApi:
     """Single-user local HTTP surface; no identity database or app registry."""
     parts = build_kernel_parts(paths)
     return KernelApi(
-        store=parts.store, runtime=parts.runtime, registry=parts.registry,
-        index=EvidenceIndex(parts.store), evaluator_error=parts.evaluator_error,
+        store=parts.store,
+        runtime=parts.runtime,
+        registry=parts.registry,
+        index=EvidenceIndex(parts.store),
+        evaluator_error=parts.evaluator_error,
         state_root=paths.state_root,
     )

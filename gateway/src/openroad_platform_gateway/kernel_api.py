@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import re
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from openroad_platform_contracts import ContractError, TaskSpec
 from openroad_platform_provenance import EvidenceIndex
+from openroad_platform_provenance.index import DEFAULT_RUN_LIMIT
 from openroad_platform_registry import PluginRegistry, RegistryError
 from openroad_platform_runtime import (
     ArtifactInventory,
@@ -55,33 +57,48 @@ class KernelApi:
         router.post("/kernel/inputs/chunk", self.ingest_input_chunk)
         router.post("/kernel/runs", self.submit_run)
         router.get("/kernel/runs", self.list_runs)
-        router.get("/kernel/runs/{run_id}", self.get_run)
+        router.get("/kernel/runs/{run_id}", self._run_handler(self.get_run))
         router.get("/kernel/designs/{design_id}/tree", self.design_tree)
-        router.post("/kernel/runs/{run_id}/cancel", self.cancel_run)
-        router.post("/kernel/runs/{run_id}/retry", self.retry_run)
-        router.post("/kernel/runs/{run_id}/bundle", self.bundle)
-        router.get("/kernel/runs/{run_id}/metrics", self.metrics)
-        router.get("/kernel/runs/{run_id}/artifacts", self.artifacts)
-        router.get("/kernel/runs/{run_id}/timeline", self.timeline)
-        router.get("/kernel/runs/{run_id}/resources", self.resources)
-        router.get("/kernel/runs/{run_id}/logs", self.logs)
+        router.post("/kernel/runs/{run_id}/cancel", self._run_handler(self.cancel_run))
+        router.post("/kernel/runs/{run_id}/retry", self._run_handler(self.retry_run))
+        router.post("/kernel/runs/{run_id}/bundle", self._run_handler(self.bundle))
+        router.get("/kernel/runs/{run_id}/metrics", self._run_handler(self.metrics))
+        router.get("/kernel/runs/{run_id}/artifacts", self._run_handler(self.artifacts))
+        router.get("/kernel/runs/{run_id}/timeline", self._run_handler(self.timeline))
+        router.get("/kernel/runs/{run_id}/resources", self._run_handler(self.resources))
+        router.get("/kernel/runs/{run_id}/logs", self._run_handler(self.logs))
         router.get(
             "/kernel/runs/{run_id}/artifacts/{artifact_id}/excerpt",
-            self.artifact_excerpt,
+            self._run_handler(self.artifact_excerpt),
         )
         router.get(
             "/kernel/runs/{run_id}/artifacts/{artifact_id}/download",
-            self.artifact_download,
+            self._run_handler(self.artifact_download),
         )
         router.get(
             "/kernel/runs/{run_id}/artifacts/{artifact_id}/chunk",
-            self.artifact_chunk,
+            self._run_handler(self.artifact_chunk),
         )
         router.get(
             "/kernel/runs/{run_id}/artifacts/{artifact_id}/locator",
-            self.artifact_locator,
+            self._run_handler(self.artifact_locator),
         )
         router.get("/kernel/graph", self.graph)
+
+    def _require_run(self, run_id: str) -> None:
+        try:
+            self.store.get_run(run_id)
+        except RuntimeStoreError as exc:
+            raise HttpError(404, str(exc)) from exc
+
+    def _run_handler(
+        self, handler: Callable[[Request], Response]
+    ) -> Callable[[Request], Response]:
+        def checked(request: Request) -> Response:
+            self._require_run(request.params["run_id"])
+            return handler(request)
+
+        return checked
 
     # -- health and catalogue ---------------------------------------------
 
@@ -93,7 +110,9 @@ class KernelApi:
                 "plugins": len(self.registry.list()),
                 "admitted": sum(1 for p in self.registry.list() if p.executable),
                 "evaluator": {
-                    "status": "ready" if self.evaluator_error is None else "unavailable",
+                    "status": (
+                        "ready" if self.evaluator_error is None else "unavailable"
+                    ),
                     **({"error": self.evaluator_error} if self.evaluator_error else {}),
                 },
                 "workers": worker_health(self.store),
@@ -134,7 +153,9 @@ class KernelApi:
         with path.open("ab") as output:
             output.write(request.body)
         if not request.q_bool("final"):
-            return Response.json({"upload_id": upload_id, "offset": current + len(request.body)})
+            return Response.json(
+                {"upload_id": upload_id, "offset": current + len(request.body)}
+            )
         try:
             uploaded = self.store.ingest_input_file(path)
         finally:
@@ -188,7 +209,7 @@ class KernelApi:
                 run_type=request.q("run_type"),
                 analysis_of_run_id=request.q("analysis_of_run_id"),
                 offset=offset,
-                **({"limit": limit} if limit is not None else {}),
+                limit=limit if limit is not None else DEFAULT_RUN_LIMIT,
             )
         except ValueError as exc:
             raise HttpError(400, str(exc)) from exc
@@ -210,7 +231,8 @@ class KernelApi:
             raise HttpError(400, "limit must be between 1 and 500")
         summaries = self.index.runs(
             design_id=design_id,
-            offset=offset, limit=min(limit + 1, 500),
+            offset=offset,
+            limit=min(limit + 1, 500),
         )
         has_more = len(summaries) > limit or (limit == 500 and len(summaries) == 500)
         summaries = summaries[:limit]
@@ -247,7 +269,9 @@ class KernelApi:
         so it says, rather than making an operator open the database to find out.
         """
         detail = self.index.run_detail(run_id)
-        detail["waiting_for"] = ResourceQuery(self.store, self.runtime.config).waiting_for(run_id)
+        detail["waiting_for"] = ResourceQuery(
+            self.store, self.runtime.config
+        ).waiting_for(run_id)
         return detail
 
     def cancel_run(self, request: Request) -> Response:
@@ -271,13 +295,17 @@ class KernelApi:
     def bundle(self, request: Request) -> Response:
         run_id = request.params["run_id"]
         try:
-            return Response.json({"bundle": export_run_bundle(self.store, run_id)}, status=201)
+            return Response.json(
+                {"bundle": export_run_bundle(self.store, run_id)}, status=201
+            )
         except RuntimeStoreError as exc:
             raise HttpError(409, str(exc)) from exc
 
     def metrics(self, request: Request) -> Response:
         run_id = request.params["run_id"]
-        entries = self.index.metrics(run_id, complete_only=request.q_bool("complete_only"))
+        entries = self.index.metrics(
+            run_id, complete_only=request.q_bool("complete_only")
+        )
         return Response.json({"metrics": [m.to_dict() for m in entries]})
 
     def artifacts(self, request: Request) -> Response:
@@ -300,7 +328,13 @@ class KernelApi:
     def resources(self, request: Request) -> Response:
         run_id = request.params["run_id"]
         try:
-            return Response.json({"resources": ResourceQuery(self.store, self.runtime.config).run(run_id)})
+            return Response.json(
+                {
+                    "resources": ResourceQuery(self.store, self.runtime.config).run(
+                        run_id
+                    )
+                }
+            )
         except RuntimeStoreError as exc:
             raise HttpError(404, str(exc)) from exc
 
@@ -313,7 +347,9 @@ class KernelApi:
                 max_bytes=request.q_int("max_bytes"),
             )
         except (RuntimeStoreError, ValueError) as exc:
-            raise HttpError(404 if isinstance(exc, RuntimeStoreError) else 400, str(exc)) from exc
+            raise HttpError(
+                404 if isinstance(exc, RuntimeStoreError) else 400, str(exc)
+            ) from exc
         return Response.json({"logs": view})
 
     def artifact_excerpt(self, request: Request) -> Response:
@@ -356,7 +392,10 @@ class KernelApi:
             raise HttpError(404, str(exc)) from exc
         from openroad_platform_runtime import sha256
 
-        if len(content) != artifact["size_bytes"] or sha256(content) != artifact["sha256"]:
+        if (
+            len(content) != artifact["size_bytes"]
+            or sha256(content) != artifact["sha256"]
+        ):
             raise HttpError(409, "artifact bytes no longer match the registered hash")
         return Response(
             body=content,
@@ -371,10 +410,15 @@ class KernelApi:
         offset = request.q_int("offset", 0) or 0
         size = request.q_int("max_bytes", 64 * 1024) or 64 * 1024
         try:
-            return Response.json(self.runtime.read_artifact_excerpt(
-                run_id, request.params["artifact_id"], offset=offset,
-                max_bytes=size, verify_hash=False,
-            ))
+            return Response.json(
+                self.runtime.read_artifact_excerpt(
+                    run_id,
+                    request.params["artifact_id"],
+                    offset=offset,
+                    max_bytes=size,
+                    verify_hash=False,
+                )
+            )
         except RuntimeStoreError as exc:
             raise HttpError(404, str(exc)) from exc
         except ValueError as exc:
@@ -462,8 +506,8 @@ class KernelApi:
         if not run_ids:
             raise HttpError(400, "at least one run_id is required")
         for run_id in run_ids:
-            return Response.json({"graph": self.index.artifact_graph(run_ids).to_dict()})
-
+            self._require_run(run_id)
+        return Response.json({"graph": self.index.artifact_graph(run_ids).to_dict()})
 
 
 def _object(request: Request) -> dict[str, Any]:
