@@ -10,14 +10,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
 
 from openroad_platform_evaluator import (
     EvaluationError,
     PluginBackedEvaluator,
     resolve_evaluator,
 )
-from openroad_platform_identity import IdentityStore
 from openroad_platform_provenance import EvidenceIndex
 from openroad_platform_registry import PluginRegistry
 from openroad_platform_runtime import (
@@ -27,7 +25,6 @@ from openroad_platform_runtime import (
     WorkflowRuntime,
 )
 
-from .app import AppRegistration, GatewayConfig
 from .kernel_api import KernelApi
 
 #: Names the kernel records itself under, so a reader knows what it is looking at.
@@ -128,31 +125,11 @@ def build_kernel_parts(
                   evaluator_error=evaluator_error)
 
 
-def build_kernel(paths: KernelPaths, *, allow_anonymous: bool = False
-                 ) -> KernelApi:
-    """The kernel with its HTTP surface: the entry point's assembly."""
+def build_kernel(paths: KernelPaths) -> KernelApi:
+    """Single-user local HTTP surface; no identity database or app registry."""
     parts = build_kernel_parts(paths)
-    store, registry, runtime = parts.store, parts.registry, parts.runtime
-    identity = IdentityStore(paths.state_root / "identity.db")
-
-    local_user_id: str | None = None
-    if allow_anonymous:
-        identity.ensure_local_user()
-        local_user_id = cast(str, next(
-            u["user_id"] for u in identity.list_users()
-            if u["username"] == "local-user"
-        ))
-
     return KernelApi(
-        store=store, runtime=runtime, registry=registry, identity=identity,
-        index=EvidenceIndex(store), allow_anonymous=allow_anonymous,
-        local_user_id=local_user_id,
-        evaluator_error=parts.evaluator_error,
+        store=parts.store, runtime=parts.runtime, registry=parts.registry,
+        index=EvidenceIndex(parts.store), evaluator_error=parts.evaluator_error,
         state_root=paths.state_root,
     )
-
-
-def build_gateway(apps: list[dict[str, Any]], kernel: KernelApi | None = None):
-    config = GatewayConfig(apps=tuple(AppRegistration(**a) for a in apps))
-    from .app import build_router
-    return build_router(config, kernel)

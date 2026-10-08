@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "openroad-platform-gateway"
-version = "0.1.0"
-description = "Integration entry point: identity, routing, navigation"
+version = "0.2.0"
+description = "Single-machine execution API and worker"
 requires-python = ">=3.9"
 dependencies = [
   "openroad-platform-contracts",
@@ -13,7 +13,6 @@ dependencies = [
   "openroad-platform-registry",
   "openroad-platform-evaluator",
   "openroad-platform-provenance",
-  "openroad-platform-identity",
 ]
 
 [project.scripts]
