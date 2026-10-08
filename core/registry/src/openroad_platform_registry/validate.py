@@ -5,8 +5,7 @@
 
 This tool reports; it does not admit.  Whether a plugin may execute on a given
 platform is that platform's decision, recorded in its own admissions directory,
-and no command-line tool can make it.  What this checks is narrower and
-mechanical: whether the files a plugin ships could be accepted by a platform that
+and no command-line tool can make it. This checks whether files could be accepted by a platform that
 follows the protocol.
 
 Two deliberate limits, both stated because a check that quietly does nothing is
