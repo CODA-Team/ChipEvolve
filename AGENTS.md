@@ -10,10 +10,10 @@ not a rule to work around.
 ## The four layers
 
 ```
-gateway/    entry only: identity, routing, navigation. No domain logic.
-apps/       one process each, one database each, one UI each. Siblings never import.
+gateway/    local HTTP entry and worker composition. No domain logic.
+apps/       reserved for future independent apps; retired apps live in Git history.
 contracts/  the shared language. Dependency-free.
-core/       the kernel: runtime, evaluator, registry, provenance, identity.
+core/       the kernel: runtime, evaluator, registry, provenance, client.
 plugins/    external algorithms. Each owns its own adapter.
 ```
 

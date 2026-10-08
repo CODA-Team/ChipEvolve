@@ -16,9 +16,7 @@ python3 -m venv "$platform_venv"
   -e "$platform_root/core/registry" \
   -e "$platform_root/core/evaluator" \
   -e "$platform_root/core/provenance" \
-  -e "$platform_root/core/identity" \
   -e "$platform_root/core/client" \
-  -e "$platform_root/gateway" \
-  -e "$platform_root/apps/plan_executor"
+  -e "$platform_root/gateway"
 
 printf 'installed in %s\n' "$platform_venv"

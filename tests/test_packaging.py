@@ -26,7 +26,6 @@ DISTRIBUTIONS = {
     "openroad_platform_registry": "openroad-platform-registry",
     "openroad_platform_evaluator": "openroad-platform-evaluator",
     "openroad_platform_provenance": "openroad-platform-provenance",
-    "openroad_platform_identity": "openroad-platform-identity",
     "openroad_platform_client": "openroad-platform-client",
     "openroad_platform_gateway": "openroad-platform-gateway",
 }
@@ -38,13 +37,8 @@ PACKAGES = [
     (REPO_ROOT / "core" / "registry", "src"),
     (REPO_ROOT / "core" / "evaluator", "src"),
     (REPO_ROOT / "core" / "provenance", "src"),
-    (REPO_ROOT / "core" / "identity", "src"),
     (REPO_ROOT / "core" / "client", "src"),
     (REPO_ROOT / "gateway", "src"),
-    (REPO_ROOT / "apps" / "evidence_console", "src"),
-    (REPO_ROOT / "apps" / "dse_lab", "src"),
-    (REPO_ROOT / "apps" / "plan_executor", "src"),
-    (REPO_ROOT / "apps" / "run_console", "src"),
 ]
 
 
