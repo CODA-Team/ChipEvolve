@@ -85,7 +85,11 @@ class KernelClient:
         request = urllib.request.Request(url, data=body, headers=headers,
                                          method=method)
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+            host = urllib.parse.urlsplit(url).hostname
+            opener = (urllib.request.build_opener(urllib.request.ProxyHandler({}))
+                      if host in {"127.0.0.1", "localhost", "::1"}
+                      else urllib.request.build_opener())
+            with opener.open(request, timeout=self.timeout) as response:
                 raw = response.read()
         except urllib.error.HTTPError as exc:
             raise KernelError(
