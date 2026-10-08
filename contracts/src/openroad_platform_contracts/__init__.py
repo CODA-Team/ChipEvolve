@@ -83,3 +83,5 @@ __all__ = (
     "primitive", "run_transition_allowed", "validate_identifier", "validate_mapping",
     "validate_relative_path", "validate_sha256", "validate_version",
 )
+
+from .execution import EXECUTION_RUN_ID_ENV, EXECUTION_ATTEMPT_ID_ENV, EXECUTION_TASK_ID_ENV
