@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "eda-ai-client"
-version = "0.2.0"
+version = "0.2.1"
 description = "Read-only Python client for the EDA-AI Data Interface (structured OpenROAD/ORFS facts for models)"
 requires-python = ">=3.10"
 dependencies = []

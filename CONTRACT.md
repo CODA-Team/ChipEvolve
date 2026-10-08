@@ -419,3 +419,21 @@ GET /snapshots/{id}/timing-points?sort=slew&order=worst&limit=1
 已注册源的 artifact_id/run_id/sha256 指向实际文件。resolution=bundle_member 时 sha256 属于容器 ZIP，nested_path 指包内成员；来源声明成员哈希时独立保留 member_sha256。不得把 ZIP 哈希称为报告哈希。已注册的精确报告路径优先匹配；声明与注册哈希冲突时 resolution=hash_mismatch，不绑定权威 artifact。
 
 `get_timing_paths(..., detail="summary"|"full")` 保持 limit/offset；summary 省略行级来源，full 保留每条路径 evidence。需要证据归属的 Agent 应显式请求有界 full，不把 envelope 的去重来源随意分配给每条路径。
+
+### Rich read extensions (SDK 0.2.1, wire contract 0.2)
+
+| SDK method | HTTP route | Contract |
+|---|---|---|
+| `query_objects` | `GET /snapshots/{id}/objects` | Filtered whole-domain count; offset/limit never redefine scope; explicit region units. |
+| `get_relationships` | `GET /snapshots/{id}/objects/{object}/relationships` | Explicit relations and endpoint identities; count/paging and missing endpoints. |
+| `get_net_engineering` | `GET /snapshots/{id}/nets/{net}/engineering` | Native load/driver counts with connectivity availability; lists are paged. |
+| `get_path_engineering` | `GET /snapshots/{id}/timing-paths/{path}/engineering` | Cell/net path increments, calculation domain and sources. |
+| `read_evidence` | `GET /snapshots/{id}/records/{type}/{record}/fragments` | Raw fragments with registered artifact hash and logical locator; missing bytes are explicit. |
+
+Reads do not create EDA tasks. Analysis submission/import uses explicit operations.
+The SDK passes status, units, coverage, evidence and pagination unchanged; the service owns all calculation.
+
+`read_query(path, parameters)` supports documented DF read extensions without adding
+business logic to the SDK. The path must be local and separate from query parameters.
+`read_batch(requests, bindings)` sends the public read-only `POST /query` batch contract.
+Analysis submission is a separate operation, never an option that silently executes during a read.

@@ -63,6 +63,42 @@ class EdaAiClient:
         """Liveness of the data service."""
         return self._get(self.data_url, "/health")
 
+    def read_query(self, path: str, *, parameters: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Read a documented service extension through the same wire contract.
+
+        This escape hatch is transport only: DF validates query semantics,
+        scope, units, paging and evidence. It never accepts an external URL.
+        """
+        parsed = urllib.parse.urlsplit(path)
+        if parsed.scheme or parsed.netloc or parsed.query or parsed.fragment or not path.startswith('/'):
+            raise ValueError("read_query path must be an absolute local HTTP path without query or fragment")
+        return self._get(self.data_url, path, parameters)
+
+    def read_batch(self, requests: list[str], *, bindings: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Ordered public read batch; no member can create an EDA analysis."""
+        payload = {"requests": requests, "bindings": bindings or {}}
+        return self._post("/query", payload)
+
+    def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+        body = json.dumps(payload).encode()
+        request = urllib.request.Request(self.data_url + path, data=body,
+            headers={"Content-Type": "application/json", "Accept": "application/json"})
+        host = urllib.parse.urlsplit(self.data_url).hostname
+        opener = (urllib.request.build_opener(urllib.request.ProxyHandler({}))
+                  if host in {"localhost", "127.0.0.1", "::1"} else urllib.request.build_opener())
+        try:
+            with opener.open(request, timeout=self.timeout) as response:
+                result = json.load(response)
+        except urllib.error.HTTPError as exc:
+            raise EdaAiError(f"HTTP {exc.code}: {exc.read().decode(errors='replace')[:500]}", status=exc.code) from exc
+        except urllib.error.URLError as exc:
+            raise EdaAiError(f"cannot reach data service: {exc.reason}") from exc
+        except (ValueError, UnicodeError) as exc:
+            raise EdaAiError("service returned invalid JSON") from exc
+        if not isinstance(result, dict):
+            raise EdaAiError("service response must be a JSON object")
+        return result
+
     # ------------------------------------------------------- tool 1: designs
 
     def list_designs(self) -> dict[str, Any]:
@@ -215,6 +251,31 @@ class EdaAiClient:
         """Location, bbox, geometry and routing for one object."""
         return self._get(self.data_url,
                          f"/snapshots/{_segment(snapshot_id)}/physical/{_segment(object_id)}")
+
+    def query_objects(self, snapshot_id: str, **filters: str | int | float | bool) -> dict[str, Any]:
+        """Public discovery filters; scope, complete counts and paging belong to DF."""
+        return self._get(self.data_url, f"/snapshots/{_segment(snapshot_id)}/objects", filters)
+
+    def get_relationships(self, snapshot_id: str, object_id: str, *, kind: str,
+                          limit: int = 200, offset: int = 0) -> dict[str, Any]:
+        """Explicit relations and endpoint identities, with complete page counts."""
+        return self._get(self.data_url,
+                         f"/snapshots/{_segment(snapshot_id)}/objects/{_segment(object_id)}/relationships",
+                         {"kind": kind, "limit": limit, "offset": offset})
+
+    def get_net_engineering(self, snapshot_id: str, net: str, *,
+                            limit: int = 200, offset: int = 0) -> dict[str, Any]:
+        """Native load/driver counts and explicit connectivity coverage."""
+        return self._get(self.data_url,
+                         f"/snapshots/{_segment(snapshot_id)}/nets/{_segment(net)}/engineering",
+                         {"limit": limit, "offset": offset})
+
+    def get_path_engineering(self, snapshot_id: str, path_id: str,
+                             **options: str | int) -> dict[str, Any]:
+        """Path joins and increments are deterministic data-layer operations."""
+        return self._get(self.data_url,
+                         f"/snapshots/{_segment(snapshot_id)}/timing-paths/{_segment(path_id)}/engineering",
+                         options)
 
     # ---------------------------------------------------- tool 12: evidence
 

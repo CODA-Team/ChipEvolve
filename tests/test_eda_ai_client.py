@@ -138,7 +138,7 @@ def test_kernel_tools_refuse_without_a_kernel_url(client: EdaAiClient) -> None:
 def test_published_schemas_match_the_client(client: EdaAiClient) -> None:
     # frozen on purpose: adding a tool must be a deliberate contract change, and the
     # published list in CONTRACT.md section 4 must be updated with it
-    assert len(TOOL_SCHEMAS) == 15
+    assert len(TOOL_SCHEMAS) == 22
     for name in TOOL_NAMES:
         assert callable(getattr(client, name)), f"{name} has a schema but no method"
     for schema in TOOL_SCHEMAS:
@@ -169,3 +169,11 @@ def test_net_selection_does_not_guess_from_identifier_prefix(client: EdaAiClient
     assert "object_id=net%3A7" in REQUESTS[-1]
     with pytest.raises(ValueError, match="by must"):
         client.get_net_context("snap-1", "n1", by="guess")
+
+
+def test_generic_read_keeps_envelope_and_rejects_foreign_paths(client):
+    result = client.read_query('/designs')
+    assert result['data']['designs'][0]['design_id'] == 'chip'
+    for path in ('https://elsewhere/designs','//elsewhere/designs','/designs?x=1','relative'):
+        with pytest.raises(ValueError, match='local HTTP path'):
+            client.read_query(path)
