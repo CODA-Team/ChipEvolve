@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "openroad-platform-runtime"
-version = "0.1.0"
+version = "0.2.0"
 description = "Runtime kernel: durable run state, process supervision, protected evaluation boundary"
 requires-python = ">=3.9"
 dependencies = ["openroad-platform-contracts"]
