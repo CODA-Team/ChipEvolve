@@ -60,3 +60,9 @@ python3 dev.py data-foundation serve       # 127.0.0.1:18924
 Execution Foundation 仅本机单用户，一个 HTTP+worker 进程；没有账户/会话数据库、旧控制台或 plan executor。Data Foundation 拥有设计目录、唯一快照解析、对象匹配与指标归属；SDK 不再承载这些业务。主 Query Agent 已通过 SDK 连接对象、时序数据和实验比较，关系/物理查询与自动补分析仍未完成。
 
 真实 OpenROAD 验收是 Nangate45 三缓冲链 STA（理想网络），不能代表完整芯片 PnR。Codex 对照记录保存在 var/benchmarks；直接终端能够完成任务，infra 不承诺更快或提高模型推理水平。
+
+## 历史成果核查与下一阶段研究
+
+2026-10-08 的[项目核查报告](admin/research/PROJECT_AUDIT_20261008.md)记录 Data Foundation 的历史代码保留、论文原始汇总复核、Execution Foundation 残留和主 Query Agent 的实际缺口。[Query Agent 科研地图与建设方案](admin/research/QUERY_AGENT_RESEARCH_AND_PLAN_20261008.md)给出数据获取、调查技能、自适应深度、补充分析和任务交接的设计与分阶段验收。
+
+历史数据实验支持当时整套数据能力的作用，尚未证明拆分后的各项目贡献或主 Query Agent 的诊断效果。报告中的新调查工作流、独立 Toolkits 和新对照实验属于下一阶段工作。只读[复核脚本](admin/research/reproduce_audit.py)及其运行命令随核查报告保存；运行证据属于 `var/research/20261008/`。
