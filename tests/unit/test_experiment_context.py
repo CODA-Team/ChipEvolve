@@ -3,6 +3,7 @@ from tests.fixtures.fake_experiment import FakeExperimentContextProvider
 from query_agent.application.context.comparison import ComparisonPolicy
 from query_agent.application.context.conflicts import ConflictDetector
 from query_agent.application.context.resolver import ExperimentContextResolver
+from query_agent.application.context.stage_selection import stage_satisfies
 from query_agent.domain.experiment import (
     ExperimentRun,
     ExperimentStage,
@@ -108,3 +109,23 @@ def test_conflict_detector_retains_incompatible_authoritative_values() -> None:
     conflicts = ConflictDetector().detect(metrics)
     assert len(conflicts) == 1
     assert conflicts[0].kind.value == "value_mismatch"
+
+
+def test_indexed_data_stage_is_distinct_from_execution_control_stage() -> None:
+    run = ExperimentRun(
+        run_id="extract-run",
+        status=ExperimentStatus.SUCCEEDED,
+        stages=(ExperimentStage(stage_key="package", status=StageStatus.SUCCEEDED),),
+        indexed_data_stages=("route",),
+    )
+    assert stage_satisfies(run, "routing")
+    assert not stage_satisfies(run, "placement")
+    assert not stage_satisfies(
+        run.model_copy(update={"status": ExperimentStatus.FAILED}), "routing"
+    )
+    failed = run.model_copy(
+        update={
+            "stages": (ExperimentStage(stage_key="route", status=StageStatus.FAILED),)
+        }
+    )
+    assert not stage_satisfies(failed, "routing")

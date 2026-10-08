@@ -31,3 +31,11 @@ class RunEvidenceError(QueryAgentError):
 
 class LLMContractError(QueryAgentError):
     """A LanguageModel adapter returned output outside its typed contract."""
+
+
+class MissingDataError(QueryAgentError):
+    """A requested fact or unique scope is missing from the data service."""
+
+
+class DataBoundaryError(QueryAgentError):
+    """The data transport or schema failed; this is not absent design data."""

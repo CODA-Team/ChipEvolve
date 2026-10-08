@@ -54,7 +54,7 @@ class RunEvidenceProvider(Protocol):
         ...
 
     def get_artifact_excerpt(
-        self, context: QueryContext, artifact_id: str, *, max_bytes: int = 8192
+        self, context: QueryContext, artifact_id: str, *, max_bytes: int = 65536
     ) -> Sequence[Evidence]:
         """Return a bounded excerpt through the public run API."""
 

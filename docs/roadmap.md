@@ -19,15 +19,16 @@ pipeline.
 | Phase III-A: design-object understanding | complete (fixture-backed contract) | typed instance/net/pin/location/connection/fanout/region port, application integration, 8-case benchmark |
 | Phase III-B: analysis understanding | complete (fixture-backed contract) | scoped WNS/TNS and timing-path port, application integration, 5-case benchmark |
 | Phase IV: evidence-grounded diagnosis | complete (fixture-backed contract) | evidence-linked findings with typed support, scope, and refusal semantics |
+| Run artifact foundation | verified on a real OpenROAD run | design/run listing, 112 registered artifacts, exact source excerpts, verified original-file retrieval, cited key metrics |
+| Supplementary official reports | in progress | stage frozen source artifacts into a linked analysis run; invoke admitted official reporting commands |
 | Phase V: action / optimization | planned | explicit reversible execution contract |
 
 ## Near-term sequence
 
-1. Preserve all four completed context/design/analysis/diagnosis benchmarks.
-2. Add diagnosis comparison only when conflict and support semantics are
-   explicit.
-3. Define action as a separate reversible contract; do not widen findings into
-   autonomous execution.
+1. Preserve the real run catalog and evidence tests alongside the fixture benchmarks.
+2. Implement linked, read-only OpenROAD report runs from registered source artifacts.
+3. Record shared dependency fingerprints, then address history and pagination.
+4. Keep diagnosis and repair behind the future design-data boundary.
 
 ## Explicit non-goals
 

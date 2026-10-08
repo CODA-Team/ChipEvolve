@@ -1,7 +1,8 @@
-# Editable Git install with no remote (agentic-eda-query-agent==0.1.0)
+# Editable Git install with no remote (agentic-eda-query-agent==0.2.0)
 -e /home/wjyuan/projects/eda-development/query-agent
 annotated-types==0.8.0
 click==8.5.0
+eda-ai-client @ file:///home/wjyuan/projects/eda-development/wheelhouse/eda_ai_client-0.2.0-py3-none-any.whl#sha256=b05882113e77070aad3b25564d19ed32cb9409305a76dfbc8f898584586d2592
 grimp==3.17
 import-linter==2.15
 iniconfig==2.3.1

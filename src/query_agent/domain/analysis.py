@@ -15,6 +15,8 @@ class AnalysisScope(BaseModel):
     design_id: str | None = Field(default=None, min_length=1)
     run_id: str | None = Field(default=None, min_length=1)
     stage: str | None = Field(default=None, min_length=1)
+    snapshot_id: str | None = Field(default=None, min_length=1)
+    revision_id: str | None = Field(default=None, min_length=1)
     corner: str | None = Field(default=None, min_length=1)
 
     @model_validator(mode="after")

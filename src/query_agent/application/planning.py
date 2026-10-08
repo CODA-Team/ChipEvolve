@@ -58,10 +58,32 @@ class KeywordIntentParser:
             return QueryIntent.DESIGN_OBJECT_QUERY
         if AnalysisQuestionParser().parse(request.query) is not None:
             return QueryIntent.ANALYSIS_QUERY
+        if any(
+            token in text
+            for token in (
+                "有哪些运行",
+                "有哪些实验",
+                "列出运行",
+                "列出实验",
+                "list runs",
+                "list experiments",
+            )
+        ):
+            return QueryIntent.RUN_DISCOVERY
+        if any(
+            token in text for token in ("汇报", "关键结果", "总结运行", "summarize run")
+        ):
+            return QueryIntent.RUN_REPORT
         if any(token in text for token in ("recommend", "建议", "应该")):
             return QueryIntent.RECOMMENDATION
         if any(
-            token in text for token in ("where", "file", "artifact", "在哪", "文件")
+            token in text
+            for token in ("摘取", "原文", "文件内容", "show contents", "read artifact")
+        ):
+            return QueryIntent.EXPLICIT_FACT
+        if any(
+            token in text
+            for token in ("where", "file", "artifact", "在哪", "文件", "产物", "报告")
         ):
             return QueryIntent.ARTIFACT_DISCOVERY
         if any(
@@ -70,7 +92,20 @@ class KeywordIntentParser:
         ):
             return QueryIntent.FLOW_STATUS
         if any(
-            token in text for token in ("wns", "tns", "metric", "period", "density")
+            token in text
+            for token in (
+                "wns",
+                "tns",
+                "metric",
+                "period",
+                "density",
+                "area",
+                "面积",
+                "power",
+                "功耗",
+                "violations",
+                "违例",
+            )
         ):
             return QueryIntent.METRIC_QUERY
         if any(token in text for token in ("error", "warning", "log", "停止", "报错")):
@@ -121,11 +156,31 @@ class QueryPlanner:
                 [Capability.DOMAIN_KNOWLEDGE],
                 exact_scope=False,
             )
+        elif intent is QueryIntent.RUN_DISCOVERY:
+            add(
+                "runs belonging to the requested design",
+                [Capability.RUN_EVIDENCE],
+                exact_scope=False,
+            )
+        elif intent is QueryIntent.RUN_REPORT:
+            add("run state", [Capability.RUN_EVIDENCE])
+            add(
+                "setup timing from a registered source",
+                [Capability.EXPLICIT_METRIC],
+                fact_key="metric:WNS",
+            )
+            add(
+                "design area from a registered source",
+                [Capability.EXPLICIT_METRIC],
+                fact_key="metric:DESIGN_AREA",
+            )
         elif intent is QueryIntent.ARTIFACT_DISCOVERY:
             add("workspace artifact metadata", [Capability.ARTIFACT_DISCOVERY])
         elif intent is QueryIntent.FLOW_STATUS:
             add("run or stage status", [Capability.RUN_EVIDENCE])
-        elif intent in {QueryIntent.EXPLICIT_FACT, QueryIntent.METRIC_QUERY}:
+        elif intent is QueryIntent.EXPLICIT_FACT:
+            add("an excerpt from a registered source file", [Capability.TEXT_SEARCH])
+        elif intent is QueryIntent.METRIC_QUERY:
             add(
                 "an explicit fact in a text artifact",
                 [Capability.TEXT_SEARCH, Capability.EXPLICIT_METRIC],
@@ -233,6 +288,8 @@ def context_scope(context: QueryContext):
         design_id=context.design_id,
         run_id=context.run_id,
         stage=context.stage,
+        snapshot_id=context.snapshot_id,
+        revision_id=context.revision_id,
     )
 
 
@@ -240,7 +297,22 @@ def metric_name_from_query(query: str) -> str | None:
     """Extract only well-known metric labels; values remain deterministic."""
 
     upper = query.upper()
-    for name in ("WNS", "TNS", "VIOLATIONS", "RUNTIME", "DENSITY"):
+    for name in (
+        "WNS",
+        "TNS",
+        "SETUP_VIOLATIONS",
+        "DESIGN_AREA",
+        "POWER_TOTAL",
+        "RUNTIME",
+        "DENSITY",
+    ):
         if name in upper:
+            return name
+    for words, name in (
+        (("面积", "area"), "DESIGN_AREA"),
+        (("功耗", "power"), "POWER_TOTAL"),
+        (("违例", "violations"), "SETUP_VIOLATIONS"),
+    ):
+        if any(word in query.lower() for word in words):
             return name
     return None

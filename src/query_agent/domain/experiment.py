@@ -108,6 +108,7 @@ class ExperimentRun(BaseModel):
     started_at: datetime | None = None
     completed_at: datetime | None = None
     stages: tuple[ExperimentStage, ...] = ()
+    indexed_data_stages: tuple[str, ...] = ()
 
     def stage(self, stage_key: str | None) -> ExperimentStage | None:
         """Find a stage using one canonicalized semantic key."""

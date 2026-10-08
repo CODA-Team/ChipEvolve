@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
+import os
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
 from collections.abc import Mapping, Sequence
+from pathlib import Path
 from typing import cast
 
 from query_agent.domain.errors import RunEvidenceError
@@ -99,6 +104,71 @@ class HttpExecutionFoundationClient:
             f"{_segment(artifact_id)}/excerpt",
             {"offset": offset, "max_bytes": max_bytes},
         )
+
+    def download_artifact(
+        self, run_id: str, artifact_id: str, destination: Path
+    ) -> dict[str, object]:
+        """Rebuild the registered bytes, verify their digest, then publish once."""
+        destination = Path(destination)
+        if destination.exists():
+            raise FileExistsError(destination)
+        digest = hashlib.sha256()
+        offset = 0
+        expected_hash = None
+        expected_size = None
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                dir=destination.parent, delete=False
+            ) as output:
+                temporary = Path(output.name)
+                while True:
+                    response = self.artifact_excerpt(
+                        run_id, artifact_id, offset=offset, max_bytes=65536
+                    )
+                    if (
+                        response.get("artifact_id") != artifact_id
+                        or response.get("offset") != offset
+                    ):
+                        raise RunEvidenceError(
+                            "artifact chunk identity or offset changed"
+                        )
+                    source_hash = response.get("sha256")
+                    size = response.get("size_bytes")
+                    if not isinstance(source_hash, str) or not isinstance(size, int):
+                        raise RunEvidenceError("artifact chunk lacks hash or size")
+                    if expected_hash is None:
+                        expected_hash, expected_size = source_hash, size
+                    elif (source_hash, size) != (expected_hash, expected_size):
+                        raise RunEvidenceError(
+                            "artifact identity changed during download"
+                        )
+                    encoded = response.get("data_base64")
+                    if not isinstance(encoded, str):
+                        raise RunEvidenceError("artifact bytes are unavailable")
+                    chunk = base64.b64decode(encoded, validate=True)
+                    if response.get("bytes_read") != len(chunk):
+                        raise RunEvidenceError("artifact chunk length mismatch")
+                    output.write(chunk)
+                    digest.update(chunk)
+                    offset += len(chunk)
+                    if not response.get("truncated"):
+                        break
+                    if not chunk:
+                        raise RunEvidenceError("artifact download made no progress")
+            if offset != expected_size or digest.hexdigest() != expected_hash:
+                raise RunEvidenceError(
+                    "downloaded artifact does not match its registered hash"
+                )
+            os.link(temporary, destination)
+            return {
+                "path": str(destination),
+                "size_bytes": offset,
+                "sha256": expected_hash,
+            }
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
 
     def timeline(self, run_id: str) -> Sequence[Mapping[str, object]]:
         payload = self._get(f"/kernel/runs/{_segment(run_id)}/timeline")

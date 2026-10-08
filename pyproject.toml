@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agentic-eda-query-agent"
-version = "0.1.0"
+version = "0.2.0"
 description = "Phase I evidence-first Query Agent foundation for ASIC physical design"
 requires-python = ">=3.12"
-dependencies = ["pydantic>=2.7,<3"]
+dependencies = ["pydantic>=2.7,<3", "eda-ai-client>=0.2,<0.3"]
 
 [project.scripts]
 query-agent = "query_agent.interfaces.cli:main"
@@ -38,6 +38,8 @@ src = ["src", "tests"]
 select = ["E", "F", "I", "B", "UP", "RUF"]
 
 [tool.pyright]
+venvPath = "."
+venv = ".venv"
 include = ["src", "tests"]
 pythonVersion = "3.12"
 typeCheckingMode = "strict"

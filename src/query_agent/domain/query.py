@@ -29,6 +29,8 @@ class QueryContext(BaseModel):
     run_id: str | None = Field(default=None, min_length=1)
     run_ids: tuple[str, ...] = ()
     stage: str | None = Field(default=None, min_length=1)
+    snapshot_id: str | None = Field(default=None, min_length=1)
+    revision_id: str | None = Field(default=None, min_length=1)
     source: QuerySource = QuerySource.LOCAL_WORKSPACE
 
     @model_validator(mode="after")
@@ -36,7 +38,12 @@ class QueryContext(BaseModel):
         if self.source is QuerySource.LOCAL_WORKSPACE and self.workspace is None:
             raise ValueError("workspace is required for a local workspace query")
         if self.source is QuerySource.MANAGED_RUN:
-            if self.run_id is None and not self.run_ids and self.design_id is None:
+            if (
+                self.run_id is None
+                and not self.run_ids
+                and self.design_id is None
+                and self.snapshot_id is None
+            ):
                 raise ValueError(
                     "managed run queries need a run_id, run_ids, or design_id"
                 )
@@ -75,6 +82,8 @@ class QueryIntent(StrEnum):
     DOMAIN_KNOWLEDGE = "DOMAIN_KNOWLEDGE"
     HOW_TO = "HOW_TO"
     ARTIFACT_DISCOVERY = "ARTIFACT_DISCOVERY"
+    RUN_DISCOVERY = "RUN_DISCOVERY"
+    RUN_REPORT = "RUN_REPORT"
     EXPLICIT_FACT = "EXPLICIT_FACT"
     FLOW_STATUS = "FLOW_STATUS"
     LOG_DIAGNOSIS = "LOG_DIAGNOSIS"

@@ -5,7 +5,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import cast
 
-from query_agent.domain.evidence import Evidence, JsonValue
+from query_agent.domain.errors import DataBoundaryError, MissingDataError
+from query_agent.domain.evidence import Evidence, EvidenceStatus, JsonValue
 from query_agent.domain.experiment import ResolvedExperimentContext
 from query_agent.domain.query import QueryRequest, QueryResponse, QueryStatus
 from query_agent.domain.trace import QueryTrace
@@ -49,6 +50,30 @@ class QueryService:
         return self._last_trace
 
     def query(self, request: QueryRequest) -> QueryResponse:
+        """Report named data failures separately from missing facts."""
+        try:
+            return self._query(request)
+        except MissingDataError as exc:
+            self._last_trace = None
+            return QueryResponse(
+                status=QueryStatus.NEEDS_MORE_DATA,
+                evidence_status=EvidenceStatus.INSUFFICIENT,
+                answer="NEEDS_MORE_DATA: " + str(exc),
+                reasons=(str(exc),),
+                next_steps=(
+                    "refine snapshot/run/stage or import the missing evidence",
+                ),
+            )
+        except DataBoundaryError as exc:
+            self._last_trace = None
+            return QueryResponse(
+                status=QueryStatus.FAILED,
+                evidence_status=EvidenceStatus.INSUFFICIENT,
+                answer="FAILED: " + str(exc),
+                reasons=(str(exc),),
+            )
+
+    def _query(self, request: QueryRequest) -> QueryResponse:
         intent = self._intent_parser.parse(request)
         plan = self._planner.plan(request, intent)
         resolved: ResolvedExperimentContext | None = None
@@ -63,7 +88,15 @@ class QueryService:
         if intent.value == "UNKNOWN":
             status = QueryStatus.UNSUPPORTED
         elif not decision.sufficient:
-            status = QueryStatus.NEEDS_MORE_DATA
+            status = (
+                QueryStatus.PARTIAL
+                if (intent.value == "RUN_REPORT" and evidence)
+                or (
+                    intent.value == "EXPLICIT_FACT"
+                    and decision.evidence_status is EvidenceStatus.PARTIAL
+                )
+                else QueryStatus.NEEDS_MORE_DATA
+            )
         else:
             status = QueryStatus.ANSWERED
         self._last_trace = QueryTrace(
@@ -130,7 +163,10 @@ class QueryService:
                 )
         if not evidence:
             return None
-        return "\n".join(_render_content(item.content) for item in evidence)
+        return "\n".join(
+            f"{_render_content(item.content)} [source: {item.locator.uri}]"
+            for item in evidence
+        )
 
     @staticmethod
     def _next_steps(decision: AnswerabilityDecision) -> tuple[str, ...]:
@@ -147,6 +183,10 @@ def _render_content(content: JsonValue) -> str:
 
     if isinstance(content, dict):
         values = cast(dict[str, JsonValue], content)
+        if values.get("text") == "" and values.get("bytes_read") == 0:
+            return "[empty source file]"
+        if values.get("truncated") and values.get("text") is not None:
+            return f"{values['text']} [truncated excerpt]"
         for key in (
             "answer",
             "script",

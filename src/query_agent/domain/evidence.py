@@ -32,6 +32,15 @@ class EvidenceStatus(StrEnum):
     CONFLICTING = "CONFLICTING"
 
 
+class EvidenceLevel(StrEnum):
+    """How close a claim is to a registered source; separate from coverage."""
+
+    RUN_RECORD = "run_record"
+    REGISTERED_FILE = "registered_file"
+    DIRECT_EXCERPT = "direct_excerpt"
+    PARSED_METRIC = "parsed_metric"
+
+
 class EvidenceScope(BaseModel):
     """Optional design/run/stage scope attached to a fact."""
 
@@ -40,13 +49,15 @@ class EvidenceScope(BaseModel):
     design_id: str | None = Field(default=None, min_length=1)
     run_id: str | None = Field(default=None, min_length=1)
     stage: str | None = Field(default=None, min_length=1)
+    snapshot_id: str | None = Field(default=None, min_length=1)
+    revision_id: str | None = Field(default=None, min_length=1)
 
     def matches(self, required: EvidenceScope | None) -> bool:
         """Return whether this evidence is in the requested exact scope."""
 
         if required is None:
             return True
-        for name in ("design_id", "run_id", "stage"):
+        for name in ("design_id", "run_id", "stage", "snapshot_id", "revision_id"):
             expected = getattr(required, name)
             if expected is not None and getattr(self, name) != expected:
                 return False
@@ -102,6 +113,7 @@ class Evidence(BaseModel):
 
     evidence_id: str = Field(min_length=1)
     source_kind: EvidenceSourceKind
+    level: EvidenceLevel | None = None
     content: JsonValue
     scope: EvidenceScope = Field(default_factory=EvidenceScope)
     locator: EvidenceLocator

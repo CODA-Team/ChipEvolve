@@ -11,6 +11,7 @@ from query_agent.domain.experiment import (
     ResolvedExperimentContext,
 )
 from query_agent.domain.query import (
+    QueryIntent,
     QueryPlan,
     QueryRequest,
     QuerySource,
@@ -52,11 +53,13 @@ class ExperimentContextResolver:
                 selection=self._empty_selection(),
             )
         runs = tuple(
-            self.provider.list_runs(
+            run
+            for run in self.provider.list_runs(
                 design_id=context.design_id,
                 run_ids=context.run_ids
                 or ((context.run_id,) if context.run_id else ()),
             )
+            if context.design_id is None or run.design_id == context.design_id
         )
         selected, selection = self._run_selection.select(
             runs,
@@ -108,7 +111,8 @@ class ExperimentContextResolver:
         )
         return ResolvedExperimentContext(
             context=ExperimentContext(
-                design_id=context.design_id,
+                design_id=context.design_id
+                or (selected[0].design_id if len(selected) == 1 else None),
                 runs=tuple(runs),
                 artifacts=artifacts,
                 metrics=metrics,
@@ -132,6 +136,8 @@ def metrics_for_run(
 
 
 def _metric_name(plan: QueryPlan) -> str | None:
+    if plan.intent is QueryIntent.RUN_REPORT:
+        return None
     for requirement in plan.evidence_requirements:
         if requirement.fact_key and requirement.fact_key.startswith("metric:"):
             return requirement.fact_key.split(":", 1)[1]

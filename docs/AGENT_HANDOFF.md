@@ -1,18 +1,30 @@
 # Agent Handoff
 
-Last verified state: Phase-IV evidence-linked diagnosis slice complete; gates green.
+Current handoff (2026-10-08) supersedes the historical slice below. Develop in this
+independent project. DataFoundationProvider and DataExperimentProvider consume
+installed SDK wheels/public HTTP; never open either service database. Strict
+checks pass (87 tests and 3 import contracts). Real STA/registered evidence,
+comparison, cancellation and restart acceptance is in the workspace report.
+Remaining work is typed physical/relations, explicit supplementary-analysis
+requests and broader real design benchmarks. Preserve missing-data boundaries.
+The original uncommitted work is backed up in ../admin/refinement-baseline.
 
-Current phase/slice: Phase IV / 4.1 complete.
+## Historical slice
 
-What was just completed: structured experiment context contracts, execution
-foundation adapter, deterministic selection/freshness/conflict/comparison
-policies, QueryTrace integration, typed design-data operations, bounded timing
-analysis evidence, evidence-linked diagnosis, and the Phase-III-A/III-B/IV
-benchmarks.
+Last verified state: real ASAP7 GCD run catalog and report query passed; fixture gates green.
 
-Exact next action: preserve the diagnosis contract while preparing a separate
-Phase V action boundary; do not add autonomous repair, tool execution, or
-causal confidence heuristics.
+Current priority: complete the registered-run foundation before design-data work.
+
+What was just completed: design-scoped run listing, exact artifact lookup,
+registered source excerpts, verified binary retrieval, official ORFS key-metric
+reporting, and explicit evidence levels. The real run
+`run-fd0b7130b99543db9d1b6292dae4e442` registered 112 artifacts.
+
+Exact next action: define a linked supplementary report run using frozen
+registered artifacts from a selected source run. Execute only through the
+execution foundation; preserve source run, artifact hashes, tool version and
+new report provenance. Do not mutate the source run or claim fixture diagnosis
+is production-ready.
 
 Files currently relevant:
 
@@ -33,10 +45,10 @@ Commands to run first:
 ruff check . && ruff format --check . && pyright && lint-imports && pytest
 ```
 
-Known failing tests: none.
+Known failing tests: none in the Query Agent suite after this slice.
 
-External blockers: none. The execution-foundation source is available locally,
-but only its public HTTP client surface may be used.
+External blockers: none. The execution foundation is reachable on `eda-proxy`;
+the Query Agent must use its public service API rather than its private state.
 
 Do not redo: Phase-I provider/benchmark design or Phase-II selection semantics;
 preserve both while adding later capability ports.

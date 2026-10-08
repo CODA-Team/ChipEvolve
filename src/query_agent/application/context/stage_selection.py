@@ -22,4 +22,8 @@ def stage_satisfies(run: ExperimentRun, requested: str | None) -> bool:
     if requested is None:
         return True
     stage = select_stage(run, requested)
-    return stage is not None and stage.status.value == "succeeded"
+    if stage is not None:
+        return stage.status.value == "succeeded"
+    return run.status.valid and canonical_stage_key(requested) in {
+        canonical_stage_key(key) for key in run.indexed_data_stages
+    }

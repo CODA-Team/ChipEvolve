@@ -1,12 +1,35 @@
 # Implementation Status
 
-Current phase: Phase IV — Evidence-Grounded Diagnosis
+Current priority: independently released data-backed evidence and truthful comparison
 
-Current slice: 4.1 — evidence-linked diagnostic findings complete
+Current slice: 0.2 SDK → Data Foundation → typed objects/timing/experiment evidence
 
-Overall state: COMPLETE
+Overall state: IN PROGRESS
+
+## 2026-10-08 independently verified slice
+
+- Public SDK wheel connects exact instance/net/pin identity, WNS/TNS and timing paths.
+- DF owns snapshot resolution, object matching and canonical metric ownership.
+- EF owns lifecycle; indexed data stages do not inherit control-stage names.
+- Snapshot sources select artifacts without exposing another stage's inventory.
+- Scope mismatch is FAILED; ambiguity, missing source/corner/unit is NEEDS_MORE_DATA.
+- True import-linter configuration enforces 3 contracts (the inherited config ran 0).
+- 87 tests, Ruff, format, strict Pyright and all 3 import contracts pass.
+- Pure-wheel real Nangate45 STA comparison passes; root cause remains unsupported.
+
+Not completed: typed relations/fanout/location/region, automatic supplementary
+analysis, autonomous LLM diagnosis/optimization, complete PnR acceptance or
+commercial-tool validation. Historical fixture milestones below do not fill
+these gaps. Actual Codex paired observations live in ../admin/ACCEPTANCE_REPORT.md.
 
 ## Completed
+
+- [x] Real managed-run discovery by design, including failed and active runs.
+- [x] Exact registered-file lookup, bounded source excerpts, and verified binary download.
+- [x] Run reports from official ORFS JSON metrics with direct artifact citations.
+- [x] Explicit run record / registered file / direct excerpt / parsed metric levels.
+- [x] Real ASAP7 GCD run `run-fd0b7130b99543db9d1b6292dae4e442`:
+  112 artifacts, including 2 inputs, 43 results, 23 reports, and 35 logs.
 
 - [x] Phase-I typed evidence, provider boundaries, and deterministic benchmark.
 - [x] Managed-run evidence adapter uses only the execution foundation public API.
@@ -39,7 +62,10 @@ Overall state: COMPLETE
 
 ## In progress
 
-- [ ] Phase V explicit reversible action and optimization (future milestone).
+- [ ] Supplementary official report commands on a frozen source-run snapshot.
+- [ ] Shared PDK/script dependency digests, historical recovery labels, pagination,
+  and large-artifact streaming.
+- [ ] Phase V action and optimization remains a separate future milestone.
 
 ## Baseline quality gate (2026-09-22)
 
@@ -55,16 +81,20 @@ Overall state: COMPLETE
 
 ## Next
 
-1. Preserve the Phase-II, Phase-III-A, Phase-III-B, and Phase-IV benchmarks.
-2. Add diagnosis comparison only with explicit support and conflict semantics.
-3. Keep action work behind new ports; do not widen diagnosis into execution
-   controls or autonomous repair.
+1. Preserve the real managed-run acceptance path and earlier fixture benchmarks.
+2. Add read-only, linked supplementary reporting through the execution foundation.
+3. Fingerprint shared dependencies and add history/pagination semantics.
+4. Keep autonomous diagnosis and repair outside this foundation slice.
 
 ## Known issues
 
 - The execution-foundation protocol is still documented as v1alpha1; the
   adapter must remain tolerant of optional fields and preserve partial status.
-- No external OpenROAD experiment is used by the deterministic benchmark.
+- Legacy runs retain their old, incomplete artifact inventories.
+- Reported timing/area/power numbers retain the source's raw values; units and
+  corners are not yet normalized across platforms.
+- Design-object diagnosis and repair remain fixture-backed and are not claimed
+  as production OpenROAD capabilities.
 
 ## Architectural decisions
 

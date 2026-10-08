@@ -12,6 +12,7 @@ from query_agent.domain.capability import Capability
 from query_agent.domain.errors import RunEvidenceError
 from query_agent.domain.evidence import (
     Evidence,
+    EvidenceLevel,
     EvidenceLocator,
     EvidenceProvenance,
     EvidenceScope,
@@ -176,6 +177,7 @@ class ExecutionFoundationRunEvidenceAdapter(RunEvidenceProvider):
                     source_mtime=source_mtime,
                     status=status,
                     reason=reason,
+                    level=EvidenceLevel.PARSED_METRIC,
                 )
             )
         return tuple(result)
@@ -195,6 +197,7 @@ class ExecutionFoundationRunEvidenceAdapter(RunEvidenceProvider):
                     fact_key=f"artifact:{artifact_id}",
                     source_hash=_string_or_none(_value(artifact, "sha256")),
                     source_mtime=_parse_time(_value(artifact, "created_at")),
+                    level=EvidenceLevel.REGISTERED_FILE,
                 )
             )
         return tuple(result)
@@ -218,14 +221,17 @@ class ExecutionFoundationRunEvidenceAdapter(RunEvidenceProvider):
                 content={"text": content, "bytes": len(content.encode())},
                 locator=f"execution://runs/{run_id}/logs",
                 fact_key="run:logs",
+                level=EvidenceLevel.DIRECT_EXCERPT,
             ),
         )
 
     def get_artifact_excerpt(
-        self, context: QueryContext, artifact_id: str, *, max_bytes: int = 8192
+        self, context: QueryContext, artifact_id: str, *, max_bytes: int = 65536
     ) -> Sequence[Evidence]:
         run_id = self._run_id(context)
         raw = self._client.artifact_excerpt(run_id, artifact_id, max_bytes=max_bytes)
+        offset = _integer(raw, "offset")
+        bytes_read = _integer(raw, "bytes_read")
         return (
             self._evidence(
                 context=context,
@@ -236,9 +242,21 @@ class ExecutionFoundationRunEvidenceAdapter(RunEvidenceProvider):
                     "bytes_read": _value(raw, "bytes_read"),
                     "truncated": _value(raw, "truncated"),
                 },
-                locator=f"execution://runs/{run_id}/artifacts/{artifact_id}/excerpt",
+                locator=(
+                    f"execution://runs/{run_id}/artifacts/{artifact_id}/excerpt"
+                    f"#bytes={offset}-{offset + bytes_read}"
+                ),
                 fact_key=f"artifact:{artifact_id}:excerpt",
                 source_hash=_string_or_none(_value(raw, "sha256")),
+                status=(
+                    EvidenceStatus.PARTIAL
+                    if _value(raw, "truncated")
+                    else EvidenceStatus.SUFFICIENT
+                ),
+                reason="source excerpt is truncated"
+                if _value(raw, "truncated")
+                else None,
+                level=EvidenceLevel.DIRECT_EXCERPT,
             ),
         )
 
@@ -296,6 +314,7 @@ class ExecutionFoundationRunEvidenceAdapter(RunEvidenceProvider):
         source_mtime: datetime | None = None,
         status: EvidenceStatus = EvidenceStatus.SUFFICIENT,
         reason: str | None = None,
+        level: EvidenceLevel = EvidenceLevel.RUN_RECORD,
     ) -> Evidence:
         scope = EvidenceScope(
             design_id=context.design_id,
@@ -308,6 +327,7 @@ class ExecutionFoundationRunEvidenceAdapter(RunEvidenceProvider):
         return Evidence(
             evidence_id=f"ev-{digest[:24]}",
             source_kind=EvidenceSourceKind.EXECUTION_RUN,
+            level=level,
             content=_json_value(content),
             scope=scope,
             locator=EvidenceLocator(uri=locator),
@@ -419,3 +439,12 @@ def value(mapping_value: Mapping[str, object] | None, key: str) -> object:
     """Read one optional field from a provider object."""
 
     return _value(mapping_value, key)
+
+
+def _integer(raw: Mapping[str, object], key: str) -> int:
+    value = _value(raw, key)
+    if value is None:
+        return 0
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        raise RunEvidenceError(f"{key} must be a nonnegative integer")
+    return value

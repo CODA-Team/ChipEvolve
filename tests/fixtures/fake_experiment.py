@@ -67,7 +67,7 @@ class FakeExperimentContextProvider:
                 created_at=when,
             ),
         )
-        self.metrics = (
+        self.metrics: tuple[MetricObservation, ...] = (
             (
                 MetricObservation(
                     metric_name="WNS",

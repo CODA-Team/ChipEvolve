@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from datetime import UTC, datetime
 
 from query_agent.domain.analysis import (
@@ -19,6 +20,7 @@ from query_agent.domain.design import (
 from query_agent.domain.diagnosis import DiagnosisFinding
 from query_agent.domain.evidence import (
     Evidence,
+    EvidenceLevel,
     EvidenceLocator,
     EvidenceProvenance,
     EvidenceScope,
@@ -137,7 +139,7 @@ class EvidenceCollector:
                 and self.experiment_context_provider is not None
             ):
                 collected.extend(
-                    self._collect_experiment_context(plan, resolved_context)
+                    self._collect_experiment_context(plan, resolved_context, request)
                 )
             else:
                 collected.extend(self._collect_managed_run(plan, request))
@@ -254,6 +256,8 @@ class EvidenceCollector:
                 design_id=item.scope.design_id,
                 run_id=item.scope.run_id,
                 stage=item.scope.stage,
+                snapshot_id=item.scope.snapshot_id,
+                revision_id=item.scope.revision_id,
             ),
             locator=EvidenceLocator(uri=item.provenance.locator),
             provenance=EvidenceProvenance(
@@ -316,6 +320,8 @@ class EvidenceCollector:
                 design_id=item.scope.design_id,
                 run_id=item.scope.run_id,
                 stage=item.scope.stage,
+                snapshot_id=item.scope.snapshot_id,
+                revision_id=item.scope.revision_id,
             ),
             locator=EvidenceLocator(uri=item.provenance.locator),
             provenance=EvidenceProvenance(
@@ -351,6 +357,8 @@ class EvidenceCollector:
                 design_id=item.scope.design_id,
                 run_id=item.scope.run_id,
                 stage=item.scope.stage,
+                snapshot_id=item.scope.snapshot_id,
+                revision_id=item.scope.revision_id,
             ),
             locator=EvidenceLocator(uri=item.provenance.locator),
             provenance=EvidenceProvenance(
@@ -481,7 +489,13 @@ class EvidenceCollector:
             evidence_id=f"ev-{digest[:24]}",
             source_kind=EvidenceSourceKind.DESIGN_DATA,
             content=payload,
-            scope=context_scope(context),
+            scope=EvidenceScope(
+                design_id=ref.design_id,
+                run_id=ref.run_id or context.run_id,
+                stage=ref.stage or context.stage,
+                snapshot_id=ref.snapshot_id or context.snapshot_id,
+                revision_id=ref.revision_id or context.revision_id,
+            ),
             locator=EvidenceLocator(uri=ref.locator),
             provenance=EvidenceProvenance(
                 provider="design-data-provider",
@@ -492,24 +506,34 @@ class EvidenceCollector:
         )
 
     def _collect_experiment_context(
-        self, plan: QueryPlan, resolved: ResolvedExperimentContext
+        self,
+        plan: QueryPlan,
+        resolved: ResolvedExperimentContext,
+        request: QueryRequest,
     ) -> tuple[Evidence, ...]:
         """Convert the typed context snapshot into the existing Evidence edge."""
 
         context = resolved.context
         result: list[Evidence] = []
+        artifact_by_id = {
+            artifact.artifact_id: artifact for artifact in context.artifacts
+        }
         selected_ids = {item.run_id for item in context.metrics} | {
             item.run_id for item in context.artifacts
         }
         if resolved.selection.selected_run_id is not None:
             selected_ids.add(resolved.selection.selected_run_id)
+        if plan.intent is QueryIntent.RUN_DISCOVERY:
+            selected_ids.update(run.run_id for run in context.runs)
         if Capability.RUN_EVIDENCE in plan.required_capabilities:
             for run in context.runs:
                 if run.run_id not in selected_ids:
                     continue
+                when = run.created_at.isoformat() if run.created_at else "unknown time"
                 result.append(
                     self._experiment_evidence(
                         content={
+                            "answer": f"{when} {run.run_id} {run.status.value}",
                             "run_id": run.run_id,
                             "status": run.status.value,
                             "created_at": (
@@ -521,6 +545,8 @@ class EvidenceCollector:
                         fact_key="run:status",
                     )
                 )
+                if plan.intent is QueryIntent.RUN_DISCOVERY:
+                    continue
                 for stage in run.stages:
                     if (
                         resolved.selection.selected_stage_key is not None
@@ -542,9 +568,16 @@ class EvidenceCollector:
                     )
         if Capability.ARTIFACT_DISCOVERY in plan.required_capabilities:
             for artifact in context.artifacts:
+                if not _artifact_matches_query(
+                    artifact.locator, artifact.kind, request.query
+                ):
+                    continue
                 result.append(
                     self._experiment_evidence(
                         content={
+                            "answer": (
+                                f"{artifact.kind or 'artifact'}: {artifact.locator}"
+                            ),
                             "artifact_id": artifact.artifact_id,
                             "kind": artifact.kind,
                             "path": artifact.locator,
@@ -554,6 +587,33 @@ class EvidenceCollector:
                         stage=artifact.stage_key,
                         fact_key=f"artifact:{artifact.artifact_id}",
                         source_hash=artifact.source_hash,
+                        level=EvidenceLevel.REGISTERED_FILE,
+                    )
+                )
+        if (
+            plan.intent is QueryIntent.EXPLICIT_FACT
+            and self.run_evidence_provider is not None
+        ):
+            for artifact in context.artifacts:
+                if not _named_artifact_matches(artifact.locator, request.query):
+                    continue
+                result.append(
+                    self._experiment_evidence(
+                        content={"answer": f"source file: {artifact.locator}"},
+                        run_id=artifact.run_id,
+                        design_id=artifact.design_id or context.design_id,
+                        stage=artifact.stage_key,
+                        fact_key=f"artifact:{artifact.artifact_id}",
+                        source_hash=artifact.source_hash,
+                        level=EvidenceLevel.REGISTERED_FILE,
+                    )
+                )
+                excerpt_context = request.context.model_copy(
+                    update={"run_id": artifact.run_id, "stage": artifact.stage_key}
+                )
+                result.extend(
+                    self.run_evidence_provider.get_artifact_excerpt(
+                        excerpt_context, artifact.artifact_id
                     )
                 )
         if Capability.EXPLICIT_METRIC in plan.required_capabilities:
@@ -566,6 +626,18 @@ class EvidenceCollector:
                 item.evidence_id: item for item in resolved.freshness
             }
             for metric in metrics:
+                if (
+                    plan.intent is QueryIntent.RUN_REPORT
+                    and metric.metric_name.upper()
+                    not in {
+                        "WNS",
+                        "TNS",
+                        "DESIGN_AREA",
+                        "POWER_TOTAL",
+                        "SETUP_VIOLATIONS",
+                    }
+                ):
+                    continue
                 freshness = freshness_by_metric.get(
                     f"{metric.run_id}:{metric.fact_key}:"
                     f"{metric.artifact_id or 'unregistered'}"
@@ -577,13 +649,20 @@ class EvidenceCollector:
                 if freshness is not None and freshness.state.value != "current":
                     metric_status = EvidenceStatus.PARTIAL
                     metric_reason = freshness.reason
+                unit = f" {metric.unit}" if metric.unit else ""
                 result.append(
                     self._experiment_evidence(
                         content={
+                            "answer": f"{metric.metric_name}: {metric.value}{unit}",
                             "metric": metric.metric_name,
                             "value": metric.value,
                             "unit": metric.unit,
                             "artifact_id": metric.artifact_id,
+                            "source_file": artifact_by_id[metric.artifact_id].locator
+                            if metric.artifact_id in artifact_by_id
+                            else None,
+                            "parser_id": metric.parser_id,
+                            "parser_version": metric.parser_version,
                         },
                         run_id=metric.run_id,
                         design_id=metric.design_id or context.design_id,
@@ -592,6 +671,12 @@ class EvidenceCollector:
                         source_hash=metric.source_hash,
                         status=metric_status,
                         reason=metric_reason,
+                        level=EvidenceLevel.PARSED_METRIC,
+                        source_locator=(
+                            f"execution://runs/{metric.run_id}/artifacts/{metric.artifact_id}#metric={metric.metric_name}"
+                            if metric.artifact_id
+                            else None
+                        ),
                     )
                 )
         self._last_provider_calls = (
@@ -610,13 +695,16 @@ class EvidenceCollector:
         source_hash: str | None = None,
         status: EvidenceStatus = EvidenceStatus.SUFFICIENT,
         reason: str | None = None,
+        level: EvidenceLevel = EvidenceLevel.RUN_RECORD,
+        source_locator: str | None = None,
     ) -> Evidence:
         now = datetime.now(UTC)
-        locator = f"experiment://runs/{run_id}/{fact_key}"
+        locator = source_locator or f"experiment://runs/{run_id}/{fact_key}"
         digest = hashlib.sha256(f"{locator}:{content}".encode()).hexdigest()
         return Evidence(
             evidence_id=f"ev-{digest[:24]}",
             source_kind=EvidenceSourceKind.EXECUTION_RUN,
+            level=level,
             content=content,
             scope=EvidenceScope(design_id=design_id, run_id=run_id, stage=stage),
             locator=EvidenceLocator(uri=locator),
@@ -694,3 +782,27 @@ class EvidenceCollector:
 def _analysis_evidence_id(locator: str, fact_key: str) -> str:
     digest = hashlib.sha256(f"{locator}:{fact_key}".encode()).hexdigest()
     return f"ev-{digest[:24]}"
+
+
+def _artifact_matches_query(locator: str, kind: str | None, query: str) -> bool:
+    lower = query.lower()
+    if _named_artifact_matches(locator, query):
+        return True
+    if re.search(r"[a-z0-9_.-]+\.(?:rpt|json|log|txt|v|def|odb|gds)", lower):
+        return False
+    for words, family in (
+        (("报告", "report"), "report"),
+        (("日志", "log"), "log"),
+        (("输入", "input"), "input"),
+        (("结果", "result"), "result"),
+    ):
+        if any(word in lower for word in words):
+            return family in (kind or "").lower()
+    return True
+
+
+def _named_artifact_matches(locator: str, query: str) -> bool:
+    named = re.search(
+        r"[a-z0-9_.-]+\.(?:rpt|json|log|txt|v|def|odb|gds)", query.lower()
+    )
+    return named is not None and named.group() in locator.lower()

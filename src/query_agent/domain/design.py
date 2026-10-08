@@ -25,6 +25,10 @@ class DesignObjectRef(BaseModel):
     name: str = Field(min_length=1)
     locator: str = Field(min_length=1)
     source_hash: str | None = Field(default=None, min_length=64, max_length=64)
+    snapshot_id: str | None = None
+    revision_id: str | None = None
+    run_id: str | None = None
+    stage: str | None = None
 
 
 class DesignLocation(BaseModel):

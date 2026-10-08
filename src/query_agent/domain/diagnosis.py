@@ -17,6 +17,8 @@ class DiagnosisScope(BaseModel):
     design_id: str | None = Field(default=None, min_length=1)
     run_id: str | None = Field(default=None, min_length=1)
     stage: str | None = Field(default=None, min_length=1)
+    snapshot_id: str | None = Field(default=None, min_length=1)
+    revision_id: str | None = Field(default=None, min_length=1)
 
     @model_validator(mode="after")
     def scope_is_explicit(self) -> DiagnosisScope:

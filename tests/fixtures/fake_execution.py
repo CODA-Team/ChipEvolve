@@ -5,6 +5,7 @@ class FakeExecutionClient:
     def __init__(self) -> None:
         self._run = {
             "run_id": "run_02",
+            "design_id": "gcd",
             "task_id": "route-task",
             "status": "succeeded",
             "created_at": "2026-09-22T12:00:00+00:00",

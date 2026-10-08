@@ -66,6 +66,9 @@ class AnswerabilityEvaluator:
                 for capability in requirement.required_capabilities
             ):
                 missing.append(requirement)
+            if any(item.status is EvidenceStatus.PARTIAL for item in matching):
+                missing.append(requirement)
+                reasons.append(f"incomplete evidence for {requirement.description}")
             if requirement.requires_current:
                 stale_items = [
                     item
@@ -107,6 +110,11 @@ class AnswerabilityEvaluator:
             status = EvidenceStatus.CONFLICTING
         elif stale:
             status = EvidenceStatus.PARTIAL
+        elif plan.intent is QueryIntent.EXPLICIT_FACT and any(
+            item.status is EvidenceStatus.PARTIAL for item in evidence
+        ):
+            status = EvidenceStatus.PARTIAL
+            reasons.append("source excerpt is truncated")
         elif missing_evidence:
             status = EvidenceStatus.INSUFFICIENT
         else:
