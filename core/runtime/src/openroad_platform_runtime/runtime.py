@@ -5,21 +5,6 @@ isolated workspace under a lease, validate what came back, ask the protected
 evaluator what it measured, and record all of it.  It does not know which tool
 ran, and it does not trust anything the adapter says about itself.
 
-The two v1 defects this file exists to fix are fixed structurally, not patched:
-
-* The old runtime branched on two literal plugin identifiers to decide whether a
-  capability needed a frozen protocol receipt.  That is replaced by
-  ``manifest.requirements.require_protocol_receipt``: a capability declares what
-  it needs from the kernel as data, so a third capability gets the same
-  treatment without the kernel being edited.
-
-* The old runtime hardcoded one tool's six stage names in a regular expression.
-  That is replaced by the generic ``ProgressObserver`` reading the progress
-  contract.  The kernel learned the *shape* of a progress report and forgot the
-  vocabulary; see ``openroad_platform_contracts.progress``.
-
-The old code is preserved in the archived v1 tree for comparison; it is not
-quoted here because a kernel that names a vendor is still coupled to it.
 """
 
 from __future__ import annotations
@@ -39,6 +24,7 @@ from pathlib import Path
 from typing import Any, Protocol, cast
 
 from openroad_platform_contracts import (
+    EXECUTION_RUN_ID_ENV, EXECUTION_ATTEMPT_ID_ENV, EXECUTION_TASK_ID_ENV,
     INPUT_MANIFEST_FILENAME,
     INPUT_MANIFEST_KIND,
     SCHEMA_VERSION,
@@ -335,10 +321,10 @@ class WorkflowRuntime:
     def _check_resources(self, task: TaskSpec) -> None:
         """Refuse a task whose declared limits this host cannot enforce."""
         resources = self.config.reservation_for(task)
-        budget_cpu = max(1, math.ceil(self.config.capacity_cpu_cores * self.config.platform_fraction))
+        budget_cpu = max(1, math.ceil(cast(int, self.config.capacity_cpu_cores) * self.config.platform_fraction))
         budget_memory = max(
             1,
-            math.ceil(self.config.capacity_memory_bytes * self.config.platform_fraction),
+            math.ceil(cast(int, self.config.capacity_memory_bytes) * self.config.platform_fraction),
         )
         if budget_cpu < 1 or budget_memory < self.config.default_task_memory_bytes:
             raise ValueError("platform capacity is smaller than the default task reservation")
@@ -636,7 +622,9 @@ class WorkflowRuntime:
         pulse: _LeasePulse,
         observer: ProgressObserver,
     ) -> None:
-        environment = dict(self.environment_resolver(run) if self.environment_resolver else {})
+        environment = {**dict(self.environment_resolver(run) if self.environment_resolver else {}),
+                       EXECUTION_RUN_ID_ENV: run.run_id, EXECUTION_ATTEMPT_ID_ENV: attempt.attempt_id,
+                       EXECUTION_TASK_ID_ENV: run.task_spec.task_id}
         # Staged before anything else runs, and recorded before the adapter
         # starts: what an attempt was given is evidence even if the adapter
         # then crashes, and a failed attempt that read the wrong design is
@@ -674,7 +662,8 @@ class WorkflowRuntime:
             "adapter_request.json",
             "adapter_result.json",
             "adapter.log",
-            INPUT_MANIFEST_FILENAME,
+            EXECUTION_RUN_ID_ENV, EXECUTION_ATTEMPT_ID_ENV, EXECUTION_TASK_ID_ENV,
+    INPUT_MANIFEST_FILENAME,
             "runtime_protocol_receipt.json",
         ):
             self.store.snapshot_evidence(attempt.attempt_id, workspace, filename)

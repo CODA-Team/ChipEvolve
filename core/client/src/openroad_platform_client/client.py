@@ -284,7 +284,7 @@ class KernelClient:
             # failure resurfaces from the download below.
             locator = None
         source = locator.get("path") if locator else None
-        if isinstance(source, str) and os.path.isfile(source):
+        if locator is not None and isinstance(source, str) and os.path.isfile(source):
             digest, size_bytes = _copy_and_hash(source, destination)
             if digest != locator["sha256"] or size_bytes != locator["size_bytes"]:
                 os.unlink(destination)  # never leave bytes that are not the artifact

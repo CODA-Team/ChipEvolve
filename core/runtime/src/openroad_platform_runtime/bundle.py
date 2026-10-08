@@ -158,10 +158,9 @@ def export_run_bundle(store: RuntimeStore, run_id: str) -> dict[str, Any]:
                     for staged in attempt["inputs"]:
                         if not staged.get("present"):
                             continue
-                        source = None
                         if staged.get("source_input_id"):
                             source = store.object_path(store.get_uploaded_input(staged["source_input_id"]).sha256)
-                        if source is None:
+                        else:
                             source = (workspace / staged["destination"]).resolve()
                         if not staged.get("source_input_id"):
                             try:
