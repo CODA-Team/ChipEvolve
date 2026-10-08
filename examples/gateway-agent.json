@@ -2,21 +2,9 @@
   "apps": [
     {
       "name": "plan_executor",
-      "base_url": "http://127.0.0.1:8840",
+      "base_url": "http://127.0.0.1:18840",
       "title": "Execution Plan Service",
       "description": "Run an ordered task list and bind artifacts between steps."
-    },
-    {
-      "name": "data_foundation",
-      "base_url": "http://127.0.0.1:8860",
-      "title": "Design Data Foundation",
-      "description": "Index and compare traceable design facts."
-    },
-    {
-      "name": "query_agent",
-      "base_url": "http://127.0.0.1:8850",
-      "title": "Query Agent",
-      "description": "Answer design questions from indexed facts and evidence."
     }
   ]
 }

@@ -13,8 +13,6 @@ APP_SMOKES = [
     "dse_lab",
     "evidence_console",
     "plan_executor",
-    "query_agent",
-    "data_foundation",
     "run_console",
 ]
 

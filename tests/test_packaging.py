@@ -44,7 +44,6 @@ PACKAGES = [
     (REPO_ROOT / "apps" / "evidence_console", "src"),
     (REPO_ROOT / "apps" / "dse_lab", "src"),
     (REPO_ROOT / "apps" / "plan_executor", "src"),
-    (REPO_ROOT / "apps" / "query_agent", "src"),
     (REPO_ROOT / "apps" / "run_console", "src"),
 ]
 
