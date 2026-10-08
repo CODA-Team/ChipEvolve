@@ -9,10 +9,10 @@ ROOT = Path(__file__).resolve().parents[1]
 WHEELS = ROOT / 'wheelhouse'
 EF = ROOT / 'execution-foundation'
 TOOLS = ['setuptools==84.0.0', 'wheel==0.48.0', 'pytest==9.1.1',
-         'ruff==0.16.8', 'pydantic==2.13.4', 'pyright==1.1.414', 'import-linter==2.15']
+         'ruff==0.16.8', 'pydantic==2.13.4', 'pyright==1.1.414', 'import-linter==2.15',
+         'mypy==2.4.0', 'black==26.10.0']
 PACKAGES = ['contracts', 'core/client', 'core/runtime', 'core/registry',
-            'core/evaluator', 'core/provenance', 'core/identity', 'gateway',
-            'apps/plan_executor', 'apps/dse_lab', 'apps/evidence_console', 'apps/run_console']
+            'core/evaluator', 'core/provenance', 'gateway']
 ENV = dict(os.environ)
 for key in ['PYTHONPATH', 'PYTHONHOME', 'VIRTUAL_ENV']:
     ENV.pop(key, None)
@@ -44,17 +44,20 @@ for name in ['execution-foundation', 'data-foundation', 'data-interface', 'query
     if name == 'execution-foundation':
         pip(python, 'install', '--no-index', '--find-links', WHEELS,
             *['openroad-platform-' + p for p in ['contracts', 'client', 'runtime', 'registry',
-              'evaluator', 'provenance', 'identity', 'gateway']])
+              'evaluator', 'provenance', 'gateway']])
+        pip(python, 'install', '--no-index', '--find-links', WHEELS,
+            'mypy==2.4.0', 'black==26.10.0')
         for path in PACKAGES:
             pip(python, 'install', '--no-deps', '--no-build-isolation', '-e', project / path)
     elif name == 'query-agent':
         pip(python, 'install', '--no-index', '--find-links', WHEELS,
-            'pydantic==2.13.4', 'pyright==1.1.414', 'import-linter==2.15')
+            'pydantic==2.13.4', 'pyright==1.1.414', 'import-linter==2.15',
+            'eda-ai-client==0.2.0')
         pip(python, 'install', '--no-deps', '--no-build-isolation', '-e', project)
     elif name == 'data-foundation':
         pip(python, 'install', '--no-index', '--find-links', WHEELS,
-            'openroad-platform-contracts==0.1.0', 'openroad-platform-client==0.1.0',
-            'openroad-platform-runtime==0.1.0')  # runtime is a test fixture dependency
+            'openroad-platform-contracts==0.2.0', 'openroad-platform-client==0.2.0',
+            'openroad-platform-runtime==0.2.0')  # runtime is a test fixture dependency
         pip(python, 'install', '--no-deps', '--no-build-isolation', '-e', project)
     else:
         pip(python, 'install', '--no-deps', '--no-build-isolation', '-e', project)

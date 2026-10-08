@@ -1,0 +1,881 @@
+diff --git a/docs/AGENT_HANDOFF.md b/docs/AGENT_HANDOFF.md
+index ab2745e..817162f 100644
+--- a/docs/AGENT_HANDOFF.md
++++ b/docs/AGENT_HANDOFF.md
+@@ -1,18 +1,19 @@
+ # Agent Handoff
+ 
+-Last verified state: Phase-IV evidence-linked diagnosis slice complete; gates green.
++Last verified state: real ASAP7 GCD run catalog and report query passed; fixture gates green.
+ 
+-Current phase/slice: Phase IV / 4.1 complete.
++Current priority: complete the registered-run foundation before design-data work.
+ 
+-What was just completed: structured experiment context contracts, execution
+-foundation adapter, deterministic selection/freshness/conflict/comparison
+-policies, QueryTrace integration, typed design-data operations, bounded timing
+-analysis evidence, evidence-linked diagnosis, and the Phase-III-A/III-B/IV
+-benchmarks.
++What was just completed: design-scoped run listing, exact artifact lookup,
++registered source excerpts, verified binary retrieval, official ORFS key-metric
++reporting, and explicit evidence levels. The real run
++`run-fd0b7130b99543db9d1b6292dae4e442` registered 112 artifacts.
+ 
+-Exact next action: preserve the diagnosis contract while preparing a separate
+-Phase V action boundary; do not add autonomous repair, tool execution, or
+-causal confidence heuristics.
++Exact next action: define a linked supplementary report run using frozen
++registered artifacts from a selected source run. Execute only through the
++execution foundation; preserve source run, artifact hashes, tool version and
++new report provenance. Do not mutate the source run or claim fixture diagnosis
++is production-ready.
+ 
+ Files currently relevant:
+ 
+@@ -33,10 +34,10 @@ Commands to run first:
+ ruff check . && ruff format --check . && pyright && lint-imports && pytest
+ ```
+ 
+-Known failing tests: none.
++Known failing tests: none in the Query Agent suite after this slice.
+ 
+-External blockers: none. The execution-foundation source is available locally,
+-but only its public HTTP client surface may be used.
++External blockers: none. The execution foundation is reachable on `eda-proxy`;
++the Query Agent must use its public service API rather than its private state.
+ 
+ Do not redo: Phase-I provider/benchmark design or Phase-II selection semantics;
+ preserve both while adding later capability ports.
+diff --git a/docs/IMPLEMENTATION_STATUS.md b/docs/IMPLEMENTATION_STATUS.md
+index ddea3ba..1705ab4 100644
+--- a/docs/IMPLEMENTATION_STATUS.md
++++ b/docs/IMPLEMENTATION_STATUS.md
+@@ -1,13 +1,20 @@
+ # Implementation Status
+ 
+-Current phase: Phase IV — Evidence-Grounded Diagnosis
++Current priority: design/run/artifact evidence foundation before design-data integration
+ 
+-Current slice: 4.1 — evidence-linked diagnostic findings complete
++Current slice: real OpenROAD run catalog, original-file retrieval, and cited reporting
+ 
+-Overall state: COMPLETE
++Overall state: IN PROGRESS
+ 
+ ## Completed
+ 
++- [x] Real managed-run discovery by design, including failed and active runs.
++- [x] Exact registered-file lookup, bounded source excerpts, and verified binary download.
++- [x] Run reports from official ORFS JSON metrics with direct artifact citations.
++- [x] Explicit run record / registered file / direct excerpt / parsed metric levels.
++- [x] Real ASAP7 GCD run `run-fd0b7130b99543db9d1b6292dae4e442`:
++  112 artifacts, including 2 inputs, 43 results, 23 reports, and 35 logs.
++
+ - [x] Phase-I typed evidence, provider boundaries, and deterministic benchmark.
+ - [x] Managed-run evidence adapter uses only the execution foundation public API.
+ - [x] Baseline quality gate recorded below.
+@@ -39,7 +46,10 @@ Overall state: COMPLETE
+ 
+ ## In progress
+ 
+-- [ ] Phase V explicit reversible action and optimization (future milestone).
++- [ ] Supplementary official report commands on a frozen source-run snapshot.
++- [ ] Shared PDK/script dependency digests, historical recovery labels, pagination,
++  and large-artifact streaming.
++- [ ] Phase V action and optimization remains a separate future milestone.
+ 
+ ## Baseline quality gate (2026-09-22)
+ 
+@@ -55,16 +65,20 @@ Overall state: COMPLETE
+ 
+ ## Next
+ 
+-1. Preserve the Phase-II, Phase-III-A, Phase-III-B, and Phase-IV benchmarks.
+-2. Add diagnosis comparison only with explicit support and conflict semantics.
+-3. Keep action work behind new ports; do not widen diagnosis into execution
+-   controls or autonomous repair.
++1. Preserve the real managed-run acceptance path and earlier fixture benchmarks.
++2. Add read-only, linked supplementary reporting through the execution foundation.
++3. Fingerprint shared dependencies and add history/pagination semantics.
++4. Keep autonomous diagnosis and repair outside this foundation slice.
+ 
+ ## Known issues
+ 
+ - The execution-foundation protocol is still documented as v1alpha1; the
+   adapter must remain tolerant of optional fields and preserve partial status.
+-- No external OpenROAD experiment is used by the deterministic benchmark.
++- Legacy runs retain their old, incomplete artifact inventories.
++- Reported timing/area/power numbers retain the source's raw values; units and
++  corners are not yet normalized across platforms.
++- Design-object diagnosis and repair remain fixture-backed and are not claimed
++  as production OpenROAD capabilities.
+ 
+ ## Architectural decisions
+ 
+diff --git a/docs/roadmap.md b/docs/roadmap.md
+index b31ad7c..83400be 100644
+--- a/docs/roadmap.md
++++ b/docs/roadmap.md
+@@ -19,15 +19,16 @@ pipeline.
+ | Phase III-A: design-object understanding | complete (fixture-backed contract) | typed instance/net/pin/location/connection/fanout/region port, application integration, 8-case benchmark |
+ | Phase III-B: analysis understanding | complete (fixture-backed contract) | scoped WNS/TNS and timing-path port, application integration, 5-case benchmark |
+ | Phase IV: evidence-grounded diagnosis | complete (fixture-backed contract) | evidence-linked findings with typed support, scope, and refusal semantics |
++| Run artifact foundation | verified on a real OpenROAD run | design/run listing, 112 registered artifacts, exact source excerpts, verified original-file retrieval, cited key metrics |
++| Supplementary official reports | in progress | stage frozen source artifacts into a linked analysis run; invoke admitted official reporting commands |
+ | Phase V: action / optimization | planned | explicit reversible execution contract |
+ 
+ ## Near-term sequence
+ 
+-1. Preserve all four completed context/design/analysis/diagnosis benchmarks.
+-2. Add diagnosis comparison only when conflict and support semantics are
+-   explicit.
+-3. Define action as a separate reversible contract; do not widen findings into
+-   autonomous execution.
++1. Preserve the real run catalog and evidence tests alongside the fixture benchmarks.
++2. Implement linked, read-only OpenROAD report runs from registered source artifacts.
++3. Record shared dependency fingerprints, then address history and pagination.
++4. Keep diagnosis and repair behind the future design-data boundary.
+ 
+ ## Explicit non-goals
+ 
+diff --git a/src/query_agent/adapters/run_evidence/execution_foundation.py b/src/query_agent/adapters/run_evidence/execution_foundation.py
+index 4094472..56b30d8 100644
+--- a/src/query_agent/adapters/run_evidence/execution_foundation.py
++++ b/src/query_agent/adapters/run_evidence/execution_foundation.py
+@@ -12,6 +12,7 @@ from query_agent.domain.capability import Capability
+ from query_agent.domain.errors import RunEvidenceError
+ from query_agent.domain.evidence import (
+     Evidence,
++    EvidenceLevel,
+     EvidenceLocator,
+     EvidenceProvenance,
+     EvidenceScope,
+@@ -176,6 +177,7 @@ class ExecutionFoundationRunEvidenceAdapter(RunEvidenceProvider):
+                     source_mtime=source_mtime,
+                     status=status,
+                     reason=reason,
++                    level=EvidenceLevel.PARSED_METRIC,
+                 )
+             )
+         return tuple(result)
+@@ -195,6 +197,7 @@ class ExecutionFoundationRunEvidenceAdapter(RunEvidenceProvider):
+                     fact_key=f"artifact:{artifact_id}",
+                     source_hash=_string_or_none(_value(artifact, "sha256")),
+                     source_mtime=_parse_time(_value(artifact, "created_at")),
++                    level=EvidenceLevel.REGISTERED_FILE,
+                 )
+             )
+         return tuple(result)
+@@ -218,14 +221,17 @@ class ExecutionFoundationRunEvidenceAdapter(RunEvidenceProvider):
+                 content={"text": content, "bytes": len(content.encode())},
+                 locator=f"execution://runs/{run_id}/logs",
+                 fact_key="run:logs",
++                level=EvidenceLevel.DIRECT_EXCERPT,
+             ),
+         )
+ 
+     def get_artifact_excerpt(
+-        self, context: QueryContext, artifact_id: str, *, max_bytes: int = 8192
++        self, context: QueryContext, artifact_id: str, *, max_bytes: int = 65536
+     ) -> Sequence[Evidence]:
+         run_id = self._run_id(context)
+         raw = self._client.artifact_excerpt(run_id, artifact_id, max_bytes=max_bytes)
++        offset = int(_value(raw, "offset") or 0)
++        bytes_read = int(_value(raw, "bytes_read") or 0)
+         return (
+             self._evidence(
+                 context=context,
+@@ -236,9 +242,21 @@ class ExecutionFoundationRunEvidenceAdapter(RunEvidenceProvider):
+                     "bytes_read": _value(raw, "bytes_read"),
+                     "truncated": _value(raw, "truncated"),
+                 },
+-                locator=f"execution://runs/{run_id}/artifacts/{artifact_id}/excerpt",
++                locator=(
++                    f"execution://runs/{run_id}/artifacts/{artifact_id}/excerpt"
++                    f"#bytes={offset}-{offset + bytes_read}"
++                ),
+                 fact_key=f"artifact:{artifact_id}:excerpt",
+                 source_hash=_string_or_none(_value(raw, "sha256")),
++                status=(
++                    EvidenceStatus.PARTIAL
++                    if _value(raw, "truncated")
++                    else EvidenceStatus.SUFFICIENT
++                ),
++                reason="source excerpt is truncated"
++                if _value(raw, "truncated")
++                else None,
++                level=EvidenceLevel.DIRECT_EXCERPT,
+             ),
+         )
+ 
+@@ -296,6 +314,7 @@ class ExecutionFoundationRunEvidenceAdapter(RunEvidenceProvider):
+         source_mtime: datetime | None = None,
+         status: EvidenceStatus = EvidenceStatus.SUFFICIENT,
+         reason: str | None = None,
++        level: EvidenceLevel = EvidenceLevel.RUN_RECORD,
+     ) -> Evidence:
+         scope = EvidenceScope(
+             design_id=context.design_id,
+@@ -308,6 +327,7 @@ class ExecutionFoundationRunEvidenceAdapter(RunEvidenceProvider):
+         return Evidence(
+             evidence_id=f"ev-{digest[:24]}",
+             source_kind=EvidenceSourceKind.EXECUTION_RUN,
++            level=level,
+             content=_json_value(content),
+             scope=scope,
+             locator=EvidenceLocator(uri=locator),
+diff --git a/src/query_agent/adapters/run_evidence/http_client.py b/src/query_agent/adapters/run_evidence/http_client.py
+index 0a17aa7..0138d19 100644
+--- a/src/query_agent/adapters/run_evidence/http_client.py
++++ b/src/query_agent/adapters/run_evidence/http_client.py
+@@ -2,11 +2,16 @@
+ 
+ from __future__ import annotations
+ 
++import base64
++import hashlib
+ import json
++import os
++import tempfile
+ import urllib.error
+ import urllib.parse
+ import urllib.request
+ from collections.abc import Mapping, Sequence
++from pathlib import Path
+ from typing import cast
+ 
+ from query_agent.domain.errors import RunEvidenceError
+@@ -100,6 +105,71 @@ class HttpExecutionFoundationClient:
+             {"offset": offset, "max_bytes": max_bytes},
+         )
+ 
++    def download_artifact(
++        self, run_id: str, artifact_id: str, destination: Path
++    ) -> dict[str, object]:
++        """Rebuild the registered bytes, verify their digest, then publish once."""
++        destination = Path(destination)
++        if destination.exists():
++            raise FileExistsError(destination)
++        digest = hashlib.sha256()
++        offset = 0
++        expected_hash = None
++        expected_size = None
++        temporary = None
++        try:
++            with tempfile.NamedTemporaryFile(
++                dir=destination.parent, delete=False
++            ) as output:
++                temporary = Path(output.name)
++                while True:
++                    response = self.artifact_excerpt(
++                        run_id, artifact_id, offset=offset, max_bytes=65536
++                    )
++                    if (
++                        response.get("artifact_id") != artifact_id
++                        or response.get("offset") != offset
++                    ):
++                        raise RunEvidenceError(
++                            "artifact chunk identity or offset changed"
++                        )
++                    source_hash = response.get("sha256")
++                    size = response.get("size_bytes")
++                    if not isinstance(source_hash, str) or not isinstance(size, int):
++                        raise RunEvidenceError("artifact chunk lacks hash or size")
++                    if expected_hash is None:
++                        expected_hash, expected_size = source_hash, size
++                    elif (source_hash, size) != (expected_hash, expected_size):
++                        raise RunEvidenceError(
++                            "artifact identity changed during download"
++                        )
++                    encoded = response.get("data_base64")
++                    if not isinstance(encoded, str):
++                        raise RunEvidenceError("artifact bytes are unavailable")
++                    chunk = base64.b64decode(encoded, validate=True)
++                    if response.get("bytes_read") != len(chunk):
++                        raise RunEvidenceError("artifact chunk length mismatch")
++                    output.write(chunk)
++                    digest.update(chunk)
++                    offset += len(chunk)
++                    if not response.get("truncated"):
++                        break
++                    if not chunk:
++                        raise RunEvidenceError("artifact download made no progress")
++            if offset != expected_size or digest.hexdigest() != expected_hash:
++                raise RunEvidenceError(
++                    "downloaded artifact does not match its registered hash"
++                )
++            os.link(temporary, destination)
++            return {
++                "path": str(destination),
++                "size_bytes": offset,
++                "sha256": expected_hash,
++            }
++        finally:
++            if temporary is not None:
++                temporary.unlink(missing_ok=True)
++
+     def timeline(self, run_id: str) -> Sequence[Mapping[str, object]]:
+         payload = self._get(f"/kernel/runs/{_segment(run_id)}/timeline")
+         return _objects(payload, "timeline")
+diff --git a/src/query_agent/application/answerability.py b/src/query_agent/application/answerability.py
+index 9a310d1..09c69be 100644
+--- a/src/query_agent/application/answerability.py
++++ b/src/query_agent/application/answerability.py
+@@ -107,6 +107,11 @@ class AnswerabilityEvaluator:
+             status = EvidenceStatus.CONFLICTING
+         elif stale:
+             status = EvidenceStatus.PARTIAL
++        elif plan.intent is QueryIntent.EXPLICIT_FACT and any(
++            item.status is EvidenceStatus.PARTIAL for item in evidence
++        ):
++            status = EvidenceStatus.PARTIAL
++            reasons.append("source excerpt is truncated")
+         elif missing_evidence:
+             status = EvidenceStatus.INSUFFICIENT
+         else:
+diff --git a/src/query_agent/application/collection.py b/src/query_agent/application/collection.py
+index 5b02b87..e4a7787 100644
+--- a/src/query_agent/application/collection.py
++++ b/src/query_agent/application/collection.py
+@@ -3,6 +3,7 @@
+ from __future__ import annotations
+ 
+ import hashlib
++import re
+ from datetime import UTC, datetime
+ 
+ from query_agent.domain.analysis import (
+@@ -19,6 +20,7 @@ from query_agent.domain.design import (
+ from query_agent.domain.diagnosis import DiagnosisFinding
+ from query_agent.domain.evidence import (
+     Evidence,
++    EvidenceLevel,
+     EvidenceLocator,
+     EvidenceProvenance,
+     EvidenceScope,
+@@ -137,7 +139,7 @@ class EvidenceCollector:
+                 and self.experiment_context_provider is not None
+             ):
+                 collected.extend(
+-                    self._collect_experiment_context(plan, resolved_context)
++                    self._collect_experiment_context(plan, resolved_context, request)
+                 )
+             else:
+                 collected.extend(self._collect_managed_run(plan, request))
+@@ -492,24 +494,34 @@ class EvidenceCollector:
+         )
+ 
+     def _collect_experiment_context(
+-        self, plan: QueryPlan, resolved: ResolvedExperimentContext
++        self,
++        plan: QueryPlan,
++        resolved: ResolvedExperimentContext,
++        request: QueryRequest,
+     ) -> tuple[Evidence, ...]:
+         """Convert the typed context snapshot into the existing Evidence edge."""
+ 
+         context = resolved.context
+         result: list[Evidence] = []
++        artifact_by_id = {
++            artifact.artifact_id: artifact for artifact in context.artifacts
++        }
+         selected_ids = {item.run_id for item in context.metrics} | {
+             item.run_id for item in context.artifacts
+         }
+         if resolved.selection.selected_run_id is not None:
+             selected_ids.add(resolved.selection.selected_run_id)
++        if plan.intent is QueryIntent.RUN_DISCOVERY:
++            selected_ids.update(run.run_id for run in context.runs)
+         if Capability.RUN_EVIDENCE in plan.required_capabilities:
+             for run in context.runs:
+                 if run.run_id not in selected_ids:
+                     continue
++                when = run.created_at.isoformat() if run.created_at else "unknown time"
+                 result.append(
+                     self._experiment_evidence(
+                         content={
++                            "answer": f"{when} {run.run_id} {run.status.value}",
+                             "run_id": run.run_id,
+                             "status": run.status.value,
+                             "created_at": (
+@@ -521,6 +533,8 @@ class EvidenceCollector:
+                         fact_key="run:status",
+                     )
+                 )
++                if plan.intent is QueryIntent.RUN_DISCOVERY:
++                    continue
+                 for stage in run.stages:
+                     if (
+                         resolved.selection.selected_stage_key is not None
+@@ -542,9 +556,16 @@ class EvidenceCollector:
+                     )
+         if Capability.ARTIFACT_DISCOVERY in plan.required_capabilities:
+             for artifact in context.artifacts:
++                if not _artifact_matches_query(
++                    artifact.locator, artifact.kind, request.query
++                ):
++                    continue
+                 result.append(
+                     self._experiment_evidence(
+                         content={
++                            "answer": (
++                                f"{artifact.kind or 'artifact'}: {artifact.locator}"
++                            ),
+                             "artifact_id": artifact.artifact_id,
+                             "kind": artifact.kind,
+                             "path": artifact.locator,
+@@ -554,6 +575,33 @@ class EvidenceCollector:
+                         stage=artifact.stage_key,
+                         fact_key=f"artifact:{artifact.artifact_id}",
+                         source_hash=artifact.source_hash,
++                        level=EvidenceLevel.REGISTERED_FILE,
++                    )
++                )
++        if (
++            plan.intent is QueryIntent.EXPLICIT_FACT
++            and self.run_evidence_provider is not None
++        ):
++            for artifact in context.artifacts:
++                if not _named_artifact_matches(artifact.locator, request.query):
++                    continue
++                result.append(
++                    self._experiment_evidence(
++                        content={"answer": f"source file: {artifact.locator}"},
++                        run_id=artifact.run_id,
++                        design_id=artifact.design_id or context.design_id,
++                        stage=artifact.stage_key,
++                        fact_key=f"artifact:{artifact.artifact_id}",
++                        source_hash=artifact.source_hash,
++                        level=EvidenceLevel.REGISTERED_FILE,
++                    )
++                )
++                excerpt_context = request.context.model_copy(
++                    update={"run_id": artifact.run_id, "stage": artifact.stage_key}
++                )
++                result.extend(
++                    self.run_evidence_provider.get_artifact_excerpt(
++                        excerpt_context, artifact.artifact_id
+                     )
+                 )
+         if Capability.EXPLICIT_METRIC in plan.required_capabilities:
+@@ -566,6 +614,18 @@ class EvidenceCollector:
+                 item.evidence_id: item for item in resolved.freshness
+             }
+             for metric in metrics:
++                if (
++                    plan.intent is QueryIntent.RUN_REPORT
++                    and metric.metric_name.upper()
++                    not in {
++                        "WNS",
++                        "TNS",
++                        "DESIGN_AREA",
++                        "POWER_TOTAL",
++                        "SETUP_VIOLATIONS",
++                    }
++                ):
++                    continue
+                 freshness = freshness_by_metric.get(
+                     f"{metric.run_id}:{metric.fact_key}:"
+                     f"{metric.artifact_id or 'unregistered'}"
+@@ -577,13 +637,20 @@ class EvidenceCollector:
+                 if freshness is not None and freshness.state.value != "current":
+                     metric_status = EvidenceStatus.PARTIAL
+                     metric_reason = freshness.reason
++                unit = f" {metric.unit}" if metric.unit else ""
+                 result.append(
+                     self._experiment_evidence(
+                         content={
++                            "answer": f"{metric.metric_name}: {metric.value}{unit}",
+                             "metric": metric.metric_name,
+                             "value": metric.value,
+                             "unit": metric.unit,
+                             "artifact_id": metric.artifact_id,
++                            "source_file": artifact_by_id[metric.artifact_id].locator
++                            if metric.artifact_id in artifact_by_id
++                            else None,
++                            "parser_id": metric.parser_id,
++                            "parser_version": metric.parser_version,
+                         },
+                         run_id=metric.run_id,
+                         design_id=metric.design_id or context.design_id,
+@@ -592,6 +659,12 @@ class EvidenceCollector:
+                         source_hash=metric.source_hash,
+                         status=metric_status,
+                         reason=metric_reason,
++                        level=EvidenceLevel.PARSED_METRIC,
++                        source_locator=(
++                            f"execution://runs/{metric.run_id}/artifacts/{metric.artifact_id}#metric={metric.metric_name}"
++                            if metric.artifact_id
++                            else None
++                        ),
+                     )
+                 )
+         self._last_provider_calls = (
+@@ -610,13 +683,16 @@ class EvidenceCollector:
+         source_hash: str | None = None,
+         status: EvidenceStatus = EvidenceStatus.SUFFICIENT,
+         reason: str | None = None,
++        level: EvidenceLevel = EvidenceLevel.RUN_RECORD,
++        source_locator: str | None = None,
+     ) -> Evidence:
+         now = datetime.now(UTC)
+-        locator = f"experiment://runs/{run_id}/{fact_key}"
++        locator = source_locator or f"experiment://runs/{run_id}/{fact_key}"
+         digest = hashlib.sha256(f"{locator}:{content}".encode()).hexdigest()
+         return Evidence(
+             evidence_id=f"ev-{digest[:24]}",
+             source_kind=EvidenceSourceKind.EXECUTION_RUN,
++            level=level,
+             content=content,
+             scope=EvidenceScope(design_id=design_id, run_id=run_id, stage=stage),
+             locator=EvidenceLocator(uri=locator),
+@@ -694,3 +770,27 @@ class EvidenceCollector:
+ def _analysis_evidence_id(locator: str, fact_key: str) -> str:
+     digest = hashlib.sha256(f"{locator}:{fact_key}".encode()).hexdigest()
+     return f"ev-{digest[:24]}"
++
++
++def _artifact_matches_query(locator: str, kind: str | None, query: str) -> bool:
++    lower = query.lower()
++    if _named_artifact_matches(locator, query):
++        return True
++    if re.search(r"[a-z0-9_.-]+\.(?:rpt|json|log|txt|v|def|odb|gds)", lower):
++        return False
++    for words, family in (
++        (("报告", "report"), "report"),
++        (("日志", "log"), "log"),
++        (("输入", "input"), "input"),
++        (("结果", "result"), "result"),
++    ):
++        if any(word in lower for word in words):
++            return family in (kind or "").lower()
++    return True
++
++
++def _named_artifact_matches(locator: str, query: str) -> bool:
++    named = re.search(
++        r"[a-z0-9_.-]+\.(?:rpt|json|log|txt|v|def|odb|gds)", query.lower()
++    )
++    return named is not None and named.group() in locator.lower()
+diff --git a/src/query_agent/application/context/resolver.py b/src/query_agent/application/context/resolver.py
+index a5eac5f..cba0f34 100644
+--- a/src/query_agent/application/context/resolver.py
++++ b/src/query_agent/application/context/resolver.py
+@@ -11,6 +11,7 @@ from query_agent.domain.experiment import (
+     ResolvedExperimentContext,
+ )
+ from query_agent.domain.query import (
++    QueryIntent,
+     QueryPlan,
+     QueryRequest,
+     QuerySource,
+@@ -52,11 +53,13 @@ class ExperimentContextResolver:
+                 selection=self._empty_selection(),
+             )
+         runs = tuple(
+-            self.provider.list_runs(
++            run
++            for run in self.provider.list_runs(
+                 design_id=context.design_id,
+                 run_ids=context.run_ids
+                 or ((context.run_id,) if context.run_id else ()),
+             )
++            if context.design_id is None or run.design_id == context.design_id
+         )
+         selected, selection = self._run_selection.select(
+             runs,
+@@ -108,7 +111,8 @@ class ExperimentContextResolver:
+         )
+         return ResolvedExperimentContext(
+             context=ExperimentContext(
+-                design_id=context.design_id,
++                design_id=context.design_id
++                or (selected[0].design_id if len(selected) == 1 else None),
+                 runs=tuple(runs),
+                 artifacts=artifacts,
+                 metrics=metrics,
+@@ -132,6 +136,8 @@ def metrics_for_run(
+ 
+ 
+ def _metric_name(plan: QueryPlan) -> str | None:
++    if plan.intent is QueryIntent.RUN_REPORT:
++        return None
+     for requirement in plan.evidence_requirements:
+         if requirement.fact_key and requirement.fact_key.startswith("metric:"):
+             return requirement.fact_key.split(":", 1)[1]
+diff --git a/src/query_agent/application/planning.py b/src/query_agent/application/planning.py
+index 946a49e..08915e9 100644
+--- a/src/query_agent/application/planning.py
++++ b/src/query_agent/application/planning.py
+@@ -58,10 +58,32 @@ class KeywordIntentParser:
+             return QueryIntent.DESIGN_OBJECT_QUERY
+         if AnalysisQuestionParser().parse(request.query) is not None:
+             return QueryIntent.ANALYSIS_QUERY
++        if any(
++            token in text
++            for token in (
++                "有哪些运行",
++                "有哪些实验",
++                "列出运行",
++                "列出实验",
++                "list runs",
++                "list experiments",
++            )
++        ):
++            return QueryIntent.RUN_DISCOVERY
++        if any(
++            token in text for token in ("汇报", "关键结果", "总结运行", "summarize run")
++        ):
++            return QueryIntent.RUN_REPORT
+         if any(token in text for token in ("recommend", "建议", "应该")):
+             return QueryIntent.RECOMMENDATION
+         if any(
+-            token in text for token in ("where", "file", "artifact", "在哪", "文件")
++            token in text
++            for token in ("摘取", "原文", "文件内容", "show contents", "read artifact")
++        ):
++            return QueryIntent.EXPLICIT_FACT
++        if any(
++            token in text
++            for token in ("where", "file", "artifact", "在哪", "文件", "产物", "报告")
+         ):
+             return QueryIntent.ARTIFACT_DISCOVERY
+         if any(
+@@ -70,7 +92,20 @@ class KeywordIntentParser:
+         ):
+             return QueryIntent.FLOW_STATUS
+         if any(
+-            token in text for token in ("wns", "tns", "metric", "period", "density")
++            token in text
++            for token in (
++                "wns",
++                "tns",
++                "metric",
++                "period",
++                "density",
++                "area",
++                "面积",
++                "power",
++                "功耗",
++                "violations",
++                "违例",
++            )
+         ):
+             return QueryIntent.METRIC_QUERY
+         if any(token in text for token in ("error", "warning", "log", "停止", "报错")):
+@@ -121,11 +156,31 @@ class QueryPlanner:
+                 [Capability.DOMAIN_KNOWLEDGE],
+                 exact_scope=False,
+             )
++        elif intent is QueryIntent.RUN_DISCOVERY:
++            add(
++                "runs belonging to the requested design",
++                [Capability.RUN_EVIDENCE],
++                exact_scope=False,
++            )
++        elif intent is QueryIntent.RUN_REPORT:
++            add("run state", [Capability.RUN_EVIDENCE])
++            add(
++                "setup timing from a registered source",
++                [Capability.EXPLICIT_METRIC],
++                fact_key="metric:WNS",
++            )
++            add(
++                "design area from a registered source",
++                [Capability.EXPLICIT_METRIC],
++                fact_key="metric:DESIGN_AREA",
++            )
+         elif intent is QueryIntent.ARTIFACT_DISCOVERY:
+             add("workspace artifact metadata", [Capability.ARTIFACT_DISCOVERY])
+         elif intent is QueryIntent.FLOW_STATUS:
+             add("run or stage status", [Capability.RUN_EVIDENCE])
+-        elif intent in {QueryIntent.EXPLICIT_FACT, QueryIntent.METRIC_QUERY}:
++        elif intent is QueryIntent.EXPLICIT_FACT:
++            add("an excerpt from a registered source file", [Capability.TEXT_SEARCH])
++        elif intent is QueryIntent.METRIC_QUERY:
+             add(
+                 "an explicit fact in a text artifact",
+                 [Capability.TEXT_SEARCH, Capability.EXPLICIT_METRIC],
+@@ -240,7 +295,22 @@ def metric_name_from_query(query: str) -> str | None:
+     """Extract only well-known metric labels; values remain deterministic."""
+ 
+     upper = query.upper()
+-    for name in ("WNS", "TNS", "VIOLATIONS", "RUNTIME", "DENSITY"):
++    for name in (
++        "WNS",
++        "TNS",
++        "SETUP_VIOLATIONS",
++        "DESIGN_AREA",
++        "POWER_TOTAL",
++        "RUNTIME",
++        "DENSITY",
++    ):
+         if name in upper:
+             return name
++    for words, name in (
++        (("面积", "area"), "DESIGN_AREA"),
++        (("功耗", "power"), "POWER_TOTAL"),
++        (("违例", "violations"), "SETUP_VIOLATIONS"),
++    ):
++        if any(word in query.lower() for word in words):
++            return name
+     return None
+diff --git a/src/query_agent/application/service.py b/src/query_agent/application/service.py
+index cc00a6d..a59e767 100644
+--- a/src/query_agent/application/service.py
++++ b/src/query_agent/application/service.py
+@@ -5,7 +5,7 @@ from __future__ import annotations
+ from collections.abc import Sequence
+ from typing import cast
+ 
+-from query_agent.domain.evidence import Evidence, JsonValue
++from query_agent.domain.evidence import Evidence, EvidenceStatus, JsonValue
+ from query_agent.domain.experiment import ResolvedExperimentContext
+ from query_agent.domain.query import QueryRequest, QueryResponse, QueryStatus
+ from query_agent.domain.trace import QueryTrace
+@@ -63,7 +63,15 @@ class QueryService:
+         if intent.value == "UNKNOWN":
+             status = QueryStatus.UNSUPPORTED
+         elif not decision.sufficient:
+-            status = QueryStatus.NEEDS_MORE_DATA
++            status = (
++                QueryStatus.PARTIAL
++                if (intent.value == "RUN_REPORT" and evidence)
++                or (
++                    intent.value == "EXPLICIT_FACT"
++                    and decision.evidence_status is EvidenceStatus.PARTIAL
++                )
++                else QueryStatus.NEEDS_MORE_DATA
++            )
+         else:
+             status = QueryStatus.ANSWERED
+         self._last_trace = QueryTrace(
+@@ -130,7 +138,10 @@ class QueryService:
+                 )
+         if not evidence:
+             return None
+-        return "\n".join(_render_content(item.content) for item in evidence)
++        return "\n".join(
++            f"{_render_content(item.content)} [source: {item.locator.uri}]"
++            for item in evidence
++        )
+ 
+     @staticmethod
+     def _next_steps(decision: AnswerabilityDecision) -> tuple[str, ...]:
+@@ -147,6 +158,10 @@ def _render_content(content: JsonValue) -> str:
+ 
+     if isinstance(content, dict):
+         values = cast(dict[str, JsonValue], content)
++        if values.get("text") == "" and values.get("bytes_read") == 0:
++            return "[empty source file]"
++        if values.get("truncated") and values.get("text") is not None:
++            return f"{values['text']} [truncated excerpt]"
+         for key in (
+             "answer",
+             "script",
+diff --git a/src/query_agent/domain/evidence.py b/src/query_agent/domain/evidence.py
+index 8d0f150..b1f20cc 100644
+--- a/src/query_agent/domain/evidence.py
++++ b/src/query_agent/domain/evidence.py
+@@ -32,6 +32,15 @@ class EvidenceStatus(StrEnum):
+     CONFLICTING = "CONFLICTING"
+ 
+ 
++class EvidenceLevel(StrEnum):
++    """How close a claim is to a registered source; separate from coverage."""
++
++    RUN_RECORD = "run_record"
++    REGISTERED_FILE = "registered_file"
++    DIRECT_EXCERPT = "direct_excerpt"
++    PARSED_METRIC = "parsed_metric"
++
++
+ class EvidenceScope(BaseModel):
+     """Optional design/run/stage scope attached to a fact."""
+ 
+@@ -102,6 +111,7 @@ class Evidence(BaseModel):
+ 
+     evidence_id: str = Field(min_length=1)
+     source_kind: EvidenceSourceKind
++    level: EvidenceLevel | None = None
+     content: JsonValue
+     scope: EvidenceScope = Field(default_factory=EvidenceScope)
+     locator: EvidenceLocator
+diff --git a/src/query_agent/domain/query.py b/src/query_agent/domain/query.py
+index 83740a7..d9f473d 100644
+--- a/src/query_agent/domain/query.py
++++ b/src/query_agent/domain/query.py
+@@ -75,6 +75,8 @@ class QueryIntent(StrEnum):
+     DOMAIN_KNOWLEDGE = "DOMAIN_KNOWLEDGE"
+     HOW_TO = "HOW_TO"
+     ARTIFACT_DISCOVERY = "ARTIFACT_DISCOVERY"
++    RUN_DISCOVERY = "RUN_DISCOVERY"
++    RUN_REPORT = "RUN_REPORT"
+     EXPLICIT_FACT = "EXPLICIT_FACT"
+     FLOW_STATUS = "FLOW_STATUS"
+     LOG_DIAGNOSIS = "LOG_DIAGNOSIS"
+diff --git a/src/query_agent/interfaces/cli.py b/src/query_agent/interfaces/cli.py
+index e978adf..4925196 100644
+--- a/src/query_agent/interfaces/cli.py
++++ b/src/query_agent/interfaces/cli.py
+@@ -3,6 +3,7 @@
+ from __future__ import annotations
+ 
+ import argparse
++import json
+ import os
+ import sys
+ from pathlib import Path
+@@ -29,6 +30,14 @@ def main(argv: list[str] | None = None) -> int:
+         report = BenchmarkRunner().run(args.benchmark_dir)
+         print(report.model_dump_json(indent=2))
+         return 0 if report.failed == 0 else 1
++    if args.command == "fetch":
++        client = HttpExecutionFoundationClient(
++            args.kernel_url, token=os.environ.get(args.token_env)
++        )
++        print(
++            json.dumps(client.download_artifact(args.run, args.artifact, args.output))
++        )
++        return 0
+     response = _service(args).query(
+         QueryRequest(query=args.question, context=_context(args))
+     )
+@@ -54,6 +63,12 @@ def _parser() -> argparse.ArgumentParser:
+     )
+     benchmark = commands.add_parser("benchmark", help="run deterministic cases")
+     benchmark.add_argument("benchmark_dir", type=Path)
++    fetch = commands.add_parser("fetch", help="retrieve one registered original file")
++    fetch.add_argument("--kernel-url", required=True)
++    fetch.add_argument("--token-env", default="QUERY_AGENT_KERNEL_TOKEN")
++    fetch.add_argument("--run", required=True)
++    fetch.add_argument("--artifact", required=True)
++    fetch.add_argument("--output", required=True, type=Path)
+     return parser
+ 
+ 
+diff --git a/src/query_agent/ports/run_evidence.py b/src/query_agent/ports/run_evidence.py
+index 81a5aa5..4b7e5b6 100644
+--- a/src/query_agent/ports/run_evidence.py
++++ b/src/query_agent/ports/run_evidence.py
+@@ -54,7 +54,7 @@ class RunEvidenceProvider(Protocol):
+         ...
+ 
+     def get_artifact_excerpt(
+-        self, context: QueryContext, artifact_id: str, *, max_bytes: int = 8192
++        self, context: QueryContext, artifact_id: str, *, max_bytes: int = 65536
+     ) -> Sequence[Evidence]:
+         """Return a bounded excerpt through the public run API."""
+ 
+diff --git a/tests/fixtures/fake_execution.py b/tests/fixtures/fake_execution.py
+index 442594d..6cebd90 100644
+--- a/tests/fixtures/fake_execution.py
++++ b/tests/fixtures/fake_execution.py
+@@ -5,6 +5,7 @@ class FakeExecutionClient:
+     def __init__(self) -> None:
+         self._run = {
+             "run_id": "run_02",
++            "design_id": "gcd",
+             "task_id": "route-task",
+             "status": "succeeded",
+             "created_at": "2026-09-22T12:00:00+00:00",

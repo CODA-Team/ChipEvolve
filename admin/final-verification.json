@@ -1,0 +1,33 @@
+{
+  "independent_checks": {
+    "execution": {
+      "passed": 384,
+      "skipped": 1,
+      "log": "admin/execution-final-check.log"
+    },
+    "data": {
+      "passed": 342,
+      "skipped": 0,
+      "log": "admin/data-final-check.log"
+    },
+    "interface": {
+      "passed": 10,
+      "skipped": 0,
+      "log": "admin/interface-final-check.log"
+    },
+    "query": {
+      "passed": 87,
+      "skipped": 0,
+      "log": "admin/query-final-check.log"
+    }
+  },
+  "total_passed": 823,
+  "total_skipped": 1,
+  "query_static_checks": "passed",
+  "import_contracts_kept": 3,
+  "latest_ratchet_registry_checks": 80,
+  "data_http_smoke": "passed",
+  "wheel_real_acceptance": "var/benchmarks/real-acceptance-v5/results.json",
+  "benchmark_summary": "admin/benchmark-summary.json",
+  "production_state_changed": false
+}

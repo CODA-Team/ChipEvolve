@@ -1,0 +1,127 @@
+{
+  "model": "gpt-6.1-sol",
+  "reasoning_effort": "medium",
+  "seconds_budget": 180,
+  "repetitions_per_arm": 2,
+  "statistical_claim": false,
+  "first_iteration_preserved": "var/benchmarks/codex-pilot-v1/results.json",
+  "selection": "v1 execution/interface; v2 data/query after product/grader fixes. Do not pool iterations for a win-rate claim.",
+  "cases": [
+    {
+      "case": "execution",
+      "raw": {
+        "passed": 2,
+        "total": 2,
+        "seconds_mean": 104.43029125360772,
+        "seconds": [
+          88.63718144409359,
+          120.22340106312186
+        ],
+        "tool_calls_mean": 5,
+        "input_tokens_mean": 123436.5,
+        "cached_tokens_mean": 94144,
+        "output_tokens_mean": 3302.5
+      },
+      "infra": {
+        "passed": 2,
+        "total": 2,
+        "seconds_mean": 86.56881167273968,
+        "seconds": [
+          84.9767325213179,
+          88.16089082416147
+        ],
+        "tool_calls_mean": 5,
+        "input_tokens_mean": 142464.5,
+        "cached_tokens_mean": 107456,
+        "output_tokens_mean": 2811.5
+      }
+    },
+    {
+      "case": "data",
+      "raw": {
+        "passed": 2,
+        "total": 2,
+        "seconds_mean": 46.42356657423079,
+        "seconds": [
+          48.101211679168046,
+          44.745921469293535
+        ],
+        "tool_calls_mean": 3,
+        "input_tokens_mean": 73922,
+        "cached_tokens_mean": 51520,
+        "output_tokens_mean": 1043.5
+      },
+      "infra": {
+        "passed": 2,
+        "total": 2,
+        "seconds_mean": 41.03791288053617,
+        "seconds": [
+          42.68977660499513,
+          39.386049156077206
+        ],
+        "tool_calls_mean": 2.5,
+        "input_tokens_mean": 66963.5,
+        "cached_tokens_mean": 44224,
+        "output_tokens_mean": 911.5
+      }
+    },
+    {
+      "case": "interface",
+      "raw": {
+        "passed": 2,
+        "total": 2,
+        "seconds_mean": 24.916454227641225,
+        "seconds": [
+          22.509410914964974,
+          27.323497540317476
+        ],
+        "tool_calls_mean": 1,
+        "input_tokens_mean": 31004,
+        "cached_tokens_mean": 14592,
+        "output_tokens_mean": 549.5
+      },
+      "infra": {
+        "passed": 2,
+        "total": 2,
+        "seconds_mean": 31.2271670922637,
+        "seconds": [
+          30.87686453294009,
+          31.577469651587307
+        ],
+        "tool_calls_mean": 2,
+        "input_tokens_mean": 49101,
+        "cached_tokens_mean": 30976,
+        "output_tokens_mean": 774.5
+      }
+    },
+    {
+      "case": "query",
+      "raw": {
+        "passed": 2,
+        "total": 2,
+        "seconds_mean": 43.0170336663723,
+        "seconds": [
+          41.33687189593911,
+          44.69719543680549
+        ],
+        "tool_calls_mean": 3,
+        "input_tokens_mean": 73549,
+        "cached_tokens_mean": 56768,
+        "output_tokens_mean": 1082.5
+      },
+      "infra": {
+        "passed": 2,
+        "total": 2,
+        "seconds_mean": 48.808052509091794,
+        "seconds": [
+          50.41151298582554,
+          47.20459203235805
+        ],
+        "tool_calls_mean": 5,
+        "input_tokens_mean": 81191,
+        "cached_tokens_mean": 56768,
+        "output_tokens_mean": 1391
+      }
+    }
+  ]
+}

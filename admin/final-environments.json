@@ -1,0 +1,346 @@
+{
+  "execution-foundation": {
+    "pip_check": "passed",
+    "cross_project_editable": false,
+    "editable_paths": [
+      "/home/wjyuan/projects/eda-development/execution-foundation/core/client",
+      "/home/wjyuan/projects/eda-development/execution-foundation/contracts",
+      "/home/wjyuan/projects/eda-development/execution-foundation/core/evaluator",
+      "/home/wjyuan/projects/eda-development/execution-foundation/gateway",
+      "/home/wjyuan/projects/eda-development/execution-foundation/core/provenance",
+      "/home/wjyuan/projects/eda-development/execution-foundation/core/registry",
+      "/home/wjyuan/projects/eda-development/execution-foundation/core/runtime"
+    ],
+    "packages": [
+      {
+        "name": "ast_serialize",
+        "version": "0.12.1"
+      },
+      {
+        "name": "black",
+        "version": "26.10.0"
+      },
+      {
+        "name": "click",
+        "version": "8.5.0"
+      },
+      {
+        "name": "iniconfig",
+        "version": "2.3.1"
+      },
+      {
+        "name": "librt",
+        "version": "0.16.0"
+      },
+      {
+        "name": "mypy",
+        "version": "2.4.0"
+      },
+      {
+        "name": "mypy_extensions",
+        "version": "1.1.0"
+      },
+      {
+        "name": "openroad-platform-client",
+        "version": "0.2.0",
+        "editable_project_location": "/home/wjyuan/projects/eda-development/execution-foundation/core/client"
+      },
+      {
+        "name": "openroad-platform-contracts",
+        "version": "0.2.0",
+        "editable_project_location": "/home/wjyuan/projects/eda-development/execution-foundation/contracts"
+      },
+      {
+        "name": "openroad-platform-evaluator",
+        "version": "0.1.0",
+        "editable_project_location": "/home/wjyuan/projects/eda-development/execution-foundation/core/evaluator"
+      },
+      {
+        "name": "openroad-platform-gateway",
+        "version": "0.2.0",
+        "editable_project_location": "/home/wjyuan/projects/eda-development/execution-foundation/gateway"
+      },
+      {
+        "name": "openroad-platform-provenance",
+        "version": "0.1.0",
+        "editable_project_location": "/home/wjyuan/projects/eda-development/execution-foundation/core/provenance"
+      },
+      {
+        "name": "openroad-platform-registry",
+        "version": "0.1.0",
+        "editable_project_location": "/home/wjyuan/projects/eda-development/execution-foundation/core/registry"
+      },
+      {
+        "name": "openroad-platform-runtime",
+        "version": "0.2.0",
+        "editable_project_location": "/home/wjyuan/projects/eda-development/execution-foundation/core/runtime"
+      },
+      {
+        "name": "packaging",
+        "version": "26.3"
+      },
+      {
+        "name": "pathspec",
+        "version": "1.1.1"
+      },
+      {
+        "name": "pip",
+        "version": "23.2.1"
+      },
+      {
+        "name": "platformdirs",
+        "version": "4.12.4"
+      },
+      {
+        "name": "pluggy",
+        "version": "1.6.0"
+      },
+      {
+        "name": "Pygments",
+        "version": "2.21.0"
+      },
+      {
+        "name": "pytest",
+        "version": "9.1.1"
+      },
+      {
+        "name": "pytokens",
+        "version": "0.4.1"
+      },
+      {
+        "name": "ruff",
+        "version": "0.16.8"
+      },
+      {
+        "name": "setuptools",
+        "version": "84.0.0"
+      },
+      {
+        "name": "typing_extensions",
+        "version": "4.16.0"
+      },
+      {
+        "name": "wheel",
+        "version": "0.48.0"
+      }
+    ]
+  },
+  "data-foundation": {
+    "pip_check": "passed",
+    "cross_project_editable": false,
+    "editable_paths": [
+      "/home/wjyuan/projects/eda-development/data-foundation"
+    ],
+    "packages": [
+      {
+        "name": "iniconfig",
+        "version": "2.3.1"
+      },
+      {
+        "name": "openroad-app-data_foundation",
+        "version": "0.2.0",
+        "editable_project_location": "/home/wjyuan/projects/eda-development/data-foundation"
+      },
+      {
+        "name": "openroad-platform-client",
+        "version": "0.2.0"
+      },
+      {
+        "name": "openroad-platform-contracts",
+        "version": "0.2.0"
+      },
+      {
+        "name": "openroad-platform-runtime",
+        "version": "0.2.0"
+      },
+      {
+        "name": "packaging",
+        "version": "26.3"
+      },
+      {
+        "name": "pip",
+        "version": "23.2.1"
+      },
+      {
+        "name": "pluggy",
+        "version": "1.6.0"
+      },
+      {
+        "name": "Pygments",
+        "version": "2.21.0"
+      },
+      {
+        "name": "pytest",
+        "version": "9.1.1"
+      },
+      {
+        "name": "ruff",
+        "version": "0.16.8"
+      },
+      {
+        "name": "setuptools",
+        "version": "84.0.0"
+      },
+      {
+        "name": "wheel",
+        "version": "0.48.0"
+      }
+    ]
+  },
+  "data-interface": {
+    "pip_check": "passed",
+    "cross_project_editable": false,
+    "editable_paths": [
+      "/home/wjyuan/projects/eda-development/data-interface"
+    ],
+    "packages": [
+      {
+        "name": "eda-ai-client",
+        "version": "0.2.0",
+        "editable_project_location": "/home/wjyuan/projects/eda-development/data-interface"
+      },
+      {
+        "name": "iniconfig",
+        "version": "2.3.1"
+      },
+      {
+        "name": "packaging",
+        "version": "26.3"
+      },
+      {
+        "name": "pip",
+        "version": "23.2.1"
+      },
+      {
+        "name": "pluggy",
+        "version": "1.6.0"
+      },
+      {
+        "name": "Pygments",
+        "version": "2.21.0"
+      },
+      {
+        "name": "pytest",
+        "version": "9.1.1"
+      },
+      {
+        "name": "ruff",
+        "version": "0.16.8"
+      },
+      {
+        "name": "setuptools",
+        "version": "84.0.0"
+      },
+      {
+        "name": "wheel",
+        "version": "0.48.0"
+      }
+    ]
+  },
+  "query-agent": {
+    "pip_check": "passed",
+    "cross_project_editable": false,
+    "editable_paths": [
+      "/home/wjyuan/projects/eda-development/query-agent"
+    ],
+    "packages": [
+      {
+        "name": "agentic-eda-query-agent",
+        "version": "0.2.0",
+        "editable_project_location": "/home/wjyuan/projects/eda-development/query-agent"
+      },
+      {
+        "name": "annotated-types",
+        "version": "0.8.0"
+      },
+      {
+        "name": "click",
+        "version": "8.5.0"
+      },
+      {
+        "name": "eda-ai-client",
+        "version": "0.2.0"
+      },
+      {
+        "name": "grimp",
+        "version": "3.17"
+      },
+      {
+        "name": "import-linter",
+        "version": "2.15"
+      },
+      {
+        "name": "iniconfig",
+        "version": "2.3.1"
+      },
+      {
+        "name": "markdown-it-py",
+        "version": "4.2.0"
+      },
+      {
+        "name": "mdurl",
+        "version": "0.1.2"
+      },
+      {
+        "name": "nodeenv",
+        "version": "1.11.0"
+      },
+      {
+        "name": "packaging",
+        "version": "26.3"
+      },
+      {
+        "name": "pip",
+        "version": "23.2.1"
+      },
+      {
+        "name": "pluggy",
+        "version": "1.6.0"
+      },
+      {
+        "name": "pydantic",
+        "version": "2.13.4"
+      },
+      {
+        "name": "pydantic_core",
+        "version": "2.46.4"
+      },
+      {
+        "name": "Pygments",
+        "version": "2.21.0"
+      },
+      {
+        "name": "pyright",
+        "version": "1.1.414"
+      },
+      {
+        "name": "pytest",
+        "version": "9.1.1"
+      },
+      {
+        "name": "rich",
+        "version": "15.0.0"
+      },
+      {
+        "name": "ruff",
+        "version": "0.16.8"
+      },
+      {
+        "name": "setuptools",
+        "version": "84.0.0"
+      },
+      {
+        "name": "typing_extensions",
+        "version": "4.16.0"
+      },
+      {
+        "name": "typing-inspection",
+        "version": "0.4.4"
+      },
+      {
+        "name": "wheel",
+        "version": "0.48.0"
+      }
+    ]
+  }
+}

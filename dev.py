@@ -21,10 +21,20 @@ env.update(PYTHONNOUSERSITE='1', NO_PROXY='localhost,127.0.0.1,::1',
            no_proxy='localhost,127.0.0.1,::1', VIRTUAL_ENV=str(project / '.venv'))
 env['PATH'] = str(project / '.venv/bin') + os.pathsep + env.get('PATH', '')
 if args.command == 'check':
-    commands = [[str(python), '-m', 'pip', 'check'], [str(python), '-m', 'pytest', *args.args]]
+    commands = [[str(python), '-m', 'pip', 'check']]
+    if args.project == 'query-agent':
+        commands += [[str(project / '.venv/bin' / tool), *options] for tool, options in (
+            ('ruff', ['check', 'src', 'tests']), ('ruff', ['format', '--check', 'src', 'tests']),
+            ('pyright', []), ('lint-imports', []))]
+    elif args.project == 'execution-foundation':
+        sources = [str(path.relative_to(project)) for area in ('contracts', 'core', 'gateway')
+                   for path in sorted((project / area).glob('*/src'))]
+        sources += ['contracts/src', 'gateway/src']
+        commands += [[str(python), '-m', 'mypy', '--ignore-missing-imports', *sources]]
+    commands += [[str(python), '-m', 'pytest', *args.args]]
 elif args.command == 'smoke':
     commands = [[str(python), 'smoke.py', *args.args]] if args.project == 'data-foundation' else \
-               [[str(python), '-m', 'pytest', *(['tests/test_app_smokes.py'] if args.project == 'execution-foundation' else ['tests']), *args.args]]
+               [[str(python), '-m', 'pytest', *(['tests/test_local_kernel_http.py'] if args.project == 'execution-foundation' else ['tests']), *args.args]]
 elif args.command == 'python':
     commands = [[str(python), *args.args]]
 elif args.command == 'shell':
@@ -39,7 +49,7 @@ elif args.project == 'execution-foundation':
     state = ROOT / 'var/execution-foundation'
     state.mkdir(parents=True, exist_ok=True)
     commands = [[str(python), '-m', 'openroad_platform_gateway', '--host', '127.0.0.1',
-                 '--port', '18700', '--state-root', str(state), '--no-auth',
+                 '--port', '18700', '--state-root', str(state),
                  '--plugins-root', str(project / 'plugins'),
                  '--admissions-root', str(project / 'admissions'), *args.args]]
 else:

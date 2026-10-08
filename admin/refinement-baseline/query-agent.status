@@ -1,0 +1,16 @@
+ M docs/AGENT_HANDOFF.md
+ M docs/IMPLEMENTATION_STATUS.md
+ M docs/roadmap.md
+ M src/query_agent/adapters/run_evidence/execution_foundation.py
+ M src/query_agent/adapters/run_evidence/http_client.py
+ M src/query_agent/application/answerability.py
+ M src/query_agent/application/collection.py
+ M src/query_agent/application/context/resolver.py
+ M src/query_agent/application/planning.py
+ M src/query_agent/application/service.py
+ M src/query_agent/domain/evidence.py
+ M src/query_agent/domain/query.py
+ M src/query_agent/interfaces/cli.py
+ M src/query_agent/ports/run_evidence.py
+ M tests/fixtures/fake_execution.py
+?? tests/integration/test_query_catalog.py
