@@ -42,8 +42,9 @@ DEFAULT_POOL_SIZE = 8
 class ReadPool:
     """Bounded, reused read-only connections."""
 
-    def __init__(self, path: str | Path, size: int = DEFAULT_POOL_SIZE) -> None:
+    def __init__(self, path: str | Path, size: int = DEFAULT_POOL_SIZE, *, archives: tuple[str, ...] = ()) -> None:
         self._path = str(path)
+        self._archives = archives
         self._size = size
         self._semaphore = threading.BoundedSemaphore(size)
         self._free: list[DataStore] = []
@@ -60,7 +61,7 @@ class ReadPool:
                 if self._free:
                     store = self._free.pop()
                 else:
-                    store = DataStore(self._path, read_only=True)
+                    store = DataStore(self._path, read_only=True, archives=self._archives)
                     self._opened += 1
             yield store
         finally:

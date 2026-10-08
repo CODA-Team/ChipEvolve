@@ -169,7 +169,7 @@ def test_pin_query_joins_same_snapshot_ownership_and_connection_with_projection(
         handler.store, handler.auto_import, handler.execution_client, handler.native_root = store, False, object(), tmp_path
         path = '/snapshots/s/pins/' + pin['object_id'] + '/engineering'
         fields = 'pin.position_um,pin.position_success,native_connection.net_name,native_connection.signal_type,instance'
-        selected = handler._get(path, {'fields': fields})
+        selected = handler._execute_analysis('s', 'pin-engineering', {'name': pin['object_id'], 'fields': fields})
         assert len(calls) == 1 and not calls[0]['with_timing']
         assert selected['pin'] == {'position_um': [10.07, -1], 'position_success': True}
         assert selected['native_connection'] == {'net_name': 'signal', 'signal_type': 'SIGNAL'}

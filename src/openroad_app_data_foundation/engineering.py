@@ -126,7 +126,7 @@ def instance_engineering(store, snapshot_id, identifier):
     counts = object_statistics(store, snapshot_id, {'kind': 'pin',
         'parent_id': entity['object_id'], 'group_by': 'signal_type', 'limit': '100'})
     groups = {row['value']: row['count'] for row in counts['groups']}
-    connections = store.connection.execute("""SELECT
+    connections = store.connection_for(snapshot_id).execute("""SELECT
         json_extract(n.payload,'$.attributes.signal_type') AS signal_type,
         COUNT(DISTINCT n.record_id) AS count
         FROM records p CROSS JOIN records r ON r.snapshot_id=p.snapshot_id
@@ -140,7 +140,7 @@ def instance_engineering(store, snapshot_id, identifier):
         AND +json_extract(p.payload,'$.kind')='pin'
         GROUP BY signal_type""", (snapshot_id, entity['object_id'])).fetchall()
     net_counts = {row['signal_type']: row['count'] for row in connections}
-    native_pins = store.connection.execute("""SELECT
+    native_pins = store.connection_for(snapshot_id).execute("""SELECT
         json_extract(p.payload,'$.attributes.native_pin_signal_type') AS native_pin_signal_type,
         json_extract(n.payload,'$.name') AS net_name
         FROM records p LEFT JOIN records r ON r.snapshot_id=p.snapshot_id
@@ -215,9 +215,9 @@ def compare_inventory(store, left_id, right_id, query, root, client=None):
     return result
 
 
-def _geometry_groups(store, filters, values, expression):
+def _geometry_groups(store, snapshot_id, filters, values, expression):
     """Aggregate every matched instance's placed bbox using integer DBU areas."""
-    return store.connection.execute(f"""
+    return store.connection_for(snapshot_id).execute(f"""
         WITH candidates AS (
             SELECT snapshot_id, record_id, {expression} AS value FROM records
             WHERE {' AND '.join(filters)} LIMIT -1
@@ -321,9 +321,9 @@ def object_statistics(store, snapshot_id, query):
     if physical:
         if query.get('kind') != 'instance':
             raise ValueError('physical statistics require kind=instance')
-        rows = _geometry_groups(store, filters, values, expression)
+        rows = _geometry_groups(store, snapshot_id, filters, values, expression)
     else:
-        rows = store.connection.execute(
+        rows = store.connection_for(snapshot_id).execute(
             f'SELECT {expression} AS value, COUNT(*) AS count FROM records '
             f"WHERE {' AND '.join(filters)} GROUP BY {grouping} ORDER BY count DESC, value",
             values).fetchall()
@@ -358,7 +358,7 @@ def object_statistics(store, snapshot_id, query):
             if tail_size:
                 pages.append(('tail', tail_size, max(item['count'] - tail_size, 0)))
             for label, page_size, page_start in pages:
-                selected = store.connection.execute(
+                selected = store.connection_for(snapshot_id).execute(
                     f"SELECT {name_expression} AS name FROM records WHERE " +
                     ' AND '.join(filters) + f' AND (+{expression}) IS ? ORDER BY name, record_id LIMIT ? OFFSET ?',
                     [*values, item['value'], page_size, page_start]).fetchall()
@@ -420,7 +420,7 @@ def point_extrema(points, tie_rule='name_desc'):
 def routing_totals(store, snapshot_id):
     """Compute full-design geometry from every stored native wire shape."""
     snapshot = store.snapshot(snapshot_id)
-    rows = store.connection.execute("""SELECT
+    rows = store.connection_for(snapshot_id).execute("""SELECT
         json_extract(shape.value, '$.routing_type') AS kind,
         COUNT(*) AS count,
         SUM(json_extract(shape.value, '$.centerline_length_dbu')) AS length_dbu,
@@ -560,7 +560,7 @@ def routing_layers(store, snapshot_id, net_ids):
     if not net_ids:
         return []
     marks = ','.join('?' for _ in net_ids)
-    rows = store.connection.execute(f"""SELECT DISTINCT
+    rows = store.connection_for(snapshot_id).execute(f"""SELECT DISTINCT
         json_extract(shape.value,'$.layer') AS layer,
         json_extract(shape.value,'$.bottom_layer') AS bottom_layer,
         json_extract(shape.value,'$.top_layer') AS top_layer

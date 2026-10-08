@@ -69,6 +69,7 @@ from . import source_fingerprint
 #: that moment, which always matches and therefore detects nothing.
 STARTUP_FINGERPRINT = source_fingerprint()
 from .connections import ReadPool
+from .relationships import object_relationships
 from .repository import DataStore
 
 
@@ -95,7 +96,8 @@ class Handler(BaseHTTPRequestHandler):
     server_version = "design-data-foundation/0.1"
     store: DataStore
     execution_client: KernelClient | None = None
-    auto_import: bool = True
+    archive_client: KernelClient | None = None
+    auto_import: bool = False
     #: The flow tree this run's own reports and results were written to.  Only
     #: used for facts no bundle carries; see artifacts.py.
     native_root: Path = DEFAULT_NATIVE_ROOT
@@ -142,7 +144,35 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         try:
+            if self.store.read_only and self.path != '/query':
+                self._send(403, error_envelope(self.path, 'unavailable', 'database is explicitly read-only'))
+                return
             parts = [urllib.parse.unquote(item) for item in self.path.split('/') if item]
+            if len(parts) == 4 and parts[0] == 'snapshots' and parts[2] == 'analyses':
+                with self.request_lock:
+                    payload = self._execute_analysis(parts[1], parts[3], self._read_body())
+                self._send(200, envelope(self.path, {}, payload))
+                return
+            if len(parts) == 3 and parts[0] == 'timing-queries' and parts[2] == 'import':
+                if self.execution_client is None:
+                    raise KernelUnavailable('execution service is not configured')
+                body = self._read_body()
+                if body:
+                    raise ValueError('timing result import accepts an empty JSON object')
+                with self.request_lock:
+                    payload = timing_query_status(self.store, self.execution_client, parts[1])
+                self._send(200, _timing_query_outcome(self.store, payload))
+                return
+            if self.path == '/imports/ready':
+                if self.execution_client is None:
+                    raise KernelUnavailable('execution service is not configured')
+                body = self._read_body()
+                if body:
+                    raise ValueError('ready imports accepts an empty JSON object')
+                with self.request_lock:
+                    payload = import_ready_bundles(self.store, self.execution_client)
+                self._send(200, {'imports': payload})
+                return
             if len(parts) == 3 and parts[0] == 'snapshots' and parts[2] == 'native-queries':
                 if self.execution_client is None:
                     raise KernelUnavailable('execution service is not configured')
@@ -209,9 +239,6 @@ class Handler(BaseHTTPRequestHandler):
                     "source_fingerprint": STARTUP_FINGERPRINT,
                     "database": self.store.identity()}
         store = store if store is not None else self.store
-        if self.execution_client is not None and self.auto_import:
-            # Importing is a write, so it uses the writable store, not the reader.
-            import_ready_bundles(self.store, self.execution_client)
         if path.startswith('/native-queries/'):
             if self.execution_client is None:
                 raise KernelUnavailable('execution service is not configured')
@@ -221,7 +248,7 @@ class Handler(BaseHTTPRequestHandler):
             if self.execution_client is None:
                 raise KernelUnavailable('execution service is not configured')
             return _timing_query_outcome(store, timing_query_status(
-                self.store, self.execution_client, path.split('/')[-1], _int_param(query, 'wait_seconds', 0)))
+                store, self.execution_client, path.split('/')[-1], _int_param(query, 'wait_seconds', 0), import_results=False))
         if path == "/designs":
             return design_catalog(store)
         if path == "/scope":
@@ -258,6 +285,10 @@ class Handler(BaseHTTPRequestHandler):
             return list_metrics_for_run(store, run_id, query)
         if path.startswith("/snapshots/"):
             parts = [urllib.parse.unquote(item) for item in path.split("/") if item]
+            client = self.execution_client
+            if self.archive_client is not None and self.store.archives and not self.store.connection.execute(
+                    'SELECT 1 FROM main.snapshots WHERE snapshot_id = ?', (parts[1],)).fetchone():
+                client = self.archive_client
             if len(parts) == 6 and parts[2] == "compare" and parts[4] == "timing-paths":
                 return compare_timing_path(
                     store, parts[1], parts[3], parts[5], query.get("to_path_id"))
@@ -268,16 +299,18 @@ class Handler(BaseHTTPRequestHandler):
                 return compare_metric(store, parts[1], parts[3], name,
                                       query.get("scene"))
             if len(parts) == 5 and parts[2] == 'compare' and parts[4] == 'inventory':
-                return compare_inventory(store, parts[1], parts[3], query, self.native_root, self.execution_client)
+                if query.get('include_native_area') == '1':
+                    raise ValueError('native area analysis requires POST /snapshots/<id>/analyses/compare-inventory')
+                return compare_inventory(store, parts[1], parts[3], query, self.native_root)
             if len(parts) == 5 and parts[2] == 'sources' and parts[4] == 'excerpt':
                 snapshot = store.snapshot(parts[1])
                 refs = [r for r in snapshot.get('source_artifacts', []) if r.get('artifact_id') == parts[3]]
                 if len(refs) != 1:
                     raise KeyError('artifact is not attached to this snapshot')
-                if self.execution_client is None:
+                if client is None:
                     raise KernelUnavailable('execution service is not configured')
                 ref = refs[0]
-                result = self.execution_client.artifact_excerpt(ref['run_id'], parts[3],
+                result = client.artifact_excerpt(ref['run_id'], parts[3],
                     offset=_int_param(query, 'offset', 0), max_bytes=_int_param(query, 'max_bytes', 8192))
                 return {'snapshot_id': parts[1], 'source': ref, 'excerpt': excerpt_view(result, query)}
             if len(parts) == 3 and parts[2] == "resolve-object":
@@ -286,21 +319,12 @@ class Handler(BaseHTTPRequestHandler):
                 return snapshot_metrics(store, parts[1], query)
             if len(parts) == 3 and parts[2] == "objects":
                 return list_objects(store, parts[1], query)
+            if len(parts) == 5 and parts[2] == 'objects' and parts[4] == 'relationships':
+                return object_relationships(store, parts[1], parts[3], query)
             if len(parts) == 4 and parts[2:4] == ['objects', 'statistics']:
                 return object_statistics(store, parts[1], query)
-            if len(parts) == 3 and parts[2] == 'net-inventory':
-                if query:
-                    raise ValueError('net-inventory covers all native nets and accepts no filters')
-                if self.execution_client is None:
-                    raise KernelUnavailable('execution service is not configured')
-                return net_inventory(store, self.execution_client, parts[1], self.native_root)
-            if len(parts) == 3 and parts[2] == 'analysis-setup':
-                if set(query) - {'fields', 'detail'}:
-                    raise ValueError('analysis-setup accepts fields and detail')
-                if self.execution_client is None:
-                    raise KernelUnavailable('execution service is not configured')
-                payload = analysis_setup(store, self.execution_client, parts[1], self.native_root)
-                return metadata_view(payload, query, path) if query.get('fields') else payload
+            if len(parts) == 3 and parts[2] in ('net-inventory', 'analysis-setup'):
+                raise ValueError('EDA analysis requires POST /snapshots/' + parts[1] + '/analyses/' + parts[2])
             if len(parts) == 3 and parts[2] == 'timing-reports':
                 payload = timing_report_paths(store, parts[1], query, self.native_root)
                 return metadata_view(payload, query, path) if query.get('fields') else payload
@@ -308,27 +332,7 @@ class Handler(BaseHTTPRequestHandler):
                 if query.get('resolve', '0') not in ('0', '1'):
                     raise ValueError('resolve must be 0|1')
                 if query.get('resolve') == '1':
-                    if self.execution_client is None:
-                        raise KernelUnavailable('execution service is not configured')
-                    payload = resolved_timing_overview(store, self.store, self.execution_client, parts[1], query)
-                    if payload['query_execution']['status'] != 'succeeded':
-                        return payload
-                    recovery_query = {key: value for key, value in query.items()
-                                      if key not in ('resolve', 'wait_seconds', 'endpoint_path_count')}
-                    recovery_query['check'] = query.get('check', 'setup')
-                    recovery = '/snapshots/' + payload['snapshot_id'] + '/timing-overview'
-                    if not query.get('fields'):
-                        return payload
-                    try:
-                        return metadata_view(payload, recovery_query, recovery)
-                    except ValueError as exc:
-                        headers = 'checks.setup.paths,checks.hold.paths' if query.get('check') == 'both' else 'paths'
-                        route = recovery + '?' + urllib.parse.urlencode({
-                            **{key: value for key, value in recovery_query.items() if key not in ('fields', 'detail')},
-                            'fields': headers + ',object_facts_source,association_coverage'})
-                        raise ValueError(str(exc) + '; native query ' + payload['query_execution']['run_id']
-                                         + ' already succeeded; correct the fields on ' + route
-                                         + ' to reuse its complete result without another submission') from exc
+                    raise ValueError('fresh STA requires POST /snapshots/' + parts[1] + '/analyses/timing-overview')
                 payload = timing_overview(store, parts[1], query)
                 return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 3 and parts[2] == 'routing-totals':
@@ -358,24 +362,17 @@ class Handler(BaseHTTPRequestHandler):
                 payload = path_endpoints(store, parts[1], parts[3])
                 return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 5 and parts[2] == 'pins' and parts[4] == 'engineering':
-                if self.execution_client is None:
-                    raise KernelUnavailable('execution service is not configured')
-                payload = pin_engineering(store, self.execution_client, parts[1], parts[3], self.native_root)
-                return metadata_view(payload, query, path) if query.get('fields') else payload
+                raise ValueError('native pin analysis requires POST /snapshots/' + parts[1] + '/analyses/pin-engineering')
             if len(parts) == 5 and parts[2] == 'instances' and parts[4] == 'engineering':
                 payload = instance_engineering(store, parts[1], parts[3])
                 return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 5 and parts[2] == 'instances' and parts[4] == 'power':
-                if self.execution_client is None:
-                    raise KernelUnavailable('execution service is not configured')
-                payload = instance_power(store, self.execution_client, parts[1], parts[3], query, self.native_root)
-                return metadata_view(payload, query, path) if query.get('fields') else payload
+                raise ValueError('native power analysis requires POST /snapshots/' + parts[1] + '/analyses/instance-power')
             if len(parts) == 5 and parts[2] == 'instances' and parts[4] == 'pair':
                 payload = instance_pair(store, parts[1], parts[3], query)
                 return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 5 and parts[2] == 'instances' and parts[4] == 'pin-inventory':
-                payload = pin_inventory(store, self.execution_client, parts[1], parts[3], query, self.native_root)
-                return metadata_view(payload, query, path) if query.get('fields') else payload
+                raise ValueError('native pin inventory requires POST /snapshots/' + parts[1] + '/analyses/pin-inventory')
             if len(parts) == 5 and parts[2] in ('instances', 'nets', 'pins') and parts[4] == 'provenance':
                 if query:
                     raise ValueError('object provenance accepts no query filters')
@@ -387,9 +384,9 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) == 3 and parts[2] == "timing-context":
                 return metadata_view(timing_context(store, parts[1]), query, path)
             if len(parts) == 3 and parts[2] == 'constraints':
-                if self.execution_client is None:
+                if client is None:
                     raise KernelUnavailable('execution service is not configured')
-                payload = constraint_context(store, self.execution_client, parts[1], query)
+                payload = constraint_context(store, client, parts[1], query)
                 return metadata_view(payload, query, path)
             if len(parts) == 5 and parts[2] == "nets" and parts[4] == "routing-summary":
                 if query.get('source', 'detailed') == 'global_route':
@@ -402,10 +399,10 @@ class Handler(BaseHTTPRequestHandler):
             # the run was timed with, the reports it wrote, and the producer
             # manifest naming artifacts the adapter never staged.
             if len(parts) == 5 and parts[2] == "nets" and parts[4] == "parasitics":
-                return net_parasitics(store, self.execution_client, parts[1],
+                return net_parasitics(store, client, parts[1],
                                       parts[3], query)
             if len(parts) == 3 and parts[2] == "artifacts":
-                return artifact_manifest(store, self.execution_client, parts[1], query)
+                return artifact_manifest(store, client, parts[1], query)
             if len(parts) == 4 and parts[2] == "artifacts" and parts[3] == "files":
                 return native_files(store, parts[1], query, self.native_root)
             if len(parts) == 5 and parts[2:5] == ['artifacts', 'files', 'excerpt']:
@@ -504,6 +501,57 @@ class Handler(BaseHTTPRequestHandler):
                 return payload
         raise KeyError("not found")
 
+    def _execute_analysis(self, snapshot_id: str, operation: str, query: dict) -> dict:
+        """Explicit write boundary. Tool-specific implementations are migrated to Toolkits next."""
+        if self.store.read_only:
+            raise ValueError('database is explicitly read-only')
+        if self.execution_client is None:
+            raise KernelUnavailable('execution service is not configured')
+        client, store = self.execution_client, self.store
+        query = dict(query)
+        if operation == 'net-inventory':
+            if query:
+                raise ValueError('net-inventory accepts no filters')
+            return net_inventory(store, client, snapshot_id, self.native_root)
+        if operation == 'analysis-setup':
+            if set(query) - {'fields', 'detail'}:
+                raise ValueError('analysis-setup accepts fields and detail')
+            payload = analysis_setup(store, client, snapshot_id, self.native_root)
+        elif operation == 'timing-overview':
+            query['resolve'] = '1'
+            payload = resolved_timing_overview(store, store, client, snapshot_id, query)
+        elif operation == 'pin-engineering':
+            name = query.pop('name')
+            if set(query) - {'fields', 'detail'}:
+                raise ValueError('pin-engineering accepts name, fields and detail')
+            payload = pin_engineering(store, client, snapshot_id, name, self.native_root)
+        elif operation == 'pin-inventory':
+            payload = pin_inventory(store, client, snapshot_id, query.pop('name'), query, self.native_root)
+        elif operation == 'instance-power':
+            payload = instance_power(store, client, snapshot_id, query.pop('name'), query, self.native_root)
+        elif operation == 'compare-inventory':
+            payload = compare_inventory(store, snapshot_id, query.pop('to_snapshot_id'), query, self.native_root, client)
+        else:
+            raise ValueError('unknown analysis operation')
+        if operation == 'timing-overview' and payload.get('query_execution', {}).get('status') == 'succeeded':
+            recovery_query = {key: value for key, value in query.items()
+                              if key not in ('resolve', 'wait_seconds', 'endpoint_path_count')}
+            recovery_query['check'] = query.get('check', 'setup')
+            recovery = '/snapshots/' + payload['snapshot_id'] + '/timing-overview'
+            if not query.get('fields'):
+                return payload
+            try:
+                return metadata_view(payload, recovery_query, recovery)
+            except ValueError as exc:
+                headers = 'checks.setup.paths,checks.hold.paths' if query.get('check') == 'both' else 'paths'
+                route = recovery + '?' + urllib.parse.urlencode({
+                    **{key: value for key, value in recovery_query.items() if key not in ('fields', 'detail')},
+                    'fields': headers + ',object_facts_source,association_coverage'})
+                raise ValueError(str(exc) + '; native query ' + payload['query_execution']['run_id']
+                                 + ' already succeeded; correct the fields on ' + route
+                                 + ' to reuse its complete result without another submission') from exc
+        return metadata_view(payload, query, '/snapshots/' + snapshot_id + '/analyses/' + operation) if query.get('fields') else payload
+
     def _read_body(self) -> dict[str, Any]:
         length = int(self.headers.get("Content-Length") or 0)
         if length <= 0 or length > 32 * 1024 * 1024:
@@ -527,13 +575,20 @@ class Handler(BaseHTTPRequestHandler):
 
 def serve(*, host: str, port: int, store: DataStore,
           kernel_url: str | None = None, kernel_token: str | None = None,
-          auto_import: bool = True,
+          archive_kernel_url: str | None = None,
+          auto_import: bool = False,
           native_root: str | Path = DEFAULT_NATIVE_ROOT) -> None:
+    if auto_import:
+        if store.read_only:
+            raise ValueError('read-only serving cannot auto-import')
+        if kernel_url:
+            import_ready_bundles(store, LocalFirstKernelClient(kernel_url, token=kernel_token))
     handler = type("BoundHandler", (Handler,), {
         "store": store, "auto_import": auto_import,
         "native_root": Path(native_root),
         # A reader per request thread; the writable store above stays for imports.
-        "read_pool": ReadPool(store.path) if hasattr(store, "path") else None,
+        "read_pool": ReadPool(store.path, archives=store.archives) if hasattr(store, "path") else None,
+        "archive_client": (KernelClient(archive_kernel_url) if archive_kernel_url else None),
         "execution_client": (LocalFirstKernelClient(kernel_url, token=kernel_token)
                               if kernel_url else None),
     })

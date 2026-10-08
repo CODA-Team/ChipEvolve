@@ -66,7 +66,7 @@ def test_named_scene_and_power_projection_preserve_actual_tool_result(store,monk
         return outcome()
     monkeypatch.setattr(module,'submit_native_query',native)
     h=Handler.__new__(Handler);h.store,h.auto_import,h.execution_client=store,False,object()
-    r=h._get('/snapshots/nested/instances/i/power',{'scene':scene,'fields':'power_w,unit,native_query'})
+    r=h._execute_analysis('nested', 'instance-power', {'name':'i','scene':scene,'fields':'power_w,unit,native_query'})
     assert r['power_w']['internal']==.0123 and r['unit']=='W'
     assert r['native_query']['run_id']=='fresh-power' and r['native_query']['status']=='succeeded'
     assert r['native_query']['result_path']=='/native-queries/fresh-power?wait_seconds=120'

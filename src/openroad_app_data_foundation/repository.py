@@ -137,7 +137,7 @@ class _LockedConnection:
 class DataStore:
     """A local snapshot store owned by this application."""
 
-    def __init__(self, path: str | Path, *, read_only: bool = False):
+    def __init__(self, path: str | Path, *, read_only: bool = False, archives: Sequence[str | Path] = ()):
         """Open the store.  ``read_only`` is for serving threads only.
 
         A read-only connection is opened through SQLite's URI form, which refuses
@@ -147,13 +147,15 @@ class DataStore:
         """
         self._lock = threading.RLock()
         self.read_only = read_only
+        self.archives = tuple(str(Path(p).expanduser().resolve()) for p in archives)
+        self._archive_readers = {}
         #: Kept so a server can hand the same file to a pool of reader connections.
         self.path = str(path)
         if read_only:
-            target = f"file:{path}?mode=ro"
+            target = Path(path).expanduser().resolve().as_uri() + "?mode=ro"
         else:
             target = str(path)
-        connection = sqlite3.connect(target, check_same_thread=False, uri=read_only)
+        connection = sqlite3.connect(target, check_same_thread=False, uri=True)
         if not read_only:
             # The default is 5 s.  With several read-only services on the same file
             # under a rollback journal, a writer's COMMIT can wait longer than that
@@ -182,6 +184,7 @@ class DataStore:
         #: same one on every page.
         self._count_cache: dict[tuple[Any, ...], int] = {}
         if read_only:
+            self._attach_archives()
             return
         self.connection.executescript(
             """
@@ -287,14 +290,52 @@ class DataStore:
             """
         )
         self.connection.commit()
+        self._attach_archives()
+
+    def _attach_archives(self):
+        from .archives import attach_archives
+        try:
+            self.archives = attach_archives(self.connection, self.path, self.archives)
+        except Exception:
+            self.connection.close()
+            raise
+
+    def connection_for(self, snapshot_id):
+        """Use one physical records table for a fixed immutable snapshot.
+
+        UNION views over the huge records table force SQLite to materialize
+        correlated joins. Selecting the owning database keeps its indexes usable.
+        The global snapshot catalog still spans every explicitly mounted store.
+        """
+        if not self.archives:
+            return self.connection
+        with self._lock:
+            if self.connection.execute('SELECT 1 FROM main.snapshots WHERE snapshot_id = ?', (snapshot_id,)).fetchone():
+                return self.connection
+            for index, path in enumerate(self.archives):
+                if self.connection.execute('SELECT 1 FROM archive' + str(index) + '.snapshots WHERE snapshot_id = ?', (snapshot_id,)).fetchone():
+                    if path not in self._archive_readers:
+                        self._archive_readers[path] = DataStore(path, read_only=True)
+                    return self._archive_readers[path].connection
+        raise KeyError('snapshot not found: ' + snapshot_id)
+
+    def _primary_snapshot(self, snapshot_id):
+        if self.archives and self.connection.execute(
+                'SELECT 1 FROM main.snapshots WHERE snapshot_id = ?', (snapshot_id,)).fetchone() is None:
+            raise ContractError('historical archive snapshot cannot be modified: ' + snapshot_id)
 
     def close(self) -> None:
+        for reader in self._archive_readers.values():
+            reader.close()
+        self._archive_readers.clear()
         self.connection.close()
 
     def register(self, pack: Mapping[str, Any], *,
                  artifact_id: str | None = None) -> dict[str, Any]:
         snapshot = _object(pack.get("snapshot"), "snapshot")
         snapshot_id = _required(snapshot, "snapshot_id")
+        if self.archives and self.connection.execute('SELECT 1 FROM snapshots WHERE snapshot_id = ?', (snapshot_id,)).fetchone():
+            raise ContractError('snapshot already exists: ' + snapshot_id)
         for name in ("design_id", "revision_id", "run_id", "stage"):
             _required(snapshot, name)
         version = snapshot.get("schema_version", SCHEMA_VERSION)
@@ -363,12 +404,12 @@ class DataStore:
         # A streamed import only knows the counts once every row has been written,
         # so they are folded into the snapshot row at the end of the transaction.
         counts = {name: 0 for name in RECORD_TYPES}
-        insert = ("INSERT INTO records(snapshot_id, record_type, record_id, ordinal, "
+        insert = ("INSERT INTO main.records(snapshot_id, record_type, record_id, ordinal, "
                   "payload) VALUES (?, ?, ?, ?, ?)")
         try:
             with self.connection:
                 self.connection.execute(
-                    "INSERT INTO snapshots(snapshot_id, payload) VALUES (?, ?)",
+                    "INSERT INTO main.snapshots(snapshot_id, payload) VALUES (?, ?)",
                     (snapshot_id, json.dumps(snapshot, ensure_ascii=False, sort_keys=True)),
                 )
                 for record_type in RECORD_TYPES:
@@ -381,13 +422,13 @@ class DataStore:
                         partial(enrich, record_type), insert)
                 snapshot = {**snapshot, "record_counts": counts}
                 self.connection.execute(
-                    "UPDATE snapshots SET payload = ? WHERE snapshot_id = ?",
+                    "UPDATE main.snapshots SET payload = ? WHERE snapshot_id = ?",
                     (json.dumps(snapshot, ensure_ascii=False, sort_keys=True), snapshot_id))
                 if artifact_id is not None:
                     # Same transaction as the snapshot: either both are visible or
                     # neither is, so a retry after a crash is always well defined.
                     self.connection.execute(
-                        "INSERT INTO imported_artifacts(artifact_id) VALUES (?)",
+                        "INSERT INTO main.imported_artifacts(artifact_id) VALUES (?)",
                         (artifact_id,))
                 # Inside the transaction, not after it.  This used to run on its
                 # own afterwards, and an import that hit "database is locked" on
@@ -477,6 +518,7 @@ class DataStore:
                       "query-data/dbnetwork_map.json")
 
     def store_fragments(self, snapshot_id: str, values: Mapping[str, Any]) -> int:
+        self._primary_snapshot(snapshot_id)
         stored = 0
         with self.connection:
             for logical_path in self.FRAGMENT_PATHS:
@@ -484,7 +526,7 @@ class DataStore:
                 if not isinstance(payload, bytes):
                     continue
                 self.connection.execute(
-                    "INSERT OR REPLACE INTO fragment_sources"
+                    "INSERT OR REPLACE INTO main.fragment_sources"
                     "(snapshot_id, logical_path, sha256, payload) VALUES (?, ?, ?, ?)",
                     (snapshot_id, logical_path, hashlib.sha256(payload).hexdigest(),
                      sqlite3.Binary(payload)))
@@ -494,7 +536,7 @@ class DataStore:
     def fragment_source(self, snapshot_id: str,
                         logical_path: str) -> dict[str, Any] | None:
         self.snapshot(snapshot_id)
-        row = self.connection.execute(
+        row = self.connection_for(snapshot_id).execute(
             "SELECT sha256, payload FROM fragment_sources"
             " WHERE snapshot_id = ? AND logical_path = ?",
             (snapshot_id, logical_path)).fetchone()
@@ -513,7 +555,7 @@ class DataStore:
             if not isinstance(payload, bytes):
                 continue
             self.connection.execute(
-                "INSERT OR REPLACE INTO fragment_sources"
+                "INSERT OR REPLACE INTO main.fragment_sources"
                 "(snapshot_id, logical_path, sha256, payload) VALUES (?, ?, ?, ?)",
                 (snapshot_id, logical_path, hashlib.sha256(payload).hexdigest(),
                  sqlite3.Binary(payload)))
@@ -527,7 +569,7 @@ class DataStore:
         """Record an artifact as seen without importing it (a superseded bundle)."""
         with self.connection:
             self.connection.execute(
-                "INSERT OR IGNORE INTO imported_artifacts(artifact_id) VALUES (?)",
+                "INSERT OR IGNORE INTO main.imported_artifacts(artifact_id) VALUES (?)",
                 (artifact_id,))
 
     def register_import(self, artifact_id: str, pack: Mapping[str, Any]) -> dict[str, Any]:
@@ -616,6 +658,7 @@ class DataStore:
             "bytes": stat.st_size if stat else None,
             "mtime_ns": stat.st_mtime_ns if stat else None,
             "read_only": self.read_only,
+            "archives": [{'path': path, 'read_only': True} for path in self.archives],
             **self.manifest_fingerprint(),
         }
 
@@ -748,7 +791,7 @@ class DataStore:
         query += " ORDER BY ordinal LIMIT ? OFFSET ?"
         values.extend((limit, offset))
         return [self._decode(row["payload"], snapshot_id)
-                for row in self.connection.execute(query, values)]
+                for row in self.connection_for(snapshot_id).execute(query, values)]
 
     def filtered(self, snapshot_id: str, record_type: str, *, where: str = "",
                  params: Sequence[Any] = (), limit: int | None = None,
@@ -785,7 +828,7 @@ class DataStore:
             query += " LIMIT ? OFFSET ?"
             values.extend((limit, offset))
         return [self._decode(row["payload"], snapshot_id)
-                for row in self.connection.execute(query, values)]
+                for row in self.connection_for(snapshot_id).execute(query, values)]
 
     def count_records(self, snapshot_id: str, record_type: str, *, where: str = "",
                       params: Sequence[Any] = ()) -> int:
@@ -809,7 +852,7 @@ class DataStore:
         if where:
             query += " AND " + where
             values.extend(params)
-        row = self.connection.execute(query, values).fetchone()
+        row = self.connection_for(snapshot_id).execute(query, values).fetchone()
         result = int(row["count"])
         self._count_cache[cache_key] = result
         return result
@@ -1042,7 +1085,7 @@ class DataStore:
         return self.relations_touching(snapshot_id, [object_id])
 
     def _count(self, snapshot_id: str, record_type: str) -> int:
-        row = self.connection.execute(
+        row = self.connection_for(snapshot_id).execute(
             "SELECT COUNT(*) AS count FROM records WHERE snapshot_id = ? AND record_type = ?",
             (snapshot_id, record_type),
         ).fetchone()

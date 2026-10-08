@@ -38,9 +38,9 @@ def instance_pair(store, snapshot_id, identifier, query):
     if 'signal_type' in query:
         shared += " AND json_extract(n.payload,'$.attributes.signal_type')=?"
         params.append(query['signal_type'])
-    total = store.connection.execute('SELECT COUNT(*) FROM (' + shared + ')', params).fetchone()[0]
+    total = store.connection_for(snapshot_id).execute('SELECT COUNT(*) FROM (' + shared + ')', params).fetchone()[0]
     order = query.get('order', 'asc').upper()
-    rows = store.connection.execute(shared + ' ORDER BY name ' + order +
+    rows = store.connection_for(snapshot_id).execute(shared + ' ORDER BY name ' + order +
         ', native_name ' + order + ', object_id ' + order + ' LIMIT ? OFFSET ?',
         [*params, limit, offset]).fetchall()
     page = _page(total, len(rows), limit, offset)

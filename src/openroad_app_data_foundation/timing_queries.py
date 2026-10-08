@@ -44,7 +44,7 @@ def submit_timing_query(store, client, snapshot_id, query):
     return {'run': result, 'snapshot_id': inputs['snapshot_id'], 'parent_snapshot_id': snapshot_id}
 
 
-def timing_query_status(store, client, run_id, wait_seconds=0):
+def timing_query_status(store, client, run_id, wait_seconds=0, *, import_results=True):
     run = wait_query_run(client, run_id, wait_seconds)
     if run['project_id'] != 'eda-ai-timing-query':
         raise KeyError('run is not a timing query')
@@ -52,7 +52,7 @@ def timing_query_status(store, client, run_id, wait_seconds=0):
     if run['status'] == 'succeeded':
         for artifact in client.artifacts(run_id):
             if artifact['kind'] != 'data_snapshot': continue
-            if not store.imported(artifact['artifact_id']):
+            if import_results and not store.imported(artifact['artifact_id']):
                 store.register_import(artifact['artifact_id'], load_run_bundle(client, run_id, artifact['artifact_id']))
             snapshots = [s['snapshot_id'] for s in store.snapshots(design_id=run['design_id'])
                          if any(r.get('artifact_id') == artifact['artifact_id'] for r in s['source_artifacts'])]

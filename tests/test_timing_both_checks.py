@@ -39,7 +39,7 @@ def test_one_submission_returns_each_check_and_its_complete_pin_sequence(tmp_pat
         monkeypatch.setattr(resolved_timing, 'timing_query_status', status)
         handler = object.__new__(Handler)
         handler.store, handler.auto_import, handler.execution_client = store, False, object()
-        result = handler._get('/snapshots/s/timing-overview', {
+        result = handler._execute_analysis('s', 'timing-overview', {
             'resolve': '1', 'check': 'both', 'limit': '1', 'include_path_details': '1',
             'fields': 'checks.setup.paths,checks.hold.paths,checks.setup.path_details.data_pin_names'})
         assert len(calls) == 1
@@ -90,7 +90,7 @@ def test_bad_both_projection_recovers_compact_check_headers_without_new_analysis
         handler = Handler.__new__(Handler)
         handler.store, handler.auto_import, handler.execution_client = store, False, object()
         with pytest.raises(ValueError, match='unknown metadata field: paths') as error:
-            handler._get('/snapshots/s/timing-overview', {
+            handler._execute_analysis('s', 'timing-overview', {
                 'resolve': '1', 'check': 'both', 'include_path_details': '1', 'fields': 'paths'})
         route = str(error.value).split('correct the fields on ', 1)[1].split(' to reuse', 1)[0]
         url = urlsplit(route)
@@ -106,7 +106,7 @@ def test_bad_both_projection_recovers_compact_check_headers_without_new_analysis
         store.close()
 
 
-def test_batch_reuses_only_its_actual_completed_analysis_and_validates_each_request(tmp_path, monkeypatch):
+def test_read_batch_refuses_implicit_analysis_without_submitting_a_tool(tmp_path, monkeypatch):
     parent, child = both_pair()
     store = DataStore(tmp_path / 'db.sqlite')
     calls = []
@@ -126,13 +126,9 @@ def test_batch_reuses_only_its_actual_completed_analysis_and_validates_each_requ
             '/snapshots/s/timing-overview?resolve=1&check=setup&limit=1&fields=paths',
             '/snapshots/s/timing-overview?resolve=1&check=hold&limit=1&fields=paths',
             '/snapshots/s/timing-overview?resolve=1&check=invalid&limit=1&fields=paths']}, handler._get)
-        assert calls == ['s']
-        setup, hold, invalid = response['results']
-        assert setup['data']['paths'][0]['check'] == 'setup'
-        assert hold['data']['paths'][0]['check'] == 'hold'
-        assert setup['data']['query_execution']['run_id'] == hold['data']['query_execution']['run_id']
-        assert hold['data']['query_execution']['reuse_scope'] == 'one fresh native analysis within this read batch'
-        assert invalid['status'] == 'unavailable'
-        assert response['failed_query_count'] == 1
+        assert calls == []
+        assert all(row['status'] == 'unavailable' for row in response['results'])
+        assert response['failed_query_count'] == 3
+        assert all('requires POST' in str(row) for row in response['results'])
     finally:
         store.close()

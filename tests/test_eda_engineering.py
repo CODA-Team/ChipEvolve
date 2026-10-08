@@ -193,11 +193,11 @@ def test_fresh_join_imports_with_writer_and_reads_complete_facts_in_one_operatio
     handler = Handler.__new__(Handler)
     handler.store, handler.execution_client, handler.auto_import = store, object(), False
     try:
-        result = handler._get('/snapshots/s/timing-overview', {
+        result = handler._execute_analysis('s', 'timing-overview', {
             'resolve': '1', 'check': 'setup', 'startpoint': 'u/A', 'endpoint': 'u/Z', 'limit': '1',
             'signal_type': 'SIGNAL', 'include_physical': '1', 'include_path_details': '1',
             'include_connectivity': '1',
-            'fields': 'paths,path_details.data_pin_names,instances,instance_bbox_union,net_names,nets'}, reader)
+            'fields': 'paths,path_details.data_pin_names,instances,instance_bbox_union,net_names,nets'})
         assert calls == [{'path_count': 1, 'endpoint_path_count': 1, 'from_pin': 'u/A', 'to_pin': 'u/Z'}]
         assert result['query_execution']['status'] == 'succeeded'
         assert result['snapshot']['snapshot_id'] == 'child'
@@ -1118,7 +1118,7 @@ def test_bad_projection_preserves_completed_query_address_and_does_not_require_r
     handler.store, handler.execution_client, handler.auto_import = store, object(), False
     try:
         with pytest.raises(ValueError, match='unknown metadata field: path_details.master_occurrences') as error:
-            handler._get('/snapshots/s/timing-overview', {
+            handler._execute_analysis('s', 'timing-overview', {
                 'resolve': '1', 'limit': '1', 'include_path_details': '1',
                 'fields': 'path_details.master_occurrences'})
         assert 'native query native-run already succeeded' in str(error.value)

@@ -252,7 +252,7 @@ def list_objects(store, snapshot_id, query):
         scale = store.snapshot(snapshot_id)['run_summary']['dbu_per_micron']
     if sort == 'distance' and rows:
         marks = ','.join('?' for _ in rows)
-        distances = store.connection.execute(f"SELECT record_id, {expression} AS value FROM records "
+        distances = store.connection_for(snapshot_id).execute(f"SELECT record_id, {expression} AS value FROM records "
             f"WHERE snapshot_id=? AND record_type='entities' AND record_id IN ({marks})",
             [snapshot_id, *[row['object_id'] for row in rows]]).fetchall()
         values = {r['record_id']: r['value'] for r in distances}
@@ -298,7 +298,7 @@ def list_objects(store, snapshot_id, query):
         result['missing_ids'] = [item for item in wanted if item not in found]
     if sort in ('bbox_area', 'fanout', 'distance'):
         conditions = ['snapshot_id=?', "record_type='entities'"] + ([where] if where else [])
-        ranked = store.connection.execute(f"""SELECT value, COUNT(*) AS tie_count FROM
+        ranked = store.connection_for(snapshot_id).execute(f"""SELECT value, COUNT(*) AS tie_count FROM
             (SELECT {expression} AS value FROM records WHERE {' AND '.join(conditions)})
             GROUP BY value ORDER BY value IS NULL, value {order} LIMIT 1""",
             [snapshot_id, *params]).fetchone()
@@ -308,7 +308,7 @@ def list_objects(store, snapshot_id, query):
             'leading_value': ranked['value'] if ranked else None,
             'leading_tie_count': ranked['tie_count'] if ranked and ranked['value'] is not None else 0,
             'tie_rule': 'native name ' + tie_order + ', then object ID',
-            'missing_value_count': store.connection.execute(
+            'missing_value_count': store.connection_for(snapshot_id).execute(
                 f"SELECT COUNT(*) FROM records WHERE {' AND '.join(conditions)} AND ({expression}) IS NULL",
                 [snapshot_id, *params]).fetchone()[0]}
         if sort == 'distance':
