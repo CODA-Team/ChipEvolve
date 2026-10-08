@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=59.4"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eda-toolkits"
+version = "0.1.0"
+description = "OpenROAD and ORFS adapters for the public execution contract"
+requires-python = ">=3.10"
+dependencies = ["openroad-platform-client>=0.2,<0.3", "openroad-platform-contracts>=0.2,<0.3"]
+
+[project.scripts]
+eda-toolkit = "eda_toolkits.__main__:main"
+
+[project.optional-dependencies]
+test = ["pytest>=8", "openroad-platform-runtime>=0.2,<0.3"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"eda_toolkits.openroad" = ["*.json", "README.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"

@@ -1,0 +1,17 @@
+{
+  "source_project": "execution-foundation",
+  "source_commit": "e9db3ec9366d8aca1cc6d454fe866ac5572f5d0d",
+  "moved_files_sha256": {
+    "README.md": "204e59a66b949c9d8fc1b53be1081b9d656477829ff60f34009e0ec6b6341056",
+    "adapter.py": "c61f63ec2f4c3d2bf30c7842dfd223bc589fd94a85bf08a10827b86219393c38",
+    "opendb_adapter.py": "c4b8baaf930d25be814b4e186d58fc05a110213075d9d1e91bd27bda2797f4a9",
+    "openroad-data.plugin.json": "795c0ba2f1c1157dd3c0356073c41e27533530076534f615d237cf437a4d77c1",
+    "opensta_adapter.py": "78fccf7a9a998d6936220d23269480b7753760b7e987e6e257b32265c676055e",
+    "orfs_adapter.py": "7b8f6dff31792595d595ccb0f7fb13359cefa4cc3881810f7b5fefc6e894c453",
+    "provenance.json": "9b0493cd6aa71e2ba015c0cb000851af5f770f978631a6c6e0cc5f751d20a2c9",
+    "report_adapter.py": "32c9f4c440e73f45d3ec9c9281f517d271198f40593c4c0a2e45522c28a46dcc",
+    "sta_inputs.py": "fa4bfb274dbc3ee10d7f68374319851378f55985301ab6bbc0ec4936145aa4bc",
+    "timing_json.py": "d47b8ec2329dd08ef598537b028fef4e6a4d9b0ff3bbb2b85b3b41bdf5fb0679"
+  },
+  "test_migration": "All four native adapter tests moved; subprocesses use installed package modules."
+}
