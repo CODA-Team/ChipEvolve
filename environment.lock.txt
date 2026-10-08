@@ -1,0 +1,24 @@
+# Editable Git install with no remote (agentic-eda-query-agent==0.1.0)
+-e /home/wjyuan/projects/eda-development/query-agent
+annotated-types==0.8.0
+click==8.5.0
+grimp==3.17
+import-linter==2.15
+iniconfig==2.3.1
+markdown-it-py==4.2.0
+mdurl==0.1.2
+nodeenv==1.11.0
+packaging==26.3
+pip==23.2.1
+pluggy==1.6.0
+pydantic==2.13.4
+pydantic_core==2.46.4
+Pygments==2.21.0
+pyright==1.1.414
+pytest==9.1.1
+rich==15.0.0
+ruff==0.16.8
+setuptools==84.0.0
+typing-inspection==0.4.4
+typing_extensions==4.16.0
+wheel==0.48.0
