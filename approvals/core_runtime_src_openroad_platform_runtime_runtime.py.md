@@ -161,3 +161,5 @@ understand their contents.
 Ordinary EDA tasks now reserve a six-gigabyte default memory budget. Requests
 above that threshold must carry the explicit `memory_approval=manual` label,
 making large-machine consumption visible and deliberate.
+
+2026-10-08 ratchet: current maximum 1101 physical lines; earlier ceilings above are historical.

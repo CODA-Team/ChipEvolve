@@ -36,3 +36,5 @@ Two properties follow, and neither was available before:
 Reading both files and cross-checking them *is* discovery and admission, which
 is what this module exists to do.  Moving the provenance reader to a helper
 module would add a file without removing a responsibility.
+
+2026-10-08 ratchet: current maximum 430 physical lines; earlier ceilings above are historical.

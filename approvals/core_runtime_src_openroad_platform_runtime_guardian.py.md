@@ -64,3 +64,5 @@ This key's number was tightened to the tree as reconciled in
 raised it to cover input objects and a task-approval API that were dropped, and
 the ratchet may only shrink. The reason the remaining growth is authorised is in
 that section.
+
+2026-10-08 ratchet: current maximum 496 physical lines; earlier ceilings above are historical.

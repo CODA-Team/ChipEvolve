@@ -8,3 +8,5 @@ shape for older runs. Ceiling: 359 lines.
 The provenance read model now counts every matching run independently of the
 presentation page size, allowing the gateway to report an accurate design
 history total while still returning bounded pages.
+
+2026-10-08 ratchet: current maximum 365 physical lines; earlier ceilings above are historical.

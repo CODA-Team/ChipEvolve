@@ -77,6 +77,10 @@ def test_http_runs_progress_resources_artifacts_and_durable_store(local, tmp_pat
     assert detail["stages"] and detail["stages"][0]["attempts"]
     artifacts = client.artifacts(run["run_id"])
     assert {row["kind"] for row in artifacts} == {"summary", "log"}
+    filtered = client._call(
+        "GET", f"/kernel/runs/{run['run_id']}/artifacts?kind=summary"
+    )
+    assert {row["kind"] for row in filtered["artifacts"]} == {"summary"}
     report = next(row for row in artifacts if row["kind"] == "summary")
     assert (
         client.artifact_excerpt(run["run_id"], report["artifact_id"])["sha256"]

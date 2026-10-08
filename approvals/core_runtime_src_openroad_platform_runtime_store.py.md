@@ -154,3 +154,5 @@ that section.
 column on `runtime_stage_runs` and its migration.  The reason is in
 `approvals/core_total_loc.md` ("a queue that explains itself, and a lost worker
 that costs a lease").
+
+2026-10-08 ratchet: current maximum 1480 physical lines; earlier ceilings above are historical.

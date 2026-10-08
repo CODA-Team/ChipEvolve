@@ -470,3 +470,9 @@ foundation facts, and the "one implementation per concern" rule is what made the
 fallback safe to add -- there is still one download implementation.
 
 Reconciled total: 9,660 lines.
+
+## 2026-10-08 single-machine refinement: 9660 -> 8980
+
+Removed identity, account/session handling, application routing and obsolete controls. The cap now equals measured shipped kernel code; no new headroom is granted. Prior increments above are historical. Per-file ceilings in ceiling.json also ratchet down to current measurements.
+
+Final formatting ratchet: kernel 8970 lines, protocol validator 237 lines.

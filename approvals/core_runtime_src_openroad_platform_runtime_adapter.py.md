@@ -26,3 +26,5 @@ a timeout or a cancellation.  It is also not retryable -- the same request
 against the same bounds breaches them again -- and the message carries both the
 measurement and the request, because "exit code 137" sends an operator looking
 for a crash that never happened.
+
+2026-10-08 ratchet: current maximum 398 physical lines; earlier ceilings above are historical.

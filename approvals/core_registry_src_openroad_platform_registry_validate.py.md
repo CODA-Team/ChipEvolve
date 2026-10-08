@@ -35,3 +35,7 @@ It refused a manifest that listed a platform-reserved artifact kind -- which the
 protected evaluator must do, or its own verdict artifact would fail its own
 allowlist.  The tool was stricter than the platform.  Writing the checker found
 the bug in the checker, which is the useful direction for that to happen.
+
+2026-10-08 ratchet: current maximum 247 physical lines; earlier ceilings above are historical.
+
+Final formatting ratchet: kernel 8970 lines, protocol validator 237 lines.
