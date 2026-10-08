@@ -16,7 +16,7 @@ The platform does not interpret these capability names or parameters. It only
 stages files, starts the adapter, supervises the process, hashes artifacts and
 stores the evidence.
 
-## Run the end-to-end example
+## Check the current execution boundary
 
 From the repository root:
 
@@ -24,22 +24,23 @@ From the repository root:
 tools/install-local.sh
 .venv/bin/python -m pip install pytest
 .venv/bin/python -m pytest -q \
-  apps/plan_executor/test_against_kernel.py \
-  -k test_agent_generated_code_is_executed_and_measured
+  tests/test_integration_plugin_path.py \
+  tests/test_local_kernel_http.py
 ~~~
 
-This is a real local integration test, not a direct invocation of
-`adapter.py`. It creates an admission record, launches the gateway, worker and
-plan executor, submits an Agent-authored plan, and queries the result through
-the platform boundary.
+These integration tests cover external plugin discovery, execution, failure
+evidence and the local HTTP lifecycle. They use the bundled reporter plugin;
+they do not qualify this research Toolkit's script or patch capabilities.
+The former Plan executor and its acceptance suite have been retired. New
+Toolkit acceptance should submit tasks through the current execution API.
 
-The three parameterized cases are:
+This Toolkit defines the following cases, which need their own acceptance:
 
 | Case | Agent input | Expected evidence |
 | --- | --- | --- |
 | `script` | staged Python script and `parameters.seed` | report artifact and `result_value` metric |
 | `patch_benchmark` | source, patch, compiler and patch tool | baseline/candidate report and metric |
-| `build_failure` | patch producing invalid C | Toolkit `build_error`, failed plan and logs |
+| `build_failure` | patch producing invalid C | Toolkit `build_error`, failed task and logs |
 
 ## Package shape
 
@@ -56,8 +57,8 @@ request's task, writes outputs relative to the workspace, and writes a result
 whose exit code agrees with the process.
 
 The platform-owned admission record is kept outside the Toolkit directory.
-The test creates one automatically; a deployed Toolkit needs a reviewed
-record under the configured admissions root.
+A deployed Toolkit needs a reviewed record under the configured admissions
+root; the example's former Plan-level test is not a current admission receipt.
 
 ## Adapt it to an EDA tool
 
@@ -69,8 +70,8 @@ record under the configured admissions root.
 5. Make every metric point to the report artifact that supports it.
 6. Return a structured failure for invalid input, tool failure, build failure
    and evaluation failure.
-7. Add a real Plan-level acceptance test with one success and one failure.
+7. Add a real task-level acceptance test with one success and one failure.
 8. Record the tool and Toolkit revisions in provenance.
 Read the [protocol](../../docs/PLUGIN_PROTOCOL.human.md) for exact refusal rules
-and the [architecture overview](../../docs/ARCHITECTURE_OVERVIEW.md) for
+and the [Toolkit architecture](../../docs/TOOLKIT_ARCHITECTURE.md) for
 ownership decisions.
