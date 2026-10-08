@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-CONTRACT_VERSION = "0.1"
+CONTRACT_VERSION = "0.2"
 
 #: payload keys that belong to the envelope, not to the tool's own data
 _ENVELOPE_FIELDS = ("scope", "target", "evidence", "limitations")
@@ -29,6 +29,10 @@ def tool_name_for(path: str) -> str:
     parts = [item for item in path.split("/") if item]
     if not parts:
         return "unknown"
+    if parts[0] == "designs":
+        return "list_designs"
+    if parts[0] == "scope":
+        return "resolve_scope"
     if parts[0] == "snapshots":
         if len(parts) == 1:
             return "list_snapshots"
@@ -37,6 +41,10 @@ def tool_name_for(path: str) -> str:
         tail = parts[2:]
         if not tail:
             return "get_snapshot"
+        if tail == ["resolve-object"]:
+            return "get_object_context"
+        if tail == ["metrics"]:
+            return "get_metrics"
         if tail == ["objects"]:
             return "list_objects"
         if tail == ["timing-context"]:
@@ -181,6 +189,8 @@ def _scope(path: str, query: Mapping[str, str], data: Mapping[str, Any],
 def _status(data: Mapping[str, Any],
             limitations: Any) -> tuple[str, list[str]]:
     """Derive the status and the missing-field list from the payload itself."""
+    if data.get("resolution_status") in {"not_found", "partial"}:
+        return str(data["resolution_status"]), list(data.get("missing_fields", []))
     if data.get("count_status") == "unavailable":
         return "partial", list(data.get("missing_fields") or ["count"])
     if data.get("truncated") is True:

@@ -18,6 +18,7 @@ from .artifacts import (DEFAULT_NATIVE_ROOT, artifact_manifest, native_files,
                         violations, native_excerpt, run_inventory)
 from .bundle import import_ready_bundles, load_run_bundle
 from .context import net_context, object_context, timing_path_context
+from .catalog import design_catalog, resolve_scope, named_context, snapshot_metrics
 from .metric_queries import compare_metric
 from .discovery import list_objects, timing_context, routing_summary
 from .parasitics import net_parasitics
@@ -221,6 +222,10 @@ class Handler(BaseHTTPRequestHandler):
                 raise KernelUnavailable('execution service is not configured')
             return _timing_query_outcome(store, timing_query_status(
                 self.store, self.execution_client, path.split('/')[-1], _int_param(query, 'wait_seconds', 0)))
+        if path == "/designs":
+            return design_catalog(store)
+        if path == "/scope":
+            return resolve_scope(store, query)
         if path == "/snapshots":
             if query.get('detail', 'summary') not in ('summary', 'full'):
                 raise ValueError('snapshot catalog detail must be summary|full')
@@ -275,6 +280,10 @@ class Handler(BaseHTTPRequestHandler):
                 result = self.execution_client.artifact_excerpt(ref['run_id'], parts[3],
                     offset=_int_param(query, 'offset', 0), max_bytes=_int_param(query, 'max_bytes', 8192))
                 return {'snapshot_id': parts[1], 'source': ref, 'excerpt': excerpt_view(result, query)}
+            if len(parts) == 3 and parts[2] == "resolve-object":
+                return named_context(store, parts[1], query)
+            if len(parts) == 3 and parts[2] == "metrics":
+                return snapshot_metrics(store, parts[1], query)
             if len(parts) == 3 and parts[2] == "objects":
                 return list_objects(store, parts[1], query)
             if len(parts) == 4 and parts[2:4] == ['objects', 'statistics']:

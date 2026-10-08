@@ -174,7 +174,7 @@ def list_timing_points(store: DataStore, snapshot_id: str,
     clause, ranking = _order("timing_points", query)
     rows = store.filtered(snapshot_id, "timing_points", where=where, params=params,
                           limit=limit, offset=offset, order_by=clause)
-    rows = [timing_values(row) for row in rows]
+    rows = [timing_values(row, default_time_unit='s') for row in rows]
     return {"snapshot_id": snapshot_id, "snapshot": snapshot_identity(store.snapshot(snapshot_id)),
             "timing_points": _point_projection(rows, query), **ranking,
             **projected_sources(snapshot_id, 'timing_points', 'point_id', rows, query.get('source_detail', 'compact')),
@@ -438,7 +438,7 @@ def timing_path(store: DataStore, snapshot_id: str, path_id: str,
                               where="json_extract(payload, '$.path_id') = ?",
                               params=(path_id,))
     selected.sort(key=lambda row: row.get("ordinal", 0))
-    selected = [timing_values(row) for row in selected]
+    selected = [timing_values(row, default_time_unit='s') for row in selected]
     result: dict[str, Any] = {"snapshot_id": snapshot_id, "snapshot": snapshot_identity(store.snapshot(snapshot_id)),
                               "timing_path": path,
                               "analysis_context": build_analysis_context(

@@ -33,8 +33,8 @@ def _call(url: str, method: str = "GET", payload: dict | None = None) -> dict:
 
 
 def _enveloped(body: dict) -> dict:
-    """Assert the CONTRACT 1 envelope on a tool response and return its data."""
-    assert body["contract_version"] == "0.1", body
+    """Assert the 0.2 envelope on a tool response and return its data."""
+    assert body["contract_version"] == "0.2", body
     assert body["tool"] != "unknown", body
     assert body["status"] in {"available", "partial", "truncated", "unavailable",
                               "not_found", "incomparable"}, body

@@ -83,7 +83,10 @@ def _resolve_item(item: Any, refs: list[dict[str, Any]]) -> Any:
     path = item.get("logical_path") or item.get("store_key")
     stage = item.get("stage")
     candidates = [ref for ref in refs if _same(ref.get("category"), kind)]
-    exact = [ref for ref in candidates if path and ref.get("logical_path") == path]
+    # Paths and digests prove source identity; producer role labels are opaque.
+    exact = [ref for ref in refs if path and ref.get("logical_path") == path
+             and (kind is None or _same(ref.get("category"), kind)
+                  or item.get("sha256") == ref.get("sha256"))]
     if len(exact) == 1:
         return _resolved(item, exact[0], resolution="exact_path")
     if len(exact) > 1:
@@ -157,8 +160,13 @@ def materialize(row: Mapping[str, Any], snapshot: Mapping[str, Any]) -> dict[str
 
 
 def _resolved(item: dict[str, Any], ref: Mapping[str, Any], *, resolution: str) -> dict[str, Any]:
+    declared = item.get('sha256')
+    if resolution != 'bundle_member' and declared and declared != ref.get('sha256'):
+        return {**{key: value for key, value in item.items() if key != 'artifact_id'},
+                'resolution': 'hash_mismatch', 'reason': 'declared source digest differs from registered artifact'}
     return {
         **item,
+        **({'member_sha256': declared} if resolution == 'bundle_member' and declared else {}),
         "artifact_id": ref.get("artifact_id"),
         "run_id": ref.get("run_id"),
         "attempt_id": ref.get("attempt_id"),

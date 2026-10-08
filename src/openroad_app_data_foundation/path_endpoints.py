@@ -30,7 +30,7 @@ def path_endpoints(store, snapshot_id, path_id):
         point = (matching[0] if role == 'startpoint' else matching[-1]) if matching else None
         item = {'name': name, 'timing_point': timing_values({key: point.get(key) for key in
             ('point_id', 'path_id', 'ordinal', 'pin_name', 'instance_name', 'cell_name', 'net_name',
-             'arrival', 'slew', 'load', 'mapping_status')}) if point else None,
+             'arrival', 'slew', 'load', 'mapping_status')}, default_time_unit='s') if point else None,
             'timing_units': {'arrival': 's', 'slew': 's', 'load': 'F'}}
         if point:
             item['original_point'] = read_evidence(store, snapshot_id, 'timing_points', point['point_id'])

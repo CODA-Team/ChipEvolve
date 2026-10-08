@@ -4,13 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "openroad-app-data_foundation"
-version = "0.1.0"
+version = "0.2.0"
 description = "Design Data Foundation"
 requires-python = ">=3.9"
 dependencies = [
-  "openroad-platform-contracts",
-  "openroad-platform-client",
+  "openroad-platform-contracts>=0.2,<0.3",
+  "openroad-platform-client>=0.2,<0.3",
 ]
+
+[project.optional-dependencies]
+test = ["pytest>=8", "openroad-platform-runtime>=0.2,<0.3"]
 
 [project.scripts]
 openroad-app-data_foundation = "openroad_app_data_foundation.__main__:main"

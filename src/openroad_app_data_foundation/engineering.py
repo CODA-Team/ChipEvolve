@@ -408,12 +408,12 @@ def point_extrema(points, tie_rule='name_desc'):
         selected = next(p for p in values if p[field] == maximum) if tie_rule == 'source_order' else tied[names[-1 if tie_rule == 'name_desc' else 0]]
         suffix = 'ns' if unit == 's' else 'ff'
         result[field] = {'status': 'available', 'max_value': maximum, 'unit': unit,
-                         'max_value_' + suffix: timing_values({field: maximum})[field + '_' + suffix],
+                         'max_value_' + suffix: timing_values({field: maximum}, default_time_unit='s')[field + '_' + suffix],
                          'pin_names': names, 'tie_count': len(names),
                          'selection_rule': rules[tie_rule],
                          'selected_point': timing_values({key: selected.get(key) for key in
                                             ('point_id', 'path_id', 'pin_id', 'pin_name', 'instance_id',
-                                             'instance_name', 'net_id', 'net_name', 'cell_name', 'slew', 'load', 'arrival', 'evidence')})}
+                                             'instance_name', 'net_id', 'net_name', 'cell_name', 'slew', 'load', 'arrival', 'evidence')}, default_time_unit='s')}
     return result
 
 
@@ -506,7 +506,7 @@ def path_engineering_detail(store, snapshot_id, detail, query):
     unresolved_nets = [oid for oid in net_ids if oid not in found_nets]
     incomplete = bool(unresolved_points or unresolved_nets or unmapped)
     compact_points = [timing_values({key: p.get(key) for key in
-                       ('point_id', 'path_id', 'pin_id', 'pin_name', 'instance_id', 'instance_name', 'cell_name', 'net_id', 'net_name', 'slew', 'load', 'arrival')})
+                       ('point_id', 'path_id', 'pin_id', 'pin_name', 'instance_id', 'instance_name', 'cell_name', 'net_id', 'net_name', 'slew', 'load', 'arrival')}, default_time_unit='s')
                       for p in points]
     masters = Counter(item['master'] for item in instances)
     snapshot = store.snapshot(snapshot_id)

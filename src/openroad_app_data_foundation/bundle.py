@@ -43,6 +43,13 @@ def load_run_bundle(client: KernelClient, run_id: str, artifact_id: str) -> dict
         if len(manifests) != 1:
             raise ContractError("run bundle must contain exactly one data manifest")
         pack = load_snapshot_directory(manifests[0].parent)
+        subject = pack['snapshot']['run_id']
+        if subject != run_id:
+            producer = client.run(run_id)
+            labels = producer.get('labels', {})
+            if labels.get('run_type') != 'analysis' or labels.get('analysis_of_run_id') != subject:
+                raise ContractError('snapshot run_id is neither artifact owner nor declared analysis parent')
+        pack['snapshot']['producer_run_id'] = run_id
         artifact = _bundle_ref(client, run_id, artifact_id)
         refs = list(pack["snapshot"].get("source_artifacts", []))
         known = {item.get("artifact_id") for item in refs if isinstance(item, dict)}

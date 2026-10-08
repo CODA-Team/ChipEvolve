@@ -140,9 +140,11 @@ def placement_geometry(fact, scale, orientation=None):
             'native_origin_note': 'dbInst.getOrigin is the transformed master origin; query it natively if needed; this is not pin XY'}
 
 
-def timing_values(fact):
-    """Attach explicit ns/fF values to SI timing facts, retaining native evidence."""
+def timing_values(fact, *, default_time_unit=None):
+    """Normalize declared time units; native point callers may declare SI defaults."""
     result = dict(fact)
+    time_scale = {'s': 1e9, 'ms': 1e6, 'us': 1e3, 'ns': 1, 'ps': 1e-3,
+                  'fs': 1e-6}.get(fact.get('unit') or default_time_unit)
     fields = [('slack', 'slack_ns', 1e9), ('arrival', 'arrival_ns', 1e9),
               ('data_arrival_time', 'arrival_ns', 1e9), ('required_time', 'required_ns', 1e9),
               ('slew', 'slew_ns', 1e9), ('load', 'load_ff', 1e15),
@@ -151,6 +153,10 @@ def timing_values(fact):
               ('target_clock_edge', 'target_clock_edge_ns', 1e9), ('period', 'period_ns', 1e9)]
     for source, target, factor in fields:
         value = fact.get(source)
+        if source != 'load':
+            if time_scale is None:
+                continue
+            factor = time_scale
         if isinstance(value, (int, float)) and not isinstance(value, bool):
             result[target] = value * factor
     return result

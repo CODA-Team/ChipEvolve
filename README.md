@@ -18,3 +18,10 @@ source_fingerprint 覆盖服务及已安装公共包；外部 producer 的溯源
 
 先前 API 和工具使用说明见 docs/original-project-readme.md（原 monorepo 安装路径
 已成为历史示例）。迁移来源见 MIGRATION_SOURCE.json；完整工作区说明见上级 README。
+
+## 0.2 ownership
+
+本服务拥有 `/designs` 聚合、`/scope` 唯一快照选择、按精确名称/ID解析对象，以及按 snapshot 校验 run 所有权的 canonical metrics。多个候选返回 partial，零候选返回 not_found，不隐式取最新。
+快照导入只接受实际产物 producer 或公开声明的 analysis parent；原始产物通过执行服务注册身份关联。精确报告路径优先匹配，ZIP 与包内成员哈希分别记录，冲突来源不绑定权威产物。
+
+直接 Python 可以扫描 JSON 或建立内存字典；小数据下可能更快、更省空间。本服务的价值是跨进程持久查询、共同作用域和来源约束。合成 50k 对象测试不代表真实芯片性能；详见 ../admin/ACCEPTANCE_REPORT.md。

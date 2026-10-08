@@ -22,6 +22,17 @@ def test_si_timing_values_have_explicit_engineering_units_without_changing_origi
     assert 'slew_ns' not in timing_values({'slew': False})
 
 
+def test_time_units_are_normalized_without_assuming_missing_path_units():
+    from openroad_app_data_foundation.metadata import timing_values
+    for unit, slack, expected in [('s', -2e-10, -.2), ('ns', -.2, -.2),
+                                  ('ps', -200, -.2)]:
+        result = timing_values({'path_id': 'p', 'slack': slack, 'unit': unit})
+        assert result['slack'] == slack
+        assert result['slack_ns'] == pytest.approx(expected)
+    assert 'slack_ns' not in timing_values({'path_id': 'p', 'slack': -.2})
+    assert 'slack_ns' not in timing_values({'path_id': 'p', 'slack': -.2, 'unit': 'unknown'})
+
+
 def test_clock_engineering_units_preserve_native_values_and_ignore_library_display_units():
     from copy import deepcopy
     from openroad_app_data_foundation.metadata import clock_context

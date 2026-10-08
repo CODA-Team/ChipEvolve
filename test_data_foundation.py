@@ -274,7 +274,7 @@ def test_placeholder_evidence_resolves_to_real_bundle_artifact(tmp_path: Path) -
     value["timing_paths"][0]["evidence"] = [{
         "artifact_id": "timing-report", "artifact_kind": "raw_timing_report",
         "logical_path": "query-data/timing_report.json", "source_type": "json",
-        "json_pointer": "/checks/0",
+        "json_pointer": "/checks/0", "sha256": "b" * 64,
     }]
     store = DataStore(tmp_path / "data.db")
     try:
@@ -284,6 +284,38 @@ def test_placeholder_evidence_resolves_to_real_bundle_artifact(tmp_path: Path) -
         assert evidence["resolution"] == "bundle_member"
         assert evidence["nested_path"] == "query-data/timing_report.json"
         assert evidence["artifact_id"] != "timing-report"
+        assert evidence['sha256'] == 'a' * 64
+        assert evidence['member_sha256'] == 'b' * 64
+    finally:
+        store.close()
+
+
+def test_exact_source_path_and_hash_survive_different_producer_role(tmp_path: Path) -> None:
+    value = pack()
+    value['snapshot']['source_artifacts'] = [{
+        'artifact_id': 'report-real', 'run_id': 'run-1', 'sha256': 'a' * 64,
+        'logical_path': 'report.rpt', 'category': 'raw_timing_report',
+        'stage': 'extract', 'size_bytes': 20,
+    }]
+    value['timing_paths'][0]['evidence'] = [{
+        'role': 'analysis_report', 'logical_path': 'report.rpt', 'sha256': 'a' * 64,
+        'source_type': 'line', 'line_start': 1,
+    }]
+    store = DataStore(tmp_path / 'data.db')
+    try:
+        store.register(value)
+        source = store.record_evidence('snap-1', 'timing_paths', 'path-1')[0]['evidence']
+        assert source['resolution'] == 'exact_path'
+        assert source['artifact_id'] == 'report-real'
+        assert source['sha256'] == 'a' * 64
+        assert 'nested_path' not in source
+        value['snapshot']['snapshot_id'] = 'bad'
+        value['timing_paths'][0]['snapshot_id'] = 'bad'
+        value['timing_paths'][0]['evidence'][0]['sha256'] = 'b' * 64
+        store.register(value)
+        bad = store.record_evidence('bad', 'timing_paths', 'path-1')[0]['evidence']
+        assert bad['resolution'] == 'hash_mismatch'
+        assert 'artifact_id' not in bad
     finally:
         store.close()
 
@@ -451,6 +483,9 @@ def test_completed_snapshot_artifact_is_imported_once(tmp_path: Path) -> None:
         output.write(source / "manifest.json", "manifest.json")
 
     class Client:
+        def run(self, run_id: str) -> dict:
+            return {'labels': {'run_type': 'analysis', 'analysis_of_run_id': 'run-1'}}
+
         def runs(self, **_filters: object) -> list[dict]:
             return [{"run_id": "run-extract"}]
 
@@ -471,6 +506,26 @@ def test_completed_snapshot_artifact_is_imported_once(tmp_path: Path) -> None:
         assert import_ready_bundles(store, Client()) == 0
     finally:
         store.close()
+
+
+@pytest.mark.parametrize('labels', [{}, {'run_type': 'analysis',
+                                       'analysis_of_run_id': 'unrelated-run'}])
+def test_bundle_rejects_unrelated_subject_run(tmp_path: Path, labels: dict) -> None:
+    import zipfile
+
+    archive = tmp_path / 'snapshot.zip'
+    with zipfile.ZipFile(archive, 'w') as output:
+        output.writestr('manifest.json', json.dumps(pack()['snapshot']))
+
+    class Client:
+        def download_artifact_to(self, run_id, artifact_id, destination):
+            Path(destination).write_bytes(archive.read_bytes())
+
+        def run(self, run_id):
+            return {'labels': labels}
+
+    with pytest.raises(ContractError, match='neither artifact owner'):
+        load_run_bundle(Client(), 'unrelated-producer', 'bundle-1')
 
 
 def test_stage_comparison_reports_timing_and_physical_fact_deltas(tmp_path: Path) -> None:
