@@ -47,7 +47,7 @@ jobs:
               sys.exit(1)
           PY
       - name: Type-check the platform
-        run: .venv/bin/python -m mypy --exclude '(^|/)smoke\.py$' contracts/src core gateway/src apps
+        run: .venv/bin/python -m mypy contracts/src core/runtime/src core/registry/src core/evaluator/src core/provenance/src core/client/src gateway/src
       - name: Check changed Python formatting
         shell: bash
         run: |
