@@ -1,0 +1,1 @@
+"""Optional bounded judgment adapters."""

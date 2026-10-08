@@ -20,6 +20,7 @@ class Scope(BaseModel):
 
 
 class Source(BaseModel):
+    record_id: str | None = None
     artifact_id: str | None = None
     sha256: str | None = None
     source_hash: str | None = None
@@ -72,6 +73,12 @@ class Resolution(BaseModel):
     snapshot: Scope
 
 
+class Attributes(BaseModel):
+    master: str | None = None
+    direction: str | None = None
+    fanout: int | None = None
+
+
 class Entity(BaseModel):
     object_id: str
     kind: str
@@ -79,6 +86,60 @@ class Entity(BaseModel):
     cell_type: str | None = None
     master: str | None = None
     direction: str | None = None
+    parent_id: str | None = None
+    evidence: list[Source] = Field(default_factory=lambda: list[Source]())
+    attributes: Attributes = Field(default_factory=Attributes)
+
+    @property
+    def cell(self) -> str | None:
+        return self.cell_type or self.master or self.attributes.master
+
+    @property
+    def pin_direction(self) -> str | None:
+        return self.direction or self.attributes.direction
+
+
+class Relation(BaseModel):
+    relation_id: str
+    subject_id: str
+    object_id: str
+    predicate: str
+
+
+class Coverage(BaseModel):
+    missing_entity_ids: list[str] = Field(default_factory=list)
+
+
+class Relationships(BaseModel):
+    snapshot: Scope
+    target: Entity
+    relations: list[Relation]
+    entities: list[Entity]
+    coverage: Coverage
+    count: int
+    next_offset: int | None = None
+
+
+class Objects(BaseModel):
+    snapshot: Scope
+    objects: list[Entity]
+    count: int
+    next_offset: int | None = None
+
+
+class NetEngineering(BaseModel):
+    snapshot: Scope
+    load_count: int
+    availability: dict[str, dict[str, object]] = Field(default_factory=dict)
+
+
+class PhysicalFact(BaseModel):
+    location_um: list[float | None] | None = None
+
+
+class Physical(BaseModel):
+    snapshot: Scope
+    physical_context: PhysicalFact
 
 
 class Target(BaseModel):

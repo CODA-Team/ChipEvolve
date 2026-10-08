@@ -7,7 +7,7 @@ name = "agentic-eda-query-agent"
 version = "0.2.0"
 description = "Phase I evidence-first Query Agent foundation for ASIC physical design"
 requires-python = ">=3.12"
-dependencies = ["pydantic>=2.7,<3", "eda-ai-client>=0.2,<0.3"]
+dependencies = ["pydantic>=2.7,<3", "eda-ai-client>=0.2.1,<0.3"]
 
 [project.scripts]
 query-agent = "query_agent.interfaces.cli:main"

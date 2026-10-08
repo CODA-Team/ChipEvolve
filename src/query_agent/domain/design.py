@@ -20,6 +20,7 @@ class DesignObjectRef(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
+    object_id: str | None = None
     design_id: str = Field(min_length=1)
     kind: DesignObjectKind
     name: str = Field(min_length=1)
@@ -36,8 +37,8 @@ class DesignLocation(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    x: float
-    y: float
+    x: float = Field(allow_inf_nan=False)
+    y: float = Field(allow_inf_nan=False)
     units: str = Field(min_length=1)
 
 
@@ -46,10 +47,10 @@ class DesignRegion(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    x_min: float
-    y_min: float
-    x_max: float
-    y_max: float
+    x_min: float = Field(allow_inf_nan=False)
+    y_min: float = Field(allow_inf_nan=False)
+    x_max: float = Field(allow_inf_nan=False)
+    y_max: float = Field(allow_inf_nan=False)
     units: str = Field(min_length=1)
 
     @model_validator(mode="after")
@@ -95,6 +96,7 @@ class DesignConnection(BaseModel):
 
     source: DesignObjectRef
     target: DesignObjectRef
+    predicate: str | None = None
 
 
 def object_ref(

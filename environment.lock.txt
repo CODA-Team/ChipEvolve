@@ -2,7 +2,7 @@
 -e /home/wjyuan/projects/eda-development/query-agent
 annotated-types==0.8.0
 click==8.5.0
-eda-ai-client @ file:///home/wjyuan/projects/eda-development/wheelhouse/eda_ai_client-0.2.0-py3-none-any.whl#sha256=b05882113e77070aad3b25564d19ed32cb9409305a76dfbc8f898584586d2592
+eda-ai-client @ file:///home/wjyuan/projects/eda-development/wheelhouse/eda_ai_client-0.2.1-py3-none-any.whl#sha256=9947fbbd7d0371735f364d9e7449533e6def14c200e63e049db47db19f63da7f
 grimp==3.17
 import-linter==2.15
 iniconfig==2.3.1

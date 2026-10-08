@@ -208,7 +208,9 @@ def test_timing_cites_source_and_refuses_missing_corner_and_source(
 def test_root_cause_is_not_inferred_from_metrics(service: QueryService) -> None:
     response = ask(service, "Why did timing become worse?")
     assert response.status is QueryStatus.NEEDS_MORE_DATA
-    assert response.missing_capabilities
+    assert not response.evidence
+    assert response.answer is not None
+    assert response.answer.startswith("NEEDS_MORE_DATA")
 
 
 def test_unverified_metric_source_does_not_produce_a_complete_answer(
