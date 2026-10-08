@@ -1,6 +1,18 @@
-# EDA-AI Data Interface — CONTRACT v0.1
+# Data Interface contract 0.2
 
-状态：**冻结（阶段 A）** · 冻结日期 2026-09-30 · 适用实现 commit：`ba8dd61`+
+Breaking changes from 0.1: all Data Foundation SDK methods return the service envelope, including list_designs and get_instance. get_instance returns data.entities/data.target rather than a client-built flattened instance. get_net_context defaults to exact name; use by="object_id" for an ID. list_runs no longer accepts stage: execution status belongs to Execution Foundation, stage snapshots to Data Foundation. No client-side grouping, name matching, metric ownership lookup or per-run stage requests.
+
+New tools: resolve_scope and get_object_context (15 published tools total). resolve_scope accepts snapshot/design/revision/run/stage and origin=flow|query|all. Zero matches is not_found; multiple matches is partial with candidates and missing=[unique_snapshot]. Selection is never implicit latest. Exact object resolution is at /snapshots/{id}/resolve-object. Metrics at /snapshots/{id}/metrics enforce the owning run in one request.
+
+Data Foundation responds with contract_version=0.2, tool, scope, status, missing, data, evidence, limitations. Missing/ambiguous targets are not substituted. HTTP errors raise EdaAiError with status; business partial/not_found with HTTP 200 pass through unchanged. Consumers must inspect status before using data. SDK requires the 0.2 Data Foundation; services need not import the SDK.
+
+Execution methods list_runs/list_artifacts retain their execution catalog shape; raw artifacts are bytes. HTTP encoding and these documented transport projections belong here. Execution and data are distinct catalogs: a queued execution may have no imported snapshot.
+
+The detailed fact vocabulary below remains applicable; the 0.2 changes above supersede old client-specific projections.
+
+# EDA-AI Data Interface — CONTRACT v0.2
+
+状态：**0.2 独立项目契约** · 更新日期 2026-10-08。历史 EDA 事实词汇保留，当前服务行为以下述边界为准。
 本文件是外部调用方唯一需要读的接口规范。它规定"模型看到什么"，不规定我们内部怎么实现。
 
 > 变更规则：新增字段/新增 tool 属于向后兼容，允许；改变已有字段含义、删除字段、改变状态枚举属于破坏性变更，必须提升 `contract_version`。
@@ -56,7 +68,7 @@ Data Foundation 只回答 **结构化 EDA 事实**。它不诊断、不建议、
 调用方式（同一套语义，三种壳）：HTTP JSON（当前可用）、Python client（阶段 C）、JSON tool schema（阶段 C，供 function calling）。
 
 - 当前地址：`http://127.0.0.1:8860`
-- `contract_version`: `"0.1"`
+- `contract_version`: `"0.2"`
 - 所有响应 `Content-Type: application/json`，UTF-8。
 - **永远不返回宿主路径。** 文件只以 artifact identity + logical path 出现。
 
@@ -68,7 +80,7 @@ Data Foundation 只回答 **结构化 EDA 事实**。它不诊断、不建议、
 
 ```json
 {
-  "contract_version": "0.1",
+  "contract_version": "0.2",
   "tool": "get_timing_path",
   "scope": {
     "design_id": "gcd",
@@ -159,7 +171,7 @@ Data Foundation 只回答 **结构化 EDA 事实**。它不诊断、不建议、
 
 ---
 
-## 4. Tools（v0 共 13 个）
+## 4. Tools（0.2 共 15 个）
 
 `scope`/`status`/`missing`/`evidence` 字段全部适用，下表只列各自特有的入参与 `data`。
 
@@ -167,9 +179,9 @@ Data Foundation 只回答 **结构化 EDA 事实**。它不诊断、不建议、
 
 `data.designs[]`: `{design_id, revisions[], run_count, latest_run_at, snapshot_count}`
 
-### 4.2 `list_runs(design_id?, stage?, status?, limit, offset)`
+### 4.2 `list_runs(design_id?, status?, limit, offset)`
 
-`data.runs[]`: `{run_id, design_id, status, plugin_id, created_at, started_at, ended_at, snapshot_ids[]}`
+返回 Execution Foundation 的 run 数组：生命周期、设计、插件及时间。SDK 单次 HTTP 请求传递过滤与分页；没有 snapshot_ids 合并，也没有 stage 过滤。数据阶段通过 Data Foundation 的 run summary 查询。
 
 ### 4.3 `get_run_summary(run_id)`
 
@@ -248,11 +260,11 @@ run 级的 `design_id`/`status` 目前只在 `snapshot`/`run_summary` 里，见 
 
 ### 4.9 `get_instance(snapshot_id, name)`
 
-`data`: `{instance, physical_context, relations[], evidence[]}`
+`data`: `{scope, target, entities[], physical_context[], relations[], ...}`；目标实体在 entities 中由 target.id 指定。SDK 透明返回信封。
 - `name` 为索引中的精确名（或 hierarchical name）；命中 0 条 → `not_found`，命中 >1 条 → `partial` 并全部列出（不静默取第一条）。
-- `instance.attributes`: `{native_id, master, orient, is_macro, kind}`；`is_macro` 未知时返回 `status: partial`。
+- 实体的 master/cell_type、属性和物理覆盖依赖来源，字段缺失不代表有完整物理证据。
 
-### 4.10 `get_net_context(snapshot_id, name_or_id)`
+### 4.10 `get_net_context(snapshot_id, net, by="name"|"object_id")`
 
 `data`: `{target, entities[], relations[], physical_context[], observations, timing_context?}`
 （`entities` 是**该 net 及其关系端点**的实体列表，不是单独的 `connected_entities` 字段；`target` 同时镜像在信封层。
@@ -391,9 +403,19 @@ GET /snapshots/{id}/timing-points?sort=slew&order=worst&limit=1
 | 通用信封 / 状态枚举 | 冻结 | **已实现**。除 `/health` 外每个路由都返回 `contract_version`/`tool`/`scope`/`status`/`missing`/`data`/`evidence`/`limitations`；状态由 payload 推导（`not_found` 目标不存在、`truncated` 分页或被 `relation_limit` 截断、`partial` payload 自报不可用、`unavailable` 无法作答）。注意两点：`scope`/`target` 对 context pack 是**镜像**（pack 本身仍保留），`evidence`/`limitations` 是**上提**到信封（各 tool 的 `data` 里不再重复；§4.12 的列表即信封的 `evidence`）。 |
 | Evidence 表示 | 冻结 | 已实现，但**字段名与 §3 不完全一致**：实际发出 `artifact_id / artifact_kind / attempt_id / category / detail / logical_path / resolution / run_id / sha256 / size_bytes / source_type / stage`；§3 写的 `locator`、`parser`、`resolved` 未发出（对应物分别是 `detail`、`category`/`source_type`、`resolution`）。 |
 | 分页信封 | 冻结 | **已实现**：`/timing-paths`、`/metrics`、`/evidence`、`/observations` 均返回 `count/returned/limit/offset/truncated/next_offset`；`count>10000` 拒绝。 |
-| Tools 1–12 | 冻结 | DF 路由：3、4、6–12。1（`/designs`）与 5（`/runs/{id}/artifacts`）**不存在于 DF**，它们是 client 侧分组 / EF 路由，直接 `curl` 会 404。 |
+| 15 个公开工具 | 0.2 | DF 拥有 `/designs`、`/scope`、对象解析和指标业务。`list_runs/list_artifacts` 查询 EF，后者的 kind 过滤也由 EF 执行；SDK 不做分组/匹配/归属判断。 |
 | 未知 target 的表示 | 冻结 | **已实现**：目标不存在时返回 HTTP 404 且 body 是信封，`status: "not_found"`（`error_envelope`），不再是把 KeyError 的 repr 塞进 `error` 字段。Q8-02/Q8-05 两道题在考它。 |
 | Canonical metrics 封闭集合 | 冻结 | 阶段 B 实现 |
 | 对象级查询不做全表扫描 | 冻结 | 阶段 A 实现（SQL 谓词 + 表达式索引） |
 
-**外部调用方可以现在就按本文件写代码**：字段名、状态语义、evidence 结构、分页结构都不会再变；阶段 B/C 只是把这些字段真正填满，并补上 Python client 与 JSON tool schema。
+消费者应显式依赖 0.2 契约，检查信封状态和具体证据覆盖。后续破坏性变更提升版本；新增能力先通过契约与实际 HTTP 验证。
+
+## 8. 0.2 新增入口与证据身份
+
+`resolve_scope(snapshot_id?, design_id?, revision_id?, run_id?, stage?, origin="flow"|"query"|"all")` 调用 `GET /scope`，唯一命中返回 data.snapshot；零或多命中分别为 not_found/partial，后者返回候选，不隐式取最新。
+
+`get_object_context(snapshot_id, kind, name? , object_id?, detail, relation_limit)` 调用 `GET /snapshots/{id}/resolve-object`。name 与 object_id 必须且只能提供一个；kind 为 instance/net/pin。
+
+已注册源的 artifact_id/run_id/sha256 指向实际文件。resolution=bundle_member 时 sha256 属于容器 ZIP，nested_path 指包内成员；来源声明成员哈希时独立保留 member_sha256。不得把 ZIP 哈希称为报告哈希。已注册的精确报告路径优先匹配；声明与注册哈希冲突时 resolution=hash_mismatch，不绑定权威 artifact。
+
+`get_timing_paths(..., detail="summary"|"full")` 保持 limit/offset；summary 省略行级来源，full 保留每条路径 evidence。需要证据归属的 Agent 应显式请求有界 full，不把 envelope 的去重来源随意分配给每条路径。

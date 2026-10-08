@@ -1,4 +1,4 @@
-# Editable Git install with no remote (eda-ai-client==0.1.0)
+# Editable Git install with no remote (eda-ai-client==0.2.0)
 -e /home/wjyuan/projects/eda-development/data-interface
 iniconfig==2.3.1
 packaging==26.3

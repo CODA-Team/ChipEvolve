@@ -1,6 +1,6 @@
 """JSON tool schemas for function calling.
 
-One schema per CONTRACT v0.1 tool, in the shape model runtimes expect::
+One schema per CONTRACT v0.2 tool, in the shape model runtimes expect::
 
     {"type": "function",
      "function": {"name": ..., "description": ..., "parameters": {...}}}
@@ -35,8 +35,14 @@ def _tool(name: str, description: str, properties: dict[str, Any],
 TOOL_SCHEMAS: list[dict[str, Any]] = [
     _tool("list_designs", "Designs the interface knows about, with their revisions.",
           {}),
-    _tool("list_runs", "Execution runs, optionally filtered by design, stage or status.",
-          {"design_id": _STRING, "stage": _STRING, "status": _STRING,
+    _tool("resolve_scope", "Resolve a unique snapshot or return ambiguous candidates; never picks latest.",
+          {"snapshot_id": _STRING, "design_id": _STRING, "revision_id": _STRING,
+           "run_id": _STRING, "stage": _STRING, "origin": {"type": "string", "enum": ["flow", "query", "all"]}}),
+    _tool("get_object_context", "Exact object name or explicit ID, resolved by Data Foundation.",
+          {"snapshot_id": _STRING, "kind": {"type": "string", "enum": ["instance", "net", "pin"]},
+           "name": _STRING, "object_id": _STRING}, ("snapshot_id", "kind")),
+    _tool("list_runs", "Execution runs, optionally filtered by design or status.",
+          {"design_id": _STRING, "status": _STRING,
            "limit": _PAGE, "offset": _OFFSET}),
     _tool("get_run_summary", "Every indexed stage snapshot of one run, with record counts.",
           {"run_id": _STRING}, ("run_id",)),
@@ -56,7 +62,8 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
           "Timing path summaries; check is setup or hold. sort=slack with order=worst "
           "returns the worst paths first, so the worst five need one call, not every path.",
           {"snapshot_id": _STRING, "check": _STRING, "sort": _STRING, "order": _STRING,
-           "limit": _PAGE, "offset": _OFFSET},
+           "limit": _PAGE, "offset": _OFFSET,
+           "detail": {"type": "string", "enum": ["summary", "full"]}},
           ("snapshot_id",)),
     _tool("get_timing_points",
           "Timing points across the snapshot, rankable: sort=slew with order=worst "
@@ -75,8 +82,8 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
           "Zero matches is not_found and several is partial - neither is an exception.",
           {"snapshot_id": _STRING, "name": _STRING}, ("snapshot_id", "name")),
     _tool("get_net_context",
-          "A net by object ID or exact name: connected pins, driver and loads, route and evidence.",
-          {"snapshot_id": _STRING, "net": _STRING}, ("snapshot_id", "net")),
+          "A net by explicit object ID or exact name: connected pins, driver and loads, route and evidence.",
+          {"snapshot_id": _STRING, "net": _STRING, "by": {"type": "string", "enum": ["name", "object_id"]}}, ("snapshot_id", "net")),
     _tool("get_physical_context",
           "Location, bounding box, geometry and routing for one object ID.",
           {"snapshot_id": _STRING, "object_id": _STRING}, ("snapshot_id", "object_id")),

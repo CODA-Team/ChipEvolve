@@ -4,7 +4,7 @@ Standard library only.  It talks to the deployed Data Foundation over HTTP and
 imports nothing from this repository's applications, so a partner can vendor or
 install it without knowing how the service is built.
 
-The tool surface follows CONTRACT.md v0.1.  Two rules from that document shape
+The tool surface follows CONTRACT.md v0.2.  Two rules from that document shape
 every method here:
 
 * a missing fact is never a silent empty value - the service reports a
@@ -25,7 +25,7 @@ from typing import Any
 
 __all__ = ["EdaAiClient", "EdaAiError", "DEFAULT_DATA_URL"]
 
-DEFAULT_DATA_URL = "http://127.0.0.1:8860"
+DEFAULT_DATA_URL = "http://127.0.0.1:18924"
 
 
 class EdaAiError(RuntimeError):
@@ -65,56 +65,31 @@ class EdaAiClient:
 
     # ------------------------------------------------------- tool 1: designs
 
-    def list_designs(self) -> list[dict[str, Any]]:
-        """Designs the service knows about, grouped client-side from snapshots.
+    def list_designs(self) -> dict[str, Any]:
+        """Authoritative design catalog; preserve the service envelope."""
+        return self._get(self.data_url, "/designs")
 
-        The service indexes immutable snapshots, not a design catalogue, so the
-        grouping happens here until a design directory exists server-side.
-        """
-        grouped: dict[str, dict[str, Any]] = {}
-        for snapshot in _data(self._get(self.data_url, "/snapshots"))["snapshots"]:
-            design = grouped.setdefault(snapshot["design_id"], {
-                "design_id": snapshot["design_id"],
-                "revisions": {},
-                "runs": set(),
-                "snapshot_count": 0,
-                "latest_snapshot_at": None,
-            })
-            design["revisions"][snapshot.get("revision_id")] = True
-            design["runs"].add(snapshot.get("run_id"))
-            design["snapshot_count"] += 1
-            created = snapshot.get("created_at")
-            if created and (design["latest_snapshot_at"] is None
-                            or created > design["latest_snapshot_at"]):
-                design["latest_snapshot_at"] = created
-        return [{"design_id": item["design_id"],
-                 "revisions": sorted(key for key in item["revisions"] if key),
-                 "run_ids": sorted(key for key in item["runs"] if key),
-                 "snapshot_count": item["snapshot_count"],
-                 "latest_snapshot_at": item["latest_snapshot_at"]}
-                for item in sorted(grouped.values(), key=lambda row: row["design_id"])]
+    def resolve_scope(self, *, snapshot_id: str | None = None,
+                      design_id: str | None = None, revision_id: str | None = None,
+                      run_id: str | None = None, stage: str | None = None,
+                      origin: str = "flow") -> dict[str, Any]:
+        """Resolve exactly one immutable snapshot, or return candidates."""
+        return self._get(self.data_url, "/scope", {
+            "snapshot_id": snapshot_id, "design_id": design_id,
+            "revision_id": revision_id, "run_id": run_id, "stage": stage,
+            "origin": origin})
 
-    # ---------------------------------------------------------- tool 2: runs
-
-    def list_runs(self, *, design_id: str | None = None, stage: str | None = None,
+    def list_runs(self, *, design_id: str | None = None,
                   status: str | None = None, limit: int = 100,
                   offset: int = 0) -> list[dict[str, Any]]:
-        """Execution runs, from the execution foundation.
+        """Execution catalog, filtered and paginated by its owning service.
 
-        Needs ``kernel_url``.  ``stage`` and ``status`` filter client-side
-        because the kernel indexes runs, not stages.
+        Stage snapshots are discovered through get_run_summary/resolve_scope.
         """
         self._require_kernel("list_runs")
-        rows = self._get(self.kernel_url, "/kernel/runs")["runs"]
-        if design_id:
-            rows = [row for row in rows if row.get("design_id") == design_id]
-        if status:
-            rows = [row for row in rows if row.get("status") == status]
-        if stage:
-            rows = [row for row in rows
-                    if any(snapshot.get("stage") == stage
-                           for snapshot in _data(self.get_run_summary(row["run_id"]))["snapshots"])]
-        return rows[offset:offset + limit]
+        return self._get(self.kernel_url, "/kernel/runs", {
+            "design_id": design_id, "status": status,
+            "limit": limit, "offset": offset})["runs"]
 
     # ---------------------------------------------------- tool 3: run summary
 
@@ -133,10 +108,8 @@ class EdaAiClient:
     def list_artifacts(self, run_id: str, *, kind: str | None = None) -> list[dict[str, Any]]:
         """Registered raw artifacts of one run.  Needs ``kernel_url``."""
         self._require_kernel("list_artifacts")
-        rows = self._get(self.kernel_url, f"/kernel/runs/{_segment(run_id)}/artifacts")["artifacts"]
-        if kind:
-            rows = [row for row in rows if row.get("kind") == kind]
-        return rows
+        return self._get(self.kernel_url, f"/kernel/runs/{_segment(run_id)}/artifacts",
+                         {"kind": kind})["artifacts"]
 
     # ------------------------------------------------------- tool 6: metrics
 
@@ -144,31 +117,22 @@ class EdaAiClient:
                     stage: str | None = None, name: str | None = None,
                     include_raw: bool = False, limit: int = 100,
                     offset: int = 0) -> dict[str, Any]:
-        """Canonical metrics with their authoritative source.
-
-        Scoping by ``snapshot_id`` resolves the owning run first and then keeps
-        only the rows that carry that snapshot, so the canonical projection is
-        the same one the run-scoped call uses.
-        """
-        if run_id is None:
-            if snapshot_id is None:
-                raise ValueError("get_metrics needs run_id or snapshot_id")
-            run_id = _data(self._get(
-                self.data_url,
-                f"/snapshots/{_segment(snapshot_id)}"))["snapshot"]["run_id"]
-        params = {"stage": stage, "name": name, "limit": limit, "offset": offset,
-                  "snapshot_id": snapshot_id}
-        if include_raw:
-            params["include_raw"] = 1
-        return self._get(self.data_url, f"/runs/{_segment(run_id)}/metrics",
-                         {key: value for key, value in params.items()
-                          if value is not None})
+        """Canonical metrics, with ownership/scoping enforced by the service."""
+        if run_id is None and snapshot_id is None:
+            raise ValueError("get_metrics needs run_id or snapshot_id")
+        path = (f"/snapshots/{_segment(snapshot_id)}/metrics" if snapshot_id is not None
+                else f"/runs/{_segment(run_id)}/metrics")
+        return self._get(self.data_url, path, {
+            "run_id": run_id if snapshot_id is not None else None,
+            "stage": stage, "name": name, "limit": limit, "offset": offset,
+            "include_raw": 1 if include_raw else None})
 
     # -------------------------------------------------- tool 7: timing paths
 
     def get_timing_paths(self, snapshot_id: str, *, check: str | None = None,
                          sort: str | None = None, order: str = "worst",
-                         limit: int = 100, offset: int = 0) -> dict[str, Any]:
+                         limit: int = 100, offset: int = 0,
+                         detail: str = "summary") -> dict[str, Any]:
         """Timing path summaries; ``check`` filters setup/hold on the server.
 
         Filtering here instead used to break the pagination envelope: the count
@@ -176,7 +140,7 @@ class EdaAiClient:
         ``count=10, returned=0, truncated=true``.
         """
         params = {"limit": limit, "offset": offset, "check": check,
-                  "sort": sort, "order": order}
+                  "sort": sort, "order": order, "detail": detail}
         return self._get(self.data_url,
                          f"/snapshots/{_segment(snapshot_id)}/timing-paths",
                          {key: value for key, value in params.items()
@@ -222,55 +186,28 @@ class EdaAiClient:
         return self._get(self.data_url,
                          f"/snapshots/{_segment(snapshot_id)}/timing-points", params)
 
+    def get_object_context(self, snapshot_id: str, *, kind: str,
+                           name: str | None = None, object_id: str | None = None,
+                           detail: str = "summary", relation_limit: int = 200) -> dict[str, Any]:
+        """Exact name or explicit ID; resolution and ambiguity belong to the service."""
+        return self._get(self.data_url, f"/snapshots/{_segment(snapshot_id)}/resolve-object",
+                         {"kind": kind, "name": name, "object_id": object_id,
+                          "detail": detail, "relation_limit": relation_limit})
+
     def get_instance(self, snapshot_id: str, name: str, *,
-                     detail: str = "summary",
-                     relation_limit: int = 200) -> dict[str, Any]:
-        """One instance by exact name, with its physical facts and relations.
+                     detail: str = "summary", relation_limit: int = 200) -> dict[str, Any]:
+        """Instance context in the standard service envelope."""
+        return self.get_object_context(snapshot_id, kind="instance", name=name,
+                                       detail=detail, relation_limit=relation_limit)
 
-        Zero matches and several matches are distinct outcomes, not an
-        exception and not "take the first one".
-        """
-        found = _data(self._get(
-            self.data_url, f"/snapshots/{_segment(snapshot_id)}/instances",
-            {"name": name}))["instances"]
-        if len(found) != 1:
-            return {"snapshot_id": snapshot_id, "name": name, "instances": found,
-                    "status": "not_found" if not found else "partial",
-                    "reason": ("no instance carries this exact name" if not found else
-                               "more than one instance carries this exact name")}
-        object_id = found[0]["object_id"]
-        context = self._get(self.data_url,
-                            f"/snapshots/{_segment(snapshot_id)}/objects/"
-                            f"{_segment(object_id)}/context",
-                            {"detail": detail, "relation_limit": relation_limit})
-        body = _data(context)
-        return {"snapshot_id": snapshot_id, "name": name,
-                "status": context.get("status", "available"),
-                "instance": body["entities"][0], "context": context,
-                "physical_context": body.get("physical_context", []),
-                "relations": body.get("relations", []),
-                "evidence": context.get("evidence", [])}
-
-    # --------------------------------------------------- tool 10: net context
-
-    def get_net_context(self, snapshot_id: str, net: str, *,
-                        detail: str = "summary",
-                        relation_limit: int = 200) -> dict[str, Any]:
-        """A net by object ID or exact name: connectivity, route and sources."""
-        net_id = net
-        if not net.startswith("net:"):
-            found = _data(self._get(self.data_url, f"/snapshots/{_segment(snapshot_id)}/nets",
-                              {"name": net}))["nets"]
-            if len(found) != 1:
-                return {"snapshot_id": snapshot_id, "name": net, "nets": found,
-                        "status": "not_found" if not found else "partial",
-                        "reason": ("no net carries this exact name" if not found else
-                                   "more than one net carries this exact name")}
-            net_id = found[0]["object_id"]
-        return self._get(self.data_url,
-                         f"/snapshots/{_segment(snapshot_id)}/nets/"
-                         f"{_segment(net_id)}/context",
-                         {"detail": detail, "relation_limit": relation_limit})
+    def get_net_context(self, snapshot_id: str, net: str, *, by: str = "name",
+                        detail: str = "summary", relation_limit: int = 200) -> dict[str, Any]:
+        """Net context; choose by=name or by=object_id explicitly."""
+        if by not in {"name", "object_id"}:
+            raise ValueError("by must be name or object_id")
+        return self.get_object_context(snapshot_id, kind="net",
+                                       **{by: net}, detail=detail,
+                                       relation_limit=relation_limit)
 
     # --------------------------------------------- tool 11: physical context
 
@@ -339,7 +276,13 @@ class EdaAiClient:
 
     def _get(self, base: str, path: str,
              params: dict[str, Any] | None = None) -> dict[str, Any]:
-        return json.loads(self._get_bytes(base, path, params))
+        try:
+            result = json.loads(self._get_bytes(base, path, params))
+        except (ValueError, UnicodeError) as exc:
+            raise EdaAiError("service returned invalid JSON") from exc
+        if not isinstance(result, dict):
+            raise EdaAiError("service response must be a JSON object")
+        return result
 
     def _get_bytes(self, base: str, path: str,
                    params: dict[str, Any] | None = None) -> bytes:
@@ -351,7 +294,11 @@ class EdaAiClient:
                 url = f"{url}?{query}"
         request = urllib.request.Request(url, headers={"Accept": "application/json"})
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+            host = urllib.parse.urlsplit(url).hostname
+            opener = (urllib.request.build_opener(urllib.request.ProxyHandler({}))
+                      if host in {"localhost", "127.0.0.1", "::1"}
+                      else urllib.request.build_opener())
+            with opener.open(request, timeout=self.timeout) as response:
                 return response.read()
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")[:500]
@@ -368,12 +315,6 @@ class EdaAiClient:
 
     def __exit__(self, *_exc: object) -> None:
         self.close()
-
-
-def _data(response: dict[str, Any]) -> dict[str, Any]:
-    """The tool payload: CONTRACT 1 responses carry it under ``data``."""
-    payload = response.get("data")
-    return payload if isinstance(payload, dict) else response
 
 
 def _segment(value: str) -> str:

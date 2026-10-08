@@ -13,6 +13,7 @@ import json
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs
 from typing import Any
 
 import pytest
@@ -28,7 +29,8 @@ class _Stub(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         REQUESTS.append(self.path)
-        body = self._envelope(self._route(self.path), self.path)
+        data = self._route(self.path)
+        body = data if self.path.startswith('/kernel/') else self._envelope(data, self.path)
         payload = json.dumps(body).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
@@ -42,35 +44,34 @@ class _Stub(BaseHTTPRequestHandler):
         scope = {}
         if "snap-1" in path:
             scope["snapshot_id"] = "snap-1"
-        return {"contract_version": "0.1", "tool": "stub", "scope": scope,
-                "status": "available", "missing": [], "data": data,
+        return {"contract_version": "0.2", "tool": "stub", "scope": scope,
+                "status": data.pop("resolution_status", "available"), "missing": [], "data": data,
                 "evidence": [], "limitations": []}
 
     def _route(self, path: str) -> dict[str, Any]:
         route, _, query = path.partition("?")
-        if route.endswith("/snapshots/snap-1"):
-            return {"snapshot": {"snapshot_id": "snap-1", "run_id": "run-1"}}
-        if route.endswith("/runs/run-1/metrics"):
-            rows = [{"name": "WNS", "snapshot_id": "snap-1", "status": "available"},
-                    {"name": "TNS", "snapshot_id": "snap-2", "status": "available"}]
-            # the server filters, so the stub must too
-            if "snapshot_id=snap-1" in query:
-                rows = [row for row in rows if row["snapshot_id"] == "snap-1"]
-            return {"run_id": "run-1", "count": len(rows), "returned": len(rows),
-                    "metrics": rows}
-        if route.endswith("/instances"):
-            name = query.split("name=")[-1]
+        if route.endswith("/designs"):
+            return {"designs": [{"design_id": "chip", "snapshot_count": 17}]}
+        if route.endswith("/artifacts"):
+            return {"artifacts": [{"artifact_id": "a1", "kind": "report"}]}
+        if route.endswith("/scope"):
+            return {"resolution_status": "partial", "candidates": [{"snapshot_id": "one"}, {"snapshot_id": "two"}]}
+        if route.endswith("/snapshots/snap-1/metrics"):
+            return {"run_id": "run-1", "count": 1, "returned": 1,
+                    "metrics": [{"name": "WNS", "snapshot_id": "snap-1", "status": "available"}]}
+        if route.endswith("/resolve-object"):
+            name = parse_qs(query).get("name", [""])[0]
             if name == "none":
-                return {"instances": []}
+                return {"resolution_status": "not_found", "matches": []}
             if name == "many":
-                return {"instances": [{"object_id": "inst:1"}, {"object_id": "inst:2"}]}
-            return {"instances": [{"object_id": "inst:7"}]}
+                return {"resolution_status": "partial", "matches": [{"object_id": "inst:1"}, {"object_id": "inst:2"}]}
+            return {"target": {"id": "inst:7"}, "entities": [{"object_id": "inst:7"}],
+                    "relations": [{"relation_id": "r1"}], "physical_context": []}
         if "/timing-paths/path%3A0" in route:
             return {"snapshot_id": "snap-1",
                     "timing_path": {"path_id": "path:0", "check": "setup"}}
-        if "/objects/inst%3A7/context" in route:
-            return {"entities": [{"object_id": "inst:7"}], "relations": [{"relation_id": "r1"}],
-                    "physical_context": [{"object_id": "inst:7"}], "evidence": []}
+        if route.endswith('/timing-paths'):
+            return {'timing_paths': [{'path_id': 'path:0', 'evidence': [{'artifact_id': 'source'}]}]}
         raise AssertionError(f"unexpected stub route: {path}")
 
     def log_message(self, *args: Any) -> None:
@@ -94,6 +95,20 @@ def test_ids_with_colons_are_url_quoted(client: EdaAiClient) -> None:
     assert _segment("path:0") == "path%3A0"
 
 
+def test_artifact_filter_is_forwarded_in_one_request(client: EdaAiClient) -> None:
+    client.kernel_url = client.data_url
+    assert client.list_artifacts("run:1", kind="report")[0]["artifact_id"] == "a1"
+    assert REQUESTS == ["/kernel/runs/run%3A1/artifacts?kind=report"]
+
+
+def test_full_timing_evidence_request_stays_bounded(client: EdaAiClient) -> None:
+    paths = client.get_timing_paths('s1', detail='full', limit=3)
+    assert paths['data']['timing_paths'][0]['evidence'][0]['artifact_id'] == 'source'
+    assert len(REQUESTS) == 1
+    params = parse_qs(REQUESTS[0].split('?')[1])
+    assert params['detail'] == ['full'] and params['limit'] == ['3']
+
+
 def test_snapshot_scoped_metrics_keep_only_that_snapshot(client: EdaAiClient) -> None:
     result = client.get_metrics(snapshot_id="snap-1")
     # CONTRACT 1: the tool's own structure lives under `data`, the fact boundary
@@ -101,17 +116,18 @@ def test_snapshot_scoped_metrics_keep_only_that_snapshot(client: EdaAiClient) ->
     assert [row["name"] for row in result["data"]["metrics"]] == ["WNS"]
     assert result["data"]["count"] == 1 and result["data"]["returned"] == 1
     assert result["scope"]["snapshot_id"] == "snap-1"
-    assert "snapshot_id=snap-1" in REQUESTS[-1]
+    assert len(REQUESTS) == 1
+    assert REQUESTS[0].startswith("/snapshots/snap-1/metrics?")
 
 
 def test_name_lookup_separates_zero_one_and_many(client: EdaAiClient) -> None:
     assert client.get_instance("snap-1", "none")["status"] == "not_found"
     partial = client.get_instance("snap-1", "many")
-    assert partial["status"] == "partial" and len(partial["instances"]) == 2
+    assert partial["status"] == "partial" and len(partial["data"]["matches"]) == 2
     found = client.get_instance("snap-1", "unique")
     assert found["status"] == "available"
-    assert found["instance"]["object_id"] == "inst:7"
-    assert found["relations"] == [{"relation_id": "r1"}]
+    assert found["data"]["entities"][0]["object_id"] == "inst:7"
+    assert found["data"]["relations"] == [{"relation_id": "r1"}]
 
 
 def test_kernel_tools_refuse_without_a_kernel_url(client: EdaAiClient) -> None:
@@ -122,7 +138,7 @@ def test_kernel_tools_refuse_without_a_kernel_url(client: EdaAiClient) -> None:
 def test_published_schemas_match_the_client(client: EdaAiClient) -> None:
     # frozen on purpose: adding a tool must be a deliberate contract change, and the
     # published list in CONTRACT.md section 4 must be updated with it
-    assert len(TOOL_SCHEMAS) == 13
+    assert len(TOOL_SCHEMAS) == 15
     for name in TOOL_NAMES:
         assert callable(getattr(client, name)), f"{name} has a schema but no method"
     for schema in TOOL_SCHEMAS:
@@ -137,3 +153,19 @@ def test_schemas_are_json_serialisable(tmp_path: Path) -> None:
     target = tmp_path / "tools.json"
     target.write_text(json.dumps(TOOL_SCHEMAS), encoding="utf-8")
     assert json.loads(target.read_text())[0]["function"]["name"] == "list_designs"
+
+
+def test_catalog_and_scope_are_not_reinterpreted(client: EdaAiClient) -> None:
+    assert client.list_designs()["data"]["designs"][0]["snapshot_count"] == 17
+    result = client.resolve_scope(run_id="run-1")
+    assert result["status"] == "partial" and len(result["data"]["candidates"]) == 2
+    assert len(REQUESTS) == 2
+
+
+def test_net_selection_does_not_guess_from_identifier_prefix(client: EdaAiClient) -> None:
+    client.get_net_context("snap-1", "net:literal/name")
+    assert "name=net%3Aliteral%2Fname" in REQUESTS[-1]
+    client.get_net_context("snap-1", "net:7", by="object_id")
+    assert "object_id=net%3A7" in REQUESTS[-1]
+    with pytest.raises(ValueError, match="by must"):
+        client.get_net_context("snap-1", "n1", by="guess")
