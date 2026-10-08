@@ -1,4 +1,4 @@
-"""Build pinned public wheels and provision four isolated development venvs."""
+"""Build pinned public wheels and provision five isolated development venvs."""
 from pathlib import Path
 import json
 import os
@@ -32,10 +32,10 @@ def pip(python, *args):
 pip(sys.executable, 'download', '-d', WHEELS, *TOOLS)
 for package in PACKAGES:
     pip(sys.executable, 'wheel', '--no-deps', '--no-build-isolation', '-w', WHEELS, EF / package)
-for name in ['data-foundation', 'data-interface', 'query-agent']:
+for name in ['toolkits', 'data-foundation', 'data-interface', 'query-agent']:
     pip(sys.executable, 'wheel', '--no-deps', '--no-build-isolation', '-w', WHEELS, ROOT / name)
 
-for name in ['execution-foundation', 'data-foundation', 'data-interface', 'query-agent']:
+for name in ['execution-foundation', 'toolkits', 'data-foundation', 'data-interface', 'query-agent']:
     project = ROOT / name
     run([sys.executable, '-m', 'venv', project / '.venv'])
     python = project / '.venv/bin/python'
@@ -52,12 +52,12 @@ for name in ['execution-foundation', 'data-foundation', 'data-interface', 'query
     elif name == 'query-agent':
         pip(python, 'install', '--no-index', '--find-links', WHEELS,
             'pydantic==2.13.4', 'pyright==1.1.414', 'import-linter==2.15',
-            'eda-ai-client==0.2.0')
+            'eda-ai-client==0.2.1')
         pip(python, 'install', '--no-deps', '--no-build-isolation', '-e', project)
-    elif name == 'data-foundation':
+    elif name in ('data-foundation', 'toolkits'):
         pip(python, 'install', '--no-index', '--find-links', WHEELS,
             'openroad-platform-contracts==0.2.0', 'openroad-platform-client==0.2.0',
-            'openroad-platform-runtime==0.2.0')  # runtime is a test fixture dependency
+            'openroad-platform-runtime==0.2.0', 'eda-toolkits==0.1.0')  # runtime is a test fixture dependency
         pip(python, 'install', '--no-deps', '--no-build-isolation', '-e', project)
     else:
         pip(python, 'install', '--no-deps', '--no-build-isolation', '-e', project)

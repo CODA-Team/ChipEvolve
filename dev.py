@@ -6,7 +6,7 @@ from pathlib import Path
 import subprocess
 
 ROOT = Path(__file__).resolve().parent
-PROJECTS = ('execution-foundation', 'query-agent', 'data-foundation', 'data-interface')
+PROJECTS = ('execution-foundation', 'query-agent', 'data-foundation', 'data-interface', 'toolkits')
 parser = argparse.ArgumentParser()
 parser.add_argument('project', choices=PROJECTS)
 parser.add_argument('command', choices=('check', 'smoke', 'python', 'shell', 'serve'))

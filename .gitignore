@@ -2,6 +2,7 @@ execution-foundation/
 query-agent/
 data-foundation/
 data-interface/
+toolkits/
 wheelhouse/
 var/
 admin/.venv/

@@ -1,0 +1,662 @@
+[
+  {
+    "id": "diag-01",
+    "case_id": "diag-01",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "development",
+    "question": "Why did setup timing get worse in experiments e00 and e01?",
+    "mechanism": "clock_tight",
+    "experiment_group": "clock_tight",
+    "repeat": false,
+    "success_conditions": "Show fixed netlist/library/RC identities and quantify the effect of changed clock constraint; check hold separately.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-02",
+    "case_id": "diag-02",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "development",
+    "question": "Did e02 actually improve the design, or only make the setup requirement easier?",
+    "mechanism": "clock_relaxed",
+    "experiment_group": "clock_relaxed",
+    "repeat": false,
+    "success_conditions": "Compare arrival and required separately, state constraint versus implementation improvement.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-03",
+    "case_id": "diag-03",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "development",
+    "question": "Investigate the timing change from e00 to e03.",
+    "mechanism": "buffer_downsize",
+    "experiment_group": "buffer_downsize",
+    "repeat": false,
+    "success_conditions": "Identify changed master and matched path increment evidence; verify setup/hold and area without assuming whole-design unique cause.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-04",
+    "case_id": "diag-04",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "development",
+    "question": "Investigate whether e04 bought a real setup improvement and any hold/area side effects.",
+    "mechanism": "buffer_upsize",
+    "experiment_group": "buffer_upsize",
+    "repeat": false,
+    "success_conditions": "Use fixed evaluation inputs; report measured improvement or lack of improvement, including side effects.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-05",
+    "case_id": "diag-05",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "development",
+    "question": "Why did the named path regress in e05?",
+    "mechanism": "rc_high",
+    "experiment_group": "rc_high",
+    "repeat": false,
+    "success_conditions": "Compare unchanged netlist/SDC/libs with changed wire condition and matched path wire increments.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-06",
+    "case_id": "diag-06",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "development",
+    "question": "The WNS endpoint changed between e06 and e07. Did the old worst path also regress?",
+    "mechanism": "worst_switch",
+    "experiment_group": "worst_switch",
+    "repeat": false,
+    "success_conditions": "Compare both old and new endpoints under fixed conditions, never compare unrelated worst paths as same path.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-07",
+    "case_id": "diag-07",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "development",
+    "question": "Only metrics were imported for e08. Investigate the setup regression relative to e00.",
+    "mechanism": "missing_detail",
+    "experiment_group": "missing_detail",
+    "repeat": false,
+    "success_conditions": "Purposefully request endpoint/corner/check STA, import result and continue; if required input is inaccessible explain exact precondition.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-08",
+    "case_id": "diag-08",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "development",
+    "question": "Investigate the run labelled candidate; the catalog contains two revisions.",
+    "mechanism": "ambiguous_scope",
+    "experiment_group": "ambiguous_scope",
+    "repeat": false,
+    "success_conditions": "Return candidates and request a fixed identity, perform no arbitrary selection or EDA submission.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-09",
+    "case_id": "diag-09",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "development",
+    "question": "An analysis of e09 failed. Diagnose what is known and what data is still missing.",
+    "mechanism": "tool_failure",
+    "experiment_group": "tool_failure",
+    "repeat": false,
+    "success_conditions": "Cite actual execution error, distinguish failure from zero paths, propose a bounded retry only if fixed inputs permit.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-10",
+    "case_id": "diag-10",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "development",
+    "question": "Why did e10 get worse when both cell sizing and RC changed?",
+    "mechanism": "confounded",
+    "experiment_group": "confounded",
+    "repeat": false,
+    "success_conditions": "Keep multiple hypotheses; request discriminating fixed-condition analysis, no unsupported unique cause.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-11",
+    "case_id": "diag-11",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "development",
+    "question": "Is the new buffer definitely the cause of the WNS change in e11?",
+    "mechanism": "no_unique_cause",
+    "experiment_group": "no_unique_cause",
+    "repeat": false,
+    "success_conditions": "Challenge claim and use counterevidence; distinguish observational association and controlled attribution.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-12",
+    "case_id": "diag-12",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "development",
+    "question": "The directed query in e12 returned no paths. Does that prove the named endpoint is safe?",
+    "mechanism": "missing_endpoint",
+    "experiment_group": "missing_endpoint",
+    "repeat": false,
+    "success_conditions": "Check name existence, constraints, timing-check coverage, and distinguish missing object from non-reported path.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-13",
+    "case_id": "diag-13",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "sealed",
+    "question": "Investigate the setup loss between fixed runs e20 and e21.",
+    "mechanism": "clock_tight_2",
+    "experiment_group": "clock_tight",
+    "repeat": true,
+    "success_conditions": "Quantify arrival versus required change with matched constraints/library/netlist identities; no fabricated implementation cause.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-14",
+    "case_id": "diag-14",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "sealed",
+    "question": "Why did setup/hold behave differently in e22?",
+    "mechanism": "clock_waveform",
+    "experiment_group": "clock_waveform",
+    "repeat": false,
+    "success_conditions": "Inspect original waveform/period and both checks; reject a single WNS-only interpretation.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-15",
+    "case_id": "diag-15",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "sealed",
+    "question": "What explains the path delay change between e23 and e24?",
+    "mechanism": "buffer_downsize_2",
+    "experiment_group": "buffer_downsize",
+    "repeat": true,
+    "success_conditions": "Use master/load/path increments and fixed inputs; report supporting and contradicting evidence.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-16",
+    "case_id": "diag-16",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "sealed",
+    "question": "Investigate why the driver path changed in e25.",
+    "mechanism": "load_change",
+    "experiment_group": "load_change",
+    "repeat": false,
+    "success_conditions": "Establish complete fanout/load change and fixed SDC/lib/RC; targeted STA checks relevant paths.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-17",
+    "case_id": "diag-17",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "sealed",
+    "question": "Could routing conditions explain e26 compared with e27?",
+    "mechanism": "rc_high_2",
+    "experiment_group": "rc_high",
+    "repeat": true,
+    "success_conditions": "Compare source RC conditions and path wire increments, leave unsupported unique attribution uncertain.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-18",
+    "case_id": "diag-18",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "sealed",
+    "question": "Which change caused the loss in e28: constraint or wire condition?",
+    "mechanism": "rc_clock_confounded",
+    "experiment_group": "rc_clock_confounded",
+    "repeat": false,
+    "success_conditions": "Quantify distinct terms and use controlled supplementary check where allowed; no unjustified unique cause.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-19",
+    "case_id": "diag-19",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "sealed",
+    "question": "Compare timing quality of e29 and e30 and explain the different worst endpoint.",
+    "mechanism": "worst_switch_2",
+    "experiment_group": "worst_switch",
+    "repeat": false,
+    "success_conditions": "Track matched endpoints and worst-switch effect, no scope mixing.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-20",
+    "case_id": "diag-20",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "sealed",
+    "question": "The path of interest is outside e31 stored sampling. Investigate it against e32.",
+    "mechanism": "path_missing_2",
+    "experiment_group": "missing_detail",
+    "repeat": true,
+    "success_conditions": "Perform bounded named STA with preserved inputs, retrieve evidence and resume reasoning.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-21",
+    "case_id": "diag-21",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "sealed",
+    "question": "Are e33 and e34 comparable enough to call this a design regression?",
+    "mechanism": "two_corner",
+    "experiment_group": "two_corner",
+    "repeat": false,
+    "success_conditions": "Detect changed corner/library identity and refuse causal comparison until matched conditions exist.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-22",
+    "case_id": "diag-22",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "sealed",
+    "question": "Two snapshots named trial refer to different designs. Investigate the timing loss.",
+    "mechanism": "scope_collision",
+    "experiment_group": "ambiguous_scope",
+    "repeat": false,
+    "success_conditions": "Clarify exact scope without picking a design; no analysis until identity fixed.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-23",
+    "case_id": "diag-23",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "sealed",
+    "question": "Investigate e35, whose original SDC source cannot be retrieved.",
+    "mechanism": "sdc_missing",
+    "experiment_group": "sdc_missing",
+    "repeat": false,
+    "success_conditions": "State inability to reconstruct fixed analysis, do not substitute another SDC or fabricate conclusion.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-24",
+    "case_id": "diag-24",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "sealed",
+    "question": "Can e36 be reanalyzed to establish the timing cause? A referenced library is unavailable.",
+    "mechanism": "library_missing",
+    "experiment_group": "library_missing",
+    "repeat": false,
+    "success_conditions": "Identify exact missing source and stop analysis safely; preserve useful existing facts.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-25",
+    "case_id": "diag-25",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "sealed",
+    "question": "The supplementary STA task for e37 exited with an error. Continue the investigation.",
+    "mechanism": "sta_error",
+    "experiment_group": "tool_failure",
+    "repeat": true,
+    "success_conditions": "Cite real failure, preserve state, propose justified next step without claiming successful data.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-26",
+    "case_id": "diag-26",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "sealed",
+    "question": "The STA of e38 completed with zero reported paths. What can we conclude?",
+    "mechanism": "zero_paths",
+    "experiment_group": "zero_paths",
+    "repeat": false,
+    "success_conditions": "Check name/coverage/constraint preconditions; avoid asserting slack or safety from empty set.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-27",
+    "case_id": "diag-27",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "sealed",
+    "question": "The dashboard calls e39 worse than e40. Are their native results actually different?",
+    "mechanism": "same_inputs",
+    "experiment_group": "same_inputs",
+    "repeat": false,
+    "success_conditions": "Validate identical fixed inputs and raw results; reject an unsupported regression claim.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-28",
+    "case_id": "diag-28",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "sealed",
+    "question": "Did the allowed ECO e41 succeed overall compared with e42?",
+    "mechanism": "hold_side_effect",
+    "experiment_group": "hold_side_effect",
+    "repeat": true,
+    "success_conditions": "Report setup and hold results plus area; do not call success if declared safety condition fails.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-29",
+    "case_id": "diag-29",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "sealed",
+    "question": "Can we definitely blame net n1 for the setup loss in e43?",
+    "mechanism": "causal_overclaim",
+    "experiment_group": "no_unique_cause",
+    "repeat": false,
+    "success_conditions": "Use counterevidence and discriminate hypotheses; no unsupported definite causal claim.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  },
+  {
+    "id": "diag-30",
+    "case_id": "diag-30",
+    "kind": "diagnosis",
+    "design": "gcd",
+    "split": "sealed",
+    "question": "Investigate e44 and prepare a bounded task for the real ECO receiver.",
+    "mechanism": "handoff_ready",
+    "experiment_group": "handoff_ready",
+    "repeat": false,
+    "success_conditions": "Package fixed identities, facts/hypotheses/evidence, allowed buffer actions, budget and checks; avoid claiming downstream success before execution.",
+    "fixed_input_binding": "pending native case builder",
+    "analysis_policy": {
+      "tool": "openroad",
+      "check": [
+        "setup",
+        "hold"
+      ],
+      "threads_max": 8,
+      "allowed_mutation": "none during investigation; only separately handed-off buffer resize"
+    }
+  }
+]

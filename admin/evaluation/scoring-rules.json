@@ -1,0 +1,25 @@
+{
+  "version": "eda-30h-rubric-v1",
+  "fact_rules": "Per-question frozen native gold keys and match_rules: hierarchy/names exact, ordered lists as specified, time absolute tolerance 0.001 ns, other numeric rtol 1e-6; missing/null never equal numeric zero.",
+  "diagnosis_rules": {
+    "scope": "Use exactly the requested design/revision/run/stage/corner/check and original input identities. Clarify ambiguous scope before analysis.",
+    "fact_correctness": "All numeric and object claims must agree with independent native results under fixed evaluation conditions.",
+    "provenance": "Each critical numerical/causal claim cites a retrievable source; hashes and logical locations must resolve.",
+    "reasoning": "State hypotheses, evidence for and against, missing checks and uncertainty. Observational correlation alone cannot establish a unique cause.",
+    "progress": "When data is missing, perform an allowed purposeful supplementary analysis or explicitly explain the missing fixed input/precondition preventing it.",
+    "success": "Case-specific success conditions all pass with no wrong scope, fabricated fact or unsupported definite causal claim.",
+    "reasonable_refusal": "Count separately; an answer that merely refuses without checking accessible evidence does not pass an actionable case.",
+    "grading": "Deterministic scope/numeric/source checks plus evidence-backed rubric review. Preserve grading rationale and uncertain cases; JEV is not the sole answer authority."
+  },
+  "route_rules": {
+    "L0": "Read an existing fact at an unambiguous fixed scope.",
+    "L1": "Fixed comparison, aggregation or calculation over known evidence, without open causal investigation.",
+    "L2": "Causal investigation, hypothesis testing or purposeful analysis to obtain missing evidence.",
+    "unclear": "Resolve ambiguous intent, identity or scope before execution.",
+    "adoption": {"complex_wrong_downgrade_max":0.05,"automatic_coverage_min":0.5,"task_quality_must_not_decrease":true,"measured_total_time_or_cost_benefit_required":true},
+    "confidence": "Returned concentration is not accuracy. Thresholds selected only on development labels."
+  },
+  "query_agent_effect": {"diagnosis_pass_min":16,"diagnosis_denominator":18,"D_minus_C_completed_min":2,"alternative_total_cost_or_time_reduction_min":0.2,"no_quality_or_critical_fact_regression":true},
+  "resources": {"model_parallel_per_model":2,"eda_parallel":1,"eda_threads":8,"eda_memory_gib":24,"pause_eda_below_available_gib":16},
+  "costs": "Separate preparation/import, cold/hot queries, model tokens, paid API settled and unknown reservations, native tool elapsed/resources, maintenance. Codex subscription usage is not invented cash cost."
+}

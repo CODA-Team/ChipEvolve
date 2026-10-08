@@ -1,0 +1,702 @@
+[
+  {
+    "id": "l0-01",
+    "question": "What is the setup WNS of snapshot gcd-r0-route at corner typical?",
+    "label": "L0",
+    "split": "development",
+    "semantic_group": "l0-01"
+  },
+  {
+    "id": "l0-02",
+    "question": "List the registered timing report source for run base-0.",
+    "label": "L0",
+    "split": "development",
+    "semantic_group": "l0-02"
+  },
+  {
+    "id": "l0-03",
+    "question": "At snapshot r1-place, which cell master is instance _021_?",
+    "label": "L0",
+    "split": "development",
+    "semantic_group": "l0-03"
+  },
+  {
+    "id": "l0-04",
+    "question": "Return the full indexed load count of net enable[3] at r0-route.",
+    "label": "L0",
+    "split": "development",
+    "semantic_group": "l0-04"
+  },
+  {
+    "id": "l0-05",
+    "question": "What is the original clock period declared in r0-route?",
+    "label": "L0",
+    "split": "development",
+    "semantic_group": "l0-05"
+  },
+  {
+    "id": "l0-06",
+    "question": "Give the placed coordinates of u_buffer in micrometres in r0-place.",
+    "label": "L0",
+    "split": "development",
+    "semantic_group": "l0-06"
+  },
+  {
+    "id": "l0-07",
+    "question": "Which failure category was recorded for execution run failed-7?",
+    "label": "L0",
+    "split": "development",
+    "semantic_group": "l0-07"
+  },
+  {
+    "id": "l0-08",
+    "question": "How many macro instances are indexed in snapshot mempool-s1?",
+    "label": "L0",
+    "split": "development",
+    "semantic_group": "l0-08"
+  },
+  {
+    "id": "l0-09",
+    "question": "Get the hold slack of stored path p12 in snapshot s0.",
+    "label": "L0",
+    "split": "development",
+    "semantic_group": "l0-09"
+  },
+  {
+    "id": "l0-10",
+    "question": "What is the recorded peak memory of task run-31?",
+    "label": "L0",
+    "split": "development",
+    "semantic_group": "l0-10"
+  },
+  {
+    "id": "l0-11",
+    "question": "列出快照 gcd-s2 的库文件哈希，不运行新分析。",
+    "label": "L0",
+    "split": "sealed",
+    "semantic_group": "l0-11"
+  },
+  {
+    "id": "l0-12",
+    "question": "Find the artifact ID for the original SDC of run r1.",
+    "label": "L0",
+    "split": "sealed",
+    "semantic_group": "l0-12"
+  },
+  {
+    "id": "l0-13",
+    "question": "Give the units attached to the TNS fact in snapshot s5.",
+    "label": "L0",
+    "split": "sealed",
+    "semantic_group": "l0-13"
+  },
+  {
+    "id": "l0-14",
+    "question": "Has execution run timeout-12 reached a terminal state?",
+    "label": "L0",
+    "split": "sealed",
+    "semantic_group": "l0-14"
+  },
+  {
+    "id": "l0-15",
+    "question": "What cancellation reason was saved for task cancelled-1?",
+    "label": "L0",
+    "split": "sealed",
+    "semantic_group": "l0-15"
+  },
+  {
+    "id": "l0-16",
+    "question": "Read the original source fragment for timing point p9:3.",
+    "label": "L0",
+    "split": "sealed",
+    "semantic_group": "l0-16"
+  },
+  {
+    "id": "l0-17",
+    "question": "Which data snapshot was produced by analysis a-22?",
+    "label": "L0",
+    "split": "sealed",
+    "semantic_group": "l0-17"
+  },
+  {
+    "id": "l0-18",
+    "question": "Return the declared coverage domain of the stored timing sample s2.",
+    "label": "L0",
+    "split": "sealed",
+    "semantic_group": "l0-18"
+  },
+  {
+    "id": "l0-19",
+    "question": "Get the registered SHA256 of the ODB used by run r5.",
+    "label": "L0",
+    "split": "sealed",
+    "semantic_group": "l0-19"
+  },
+  {
+    "id": "l0-20",
+    "question": "List input pin names of instance u1 at snapshot r1, including all pages.",
+    "label": "L0",
+    "split": "sealed",
+    "semantic_group": "l0-20"
+  },
+  {
+    "id": "l0-21",
+    "question": "What analysis condition is recorded for the saved SPEF of s1?",
+    "label": "L0",
+    "split": "sealed",
+    "semantic_group": "l0-21"
+  },
+  {
+    "id": "l0-22",
+    "question": "Which endpoint belongs to path p18 in snapshot nvdla-s3?",
+    "label": "L0",
+    "split": "sealed",
+    "semantic_group": "l0-22"
+  },
+  {
+    "id": "l0-23",
+    "question": "Return the driver pins of net reset_n at snapshot gcd-s3.",
+    "label": "L0",
+    "split": "sealed",
+    "semantic_group": "l0-23"
+  },
+  {
+    "id": "l0-24",
+    "question": "Get the bbox of instance top/ram[2] at fixed snapshot mempool-s7.",
+    "label": "L0",
+    "split": "sealed",
+    "semantic_group": "l0-24"
+  },
+  {
+    "id": "l0-25",
+    "question": "Return the exit code of the recorded failed OpenROAD job run-20.",
+    "label": "L0",
+    "split": "sealed",
+    "semantic_group": "l0-25"
+  },
+  {
+    "id": "l1-01",
+    "question": "Compute final-minus-input WNS for these two fixed snapshots at the same corner.",
+    "label": "L1",
+    "split": "development",
+    "semantic_group": "l1-01"
+  },
+  {
+    "id": "l1-02",
+    "question": "Compare recorded core areas of runs A and B; do not infer timing causes.",
+    "label": "L1",
+    "split": "development",
+    "semantic_group": "l1-02"
+  },
+  {
+    "id": "l1-03",
+    "question": "Count all placed standard cells overlapping this fixed 20 by 20 um region.",
+    "label": "L1",
+    "split": "development",
+    "semantic_group": "l1-03"
+  },
+  {
+    "id": "l1-04",
+    "question": "For paths p1 and p2, compare recorded cell and wire arrival increments.",
+    "label": "L1",
+    "split": "development",
+    "semantic_group": "l1-04"
+  },
+  {
+    "id": "l1-05",
+    "question": "Rank the indexed nets by complete load count with names breaking ties.",
+    "label": "L1",
+    "split": "development",
+    "semantic_group": "l1-05"
+  },
+  {
+    "id": "l1-06",
+    "question": "Compute the union of bboxes of the instances on stored path p3.",
+    "label": "L1",
+    "split": "development",
+    "semantic_group": "l1-06"
+  },
+  {
+    "id": "l1-07",
+    "question": "Compare exact endpoint u1/Q to u9/D in two saved reports under matched conditions.",
+    "label": "L1",
+    "split": "development",
+    "semantic_group": "l1-07"
+  },
+  {
+    "id": "l1-08",
+    "question": "How many additional buffers are indexed in r1 compared with r0?",
+    "label": "L1",
+    "split": "development",
+    "semantic_group": "l1-08"
+  },
+  {
+    "id": "l1-09",
+    "question": "Aggregate recorded setup violations by clock group in snapshot s1.",
+    "label": "L1",
+    "split": "development",
+    "semantic_group": "l1-09"
+  },
+  {
+    "id": "l1-10",
+    "question": "Compute median CPU duration over the five specified completed runs.",
+    "label": "L1",
+    "split": "development",
+    "semantic_group": "l1-10"
+  },
+  {
+    "id": "l1-11",
+    "question": "只比较 A 和 B 的原始约束哈希是否一致，不判断退化原因。",
+    "label": "L1",
+    "split": "sealed",
+    "semantic_group": "l1-11"
+  },
+  {
+    "id": "l1-12",
+    "question": "Calculate max minus min recorded arrival across the fixed stored points.",
+    "label": "L1",
+    "split": "sealed",
+    "semantic_group": "l1-12"
+  },
+  {
+    "id": "l1-13",
+    "question": "List masters that changed between the fixed r0 and r1 instance inventories.",
+    "label": "L1",
+    "split": "sealed",
+    "semantic_group": "l1-13"
+  },
+  {
+    "id": "l1-14",
+    "question": "Compare registered library corners of two runs and mark incompatibilities.",
+    "label": "L1",
+    "split": "sealed",
+    "semantic_group": "l1-14"
+  },
+  {
+    "id": "l1-15",
+    "question": "Calculate the complete receiving macro count for this fixed indexed net.",
+    "label": "L1",
+    "split": "sealed",
+    "semantic_group": "l1-15"
+  },
+  {
+    "id": "l1-16",
+    "question": "Compute the percentage of core covered by all indexed macro bboxes.",
+    "label": "L1",
+    "split": "sealed",
+    "semantic_group": "l1-16"
+  },
+  {
+    "id": "l1-17",
+    "question": "Compare the stored source_path pin sequences of pA and pB.",
+    "label": "L1",
+    "split": "sealed",
+    "semantic_group": "l1-17"
+  },
+  {
+    "id": "l1-18",
+    "question": "Give the difference in hold slack for the two already reported paths.",
+    "label": "L1",
+    "split": "sealed",
+    "semantic_group": "l1-18"
+  },
+  {
+    "id": "l1-19",
+    "question": "Find common directly connected nets between the two specified placed macros.",
+    "label": "L1",
+    "split": "sealed",
+    "semantic_group": "l1-19"
+  },
+  {
+    "id": "l1-20",
+    "question": "Compare the identity tuples of two snapshots without choosing a cause.",
+    "label": "L1",
+    "split": "sealed",
+    "semantic_group": "l1-20"
+  },
+  {
+    "id": "l1-21",
+    "question": "Compute the largest adjacent data-path increment in the fixed complete report.",
+    "label": "L1",
+    "split": "sealed",
+    "semantic_group": "l1-21"
+  },
+  {
+    "id": "l1-22",
+    "question": "Compare saved peak memory and elapsed time for runs g0 and g1.",
+    "label": "L1",
+    "split": "sealed",
+    "semantic_group": "l1-22"
+  },
+  {
+    "id": "l1-23",
+    "question": "Group all indexed instances by master and count each complete group.",
+    "label": "L1",
+    "split": "sealed",
+    "semantic_group": "l1-23"
+  },
+  {
+    "id": "l1-24",
+    "question": "Calculate the total routed length from the complete saved segment file.",
+    "label": "L1",
+    "split": "sealed",
+    "semantic_group": "l1-24"
+  },
+  {
+    "id": "l1-25",
+    "question": "Compare the original report WNS values for input, placeopt and global_route.",
+    "label": "L1",
+    "split": "sealed",
+    "semantic_group": "l1-25"
+  },
+  {
+    "id": "l2-01",
+    "question": "Why did setup timing get worse after the latest experiment?",
+    "label": "L2",
+    "split": "development",
+    "semantic_group": "l2-01"
+  },
+  {
+    "id": "l2-02",
+    "question": "Test whether higher load on enable caused the new worst path.",
+    "label": "L2",
+    "split": "development",
+    "semantic_group": "l2-02"
+  },
+  {
+    "id": "l2-03",
+    "question": "Investigate if changed wire RC, cell sizing or constraints explain the WNS drop.",
+    "label": "L2",
+    "split": "development",
+    "semantic_group": "l2-03"
+  },
+  {
+    "id": "l2-04",
+    "question": "The worst endpoints switched; determine whether a particular path actually regressed.",
+    "label": "L2",
+    "split": "development",
+    "semantic_group": "l2-04"
+  },
+  {
+    "id": "l2-05",
+    "question": "Can we justify blaming buffer _021_ for the observed timing loss?",
+    "label": "L2",
+    "split": "development",
+    "semantic_group": "l2-05"
+  },
+  {
+    "id": "l2-06",
+    "question": "Only WNS is available; obtain detailed STA to investigate its decline.",
+    "label": "L2",
+    "split": "development",
+    "semantic_group": "l2-06"
+  },
+  {
+    "id": "l2-07",
+    "question": "Find evidence for and against an SDC change as the cause of setup regression.",
+    "label": "L2",
+    "split": "development",
+    "semantic_group": "l2-07"
+  },
+  {
+    "id": "l2-08",
+    "question": "Determine what targeted analysis would separate cell delay from wire delay here.",
+    "label": "L2",
+    "split": "development",
+    "semantic_group": "l2-08"
+  },
+  {
+    "id": "l2-09",
+    "question": "Why did setup improve while hold became worse in this experiment?",
+    "label": "L2",
+    "split": "development",
+    "semantic_group": "l2-09"
+  },
+  {
+    "id": "l2-10",
+    "question": "Investigate this OpenROAD failure and propose a supported next analysis.",
+    "label": "L2",
+    "split": "development",
+    "semantic_group": "l2-10"
+  },
+  {
+    "id": "l2-11",
+    "question": "时序变差了，但只存了采样路径。请查证并申请有目的的补充 STA。",
+    "label": "L2",
+    "split": "sealed",
+    "semantic_group": "l2-11"
+  },
+  {
+    "id": "l2-12",
+    "question": "Investigate whether the apparent regression is caused by a different analysis corner.",
+    "label": "L2",
+    "split": "sealed",
+    "semantic_group": "l2-12"
+  },
+  {
+    "id": "l2-13",
+    "question": "The design changes and RC both changed; determine whether a unique cause is supported.",
+    "label": "L2",
+    "split": "sealed",
+    "semantic_group": "l2-13"
+  },
+  {
+    "id": "l2-14",
+    "question": "Find a counterexample to the hypothesis that all the WNS loss came from the clock period.",
+    "label": "L2",
+    "split": "sealed",
+    "semantic_group": "l2-14"
+  },
+  {
+    "id": "l2-15",
+    "question": "Investigate a suspicious net-load discrepancy against the original native database.",
+    "label": "L2",
+    "split": "sealed",
+    "semantic_group": "l2-15"
+  },
+  {
+    "id": "l2-16",
+    "question": "Test whether the missing endpoint exists before interpreting an empty STA result.",
+    "label": "L2",
+    "split": "sealed",
+    "semantic_group": "l2-16"
+  },
+  {
+    "id": "l2-17",
+    "question": "Use fresh STA to check whether resizing the allowed buffer would reduce this loss.",
+    "label": "L2",
+    "split": "sealed",
+    "semantic_group": "l2-17"
+  },
+  {
+    "id": "l2-18",
+    "question": "Investigate why a supposedly identical repeat produced a different worst-path report.",
+    "label": "L2",
+    "split": "sealed",
+    "semantic_group": "l2-18"
+  },
+  {
+    "id": "l2-19",
+    "question": "Determine if an ECO improved setup without creating a hold violation.",
+    "label": "L2",
+    "split": "sealed",
+    "semantic_group": "l2-19"
+  },
+  {
+    "id": "l2-20",
+    "question": "Look for evidence that the larger cell area bought a real timing improvement.",
+    "label": "L2",
+    "split": "sealed",
+    "semantic_group": "l2-20"
+  },
+  {
+    "id": "l2-21",
+    "question": "Identify the next discriminating experiment when two causal hypotheses remain plausible.",
+    "label": "L2",
+    "split": "sealed",
+    "semantic_group": "l2-21"
+  },
+  {
+    "id": "l2-22",
+    "question": "Investigate whether a tool failed before producing the data cited by this answer.",
+    "label": "L2",
+    "split": "sealed",
+    "semantic_group": "l2-22"
+  },
+  {
+    "id": "l2-23",
+    "question": "Diagnose a regression using fixed inputs and record the missing power analysis separately.",
+    "label": "L2",
+    "split": "sealed",
+    "semantic_group": "l2-23"
+  },
+  {
+    "id": "l2-24",
+    "question": "Decide what evidence is needed before handing this timing issue to an ECO receiver.",
+    "label": "L2",
+    "split": "sealed",
+    "semantic_group": "l2-24"
+  },
+  {
+    "id": "l2-25",
+    "question": "Investigate an unexpected unconstrained endpoint after changing the netlist.",
+    "label": "L2",
+    "split": "sealed",
+    "semantic_group": "l2-25"
+  },
+  {
+    "id": "unclear-01",
+    "question": "What is WNS? I have not said which design or run.",
+    "label": "unclear",
+    "split": "development",
+    "semantic_group": "unclear-01"
+  },
+  {
+    "id": "unclear-02",
+    "question": "Compare the two runs, but I do not know which two run IDs.",
+    "label": "unclear",
+    "split": "development",
+    "semantic_group": "unclear-02"
+  },
+  {
+    "id": "unclear-03",
+    "question": "Is top/u1 slow? Two snapshots and corners share that instance name.",
+    "label": "unclear",
+    "split": "development",
+    "semantic_group": "unclear-03"
+  },
+  {
+    "id": "unclear-04",
+    "question": "Show the final result; the catalog has two different final experiments.",
+    "label": "unclear",
+    "split": "development",
+    "semantic_group": "unclear-04"
+  },
+  {
+    "id": "unclear-05",
+    "question": "Optimize it. No target, allowed actions or evaluation condition is specified.",
+    "label": "unclear",
+    "split": "development",
+    "semantic_group": "unclear-05"
+  },
+  {
+    "id": "unclear-06",
+    "question": "Use the latest snapshot; two revisions have the same creation time.",
+    "label": "unclear",
+    "split": "development",
+    "semantic_group": "unclear-06"
+  },
+  {
+    "id": "unclear-07",
+    "question": "Return slack for path p1; the design and snapshot are unspecified.",
+    "label": "unclear",
+    "split": "development",
+    "semantic_group": "unclear-07"
+  },
+  {
+    "id": "unclear-08",
+    "question": "What is the better one? It is unclear whether timing, area or power is intended.",
+    "label": "unclear",
+    "split": "development",
+    "semantic_group": "unclear-08"
+  },
+  {
+    "id": "unclear-09",
+    "question": "The net is n1 but it exists in three designs; report its fanout.",
+    "label": "unclear",
+    "split": "development",
+    "semantic_group": "unclear-09"
+  },
+  {
+    "id": "unclear-10",
+    "question": "Check this region [0,0,100,100]; no coordinate unit is provided.",
+    "label": "unclear",
+    "split": "development",
+    "semantic_group": "unclear-10"
+  },
+  {
+    "id": "unclear-11",
+    "question": "帮我看看变差了。尚未提供对象、实验或指标。",
+    "label": "unclear",
+    "split": "sealed",
+    "semantic_group": "unclear-11"
+  },
+  {
+    "id": "unclear-12",
+    "question": "Run analysis at fast; the catalog contains multiple libraries named fast.",
+    "label": "unclear",
+    "split": "sealed",
+    "semantic_group": "unclear-12"
+  },
+  {
+    "id": "unclear-13",
+    "question": "Tell the receiver to fix this, but no allowed modification scope is supplied.",
+    "label": "unclear",
+    "split": "sealed",
+    "semantic_group": "unclear-13"
+  },
+  {
+    "id": "unclear-14",
+    "question": "Compare route timing to placement timing; corner/check are absent for both.",
+    "label": "unclear",
+    "split": "sealed",
+    "semantic_group": "unclear-14"
+  },
+  {
+    "id": "unclear-15",
+    "question": "What does result 3 mean? There is no report, task or source identity.",
+    "label": "unclear",
+    "split": "sealed",
+    "semantic_group": "unclear-15"
+  },
+  {
+    "id": "unclear-16",
+    "question": "Give the arrival of Q; both a port and two hierarchical pins use that spelling.",
+    "label": "unclear",
+    "split": "sealed",
+    "semantic_group": "unclear-16"
+  },
+  {
+    "id": "unclear-17",
+    "question": "Analyze both checkpoints called base, which have different input hashes.",
+    "label": "unclear",
+    "split": "sealed",
+    "semantic_group": "unclear-17"
+  },
+  {
+    "id": "unclear-18",
+    "question": "Report path delay for the object name reset: it is not clear if this is net or pin.",
+    "label": "unclear",
+    "split": "sealed",
+    "semantic_group": "unclear-18"
+  },
+  {
+    "id": "unclear-19",
+    "question": "Cancel the bad task. Several tasks failed and none is identified.",
+    "label": "unclear",
+    "split": "sealed",
+    "semantic_group": "unclear-19"
+  },
+  {
+    "id": "unclear-20",
+    "question": "Load the timing file I mentioned before; no artifact reference is in this request.",
+    "label": "unclear",
+    "split": "sealed",
+    "semantic_group": "unclear-20"
+  },
+  {
+    "id": "unclear-21",
+    "question": "Which clock should we change? The objective and allowed clocks are unspecified.",
+    "label": "unclear",
+    "split": "sealed",
+    "semantic_group": "unclear-21"
+  },
+  {
+    "id": "unclear-22",
+    "question": "The endpoint u/D matches two escaped native names; choose the intended one first.",
+    "label": "unclear",
+    "split": "sealed",
+    "semantic_group": "unclear-22"
+  },
+  {
+    "id": "unclear-23",
+    "question": "Check setup at the usual corner; this project has no configured default.",
+    "label": "unclear",
+    "split": "sealed",
+    "semantic_group": "unclear-23"
+  },
+  {
+    "id": "unclear-24",
+    "question": "Use the new dataset; there are two imports with the same label and different hashes.",
+    "label": "unclear",
+    "split": "sealed",
+    "semantic_group": "unclear-24"
+  },
+  {
+    "id": "unclear-25",
+    "question": "Investigate a regression relative to a baseline that has not been identified.",
+    "label": "unclear",
+    "split": "sealed",
+    "semantic_group": "unclear-25"
+  }
+]
