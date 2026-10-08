@@ -11,13 +11,16 @@ class ArtifactInventory:
         self.store = store
 
     def for_run(self, run_id: str, *, category: str | None = None,
-                format: str | None = None, stage: str | None = None
+                format: str | None = None, stage: str | None = None,
+                kind: str | None = None
                 ) -> list[dict[str, Any]]:
         view = self.store.describe_run(run_id)
         result: list[dict[str, Any]] = []
         for stage_view in view["stages"]:
             for attempt in stage_view["attempts"]:
                 for artifact in attempt["artifacts"]:
+                    if kind is not None and artifact.get("kind") != kind:
+                        continue
                     metadata = artifact.get("metadata") or {}
                     if category is not None and metadata.get("category") != category:
                         continue
