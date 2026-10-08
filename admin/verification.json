@@ -1,0 +1,46 @@
+{
+  "projects": {
+    "execution-foundation": {
+      "passed": 475,
+      "skipped": 1,
+      "pip_check": "passed",
+      "migration_commit": "3533d04c0649bde4e72abfd51992d308c54bf543"
+    },
+    "query-agent": {
+      "passed": 78,
+      "skipped": 0,
+      "pip_check": "passed",
+      "migration_commit": "7a1ad057ec90922b191b16f4934ee88ac7eaef04"
+    },
+    "data-foundation": {
+      "passed": 334,
+      "skipped": 0,
+      "pip_check": "passed",
+      "migration_commit": "ff66f5ea864f8f8937b9cde556aca4a128a0b527"
+    },
+    "data-interface": {
+      "passed": 6,
+      "skipped": 0,
+      "pip_check": "passed",
+      "migration_commit": "883d10adc31e0696417a88cb19279664ff971efb"
+    }
+  },
+  "total_passed": 893,
+  "total_skipped": 1,
+  "required_static_check_failure": {
+    "project": "query-agent",
+    "check": "pyright",
+    "errors": 29,
+    "source": "pre-existing uncommitted source and tests; original src/tests/docs hashes match copied project"
+  },
+  "runtime_cutover_performed": false,
+  "package_http_validation": {
+    "wheel_install": "passed",
+    "no_editable_dependencies": true,
+    "fingerprint_independent_of_checkout_path": true,
+    "data_interface_to_data_foundation_http": "passed",
+    "data_interface_to_execution_foundation_http": "passed",
+    "primary_query_agent_to_execution_foundation_http": "passed",
+    "old_runtime_data_used": false
+  }
+}

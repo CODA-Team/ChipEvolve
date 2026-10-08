@@ -1,0 +1,2 @@
+# Exact patch backups contain significant diff context whitespace.
+admin/*.patch -diff

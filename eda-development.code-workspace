@@ -1,0 +1,12 @@
+{
+  "folders": [
+    {"name": "Execution Foundation", "path": "execution-foundation"},
+    {"name": "Query Agent", "path": "query-agent"},
+    {"name": "Data Foundation", "path": "data-foundation"},
+    {"name": "Data Interface", "path": "data-interface"}
+  ],
+  "settings": {
+    "files.exclude": {"**/__pycache__": true, "**/.pytest_cache": true, "**/*.egg-info": true},
+    "search.exclude": {"**/.venv": true, "**/var": true, "**/wheelhouse": true}
+  }
+}

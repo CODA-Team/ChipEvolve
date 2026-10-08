@@ -1,0 +1,10 @@
+execution-foundation/
+query-agent/
+data-foundation/
+data-interface/
+wheelhouse/
+var/
+admin/.venv/
+admin/incomplete-*/
+admin/*.log
+__pycache__/

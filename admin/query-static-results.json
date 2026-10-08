@@ -1,0 +1,31 @@
+[
+  {
+    "command": [
+      "ruff",
+      "check",
+      "."
+    ],
+    "returncode": 0
+  },
+  {
+    "command": [
+      "ruff",
+      "format",
+      "--check",
+      "."
+    ],
+    "returncode": 0
+  },
+  {
+    "command": [
+      "pyright"
+    ],
+    "returncode": 1
+  },
+  {
+    "command": [
+      "lint-imports"
+    ],
+    "returncode": 0
+  }
+]

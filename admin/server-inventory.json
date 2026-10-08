@@ -1,0 +1,324 @@
+{
+  "time": "2026-10-08T16:06:22.571398+08:00",
+  "scope": "/home/wjyuan EDA projects",
+  "shared_server_other_users_modified": false,
+  "projects": {
+    "execution-foundation": {
+      "root": "/home/wjyuan/projects/eda-development/execution-foundation",
+      "head": "3533d04c0649bde4e72abfd51992d308c54bf543",
+      "status": "",
+      "environment": {
+        "python": "/home/wjyuan/projects/eda-development/execution-foundation/.venv/bin/python",
+        "user_site_enabled": false,
+        "editable": [
+          {
+            "name": "openroad-platform-gateway",
+            "source": "file:///home/wjyuan/projects/eda-development/execution-foundation/gateway"
+          },
+          {
+            "name": "openroad-platform-contracts",
+            "source": "file:///home/wjyuan/projects/eda-development/execution-foundation/contracts"
+          },
+          {
+            "name": "openroad-platform-client",
+            "source": "file:///home/wjyuan/projects/eda-development/execution-foundation/core/client"
+          },
+          {
+            "name": "openroad-platform-runtime",
+            "source": "file:///home/wjyuan/projects/eda-development/execution-foundation/core/runtime"
+          },
+          {
+            "name": "openroad-platform-registry",
+            "source": "file:///home/wjyuan/projects/eda-development/execution-foundation/core/registry"
+          },
+          {
+            "name": "openroad-platform-evaluator",
+            "source": "file:///home/wjyuan/projects/eda-development/execution-foundation/core/evaluator"
+          },
+          {
+            "name": "openroad-platform-provenance",
+            "source": "file:///home/wjyuan/projects/eda-development/execution-foundation/core/provenance"
+          },
+          {
+            "name": "openroad-platform-identity",
+            "source": "file:///home/wjyuan/projects/eda-development/execution-foundation/core/identity"
+          },
+          {
+            "name": "openroad-app-plan_executor",
+            "source": "file:///home/wjyuan/projects/eda-development/execution-foundation/apps/plan_executor"
+          },
+          {
+            "name": "openroad-app-dse_lab",
+            "source": "file:///home/wjyuan/projects/eda-development/execution-foundation/apps/dse_lab"
+          },
+          {
+            "name": "openroad-app-evidence_console",
+            "source": "file:///home/wjyuan/projects/eda-development/execution-foundation/apps/evidence_console"
+          },
+          {
+            "name": "openroad-app-run_console",
+            "source": "file:///home/wjyuan/projects/eda-development/execution-foundation/apps/run_console"
+          },
+          {
+            "name": "openroad-platform-gateway",
+            "source": "file:///home/wjyuan/projects/eda-development/execution-foundation/gateway"
+          },
+          {
+            "name": "openroad-platform-contracts",
+            "source": "file:///home/wjyuan/projects/eda-development/execution-foundation/contracts"
+          },
+          {
+            "name": "openroad-platform-client",
+            "source": "file:///home/wjyuan/projects/eda-development/execution-foundation/core/client"
+          },
+          {
+            "name": "openroad-platform-runtime",
+            "source": "file:///home/wjyuan/projects/eda-development/execution-foundation/core/runtime"
+          },
+          {
+            "name": "openroad-platform-registry",
+            "source": "file:///home/wjyuan/projects/eda-development/execution-foundation/core/registry"
+          },
+          {
+            "name": "openroad-platform-evaluator",
+            "source": "file:///home/wjyuan/projects/eda-development/execution-foundation/core/evaluator"
+          },
+          {
+            "name": "openroad-platform-provenance",
+            "source": "file:///home/wjyuan/projects/eda-development/execution-foundation/core/provenance"
+          },
+          {
+            "name": "openroad-platform-identity",
+            "source": "file:///home/wjyuan/projects/eda-development/execution-foundation/core/identity"
+          },
+          {
+            "name": "openroad-app-plan_executor",
+            "source": "file:///home/wjyuan/projects/eda-development/execution-foundation/apps/plan_executor"
+          },
+          {
+            "name": "openroad-app-dse_lab",
+            "source": "file:///home/wjyuan/projects/eda-development/execution-foundation/apps/dse_lab"
+          },
+          {
+            "name": "openroad-app-evidence_console",
+            "source": "file:///home/wjyuan/projects/eda-development/execution-foundation/apps/evidence_console"
+          },
+          {
+            "name": "openroad-app-run_console",
+            "source": "file:///home/wjyuan/projects/eda-development/execution-foundation/apps/run_console"
+          }
+        ]
+      }
+    },
+    "query-agent": {
+      "root": "/home/wjyuan/projects/eda-development/query-agent",
+      "head": "7a1ad057ec90922b191b16f4934ee88ac7eaef04",
+      "status": "M docs/AGENT_HANDOFF.md\n M docs/IMPLEMENTATION_STATUS.md\n M docs/roadmap.md\n M src/query_agent/adapters/run_evidence/execution_foundation.py\n M src/query_agent/adapters/run_evidence/http_client.py\n M src/query_agent/application/answerability.py\n M src/query_agent/application/collection.py\n M src/query_agent/application/context/resolver.py\n M src/query_agent/application/planning.py\n M src/query_agent/application/service.py\n M src/query_agent/domain/evidence.py\n M src/query_agent/domain/query.py\n M src/query_agent/interfaces/cli.py\n M src/query_agent/ports/run_evidence.py\n M tests/fixtures/fake_execution.py\n?? tests/integration/test_query_catalog.py",
+      "environment": {
+        "python": "/home/wjyuan/projects/eda-development/query-agent/.venv/bin/python",
+        "user_site_enabled": false,
+        "editable": [
+          {
+            "name": "agentic-eda-query-agent",
+            "source": "file:///home/wjyuan/projects/eda-development/query-agent"
+          },
+          {
+            "name": "agentic-eda-query-agent",
+            "source": "file:///home/wjyuan/projects/eda-development/query-agent"
+          }
+        ]
+      }
+    },
+    "data-foundation": {
+      "root": "/home/wjyuan/projects/eda-development/data-foundation",
+      "head": "ff66f5ea864f8f8937b9cde556aca4a128a0b527",
+      "status": "",
+      "environment": {
+        "python": "/home/wjyuan/projects/eda-development/data-foundation/.venv/bin/python",
+        "user_site_enabled": false,
+        "editable": [
+          {
+            "name": "openroad-app-data_foundation",
+            "source": "file:///home/wjyuan/projects/eda-development/data-foundation"
+          },
+          {
+            "name": "openroad-app-data_foundation",
+            "source": "file:///home/wjyuan/projects/eda-development/data-foundation"
+          }
+        ]
+      }
+    },
+    "data-interface": {
+      "root": "/home/wjyuan/projects/eda-development/data-interface",
+      "head": "883d10adc31e0696417a88cb19279664ff971efb",
+      "status": "",
+      "environment": {
+        "python": "/home/wjyuan/projects/eda-development/data-interface/.venv/bin/python",
+        "user_site_enabled": false,
+        "editable": [
+          {
+            "name": "eda-ai-client",
+            "source": "file:///home/wjyuan/projects/eda-development/data-interface"
+          },
+          {
+            "name": "eda-ai-client",
+            "source": "file:///home/wjyuan/projects/eda-development/data-interface"
+          }
+        ]
+      }
+    }
+  },
+  "existing_services": [
+    {
+      "port": 8700,
+      "status": "ok",
+      "app": "gateway",
+      "database": null,
+      "note": "unchanged existing baseline; shared legacy venv"
+    },
+    {
+      "port": 8840,
+      "status": "ok",
+      "app": "plan_executor",
+      "database": null,
+      "note": "unchanged existing baseline; shared legacy venv"
+    },
+    {
+      "port": 8924,
+      "status": "ok",
+      "app": "data_foundation",
+      "database": {
+        "path": "/home/wjyuan/projects/eda-ai-formal-20261002/results/next_universal20261003/snapshots.sqlite",
+        "bytes": 80981708800,
+        "mtime_ns": 1791128481807583003,
+        "read_only": false,
+        "snapshots": 347,
+        "designs": [
+          "ariane",
+          "mempool_group",
+          "nvdla_c"
+        ],
+        "runs": [
+          "orfs-formal20261002-ariane",
+          "orfs-formal20261002-mempool_group",
+          "orfs-formal20261002-nvdla_c"
+        ],
+        "manifest_sha256": "1b8913f4825691b597177b8d8fbdc242a6f33d499d8bea4a283c98ad3515eb9c"
+      },
+      "note": "unchanged existing baseline; shared legacy venv"
+    }
+  ],
+  "baseline_worktrees": [
+    "worktree /home/wjyuan/execution foundation",
+    "HEAD 6c77993f8e0ca73a3c8bc1dab4aa4342a67a86b7",
+    "branch refs/heads/main",
+    "",
+    "worktree /home/wjyuan/projects/eda-ai-final-window-20261004",
+    "HEAD ed170ba6ad288d0206de98d549cba61f22430514",
+    "branch refs/heads/final-five-hour-20261004",
+    "",
+    "worktree /home/wjyuan/projects/eda-ai-peer-facts-20261003",
+    "HEAD 2d4c2f04e950adfa42b5684ba80cb5f8ea1caafa",
+    "branch refs/heads/eda-ai-peer-facts-20261003",
+    "",
+    "worktree /home/wjyuan/projects/eda-ai-universal-efficiency-20261003",
+    "HEAD b3410c80b23a42b269bf8d32e5f592b5537ad130",
+    "branch refs/heads/eda-ai-universal-efficiency-20261003",
+    "",
+    "worktree /var/tmp/eda-ai-pilot/cost-next-app",
+    "HEAD d825d6fe485dd85ca4c79a495fd751feae1c013b",
+    "detached",
+    "",
+    "worktree /var/tmp/eda-ai-pilot/efficiency04-app",
+    "HEAD be7d3dc4033b2766370a0482f4f0f7895665d86c",
+    "branch refs/heads/eda-efficiency04",
+    "",
+    "worktree /var/tmp/eda-ai-pilot/next-functional-app",
+    "HEAD ab4ada26fbb26faec5d121bcf8b33bff396465c5",
+    "detached"
+  ],
+  "databases": [
+    {
+      "path": "/home/wjyuan/eda-ai-data/scale-1x.sqlite",
+      "bytes": 1619800064,
+      "moved": false
+    },
+    {
+      "path": "/home/wjyuan/eda-ai-data/scale-2x.sqlite",
+      "bytes": 3147472896,
+      "moved": false
+    },
+    {
+      "path": "/home/wjyuan/eda-ai-data/scale-5x.sqlite",
+      "bytes": 11045199872,
+      "moved": false
+    },
+    {
+      "path": "/home/wjyuan/eda-ai-data/v3-reference.sqlite",
+      "bytes": 5738745856,
+      "moved": false
+    },
+    {
+      "path": "/home/wjyuan/eda-ai-data/v4.sqlite",
+      "bytes": 47847907328,
+      "moved": false
+    },
+    {
+      "path": "/home/wjyuan/df-scratch/baseline-finish.sqlite",
+      "bytes": 13678764032,
+      "moved": false
+    },
+    {
+      "path": "/home/wjyuan/df-scratch/ibex-finish-s2.sqlite",
+      "bytes": 1003057152,
+      "moved": false
+    },
+    {
+      "path": "/home/wjyuan/df-scratch/ibex-new.sqlite",
+      "bytes": 3308720128,
+      "moved": false
+    },
+    {
+      "path": "/home/wjyuan/df-scratch/ibex-old.sqlite",
+      "bytes": 3308720128,
+      "moved": false
+    },
+    {
+      "path": "/home/wjyuan/df-scratch/ibex-probe.sqlite",
+      "bytes": 1001533440,
+      "moved": false
+    },
+    {
+      "path": "/home/wjyuan/df-scratch/nommap-finish.sqlite",
+      "bytes": 13680295936,
+      "moved": false
+    },
+    {
+      "path": "/home/wjyuan/df-scratch/streamed-finish.sqlite",
+      "bytes": 13678764032,
+      "moved": false
+    },
+    {
+      "path": "/home/wjyuan/df-scratch/streamed2-finish.sqlite",
+      "bytes": 13680295936,
+      "moved": false
+    }
+  ],
+  "primary_query_source_preservation": {
+    "tracked_src_tests_docs_identical": true,
+    "all_original_untracked_files_identical": true,
+    "original_worktree_untouched": true
+  },
+  "orphan_processes": [
+    {
+      "pid": 1890221,
+      "cwd": "/home/wjyuan/archive/dplevolve-old-2026-09-21/DPLEvolve-AE/web-demo (deleted)",
+      "action": "retained; process serves an old demo on 8080 and its directory has been deleted"
+    }
+  ],
+  "proxy": {
+    "http_proxy_set": true,
+    "global_localhost_bypass_missing": true,
+    "development_launcher_sets_localhost_bypass": true
+  }
+}

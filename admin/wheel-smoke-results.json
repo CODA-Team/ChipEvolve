@@ -1,0 +1,9 @@
+{
+  "wheel_install": "passed",
+  "no_editable_dependencies": true,
+  "fingerprint_independent_of_checkout_path": true,
+  "data_interface_to_data_foundation_http": "passed",
+  "data_interface_to_execution_foundation_http": "passed",
+  "primary_query_agent_to_execution_foundation_http": "passed",
+  "old_runtime_data_used": false
+}
