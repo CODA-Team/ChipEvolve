@@ -11,6 +11,43 @@ CONTEXT_FIELDS = (
     "corner", "unit",
 )
 COMPARISON_FIELDS = ("design", "revision", "run", "analysis", "check", "corner", "unit")
+EXPERIMENT_COMPARISON_FIELDS = ("design", "analysis", "check", "corner", "unit")
+
+
+def input_identities(snapshot: Mapping[str, Any]) -> dict[str, Any]:
+    """Registered bytes, separated from experiment-local indexing identity."""
+    categories = {
+        "database": "raw_design_database", "netlist": "raw_netlist",
+        "constraints": "raw_constraints", "libraries": "raw_library",
+        "parasitics": "raw_parasitics",
+    }
+    refs = snapshot.get("source_artifacts", [])
+    native = snapshot.get("run_summary", {}).get("timing_context", {})
+    declared_sdc = native.get("constraints")
+    return {
+        role: [{key: ref.get(key) for key in ("logical_path", "sha256", "artifact_id", "run_id")}
+               for ref in refs if ref.get("category") == category
+               and (role != "constraints" or not declared_sdc or ref.get("logical_path") == declared_sdc)]
+        for role, category in categories.items()
+    }
+
+
+def experiment_conditions(left: Mapping[str, Any], right: Mapping[str, Any]) -> dict[str, Any]:
+    before, after = input_identities(left), input_identities(right)
+    result = {}
+    for role in before:
+        a, b = before[role], after[role]
+        hashes_a = sorted(row["sha256"] for row in a if row.get("sha256"))
+        hashes_b = sorted(row["sha256"] for row in b if row.get("sha256"))
+        result[role] = {
+            "status": "unknown" if not a or not b or len(hashes_a) != len(a) or len(hashes_b) != len(b)
+                      else "same" if hashes_a == hashes_b else "changed",
+            "from": a, "to": b,
+            "basis": "registered source SHA256; input equality alone does not prove causal uniqueness",
+        }
+        if role == "constraints":
+            result[role]["selection"] = "declared loaded SDC when recorded; effective SDC exports are derived observations, not additional execution inputs"
+    return result
 
 
 def build_analysis_context(snapshot: Mapping[str, Any],

@@ -53,6 +53,10 @@ def tool_name_for(path: str) -> str:
             return "get_routing_summary"
         if tail == ["summary"]:
             return "get_stage_summary"
+        if len(tail) == 3 and tail[0] == "sources" and tail[2] == "excerpt":
+            return "get_source_excerpt"
+        if tail[0] == "records" and tail[-1] == "fragments":
+            return "get_record_fragments"
         if tail == ["timing-paths"]:
             return "get_timing_paths"
         if tail[0] == "timing-paths" and tail[-1] == "nets":

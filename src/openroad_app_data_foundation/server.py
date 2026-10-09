@@ -291,14 +291,19 @@ class Handler(BaseHTTPRequestHandler):
                     'SELECT 1 FROM main.snapshots WHERE snapshot_id = ?', (parts[1],)).fetchone():
                 client = self.archive_client
             if len(parts) == 6 and parts[2] == "compare" and parts[4] == "timing-paths":
-                return compare_timing_path(
-                    store, parts[1], parts[3], parts[5], query.get("to_path_id"))
+                payload = compare_timing_path(
+                    store, parts[1], parts[3], parts[5], query.get("to_path_id"),
+                    mode=query.get("mode", "stage"))
+                if query.get('mode') == 'experiment' and not query.get('fields') and query.get('detail', 'summary') == 'summary':
+                    query = {**query, 'fields': 'timing,input_conditions,matching,analysis_context,interpretation'}
+                    return metadata_view(payload, query, path, sparse_fields=True)
+                return metadata_view(payload, query, path) if query.get('fields') else payload
             if len(parts) == 5 and parts[2] == "compare" and parts[4] == "metrics":
                 name = query.get("name")
                 if not name:
                     raise ValueError("name is required")
                 return compare_metric(store, parts[1], parts[3], name,
-                                      query.get("scene"))
+                                      query.get("scene"), mode=query.get("mode", "stage"))
             if len(parts) == 5 and parts[2] == 'compare' and parts[4] == 'inventory':
                 if query.get('include_native_area') == '1':
                     raise ValueError('native area analysis requires POST /snapshots/<id>/analyses/compare-inventory')
@@ -313,7 +318,11 @@ class Handler(BaseHTTPRequestHandler):
                 ref = refs[0]
                 result = client.artifact_excerpt(ref['run_id'], parts[3],
                     offset=_int_param(query, 'offset', 0), max_bytes=_int_param(query, 'max_bytes', 8192))
-                return {'snapshot_id': parts[1], 'source': ref, 'excerpt': excerpt_view(result, query)}
+                if result.get('sha256') != ref.get('sha256') or result.get('size_bytes') != ref.get('size_bytes'):
+                    raise ValueError('source excerpt identity differs from registered snapshot source')
+                return {'snapshot_id': parts[1], 'source': ref, 'evidence': [ref],
+                        'truncated': result.get('truncated', False),
+                        'excerpt': excerpt_view(result, query)}
             if len(parts) == 3 and parts[2] == "resolve-object":
                 return named_context(store, parts[1], query)
             if len(parts) == 3 and parts[2] == "metrics":
@@ -455,7 +464,19 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) == 3 and parts[2] == "evidence":
                 return list_evidence(store, parts[1], query)
             if len(parts) == 6 and parts[2] == "records" and parts[5] == "fragments":
-                return read_evidence(store, parts[1], parts[3], parts[4])
+                if set(query) - {'fields', 'detail'}:
+                    raise ValueError('fragment reads accept fields and detail only')
+                payload = read_evidence(store, parts[1], parts[3], parts[4])
+                if query.get('fields'):
+                    result = metadata_view(payload, query, path)
+                    for key in ('snapshot_id', 'record_type', 'record_id', 'available',
+                                'returned', 'source_productions', 'production_basis'):
+                        if key in payload:
+                            result[key] = payload[key]
+                    for original, projected in zip(payload['fragments'], result.get('fragments', [])):
+                        projected.update({key: value for key, value in original.items() if key != 'fragment'})
+                    return result
+                return payload
             if len(parts) == 6 and parts[2] == "records" and parts[5] == "evidence":
                 return {"evidence": store.record_evidence(
                     parts[1], parts[3], parts[4])}

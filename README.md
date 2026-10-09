@@ -49,3 +49,9 @@ connections use `mode=ro`; duplicate snapshot IDs across databases are rejected.
 The global catalog is combined, while scoped fact queries use the owning DB's
 physical tables and indexes. `--archive-kernel-url` is used only for original
 artifact reads; `--kernel-url` owns new execution and result import.
+
+Cross-experiment comparison is explicit: use `mode=experiment` on timing-path or
+metric comparisons. The default stage mode still requires one run/revision.
+Experiment mode keeps the two scopes distinct, computes observed matched-path
+arrival/required/slack deltas, and exposes registered input hashes and unknowns.
+It does not label a changed-constraint result as physical improvement.

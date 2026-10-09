@@ -18,7 +18,7 @@ def test_si_timing_values_have_explicit_engineering_units_without_changing_origi
     assert result['load_ff'] == pytest.approx(7.281)
     assert all(result[key] == value for key, value in fact.items())
     assert timing_values({**fact, 'arrival': 1e-10})['arrival_ns'] == pytest.approx(0.8452)
-    assert 'load_ff' not in timing_values({'load': None})
+    assert timing_values({'load': None})['load_ff'] is None  # missing remains null, never zero
     assert 'slew_ns' not in timing_values({'slew': False})
 
 

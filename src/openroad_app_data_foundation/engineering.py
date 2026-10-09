@@ -212,6 +212,9 @@ def compare_inventory(store, left_id, right_id, query, root, client=None):
         else:
             result['availability'] = {'native_area_delta': {'status': 'unavailable',
                 'reason': 'one or both actual native area queries did not succeed; inspect their reports'}}
+    if query_boolean(query, 'include_instance_changes') if 'include_instance_changes' in query else False:
+        from .instance_changes import instance_changes
+        result['instance_changes'] = instance_changes(store, left_id, right_id, query)
     return result
 
 

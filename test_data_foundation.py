@@ -1487,3 +1487,62 @@ def test_timing_query_endpoint_path_count_is_a_field_and_is_bounded():
         pass
     else:                                                    # pragma: no cover
         raise AssertionError("a valid endpoint_path_count did not reach the store")
+
+
+def test_experiment_comparison_preserves_distinct_ids_and_condition_changes(tmp_path):
+    left = pack()
+    left['snapshot']['source_artifacts'] = [
+        {'category': 'raw_constraints', 'logical_path': 'design.sdc', 'sha256': 'a'*64},
+        {'category': 'raw_library', 'logical_path': 'cells.lib', 'sha256': 'c'*64},
+    ]
+    left['timing_paths'][0].update(slack=-0.1, data_arrival_time=0.4, required_time=0.3)
+    right = {**left, 'snapshot': {**left['snapshot'], 'snapshot_id': 'candidate',
+                                'run_id': 'new-run', 'revision_id': 'new-revision',
+                                'source_artifacts': [
+                                    {'category': 'raw_constraints', 'logical_path': 'design.sdc', 'sha256': 'b'*64},
+                                    {'category': 'raw_library', 'logical_path': 'cells.lib', 'sha256': 'c'*64},
+                                ]},
+             'timing_paths': [{**left['timing_paths'][0], 'snapshot_id': 'candidate',
+                               'slack': -0.2, 'required_time': 0.2}]}
+    for snapshot in (left['snapshot'], right['snapshot']):
+        for index, ref in enumerate(snapshot['source_artifacts']):
+            ref.update(artifact_id='art-' + snapshot['snapshot_id'] + str(index),
+                       run_id=snapshot['run_id'], stage=snapshot['stage'])
+    store = DataStore(tmp_path/'facts.sqlite')
+    try:
+        store.register(left)
+        store.register(right)
+        assert compare_timing_path(store, 'snap-1', 'candidate', 'path-1')['status'] == 'INCOMPARABLE'
+        result = compare_timing_path(store, 'snap-1', 'candidate', 'path-1', mode='experiment')
+        assert result['status'] == 'COMPARABLE'
+        assert result['analysis_context']['from']['run'] != result['analysis_context']['to']['run']
+        assert result['timing']['slack']['delta'] == pytest.approx(-0.1)
+        assert result['timing']['data_arrival_time']['delta'] == 0
+        assert result['timing']['required_time']['delta'] == pytest.approx(-0.1)
+        assert result['input_conditions']['constraints']['status'] == 'changed'
+        assert result['input_conditions']['libraries']['status'] == 'same'
+        assert result['input_conditions']['parasitics']['status'] == 'unknown'
+        assert 'unqualified physical' in result['interpretation']
+        right['snapshot']['snapshot_id'] = 'other'
+        right['timing_paths'][0]['snapshot_id'] = 'other'
+        right['timing_paths'][0]['check'] = 'hold'
+        store.register(right)
+        rejected = compare_timing_path(store, 'snap-1', 'other', 'path-1', mode='experiment')
+        assert rejected['status'] == 'INCOMPARABLE' and 'timing' not in rejected
+        assert any(r['field'] == 'check' for r in rejected['matching']['reasons'])
+    finally:
+        store.close()
+
+
+def test_comparison_projection_preserves_two_sided_sources_and_numeric_delta(tmp_path):
+    from openroad_app_data_foundation.metadata import metadata_view
+    payload = {
+        'timing': {'slack': {'from': -0.1, 'to': -0.2, 'delta': -0.1}},
+        'matched_objects': [{'verbose': 'x'*20000}],
+        'evidence': {'from': [{'artifact_id':'left'}], 'to': [{'artifact_id':'right'}]},
+    }
+    projected = metadata_view(payload, {'fields':'timing'}, '/comparison')
+    assert projected['timing'] == payload['timing']
+    assert projected['evidence'] == payload['evidence']
+    assert 'matched_objects' not in projected
+    assert projected['delivery']['full_details'] == '/comparison?detail=full'

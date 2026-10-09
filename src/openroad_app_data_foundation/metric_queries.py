@@ -5,16 +5,19 @@ from __future__ import annotations
 from typing import Any
 
 from .repository import DataStore
+from .analysis_context import experiment_conditions
 
 
 def compare_metric(store: DataStore, from_snapshot_id: str,
                    to_snapshot_id: str, name: str,
-                   scene: str | None = None) -> dict[str, Any]:
+                   scene: str | None = None, *, mode: str = "stage") -> dict[str, Any]:
     """Compare one exact metric observation across two immutable snapshots."""
     left_snapshot = store.snapshot(from_snapshot_id)
     right_snapshot = store.snapshot(to_snapshot_id)
+    if mode not in ("stage", "experiment"):
+        raise ValueError("comparison mode must be stage|experiment")
     reasons: list[dict[str, Any]] = []
-    for field in ("design_id", "revision_id"):
+    for field in (("design_id",) if mode == "experiment" else ("design_id", "revision_id")):
         left, right = left_snapshot.get(field), right_snapshot.get(field)
         if left != right:
             reasons.append({"field": field, "reason": "mismatch",
@@ -40,12 +43,12 @@ def compare_metric(store: DataStore, from_snapshot_id: str,
     if reasons:
         return _incomparable(from_snapshot_id, to_snapshot_id, name, scene,
                              left_rows, right_rows, reasons)
-    return {
+    result = {
         "status": "COMPARABLE",
         "from_snapshot_id": from_snapshot_id,
         "to_snapshot_id": to_snapshot_id,
         "matching": {"basis": "exact metric name and scene",
-                     "conditions": {"same_design": True, "same_revision": True,
+                     "conditions": {"same_design": True, "same_revision": left_snapshot.get("revision_id") == right_snapshot.get("revision_id"),
                                     "same_unit": True, "one_observation_per_scope": True}},
         "metric": name,
         "scene": scene,
@@ -56,6 +59,11 @@ def compare_metric(store: DataStore, from_snapshot_id: str,
         "evidence": {"from": left.get("evidence", []),
                      "to": right.get("evidence", [])},
     }
+    if mode == "experiment":
+        result["comparison_mode"] = mode
+        result["input_conditions"] = experiment_conditions(left_snapshot, right_snapshot)
+        result["interpretation"] = "Observed metric delta in a shared unit; analysis conditions and domain coverage must be checked before a physical or causal comparison."
+    return result
 
 
 def _metric_rows(store: DataStore, snapshot_id: str, name: str,

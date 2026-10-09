@@ -6,6 +6,15 @@ from openroad_app_data_foundation.repository import DataStore
 from tests.test_eda_engineering import sample
 
 
+def test_comparison_summary_preserves_paired_provenance_groups():
+    from openroad_app_data_foundation.metadata import metadata_view
+    sources = {'from': [{'artifact_id':'before'}], 'to': [{'artifact_id':'after'}]}
+    payload = {'evidence':sources, 'from_snapshot_id':'a', 'to_snapshot_id':'b'}
+    summary = metadata_view(payload, {}, '/snapshots/a/compare/b/timing-paths/p')
+    assert summary['evidence'] == sources
+    assert payload['evidence'] == sources
+
+
 def test_compact_path_and_point_facts_keep_deduplicated_source_and_exact_record_links(tmp_path):
     pack = sample()
     ref = {'artifact_id': 'report', 'sha256': 'a' * 64, 'logical_path': 'original.json'}
@@ -90,3 +99,12 @@ def test_default_timing_summary_retains_every_fact_and_scoped_full_recovery(tmp_
         assert list_timing_paths(store, 's', {'detail': 'full'})['timing_paths'][0]['point_ids'] == ['clock', 'in', 'out']
     finally:
         store.close()
+
+
+def test_normalized_missing_point_values_remain_projectable_nulls():
+    from openroad_app_data_foundation.metadata import timing_values, metadata_view
+    row = timing_values({'arrival': 1e-10, 'load': None, 'slew': None}, default_time_unit='s')
+    result = metadata_view({'points': [row, timing_values({'load': 2e-15}, default_time_unit='s')]},
+                           {'fields': 'points.load_ff'}, '/path')
+    assert result['points'] == [{'load_ff': None}, {'load_ff': 2.0}]
+    assert row['arrival_ns'] == 0.1

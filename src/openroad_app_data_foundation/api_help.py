@@ -105,7 +105,7 @@ native_pin_classification contains complete indexed native pin counts, connected
 grouped by the pin's OWN native type. Use fields=instance.bbox_um,instance.orientation,native_pin_classification
 for geometry and native SIGNAL pin connections together. Check native_pin_classification_coverage:
 partial identifies missing original classification; pin-inventory can obtain it from the actual native database.
-S/instances/<name or id>/pin-inventory runs a native query for the pin's OWN dbMTerm classification,
+POST S/analyses/pin-inventory with {"name":"<native name or id>"} runs a native query for the pin's OWN dbMTerm classification,
 separately from connected dbNet classification. connected_pin_counts_by_native_type and distinct_net_counts_by_native_pin_type
 cover connected pins by their native pin type; pin_counts_by_native_type also includes unconnected pins.
 pin_type=SIGNAL|CLOCK|POWER|GROUND and direction=INPUT|OUTPUT|INOUT filter the complete pin list.
@@ -211,7 +211,7 @@ report_path_id identifies a report row and is NOT an indexed /timing-paths ID. C
 Native OpenSTA JSON values are seconds/F; *_ns fields are nanoseconds. Missing object mappings remain explicitly partial.
 S/timing-paths indexes extraction-time native results. They can differ from the live flow's original reports,
 even for the same ODB/endpoints. Choose timing-reports when ORIGINAL flow report values are requested;
-use timing-overview?resolve=1 only for requested FRESH reconstruction, preserving its separate analysis identity.
+use POST S/analyses/timing-overview only for requested FRESH reconstruction, preserving its separate analysis identity.
 Path/point lists default to engineering facts with shared source references. Heavy repeated identity
 Timing paths and points also expose explicit slack_ns/arrival_ns/required_ns/slew_ns/load_ff when extracted.
 Data-point extrema carry max_value_ns for slew and max_value_ff for load; selected points carry slew_ns/arrival_ns/load_ff.
@@ -224,7 +224,7 @@ reference maps, per-row evidence and path point-ID catalogs remain at detail=ful
 preserves this request's original filters/order/pagination. All points, names and numeric facts remain present.
 S/timing-paths/<path_id>?fields=timing_path reads only the path header, without point pages;
 fields=<dotted fields> selects requested content, delivery.full_details restores the complete response.
-S/timing-overview?resolve=1&check=both runs ONE fresh query for setup and hold together.
+POST S/analyses/timing-overview with {"check":"both"} runs ONE fresh query for setup and hold together.
 checks.setup and checks.hold each contain their own paths/associations; limit applies to EACH check.
 For just slack/arrival/required select fields=checks.setup.paths,checks.hold.paths.
 For both checks, path_details and all other per-check aggregates also sit under checks.setup/checks.hold;
@@ -261,8 +261,11 @@ S/compare/<other_snapshot>/inventory?metrics=<raw key or suffix> returns complet
 counts for both snapshots, their deltas and matching literal metric values from each stage's original reports.
 The response explicitly distinguishes native inventory counts including fillers from the reported cell area;
 reports retain substage identity rather than being relabeled final. Prefer this joined comparison over repeated inventories.
-Add include_native_area=1 for the actual report_design_area values on BOTH selected databases,
-native_area evidence and native_area_um2 delta. Earlier substage metrics remain separately labeled.
+For native area, POST S/analyses/compare-inventory with {"to_snapshot_id":"<id>","include_native_area":"1"}.
+This explicitly executes report_design_area on BOTH selected databases and returns native_area evidence and native_area_um2 delta.
+For read-only master changes add include_instance_changes=1 to S/compare/<other_snapshot>/inventory.
+instance_changes includes full computed counts, paged unique-name matches, ambiguous names and declared native coverage.
+Changed masters are inventory facts, not proof of a timing cause; incomplete imports cannot prove removal. Earlier substage metrics remain separately labeled.
 Selected original timing metric reports include analysis_command_excerpt from the corresponding original log;
 these are actual estimate_parasitics/read_* commands with source line/byte positions, not the later snapshot's setup.
 S/timing-paths/<path_id>/points?limit=N&offset=N&path_section=source_path&fields=pin_name,instance_id,net_id,net_name,cell_name,arrival,load,slew gives compact data points; omit fields/path_section for all facts/sections. It gives points by path_section (source_path is the data path;
@@ -292,7 +295,8 @@ pins' owning instance engineering facts. Use fields=paths,data_point_extrema to 
 Selected points carry point_id, path_id and source references: S/records/timing_points/<point_id>/fragments returns
 the actual small original point and native mapping, avoiding full-path context expansion for a single fact.
 Prefer these joins/aggregations for multi-object analysis rather than repeatedly fetching individual objects.
-Stored path lists are samples. S/timing-overview?resolve=1&check=setup|hold&startpoint=<native>&endpoint=<native>&limit=N
+Stored path lists are samples. POST S/analyses/timing-overview with JSON body
+{"check":"setup","startpoint":"<native>","endpoint":"<native>","limit":5}
 submits a FRESH native query and waits internally (wait_seconds=0..120, default120). Omit unneeded startpoint/endpoint/group filters.
 It returns paths and their engineering aggregates in ONE operation, including paths outside the stored sample.
 paths includes actual native data_arrival_time, required_time and slack in s; do not infer arrival by subtracting rounded fields.
@@ -396,7 +400,7 @@ GET /native-queries/<run_id>?wait_seconds=120 returns actual process output in e
 continue with offset/max_bytes when excerpt.truncated. This is a real native query, not a stored question answer.
 Public native responses default to the actual outcome/output without large execution/input inventories.
 POST body detail="full" or GET detail=full reads complete execution/input metadata; delivery.full_details keeps the output offset/format.
-S/instances/<name or id>/power runs fresh report_power -instances -format json -digits 9 using exact original native instance ID.
+POST S/analyses/instance-power with {"name":"<native name or id>"} runs fresh report_power -instances -format json -digits 9 using exact original native instance ID.
 Returns power_w.internal,switching,leakage,total in W, reported_name and native_query.run_id/status. Optional scene=<actual native scene>.
 It reconstructs the original libraries/clocks/RC; derived timing states resolve to the verified original object state. No stored power substituted.
 Source excerpts default to text without duplicate base64; format=base64 returns exact original bytes, format=full returns both.
@@ -438,7 +442,7 @@ Names default to native spelling; names_spelling=stored preserves the original i
 With group_by=is_macro, classification gives complete macro_count/nonmacro_count/unclassified_count, including verified zeros.
 Count/sum/bbox are independent of pages. Missing geometry/classification is partial, not zero. fields selects needed facts.
 S/instances/<name>/engineering: instance.bbox_um,instance.orientation,native_pin_classification (pin OWN type).
-S/instances/<name>/pin-inventory?pin_type=SIGNAL&direction=INPUT returns filtered native pins with complete counts/paging.
+POST S/analyses/pin-inventory with {"name":"<name>","pin_type":"SIGNAL","direction":"INPUT"} returns filtered native pins with complete counts/paging.
 selection gives complete filtered pin/connected-pin/distinct-net counts; sort=name&order=asc|desc pages either end.
 tail_limit=N adds pins_tail.items from the same complete filtered order, alongside pins, in ONE native read.
 fields=selection,pins.local_name,pins.net_name keeps counts/name pages concise; pins.net_native_name preserves exact source spelling.
@@ -475,8 +479,9 @@ Other selectable fields: data_pin_names (complete ordered sequence),master_count
 Extrema tie_rule=source_order|name_asc|name_desc; source_order chooses the first original point among numeric ties.
 data_path_increments returns adjacent source_path cell/wire sums and largest pair, excluding clocks/time before first point.
 S/timing-overview?check=setup|hold&limit=N joins selected path headers and instance/net unions.
-S/timing-overview?resolve=1&check=setup|hold&startpoint=<pin>&endpoint=<pin>&limit=1
-runs a FRESH original-state native analysis, waits internally and returns paths in ONE read (including outside the sample).
+POST S/analyses/timing-overview with JSON body
+{"check":"setup","startpoint":"<pin>","endpoint":"<pin>","limit":1}
+runs a FRESH original-state native analysis, waits internally and returns paths in ONE operation (including outside the sample).
 For ONE check, fields uses TOP LEVEL paths,instance_union_count,net_union_count,macro_count,standard_cell_count,data_point_extrema.
 include_physical=1 adds instance_bbox_union_um. include_path_details=1 adds path_details.data_pin_names,
 path_details.master_counts,path_details.data_path_increments and per-path counts/extrema. Request only needed fields.
@@ -514,6 +519,8 @@ S/artifacts/files/json?path=<original JSON>&json_path=$.checks&sort_field=slack&
 queries the FULL original array before paging, not a stored path sample. filters=<JSON object> selects exact typed row values;
 fields selects literal source fields; tie_order=asc|desc orders equal-value tie fields. Units remain original; absent fields stay absent.
 S/records/<record_type>/<record_id>/fragments returns original point/object evidence without full context expansion.
+Its fields use actual original keys, e.g. fragments.fragment.slack,fragments.fragment.source_path.
+Unknown fields are rejected. Computed data_path_increments belongs to timing-paths/<path_id>/engineering, not original fragments.
 GET /runs/<run_id>/metrics?stage=<actual stage>&names=WS,WNS,TNS reads needed canonical metrics with original raw keys and units.
 include_raw=1 also reads original keys; source reports/corners stay distinct. Cell area differs from die/core area.
 POST /query {"requests":["<GET path>","<GET path>"]} batches independent reads; per-request failures remain visible.
@@ -525,14 +532,14 @@ Original ODB is already loaded: set block [ord::get_db_block]. with_timing=true 
 Read status, excerpt.text and failure_details. If still running, GET /native-queries/<run_id>?wait_seconds=120;
 continue output with offset/max_bytes when excerpt.truncated. Do not submit a second job just to wait/read existing output.
 Defaults keep actual output/errors compact. POST detail="full" or GET detail=full retrieves execution/input inventories.
-S/instances/<name or id>/power gives fresh power_w.internal,switching,leakage,total in W without writing Tcl or escaping native names.
+POST S/analyses/instance-power with {"name":"<native name or id>"} gives fresh power_w.internal,switching,leakage,total in W without writing Tcl or escaping native names.
 Optional scene selects an actual native scene; default uses original analysis. Raw native report remains at native_query.run_id.
 For another actual stage, discover original files via artifacts/files and use odb_file plus extra_files.
 Do not read_db again into the populated database. Alternate-stage timing must load that stage's own analysis context.
 Native getAvgXY returns {success x y} in dbu. Check success, divide x/y by native getDbUnitsPerMicron.
 Original native timing JSON is s/F; library display units may be ps/fF. Use actual report_units, not guessed corner/clock units.
 WNS=min(0,worst slack). Failed native queries retain their real errors; missing facts are not zeros.
-Use timing-overview?resolve=1 for joined directed-path queries. Full help gives alternate inputs, setup and continuation details.''',
+Use POST S/analyses/timing-overview for joined directed-path queries. Full help gives alternate inputs, setup and continuation details.''',
 }
 
 def api_help(store, snapshot_id, query):

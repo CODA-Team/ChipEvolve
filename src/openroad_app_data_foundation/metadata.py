@@ -42,7 +42,8 @@ def metadata_view(payload, query, path, *, sparse_fields=False):
         result = _selected_metadata(payload, selection, absent=absent)
         result['snapshot'] = {**snapshot_identity(payload.get('snapshot', {})),
                               **result.get('snapshot', {})}
-        result['evidence'] = payload.get('evidence', payload.get('snapshot', {}).get('source_artifacts', []))[:1]
+        attached = payload.get('evidence', payload.get('snapshot', {}).get('source_artifacts', []))
+        result['evidence'] = attached[:1] if isinstance(attached, list) else attached
         for key in ('availability', 'association_coverage', 'object_facts_source', 'query_execution'):
             if key in payload:
                 result[key] = deepcopy(payload[key])
@@ -86,7 +87,7 @@ def metadata_view(payload, query, path, *, sparse_fields=False):
     result['delivery'] = {'detail': 'summary', 'omitted_fields': omitted,
                           'full_details': full_details,
                           'selection': 'summary with explicit omissions; complete facts remain available through full_details'}
-    if len(result.get('evidence', [])) > 1:
+    if isinstance(result.get('evidence'), list) and len(result['evidence']) > 1:
         result['delivery']['evidence_count'] = len(result['evidence'])
         result['delivery']['evidence_details'] = full_details
         result['evidence'] = result['evidence'][:1]
@@ -157,7 +158,11 @@ def timing_values(fact, *, default_time_unit=None):
             if time_scale is None:
                 continue
             factor = time_scale
-        if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if source in fact and value is None:
+            # A declared-but-missing observation has the same optional engineering
+            # field as a measured row. Preserve null, never manufacture zero.
+            result[target] = None
+        elif isinstance(value, (int, float)) and not isinstance(value, bool):
             result[target] = value * factor
     return result
 

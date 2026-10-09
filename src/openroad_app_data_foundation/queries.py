@@ -14,6 +14,7 @@ from urllib.parse import quote
 
 from .analysis_context import (
     build_analysis_context, context_availability, context_differences,
+    EXPERIMENT_COMPARISON_FIELDS, experiment_conditions,
 )
 from .identity import canonical_key, snapshot_identity
 from .metrics import CANONICAL_METRICS, project_run
@@ -531,10 +532,12 @@ def path_nets(store: DataStore, snapshot_id: str, path_id: str,
 
 def compare_timing_path(store: DataStore, from_snapshot_id: str,
                         to_snapshot_id: str, path_id: str,
-                        to_path_id: str | None = None) -> dict[str, Any]:
+                        to_path_id: str | None = None, *, mode: str = "stage") -> dict[str, Any]:
     """Compare paths only after proving their semantic prerequisites."""
     from_snapshot = store.snapshot(from_snapshot_id)
     to_snapshot = store.snapshot(to_snapshot_id)
+    if mode not in ("stage", "experiment"):
+        raise ValueError("comparison mode must be stage|experiment")
     before = timing_path(store, from_snapshot_id, path_id, points_limit=0)
     target_path_id = to_path_id or path_id
     after = timing_path(store, to_snapshot_id, target_path_id, points_limit=0)
@@ -542,7 +545,7 @@ def compare_timing_path(store: DataStore, from_snapshot_id: str,
     before_context = before["analysis_context"]
     after_context = after["analysis_context"]
     reasons = _comparison_reasons(
-        before_context, after_context, before_path, after_path)
+        before_context, after_context, before_path, after_path, mode=mode)
     path_basis, path_detail = _path_match(before_path, after_path)
     evidence = {"from": _path_evidence(store, from_snapshot_id, path_id, before_path),
                 "to": _path_evidence(store, to_snapshot_id, target_path_id, after_path)}
@@ -560,7 +563,7 @@ def compare_timing_path(store: DataStore, from_snapshot_id: str,
         before["timing_points"], after["timing_points"],
     )
     physical = _physical_changes(store, from_snapshot_id, to_snapshot_id, matched)
-    return {
+    result = {
         "status": "COMPARABLE",
         "from_snapshot_id": from_snapshot_id,
         "to_snapshot_id": to_snapshot_id,
@@ -572,7 +575,7 @@ def compare_timing_path(store: DataStore, from_snapshot_id: str,
                                     "endpoints": "equal", "path_identity": path_basis}},
         "analysis_context": {"from": before_context, "to": after_context},
         "timing": {name: _change(before_path.get(name), after_path.get(name))
-                   for name in ("slack", "delay")},
+                   for name in ("slack", "delay", "data_arrival_time", "required_time", "margin", "crpr")},
         "connections": _net_changes(before["timing_points"], after["timing_points"]),
         "physical": physical,
         "matched_objects": _matched_relations(matched),
@@ -581,12 +584,18 @@ def compare_timing_path(store: DataStore, from_snapshot_id: str,
         "availability": context_availability(before_context),
         "evidence": evidence,
     }
+    if mode == "experiment":
+        result["comparison_mode"] = mode
+        result["input_conditions"] = experiment_conditions(from_snapshot, to_snapshot)
+        result["matching"]["conditions"]["analysis_context"] = "same design/view/check/corner/unit; run and revision remain distinct"
+        result["interpretation"] = "Observed matched-path deltas. Changed or unknown constraints/library/RC prohibit an unqualified physical improvement or unique-cause claim."
+    return result
 
 
 def _comparison_reasons(left: dict[str, Any], right: dict[str, Any],
-                        left_path: dict[str, Any], right_path: dict[str, Any]
+                        left_path: dict[str, Any], right_path: dict[str, Any], *, mode: str = "stage"
                         ) -> list[dict[str, Any]]:
-    reasons = context_differences(left, right)
+    reasons = context_differences(left, right, EXPERIMENT_COMPARISON_FIELDS) if mode == "experiment" else context_differences(left, right)
     for field in ("startpoint", "endpoint", "group"):
         left_value, right_value = left_path.get(field), right_path.get(field)
         if not _present(left_value) or not _present(right_value):
@@ -937,6 +946,12 @@ def read_evidence(store: DataStore, snapshot_id: str, record_type: str,
                               "reason": (f"{logical_path!r} is not a JSON fragment source; "
                                          "it is a binary database whose facts the adapter "
                                          "already extracted, and it exceeds the download cap")})
+            continue
+        registered_digest = (entry.get('member_sha256') if entry.get('resolution') == 'bundle_member'
+                             else entry.get('sha256'))
+        if registered_digest is not None and registered_digest != source['sha256']:
+            fragments.append({**common, "status": "unavailable",
+                              "reason": "stored fragment source differs from registered original digest"})
             continue
         try:
             document = json.loads(source["payload"])
