@@ -14,3 +14,7 @@ bash tools/start-platform.sh
 工具接入遵守 [插件契约](docs/PLUGIN_PROTOCOL.agent.md)，算法只在外部插件。插件准入属于执行底座；输入冻结、输入/产物路径限制、进程树治理和产物 hash 核验不会因精简被删除。目录和废弃功能变化见 [移除记录](docs/REMOVED_COMPONENTS.md)。
 
 相对直接终端操作的验收目标是完整生命周期与可重复追溯。一次短工具调用可能增加成本；实测证据见工作区 benchmark 报告，不能把 fixture 测试当真实 EDA 性能。
+
+The local gateway defaults to one worker attempt at a time. Set
+`--worker-concurrency` explicitly when another deployment has a different
+resource policy; maintenance, cancellation and HTTP reads remain responsive.

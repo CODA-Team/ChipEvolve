@@ -139,7 +139,7 @@ class ProcessGuardian:
         peak_memory = 0
         peak_processes = 0
 
-        with path.open("a", encoding="utf-8") as log:
+        with path.open("a", encoding="utf-8", buffering=1) as log:
             process = subprocess.Popen(
                 normalized,
                 cwd=str(cwd) if cwd else None,

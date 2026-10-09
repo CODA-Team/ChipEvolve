@@ -57,6 +57,43 @@ def test_resource_claim_is_fifo_capacity_and_release(store: RuntimeStore, tmp_pa
     assert released is not None
 
 
+def test_late_cancel_preserves_attempt_outcome_without_prestart_claim(store, tmp_path):
+    run = submit(store)
+    stage = store.list_stages(run.run_id)[0]
+    attempt = store.start_attempt(stage.stage_run_id, worker_id="w", workspace=tmp_path, lease_seconds=30)
+    store.request_cancel(run.run_id)
+    observer = RuntimeStore(store.db_path)
+    seen = []
+
+    def inspect_before_commit(statement):
+        if statement.startswith("DELETE FROM runtime_resource_reservations"):
+            seen.append(observer.abandoned_cancellations())
+
+    store._connection.set_trace_callback(inspect_before_commit)
+    try:
+        store.finish_attempt(attempt.attempt_id, AttemptStatus.SUCCEEDED, exit_code=0,
+                             run_status=RuntimeStatus.SUCCEEDED)
+    finally:
+        store._connection.set_trace_callback(None)
+        observer.close()
+    assert seen == [[]], "another worker must not see an abandoned cancellation between writes"
+    result = store.describe_run(run.run_id)
+    assert result["status"] == "cancelled"
+    assert result["terminal_reason"] == "cancellation requested after process completion; attempt outcome preserved"
+    assert result["stages"][0]["attempts"][0]["status"] == "succeeded"
+
+
+def test_invalid_terminal_transition_rolls_back_attempt_and_reservation(store, tmp_path):
+    run = submit(store)
+    stage = store.list_stages(run.run_id)[0]
+    attempt = store.start_attempt(stage.stage_run_id, worker_id="w", workspace=tmp_path, lease_seconds=30)
+    store.transition_run(run.run_id, RuntimeStatus.LOST)
+    with pytest.raises(InvalidTransition):
+        store.finish_attempt(attempt.attempt_id, AttemptStatus.SUCCEEDED,
+                             run_status=RuntimeStatus.SUCCEEDED)
+    assert store.list_attempts(stage.stage_run_id)[0].status is AttemptStatus.RUNNING
+
+
 @pytest.fixture()
 def store(tmp_path: Path) -> RuntimeStore:
     s = RuntimeStore(tmp_path / "runtime.db")

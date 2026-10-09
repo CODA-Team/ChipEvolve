@@ -9,7 +9,6 @@ import argparse
 import signal
 import sys
 import threading
-
 from openroad_platform_runtime import RuntimeWorker
 
 from .app import build_router
@@ -36,6 +35,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--capacity-cpu-cores", type=int)
     parser.add_argument("--capacity-memory-bytes", type=int)
+    parser.add_argument("--worker-concurrency", type=int, default=1)
     parser.add_argument("--platform-fraction", type=float, default=0.60)
     parser.add_argument(
         "--input-root",
@@ -69,7 +69,7 @@ def main(argv: list[str] | None = None) -> int:
 
     server = ThreadingHTTPServer((args.host, args.port), make_handler(router))
     stop = threading.Event()
-    worker = RuntimeWorker(kernel.store, kernel.runtime, idle_seconds=0.1)
+    worker = RuntimeWorker(kernel.store, kernel.runtime, idle_seconds=0.1, batch=args.worker_concurrency)
     thread = (
         None
         if args.api_only

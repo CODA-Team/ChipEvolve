@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "openroad-platform-gateway"
-version = "0.2.0"
+version = "0.2.1.dev1"
 description = "Single-machine execution API and worker"
 requires-python = ">=3.9"
 dependencies = [

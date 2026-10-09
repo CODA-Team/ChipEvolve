@@ -700,6 +700,7 @@ class WorkflowRuntime:
                 registered_ids,
             )
 
+        retry = self._should_retry(run, attempt, execution)
         self.store.finish_attempt(
             attempt.attempt_id,
             _attempt_status(execution.result.status),
@@ -708,19 +709,16 @@ class WorkflowRuntime:
             cpu_seconds=execution.outcome.cpu_seconds,
             peak_memory_bytes=execution.outcome.peak_memory_bytes,
             peak_processes=execution.outcome.peak_processes,
+            run_status=None if retry else execution.result.status,
+            run_reason=_terminal_reason(execution.result),
         )
-        if self._should_retry(run, attempt, execution):
+        if retry:
             self.store.schedule_retry(
                 run.run_id,
                 stage.stage_run_id,
                 reason=f"retrying: {_terminal_reason(execution.result)}",
             )
             return
-        self.store.transition_run(
-            run.run_id,
-            execution.result.status,
-            reason=_terminal_reason(execution.result),
-        )
 
     @staticmethod
     def _collect_manifest_artifacts(workspace: Path, manifest: PluginManifest,

@@ -156,3 +156,10 @@ column on `runtime_stage_runs` and its migration.  The reason is in
 that costs a lease").
 
 2026-10-08 ratchet: current maximum 1480 physical lines; earlier ceilings above are historical.
+
+2026-10-09 cancellation settlement: maximum 1493 physical lines. The authorized
+execution lifecycle fixes add a terminal run outcome to finish_attempt, sharing
+one transition implementation and one SQLite transaction. This prevents a
+maintenance worker from calling a completed attempt an unstarted cancellation.
+A late cancellation preserves the real attempt outcome with an explicit reason.
+No state-machine rule or negative fixture is weakened.

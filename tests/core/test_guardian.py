@@ -203,6 +203,26 @@ def test_cancellation_works_without_any_process_output(tmp_path: Path):
     ).read_text(encoding="utf-8")
 
 
+def test_live_raw_log_is_visible_before_a_silent_child_finishes(tmp_path: Path):
+    """A caller can act on a single progress line while the process still waits."""
+    guardian = ProcessGuardian(poll_interval=0.02, terminate_grace=1.0)
+    log_path = tmp_path / "live.log"
+    observed = threading.Event()
+
+    def cancel_when_visible():
+        if log_path.is_file() and "WAITING" in log_path.read_text():
+            observed.set()
+        return observed.is_set()
+
+    outcome = guardian.run(
+        [sys.executable, "-u", "-c", "import time; print('WAITING'); time.sleep(60)"],
+        log_path=log_path, timeout_seconds=15,
+        cancel_requested=cancel_when_visible,
+    )
+    assert observed.is_set()
+    assert outcome.cancelled and not outcome.timed_out
+
+
 def test_output_is_captured_and_streamed(tmp_path: Path):
     # The deadline here exists only to stop a hang; it is not an assertion about
     # speed.  Measured on the build host at load 74, starting bash took up to

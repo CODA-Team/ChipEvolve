@@ -476,3 +476,9 @@ Reconciled total: 9,660 lines.
 Removed identity, account/session handling, application routing and obsolete controls. The cap now equals measured shipped kernel code; no new headroom is granted. Prior increments above are historical. Per-file ceilings in ceiling.json also ratchet down to current measurements.
 
 Final formatting ratchet: kernel 8970 lines, protocol validator 237 lines.
+
+2026-10-09 cancellation settlement: maximum 8981 physical lines. Runtime removes
+its separate terminal run transition; RuntimeStore atomically commits the
+attempt and run outcome. The net change is 11 lines, with live-log and concurrent
+reader regressions. This is required lifecycle correctness in the authorized
+30-hour execution acceptance, with no tool logic in the kernel.

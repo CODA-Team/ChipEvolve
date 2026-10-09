@@ -11,13 +11,13 @@ mypy_extensions==1.1.0
 -e /home/wjyuan/projects/eda-development/execution-foundation/contracts
 # Editable Git install with no remote (openroad-platform-evaluator==0.1.0)
 -e /home/wjyuan/projects/eda-development/execution-foundation/core/evaluator
-# Editable Git install with no remote (openroad-platform-gateway==0.2.0)
+# Editable Git install with no remote (openroad-platform-gateway==0.2.1.dev1)
 -e /home/wjyuan/projects/eda-development/execution-foundation/gateway
 # Editable Git install with no remote (openroad-platform-provenance==0.1.0)
 -e /home/wjyuan/projects/eda-development/execution-foundation/core/provenance
 # Editable Git install with no remote (openroad-platform-registry==0.1.0)
 -e /home/wjyuan/projects/eda-development/execution-foundation/core/registry
-# Editable Git install with no remote (openroad-platform-runtime==0.2.0)
+# Editable Git install with no remote (openroad-platform-runtime==0.2.1.dev1)
 -e /home/wjyuan/projects/eda-development/execution-foundation/core/runtime
 packaging==26.3
 pathspec==1.1.1

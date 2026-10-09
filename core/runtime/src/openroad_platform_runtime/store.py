@@ -517,38 +517,40 @@ class RuntimeStore:
         with self._lock:
             self._connection.execute("BEGIN IMMEDIATE")
             try:
-                row = self._connection.execute("SELECT status FROM runtime_runs WHERE run_id = ?", (run_id,)).fetchone()
-                if row is None:
-                    raise RuntimeStoreError(f"unknown run {run_id!r}")
-                current = RuntimeStatus(row["status"])
-                if current == target:
-                    self._connection.execute("COMMIT")
-                    return
-                if not run_transition_allowed(current, target):
-                    raise InvalidTransition(f"invalid run transition {current.value} -> {target.value}")
-                now = _now()
-                started = ", started_at = COALESCE(started_at, ?)" if target is RuntimeStatus.RUNNING else ""
-                params: list[Any] = [target.value]
-                sql = f"UPDATE runtime_runs SET status = ?{started}"
-                if started:
-                    params.append(now)
-                if is_terminal(target):
-                    sql += ", ended_at = ?"
-                    params.append(now)
-                if reason is not None:
-                    sql += ", terminal_reason = ?"
-                    params.append(reason)
-                sql += " WHERE run_id = ?"
-                params.append(run_id)
-                self._connection.execute(sql, params)
-                self._connection.execute(
-                    "UPDATE runtime_stage_runs SET status = ? WHERE run_id = ? AND status NOT IN ('succeeded','failed','cancelled','timed_out','lost')",
-                    (target.value, run_id),
-                )
+                self._transition_run(run_id, target, reason=reason)
                 self._connection.execute("COMMIT")
             except Exception:
                 self._connection.execute("ROLLBACK")
                 raise
+    def _transition_run(self, run_id: str, target: RuntimeStatus, *, reason: str | None) -> None:
+        """Apply a run transition inside the caller's existing write transaction."""
+        row = self._connection.execute("SELECT status FROM runtime_runs WHERE run_id = ?", (run_id,)).fetchone()
+        if row is None:
+            raise RuntimeStoreError(f"unknown run {run_id!r}")
+        current = RuntimeStatus(row["status"])
+        if current == target:
+            return
+        if not run_transition_allowed(current, target):
+            raise InvalidTransition(f"invalid run transition {current.value} -> {target.value}")
+        now = _now()
+        started = ", started_at = COALESCE(started_at, ?)" if target is RuntimeStatus.RUNNING else ""
+        params: list[Any] = [target.value]
+        sql = f"UPDATE runtime_runs SET status = ?{started}"
+        if started:
+            params.append(now)
+        if is_terminal(target):
+            sql += ", ended_at = ?"
+            params.append(now)
+        if reason is not None:
+            sql += ", terminal_reason = ?"
+            params.append(reason)
+        sql += " WHERE run_id = ?"
+        params.append(run_id)
+        self._connection.execute(sql, params)
+        self._connection.execute(
+            "UPDATE runtime_stage_runs SET status = ? WHERE run_id = ? AND status NOT IN ('succeeded','failed','cancelled','timed_out','lost')",
+            (target.value, run_id),
+        )
     def request_cancel(self, run_id: str) -> None:
         """Record a cancellation request.
         This records intent; it does not claim the process stopped.  Only the
@@ -743,7 +745,11 @@ class RuntimeStore:
         cpu_seconds: float | None = None,
         peak_memory_bytes: int | None = None,
         peak_processes: int | None = None,
+        run_status: RuntimeStatus | None = None,
+        run_reason: str | None = None,
     ) -> None:
+        if run_status is not None and not is_terminal(run_status):
+            raise RuntimeStoreError("finishing an attempt requires a terminal run outcome")
         with self._lock:
             self._connection.execute("BEGIN IMMEDIATE")
             try:
@@ -756,6 +762,13 @@ class RuntimeStore:
                 current = AttemptStatus(row["status"])
                 if not attempt_transition_allowed(current, status):
                     raise InvalidTransition(f"invalid attempt transition {current.value} -> {status.value}")
+                if run_status is not None:
+                    run_id = self._connection.execute("SELECT run_id FROM runtime_stage_runs WHERE stage_run_id = ?", (row["stage_run_id"],)).fetchone()["run_id"]
+                    run_state = self._connection.execute("SELECT status FROM runtime_runs WHERE run_id = ?", (run_id,)).fetchone()["status"]
+                    if run_state == RuntimeStatus.CANCEL_REQUESTED.value and run_status in {RuntimeStatus.SUCCEEDED, RuntimeStatus.TIMED_OUT}:
+                        run_status = RuntimeStatus.CANCELLED
+                        run_reason = "cancellation requested after process completion; attempt outcome preserved"
+                    self._transition_run(run_id, run_status, reason=run_reason)
                 self._connection.execute(
                     "UPDATE runtime_attempts SET status = ?, ended_at = ?, exit_code = ?, failure_json = ?, cpu_seconds = ?, peak_memory_bytes = ?, peak_processes = ?, lease_expires_at = NULL WHERE attempt_id = ?",
                     (
