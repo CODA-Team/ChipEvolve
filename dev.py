@@ -31,6 +31,8 @@ if args.command == 'check':
                    for path in sorted((project / area).glob('*/src'))]
         sources += ['contracts/src', 'gateway/src']
         commands += [[str(python), '-m', 'mypy', '--ignore-missing-imports', *sources]]
+    elif args.project == 'toolkits':
+        commands += [[str(project / '.venv/bin/ruff'), 'check', 'src', 'tests', '--select', 'F']]
     commands += [[str(python), '-m', 'pytest', *args.args]]
 elif args.command == 'smoke':
     commands = [[str(python), 'smoke.py', *args.args]] if args.project == 'data-foundation' else \
@@ -48,9 +50,12 @@ elif args.project == 'data-foundation':
 elif args.project == 'execution-foundation':
     state = ROOT / 'var/execution-foundation'
     state.mkdir(parents=True, exist_ok=True)
-    commands = [[str(python), '-m', 'openroad_platform_gateway', '--host', '127.0.0.1',
+    plugin_root = ROOT / 'var/toolkits/plugins'
+    commands = [[str(ROOT / 'toolkits/.venv/bin/python'), '-m', 'eda_toolkits',
+                 'configure', '--output', str(plugin_root)],
+                [str(python), '-m', 'openroad_platform_gateway', '--host', '127.0.0.1',
                  '--port', '18700', '--state-root', str(state),
-                 '--plugins-root', str(project / 'plugins'),
+                 '--plugins-root', str(plugin_root),
                  '--admissions-root', str(project / 'admissions'), *args.args]]
 else:
     parser.error('此项目没有独立 HTTP 服务；Query Agent 使用 CLI，Data Interface 是 SDK。')

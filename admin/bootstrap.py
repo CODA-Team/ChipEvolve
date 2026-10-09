@@ -39,25 +39,25 @@ for name in ['execution-foundation', 'toolkits', 'data-foundation', 'data-interf
     project = ROOT / name
     run([sys.executable, '-m', 'venv', project / '.venv'])
     python = project / '.venv/bin/python'
-    pip(python, 'install', '--no-index', '--find-links', WHEELS,
+    pip(python, 'install', '--pre', '--no-index', '--find-links', WHEELS,
         'setuptools==84.0.0', 'wheel==0.48.0', 'pytest==9.1.1', 'ruff==0.16.8')
     if name == 'execution-foundation':
-        pip(python, 'install', '--no-index', '--find-links', WHEELS,
+        pip(python, 'install', '--pre', '--no-index', '--find-links', WHEELS,
             *['openroad-platform-' + p for p in ['contracts', 'client', 'runtime', 'registry',
               'evaluator', 'provenance', 'gateway']])
-        pip(python, 'install', '--no-index', '--find-links', WHEELS,
+        pip(python, 'install', '--pre', '--no-index', '--find-links', WHEELS,
             'mypy==2.4.0', 'black==26.10.0')
         for path in PACKAGES:
             pip(python, 'install', '--no-deps', '--no-build-isolation', '-e', project / path)
     elif name == 'query-agent':
-        pip(python, 'install', '--no-index', '--find-links', WHEELS,
+        pip(python, 'install', '--pre', '--no-index', '--find-links', WHEELS,
             'pydantic==2.13.4', 'pyright==1.1.414', 'import-linter==2.15',
-            'eda-ai-client==0.2.1')
+            'eda-ai-client==0.2.3.dev1')
         pip(python, 'install', '--no-deps', '--no-build-isolation', '-e', project)
     elif name in ('data-foundation', 'toolkits'):
-        pip(python, 'install', '--no-index', '--find-links', WHEELS,
+        pip(python, 'install', '--pre', '--no-index', '--find-links', WHEELS,
             'openroad-platform-contracts==0.2.0', 'openroad-platform-client==0.2.0',
-            'openroad-platform-runtime==0.2.0', 'eda-toolkits==0.1.0')  # runtime is a test fixture dependency
+            'openroad-platform-runtime==0.2.1.dev1', 'eda-toolkits==0.1.1.dev1')  # runtime is a test fixture dependency
         pip(python, 'install', '--no-deps', '--no-build-isolation', '-e', project)
     else:
         pip(python, 'install', '--no-deps', '--no-build-isolation', '-e', project)

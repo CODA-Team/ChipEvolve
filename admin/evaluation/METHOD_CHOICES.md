@@ -13,4 +13,8 @@
 | ResizerAgent / ECO 反馈与副作用 | 接收包固定输入、允许缓冲单元和评价条件；真实 Codex 接收者产生新实验，QA 复查 setup/hold/面积。 | 实际接受/拒绝、修改清单、新任务/原生产物；无改善不报告修复成功。 |
 | 历史数据层积累 | 继承现有关系、计数、几何、时序增量、功耗与拥塞查询；DF/DI/Toolkit 逐项归位。 | 72 道确定性原生 gold 回归及 B/C 对照，保留准备/维护开销。 |
 
-封存题的成功条件已固定，但新诊断 gold 仍待受控原生命令生成。它不会来自产品解析器的自我打分。效益只按冻结矩阵与门槛报告；架构和测试通过不能代替业务增量证据。
+封存题的成功条件已固定；受控实验及原生参考结果保存在本轮证据目录的 `controlled-sealed-v1`，开发参考保存在 `controlled-development-1`。实现冻结之前未打开封存诊断答案进行评分或调参。参考结果来自原生命令，不来自产品解析器的自我打分。效益只按冻结矩阵与门槛报告；架构和测试通过不能代替业务增量证据。
+
+强直接基线拥有独立索引、可复用脚本和固定输入 OpenROAD 会话。Codex 通过本机每题受限 HTTP 桥接调用监督进程执行操作，解决嵌套沙箱无法写共享 EDA 锁的问题；它仍使用 workspace-write，A/B 操作不引入 DF/EF 算法。双方共用实际 EDA 锁、读取/时间/调用预算，模型设置固定。桥接传输的真实新会话验收见 `native-sandbox-probe-1`，错误答案 JSON 的同预算重试验收见 `generic-retry-contract-1`。
+
+Codex 运行配置依据官方 [CLI Reference](https://learn.chatgpt.com/docs/cli/reference)：`--ignore-user-config`、`--json`、结构化输出与显式模型设置。命令、文件修改及未分配 web/MCP 调用逐题审查，不能只依赖提示中的限制。开发语义审查保留在 `development-semantic-review-7.json`；封存分层题已查看，阈值保持冻结；封存诊断将在实现冻结后评分。

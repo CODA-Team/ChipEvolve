@@ -8,11 +8,12 @@
 | Query Agent | `query-agent/` | 问题规划、证据收集、可回答性、回答 | Data Interface wheel + 两个服务的 HTTP |
 | Data Foundation | `data-foundation/` | 快照、设计对象、结构化事实、查询、独立数据库 | 安装 contracts/client wheel；HTTP 读取执行产物 |
 | Data Interface | `data-interface/` | 公开工具契约、Python SDK、响应语义 | 标准库 HTTP 客户端，没有服务进程和数据库 |
+| Toolkits | `toolkits/` | OpenROAD/ORFS 命令、输入加载、原生解析和导出 | 安装 contracts/client wheel；生成运行清单，调用 EF HTTP |
 
 每个项目都有独立 `.git`、`.venv` 和 `environment.lock.txt`。禁止用 `PYTHONPATH`、软链接或另一项目的 editable 安装来跨源码边界。共享包在 `wheelhouse/` 发布；Data Foundation 中的 runtime 包仅用于现有测试 fixture，不是其运行依赖。
 
 ```text
-Query Agent（独立原项目） --HTTP--> Execution Foundation
+Query Agent（调查） --安装包--> Toolkits --HTTP--> Execution Foundation
 Query Agent --已安装 SDK--> Data Interface SDK --HTTP--> Data Foundation
 Data Foundation --HTTP--> Execution Foundation 原始产物 / 执行能力
 Data Foundation --安装包--> contracts + client（Execution Foundation 发布）
@@ -30,6 +31,7 @@ python3 dev.py query-agent check
 python3 dev.py data-foundation check
 python3 dev.py data-interface check
 python3 dev.py execution-foundation check
+python3 dev.py toolkits check
 python3 dev.py data-foundation smoke
 python3 dev.py query-agent shell
 ```
@@ -44,6 +46,7 @@ python3 dev.py data-foundation serve       # 127.0.0.1:18924
 ```
 
 开发运行数据属于 `var/`；现有实验数据库不会自动导入。Data Foundation 若需要执行能力，显式传入 `--kernel-url http://127.0.0.1:18700`。原始 ORFS 流程目录显式使用 `--native-root` 指定。SDK 安装依赖为零，Query Agent 使用 CLI。
+Toolkit 的 OpenROAD 启动器显式读取 `EDA_ORFS_IMAGE`；共享工具镜像与源码环境分开。
 
 ## 来源和运行基线
 
@@ -57,12 +60,17 @@ python3 dev.py data-foundation serve       # 127.0.0.1:18924
 
 ## 当前工程验收
 
-Execution Foundation 仅本机单用户，一个 HTTP+worker 进程；没有账户/会话数据库、旧控制台或 plan executor。Data Foundation 拥有设计目录、唯一快照解析、对象匹配与指标归属；SDK 不再承载这些业务。主 Query Agent 已通过 SDK 连接对象、时序数据和实验比较，关系/物理查询与自动补分析仍未完成。
+Execution Foundation 仅本机单用户，一个 HTTP+worker 进程；没有账户/会话数据库、旧控制台或 plan executor。Data Foundation 拥有设计目录、唯一快照解析、对象匹配与指标归属；SDK 不再承载这些业务。主 Query Agent 已通过 SDK 连接对象、时序数据和实验比较，已接通关系、完整 fanout、位置/区域、实例变更和显式补 STA。新增调查支持
+固定范围、假设/反证、来源展开、恢复、预算与真实 Codex ECO 交接；效果须按
+本轮封存对照单独验收，不能把 answered 状态当作正确答案。
 
-真实 OpenROAD 验收是 Nangate45 三缓冲链 STA（理想网络），不能代表完整芯片 PnR。Codex 对照记录保存在 var/benchmarks；直接终端能够完成任务，infra 不承诺更快或提高模型推理水平。
+迁移阶段的 OpenROAD 验收是 Nangate45 三缓冲链 STA（理想网络）。本轮新增完整
+Nangate45/GCD ORFS 流程；第一次导出清单遗漏的失败记录与修复后的成功记录均在
+`var/sprints/20261008-141846/`。72 题和模型诊断验收按本轮计划单独报告，历史
+Codex 对照在 `var/benchmarks`，不能替代新对照。
 
 ## 历史成果核查与下一阶段研究
 
 2026-10-08 的[项目核查报告](admin/research/PROJECT_AUDIT_20261008.md)记录 Data Foundation 的历史代码保留、论文原始汇总复核、Execution Foundation 残留和主 Query Agent 的实际缺口。[Query Agent 科研地图与建设方案](admin/research/QUERY_AGENT_RESEARCH_AND_PLAN_20261008.md)给出数据获取、调查技能、自适应深度、补充分析和任务交接的设计与分阶段验收。
 
-历史数据实验支持当时整套数据能力的作用，尚未证明拆分后的各项目贡献或主 Query Agent 的诊断效果。报告中的新调查工作流、独立 Toolkits 和新对照实验属于下一阶段工作。只读[复核脚本](admin/research/reproduce_audit.py)及其运行命令随核查报告保存；运行证据属于 `var/research/20261008/`。
+历史数据实验支持当时整套数据能力的作用，尚未证明拆分后的各项目贡献或主 Query Agent 的诊断效果。本轮已实施新调查工作流与独立 Toolkits，新对照题集和运行器已固定，效果由本轮正式测量单独报告。只读[复核脚本](admin/research/reproduce_audit.py)及其运行命令随核查报告保存；运行证据属于 `var/research/20261008/`。
