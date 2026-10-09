@@ -28,10 +28,24 @@ from query_agent.application.service import QueryService
 from query_agent.benchmark import BenchmarkRunner
 from query_agent.domain.query import QueryContext, QueryRequest, QuerySource
 
+from .investigation_cli import add_commands, run_command
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = _parser()
     args = parser.parse_args(argv)
+    if args.command in (
+        "investigate",
+        "resume",
+        "context",
+        "act",
+        "poll",
+        "state",
+        "evidence",
+        "export-handoff",
+        "receive-handoff",
+    ):
+        return run_command(args)
     if args.command == "benchmark":
         report = BenchmarkRunner().run(args.benchmark_dir)
         print(report.model_dump_json(indent=2))
@@ -54,6 +68,7 @@ def main(argv: list[str] | None = None) -> int:
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="query-agent")
     commands = parser.add_subparsers(dest="command", required=True)
+    add_commands(commands)
     ask = commands.add_parser("ask", help="ask an evidence-scoped question")
     ask.add_argument("question")
     ask.add_argument("--workspace", type=Path)

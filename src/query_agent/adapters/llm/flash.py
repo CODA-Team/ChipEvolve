@@ -18,6 +18,9 @@ from .budget import CostLedger
 
 
 class DeepSeekFlashModel:
+    def set_timeout(self, seconds: float) -> None:
+        self.timeout = max(0.1, seconds)
+
     def __init__(
         self,
         *,
@@ -67,11 +70,64 @@ class DeepSeekFlashModel:
         self.last_receipt: dict[str, Any] | None = None
 
     def complete(self, prompt: str, response_model: type[OutputModel]) -> OutputModel:
+        started = time.monotonic()
+        timeout = self.timeout
+        try:
+            return self._complete(prompt, response_model)
+        except LLMContractError:
+            first = dict(self.last_receipt or {})
+            remaining = timeout - (time.monotonic() - started)
+            if (
+                not first.get("schema_error")
+                or first.get("finish_reason") == "length"
+                or remaining < 10
+            ):
+                raise
+            response = json.loads(
+                (Path(str(first["trace"])) / "response.json").read_text()
+            )
+            previous = response["choices"][0]["message"]["content"]
+            repair = (
+                prompt + "\nYour previous response failed the declared schema. "
+                "Correct only its JSON structure using the supplied evidence. "
+                "Remove unknown fields; do not invent observations. "
+                "This is the only repair attempt and consumes the original "
+                "task time/token/cost budget.\nValidation errors: "
+                + json.dumps(first["schema_error"])
+                + "\nPrevious response:\n"
+                + previous[:32000]
+            )
+            self.timeout = remaining
+            try:
+                return self._complete(repair, response_model)
+            finally:
+                last = dict(self.last_receipt or {})
+                self.last_receipt = {
+                    **last,
+                    "attempts": [first, last],
+                    "seconds": time.monotonic() - started,
+                    "actual_usd": (
+                        float(first["actual_usd"]) + float(last["actual_usd"])
+                        if last
+                        else None
+                    ),
+                }
+                self.timeout = timeout
+
+    def _complete(self, prompt: str, response_model: type[OutputModel]) -> OutputModel:
+        self.last_receipt = None
         schema = response_model.model_json_schema()
         messages = [
             {
                 "role": "system",
-                "content": "Return JSON matching this schema: " + json.dumps(schema),
+                "content": (
+                    "Return one literal JSON object matching the schema below. "
+                    "Begin with { and end with }. No tools are exposed in this "
+                    "API call: describe proposed actions as JSON fields only. "
+                    "Do not emit function calls, DSML/XML tags, markdown fences "
+                    "or prose outside the JSON object.\nJSON schema: "
+                    + json.dumps(schema)
+                ),
             },
             {"role": "user", "content": prompt},
         ]
@@ -142,6 +198,7 @@ class DeepSeekFlashModel:
             "seconds": time.monotonic() - started,
             "trace": str(folder),
             "reservation": reservation,
+            "finish_reason": result["choices"][0].get("finish_reason"),
         }
         (folder / "receipt.json").write_text(
             json.dumps(self.last_receipt, indent=2) + "\n"
@@ -151,6 +208,14 @@ class DeepSeekFlashModel:
                 result["choices"][0]["message"]["content"]
             )
         except (KeyError, IndexError, TypeError, ValidationError) as exc:
+            self.last_receipt["schema_error"] = (
+                exc.errors(include_input=False, include_context=False)
+                if isinstance(exc, ValidationError)
+                else [{"type": type(exc).__name__}]
+            )
+            (folder / "receipt.json").write_text(
+                json.dumps(self.last_receipt, indent=2) + "\n"
+            )
             raise LLMContractError(
                 f"Flash output violates typed schema; trace={folder}"
             ) from exc

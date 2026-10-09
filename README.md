@@ -1,28 +1,18 @@
 # Agentic EDA Query Agent
 
-This repository is the Phase IV foundation for an evidence-first Query Agent
-for ASIC physical design and OpenROAD. It intentionally does not parse DEF,
-SPEF, ODB or timing graphs, execute shell commands, or run an agent framework.
+This project provides read-only evidence queries and durable, bounded timing
+investigations for ASIC physical design. Design facts come through the Data
+Interface SDK/HTTP; Toolkits owns OpenROAD commands and EF owns task execution.
 
-The core pipeline is ordinary Python:
+The simple `ask` path retains deterministic planning and sufficiency checks.
+The new `investigate` path supports competing hypotheses, original source
+retrieval, explicit supplementary STA, pause/resume, and evidence-backed handoff.
+Codex hosted/adapter modes and official DeepSeek Flash share one application.
+Optional JEV judgments remain advice. See [investigation usage](docs/investigation.md).
 
-```text
-QueryRequest -> intent -> QueryPlan -> providers -> Evidence
-             -> deterministic sufficiency -> QueryResponse
-```
-
-The filesystem adapter is read-only and sandboxed to one workspace. Design-data and analysis use the installed Data Interface SDK over public HTTP.
-Object lookup, WNS/TNS, timing paths and aligned experiment comparison are connected.
-Relations, physical queries and autonomous diagnosis still have explicit unavailable boundaries.
-See [`docs/execution-foundation-integration.md`](docs/execution-foundation-integration.md)
-for the execution boundary; current data integration is described below.
-
-The current capability status and overnight review package are in
-[`docs/capability-matrix.md`](docs/capability-matrix.md) and
-[`docs/tomorrow-report.md`](docs/tomorrow-report.md). A five-minute local demo
-is available at [`demo/demo_phase1.sh`](demo/demo_phase1.sh); set
-`EDA_CORPUS_ROOT` to a real EDA-Corpus checkout to exercise the knowledge
-provider.
+Engineering checks and real execution receipts are separate from diagnosis
+quality measurements. Development failures and the frozen formal comparison
+must be reviewed before claiming reliable causal reasoning or lower cost.
 
 ## Development
 
@@ -35,7 +25,8 @@ lint-imports
 pytest
 ```
 
-The project has no dependency on the execution-foundation Python packages.
+Execution uses the published client wheel and HTTP; no kernel implementation
+or sibling source checkout is imported.
 
 ## 独立开发工作区（2026-10-08）
 
@@ -56,9 +47,8 @@ query-agent ask "Compare WNS difference" --kernel-url http://127.0.0.1:18700 \
 Unique snapshot/revision/run/stage identity stays in typed evidence. Successful
 execution control stages and indexed data stages have different meanings.
 Metric answers require units, corner and registered source digest; a metric
-change alone cannot prove resizing caused it. The current planner and evidence
-policy are deterministic Python, not a general autonomous LLM reasoning engine.
-No automatic supplementary-analysis submission is claimed.
+change alone cannot prove resizing caused it. The `ask` planner and sufficiency policy remain deterministic. Supplementary
+analysis is available only in the explicit investigation workflow described above.
 
 Codex can parse reports and compare values directly. This project supplies a
 reusable evidence and answerability policy; the paired pilot does not establish
