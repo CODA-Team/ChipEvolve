@@ -25,6 +25,7 @@ def load_state(folder, arm):
 
 def model_usage(folder):
     paths = set(folder.glob('model-traces/*/receipt.json')) | set(folder.glob('host-traces/*/receipt.json'))
+    paths |= set(folder.glob('judgment-traces/*/receipt.json'))
     if (folder / 'model-receipt.json').is_file():
         paths.add(folder / 'model-receipt.json')
     rows = []
@@ -32,8 +33,19 @@ def model_usage(folder):
         receipt = json.loads(path.read_text())
         rows.append({'path': str(path), 'sha256': digest(path), 'model': receipt.get('model'),
                      'usage': receipt.get('usage', {}), 'actual_usd': receipt.get('actual_usd'),
+                     'quoted_usage_usd': receipt.get('quoted_usage_usd'), 'cost_basis': receipt.get('cost_basis'),
+                     'trace_family': path.parent.parent.name,
                      'reservation': receipt.get('reservation'), 'seconds': receipt.get('seconds'),
                      'billing': receipt.get('billing'), 'timed_out': receipt.get('timed_out')})
+    for family in ('model-traces', 'host-traces', 'judgment-traces'):
+        for trace in sorted((folder / family).glob('*')):
+            if not trace.is_dir() or (trace / 'receipt.json').is_file():
+                continue
+            failure_path = trace / 'failure.json'
+            failure = json.loads(failure_path.read_text()) if failure_path.is_file() else {}
+            rows.append({'path': str(trace), 'trace_family': family, 'receipt_missing': True,
+                         'usage': None, 'actual_usd': None, 'reservation': failure.get('reservation'),
+                         'failure': failure, 'cost_status': 'unknown; retain ledger reservation where present'})
     return rows
 
 
@@ -64,6 +76,8 @@ def main():
         if receipt:
             folder = Path(receipt['folder'])
             state = load_state(folder, planned['arm'])
+            result_path = folder / 'result.json'
+            cli_result = json.loads(result_path.read_text()) if result_path.is_file() else None
             record.update(folder=str(folder), wall_seconds_used=receipt.get('wall_seconds_used'),
                           cleanup_seconds=receipt.get('cleanup_seconds'), exit_code=receipt.get('exit_code'),
                           model_receipts=model_usage(folder), state_status=state.get('status') if state else None,
@@ -71,6 +85,7 @@ def main():
                           calls_used=(state.get('tool_calls_used', state.get('calls_used')) if state else None),
                           read_bytes_used=(state.get('read_bytes_used') if state else None),
                           analyses_used=(state.get('analyses_used') if state else None))
+            record['cli_result'] = cli_result
             if planned['case_id'] in fact_gold:
                 if record['answer'] is None:
                     record.update(grade='failed', failure_reason='no committed answer')
@@ -81,6 +96,8 @@ def main():
                     record.update(correctness=correctness, correctness_passed=correctness['passed'],
                                   formal_passed=correctness['passed'] and eligible,
                                   grade='passed' if correctness['passed'] and eligible else 'failed')
+            elif cli_result and cli_result.get('status') == 'needs_scope':
+                record.update(grade='review_required', clarification_returned=True)
             elif record['answer'] is None and not (state and state.get('handoff_packages')):
                 record.update(grade='failed', failure_reason='no committed answer or handoff; needs-scope cases require explicit review')
         records.append(record)
@@ -100,6 +117,7 @@ def main():
               'retained_matrix_sha256': digest(matrix_path), 'recorded_receipts': len(receipts),
               'scorer_sha256': digest(Path(__file__)), 'groups': summaries,
               'diagnosis_review': 'Explicit per-condition source-grounded review still required; no answered-equals-pass rule.',
+              'scores_provisional_until_source_and_command_review': True,
               'command_review': 'Flagged commands require adjudication; identity/source receipts are checked separately.',
               'engineering_pass_does_not_prove_business_effect': True}
     (args.output / 'records.json').write_text(json.dumps(records, ensure_ascii=False, indent=2) + '\n')

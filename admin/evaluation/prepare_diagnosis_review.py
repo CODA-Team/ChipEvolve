@@ -27,6 +27,28 @@ def native_reference(sprint, snapshot):
         value = json.loads(path.read_text())
         if value.get('snapshot_id') == snapshot:
             bindings.append((path, value))
+    recovery = sprint / 'empty-report-recovery-1'
+    recovery_task = recovery / 'task.json'
+    if not bindings and recovery_task.is_file():
+        replacement = json.loads(recovery_task.read_text())
+        if replacement.get('inputs', {}).get('snapshot_id') == snapshot:
+            original_task = sprint / 'controlled-sealed-v1/public/e38/export-task.json'
+            original = json.loads(original_task.read_text())
+            original_snapshot = original['inputs']['snapshot_id']
+            original['task_id'] = replacement['task_id']
+            original['inputs']['snapshot_id'] = snapshot
+            if original != replacement:
+                raise ValueError('Recovered export changed more than its task/snapshot identity')
+            reference = native_reference(sprint, original_snapshot)
+            reference['snapshot_id'] = snapshot
+            reference['export_recovery'] = {
+                'original_snapshot_id': original_snapshot,
+                'original_task': str(original_task), 'original_task_sha256': digest(original_task),
+                'recovery_task': str(recovery_task), 'recovery_task_sha256': digest(recovery_task),
+                'changed_fields': ['task_id', 'inputs.snapshot_id'],
+                'note': 'Independent unfiltered oracle retains the same native input identities. First bad export and successful recovery remain separate evidence.',
+            }
+            return reference
     for path in (sprint / 'availability-v1').glob('*/binding.json'):
         value = json.loads(path.read_text())
         if value.get('snapshot_id') == snapshot:
@@ -87,7 +109,7 @@ def main():
             grouped[row['case_id']].append(row)
     args.output.mkdir(parents=True)
     result = {'prepared_at': datetime.now(timezone.utc).isoformat(), 'program_sha256': digest(Path(__file__)),
-              'ready': [], 'not_ready': [], 'policy': 'Native references opened only after the initial B/C/D/E predictions for both models have receipts. No implementation tuning.'}
+              'ready': [], 'not_ready': [], 'policy': 'This preparation requires initial B/C/D/E receipts for both models. An earlier premature reference read is recorded in diagnosis-review-preparation-failure-v1.json; no implementation, prompt or threshold tuning followed it.'}
     for case_id, planned in sorted(grouped.items()):
         initial = [row for row in planned if row['repeat'] == 0 and row['ablation'] is None]
         expected = {(model, arm) for model in ('codex', 'deepseek-flash') for arm in ('B', 'C', 'D', 'E')}
@@ -110,6 +132,10 @@ def main():
             state = load_state(folder, row['arm'])
             episode = {**row, 'receipt': receipt, 'state_status': state.get('status') if state else None,
                        'answer': state.get('answer') if state else None, 'evidence_summary': []}
+            result_path = folder / 'result.json'
+            if result_path.is_file():
+                episode['cli_result'] = {'path': str(result_path), 'sha256': digest(result_path),
+                                         'value': json.loads(result_path.read_text())}
             if state:
                 for field in ('scopes', 'scope', 'hypotheses', 'missing_evidence', 'pending_analyses',
                               'handoff_packages', 'stop_reason', 'analyses_used', 'tool_calls_used', 'calls_used'):

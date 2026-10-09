@@ -148,6 +148,7 @@ def start(config):
         raise RuntimeError('Existing instance record needs an explicit stop before a new start.')
     for port in (config['kernel_port'], config['data_port']):
         with socket.socket() as sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.bind(('127.0.0.1', port))
     toolkit = root / 'toolkits/.venv/bin/python'
     configure = [str(toolkit), '-I', '-m', 'eda_toolkits', 'configure', '--output', str(state / 'plugins'),
@@ -200,12 +201,17 @@ def main():
         if not args.image.is_file() or not (root / 'toolkits/.venv/bin/python').exists():
             parser.error('installed workspace and existing ORFS image are required')
         state = root / 'var/instances' / args.instance
+        toolchain_path = state / 'toolchain.json'
         value = {'workspace': str(root), 'state_root': str(state), 'orfs_image': str(args.image.resolve()),
                  'kernel_port': args.kernel_port, 'data_port': args.data_port,
-                 'activity_lock': str(args.activity_lock.resolve() if args.activity_lock else root / 'var/eda-activity.lock')}
+                 'activity_lock': str(args.activity_lock.resolve() if args.activity_lock else root / 'var/eda-activity.lock'),
+                 'toolchain_config': str(toolchain_path)}
         args.config.parent.mkdir(parents=True, exist_ok=True)
         write(args.config, value)
         configuration(args.config)
+        state.mkdir(parents=True, exist_ok=True)
+        write(toolchain_path, {'orfs_image': value['orfs_image'], 'container_runtime': 'apptainer',
+                               'openroad_bin': str(root / 'toolkits/.venv/bin/eda-openroad')})
         result = value
     else:
         config = configuration(args.config)
