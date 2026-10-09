@@ -4,13 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "eda-toolkits"
-version = "0.1.0"
+version = "0.1.1.dev1"
 description = "OpenROAD and ORFS adapters for the public execution contract"
 requires-python = ">=3.10"
 dependencies = ["openroad-platform-client>=0.2,<0.3", "openroad-platform-contracts>=0.2,<0.3"]
 
 [project.scripts]
 eda-toolkit = "eda_toolkits.__main__:main"
+eda-openroad = "eda_toolkits.launcher:main"
 
 [project.optional-dependencies]
 test = ["pytest>=8", "openroad-platform-runtime>=0.2,<0.3"]

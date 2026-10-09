@@ -7,6 +7,7 @@ import zipfile
 
 from ..environment import require_eda_memory
 from .adapter import _write_result, now, progress
+from .process import run_logged
 
 
 def run_flow(result_path, started, workspace, inputs):
@@ -29,8 +30,7 @@ def run_flow(result_path, started, workspace, inputs):
                f'DESIGN_CONFIG={config}', 'WORK_HOME=/work/flow', f'FLOW_VARIANT={variant}',
                f'NUM_CORES={threads}']
     progress('orfs', 'started')
-    with (workspace / 'extractor.log').open('w') as log:
-        result = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, text=True)
+    result = subprocess.CompletedProcess(command, run_logged(command, workspace))
     ended = now()
     (workspace / 'extractor_receipt.json').write_text(json.dumps({
         'command': command, 'started_at': started, 'ended_at': ended,

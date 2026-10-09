@@ -45,3 +45,36 @@ def test_verified_input_reused_without_archive_execution(tmp_path):
         assert client._upload_original(ref) == 'new'
         assert client._upload_original(ref) == 'new'
         assert source.reads == 1
+
+
+def test_missing_fixed_sdc_is_rejected_before_native_task():
+    from eda_toolkits.inputs import snapshot_inputs
+    snapshot = {
+        'run_summary': {'timing_context': {
+            'executor': 'openroad', 'constraints': 'original.sdc', 'libraries': [],
+            'parasitic_mode': 'spef', 'parasitics': 'original.spef',
+        }},
+        'source_artifacts': [
+            {'category': 'raw_design_database', 'logical_path': 'original.odb', 'artifact_id': 'odb'},
+            {'category': 'raw_parasitics', 'logical_path': 'original.spef', 'artifact_id': 'spef'},
+        ],
+    }
+    with pytest.raises(ValueError, match='original.sdc'):
+        snapshot_inputs(snapshot)
+
+
+def test_low_memory_does_not_stage_or_submit_new_eda_task():
+    client = SnapshotExecutionClient('http://127.0.0.1:18700')
+    with patch('eda_toolkits.inputs.require_eda_memory', side_effect=RuntimeError('less than 16 GiB')), \
+         patch.object(client, '_call') as transport:
+        with pytest.raises(RuntimeError, match='16 GiB'):
+            client.submit({'inputs': {'adapter': 'opensta'}})
+        transport.assert_not_called()
+
+
+def test_native_thread_limit_cannot_expand_past_server_budget():
+    from eda_toolkits.openroad.sta_inputs import native_command
+    assert native_command({}, 'test.tcl')[1:3] == ['-threads', '2']
+    for invalid in (0, 9, True, '8'):
+        with pytest.raises(ValueError, match='threads'):
+            native_command({'threads': invalid}, 'test.tcl')

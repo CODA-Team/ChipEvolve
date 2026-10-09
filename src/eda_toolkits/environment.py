@@ -33,7 +33,8 @@ def doctor(config):
                   '/OpenROAD-flow-scripts/tools/install/yosys/bin/yosys', '-V'],
         'klayout': [runtime, 'exec', '--cleanenv', '--containall', str(image), 'klayout', '-v'],
     }.items():
-        result = subprocess.run(command, capture_output=True, text=True, timeout=30)
+        result = subprocess.run(command, capture_output=True, text=True, timeout=30,
+                                env={**os.environ,'EDA_ORFS_IMAGE':str(image)})
         checked[name] = {'command': command, 'exit_code': result.returncode,
                          'version_output': result.stdout + result.stderr}
     with image.open('rb') as stream:

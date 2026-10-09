@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .sta_inputs import library_paths, timing_commands, directed_options
+from .sta_inputs import native_command, library_paths, timing_commands, directed_options
 from .timing_json import checks as _checks, points as _points
 
 
@@ -17,10 +17,7 @@ def prepare(inputs: dict[str, Any], workspace: Path) -> dict[str, Any]:
     script = workspace / "opensta_extract.tcl"
     (workspace / 'timing_json.py').write_bytes(Path(__file__).with_name('timing_json.py').read_bytes())
     script.write_text(_script(inputs, odb_path, output_name), encoding="utf-8")
-    binary = inputs.get("openroad_bin", "openroad")
-    if not isinstance(binary, str) or not binary:
-        raise ValueError("inputs.openroad_bin must be a non-empty string")
-    return {"command": [binary, "-no_init", "-no_splash", "-exit", str(script)],
+    return {"command": native_command(inputs, script),
             "output_directory": output_name, "script_path": script.name,
             "metadata": metadata}
 
@@ -40,6 +37,7 @@ def normalize(output_dir: Path, inputs: dict[str, Any]) -> None:
     #: pointer that reuses it against one file names a row that file does not
     #: have - which is exactly what the evidence-recoverability check caught.
     sources: list[tuple[dict[str, Any], str, int]] = []
+    parsed_reports = 0
     for filename in ("timing_report.json", "timing_report_hold.json"):
         candidate = output_dir / filename
         if not candidate.is_file():
@@ -47,9 +45,10 @@ def normalize(output_dir: Path, inputs: dict[str, Any]) -> None:
         rows = _checks(json.loads(candidate.read_text(encoding="utf-8")))
         if rows is None:
             continue
+        parsed_reports += 1
         sources.extend((row, filename, index)
                        for index, row in enumerate(rows) if isinstance(row, dict))
-    if not sources:
+    if not parsed_reports:
         _write_coverage(output_dir, "unsupported", "timing JSON has no paths list")
         return
     timing_paths: list[dict[str, Any]] = []
@@ -122,6 +121,8 @@ def normalize(output_dir: Path, inputs: dict[str, Any]) -> None:
                     "path_count_per_endpoint": inputs.get("endpoint_path_count", 1),
                     "endpoint_report": inputs.get("endpoint_path_count", 1) == 1,
                     "coverage_scope": "sampled report_checks paths; not all timing paths",
+                    "requested_filters": {key: inputs[key] for key in
+                                          ("from_pin", "to_pin", "path_group") if key in inputs},
                     "parent_snapshot_id": inputs.get("parent_snapshot_id")})
     producer_path = inputs.get("producer_metadata_path")
     if producer_path:

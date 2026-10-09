@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .sta_inputs import timing_commands, directed_options
+from .sta_inputs import native_command, timing_commands, directed_options
 from .opendb_adapter import _tcl
 
 
@@ -35,14 +35,11 @@ def prepare(inputs: dict[str, Any], workspace: Path) -> dict[str, Any]:
     report_path = output_dir / report_name_on_disk
     script = workspace / "openroad_report.tcl"
     script.write_text(_script(inputs, odb_path, report_path, command), encoding="utf-8")
-    binary = inputs.get("openroad_bin", "openroad")
-    if not isinstance(binary, str) or not binary:
-        raise ValueError("inputs.openroad_bin must be a non-empty string")
     return {
         "report": report_name,
         "report_path": report_path.relative_to(workspace).as_posix(),
         "script_path": script.name,
-        "command": [binary, "-no_init", "-no_splash", "-exit", str(script)],
+        "command": native_command(inputs, script),
     }
 
 

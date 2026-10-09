@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from ..environment import require_eda_memory
 from .sta_inputs import library_paths
 
 from .opendb_adapter import prepare as prepare_opendb
@@ -30,6 +31,7 @@ from .report_adapter import declarations as report_declarations
 from .report_adapter import normalize as normalize_report
 from .report_adapter import prepare as prepare_report
 from .report_adapter import receipt as report_receipt
+from .process import run_logged
 
 
 def now() -> str:
@@ -53,6 +55,8 @@ def main() -> int:
         task = request["task"]
         inputs = task.get("inputs", {})
         mode = inputs.get("adapter", "command")
+        if mode in {"opendb", "openroad", "opensta", "report", "orfs_flow"}:
+            require_eda_memory()
         if mode == "orfs_flow":
             from .flow import run_flow
             return run_flow(result_path, started, workspace, inputs)
@@ -92,26 +96,22 @@ def main() -> int:
             raise ValueError("inputs.environment must be a string mapping")
         environment.update(supplied)
         progress("extract", "started")
-        output = ""
         completed = None
-        for plan in plans:
-            completed = subprocess.run(plan["command"], cwd=workspace, env=environment,
-                                       text=True, capture_output=True, check=False)
-            output += completed.stdout + completed.stderr
-            if completed.returncode:
+        for index, plan in enumerate(plans):
+            completed = run_logged(plan["command"], workspace, environment=environment, append=index>0)
+            if completed:
                 break
         assert completed is not None
-        (workspace / "extractor.log").write_text(output, encoding="utf-8")
         receipt = {"commands": [plan["command"] for plan in plans],
-                   "output_directory": output_name, "returncode": completed.returncode,
+                   "output_directory": output_name, "returncode": completed,
                    "started_at": started, "ended_at": now()}
         (workspace / "extractor_receipt.json").write_text(
             json.dumps(receipt, indent=2), encoding="utf-8")
-        if completed.returncode:
+        if completed:
             progress("extract", "finished", status="failed")
-            return _write_result(result_path, started, "failed", completed.returncode,
+            return _write_result(result_path, started, "failed", completed,
                                  _failure_artifacts(), {"category": "extractor_error",
-                                      "message": f"extractor exited with status {completed.returncode}",
+                                      "message": f"extractor exited with status {completed}",
                                       "retryable": False})
         if mode in {"opensta", "openroad"}:
             normalize_opensta(output_dir, inputs)
@@ -126,7 +126,7 @@ def main() -> int:
         artifacts = _artifacts(inputs, workspace)
         progress("extract", "finished", status="succeeded")
         return _write_result(result_path, started, "succeeded", 0, artifacts, None)
-    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+    except (OSError, KeyError, TypeError, ValueError, RuntimeError) as exc:
         if not (workspace / "extractor.log").exists():
             (workspace / "extractor.log").write_text(str(exc) + "\n", encoding="utf-8")
         _write_receipt(workspace, {"status": "failed", "error": str(exc),
@@ -236,13 +236,10 @@ def _run_report(result_path: Path, started: str, workspace: Path,
         raise ValueError("inputs.environment must be a string mapping")
     environment.update(supplied)
     progress("report", "started", report=plan["report"])
-    completed = subprocess.run(plan["command"], cwd=workspace, env=environment,
-                               text=True, capture_output=True, check=False)
-    (workspace / "extractor.log").write_text(
-        completed.stdout + completed.stderr, encoding="utf-8")
+    completed = subprocess.CompletedProcess(plan['command'],
+        run_logged(plan['command'], workspace, environment=environment))
     if plan['report'] == 'native':
-        (workspace / plan['report_path']).write_text(
-            completed.stdout + completed.stderr, encoding='utf-8')
+        (workspace / plan['report_path']).write_bytes((workspace / 'extractor.log').read_bytes())
     _write_receipt(workspace, {
         **report_receipt(plan, returncode=completed.returncode),
         "started_at": started, "ended_at": now(),

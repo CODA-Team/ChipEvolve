@@ -2,6 +2,16 @@
 from pathlib import PurePosixPath
 
 
+def native_command(inputs, script):
+    binary = inputs.get('openroad_bin', 'openroad')
+    threads = inputs.get('threads', 2)
+    if not isinstance(binary, str) or not binary:
+        raise ValueError('inputs.openroad_bin must be a non-empty string')
+    if type(threads) is not int or not 1 <= threads <= 8:
+        raise ValueError('native OpenROAD threads must be 1..8')
+    return [binary, '-threads', str(threads), '-no_init', '-no_splash', '-exit', str(script)]
+
+
 def library_paths(inputs):
     values = inputs.get('liberty_paths')
     if values is None:

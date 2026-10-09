@@ -1,12 +1,16 @@
 """Bind analyses to their fixed original snapshot inputs."""
-from collections.abc import Sequence
+from collections.abc import Sequence, Mapping
+from typing import Any
 from pathlib import Path
 import threading
+import time
 
-from openroad_platform_client import KernelError, LocalFirstKernelClient
+from openroad_platform_client import KernelClient, KernelError, LocalFirstKernelClient
+
+from .environment import require_eda_memory
 
 
-def snapshot_inputs(snapshot, with_timing=True):
+def snapshot_inputs(snapshot: dict[str, Any], with_timing: bool = True) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     context = snapshot.get('run_summary', {}).get('timing_context')
     if not context or not context.get('executor'):
         raise ValueError('snapshot lacks its executable native context')
@@ -34,6 +38,16 @@ def snapshot_inputs(snapshot, with_timing=True):
         else: inputs[key] = path
     if 'odb_path' not in inputs or (with_timing and set(libraries) != set(context['libraries'])):
         raise ValueError('snapshot lacks original native inputs')
+    if with_timing:
+        required = {'sdc_path': context.get('constraints')}
+        for field, key in (('spef_path', 'parasitics'),
+                           ('rc_script_path', 'rc_script'),
+                           ('global_routing_segments_path', 'global_routing_segments')):
+            if context.get(key):
+                required[field] = context[key]
+        missing = [path or field for field, path in required.items() if field not in inputs]
+        if missing:
+            raise ValueError('snapshot lacks fixed native input sources: ' + ', '.join(missing))
     if with_timing: inputs['liberty_paths'] = libraries
     inputs['input_provenance'] = provenance
     return inputs, staged
@@ -63,13 +77,31 @@ class SnapshotExecutionClient(LocalFirstKernelClient):
     invoked on the archive. Uploaded inputs are immutable and reusable in the
     new kernel. Confirmed digest mismatches fail before task submission.
     """
-    def __init__(self, base_url, *, source_client=None, **kwargs):
+    def __init__(self, base_url: str, *, source_client: KernelClient | None = None, **kwargs: Any) -> None:
         super().__init__(base_url, **kwargs)
         self.source_client = source_client
         self._inputs = {}
         self._input_lock = threading.Lock()
+        self._deadline = None
 
-    def submit(self, task, **kwargs):
+    def set_timeout(self, seconds: float) -> None:
+        """Bound a multi-request staging/submission operation, including uploads."""
+        self._deadline = time.monotonic() + seconds
+
+    def _remaining(self) -> float:
+        remaining = 30 if self._deadline is None else self._deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError('snapshot submission exceeded its time budget')
+        return min(30, remaining)
+
+    def _call(self, *args: Any, **kwargs: Any) -> Any:
+        self.timeout = self._remaining()
+        return super()._call(*args, **kwargs)
+
+    def submit(self, task: Mapping[str, Any], **kwargs: Any) -> dict[str, Any]:
+        if task.get('inputs', {}).get('adapter') in (
+                'opendb', 'openroad', 'opensta', 'report', 'orfs_flow'):
+            require_eda_memory()
         staged = []
         refs = {r['artifact_id']: r for r in task.get('inputs', {}).get('input_provenance', [])}
         for item in task.get('staged_inputs', []):
@@ -93,6 +125,7 @@ class SnapshotExecutionClient(LocalFirstKernelClient):
         with self._input_lock:
             if key in self._inputs:
                 return self._inputs[key]
+            self.source_client.timeout = self._remaining()
             locator = self.source_client.artifact_locator(ref['run_id'], ref['artifact_id'])
             if locator['sha256'] != ref['sha256'] or locator['size_bytes'] != ref['size_bytes']:
                 raise ValueError('archive artifact identity differs from snapshot provenance')

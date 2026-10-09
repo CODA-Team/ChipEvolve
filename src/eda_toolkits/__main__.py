@@ -11,11 +11,13 @@ def main() -> int:
     commands = parser.add_subparsers(dest='command', required=True)
     configure = commands.add_parser('configure')
     configure.add_argument('--output', type=Path, required=True)
+    configure.add_argument('--image')
+    configure.add_argument('--activity-lock')
     inspect = commands.add_parser('doctor')
     inspect.add_argument('--config', type=Path, required=True)
     args = parser.parse_args()
     if args.command == 'configure':
-        print(json.dumps(configure_plugins(args.output), indent=2))
+        print(json.dumps(configure_plugins(args.output, image=args.image, activity_lock=args.activity_lock), indent=2))
     elif args.command == 'doctor':
         result = doctor(json.loads(args.config.read_text()))
         print(json.dumps(result, indent=2))

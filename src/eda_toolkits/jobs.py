@@ -1,19 +1,20 @@
 """Build native tool tasks using the existing public EF task contract."""
 import uuid
+from typing import Any
 from datetime import datetime, timezone
 from .inputs import snapshot_inputs
 
 
-def timing_task(snapshot, query, *, facts_snapshot_id=None):
+def timing_task(snapshot: dict[str, Any], query: dict[str, Any], *, facts_snapshot_id: str | None = None, analysis_id: str | None = None, created_at: str | None = None) -> dict[str, Any]:
     snapshot_id = snapshot["snapshot_id"]
     facts_snapshot_id = facts_snapshot_id or snapshot_id
     validate_timing_query(query)
     facts = {"snapshot_id": facts_snapshot_id}
     original, staged = snapshot_inputs(snapshot)
-    inputs = {**original, 'adapter': 'opensta', 'snapshot_id': facts['snapshot_id'] + '-query-' + uuid.uuid4().hex[:12],
+    inputs = {**original, 'adapter': 'opensta', 'snapshot_id': facts['snapshot_id'] + '-query-' + (analysis_id or uuid.uuid4().hex[:12]),
               'design_id': snapshot['design_id'], 'revision_id': snapshot['revision_id'],
               'run_id': snapshot['run_id'], 'stage': snapshot['stage'],
-              'created_at': datetime.now(timezone.utc).isoformat(), 'parent_snapshot_id': snapshot_id,
+              'created_at': created_at or datetime.now(timezone.utc).isoformat(), 'parent_snapshot_id': snapshot_id,
               'output_directory': 'query-data', 'analysis': snapshot['run_summary']['timing_context'].get('analysis'),
               'corner': snapshot['run_summary']['timing_context'].get('corner'), 'unit': 's', **query}
     task = {'schema_version': 3, 'task_id': inputs['snapshot_id'],
@@ -47,7 +48,7 @@ def validate_timing_query(query):
             raise ValueError(f'{key} must be a native name')
 
 
-def native_task(snapshot, original, staged, script):
+def native_task(snapshot: dict[str, Any], original: dict[str, Any], staged: list[dict[str, Any]], script: str) -> dict[str, Any]:
     snapshot_id = snapshot["snapshot_id"]
     task_id = snapshot_id + '-native-' + uuid.uuid4().hex[:12]
     task = {'schema_version': 3, 'task_id': task_id, 'project_id': 'eda-ai-native-query',

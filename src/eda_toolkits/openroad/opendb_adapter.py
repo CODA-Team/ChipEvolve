@@ -7,6 +7,8 @@ the ODB and the extractor receipt remain raw evidence in the run.
 
 from __future__ import annotations
 
+from .sta_inputs import native_command
+
 from pathlib import Path
 from typing import Any
 
@@ -17,11 +19,8 @@ def prepare(inputs: dict[str, Any], workspace: Path) -> dict[str, Any]:
     metadata = _metadata(inputs, "route")
     script = workspace / "opendb_extract.tcl"
     script.write_text(_script(odb_path, output_name, metadata), encoding="utf-8")
-    binary = inputs.get("openroad_bin", "openroad")
-    if not isinstance(binary, str) or not binary:
-        raise ValueError("inputs.openroad_bin must be a non-empty string")
     return {
-        "command": [binary, "-no_init", "-no_splash", "-exit", str(script)],
+        "command": native_command(inputs, script),
         "output_directory": output_name,
         "script_path": script.name,
     }
