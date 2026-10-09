@@ -437,3 +437,20 @@ The SDK passes status, units, coverage, evidence and pagination unchanged; the s
 business logic to the SDK. The path must be local and separate from query parameters.
 `read_batch(requests, bindings)` sends the public read-only `POST /query` batch contract.
 Analysis submission is a separate operation, never an option that silently executes during a read.
+
+## Cross-experiment comparisons (additive extension)
+
+`read_query` supports `/snapshots/{baseline}/compare/{candidate}/timing-paths/{path}`
+with `to_path_id` and `mode=experiment`, and the corresponding `/metrics` route
+with an exact `name`, optional `scene`, and `mode=experiment`. The existing
+`mode=stage` default keeps its same-run/revision prerequisites.
+
+Experiment mode preserves both immutable identities and checks design, view,
+check, corner and unit before returning matched-path deltas. It includes arrival,
+required time, slack and available margin/CRPR values. `input_conditions` reports
+registered database, netlist, constraints, library and parasitic SHA identities as
+`same`, `changed`, or `unknown`. An unknown source is never considered equal.
+`COMPARABLE` describes observed values under the stated prerequisites; it does
+not establish fixed physical evaluation conditions or a unique causal explanation.
+Changed constraints, library or RC must remain explicit in the caller's answer.
+HTTP and SDK `read_query` return the same envelope and limitations.

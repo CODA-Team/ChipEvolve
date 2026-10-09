@@ -79,6 +79,29 @@ class EdaAiClient:
         payload = {"requests": requests, "bindings": bindings or {}}
         return self._post("/query", payload)
 
+    def create_analysis(self, snapshot_id: str, operation: str,
+                        options: dict[str, Any]) -> dict[str, Any]:
+        """Explicitly create an analysis; reads never call this method.
+
+        DF owns the semantics and Toolkit/EF own native execution. This SDK
+        performs transport only, preserving the complete response envelope.
+        """
+        if operation not in {"net-inventory", "analysis-setup", "timing-overview",
+                             "pin-engineering", "pin-inventory", "instance-power",
+                             "compare-inventory"}:
+            raise ValueError("unknown public analysis operation")
+        return self._post("/snapshots/" + _segment(snapshot_id) + "/analyses/" + operation, options)
+
+    def create_native_query(self, snapshot_id: str, options: dict[str, Any]) -> dict[str, Any]:
+        """Submit an explicit native query using fixed snapshot inputs."""
+        return self._post("/snapshots/" + _segment(snapshot_id) + "/native-queries", options)
+
+    def get_native_query(self, run_id: str, *, offset: int = 0,
+                         max_bytes: int = 8192, wait_seconds: float = 0) -> dict[str, Any]:
+        """Read/wait for a previously submitted query; does not submit work."""
+        return self._get(self.data_url, "/native-queries/" + _segment(run_id),
+                         {"offset": offset, "max_bytes": max_bytes, "wait_seconds": wait_seconds})
+
     def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         body = json.dumps(payload).encode()
         request = urllib.request.Request(self.data_url + path, data=body,

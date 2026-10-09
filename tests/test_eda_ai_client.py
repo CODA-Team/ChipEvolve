@@ -27,6 +27,16 @@ REQUESTS: list[str] = []
 class _Stub(BaseHTTPRequestHandler):
     """Answers the handful of shapes these tests exercise."""
 
+    def do_POST(self) -> None:  # noqa: N802
+        REQUESTS.append('POST ' + self.path)
+        options = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+        body = self._envelope({'request': options, 'run_id': 'native:1'}, self.path)
+        payload = json.dumps(body).encode()
+        self.send_response(200)
+        self.send_header('Content-Length', str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
     def do_GET(self) -> None:  # noqa: N802
         REQUESTS.append(self.path)
         data = self._route(self.path)
@@ -72,6 +82,8 @@ class _Stub(BaseHTTPRequestHandler):
                     "timing_path": {"path_id": "path:0", "check": "setup"}}
         if route.endswith('/timing-paths'):
             return {'timing_paths': [{'path_id': 'path:0', 'evidence': [{'artifact_id': 'source'}]}]}
+        if route.startswith('/native-queries/'):
+            return {'run_id': 'native:1', 'status': 'succeeded', 'excerpt': {'text': 'original output'}}
         raise AssertionError(f"unexpected stub route: {path}")
 
     def log_message(self, *args: Any) -> None:
@@ -93,6 +105,21 @@ def test_ids_with_colons_are_url_quoted(client: EdaAiClient) -> None:
     client.get_timing_path("snap-1", "path:0")
     assert any("/timing-paths/path%3A0" in path for path in REQUESTS), REQUESTS
     assert _segment("path:0") == "path%3A0"
+
+
+def test_explicit_analysis_and_result_read_use_different_boundaries(client: EdaAiClient) -> None:
+    result = client.create_analysis('chip/stage', 'pin-engineering', {'name': 'inst/A[0]'})
+    assert result['data']['request'] == {'name': 'inst/A[0]'}
+    native = client.create_native_query('chip/stage', {'script': 'report_wns'})
+    assert native['data']['run_id'] == 'native:1'
+    observed = client.get_native_query('native:1', max_bytes=200)
+    assert observed['data']['excerpt']['text'] == 'original output'
+    assert REQUESTS[:2] == ['POST /snapshots/chip%2Fstage/analyses/pin-engineering',
+                            'POST /snapshots/chip%2Fstage/native-queries']
+    assert REQUESTS[2].startswith('/native-queries/native%3A1?')
+    with pytest.raises(ValueError, match='unknown public analysis'):
+        client.create_analysis('chip', 'timing-overview/../native', {})
+    assert len(REQUESTS) == 3
 
 
 def test_artifact_filter_is_forwarded_in_one_request(client: EdaAiClient) -> None:
