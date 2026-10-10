@@ -1,6 +1,6 @@
 # Agentic EDA 施工运行手册
 
-正式源码在工作区各独立仓库。当前阶段为 P1，运行根目录为 `var/flow-agent/p1-native-20261010`。实际命令、进程身份、状态和退出码由该目录的 receipt 保存。
+正式源码在工作区各独立仓库。当前阶段为 P1，首次运行 `var/flow-agent/p1-native-20261010` 已失败并保留；当前完整重试为 `var/flow-agent/p1-native-20261010-retry1`。实际命令、进程身份、状态和退出码由各自目录的 receipt 保存。
 
 ## 启动与观察
 
@@ -17,6 +17,10 @@
 P1 原生 A2 尚不支持同 campaign 续跑。中断后保留该实验和退出原因；需要重试时使用新独立运行目录。`-F` 归档重开不是续跑。
 
 仅停止 receipt 记录且仍符合原始进程身份的本次实验进程组。不要按 OpenROAD 名称批量杀进程，也不要重启旧 EF/DF 服务。P3 完成后再登记同 campaign 的显式恢复命令。
+
+完整重试由 `admin/run_native_campaign.py` 创建新目录、检出同一封存提交并核对源码 hash。当前重试已启动，不能再次启动。通用入口分别为 `prepare --run-root <新目录>` 与 `supervise --run-root <已准备目录> --threads 8 --stage-timeout 90m`，执行前先核对 receipt 和进程。supervisor 自动启动外部产物采集器、限制三小时总预算并记录双方退出状态。
+
+EF 新版本使用 SQLite WAL，保持 FULL 持久化。在线保存数据库应使用 SQLite backup 接口；离线迁移需先关闭使用该状态的所有连接，并连同对象目录迁移。不能只复制运行中的 `runtime.db` 主文件而遗漏 WAL。此次只操作新测试状态，未切换或重启旧服务。
 
 ## 验收与交接
 

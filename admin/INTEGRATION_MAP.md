@@ -1,6 +1,6 @@
 # Agentic EDA 版本与接入关系
 
-现有五个模块保留独立仓库与职责。源码审计基线记录在 [P0 证据清单](/home/wjyuan/reports/agentic-eda-p0-20261009/evidence/manifest.json)。
+现有六个模块保留独立仓库与职责。源码审计基线记录在 [P0 证据清单](/home/wjyuan/reports/agentic-eda-p0-20261009/evidence/manifest.json)。
 
 | 对象 | 正式开发位置 | 当前接入状态 |
 |---|---|---|

@@ -1,5 +1,6 @@
 """Save final physical artifacts before native A2 clears the next iteration."""
 import hashlib
+import argparse
 import json
 from pathlib import Path
 import shutil
@@ -17,15 +18,16 @@ def digest(path):
     return value.hexdigest()
 
 
-def main():
+def main(run=RUN):
+    flow = run / 'source/flow'
     captured = set()
-    destination = RUN / 'iteration-results'
+    destination = run / 'iteration-results'
     destination.mkdir(exist_ok=True)
     while True:
         for iteration in (1, 2):
             if iteration in captured:
                 continue
-            backup = FLOW / f'backup_dir/nangate45/aes/result_dump_{iteration}'
+            backup = flow / f'backup_dir/nangate45/aes/result_dump_{iteration}'
             # Native backup starts only after route, CP0 evaluation and lifecycle finalization.
             if not (backup / f'input_batch_iter{iteration}.csv').is_file():
                 continue
@@ -33,7 +35,7 @@ def main():
             target.mkdir()
             manifest = []
             for number in (1, 2, 3):
-                source = FLOW / f'results/nangate45/aes/run_{number}'
+                source = flow / f'results/nangate45/aes/run_{number}'
                 for suffix in ('odb', 'def', 'v', 'spef', 'sdc', 'gds'):
                     path = source / f'6_final.{suffix}'
                     if not path.is_file():
@@ -44,7 +46,7 @@ def main():
                     shutil.copy2(path, output)
                     if initial != digest(output) or initial != digest(path):
                         raise RuntimeError('Physical result changed during capture: ' + str(path))
-                    manifest.append({'candidate_slot': number, 'path': str(output.relative_to(RUN)),
+                    manifest.append({'candidate_slot': number, 'path': str(output.relative_to(run)),
                                      'native_source': str(path), 'sha256': initial,
                                      'size_bytes': output.stat().st_size})
             (target / 'manifest.json').write_text(json.dumps({
@@ -54,11 +56,13 @@ def main():
             }, indent=2) + '\n')
             captured.add(iteration)
             print(json.dumps({'iteration': iteration, 'captured_files': len(manifest)}), flush=True)
-        receipt = json.loads((RUN / 'receipt.json').read_text())
+        receipt = json.loads((run / 'receipt.json').read_text())
         if receipt['status'] != 'running':
             return
         time.sleep(0.5)
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--run-root', type=Path, default=RUN)
+    main(parser.parse_args().run_root.resolve())
