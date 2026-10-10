@@ -21,3 +21,10 @@ export REMOVE_CELLS_FOR_EQY     = TAPCELL*
 export CELL_PAD_IN_SITES_GLOBAL_PLACEMENT = 0
 export CELL_PAD_IN_SITES_DETAIL_PLACEMENT = 0
 export ENABLE_DPO = 1
+
+# Preserve the platform's default 0.5/0.25 capacities for the baseline. Placement
+# and post-CTS routing consume separate parameter scopes, as in the ASAP7 port.
+export PIN_LAYER_ADJUST = 0.5
+export ABOVE_LAYER_ADJUST = 0.25
+export FASTROUTE_TCL = $(FLOW_HOME)/designs/nangate45/aes/fastroute_floorplan.tcl
+export PRE_GLOBAL_ROUTE_TCL = $(FLOW_HOME)/designs/nangate45/aes/fastroute_routing.tcl
