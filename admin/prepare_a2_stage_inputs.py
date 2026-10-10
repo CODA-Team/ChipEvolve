@@ -21,6 +21,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--slot', type=int, default=1)
     parser.add_argument('--checkpoint-stage', choices=['place', 'cts', 'final'])
+    parser.add_argument('--config-iteration', type=int)
     args = parser.parse_args()
     if args.output.exists():
         raise SystemExit('Use a new output directory.')
@@ -36,6 +37,8 @@ def main():
                'python_bin': str(ROOT / 'flow-agent/.venv/bin/python')}
     (args.output / 'profile.json').write_text(json.dumps(profile, indent=2) + '\n')
     design = flow / 'designs/nangate45/aes'
+    if args.config_iteration is not None:
+        design = flow / f'backup_dir/nangate45/aes/result_dump_{args.config_iteration}'
     shutil.copy2(design / f'config_{args.slot}.mk', args.output / 'candidate.mk')
     shutil.copy2(design / f'constraint_{args.slot}.sdc', args.output / 'candidate.sdc')
     if args.checkpoint_stage:

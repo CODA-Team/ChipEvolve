@@ -24,4 +24,8 @@ EF 新版本使用 SQLite WAL，保持 FULL 持久化。在线保存数据库应
 
 ## 验收与交接
 
+完整实验结束后，使用 `admin/accept_native_campaign.py --run-root <实验目录>` 审计同一个 campaign。审计复用原生 canonical 检查，核对模型账本、两轮实际 CSV、检查点继承、预测排序、固定 CP0 和成功候选的全部最终产物。候选失败按原生关卡处理并明确列出；不新增要求所有搜索候选必然成功的条件。跨轮模型输出是否实际影响下一批，先形成同目录 `model-decision-review.json`，再冻结 P1 验收。
+
+P1 通过后，用 `dev.py execution-foundation python ../admin/run_a2_stage_acceptance.py --native-run <已验收目录> --state <新目录>` 执行 P2 的真实 AES 阶段链。入口拒绝未验收的 native campaign；先保存请求，再通过 HTTP 提交、等待和传递产物。每段保留 EF run、配置和命令回执，核对继承文件 hash、实际执行阶段和完整最终产物。此入口是阶段接点验收，同 campaign 续跑在 P3 实现。
+
 核对源码 hash 未变、正常退出、两轮真实结果、固定 CP0 与功耗、模型决策进入配置、第二轮预测排序、候选淘汰及来源。保存失败和 fallback。通过后更新 STATUS，进入 P2，不将物理流程成功写成收益已证明。
