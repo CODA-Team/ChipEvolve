@@ -140,7 +140,7 @@ def test_native_evaluation_preserves_fixed_context_and_rejects_incomplete_succes
         assert feedback['parasitic_mode'] == 'spef'
         assert feedback['metrics'] == {
             'eval_final__timing__setup__tns': -4.36,
-            'eval_final__timing__setup__ws': -.08,
+            'eval_final__timing__setup__wns': -.08,
             'eval_final__power__total': .4,
             'eval_final__flow__platform__time_units': '1ns'}
         assert feedback['source_log']['sha256'] == hashlib.sha256(

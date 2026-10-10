@@ -9,7 +9,7 @@ def write_feedback(workspace, receipt):
     payload = {
         'metrics': {
             stage + '__timing__setup__tns': observations['tns']['value'],
-            stage + '__timing__setup__ws': observations['wns']['value'],
+            stage + '__timing__setup__wns': observations['wns']['value'],
             stage + '__power__total': observations['power']['value'],
             stage + '__flow__platform__time_units': '1ns',
         },
