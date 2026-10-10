@@ -28,4 +28,6 @@ EF 新版本使用 SQLite WAL，保持 FULL 持久化。在线保存数据库应
 
 P1 通过后，用 `dev.py execution-foundation python ../admin/run_a2_stage_acceptance.py --native-run <已验收目录> --state <新目录>` 执行 P2 的真实 AES 阶段链。入口拒绝未验收的 native campaign；先保存请求，再通过 HTTP 提交、等待和传递产物。每段保留 EF run、配置和命令回执，核对继承文件 hash、实际执行阶段和完整最终产物。此入口是阶段接点验收，同 campaign 续跑在 P3 实现。
 
+该入口还执行真实 AES 全局布线取消和最终 ODB 数据导入；结果分别保存在 `routing-cancellation.json` 与 `physical-import.json`。取消必须同时满足五秒内终态、原始进程全部退出、资源预留归零；数据快照声明实际物理任务为 analysis parent，指定 producer/artifact 导入，并验证并发重复请求和 DF 重启后的持久回执。新 EF/DF 服务由入口启动与关闭，状态全部保留在指定的新目录，不操作旧服务。此物理实体导入不替代 P3 时序评价回流。
+
 核对源码 hash 未变、正常退出、两轮真实结果、固定 CP0 与功耗、模型决策进入配置、第二轮预测排序、候选淘汰及来源。保存失败和 fallback。通过后更新 STATUS，进入 P2，不将物理流程成功写成收益已证明。

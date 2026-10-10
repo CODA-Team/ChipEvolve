@@ -1,6 +1,7 @@
 """Run a real AES stage chain through a fresh HTTP kernel after P1 acceptance."""
 import argparse
 import json
+import math
 import os
 import re
 from pathlib import Path
@@ -12,6 +13,8 @@ from openroad_platform_client import KernelClient
 from openroad_platform_contracts import InputFile, ResourceRequest, TaskSpec
 
 from flow_native_baseline import WORKSPACE, now, write_json
+from a2_stage_cancellation import measure_routing_cancel
+from a2_physical_import import export_and_import
 
 TERMINAL = {'succeeded', 'failed', 'cancelled', 'timed_out', 'lost'}
 
@@ -141,9 +144,25 @@ def main():
                 if len(receipts) != 1:
                     raise RuntimeError('Expected exactly one native command receipt')
                 command_receipt = json.loads(client.artifact_bytes(last_run, receipts[0]['artifact_id']))
+                if stage == 'eval_final':
+                    observations = command_receipt['observations']
+                    if (command_receipt['parasitic_mode'] != 'spef'
+                            or command_receipt['evaluation']['cp0_ns'] != cp0
+                            or any(not math.isfinite(observations[name]['value'])
+                                   or observations[name]['unit'] != unit
+                                   for name, unit in (('tns', 'ns'), ('wns', 'ns'), ('power', 'W')))):
+                        raise RuntimeError('Final evaluation did not use the actual SPEF and fixed CP0')
                 job.update(archive=checkpoint, command_receipt=command_receipt)
                 write_json(receipt_path, receipt)
                 print(json.dumps({'stage': stage, 'status': last_status, 'run_id': last_run}), flush=True)
+            cancel_task = json.loads(json.dumps(receipt['jobs']['route_finish']['task']))
+            cancel_task['task_id'] = 'a2-stage-routing-cancellation'
+            receipt['cancellation'] = measure_routing_cancel(client, cancel_task, state / 'routing-cancellation.json')
+            physical_run = receipt['jobs']['route_finish']['run_id']
+            final_odb = next(artifact for artifact in client.artifacts(physical_run)
+                             if artifact['store_key'] == 'flow/results/6_final.odb')
+            receipt['physical_import'] = export_and_import(client, final_odb, physical_run, state,
+                profile, threads, f'http://127.0.0.1:{port}', environment)
             receipt.update(status='completed', finished_at=now(), accepted=True)
             write_json(receipt_path, receipt)
         except Exception as error:

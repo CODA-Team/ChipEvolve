@@ -42,6 +42,11 @@ def audit(run):
     review = read(review_path) if review_path.is_file() else None
     checks['inter_iteration_decisions_reviewed'] = (isinstance(review, dict)
         and review.get('verified') is True and review.get('campaign_id') == manifest['campaign_id'])
+    checks['review_evidence_intact'] = (checks['inter_iteration_decisions_reviewed']
+        and bool(review.get('evidence_files')) and bool(review.get('responses'))
+        and all((run / entry['path']).is_file()
+                and digest(run / entry['path']) == entry['sha256']
+                for entry in (*review['evidence_files'].values(), *review['responses'])))
     rounds = []
     reference_clocks = []
     for iteration in (1, 2):
@@ -89,6 +94,8 @@ def audit(run):
             checks['next_csv_bound_to_model_pipeline'] = len(csv_events) == 3 and all(
                 event.get('details', {}).get('csv_sha256') == digest(dump / 'input_batch_iter2.csv')
                 for event in csv_events)
+            checks['review_matches_executed_next_csv'] = (review is not None
+                and review.get('incoming_csv_sha256') == digest(dump / 'input_batch_iter2.csv'))
         rounds.append({'iteration': iteration, 'cp0_ns': cp0, 'metrics': metrics,
                        'valid_final_slots': [row['run_id'] for row in valid],
                        'invalid_final_slots': [row['run_id'] for row in metrics if row not in valid],

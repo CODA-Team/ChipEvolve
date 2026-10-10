@@ -30,6 +30,10 @@ EF WAL 修复提交为 `d0302c1`。真实 HTTP 列表验收已提交 150 条任�
 
 Toolkits 的阶段接口已准备并通过 48 项检查；实际 AES 检查点在原生 Make 上的外层和叶子 dry-run 均只计划 CTS，不重跑上游。证据为重试目录 `toolkits-stage-preparation-check.log` 和 `var/flow-agent/p2-interface-preparation/cts-inputs/dry-run-receipt.json`。没有改动 A2 dispatch，没有执行正式 EF 物理阶段，也没有完成 P2 业务验收。
 
+完整重试第一轮已完成 3/3 最终物理流程；独立采集器保存 18 个最终产物。基准 TNS=-4.36 ns、power=0.4 W，另两个候选均为 TNS=-8.16 ns、power=0.38 W；首轮没有时序改善。第二轮已开始真实布局。跨轮七次模型响应已逐项审阅：模型的 48% 利用率、0.18 密度调整提案通过选池并进入第二个候选；三条 CSV 事件、输入 hash 与生成配置相符。证据为重试目录 `model-decision-review.json` 和 `decision-review-evidence/`。原生交互式 GPR 分支因少于四个历史样本跳过，候选预测在少量样本下平坦；不能宣称该分支实测通过。最终 P1 验收仍等待第二轮及正常结束。
+
+P2 验收入口已补齐真实 AES 布线取消与实体数据导入：阶段链通过后，用原生 CTS 产物启动真实全局布线，在并发列表读取下核对原始进程身份、五秒取消和资源归还；再通过 Toolkit 从该次最终 ODB 导出快照，用新的 DF 状态验证并发重复导入与服务重启后的回执。此入口尚未运行，不将准备工作计作业务能力完成。
+
 ## 恢复入口
 
 读取 [施工目标](PROJECT_CONTRACT.md)、[版本与接入关系](INTEGRATION_MAP.md) 和 [运行手册](RUNBOOK.md)，再查看运行 receipt 与原生 campaign 状态。不得仅凭聊天内容把阶段标记完成。
