@@ -12,11 +12,35 @@ import time
 from openroad_platform_client import KernelClient
 from openroad_platform_contracts import InputFile, ResourceRequest, TaskSpec
 
-from flow_native_baseline import WORKSPACE, now, write_json
+from flow_native_baseline import WORKSPACE, digest, now, write_json
 from a2_stage_cancellation import measure_routing_cancel
 from a2_physical_import import export_and_import
 
 TERMINAL = {'succeeded', 'failed', 'cancelled', 'timed_out', 'lost'}
+
+
+def capture_environment(destination, environment):
+    destination.mkdir()
+    records = {}
+    package_code = ('import importlib.metadata as m,json; '
+                    'print(json.dumps(sorted([(d.metadata["Name"],d.version) '
+                    'for d in m.distributions()])))')
+    for name in ('execution-foundation', 'toolkits', 'data-foundation'):
+        project = WORKSPACE / name
+        names = subprocess.check_output(['git', 'ls-files', '-z', '--', 'src', 'contracts',
+                                         'core', 'gateway', 'pyproject.toml'], cwd=project).decode().split('\0')
+        files = {path: digest(project / path) for path in names if path
+                 and (path.startswith('src/') or '/src/' in path or path.endswith('pyproject.toml'))
+                 and (project / path).is_file()}
+        patch = destination / (name + '.patch')
+        patch.write_bytes(subprocess.check_output(['git', 'diff', '--binary', 'HEAD', '--',
+                          'src', 'contracts', 'core', 'gateway', 'pyproject.toml'], cwd=project))
+        records[name] = {'commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'],
+                            cwd=project, text=True).strip(), 'files': files,
+                         'patch_sha256': digest(patch), 'packages': json.loads(subprocess.check_output(
+                             [str(project / '.venv/bin/python'), '-c', package_code], env=environment))}
+    write_json(destination / 'manifest.json', records)
+    return records
 
 
 def main():
@@ -43,6 +67,11 @@ def main():
     environment = dict(os.environ)
     environment.pop('PYTHONPATH', None)
     environment['NO_PROXY'] = environment['no_proxy'] = '127.0.0.1,localhost'
+    initial_environment = capture_environment(state / 'environment-start', environment)
+    baseline = json.loads((Path(acceptance['receipt']['baseline']) / 'baseline/manifest.json').read_text())
+    for tool in ('openroad', 'yosys'):
+        if digest(Path(profile[tool + '_bin'])) != baseline['tools'][tool]['sha256']:
+            raise RuntimeError('A physical tool differs from the frozen P1 environment: ' + tool)
     subprocess.run([str(WORKSPACE / 'toolkits/.venv/bin/python'), '-m', 'eda_toolkits',
                     'configure', '--output', str(plugins)], env=environment, check=True)
     with socket.socket() as endpoint:
@@ -163,6 +192,13 @@ def main():
                              if artifact['store_key'] == 'flow/results/6_final.odb')
             receipt['physical_import'] = export_and_import(client, final_odb, physical_run, state,
                 profile, threads, f'http://127.0.0.1:{port}', environment)
+            final_environment = capture_environment(state / 'environment-finish', environment)
+            receipt['environment_unchanged'] = all(
+                initial_environment[name]['files'] == final_environment[name]['files']
+                and initial_environment[name]['packages'] == final_environment[name]['packages']
+                for name in initial_environment)
+            if not receipt['environment_unchanged']:
+                raise RuntimeError('An executing project changed during physical acceptance; both manifests retained')
             receipt.update(status='completed', finished_at=now(), accepted=True)
             write_json(receipt_path, receipt)
         except Exception as error:
