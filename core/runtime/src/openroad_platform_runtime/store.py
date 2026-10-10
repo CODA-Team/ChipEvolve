@@ -268,7 +268,7 @@ class RuntimeStore:
         self._connection = sqlite3.connect(str(self.db_path), check_same_thread=False, isolation_level=None, timeout=30)
         self._connection.row_factory = sqlite3.Row
         self._connection.execute("PRAGMA foreign_keys = ON")
-        self._connection.execute("PRAGMA journal_mode = DELETE")
+        self._connection.execute("PRAGMA journal_mode = WAL")
         self._initialise()
     # -- lifecycle ---------------------------------------------------------
     def resource_totals(self) -> tuple[int, int]:
