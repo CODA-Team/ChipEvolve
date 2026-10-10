@@ -44,6 +44,8 @@ retry1 于 07:31 UTC 正常结束：退出码 0、source_changed=[]、capture_ex
 
 接入准备已进一步覆盖真实评价回流：Toolkits 提交 `190f5e7` 在完整 CP0 评价成功后输出 `a2-evaluation.json`，包含实际 signed TNS/WNS、power、单位、固定时钟与库条件、SPEF 模式及源日志 hash；缺功耗等失败不输出成功反馈。48 项 Toolkits 检查通过。P2 入口会通过既有 ORFS metadata adapter 生成可导入快照，使用独立新 DF 状态，并以 Data Interface 自己的已安装 SDK 验证重启前后相同指标和源字节。相关脚本已通过 lint/compile/CLI 检查，尚未作为真实接入验收执行，不据此标记 P2/P3 完成。
 
+Toolkits `83301d2` 与 DF `077b47e` 进一步保存实际 evaluator 的来源和评价条件到指标行，避免 CP0 评价被误标为常规 ORFS 阶段报告。49 项 Toolkits、376 项 DF 检查通过；DF 原有六项用户修改保留，未纳入提交。SDK 验收要求指标条件与实际评价 metadata 完全一致，并且证据解析到注册的原始 metadata artifact 与 hash。首次新增 fixture 检查暴露证据规范化及缺失 stage，已修正 fixture，原失败日志均保留于 `p2-interface-preparation/feedback-context-data-check*.log`；不是放宽业务验收。
+
 最新物理消费审计在重试目录 `parameter-consumption-review.json`：生成的 FLOORPLAN_PIN/ABOVE 与 PIN/ABOVE 参数未被 Nangate45 默认脚本消费，默认实际容量固定为 0.5/0.25；CTS 两项参数确实被消费。正式 Flow 提交 `57be217` 补充独立 floorplan 和 post-CTS routing hook，保持原平台基准容量不变，29 项检查通过。Tcl stub 检查只证明参数接线，真实工具 setter 与修复后的两轮物理实验仍待验证。不得改动当前运行副本或从不同源码实验拼接验收。
 
 修复后的源码基线通过 `admin/freeze_native_revision.py` 冻结原始归档与 Git delta；启动新实验时 `prepare` 和 `supervise` 均显式指定新 `--baseline`。当前实验的续接监督器只有 P1 审计通过才启动 P2，因消费门槛不通过，预期不会启动正式接入。
