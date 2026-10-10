@@ -20,28 +20,27 @@ A2-ORFO/
 │   ├── designs/          # Six benchmark configs and licensed RTL
 │   ├── predict_model/    # QoR-comparator code and checkpoint
 │   ├── scripts/, util/   # ORFS Tcl scripts and helper utilities
-│   ├── tests/, test/     # Optimizer tests and upstream flow tests
-│   └── analysis_tools/   # Experiment analysis utilities
+│   ├── platforms/       # Included platform libraries
+│   └── test/            # Upstream flow tests
 ├── requirements/         # Runtime, development and reference dependencies
-├── tools/                # Setup, testing and release checks
-├── docs/                 # Run guide, architecture and validation records
+├── RUNNING.md            # Installation and execution guide
 └── licenses/             # Preserved third-party licenses
 ```
 
 Keeping the runtime in one `flow/` workspace preserves ORFS's relative-path
-contracts and the optimizer's existing imports. Platform data and experiment
-outputs are runtime assets excluded from Git.
+contracts and the optimizer's existing imports. Platform data is included in this
+checkout; generated experiment outputs are excluded from Git.
 
 ## Quick start
 
 Use Linux with Python 3.12 and a working OpenROAD/Yosys ORFS toolchain. IBEX needs
-the Yosys slang frontend. See the [running guide](docs/RUNNING.md) for prerequisites.
+the Yosys slang frontend. See the [running guide](RUNNING.md) for prerequisites.
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements/requirements.txt
-python tools/setup_platforms.py --flow-root /path/to/OpenROAD-flow-scripts/flow
+# Platform libraries are already included in flow/platforms/.
 cp config/api.sh.example config/api.sh
 # Edit config/api.sh with your API endpoint/key; put tool binaries on PATH.
 ./run.sh -p asap7 -d aes -o TNS_EVAL \
@@ -51,9 +50,14 @@ cp config/api.sh.example config/api.sh
 `-F` starts a fresh campaign and archives previous campaign state. Results and
 logs are written inside `flow/`. 
 
+For an existing ChatGPT/Codex CLI login, use `DRP_LLM_TRANSPORT=codex ./run.sh ...`
+without an API key. This optional transport represents configuration tool decisions
+through structured CLI output; see [account setup and limitations](RUNNING.md#using-an-existing-chatgptcodex-account).
+Use `-A -N` for numerical Agentic runs without external LLM requests.
+
 ## Documentation
 
-- [Installation, execution and publishing](RUNNING.md)
+- [Installation and execution](RUNNING.md)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
 
 
@@ -66,4 +70,3 @@ Third-party tools and libraries, including OpenROAD/OpenROAD-flow-scripts, are n
 ## Citation
 
 If you use this code in academic work, please cite the corresponding paper. Full citation information can be added here after publication.
-

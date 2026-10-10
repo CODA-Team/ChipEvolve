@@ -50,6 +50,7 @@ from common import (
     get_param_constraints,
 )
 from llm_usage import LLMUsageError, begin_call, fail_call, finish_call
+from llm_client import create_llm_client
 from candidate_tracking import (
     CANDIDATE_ID_KEY,
     CANDIDATE_ORIGIN_KEY,
@@ -144,24 +145,11 @@ DEFAULT_INSTRUCTIONS = {
 # ---------------------------------------------------------------------------
 
 def _resolve_client(cfg_block: dict):
-    """Build an OpenAI client + call params from a config block (llm/supervisor)."""
+    """Build the selected client + call params from an llm/supervisor block."""
     if not external_llm_enabled(cfg_block):
         raise RuntimeError("external LLM requests disabled by --no-llm")
-    from openai import OpenAI
-
     model = cfg_block.get("model", "gpt-4o")
-    base_url = cfg_block.get("base_url", "")
-    api_key_env = cfg_block.get("api_key_env", "OPENAI_API_KEY")
-    timeout = cfg_block.get("timeout", 1200)
-    if base_url and "://" not in base_url:
-        base_url = os.environ.get(base_url, "")
-    api_key = os.environ.get(api_key_env, "")
-    if not api_key:
-        raise RuntimeError(f"API key not found in env var {api_key_env}")
-    kwargs = {"api_key": api_key, "timeout": timeout, "max_retries": 0}
-    if base_url:
-        kwargs["base_url"] = base_url
-    return OpenAI(**kwargs), model, {
+    return create_llm_client(cfg_block), model, {
         "temperature": cfg_block.get("temperature", 0.7),
         "max_tokens": cfg_block.get("max_tokens", 8192),
     }

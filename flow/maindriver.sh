@@ -102,6 +102,10 @@ _pos_int() {  # name value min
 }
 _pos_int "parallel_runs (-r)" "$PARALLEL_RUNS" 2   # -r 0 divides by zero; -r 1 makes DRP a no-op
 _pos_int "iterations (-i)"   "$TOTAL_ITERS"   1
+if [[ "$AGENTIC" == "true" && "$TOTAL_ITERS" -gt 1 && "$PARALLEL_RUNS" -lt 3 ]]; then
+    echo "ERROR: multi-iteration -A/--agentic requires at least 3 runs: Agent2 reserves two front slots and at least one exploration slot. Use -r 3 or higher." >&2
+    exit 1
+fi
 _pos_int "num_kill (-k)"     "$NUM_KILL"      0
 _pos_int "cpus (--cpus)"     "$TOTAL_CPUS"    1
 if [[ -z "$MAX_CONCURRENT_RUNS" ]]; then

@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional
 
 from llm_usage import LLMUsageError, begin_call, fail_call, finish_call
+from llm_client import create_llm_client
 from prompts import SYSTEM_PROMPT
 
 
@@ -57,39 +58,18 @@ def external_llm_enabled(config_block: Optional[dict] = None) -> bool:
 
 def call_llm(prompt: str, config: dict, *,
              usage_context: Optional[Mapping[str, Any]] = None) -> Optional[str]:
-    """Call an OpenAI-compatible LLM API for parameter suggestions."""
+    """Call the selected LLM transport for parameter suggestions."""
     llm_config = config.get("llm", {})
     if not external_llm_enabled(llm_config):
         print("[LLM] external API disabled; using numerical fallback.",
               file=sys.stderr)
         return None
     model = llm_config.get("model", "gpt-4o")
-    base_url = llm_config.get("base_url", "")
-    api_key_env = llm_config.get("api_key_env", "OPENAI_API_KEY")
     temperature = llm_config.get("temperature", 0.7)
     max_tokens = llm_config.get("max_tokens", 4096)
-    timeout = llm_config.get("timeout", 1200)
-
-    # base_url may be a literal URL or the NAME of an env var holding it
-    # (drp_config.json ships "OPENAI_BASE_URL", which api.sh exports).
-    if base_url and "://" not in base_url:
-        base_url = os.environ.get(base_url, "")
-
-    api_key = os.environ.get(api_key_env, "")
-    if not api_key:
-        print(f"[WARN] API key not found in env var {api_key_env}", file=sys.stderr)
-        return None
 
     try:
-        from openai import OpenAI
-
-        # timeout bounds a single call; max_retries=0 so a slow/hung endpoint can't
-        # stack retries and block the pipeline — on timeout we fall back to sampling.
-        client_kwargs = {"api_key": api_key, "timeout": timeout, "max_retries": 0}
-        if base_url:
-            client_kwargs["base_url"] = base_url
-
-        client = OpenAI(**client_kwargs)
+        client = create_llm_client(llm_config)
         create_kwargs = dict(
             model=model,
             messages=[
@@ -103,7 +83,7 @@ def call_llm(prompt: str, config: dict, *,
             model=model,
             context=usage_context,
             request_payload=create_kwargs,
-            provider=base_url,
+            provider=str(getattr(client, "base_url", "") or ""),
         )
         try:
             response = client.chat.completions.create(**create_kwargs)
