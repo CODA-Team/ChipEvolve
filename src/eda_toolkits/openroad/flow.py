@@ -38,19 +38,24 @@ def run_flow(result_path, started, workspace, inputs):
         'output_root': 'flow', 'design_config': config}, indent=2) + '\n')
     artifacts = [{'kind': 'extractor_log', 'path': 'extractor.log'},
                  {'kind': 'extractor_receipt', 'path': 'extractor_receipt.json'}]
+    artifacts.extend(archive_flow(workspace))
+    progress('orfs', 'finished', status='succeeded' if result.returncode == 0 else 'failed')
+    failure = None if result.returncode == 0 else {
+        'category':'orfs_error', 'message':f'ORFS exited with status {result.returncode}', 'retryable':False}
+    return _write_result(result_path, started, 'succeeded' if failure is None else 'failed',
+                         result.returncode, artifacts, failure)
+
+
+def archive_flow(workspace):
     with zipfile.ZipFile(workspace / 'flow-artifacts.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
         for p in sorted((workspace / 'flow').rglob('*')):
             if p.is_file():
                 archive.write(p, p.relative_to(workspace).as_posix())
-    artifacts.append({'kind': 'flow_archive', 'path': 'flow-artifacts.zip'})
+    artifacts = [{'kind': 'flow_archive', 'path': 'flow-artifacts.zip'}]
     kinds = {'.odb':'raw_design_database', '.sdc':'raw_constraints', '.spef':'raw_parasitics',
              '.v':'raw_netlist', '.def':'raw_layout', '.gds':'raw_layout'}
     for p in sorted((workspace / 'flow').rglob('*')):
         if p.is_file() and (p.suffix in kinds or p.suffix == '.json'):
             artifacts.append({'kind': kinds.get(p.suffix, 'raw_flow_metadata'),
                               'path': p.relative_to(workspace).as_posix()})
-    progress('orfs', 'finished', status='succeeded' if result.returncode == 0 else 'failed')
-    failure = None if result.returncode == 0 else {
-        'category':'orfs_error', 'message':f'ORFS exited with status {result.returncode}', 'retryable':False}
-    return _write_result(result_path, started, 'succeeded' if failure is None else 'failed',
-                         result.returncode, artifacts, failure)
+    return artifacts

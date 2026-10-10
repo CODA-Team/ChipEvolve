@@ -32,6 +32,36 @@ The supported adapters have deliberately separate business responsibilities:
   accept an arbitrary command string.
 - `command` remains the generic boundary for a deployment-owned extractor
   that implements the same snapshot contract.
+- `orfs_flow` executes the configured complete container flow and retains its
+  native outputs.
+- `a2_stage` executes one candidate's `place`, `cts`, or `route_finish` target
+  in the attempt workspace. It also runs `eval_place`, `eval_cts`, and
+  `eval_final` using the frozen A2 `eval_tns.tcl` and an explicit CP0. Candidate
+  generation, barriers, selection, and lineage remain in A2.
+
+The A2 stage consumes staged `profile_path`, `config_path`, `sdc_path`, and
+`threads` fields in the existing TaskSpec inputs. Downstream stages additionally
+consume `checkpoint_path`, a `flow_archive` ZIP containing `flow/results`,
+`flow/objects`, `flow/logs`, `flow/reports`, and optional `flow/combined.log`.
+Evaluation instead consumes the checkpoint and an `evaluation` object with
+`cp0_ns`, `clock_port`, and the original `library_patterns`.
+
+The profile binds `flow_dir`, `source_commit`, `makefile_sha256`,
+`eval_tns_sha256`, `openroad_bin`, `yosys_bin`, and the native environment's
+`python_bin`. Execution overrides only the output directories, staged SDC path,
+tool executables, and thread count; it preserves the candidate configuration
+bytes. Required predecessor ODB/SDC files are treated as frozen Make inputs.
+Stale downstream files are removed from the restored copy before execution.
+No previous source directory or native algorithm is imported as Python code.
+
+A2 results retain `flow_archive`, individual native artifacts, command and
+profile receipts, configuration/SDC hashes, and logs. Evaluation records signed
+TNS/WNS in ns, total power in W, the fixed clock, and whether actual SPEF or
+native placement estimation was used. A zero tool exit without required stage
+outputs or valid evaluation observations is a failure. This boundary does not
+create a Data Foundation snapshot; campaign feedback/export is the next
+integration step. Interface checks and Make planning have passed; actual EF
+stage execution remains pending the native P1 campaign acceptance.
 
 For one unified snapshot, run the OpenDB and OpenSTA adapters in the same
 execution workspace with the same `snapshot_id`, `run_id`, and output directory.
@@ -49,7 +79,7 @@ artifact identity, they carry the source role and logical path (for example,
 resolves that reference against the run's registered artifact catalogue during
 handoff; it does not match arbitrary host filenames.
 
-Every invocation records the command, environment result, extractor log,
+Snapshot extraction records the command, environment result, extractor log,
 receipt, and `query-data.zip`. When the corresponding staged inputs are
 present, ODB, LEF/DEF, netlist, Liberty, SDC, SPEF, timing-report, and ORFS
 metadata files are also declared as raw artifacts with their input role. The

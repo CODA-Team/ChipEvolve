@@ -55,9 +55,12 @@ def main() -> int:
         task = request["task"]
         inputs = task.get("inputs", {})
         mode = inputs.get("adapter", "command")
-        if mode in {"opendb", "openroad", "opensta", "report", "orfs_flow"}:
+        if mode in {"opendb", "openroad", "opensta", "report", "orfs_flow", "a2_stage"}:
             require_eda_memory()
-        if mode == "orfs_flow":
+        if mode == "a2_stage":
+            from .a2_stage import run_stage
+            return run_stage(result_path, started, workspace, inputs)
+        elif mode == "orfs_flow":
             from .flow import run_flow
             return run_flow(result_path, started, workspace, inputs)
         elif mode == "opendb":
@@ -84,7 +87,7 @@ def main() -> int:
             plans = [{"command": command, "output_directory": inputs.get(
                 "output_directory", "query-data")}]
         else:
-            raise ValueError("inputs.adapter must be command, opendb, openroad, opensta, orfs, or report")
+            raise ValueError("inputs.adapter must be command, opendb, openroad, opensta, orfs, report, orfs_flow, or a2_stage")
         output_name = plans[0]["output_directory"]
         output_dir = (workspace / output_name).resolve()
         output_dir.relative_to(workspace)
