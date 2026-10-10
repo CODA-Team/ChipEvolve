@@ -3,6 +3,7 @@ query-agent/
 data-foundation/
 data-interface/
 toolkits/
+flow-agent/
 wheelhouse/
 var/
 admin/.venv/

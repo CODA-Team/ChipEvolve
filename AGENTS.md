@@ -1,6 +1,6 @@
 # 工作区规则
 
-本工作区包含四个独立 Git 项目；进入对应项目后读取其 AGENTS.md。
+本工作区包含 Execution Foundation、Data Foundation、Data Interface、Query Agent、Toolkits 和 Flow Agent 六个独立 Git 项目；进入对应项目后读取其 AGENTS.md。
 
 - 后续开发只修改这里的正式项目。旧路径是运行基线或历史证据。
 - Query Agent 主实现来自独立 `/home/wjyuan/query-agent`，不是历史 `apps/query_agent`。

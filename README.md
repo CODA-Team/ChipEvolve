@@ -1,6 +1,6 @@
 # EDA 独立开发工作区
 
-这里是四个项目后续开发的统一入口。迁移日期：2026-10-08（北京时间）。
+这里是六个独立项目后续开发的统一入口。2026-10-10 已确认 Agentic EDA 施工规划，当前进行 Flow 的真实多轮原生验收。施工进度见 [STATUS](admin/STATUS.md)，目标和验收见 [PROJECT_CONTRACT](admin/PROJECT_CONTRACT.md)。原有模块迁移日期：2026-10-08（北京时间）。
 
 | 项目 | 源码目录 | 职责 | 跨项目交互 |
 | --- | --- | --- | --- |
@@ -9,6 +9,7 @@
 | Data Foundation | `data-foundation/` | 快照、设计对象、结构化事实、查询、独立数据库 | 安装 contracts/client wheel；HTTP 读取执行产物 |
 | Data Interface | `data-interface/` | 公开工具契约、Python SDK、响应语义 | 标准库 HTTP 客户端，没有服务进程和数据库 |
 | Toolkits | `toolkits/` | OpenROAD/ORFS 命令、输入加载、原生解析和导出 | 安装 contracts/client wheel；生成运行清单，调用 EF HTTP |
+| Flow Agent | `flow-agent/` | A2 原生候选搜索、阶段淘汰与优化状态 | 原生基线正在验收；统一阶段执行待接入 |
 
 每个项目都有独立 `.git`、`.venv` 和 `environment.lock.txt`。禁止用 `PYTHONPATH`、软链接或另一项目的 editable 安装来跨源码边界。共享包在 `wheelhouse/` 发布；Data Foundation 中的 runtime 包仅用于现有测试 fixture，不是其运行依赖。
 

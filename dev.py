@@ -6,7 +6,7 @@ from pathlib import Path
 import subprocess
 
 ROOT = Path(__file__).resolve().parent
-PROJECTS = ('execution-foundation', 'query-agent', 'data-foundation', 'data-interface', 'toolkits')
+PROJECTS = ('execution-foundation', 'query-agent', 'data-foundation', 'data-interface', 'toolkits', 'flow-agent')
 parser = argparse.ArgumentParser()
 parser.add_argument('project', choices=PROJECTS)
 parser.add_argument('command', choices=('check', 'smoke', 'python', 'shell', 'serve'))
@@ -33,7 +33,8 @@ if args.command == 'check':
         commands += [[str(python), '-m', 'mypy', '--ignore-missing-imports', *sources]]
     elif args.project == 'toolkits':
         commands += [[str(project / '.venv/bin/ruff'), 'check', 'src', 'tests', '--select', 'F']]
-    commands += [[str(python), '-m', 'pytest', *args.args]]
+    tests = ['flow/test'] if args.project == 'flow-agent' else []
+    commands += [[str(python), '-m', 'pytest', *tests, *args.args]]
 elif args.command == 'smoke':
     commands = [[str(python), 'smoke.py', *args.args]] if args.project == 'data-foundation' else \
                [[str(python), '-m', 'pytest', *(['tests/test_local_kernel_http.py'] if args.project == 'execution-foundation' else ['tests']), *args.args]]
