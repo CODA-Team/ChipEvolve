@@ -25,7 +25,7 @@ from .repository import DataStore
 CANONICAL_METRICS: dict[str, dict[str, Any]] = {
     "WS": {"raw_keys": ("timing__setup__ws",), "unit_family": "time",
            "kind": "timing", "analysis": "setup"},
-    "WNS": {"raw_keys": ("timing__setup__ws",), "unit_family": "time",
+    "WNS": {"raw_keys": ("timing__setup__wns", "timing__setup__ws"), "unit_family": "time",
             "kind": "timing", "analysis": "setup"},
     "TNS": {"raw_keys": ("timing__setup__tns",), "unit_family": "time",
             "kind": "timing", "analysis": "setup"},

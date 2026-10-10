@@ -8,7 +8,7 @@ def test_evaluator_conditions_survive_metric_projection_and_database_restart(tmp
                   'library_patterns': ['/frozen/NangateOpenCellLibrary_typical.lib'],
                   'profile_sha256': 'a' * 64}
     evidence = [{'artifact_id': 'measured', 'logical_path': 'a2-evaluation.json'}]
-    values = {'timing__setup__tns': -4.36, 'timing__setup__ws': -.08,
+    values = {'timing__setup__tns': -4.36, 'timing__setup__wns': -.08,
               'power__total': .4, 'flow__platform__time_units': '1ns'}
     pack = {'snapshot': {'snapshot_id': 'eval', 'design_id': 'aes', 'revision_id': 'revision',
                          'run_id': 'physical', 'stage': 'eval_final', 'created_at': '2026-10-10',
@@ -29,7 +29,8 @@ def test_evaluator_conditions_survive_metric_projection_and_database_restart(tmp
     try:
         metrics = project_run(store, [store.snapshot('eval')])['metrics']
         rows = {row['name']: row for row in metrics if row['status'] == 'available'}
-        assert set(rows) == {'WNS', 'WS', 'TNS', 'POWER_TOTAL'}
+        # report_wns does not report positive worst slack; do not invent a WS fact.
+        assert set(rows) == {'WNS', 'TNS', 'POWER_TOTAL'}
         assert rows['TNS']['value'] == -4.36 and rows['TNS']['unit'] == 'ns'
         assert rows['WNS']['value'] == -.08 and rows['WNS']['unit'] == 'ns'
         assert rows['POWER_TOTAL']['value'] == .4 and rows['POWER_TOTAL']['unit'] == 'W'
