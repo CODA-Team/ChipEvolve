@@ -123,8 +123,16 @@ def audit(run):
         for stage in ('place', 'cts'):
             decision = read(dump / f'drp_{stage}_iter{iteration}.json')
             checks[f'round_{iteration}_{stage}_real_clone'] = decision['lineage_trusted_count'] >= 1
-            checks[f'round_{iteration}_{stage}_llm_parameters'] = any(
-                entry.get('origin') == 'llm' for entry in decision['stage_generated_provenance'])
+            direct_llm = any(entry.get('origin') == 'llm'
+                             for entry in decision['stage_generated_provenance'])
+            reviewed_selection = (checks['review_evidence_intact'] and any(
+                entry.get('verified') is True and entry.get('iteration') == iteration
+                and entry.get('stage') == stage
+                and entry.get('decision_sha256') == digest(dump / f'drp_{stage}_iter{iteration}.json')
+                and entry.get('selected_parameters') == decision['stage_generated_params']
+                for entry in review.get('stage_model_decisions', [])))
+            checks[f'round_{iteration}_{stage}_model_decision_effective'] = (
+                direct_llm or reviewed_selection)
             if iteration == 2:
                 checks[f'round_2_{stage}_predictor_used'] = (
                     decision['effective_rank_key'] == 'promising_cost' and decision['scored_count'] == 3
@@ -132,6 +140,8 @@ def audit(run):
             stage_decisions[stage] = {key: decision.get(key) for key in (
                 'source_ids', 'victim_ids', 'stage_generated_params', 'effective_rank_key',
                 'scored_count', 'fallback_reason', 'model_sha256', 'lineage_trusted_count')}
+            stage_decisions[stage]['direct_llm_parameters_selected'] = direct_llm
+            stage_decisions[stage]['model_selection_reviewed'] = reviewed_selection
         rows = list(csv.DictReader((dump / f'input_batch_iter{iteration}.csv').open()))
         checks[f'round_{iteration}_three_executed_csv_rows'] = len(rows) == 3
         if iteration == 2:

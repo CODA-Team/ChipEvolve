@@ -24,6 +24,10 @@ EF 新版本使用 SQLite WAL，保持 FULL 持久化。在线保存数据库应
 
 ## 验收与交接
 
+最新进度：retry2 完整收尾且 P1 已验收通过；P2 状态目录 `var/flow-agent/p2-a2-stage-20261010` 已存在且正在执行。恢复工作时先读取这两个目录的 `receipt.json`，不要重新执行 P1→P2 衔接脚本或重复启动 P2。原衔接失败与初次 P1 未通过记录已保留；复审记录说明了模型选择数值候选的实际行为。
+
+模型决策有效不等于每个阶段都选中直接 LLM 参数提案。原生 Agent2 允许模型选择 kmeans 等策略并选中 LHS/扰动候选；这一分支须审阅实际响应、源码应用点、运行日志与当前 canonical decision 的 hash/参数，并纳入签署且完整的 evidence。没有这些证据不通过，不改写 origin，也不强迫原优化器选中直接提案。
+
 模型账本与成本分别验收。审计通过冻结运行源码的原生 `llm_usage.build_summary` 重算事件并核对 summary，缺开始/终态、重复终态、身份变化、成功用量缺失或不一致均不通过。记录完整的失败调用保留为 failure/fallback；失败成本未知不伪造为零，`model_cost_complete=false` 时不得宣称精确模型总成本或成本收益。
 
 当前 retry2 的跨轮决策审阅已完成。等待 `receipt.status` 进入正常终态且 `capture_exit_code=0` 后，依次运行 `python admin/review_native_consumption.py --run-root var/flow-agent/p1-native-20261010-retry2` 与 `python admin/accept_native_campaign.py --run-root var/flow-agent/p1-native-20261010-retry2`。P1 通过后执行下文 P2 入口，不重启已运行的 supervisor。
