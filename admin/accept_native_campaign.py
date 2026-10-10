@@ -20,6 +20,41 @@ def digest(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
+def audit_model_ledger(flow, manifest, usage):
+    """Recompute the native ledger without equating failed-call cost with lost events."""
+    script = ('import json,sys; from pathlib import Path; '
+              'from llm_usage import build_summary,load_events; '
+              'm=json.loads(Path(sys.argv[1]).read_text()); '
+              'u=json.loads(Path(sys.argv[2]).read_text()); '
+              'print(json.dumps(build_summary(load_events(Path(sys.argv[3])), '
+              'campaign_id=m["campaign_id"],llm_enabled=m["llm_enabled"], '
+              'status=u["status"],exit_code=u["exit_code"], '
+              'completed_iterations=u["completed_iterations"])))')
+    backup = flow / 'backup_dir/nangate45/aes'
+    result = subprocess.run([str(FORMAL / '.venv/bin/python'), '-c', script,
+                             str(backup / 'campaign_manifest.json'),
+                             str(backup / 'llm_usage_summary.json'),
+                             str(backup / 'llm_usage_events.jsonl')],
+                            cwd=flow, capture_output=True, text=True, check=False)
+    if result.returncode:
+        return {'complete': False, 'cost_complete': False, 'error': result.stderr}
+    recomputed = json.loads(result.stdout)
+    matching = all(usage.get(key) == value for key, value in recomputed.items()
+                   if key != 'generated_utc')
+    complete = (matching and usage.get('campaign_id') == manifest['campaign_id']
+                and usage['status'] == 'completed' and usage.get('exit_code') == 0
+                and usage.get('completed_iterations') == 2
+                and usage.get('pending_calls') == 0
+                and usage.get('successful_missing_usage') == 0
+                and usage.get('successful_inconsistent_usage') == 0)
+    return {'complete': complete, 'summary_matches_events': matching,
+            'cost_complete': recomputed['usage_complete'],
+            'known_total_tokens': recomputed['known_total_tokens'],
+            'total_tokens': recomputed['total_tokens'],
+            'failed_unknown_usage': recomputed['failed_unknown_usage'],
+            'note': 'Terminal failures remain recorded. Unknown cost precludes exact cost comparisons.'}
+
+
 def audit(run):
     receipt = read(run / 'receipt.json')
     flow = run / 'source/flow'
@@ -47,8 +82,8 @@ def audit(run):
     responses = [event for event in events if event['event'] == 'response_received']
     checks['real_model_calls'] = len(responses) >= 4 and all(event.get('usage_available') for event in responses)
     checks['inter_iteration_model_calls'] = any(event.get('scope') == 'inter_iteration' and event.get('target_iteration') == 2 for event in responses)
-    checks['ledger_complete'] = (usage['status'] == 'completed' and usage.get('pending_calls') == 0
-                                 and usage.get('usage_complete') is True and usage.get('completed_iterations') == 2)
+    ledger = audit_model_ledger(flow, manifest, usage)
+    checks['ledger_complete'] = ledger['complete']
     review_path = run / 'model-decision-review.json'
     review = read(review_path) if review_path.is_file() else None
     checks['inter_iteration_decisions_reviewed'] = (isinstance(review, dict)
@@ -123,7 +158,8 @@ def audit(run):
     observations = [line for line in text.splitlines() if re.search(
         r'dummy|fallback|bootstrap|numerical|failed|warning', line, re.IGNORECASE)]
     return {'accepted': all(checks.values()), 'audited_at': now(), 'campaign_id': manifest['campaign_id'],
-            'checks': checks, 'receipt': receipt, 'usage': usage, 'rounds': rounds,
+            'checks': checks, 'receipt': receipt, 'usage': usage, 'model_ledger_audit': ledger,
+            'model_cost_complete': ledger['cost_complete'], 'rounds': rounds,
             'baseline': baseline, 'best_feasible_observed': best,
             'timing_improvement_observed': best is not None and best['TNS_EVAL'] < baseline['TNS_EVAL'],
             'benefit_proven_by_fair_evaluation': False, 'fallback_and_warning_observations': observations,

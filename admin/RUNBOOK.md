@@ -24,6 +24,10 @@ EF 新版本使用 SQLite WAL，保持 FULL 持久化。在线保存数据库应
 
 ## 验收与交接
 
+模型账本与成本分别验收。审计通过冻结运行源码的原生 `llm_usage.build_summary` 重算事件并核对 summary，缺开始/终态、重复终态、身份变化、成功用量缺失或不一致均不通过。记录完整的失败调用保留为 failure/fallback；失败成本未知不伪造为零，`model_cost_complete=false` 时不得宣称精确模型总成本或成本收益。
+
+当前 retry2 的跨轮决策审阅已完成。等待 `receipt.status` 进入正常终态且 `capture_exit_code=0` 后，依次运行 `python admin/review_native_consumption.py --run-root var/flow-agent/p1-native-20261010-retry2` 与 `python admin/accept_native_campaign.py --run-root var/flow-agent/p1-native-20261010-retry2`。P1 通过后执行下文 P2 入口，不重启已运行的 supervisor。
+
 完整实验结束后，使用 `admin/accept_native_campaign.py --run-root <实验目录>` 审计同一个 campaign。审计复用原生 canonical 检查，核对模型账本、两轮实际 CSV、检查点继承、预测排序、固定 CP0 和成功候选的全部最终产物。候选失败按原生关卡处理并明确列出；不新增要求所有搜索候选必然成功的条件。跨轮模型输出是否实际影响下一批，先形成同目录 `model-decision-review.json`，再冻结 P1 验收。
 
 审计同时要求 `parameter-consumption-review.json`：核实实际工具日志中的阶段参数和归档配置相符，证据文件绑定当前 campaign 并校验 hash。参数进入配置不代表物理工具消费。当前 retry1 已确认缺少 Nangate45 AES routing hook，完整收尾后保存不通过记录。源码修复提交后执行 `freeze_native_revision.py --reference <原始基线> --output <新源码基线>`；新实验的 prepare/supervise 均明确传入同一新 `--baseline`，不复用旧 CP0、历史或产物。等待 terminal receipt 且出现 `capture_exit_code` 再做最终审计。

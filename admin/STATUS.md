@@ -36,6 +36,14 @@ P2 验收入口已补齐真实 AES 布线取消与实体数据导入：阶段链
 
 ## 恢复入口
 
+2026-10-10 08:49 UTC 续接：retry2 第一轮 3/3 完成并保存 18 个最终产物；三个候选 signed TNS 分别 -4.36/-4.15/-4.49 ns，功耗 0.400/0.401/0.401 W，后两项超限，尚无可行改善。第二轮布局正在运行，不启动重复实验。
+
+当前实验的跨轮模型审阅已签署 `model-decision-review.json`，与 retry1 分开：六次成功响应、一次 inspection 失败；默认四 cluster/0.3 配置由源码与运行日志核实。Matérn/minmax/EI/0.55 与 elitist/零 uncertainty 已进入原生流程；模型的 48% utilization、0.18 density、0.48 floorplan pin 提案精确对应第二轮 slot 2。三个 CSV 事件、配置与 SDC 的全部数字均已核对。第三项为 quota-forced full probe。ReAct GPR 因历史不足跳过；Critic/TextGrad 更新后续指令，不能解释为本批选择者。
+
+`accept_native_campaign.py` 现在按原生 `llm_usage.build_summary` 只读重算并核对整个账本：每次调用必须有唯一、身份一致的开始和终态，成功用量必须一致，无 pending。已记录失败且成本未知时，执行账本可以完整，精确总成本仍不可知。审计输出分别保留 `model_ledger_audit` 与 `model_cost_complete`，成本缺口不得用于 P6 精确成本收益比较。五个验证案例覆盖记录失败、篡改总量、缺终态、重复终态和跨 campaign 混入；证据在 `ledger-audit-verification.json`，其合成终态仅用于审计规则验证，不是最终实验验收。
+
+Toolkits 最新 `39f48a4` 与 DF `b29e5a9` 保存 CP0 的真实 WNS 名称，避免把 clipped WNS 当作可为正的 WS；49/376 项检查通过。P2 准备完成但未执行；P1 完整收尾、最终 ODB 参数消费与 canonical 验收通过后直接运行真实阶段链。
+
 retry1 于 07:31 UTC 正常结束：退出码 0、source_changed=[]、capture_exit_code=0，两轮各 18 个最终物理产物。17 次真实模型调用，309,360 token。最终基准和可行最优 TNS=-4.36 ns、power=0.4 W；第二轮第三候选 TNS=-3.15 ns 但 power=0.462 W，超功耗，不计改善。`p1-acceptance.json` 仅参数物理消费及其证据门槛不通过，因此没有启动 P2。
 
 真实接口验证证据为 `var/flow-agent/p1-routing-probe-20261010/receipt.json`：加载本次真实 AES ODB，四次 OpenROAD capacity setter 均返回 0，两个阶段分别使用独立提案。新冻结基线为 `var/flow-agent/p1-routing-baseline-20261010`，修复实验为 `var/flow-agent/p1-native-20261010-retry2`；supervisor 使用同一显式 baseline。首个真实 floorplan 日志已出现 `scope=floorplan pin=0.5 above=0.25`，其余阶段与最终完整验收仍待运行。
