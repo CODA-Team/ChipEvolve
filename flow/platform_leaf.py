@@ -8,6 +8,7 @@ from pathlib import Path
 from lineage import config_snapshot
 from openroad_platform_client import KernelClient
 from platform_execution import PlatformExecution
+from platform_feedback import publish_feedback
 
 
 def candidate_binding(flow, campaign, iteration, slot, stage):
@@ -60,6 +61,8 @@ def main():
                               platform=args.platform, design=args.design, stage=args.stage,
                               config=args.config, sdc=sdc, evaluation=evaluation,
                               donor_slot=None if args.stage == 'place' else donor)
+    if evaluation is not None:
+        publish_feedback(client, settings['state_root'], settings['data_url'], record)
     print(json.dumps({'stage': args.stage, 'run_id': record['run_id'],
                       'candidate_id': candidate_id, 'status': record['status']}))
 

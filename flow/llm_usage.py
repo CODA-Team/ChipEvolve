@@ -214,6 +214,9 @@ def begin_call(*, model: str, context: Optional[Mapping[str, Any]] = None,
         "timestamp_utc": _utc_now(),
         "request_sha256": _stable_hash(request_payload),
     }
+    if os.environ.get('DRP_EXECUTION_BACKEND') == 'platform':
+        from platform_model import process_identity
+        event['process_identity'] = process_identity(os.getpid())
     _append_event(path, event)
     return CallHandle(call_id, True, started, identity)
 

@@ -34,6 +34,7 @@ AGENTIC=false  # inter-iteration optimizer: false=optimize.py, true=optimize_age
 NO_LLM=false  # keep -A numerical Agentic/BO flow, but disable all external LLM requests
 PREDICTOR=false  # DRP ranking: true=QoR-comparator score (default promising), false=stage metric
 SEED=42  # base RNG seed for reproducibility; "none" => nondeterministic. Threaded to all Python via DRP_SEED.
+RESUME=false
 FRESH=false  # -F: force-clear derived state (cp0/tns_base/power_base/baseline*) before running.
 
 # Full original invocation, recorded into the campaign manifest for provenance.
@@ -53,6 +54,7 @@ while [[ $# -gt 0 ]]; do
         -N|--no-llm)      NO_LLM="true"; shift ;;
         -P|--predictor)   PREDICTOR="true"; shift ;;
         -S|--seed)        SEED="$2"; shift 2 ;;
+        --resume)         RESUME="true"; shift ;;
         -F|--fresh)       FRESH="true"; shift ;;
         -t|--timeout)     TIMEOUT="$2"; shift 2 ;;
         --cpus)           TOTAL_CPUS="$2"; shift 2 ;;
@@ -257,6 +259,35 @@ CONFIG_FIELDS=$(python3 driver_orchestration.py config-info \
 IFS='|' read -r WL_BASE ECP_BASE POWER_BUDGET <<< "$CONFIG_FIELDS"
 echo "Baseline: wl_base=$WL_BASE, ecp_base=$ECP_BASE"
 
+START_ITER=1
+RESUME_PHASE=-1
+PRIOR_COMPLETED=0
+if [[ "$RESUME" == "true" && ( "$FRESH" == "true" || "${DRP_EXECUTION_BACKEND:-native}" != "platform" ) ]]; then
+    echo "ERROR: --resume requires the platform backend and cannot be combined with -F." >&2
+    exit 1
+fi
+export DRP_CAMPAIGN_OPTIONS="$PLATFORM|$DESIGN|$OBJECTIVE|$TOTAL_ITERS|$PARALLEL_RUNS|$NUM_KILL|$SELECTION|$AGENTIC|$NO_LLM|$PREDICTOR|$SEED|$TIMEOUT|$TOTAL_CPUS|$MAX_CONCURRENT_RUNS|$WEIGHT_WL|$WEIGHT_ECP"
+if [[ "${DRP_EXECUTION_BACKEND:-native}" == "platform" ]]; then
+    PLATFORM_STATE=$(python3 "$SCRIPT_DIR/platform_campaign.py" root)
+    mkdir -p "$PLATFORM_STATE"
+    exec 9>"$PLATFORM_STATE/controller.lock"
+    flock -n 9 || { echo "ERROR: this campaign has an active controller." >&2; exit 1; }
+    if [[ "$RESUME" == "true" ]]; then
+        python3 "$SCRIPT_DIR/platform_campaign.py" preflight
+    elif [[ -e "$PLATFORM_STATE/campaign.json" ]]; then
+        echo "ERROR: state root already owns a campaign; use --resume or a new state root." >&2
+        exit 1
+    fi
+fi
+CAMPAIGN_DIR="$SCRIPT_DIR/backup_dir/${PLATFORM}/${DESIGN}"
+CAMPAIGN_MANIFEST="$CAMPAIGN_DIR/campaign_manifest.json"
+LLM_USAGE_LEDGER="$CAMPAIGN_DIR/llm_usage_events.jsonl"
+LLM_USAGE_SUMMARY="$CAMPAIGN_DIR/llm_usage_summary.json"
+if [[ "$RESUME" == "true" ]]; then
+    RESUME_FIELDS=$(python3 "$SCRIPT_DIR/platform_campaign.py" resume)
+    IFS='|' read -r START_ITER RESUME_PHASE PRIOR_COMPLETED CAMPAIGN_ID <<< "$RESUME_FIELDS"
+    echo "[platform] resuming same campaign $CAMPAIGN_ID at iteration=$START_ITER after phase=$RESUME_PHASE"
+else
 # Auto-invalidate stale derived state (cp0/tns_base/power_base/baseline*) when the
 # design/objective/base-config fingerprint changes — no more manual file cleanup.
 # -F/--fresh forces a clear.
@@ -310,6 +341,7 @@ CAMPAIGN_ID=$(python3 "$SCRIPT_DIR/llm_usage.py" init \
     --manifest "$CAMPAIGN_MANIFEST" \
     --ledger "$LLM_USAGE_LEDGER" \
     --summary "$LLM_USAGE_SUMMARY")
+fi
 export DRP_CAMPAIGN_ID="$CAMPAIGN_ID"
 export DRP_LLM_USAGE_FILE="$LLM_USAGE_LEDGER"
 CAMPAIGN_EXIT_STATUS="failed"
@@ -356,6 +388,15 @@ trap finalize_campaign_usage EXIT
 trap 'interrupt_campaign 130' INT
 trap 'interrupt_campaign 143' TERM
 echo "[LLM usage] campaign ledger: $LLM_USAGE_LEDGER"
+if [[ "${DRP_EXECUTION_BACKEND:-native}" == "platform" && "$RESUME" != "true" ]]; then
+    python3 "$SCRIPT_DIR/platform_campaign.py" begin
+fi
+platform_commit() {
+    if [[ "${DRP_EXECUTION_BACKEND:-native}" == "platform" ]]; then
+        python3 "$SCRIPT_DIR/platform_campaign.py" commit --iteration "$iter" --phase "$1"
+    fi
+}
+
 
 # ─── Stage success gate ─────────────────────────────────────────────────────
 # Reports the usable-run count AND enforces a minimum: when fewer than MIN_SUCCESS
@@ -516,10 +557,12 @@ read_iteration_policy() {
 }
 
 # ─── Main iteration loop ────────────────────────────────────────────────────
-COMPLETED_ITERS=0
+COMPLETED_ITERS=$PRIOR_COMPLETED
 EARLY_STOP=false
 EARLY_STOP_REASON=""
-for iter in $(seq 1 "$TOTAL_ITERS"); do
+for iter in $(seq "$START_ITER" "$TOTAL_ITERS"); do
+    LAST_PHASE=-1
+    if [[ "$iter" -eq "$START_ITER" ]]; then LAST_PHASE=$RESUME_PHASE; fi
     export DRP_ITER="$iter"   # per-iteration seed context for all Python subprocesses
 
     POLICY_FIELDS=$(read_iteration_policy "$OPT_STATE_PATH" "$iter") \
@@ -571,6 +614,11 @@ for iter in $(seq 1 "$TOTAL_ITERS"); do
     echo "Protected Runs: $PROTECTED_RUNS"
     echo ""
 
+    CANDIDATE_LIFECYCLE="tmp/candidate_lifecycle_iter${iter}.json"
+    PLACE_METRICS="tmp/metrics_place_iter${iter}.json"
+    CTS_METRICS="tmp/metrics_cts_iter${iter}.json"
+    FINAL_METRICS="tmp/metrics_final_iter${iter}.json"
+    if [[ "$LAST_PHASE" -lt 0 ]]; then
     # ─── Clean up previous iteration residuals ──────────────────────
     echo ">>> Cleaning up previous run residuals..."
     rm -f logs/${PLATFORM}_${DESIGN}_run*.log
@@ -613,6 +661,9 @@ for iter in $(seq 1 "$TOTAL_ITERS"); do
         --manifest "backup_dir/${PLATFORM}/${DESIGN}/campaign_manifest.json" \
         || { echo "ABORT: config replay materialization failed at iteration $iter." >&2; exit 1; }
 
+    platform_commit 0
+    fi
+    if [[ "$LAST_PHASE" -lt 1 ]]; then
     # ─── Phase 1: Placement stage ─────────────────────────────────────
     echo ""
     echo ">>> Phase 1: Running PLACEMENT stage..."
@@ -626,6 +677,9 @@ for iter in $(seq 1 "$TOTAL_ITERS"); do
             || { echo "ABORT: CP_0 TNS evaluation (place) failed at iter $iter; refusing to rank on native/own-clock TNS." >&2; exit 1; }
     fi
 
+    platform_commit 1
+    fi
+    if [[ "$LAST_PHASE" -lt 2 ]]; then
     # ─── Phase 2: Post-placement DRP ──────────────────────────────────
     echo ""
     echo ">>> Phase 2: Post-placement DRP..."
@@ -673,6 +727,9 @@ for iter in $(seq 1 "$TOTAL_ITERS"); do
         --candidate-lifecycle "$CANDIDATE_LIFECYCLE" \
         --output "$DRP_PLACE_RESULT"
 
+    platform_commit 2
+    fi
+    if [[ "$LAST_PHASE" -lt 3 ]]; then
     # ─── Phase 3: CTS stage ───────────────────────────────────────────
     echo ""
     echo ">>> Phase 3: Running CTS stage..."
@@ -684,6 +741,9 @@ for iter in $(seq 1 "$TOTAL_ITERS"); do
             || { echo "ABORT: CP_0 TNS evaluation (cts) failed at iter $iter; refusing to rank on native/own-clock TNS." >&2; exit 1; }
     fi
 
+    platform_commit 3
+    fi
+    if [[ "$LAST_PHASE" -lt 4 ]]; then
     # ─── Phase 4: Post-CTS DRP ────────────────────────────────────────
     echo ""
     echo ">>> Phase 4: Post-CTS DRP..."
@@ -730,6 +790,9 @@ for iter in $(seq 1 "$TOTAL_ITERS"); do
         --candidate-lifecycle "$CANDIDATE_LIFECYCLE" \
         --output "$DRP_CTS_RESULT"
 
+    platform_commit 4
+    fi
+    if [[ "$LAST_PHASE" -lt 5 ]]; then
     # ─── Phase 5: Route + Finish stage ────────────────────────────────
     echo ""
     echo ">>> Phase 5: Running ROUTE + FINISH stage..."
@@ -743,6 +806,9 @@ for iter in $(seq 1 "$TOTAL_ITERS"); do
             || { echo "ABORT: CP_0 TNS evaluation (final) failed at iter $iter; refusing to rank on native/own-clock TNS." >&2; exit 1; }
     fi
 
+    platform_commit 5
+    fi
+    if [[ "$LAST_PHASE" -lt 6 ]]; then
     # ─── Phase 6: Final metrics collection ────────────────────────────
     echo ""
     echo ">>> Phase 6: Collecting final metrics..."
@@ -820,6 +886,9 @@ for iter in $(seq 1 "$TOTAL_ITERS"); do
     # ─── Backup ───────────────────────────────────────────────────────
     create_backup "$iter"
 
+    platform_commit 6
+    fi
+    if [[ "$LAST_PHASE" -lt 7 ]]; then
     # ─── Phase 7: Update policy state / generate the next batch ───────
     echo ""
     # The final iteration still updates observed-vs-clean best and the terminal
@@ -879,6 +948,8 @@ for iter in $(seq 1 "$TOTAL_ITERS"); do
         --iteration "$iter" \
         --output "$CAMPAIGN_DIR/result_dump_${iter}/llm_usage_iter${iter}.json"
 
+    platform_commit 7
+    fi
     COMPLETED_ITERS=$iter
     echo ""
     echo ">>> Iteration $iter complete."

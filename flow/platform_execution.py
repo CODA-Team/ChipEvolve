@@ -160,6 +160,13 @@ class PlatformExecution:
         # The exact persisted request is reused if interruption lost the submit reply.
         run = (self.client.run(record['run_id']) if 'run_id' in record else
                self.client.submit(record['task'], idempotency_key=record['idempotency_key'])['run'])
+        gate = os.environ.get('DRP_ACCEPTANCE_SUBMIT_GATE')
+        if ('run_id' not in record and gate == f'{iteration}:{slot}:{stage}'):
+            write_record(self.state / 'submit-acceptance-gate.json', {
+                'run_id': run['run_id'], 'idempotency_key': record['idempotency_key'],
+                'record_path': str(path), 'pid': os.getpid()})
+            while not (self.state / 'release-submit-acceptance-gate').exists():
+                time.sleep(.2)
         record.update(run_id=run['run_id'], status=run['status'])
         write_record(path, record)
         deadline = time.monotonic() + self.timeout

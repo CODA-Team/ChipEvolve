@@ -49,7 +49,8 @@ from common import (
     get_design_config,
     get_param_constraints,
 )
-from llm_usage import LLMUsageError, begin_call, fail_call, finish_call
+from llm_usage import LLMUsageError
+from platform_model import tracked_completion
 from llm_client import create_llm_client
 from candidate_tracking import (
     CANDIDATE_ID_KEY,
@@ -172,18 +173,7 @@ def _chat(client, model, messages, call_params, tools=None, *,
     if tools:
         create_kwargs["tools"] = tools
         create_kwargs["tool_choice"] = "auto"
-    call = begin_call(
-        model=model,
-        context=usage_context,
-        request_payload=create_kwargs,
-        provider=str(getattr(client, "base_url", "") or ""),
-    )
-    try:
-        resp = client.chat.completions.create(**create_kwargs)
-    except Exception as exc:
-        fail_call(call, exc)
-        raise
-    finish_call(call, resp)
+    resp = tracked_completion(client, create_kwargs, usage_context)
     return resp.choices[0].message
 
 

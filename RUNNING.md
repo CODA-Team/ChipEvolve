@@ -101,7 +101,7 @@ The optional `DRP_EXECUTION_BACKEND=platform` mode sends native physical stages
 and fixed-CP0 evaluations through the public Execution Foundation client. Install
 the published client/contracts wheels with `requirements/requirements-platform.txt`.
 Set `DRP_PLATFORM_CONFIG` to a runtime JSON file containing `kernel_url`,
-`state_root`, `profile_path`, `threads`, and `timeout_seconds`. The profile uses the
+`state_root`, `profile_path`, `data_url`, `threads`, and `timeout_seconds`. The profile uses the
 same frozen native flow/tool bindings as the stage adapter; runtime state belongs
 outside the source checkout.
 
@@ -111,6 +111,23 @@ Exact submitted requests are saved before submission, so a lost submit reply can
 be recovered with the same idempotency key. Already completed leaves reproject
 registered outputs without creating new physical runs or duplicating ancestor logs.
 
-Leaf recovery alone is not campaign resume. The native driver still needs an
-explicit phase journal and recovery entry before interrupted campaigns can be
-continued. Do not use `-F` as a resume command.
+The platform driver now records phase commits (0–7) in the same state root.
+After stopping the previous controller and its process group, repeat the same
+command with `--resume` in place of `-F`. The source, tools, installed environment,
+options, manifest and campaign identity must match. `-F` starts a new campaign;
+`--resume` restores the last committed native recipes/metrics and registered EF
+archives. Published iterations are checked and retained. Incomplete dumps are
+preserved under `interrupted-dumps` before retrying the incomplete phase.
+
+Completed model responses are cached with their full request hash, original call
+identity, tool decisions and provider usage. Replaying a phase does not create a
+second paid call or double-count its tokens. A killed call with no durable response
+retains unknown usage and the native failure/fallback behavior; it is never counted
+as zero tokens. An active controller/publisher blocks duplicate recovery.
+
+Every actual fixed-CP0 evaluation is exported by the existing ORFS metadata adapter
+and imported over DF HTTP, preserving physical/evaluation/metadata provenance.
+`DRP_ACCEPTANCE_*_GATE` variables are opt-in fault-injection gates for acceptance
+only, after real submission, model response or phase commit. Production commands
+leave them unset. Complete campaign recovery still requires a real interrupted
+campaign acceptance; unit boundary checks alone do not establish P3 completion.

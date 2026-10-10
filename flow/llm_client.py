@@ -204,6 +204,9 @@ class CodexClient:
                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                        text=True, start_new_session=True)
             try:
+                if getattr(self, 'platform_worker_record', None):
+                    from platform_model import process_identity, write_record
+                    write_record(self.platform_worker_record, process_identity(process.pid))
                 stdout, _stderr = process.communicate(prompt, timeout=self.timeout)
             except BaseException:
                 try:

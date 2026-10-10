@@ -14,7 +14,8 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional
 
-from llm_usage import LLMUsageError, begin_call, fail_call, finish_call
+from llm_usage import LLMUsageError
+from platform_model import tracked_completion
 from llm_client import create_llm_client
 from prompts import SYSTEM_PROMPT
 
@@ -79,18 +80,7 @@ def call_llm(prompt: str, config: dict, *,
             temperature=temperature,
             max_tokens=max_tokens,
         )
-        call = begin_call(
-            model=model,
-            context=usage_context,
-            request_payload=create_kwargs,
-            provider=str(getattr(client, "base_url", "") or ""),
-        )
-        try:
-            response = client.chat.completions.create(**create_kwargs)
-        except Exception as exc:
-            fail_call(call, exc)
-            raise
-        finish_call(call, response)
+        response = tracked_completion(client, create_kwargs, usage_context)
         return response.choices[0].message.content
     except ImportError:
         print("[WARN] openai package not installed. Falling back to sampling.",
