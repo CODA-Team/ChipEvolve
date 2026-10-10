@@ -147,6 +147,27 @@ def test_the_limit_is_applied(store):
     assert len(EvidenceIndex(store).runs(limit=2)) == 2
 
 
+def test_filtered_paging_and_total_do_not_expand_unrelated_history(store):
+    wanted = [make_run(store, task_id=f'wanted-{i}', project_id='wanted') for i in range(3)]
+    for i in range(130):
+        make_run(store, task_id=f'other-{i}', project_id='other')
+    index = EvidenceIndex(store)
+    statements = []
+    store._connection.set_trace_callback(statements.append)
+    page = index.runs(project_id='wanted', limit=1, offset=1)
+    assert [item.run_id for item in page] == [wanted[1].run_id]
+    assert len(statements) <= 2
+    statements.clear()
+    assert index.count_runs(project_id='wanted') == 3
+    assert len(statements) <= 2
+    store._connection.set_trace_callback(None)
+    owned = {wanted[0].run_id, wanted[2].run_id}
+    assert index.count_runs(owner_run_ids=owned) == 2
+    assert {item.run_id for item in index.runs(owner_run_ids=owned)} == owned
+    assert index.count_runs(owner_run_ids=set()) == 0
+    assert index.runs(owner_run_ids=set()) == []
+
+
 # --------------------------------------------------------------------------
 # lineage
 # --------------------------------------------------------------------------

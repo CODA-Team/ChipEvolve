@@ -21,6 +21,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass, field
+import json
 from typing import Any
 
 from openroad_platform_contracts import RuntimeStatus
@@ -137,78 +138,64 @@ class EvidenceIndex:
         owner_run_ids: set[str] | None = None,
         limit: int = DEFAULT_RUN_LIMIT, offset: int = 0,
     ) -> list[RunSummary]:
-        """Summaries newest first; filtering stays in this read model."""
+        """Filter and page in SQLite before expanding the selected summaries."""
         if not 1 <= limit <= MAX_RUN_LIMIT:
             raise ValueError(f"limit must be between 1 and {MAX_RUN_LIMIT}")
         if offset < 0:
             raise ValueError("offset must not be negative")
-        wanted = RuntimeStatus(status) if status else None
-        if status and wanted is None:  # pragma: no cover - RuntimeStatus is total
-            raise ValueError(f"unknown status {status!r}")
-
+        where, parameters = self._run_where(project_id=project_id, design_id=design_id,
+            plugin_id=plugin_id, status=status, run_type=run_type,
+            analysis_of_run_id=analysis_of_run_id, owner_run_ids=owner_run_ids)
         with self.store._lock:
             rows = self.store._connection.execute(
-                "SELECT run_id FROM runtime_runs ORDER BY created_at DESC"
+                "SELECT r.*,"
+                " (SELECT COUNT(*) FROM runtime_attempts a JOIN runtime_stage_runs s"
+                " ON s.stage_run_id=a.stage_run_id WHERE s.run_id=r.run_id) attempts,"
+                " (SELECT COUNT(*) FROM runtime_artifacts v JOIN runtime_attempts a"
+                " ON a.attempt_id=v.attempt_id JOIN runtime_stage_runs s"
+                " ON s.stage_run_id=a.stage_run_id WHERE s.run_id=r.run_id) artifacts,"
+                " (SELECT COUNT(*) FROM runtime_metrics v JOIN runtime_attempts a"
+                " ON a.attempt_id=v.attempt_id JOIN runtime_stage_runs s"
+                " ON s.stage_run_id=a.stage_run_id WHERE s.run_id=r.run_id) metrics"
+                " FROM runtime_runs r" + where + " ORDER BY created_at DESC,run_id DESC LIMIT ? OFFSET ?",
+                [*parameters, limit, offset],
             ).fetchall()
-
         summaries: list[RunSummary] = []
-        matched = 0
         for row in rows:
-            if owner_run_ids is not None and row["run_id"] not in owner_run_ids:
-                continue
-            run = self.store.get_run(row["run_id"])
-            if project_id and run.task_spec.project_id != project_id:
-                continue
-            if design_id and run.task_spec.design_id != design_id:
-                continue
-            if plugin_id and run.task_spec.plugin_id != plugin_id:
-                continue
-            if wanted is not None and run.status is not wanted:
-                continue
-            labels = run.task_spec.labels
-            if run_type and labels.get("run_type") != run_type:
-                continue
-            if analysis_of_run_id and labels.get("analysis_of_run_id") != analysis_of_run_id:
-                continue
-            if matched < offset:
-                matched += 1
-                continue
-            summaries.append(self._summary(run))
-            if len(summaries) >= limit:
-                break
+            task = json.loads(row['task_spec_json'])
+            summaries.append(RunSummary(
+                **{key: row[key] for key in ('run_id', 'task_id', 'status', 'created_at',
+                   'started_at', 'ended_at', 'terminal_reason', 'attempts', 'artifacts', 'metrics')},
+                **{key: task.get(key) for key in ('project_id', 'design_id', 'plugin_id',
+                   'design_revision_id', 'experiment_id', 'input_manifest_sha256')},
+                labels=task.get('labels', {}),
+            ))
         return summaries
 
-    def _summary(self, run) -> RunSummary:
-        attempts = artifacts = metrics = 0
-        for stage in self.store.list_stages(run.run_id):
-            for attempt in self.store.list_attempts(stage.stage_run_id):
-                attempts += 1
-                artifacts += len(self.store.list_artifacts(attempt.attempt_id))
-                metrics += len(self.store.list_metrics(attempt.attempt_id))
-        return RunSummary(
-            run_id=run.run_id, task_id=run.task_id, status=run.status.value,
-            project_id=run.task_spec.project_id,
-            design_id=run.task_spec.design_id,
-            design_revision_id=run.task_spec.design_revision_id,
-            experiment_id=run.task_spec.experiment_id,
-            input_manifest_sha256=run.task_spec.input_manifest_sha256,
-            plugin_id=run.task_spec.plugin_id,
-            created_at=run.created_at, started_at=run.started_at,
-            ended_at=run.ended_at, terminal_reason=run.terminal_reason,
-            attempts=attempts, artifacts=artifacts, metrics=metrics,
-            labels=dict(run.task_spec.labels),
-        )
+    @staticmethod
+    def _run_where(*, project_id=None, design_id=None, plugin_id=None, status=None,
+                   run_type=None, analysis_of_run_id=None, owner_run_ids=None):
+        clauses, parameters = [], []
+        if status:
+            clauses.append('status=?')
+            parameters.append(RuntimeStatus(status).value)
+        for field, value in (('project_id', project_id), ('design_id', design_id),
+                             ('plugin_id', plugin_id), ('labels.run_type', run_type),
+                             ('labels.analysis_of_run_id', analysis_of_run_id)):
+            if value:
+                clauses.append(f"json_extract(task_spec_json,'$.{field}')=?")
+                parameters.append(value)
+        if owner_run_ids is not None:
+            clauses.append('run_id IN (SELECT value FROM json_each(?))')
+            parameters.append(json.dumps(sorted(owner_run_ids)))
+        return (' WHERE ' + ' AND '.join(clauses) if clauses else ''), parameters
 
     def count_runs(self, **filters: Any) -> int:
         """Count all matching runs without the presentation page limit."""
-        total = 0
-        offset = 0
-        while True:
-            page = self.runs(limit=MAX_RUN_LIMIT, offset=offset, **filters)
-            total += len(page)
-            if len(page) < MAX_RUN_LIMIT:
-                return total
-            offset += len(page)
+        where, parameters = self._run_where(**filters)
+        with self.store._lock:
+            return self.store._connection.execute(
+                'SELECT COUNT(*) FROM runtime_runs' + where, parameters).fetchone()[0]
 
     def run_detail(self, run_id: str) -> dict[str, Any]:
         return self.store.describe_run(run_id)
