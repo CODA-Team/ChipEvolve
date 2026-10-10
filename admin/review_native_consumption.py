@@ -3,9 +3,27 @@ import argparse
 import json
 import math
 import re
+import subprocess
 from pathlib import Path
 
 from flow_native_baseline import digest, now, write_json
+
+
+def stored_adjustments(executable, database, output):
+    script = output.with_suffix('.tcl')
+    script.write_text(f'read_db {{{database}}}\n' + '''foreach name {metal2 metal3 metal4 metal10} {
+    set layer [[[ord::get_db] getTech] findLayer $name]
+    puts "PERSISTED_LAYER name=$name adjustment=[$layer getLayerAdjustment]"
+}
+''')
+    with output.open('w') as log:
+        result = subprocess.run([str(executable), '-no_init', '-exit', str(script)],
+                                stdout=log, stderr=log, check=False)
+    if result.returncode != 0:
+        raise RuntimeError('Read-only native database inspection failed: ' + str(output))
+    return {name: float(value) for name, value in re.findall(
+        r'^PERSISTED_LAYER name=(metal\d+) adjustment=([-+\d.eE]+)$',
+        output.read_text(), re.MULTILINE)}
 
 
 def review(run):
@@ -14,6 +32,13 @@ def review(run):
     manifest = json.loads((backup / 'campaign_manifest.json').read_text())
     evidence = {}
     observations = []
+    receipt = json.loads((run / 'receipt.json').read_text())
+    baseline = json.loads((Path(receipt['baseline']) / 'baseline/manifest.json').read_text())
+    executable = Path(baseline['tools']['openroad']['path'])
+    if digest(executable) != baseline['tools']['openroad']['sha256']:
+        raise ValueError('OpenROAD executable differs from the frozen native reference.')
+    inspection = run / 'parameter-consumption-evidence'
+    inspection.mkdir(exist_ok=True)
 
     def record(path):
         name = str(path.relative_to(run))
@@ -61,10 +86,22 @@ def review(run):
                 expected = [parameters[name] for name in names]
                 matched = len(actual) == 2 and all(math.isclose(a, b, abs_tol=1e-9)
                                                    for a, b in zip(actual, expected))
-                observations.append({'iteration': iteration, 'slot': slot, 'scope': scope,
+                observation = {'iteration': iteration, 'slot': slot, 'scope': scope,
                                      'expected': expected, 'actual': actual, 'matched': matched,
                                      'log': str(log.relative_to(run)),
-                                     'config': str(config_path.relative_to(run))})
+                                     'config': str(config_path.relative_to(run))}
+                if scope == 'routing':
+                    database = run / f'iteration-results/iteration-{iteration}/run_{slot}/6_final.odb'
+                    output = inspection / f'final-iteration-{iteration}-slot-{slot}.log'
+                    stored = stored_adjustments(executable, database, output)
+                    stored_match = set(stored) == {'metal2', 'metal3', 'metal4', 'metal10'} and all(
+                        math.isclose(stored[name], expected[index], abs_tol=1e-6)
+                        for name, index in (('metal2', 0), ('metal3', 0), ('metal4', 1), ('metal10', 1)))
+                    observation.update(stored_adjustments=stored, stored_matched=stored_match,
+                                       matched=matched and stored_match)
+                    for path in (database, output, output.with_suffix('.tcl')):
+                        record(path)
+                observations.append(observation)
     return {'verified': len(observations) >= 12 and all(row['matched'] for row in observations),
             'campaign_id': manifest['campaign_id'], 'reviewed_at': now(),
             'scope': 'Actual tool logs and config after native checkpoint inheritance, both rounds.',
