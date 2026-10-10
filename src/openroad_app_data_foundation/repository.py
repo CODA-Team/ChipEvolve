@@ -206,6 +206,15 @@ class DataStore:
             CREATE TABLE IF NOT EXISTS imported_artifacts (
                 artifact_id TEXT PRIMARY KEY
             );
+            CREATE TABLE IF NOT EXISTS artifact_import_receipts (
+                artifact_id TEXT PRIMARY KEY,
+                run_id TEXT NOT NULL,
+                snapshot_id TEXT,
+                status TEXT NOT NULL CHECK(status IN ('imported', 'failed')),
+                attempts INTEGER NOT NULL,
+                error TEXT,
+                updated_at TEXT NOT NULL
+            );
             -- JSON members the bundle already carries, kept so a caller can read
             -- the *fragment* a fact came from.  The execution foundation refuses
             -- artifacts over 4 MiB, so reading a whole file is not always possible;
@@ -430,6 +439,15 @@ class DataStore:
                     self.connection.execute(
                         "INSERT INTO main.imported_artifacts(artifact_id) VALUES (?)",
                         (artifact_id,))
+                    self.connection.execute(
+                        "INSERT INTO main.artifact_import_receipts"
+                        "(artifact_id,run_id,snapshot_id,status,attempts,error,updated_at)"
+                        " VALUES (?,?,?,'imported',1,NULL,strftime('%Y-%m-%dT%H:%M:%fZ','now'))"
+                        " ON CONFLICT(artifact_id) DO UPDATE SET"
+                        " snapshot_id=excluded.snapshot_id,status='imported',"
+                        " attempts=artifact_import_receipts.attempts+1,error=NULL,"
+                        " updated_at=excluded.updated_at",
+                        (artifact_id, snapshot.get('producer_run_id', snapshot['run_id']), snapshot_id))
                 # Inside the transaction, not after it.  This used to run on its
                 # own afterwards, and an import that hit "database is locked" on
                 # that second write left a snapshot that was complete, an artifact
@@ -565,12 +583,23 @@ class DataStore:
             "SELECT 1 FROM imported_artifacts WHERE artifact_id = ?", (artifact_id,)
         ).fetchone() is not None
 
-    def mark_imported(self, artifact_id: str) -> None:
-        """Record an artifact as seen without importing it (a superseded bundle)."""
+    def import_receipt(self, artifact_id: str) -> dict[str, Any] | None:
+        row = self.connection.execute(
+            "SELECT * FROM artifact_import_receipts WHERE artifact_id=?", (artifact_id,)
+        ).fetchone()
+        return dict(row) if row is not None else None
+
+    def record_import_failure(self, artifact_id: str, run_id: str, error: str) -> None:
+        """Keep a failed import retryable without claiming it has a snapshot."""
         with self.connection:
             self.connection.execute(
-                "INSERT OR IGNORE INTO main.imported_artifacts(artifact_id) VALUES (?)",
-                (artifact_id,))
+                "INSERT INTO main.artifact_import_receipts"
+                "(artifact_id,run_id,status,attempts,error,updated_at)"
+                " VALUES (?,?,'failed',1,?,strftime('%Y-%m-%dT%H:%M:%fZ','now'))"
+                " ON CONFLICT(artifact_id) DO UPDATE SET status='failed',"
+                " attempts=artifact_import_receipts.attempts+1,error=excluded.error,"
+                " updated_at=excluded.updated_at",
+                (artifact_id, run_id, error))
 
     def register_import(self, artifact_id: str, pack: Mapping[str, Any]) -> dict[str, Any]:
         """Register a snapshot and its artifact identity in one transaction.

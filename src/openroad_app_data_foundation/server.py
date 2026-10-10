@@ -17,7 +17,7 @@ from openroad_platform_contracts import ContractError
 
 from .artifacts import (DEFAULT_NATIVE_ROOT, artifact_manifest, native_files,
                         violations, native_excerpt, run_inventory)
-from .bundle import import_ready_bundles, load_run_bundle
+from .bundle import import_ready_bundles, import_bundle
 from .context import net_context, object_context, timing_path_context
 from .catalog import design_catalog, resolve_scope, named_context, snapshot_metrics
 from .metric_queries import compare_metric
@@ -203,12 +203,13 @@ class Handler(BaseHTTPRequestHandler):
                 payload = self._read_body()
                 run_id = payload.get("run_id")
                 artifact_id = payload.get("artifact_id")
-                if not isinstance(run_id, str) or not isinstance(artifact_id, str):
+                if not isinstance(run_id, str) or not run_id or not isinstance(artifact_id, str) or not artifact_id:
                     raise ValueError("run_id and artifact_id are required")
                 if self.execution_client is None:
                     raise KernelUnavailable("execution service is not configured")
-                self._send(201, self.store.register_import(
-                    artifact_id, load_run_bundle(self.execution_client, run_id, artifact_id)))
+                with self.request_lock:
+                    result = import_bundle(self.store, self.execution_client, run_id, artifact_id)
+                self._send(201, result)
                 return
             if self.path != "/snapshots":
                 self._send(404, {"error": "not found"})
@@ -252,6 +253,12 @@ class Handler(BaseHTTPRequestHandler):
                 store, self.execution_client, path.split('/')[-1], _int_param(query, 'wait_seconds', 0), import_results=False))
         if path == "/designs":
             return design_catalog(store)
+        if path.startswith('/imports/'):
+            artifact_id = urllib.parse.unquote(path[len('/imports/'):])
+            receipt = store.import_receipt(artifact_id)
+            if receipt is None:
+                raise KeyError('artifact import receipt not found: ' + artifact_id)
+            return {'import_receipt': receipt}
         if path == "/scope":
             return resolve_scope(store, query)
         if path == "/snapshots":

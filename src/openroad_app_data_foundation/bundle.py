@@ -11,7 +11,7 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-from openroad_platform_client import KernelClient
+from openroad_platform_client import KernelClient, KernelError
 from openroad_platform_contracts import ContractError
 
 from .ingest import load_snapshot_directory
@@ -61,40 +61,57 @@ def load_run_bundle(client: KernelClient, run_id: str, artifact_id: str) -> dict
         return pack
 
 
+def import_bundle(store: DataStore, client: KernelClient,
+                  run_id: str, artifact_id: str) -> dict[str, Any]:
+    """Import a specified producer artifact and return its durable outcome."""
+    receipt = store.import_receipt(artifact_id)
+    if receipt is not None and receipt['run_id'] != run_id:
+        raise ContractError('artifact import belongs to a different producer run')
+    if receipt is not None and receipt['status'] == 'imported':
+        snapshot = store.snapshot(receipt['snapshot_id'])
+        return {'snapshot': snapshot, 'record_counts': snapshot['record_counts'],
+                'import_receipt': receipt}
+    try:
+        run = client.run(run_id)
+        if run['status'] != 'succeeded':
+            raise ContractError('snapshot import requires a succeeded producer run')
+        artifact = next((item for item in client.artifacts(run_id)
+                         if item.get('artifact_id') == artifact_id), None)
+        if artifact is None or artifact.get('kind') != 'data_snapshot':
+            raise ContractError('specified artifact is not a producer data snapshot')
+        result = store.register_import(artifact_id, load_run_bundle(client, run_id, artifact_id))
+    except (ContractError, KernelError, OSError, ValueError, zipfile.BadZipFile) as exc:
+        store.record_import_failure(artifact_id, run_id, f'{type(exc).__name__}: {exc}')
+        raise
+    return {**result, 'import_receipt': store.import_receipt(artifact_id)}
+
+
 def import_ready_bundles(store: DataStore, client: KernelClient) -> int:
-    """Import each completed design snapshot artifact once."""
-    imported = 0
-    superseded = 0
-    for run in client.runs(status="succeeded", limit=100):
-        run_id = str(run["run_id"])
-        for artifact in client.artifacts(run_id):
-            artifact_id = artifact.get("artifact_id")
-            if artifact.get("kind") != "data_snapshot" or not isinstance(artifact_id, str):
-                continue
-            if store.imported(artifact_id):
-                continue
-            try:
-                store.register_import(artifact_id,
-                                      load_run_bundle(client, run_id, artifact_id))
-            except ContractError as exc:
-                # This importer runs inside every GET, so ANY artifact it cannot
-                # ingest used to make every request answer 400 - the cold audit
-                # listed six reachable triggers for that ("missing source identity",
-                # "bundle artifact not found", "exactly one data manifest", escaping
-                # member, duplicate record identity, unsupported schema version).
-                # Nothing is hidden: the artifact is retired so the service stays
-                # usable, and the reason goes to stderr on every pass.
-                store.mark_imported(artifact_id)
-                superseded += 1
-                print(f"import_ready_bundles: cannot ingest {artifact_id} "
-                      f"({exc}); marked as seen, the interface keeps serving",
-                      file=sys.stderr)
-                continue
-            imported += 1
-    if superseded:
-        print(f"import_ready_bundles: skipped {superseded} superseded bundle(s)",
-              file=sys.stderr)
-    return imported
+    """Scan every page; failed artifacts get three automatic attempts."""
+    imported = offset = 0
+    while True:
+        page = client.runs(status='succeeded', limit=100, offset=offset)
+        for run in page:
+            run_id = str(run['run_id'])
+            for artifact in client.artifacts(run_id):
+                artifact_id = artifact.get('artifact_id')
+                if artifact.get('kind') != 'data_snapshot' or not isinstance(artifact_id, str):
+                    continue
+                if store.imported(artifact_id):
+                    continue
+                receipt = store.import_receipt(artifact_id)
+                if receipt is not None and receipt['attempts'] >= 3:
+                    continue
+                try:
+                    import_bundle(store, client, run_id, artifact_id)
+                except ContractError as exc:
+                    print(f'import_ready_bundles: failed {artifact_id} ({exc}); '
+                          'receipt retained for retry', file=sys.stderr)
+                    continue
+                imported += 1
+        if len(page) < 100:
+            return imported
+        offset += len(page)
 
 
 #: A bundle imported through this function comes from *this host's own* execution

@@ -484,7 +484,7 @@ def test_completed_snapshot_artifact_is_imported_once(tmp_path: Path) -> None:
 
     class Client:
         def run(self, run_id: str) -> dict:
-            return {'labels': {'run_type': 'analysis', 'analysis_of_run_id': 'run-1'}}
+            return {'status': 'succeeded', 'labels': {'run_type': 'analysis', 'analysis_of_run_id': 'run-1'}}
 
         def runs(self, **_filters: object) -> list[dict]:
             return [{"run_id": "run-extract"}]
@@ -1016,20 +1016,18 @@ def test_metric_availability_list_respects_the_requested_scope(tmp_path: Path) -
         store.close()
 
 
-def test_import_skips_a_superseded_bundle_instead_of_failing(tmp_path: Path) -> None:
-    """One stale bundle must not take the interface down.
-
-    The importer runs on every GET, so a bundle whose snapshot already exists used
-    to raise ContractError out of the request and every query answered an error -
-    which is what happened while re-extracting a snapshot.
-    """
+def test_conflicting_bundle_leaves_failure_without_claiming_import(tmp_path: Path) -> None:
+    """A conflict must keep serving facts and retain a failed import receipt."""
     from unittest.mock import patch
 
     from openroad_app_data_foundation.bundle import import_ready_bundles
 
     class FakeKernel:
-        def runs(self, *, status: str, limit: int):
+        def runs(self, *, status: str, limit: int, offset: int):
             return [{"run_id": "run-1"}]
+
+        def run(self, run_id: str):
+            return {'status': 'succeeded'}
 
         def artifacts(self, run_id: str):
             return [{"kind": "data_snapshot", "artifact_id": "art-superseded"}]
@@ -1048,7 +1046,10 @@ def test_import_skips_a_superseded_bundle_instead_of_failing(tmp_path: Path) -> 
                    return_value=same_pack):
             imported = import_ready_bundles(store, FakeKernel())
         assert imported == 0
-        assert store.imported("art-superseded"), "the stale bundle must be marked seen"
+        assert not store.imported("art-superseded")
+        receipt = store.import_receipt('art-superseded')
+        assert receipt['status'] == 'failed'
+        assert 'snapshot already exists' in receipt['error']
         assert len(store.snapshots()) == 1
     finally:
         store.close()
