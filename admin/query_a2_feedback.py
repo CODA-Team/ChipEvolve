@@ -19,6 +19,7 @@ if __name__ == '__main__':
     client = EdaAiClient(data_url=args.data_url, kernel_url=args.kernel_url)
     response = client.get_metrics(snapshot_id=binding['snapshot_id'])
     rows = {row['name']: row for row in response['data']['metrics']}
+    metadata = binding['metadata_copy']
     expected = {'TNS': binding['measured']['observations']['tns'],
                 'WNS': binding['measured']['observations']['wns'],
                 'POWER_TOTAL': binding['measured']['observations']['power']}
@@ -26,9 +27,14 @@ if __name__ == '__main__':
         row = rows[name]
         if (row['status'] != 'available' or row['unit'] != value['unit']
                 or not math.isclose(row['value'], value['value'], abs_tol=1e-9)
-                or not row['evidence']):
+                or not row['evidence'] or row['authoritative_source'] != 'a2_cp0_evaluator'
+                or row['evaluation_conditions'] != binding['measured']['metric_context']['evaluation_conditions']):
             raise RuntimeError('SDK feedback differs from measured evaluator output: ' + name)
-    metadata = binding['metadata_copy']
+        evidence = row['evidence'][0]
+        if (evidence['artifact_id'] != metadata['artifact_id']
+                or evidence['sha256'] != metadata['sha256']
+                or evidence['resolution'] not in {'exact_path', 'exact_artifact'}):
+            raise RuntimeError('Metric evidence does not resolve to the actual evaluation metadata')
     raw = client.artifact_bytes(binding['producer_run_id'], metadata['artifact_id'])
     if hashlib.sha256(raw).hexdigest() != binding['metadata']['sha256']:
         raise RuntimeError('SDK metadata bytes differ from the actual evaluator artifact')
