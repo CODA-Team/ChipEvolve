@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .a2_checkpoint import clear_downstream, required_checkpoint, restore_checkpoint
 from .a2_evaluation import evaluation_plan, parse_evaluation
+from .a2_feedback import write_feedback
 from .adapter import _write_result, now, progress
 from .flow import archive_flow
 from .process import run_logged
@@ -122,6 +123,8 @@ def run_stage(result_path, started, workspace, inputs):
     (workspace / 'extractor_receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
     artifacts = [{'kind': 'extractor_log', 'path': 'extractor.log'},
                  {'kind': 'extractor_receipt', 'path': 'extractor_receipt.json'}, *archive_flow(workspace)]
+    if stage.startswith('eval_') and failure is None:
+        artifacts.append(write_feedback(workspace, receipt))
     progress('a2.' + stage, 'finished', status='succeeded' if failure is None else 'failed')
     return _write_result(result_path, started, 'succeeded' if failure is None else 'failed',
                          returncode, artifacts, failure)

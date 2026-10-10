@@ -133,3 +133,16 @@ def test_native_evaluation_preserves_fixed_context_and_rejects_incomplete_succes
     if not power_report:
         assert payload['failure']['category'] == 'a2_evaluation_missing'
         assert 'flow_archive' in {artifact['kind'] for artifact in payload['artifacts']}
+        assert not (tmp_path / 'a2-evaluation.json').exists()
+    else:
+        feedback = json.loads((tmp_path / 'a2-evaluation.json').read_text())
+        assert feedback['evaluation']['cp0_ns'] == .792
+        assert feedback['parasitic_mode'] == 'spef'
+        assert feedback['metrics'] == {
+            'eval_final__timing__setup__tns': -4.36,
+            'eval_final__timing__setup__ws': -.08,
+            'eval_final__power__total': .4,
+            'eval_final__flow__platform__time_units': '1ns'}
+        assert feedback['source_log']['sha256'] == hashlib.sha256(
+            (tmp_path / 'extractor.log').read_bytes()).hexdigest()
+        assert {'kind': 'raw_flow_metadata', 'path': 'a2-evaluation.json'} in payload['artifacts']
