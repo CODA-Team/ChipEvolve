@@ -49,6 +49,19 @@ def test_orfs_adapter_reads_structured_metadata_without_log_scraping(tmp_path: P
         assert observations["evidence"][0]["artifact_kind"] == "raw_flow_metadata"
 
 
+def test_metric_conversion_preserves_actual_evaluator_conditions(tmp_path: Path) -> None:
+    context = {'authoritative_source': 'a2_cp0_evaluator',
+               'evaluation_conditions': {'cp0_ns': .792, 'parasitic_mode': 'spef'}}
+    (tmp_path / 'metadata.json').write_text(json.dumps({
+        'metrics': {'eval_final__timing__setup__tns': -4.36}, 'metric_context': context}))
+    _run_adapter(tmp_path, _task({'adapter': 'orfs', 'metadata_path': 'metadata.json'}))
+    with zipfile.ZipFile(tmp_path / 'query-data.zip') as archive:
+        observation = json.loads(archive.read('observations.jsonl'))
+    assert observation['context'] == context
+    assert observation['value'] == -4.36
+    assert observation['evidence'][0]['logical_path'] == 'metadata.json'
+
+
 def test_opendb_plan_uses_native_openroad_entrypoint(tmp_path: Path) -> None:
     result = _run_adapter(tmp_path, _task({"adapter": "opendb", "odb_path": "design.odb",
                                            "openroad_bin": "/opt/openroad/bin/openroad"}),

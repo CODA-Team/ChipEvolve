@@ -47,6 +47,9 @@ def _observations(metadata: dict[str, Any], inputs: dict[str, Any]) -> list[dict
     values = metadata.get("metrics", metadata)
     if not isinstance(values, dict):
         raise ValueError("ORFS metadata metrics must be an object")
+    context = metadata.get("metric_context")
+    if context is not None and not isinstance(context, dict):
+        raise ValueError("metadata.metric_context must be an object")
     artifact_id = inputs.get("metrics_artifact_id")
     result: list[dict[str, Any]] = []
     for index, (name, value) in enumerate(sorted(values.items())):
@@ -67,6 +70,7 @@ def _observations(metadata: dict[str, Any], inputs: dict[str, Any]) -> list[dict
             "value": value,
             "status": "parsed",
             "evidence": [evidence],
+            **({"context": context} if context is not None else {}),
         })
     return result
 
