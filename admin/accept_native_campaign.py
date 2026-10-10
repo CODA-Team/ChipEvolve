@@ -4,9 +4,9 @@ import csv
 import hashlib
 import json
 import math
-from pathlib import Path
 import re
 import subprocess
+from pathlib import Path
 
 from flow_native_baseline import FORMAL, now, write_json
 
@@ -31,6 +31,17 @@ def audit(run):
     checks['physical_capture_finished'] = receipt.get('capture_exit_code') == 0
     checks['requested_full_campaign'] = manifest['iterations'] == 2 and manifest['runs'] == 3 and manifest['llm_enabled'] is True
     checks['predictor_requested'] = manifest['predictor'] == 'true'
+    consumption_path = run / 'parameter-consumption-review.json'
+    consumption = read(consumption_path) if consumption_path.is_file() else None
+    checks['physical_parameter_consumption'] = (isinstance(consumption, dict)
+        and consumption.get('verified') is True
+        and consumption.get('campaign_id') == manifest['campaign_id'])
+    checks['parameter_consumption_evidence_intact'] = (
+        checks['physical_parameter_consumption']
+        and bool(consumption.get('evidence'))
+        and all((run / entry['path']).is_file()
+                and digest(run / entry['path']) == entry['sha256']
+                for entry in consumption['evidence'].values()))
     usage = read(backup / 'llm_usage_summary.json')
     events = [json.loads(line) for line in (backup / 'llm_usage_events.jsonl').read_text().splitlines()]
     responses = [event for event in events if event['event'] == 'response_received']
@@ -55,7 +66,7 @@ def audit(run):
                                     'validate-backup', '--directory', str(dump),
                                     '--manifest', str(backup / 'campaign_manifest.json'),
                                     '--iteration', str(iteration), '--runs', '3'],
-                                   cwd=flow, capture_output=True, text=True)
+                                   cwd=flow, capture_output=True, text=True, check=False)
         checks[f'round_{iteration}_canonical'] = completed.returncode == 0
         metrics = read(dump / f'metrics_final_iter{iteration}.json')
         valid = [row for row in metrics if (
@@ -110,13 +121,14 @@ def audit(run):
     checks['feasible_baseline_preserved'] = best is not None and best['TNS_EVAL'] <= baseline['TNS_EVAL']
     text = (run / 'campaign.log').read_text()
     observations = [line for line in text.splitlines() if re.search(
-        r'dummy|fallback|bootstrap|numerical|failed|warning', line, re.I)]
+        r'dummy|fallback|bootstrap|numerical|failed|warning', line, re.IGNORECASE)]
     return {'accepted': all(checks.values()), 'audited_at': now(), 'campaign_id': manifest['campaign_id'],
             'checks': checks, 'receipt': receipt, 'usage': usage, 'rounds': rounds,
             'baseline': baseline, 'best_feasible_observed': best,
             'timing_improvement_observed': best is not None and best['TNS_EVAL'] < baseline['TNS_EVAL'],
             'benefit_proven_by_fair_evaluation': False, 'fallback_and_warning_observations': observations,
             'model_decision_review': review,
+            'parameter_consumption_review': consumption,
             'note': 'Execution acceptance and one-campaign QoR are separate from platform benefit evidence.'}
 
 

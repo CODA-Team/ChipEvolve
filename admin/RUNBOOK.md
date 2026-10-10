@@ -26,6 +26,8 @@ EF 新版本使用 SQLite WAL，保持 FULL 持久化。在线保存数据库应
 
 完整实验结束后，使用 `admin/accept_native_campaign.py --run-root <实验目录>` 审计同一个 campaign。审计复用原生 canonical 检查，核对模型账本、两轮实际 CSV、检查点继承、预测排序、固定 CP0 和成功候选的全部最终产物。候选失败按原生关卡处理并明确列出；不新增要求所有搜索候选必然成功的条件。跨轮模型输出是否实际影响下一批，先形成同目录 `model-decision-review.json`，再冻结 P1 验收。
 
+审计同时要求 `parameter-consumption-review.json`：核实实际工具日志中的阶段参数和归档配置相符，证据文件绑定当前 campaign 并校验 hash。参数进入配置不代表物理工具消费。当前 retry1 已确认缺少 Nangate45 AES routing hook，完整收尾后保存不通过记录。源码修复提交后执行 `freeze_native_revision.py --reference <原始基线> --output <新源码基线>`；新实验的 prepare/supervise 均明确传入同一新 `--baseline`，不复用旧 CP0、历史或产物。等待 terminal receipt 且出现 `capture_exit_code` 再做最终审计。
+
 P1 通过后，用 `dev.py execution-foundation python ../admin/run_a2_stage_acceptance.py --native-run <已验收目录> --state <新目录>` 执行 P2 的真实 AES 阶段链。入口拒绝未验收的 native campaign；先保存请求，再通过 HTTP 提交、等待和传递产物。每段保留 EF run、配置和命令回执，核对继承文件 hash、实际执行阶段和完整最终产物。此入口是阶段接点验收，同 campaign 续跑在 P3 实现。
 
 该入口还执行真实 AES 全局布线取消和最终 ODB 数据导入；结果分别保存在 `routing-cancellation.json` 与 `physical-import.json`。取消必须同时满足五秒内终态、原始进程全部退出、资源预留归零；数据快照声明实际物理任务为 analysis parent，指定 producer/artifact 导入，并验证并发重复请求和 DF 重启后的持久回执。新 EF/DF 服务由入口启动与关闭，状态全部保留在指定的新目录，不操作旧服务。此物理实体导入不替代 P3 时序评价回流。
