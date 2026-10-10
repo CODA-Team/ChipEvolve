@@ -1,6 +1,6 @@
 # Agentic EDA 施工状态
 
-更新日期：2026-10-10。用户已确认规划并授权连续施工。P0 已完成；P1 首次实验因整批布线时限不足失败，独立完整重试正在收尾。审计发现 Nangate45 AES 布线参数缺少物理消费接线，当前重试完整保留但不能作为 P1 通过依据；正式 Flow 修复已提交，待该实验结束后重新完成独立验证。P2 可靠导入和列表修复已提交，默认盘 HTTP 取消修复已通过复测；正式阶段接入等待修复后 P1。P3 至 P6 待前置验收。
+更新日期：2026-10-10。用户已确认规划并授权连续施工。P0 已完成；P1 首次实验因整批布线时限不足失败，retry1 两轮完整结束但因参数物理消费缺失未通过验收。接线修复已通过真实 OpenROAD API 验证，retry2 使用独立冻结源码正在执行完整两轮三候选实验。P2 可靠导入和列表修复已提交，默认盘 HTTP 取消修复已通过复测；正式阶段接入等待修复后 P1。P3 至 P6 待前置验收。
 
 ## 当前工作
 
@@ -35,6 +35,12 @@ Toolkits 的阶段接口已准备并通过 48 项检查；实际 AES 检查点�
 P2 验收入口已补齐真实 AES 布线取消与实体数据导入：阶段链通过后，用原生 CTS 产物启动真实全局布线，在并发列表读取下核对原始进程身份、五秒取消和资源归还；再通过 Toolkit 从该次最终 ODB 导出快照，用新的 DF 状态验证并发重复导入与服务重启后的回执。此入口尚未运行，不将准备工作计作业务能力完成。
 
 ## 恢复入口
+
+retry1 于 07:31 UTC 正常结束：退出码 0、source_changed=[]、capture_exit_code=0，两轮各 18 个最终物理产物。17 次真实模型调用，309,360 token。最终基准和可行最优 TNS=-4.36 ns、power=0.4 W；第二轮第三候选 TNS=-3.15 ns 但 power=0.462 W，超功耗，不计改善。`p1-acceptance.json` 仅参数物理消费及其证据门槛不通过，因此没有启动 P2。
+
+真实接口验证证据为 `var/flow-agent/p1-routing-probe-20261010/receipt.json`：加载本次真实 AES ODB，四次 OpenROAD capacity setter 均返回 0，两个阶段分别使用独立提案。新冻结基线为 `var/flow-agent/p1-routing-baseline-20261010`，修复实验为 `var/flow-agent/p1-native-20261010-retry2`；supervisor 使用同一显式 baseline。首个真实 floorplan 日志已出现 `scope=floorplan pin=0.5 above=0.25`，其余阶段与最终完整验收仍待运行。
+
+`capture_native_decisions.py` 正在等待第二轮配置生成边界，保存模型输入批次、三份配置/SDC 与 lifecycle 到新实验 `decision-review-evidence`，供人工核实；不会自动签署模型决策审阅。修复实验结束并采集完后运行 `review_native_consumption.py` 核对两轮实际工具日志与继承配置，再审阅真实模型决策、完成 P1 审计、推进 P2。
 
 最新物理消费审计在重试目录 `parameter-consumption-review.json`：生成的 FLOORPLAN_PIN/ABOVE 与 PIN/ABOVE 参数未被 Nangate45 默认脚本消费，默认实际容量固定为 0.5/0.25；CTS 两项参数确实被消费。正式 Flow 提交 `57be217` 补充独立 floorplan 和 post-CTS routing hook，保持原平台基准容量不变，29 项检查通过。Tcl stub 检查只证明参数接线，真实工具 setter 与修复后的两轮物理实验仍待验证。不得改动当前运行副本或从不同源码实验拼接验收。
 

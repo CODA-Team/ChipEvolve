@@ -1,6 +1,6 @@
 # Agentic EDA 施工运行手册
 
-正式源码在工作区各独立仓库。当前阶段为 P1，首次运行 `var/flow-agent/p1-native-20261010` 已失败并保留；当前完整重试为 `var/flow-agent/p1-native-20261010-retry1`。实际命令、进程身份、状态和退出码由各自目录的 receipt 保存。
+正式源码在工作区各独立仓库。当前阶段为 P1，首次运行 `var/flow-agent/p1-native-20261010` 已失败并保留；retry1 完整结束但参数物理消费不通过。修复后的完整重试为 `var/flow-agent/p1-native-20261010-retry2`，明确引用 `var/flow-agent/p1-routing-baseline-20261010`。实际命令、进程身份、状态和退出码由各自目录的 receipt 保存。
 
 ## 启动与观察
 
