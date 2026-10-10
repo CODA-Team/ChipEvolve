@@ -1,14 +1,14 @@
 """Export an actual final ODB and verify durable, repeatable HTTP import."""
-from concurrent.futures import ThreadPoolExecutor
 import json
 import socket
 import subprocess
 import time
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 
-from openroad_platform_contracts import InputFile, ResourceRequest, TaskSpec
-
+from a2_feedback_snapshot import prepare_feedback
 from flow_native_baseline import WORKSPACE, now, write_json
+from openroad_platform_contracts import InputFile, ResourceRequest, TaskSpec
 
 
 def request(base, path, payload=None):
@@ -20,7 +20,8 @@ def request(base, path, payload=None):
         return json.load(response)
 
 
-def export_and_import(client, final_odb, physical_run, state, profile, threads, kernel_url, environment):
+def export_and_import(client, final_odb, physical_run, state, profile, threads, kernel_url, environment,
+                      evaluation_run=None):
     output = state / 'physical-import.json'
     snapshot_id = 'p2-aes-final-' + state.name
     task = TaskSpec(task_id='a2-final-opendb-export', project_id='p2-a2-stage',
@@ -71,6 +72,7 @@ def export_and_import(client, final_odb, physical_run, state, profile, threads, 
     record['data_command'] = command
     write_json(output, record)
     base = f'http://127.0.0.1:{port}'
+    feedback = prepare_feedback(client, state, physical_run, evaluation_run) if evaluation_run else None
     for epoch in (1, 2):
         with (data_root / f'server-{epoch}.log').open('x') as log:
             server = subprocess.Popen(command, env=environment, stdout=log, stderr=log)
@@ -105,10 +107,29 @@ def export_and_import(client, final_odb, physical_run, state, profile, threads, 
                     record['repeated_after_restart'] = repeated
                     if repeated['import_receipt'] != record['epoch_1']['import_receipt']:
                         raise RuntimeError('Restart changed a successful import receipt')
+                if feedback is not None:
+                    request(base, '/snapshots/from-run', feedback['import_request'])
+                    subprocess.run([str(WORKSPACE / 'data-interface/.venv/bin/python'),
+                                    str(WORKSPACE / 'admin/query_a2_feedback.py'),
+                                    '--data-url', base, '--kernel-url', kernel_url,
+                                    '--binding', str(state / 'a2-feedback.json'),
+                                    '--output', str(state / f'feedback-query-epoch-{epoch}.json')],
+                                   env=environment, check=True)
+                    imported = request(base, '/imports/' + feedback['import_request']['artifact_id'])['data']['import_receipt']
+                    if imported['status'] != 'imported' or imported['attempts'] != 1:
+                        raise RuntimeError('CP0 feedback import is not durable and idempotent')
+                    if epoch == 2 and imported != feedback['epoch_1']:
+                        raise RuntimeError('Restart changed the successful CP0 feedback import receipt')
+                    feedback[f'epoch_{epoch}'] = imported
+                    feedback['accepted'] = epoch == 2
+                    write_json(state / 'a2-feedback.json', feedback)
             finally:
                 server.terminate()
                 server.wait(timeout=120)
     record.update(accepted=True, finished_at=now())
+    if feedback is not None:
+        record['cp0_feedback'] = {'accepted': feedback['accepted'],
+                                  'snapshot_id': feedback['snapshot_id']}
     write_json(output, record)
     return {'accepted': True, 'record': str(output), 'snapshot_id': snapshot_id,
             'producer_run_id': run_id, 'physical_run_id': physical_run,

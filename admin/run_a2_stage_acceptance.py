@@ -4,17 +4,16 @@ import json
 import math
 import os
 import re
-from pathlib import Path
 import socket
 import subprocess
 import time
+from pathlib import Path
 
+from a2_physical_import import export_and_import
+from a2_stage_cancellation import measure_routing_cancel
+from flow_native_baseline import WORKSPACE, digest, now, write_json
 from openroad_platform_client import KernelClient
 from openroad_platform_contracts import InputFile, ResourceRequest, TaskSpec
-
-from flow_native_baseline import WORKSPACE, digest, now, write_json
-from a2_stage_cancellation import measure_routing_cancel
-from a2_physical_import import export_and_import
 
 TERMINAL = {'succeeded', 'failed', 'cancelled', 'timed_out', 'lost'}
 
@@ -25,7 +24,7 @@ def capture_environment(destination, environment):
     package_code = ('import importlib.metadata as m,json; '
                     'print(json.dumps(sorted([(d.metadata["Name"],d.version) '
                     'for d in m.distributions()])))')
-    for name in ('execution-foundation', 'toolkits', 'data-foundation'):
+    for name in ('execution-foundation', 'toolkits', 'data-foundation', 'data-interface'):
         project = WORKSPACE / name
         names = subprocess.check_output(['git', 'ls-files', '-z', '--', 'src', 'contracts',
                                          'core', 'gateway', 'pyproject.toml'], cwd=project).decode().split('\0')
@@ -39,6 +38,12 @@ def capture_environment(destination, environment):
                             cwd=project, text=True).strip(), 'files': files,
                          'patch_sha256': digest(patch), 'packages': json.loads(subprocess.check_output(
                              [str(project / '.venv/bin/python'), '-c', package_code], env=environment))}
+    records['acceptance'] = {'files': {
+        name: digest(WORKSPACE / 'admin' / name) for name in (
+            'run_a2_stage_acceptance.py', 'prepare_a2_stage_inputs.py',
+            'a2_stage_cancellation.py', 'measure_http_cancellation.py',
+            'a2_physical_import.py', 'a2_feedback_snapshot.py', 'query_a2_feedback.py',
+            'flow_native_baseline.py')}, 'packages': []}
     write_json(destination / 'manifest.json', records)
     return records
 
@@ -191,7 +196,8 @@ def main():
             final_odb = next(artifact for artifact in client.artifacts(physical_run)
                              if artifact['store_key'] == 'flow/results/6_final.odb')
             receipt['physical_import'] = export_and_import(client, final_odb, physical_run, state,
-                profile, threads, f'http://127.0.0.1:{port}', environment)
+                profile, threads, f'http://127.0.0.1:{port}', environment,
+                evaluation_run=receipt['jobs']['eval_final']['run_id'])
             final_environment = capture_environment(state / 'environment-finish', environment)
             receipt['environment_unchanged'] = all(
                 initial_environment[name]['files'] == final_environment[name]['files']
