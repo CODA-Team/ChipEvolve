@@ -24,6 +24,10 @@ EF 新版本使用 SQLite WAL，保持 FULL 持久化。在线保存数据库应
 
 ## 验收与交接
 
+P2 已完整验收通过，最终总回执为 `var/flow-agent/p2-a2-stage-20261010/p2-acceptance.json`；数据重验为独立 `var/flow-agent/p2-data-acceptance-20261010`。初次 `receipt.json` 仍是 failed，作为字段误读的原始记录保留。衔接脚本和阶段入口均不再重启；新工作进入 P3。
+
+`continue_a2_data_acceptance.py` 只适用于已成功且原执行环境未变的四个物理/评价阶段，复用公开 artifact_id 并用 API-only kernel 验证新 DF 的数据链；不提交新物理任务。这是验收脚本错误后的数据重验，不是 A2 campaign 的显式恢复。
+
 最新进度：retry2 完整收尾且 P1 已验收通过；P2 状态目录 `var/flow-agent/p2-a2-stage-20261010` 已存在且正在执行。恢复工作时先读取这两个目录的 `receipt.json`，不要重新执行 P1→P2 衔接脚本或重复启动 P2。原衔接失败与初次 P1 未通过记录已保留；复审记录说明了模型选择数值候选的实际行为。
 
 模型决策有效不等于每个阶段都选中直接 LLM 参数提案。原生 Agent2 允许模型选择 kmeans 等策略并选中 LHS/扰动候选；这一分支须审阅实际响应、源码应用点、运行日志与当前 canonical decision 的 hash/参数，并纳入签署且完整的 evidence。没有这些证据不通过，不改写 origin，也不强迫原优化器选中直接提案。

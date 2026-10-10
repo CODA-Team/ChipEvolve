@@ -1,8 +1,14 @@
 # Agentic EDA 施工状态
 
-更新日期：2026-10-10。用户已确认规划并授权连续施工。P0 已完成；P1 修复后的 retry2 完整结束并通过验收。P2 真实阶段链已启动，尚未验收。P3 至 P6 待前置验收；下文早期记录保留为历史，不覆盖本段最新状态。
+更新日期：2026-10-10。用户已确认规划并授权连续施工。P0/P1 已完成；P2 真实阶段、取消与数据回流已验收通过。P3 正在接入完整 A2 调度和显式续跑，尚未验收；P4 至 P6 待前置验收。下文早期记录保留为历史，不覆盖本段最新状态。
 
 ## 最新验收与运行
+
+P2 的真实 place→CTS→route_finish→eval_final 均成功，TNS=-4.36 ns/power=0.400 W 与原生基准报告值一致。真实 AES routing 在并发列表读取下取消：相关原始 PID 全部消失约 0.127 秒，终态约 0.228 秒，资源归零。初次数据验收的 `KeyError: data` 是验收程序误把 POST import 的直接结果当作 GET envelope；原失败 receipt 保留。
+
+修复后 `continue_a2_data_acceptance.py` 以 API-only 方式打开本次独立 EF 状态，复用已经注册的物理/评价/实体/指标快照产物，在新的独立 DF 状态完成并发重复导入、两次重启回执与 Data Interface SDK 查询。执行模块源码/安装依赖与原物理实验相同；验收脚本修复前后 hash 单独声明。EF run_id 集合完全不变，没有重跑物理或评价任务。最终验收见 `var/flow-agent/p2-a2-stage-20261010/p2-acceptance.json` 和 `var/flow-agent/p2-data-acceptance-20261010/receipt.json`，原失败记录不覆盖。
+
+P3 已准备薄 leaf adapter：公共 EF wheel/HTTP、原生候选 identity/实际 DRP donor、ODB/SDC hash、持久任务请求、丢提交回执时幂等重取、注册产物投影与原生评价 log。七个边界检查通过；模拟任务只算工程检查，不是实际 P3 验收。原生模式保留，尚未实现/验收整个 campaign 恢复，不能把单叶子可重取当作完整续跑。
 
 retry2 于北京时间 17:27:48 正常退出 0，源码未变、产物采集退出 0。两轮各三候选均完成，36 个最终文件保存并校验；18 条参数消费观测全部匹配，最终 ODB 的实际 routing adjustment 与归档配置一致。固定 CP0=0.792 ns，基准 TNS=-4.36 ns/power=0.400 W；最优可行观测为第二轮 slot 1，TNS=-4.11 ns/power=0.400 W，|TNS| 降低约 5.73%。单次观测不代表平台公平收益已经证明。
 

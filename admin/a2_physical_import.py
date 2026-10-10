@@ -61,6 +61,17 @@ def export_and_import(client, final_odb, physical_run, state, profile, threads, 
         raise RuntimeError('Export did not retain the exact final physical ODB')
     payload = {'run_id': run_id, 'artifact_id': bundles[0]['artifact_id']}
     record['import_request'] = payload
+    feedback = prepare_feedback(client, state, physical_run, evaluation_run) if evaluation_run else None
+    return verify_imports(record, state, kernel_url, environment, feedback=feedback)
+
+
+def verify_imports(record, state, kernel_url, environment, *, feedback=None):
+    """Verify existing real exports; no physical task is submitted here."""
+    output = state / 'physical-import.json'
+    payload = record['import_request']
+    run_id = record['producer_run_id']
+    physical_run = record['task']['labels']['analysis_of_run_id']
+    snapshot_id = record['task']['inputs']['snapshot_id']
     data_root = state / 'data'
     data_root.mkdir()
     with socket.socket() as endpoint:
@@ -72,7 +83,8 @@ def export_and_import(client, final_odb, physical_run, state, profile, threads, 
     record['data_command'] = command
     write_json(output, record)
     base = f'http://127.0.0.1:{port}'
-    feedback = prepare_feedback(client, state, physical_run, evaluation_run) if evaluation_run else None
+    if feedback is not None:
+        write_json(state / 'a2-feedback.json', feedback)
     for epoch in (1, 2):
         with (data_root / f'server-{epoch}.log').open('x') as log:
             server = subprocess.Popen(command, env=environment, stdout=log, stderr=log)
@@ -89,7 +101,8 @@ def export_and_import(client, final_odb, physical_run, state, profile, threads, 
                     with ThreadPoolExecutor(max_workers=2) as pool:
                         imports = list(pool.map(lambda _: request(base, '/snapshots/from-run', payload), range(2)))
                     record['initial_imports'] = imports
-                    if imports[0]['data'] != imports[1]['data']:
+                    write_json(output, record)
+                    if imports[0] != imports[1]:
                         raise RuntimeError('Concurrent duplicate import returned different snapshots')
                 receipt = request(base, '/imports/' + payload['artifact_id'])['data']['import_receipt']
                 summary = request(base, '/snapshots/' + snapshot_id + '/summary?detail=full')['data']
@@ -103,7 +116,7 @@ def export_and_import(client, final_odb, physical_run, state, profile, threads, 
                         or summary['record_counts']['physical_context'] <= 0):
                     raise RuntimeError('Imported physical facts or producer lineage are incomplete')
                 if epoch == 2:
-                    repeated = request(base, '/snapshots/from-run', payload)['data']
+                    repeated = request(base, '/snapshots/from-run', payload)
                     record['repeated_after_restart'] = repeated
                     if repeated['import_receipt'] != record['epoch_1']['import_receipt']:
                         raise RuntimeError('Restart changed a successful import receipt')
