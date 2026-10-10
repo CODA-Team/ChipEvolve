@@ -131,6 +131,9 @@ def main():
                 task = TaskSpec(task_id='a2-stage-' + stage, project_id='p2-a2-stage',
                                 design_id='aes', experiment_id=state.name, plugin_id='openroad-data',
                                 timeout_seconds=3600, staged_inputs=tuple(staged), inputs=inputs,
+                                labels=({'run_type': 'analysis', 'analysis_of_run_id':
+                                         receipt['jobs']['route_finish']['run_id']}
+                                        if stage == 'eval_final' else {}),
                                 resources=ResourceRequest(cpu_cores=threads, memory_bytes=6 << 30, processes=256))
                 key = state.name + ':' + stage
                 job = {'task': task.to_dict(), 'idempotency_key': key, 'status': 'submitting'}
