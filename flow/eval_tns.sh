@@ -190,7 +190,15 @@ for ((i=1; i<=effective_runs; i++)); do
 
     echo "[eval_tns.sh] Evaluating run $i (${stage}) ..."
     eval_log="${SCRIPT_DIR}/logs/eval_tns_${stage}_run${i}.log"
-    $OPENROAD_EXE -exit "${SCRIPT_DIR}/eval_tns.tcl" > "$eval_log" 2>&1 || true
+    case "${DRP_EXECUTION_BACKEND:-native}" in
+        platform)
+            python3 "${SCRIPT_DIR}/platform_leaf.py" \
+                "${SCRIPT_DIR}/designs/${platform}/${design}/config_${i}.mk" \
+                "$i" "$platform" "$design" "eval_${stage}"
+            ;;
+        native) $OPENROAD_EXE -exit "${SCRIPT_DIR}/eval_tns.tcl" > "$eval_log" 2>&1 || true ;;
+        *) echo "Unknown execution backend: $DRP_EXECUTION_BACKEND" >&2; exit 1 ;;
+    esac
 
     # report_tns / report_wns print a line whose first token is 'tns' / 'wns'
     # followed by the value, e.g. "tns 0.00" or "tns -12345.67". Anchor on a line

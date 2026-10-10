@@ -25,6 +25,15 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 FLOW_DIR="$SCRIPT_DIR"
 WORK_DIR="$SCRIPT_DIR"
 
+case "${DRP_EXECUTION_BACKEND:-native}" in
+    platform)
+        exec python3 "${SCRIPT_DIR}/platform_leaf.py" \
+            "$CURRENT_CONFIG" "$TASK_ID" "$PLATFORM" "$DESIGN" "$STAGE"
+        ;;
+    native) ;;
+    *) echo "Unknown execution backend: $DRP_EXECUTION_BACKEND" >&2; exit 1 ;;
+esac
+
 # Per-run isolated directories
 BASE_PATH="${PLATFORM}/${DESIGN}/run_${TASK_ID}"
 RES_DIR="${WORK_DIR}/results/${BASE_PATH}"

@@ -94,3 +94,23 @@ nohup ./run.sh -p nangate45 -d aes -o TNS_EVAL \
 echo "PID=$! LOG=$LOG"
 tail -F "$LOG"
 ```
+
+## Platform leaf dispatch
+
+The optional `DRP_EXECUTION_BACKEND=platform` mode sends native physical stages
+and fixed-CP0 evaluations through the public Execution Foundation client. Install
+the published client/contracts wheels with `requirements/requirements-platform.txt`.
+Set `DRP_PLATFORM_CONFIG` to a runtime JSON file containing `kernel_url`,
+`state_root`, `profile_path`, `threads`, and `timeout_seconds`. The profile uses the
+same frozen native flow/tool bindings as the stage adapter; runtime state belongs
+outside the source checkout.
+
+A2 retains its stage barriers, proposals, ranking and DRP clones. Each leaf binds
+the current candidate identity and actual native donor to registered ODB/SDC bytes.
+Exact submitted requests are saved before submission, so a lost submit reply can
+be recovered with the same idempotency key. Already completed leaves reproject
+registered outputs without creating new physical runs or duplicating ancestor logs.
+
+Leaf recovery alone is not campaign resume. The native driver still needs an
+explicit phase journal and recovery entry before interrupted campaigns can be
+continued. Do not use `-F` as a resume command.
