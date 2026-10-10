@@ -189,6 +189,18 @@ def main():
                                    or observations[name]['unit'] != unit
                                    for name, unit in (('tns', 'ns'), ('wns', 'ns'), ('power', 'W')))):
                         raise RuntimeError('Final evaluation did not use the actual SPEF and fixed CP0')
+                    baseline_result = acceptance['baseline']
+                    receipt['native_baseline_comparison'] = {
+                        'native_signed_tns_ns': baseline_result['tns'],
+                        'native_power_W': baseline_result['power'],
+                        'platform_signed_tns_ns': observations['tns']['value'],
+                        'platform_power_W': observations['power']['value'],
+                        'signed_tns_delta_ns': observations['tns']['value'] - baseline_result['tns'],
+                        'power_delta_W': observations['power']['value'] - baseline_result['power'],
+                        'same_reported_values': (
+                            observations['tns']['value'] == baseline_result['tns']
+                            and observations['power']['value'] == baseline_result['power']),
+                        'note': 'One repeated baseline checks the execution seam; it is not a fair benefit evaluation.'}
                 job.update(archive=checkpoint, command_receipt=command_receipt)
                 write_json(receipt_path, receipt)
                 print(json.dumps({'stage': stage, 'status': last_status, 'run_id': last_run}), flush=True)
