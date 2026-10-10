@@ -32,4 +32,6 @@ P1 通过后，用 `dev.py execution-foundation python ../admin/run_a2_stage_acc
 
 该入口还执行真实 AES 全局布线取消和最终 ODB 数据导入；结果分别保存在 `routing-cancellation.json` 与 `physical-import.json`。取消必须同时满足五秒内终态、原始进程全部退出、资源预留归零；数据快照声明实际物理任务为 analysis parent，指定 producer/artifact 导入，并验证并发重复请求和 DF 重启后的持久回执。新 EF/DF 服务由入口启动与关闭，状态全部保留在指定的新目录，不操作旧服务。此物理实体导入不替代 P3 时序评价回流。
 
+入口同时保存 CP0 评价结果的指标快照，记录在 `a2-feedback.json`。通过公开产物 ID 将实际 evaluator metadata 交给既有转换 adapter，并由 `query_a2_feedback.py` 在 Data Interface 自己的环境查询新 DF；`feedback-query-epoch-1/2.json` 核实 signed TNS/WNS、功耗、单位与源 metadata 字节，DF 重启不得产生第二次成功导入。此检查覆盖评价反馈链，完整 A2 调度与同 campaign 恢复仍在 P3 验收。
+
 核对源码 hash 未变、正常退出、两轮真实结果、固定 CP0 与功耗、模型决策进入配置、第二轮预测排序、候选淘汰及来源。保存失败和 fallback。通过后更新 STATUS，进入 P2，不将物理流程成功写成收益已证明。
