@@ -51,7 +51,9 @@ L4–L6 是整合切片：L2/L3 原生验证完成后，以实际调用边界设
 - 首次运行在任务受理时失败：独立 8 核容量又乘默认 60%，不够接受 8 线程任务。原失败目录保留；`admin/run_platform_campaign.py` 修正本实验 `--platform-fraction 1.0`，仍限制总容量为 8 核/12 GiB；`admin/test_platform_campaign_budget.py` 用真实 API-only gateway 验证 8 核受理、9 核拒绝，不运行 EDA。
 - 重跑目录 `var/flow-agent/p3-platform-campaign-20261011-retry1`，每个尝试独立保存证据。
 - retry1 在第一个真实中断窗口后恢复失败：GNU timeout 子进程组仍持有 Controller 锁，验收脚本只停止原组。已按专有运行目录核实并清理该次残留 publisher；EF 的真实 placement 正常完成。修正验收脚本为停止专有 Controller 会话内全部 publisher 进程组，保留 EF 的独立运行进程；不改 Flow 算法、阶段超时或公共接口。`admin/test_platform_campaign_control.py` 用真实 timeout、继承锁与独立 worker 验证边界。新重跑目录为 `var/flow-agent/p3-platform-campaign-20261011-retry2`。
+- retry2 的三个真实 placement 均成功，但约 17.6–18.0 MB 的物理阶段包超过整包 HTTP 的 4 MiB 上限，Flow 无法投影结果并进入 DRP。正式 Flow `a90bd07` 将物理包取回改为现有公共 `materialize_artifact`，本机采用 API 定位/复制、远程采用原分块下载，保留 hash 校验；不改公共契约或下载上限。新增大包回归后 48 项检查通过，实际 17,579,577 字节产物通过公共 HTTP 定位和 hash 验证；证据见 `var/flow-agent/p3-large-artifact-check-20261011`。新实验目录 `var/flow-agent/p3-platform-campaign-20261011-retry3`，历史失败保留。
 - `PROJECT.md`、`TASKS.md`、`ARCHITECTURE.md`、`admin/STATUS.md`：记录老板修正的业务范围与已启动切片；不改变 API。
+- `admin/accept_platform_campaign.py` 和对应恢复审计测试：完整实验结束后核对真实中断、原任务/产物、模型账本、两轮 canonical 与物理产物；`admin/query_campaign_feedback.py` 和对应来源/条件测试：通过安装的 DI SDK 校验实际评价数值、单位、条件与原始 metadata 字节。两者为当前切片的开发验收入口，不新增平台业务模块或评测底座。
 - 若真实运行暴露缺陷，先报告具体失败与影响面，仅修 P3 所属源码/验收脚本；保留失败副本，重新冻结后再运行。
 
 数据流：原生 A2 的候选/阶段 → EF TaskSpec → Toolkits/OpenROAD → 原始产物与实际 CP0 测量 → 指定 metadata 导出 → DF 显式导入 → DI 查询事实与来源。
@@ -156,4 +158,16 @@ sequenceDiagram
 
 retry2 已开始完整物理实验，第一个真实中断窗口恢复通过：本地未存 run_id 的原请求恢复后绑定同一受理 run，Controller 会话无残留 publisher，EF 的实际 placement 成功，并且公共 runs 接口仅登记一个该 slot/stage 的任务。证据见 `var/flow-agent/p3-platform-campaign-20261011-retry2/first-window-resume-review.json`。记录时后续候选仍在运行；其余三个窗口、两轮完整结束与全量数据回流尚待核实，不据此签署完整 P3。
 
+随后 retry2 因物理大包交接失败结束（见上）。老板再次授权按施工计划继续；已冻结修复基线 `a90bd07` 并建立 retry3。后续切片在当前真实验收收尾后依计划推进，每个切片先记录明确文件、数据流、验证和影响面。
+
+retry3 已通过前三个实际中断窗口，布局/CTS 完成、正在布线；第四个跨轮窗口与完整结束待核实。按老板对本机大产物速度的询问，公共 API 返回 723 字节定位信息，17,579,571 字节物理包经本机复制与 hash 校验耗时约 0.026 秒（文件已有缓存）。未提高整包 HTTP 上限，也未把大文件转经外部网络；记录见本次 `local-transfer-check/receipt.json`。
+
 每个切片按工程门禁、真实业务证据和 Git 检查点收尾；两到三个切片后同步架构/任务清单。已批准业务路线不会替代新模块契约确认，后续实现计划以复现结果决定。
+
+## L1 / P3 最终工程结论
+
+retry3 于 2026-10-11 14:22:29 CST 完成，退出 0，源码和安装环境未变。最终 `p3-acceptance.json` 的 176 项工程核查通过：两轮各三候选完整结束，18 项物理阶段全部成功，四个实际中断窗口恢复原身份，模型同请求未重复付费调用，18 项实际参数消费匹配，12 项实际评价导入一次且 SDK 数值/条件/来源正确。最终 SDK 查询在本次原 EF/DF 状态的 API-only 重开中完成，42 个 run 的身份与成功状态不变，无真实任务重跑。
+
+固定 CP0=0.792 ns，基准 TNS=-4.36 ns / 0.400 W；最优可行结果为第二轮 slot 1 的 -4.11 ns / 0.400 W，单次 |TNS| 改善约 5.73%。17 次真实内部模型调用均成功，账本记录 305,632 token；不包含主 Codex 或此前失败/调试成本。原生小样本 dummy、ReAct 跳过以及第二轮 CTS 候选 GP 的数值回退均在模型审阅中保留，不据此宣称预测质量或平台公平收益。
+
+业务确认仍待老板，两个 Code 项目尚未接入。当前切片文件、证据、工程门禁和后续边界见 `admin/P3_SLICE_REPORT_20261011.md`，后续依既定 L2–L8 计划逐片推进。

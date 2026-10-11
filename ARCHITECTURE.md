@@ -63,7 +63,7 @@ sequenceDiagram
     F->>E: 引用实际评价 metadata 导出快照
     F->>D: 从指定注册产物导入
     D-->>F: 同一快照与持久回执
-    Note over F,D: P3 完整运行中的自动回流实现待真实验收
+    Note over F,D: P3 自动回流与完整恢复工程验收通过；业务确认待老板
 ```
 
 ```mermaid
@@ -85,6 +85,7 @@ sequenceDiagram
 ## 对外接口及关键决策
 
 - EF：已发布公共 client/contracts wheel 和 HTTP，提交、状态、取消、产物与上传输入；不访问其私有数据库。
+- 本机物理产物交接：HTTP 传任务、状态和产物定位元数据；大文件通过公共 `KernelClient.materialize_artifact` 使用执行底座核准的本机路径复制并校验 hash，不受整包 HTTP 的 4 MiB 响应上限限制。远程才使用该接口已有的分块下载。2026-10-11 实际 17,579,571 字节布局包的本机取回/校验约 0.026 秒（已有文件缓存），证据见 `var/flow-agent/p3-platform-campaign-20261011-retry3/local-transfer-check/receipt.json`；此单次测量不是磁盘稳定吞吐基准。
 - DF：`POST /snapshots/from-run` 指定注册产物导入，`GET /imports/{artifact_id}` 回执、快照/指标查询；POST 直接结果和 GET envelope 语义沿用现有契约。
 - Data Interface：已发布 SDK 工具和来源读取。Query 通过 SDK 访问 DF；不直接读 sibling 源码。
 - Flow：既有 `run.sh` 入口保留；新增 opt-in 平台运行和显式同 campaign 恢复。`-F` 是归档重开，不能冒充恢复。
@@ -94,6 +95,6 @@ sequenceDiagram
 
 ## 已知缺口
 
-P3 完整真实恢复、评价自动回流及四个中断窗口待验收；两个 Code 项目原生复现/接入、统一身份与数据入口、三项目协同及本机收益测量未完成。现有 Query 的查证/比较不能自动被包装为已证明的因果结论。教学、新用户安装和论文交付本轮暂缓。
+P3 完整真实恢复、评价自动回流及四个中断窗口已通过工程验收，业务确认待老板；两个 Code 项目原生复现/接入、统一身份与数据入口、三项目协同及本机收益测量未完成。现有 Query 的查证/比较不能自动被包装为已证明的因果结论。教学、新用户安装和论文交付本轮暂缓。
 
 源码优化交接包含候选源码、构建工具身份与实际评价，最终设计 PPA 通过兼容工具下的实际物理流程确认。两个 Code 项目分别保留原始工具锚点进行复现，组合工具版本由构建/运行兼容性验证决定。

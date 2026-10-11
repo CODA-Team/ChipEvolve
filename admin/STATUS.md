@@ -1,6 +1,20 @@
 # Agentic EDA 施工状态
 
+## 本轮最新结论：2026-10-11
+
+P3 / L1 完整真实工程验收通过，业务确认待老板；当前汇报为 `admin/P3_SLICE_REPORT_20261011.md`，完整回执为 `var/flow-agent/p3-platform-campaign-20261011-retry3/p3-acceptance.json`。Flow 冻结源码 `a90bd07`，本机 AES 两轮六候选全部完成，18 项物理阶段任务、12 项评价和 12 项导出共 42 个 run 均成功，四个实际中断窗口、原任务/产物/模型不重复、18 项真实参数消费和 12 项 SDK 数值/条件/来源检查通过，源码与安装环境未变。
+
+本次固定 CP0=0.792 ns、功耗限制 0.400 W。基准 TNS=-4.36 ns，最优可行为第二轮 slot 1 的 -4.11 ns/0.400 W，|TNS| 单次改善约 5.73%。第二轮 slot 2 为 -4.41 ns/0.402 W，功耗超限；slot 3 为 -4.43 ns/0.400 W，未改善。17 次真实内部模型调用均成功，账本记录 305,632 token；此数字不含主 Codex 对话或前期失败/调试成本，不当作端到端成本对照。原生模型数值回退和未入选的直接提案均保留，公平平台收益待 L8。
+
+大物理产物通过现有 materialize_artifact 的本机文件复制/hash 路径交接，HTTP 传少量管理与定位信息。真实 17.6 MB 包合计约 0.026 秒（已有缓存）。完整 SDK 收尾以 API-only 方式重开本实验原 EF/DF 状态，12 个快照验证通过且 42 个 run 身份/状态不变，无 EDA 重跑；一次查询分页参数错误与 SDK 回执尚未齐全的初次审计均保留。正式 Flow 48 项检查、新收尾脚本静态检查、9 项恢复/资源/进程检查和 4 项数据来源检查通过。
+
+DPLEvolve / GoalEvolve 尚未原生复现或接入；按已确认 L2–L8 计划推进，未交付能力不记完成。以下内容保留为历史过程，不覆盖上述最终回执。
+
+## 历史执行过程
+
 更新日期：2026-10-11。老板已明确同意恢复本机施工：Query 增强成熟 Codex 的领域能力；先跑通本机实验和三项目协同，教学/新用户安装/论文交付暂缓。本轮执行 P3 / L1：首次任务拒绝是 8 核额度再乘默认 60%，未启动物理实验；修正本实验 platform-fraction=1.0 后，retry1 真正受理并运行 placement，但第一个中断后恢复失败，验收脚本漏停 GNU timeout 的子进程组，残留 publisher 持锁。两次失败保留；retry1 的 EF placement 已成功，残留 publisher 按专有运行路径核实后清理，旧服务未动。修复只涉及验收 Controller 会话的停止，不改 Flow 算法和公共接口；静态检查、资源 API 与真实进程锁回归通过，Flow 原有 47 项检查通过。检查记录见 var/flow-agent/p3-local-checks-20261011-control/receipt.json。
+
+最新：retry2 的三个真实布局任务成功，但 Flow 通过整包下载取回 17.6–18.0 MB 产物时被 4 MiB 响应上限拒绝，未进入 DRP，整个实验失败。正式 Flow `a90bd07` 已改用现有公共 materialize_artifact 接口，保留本机定位/复制、远程分块和 hash 验证；48 项检查通过，真实 17,579,577 字节产物取回验证通过，证据见 var/flow-agent/p3-large-artifact-check-20261011。新建 retry3 实验目录，完整 P3 仍待验收。老板已再次同意按施工计划继续，当前仅修复并验证 L1，不跨切片修改 Code。
 
 retry2 完整物理实验已启动，第一个实际中断窗口恢复通过：丢提交回执的请求恢复后接回同一 EF run，实际 placement 成功，公共 runs 接口确认该 slot/stage 仅有一个 run，原 Controller 会话无残留 publisher。证据见 var/flow-agent/p3-platform-campaign-20261011-retry2/first-window-resume-review.json。记录时后续候选仍在运行；其余三个窗口、两轮正常结束、全量反馈与来源仍待核实，P3 未验收。即时状态见该目录 receipt.json / supervisor.log / campaign.log。后续计划见 admin/LOCAL_EXECUTION_PLAN_20261011.md。根目录 PROJECT.md / ARCHITECTURE.md / TASKS.md 同步业务范围；后文早期记录保留为历史。
 
