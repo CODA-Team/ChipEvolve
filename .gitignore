@@ -5,6 +5,7 @@ data-interface/
 toolkits/
 flow-agent/
 dplevolve/
+goalevolve/
 wheelhouse/
 var/
 admin/.venv/

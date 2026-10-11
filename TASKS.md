@@ -9,12 +9,14 @@
 | P2 | 统一管理物理阶段并保存可查询结果 | place→CTS→route→eval、实际取消、实体/指标导入、重启后来源一致 | EF / Toolkits / DF / SDK | P1 | 已通过 |
 | P3 / L1 | 可查询、可继续同一优化实验 | 完整平台两轮实验；四个实际中断窗口；原计算和模型决策不重复；评价自动回流 | Flow / EF / Toolkits / DF / SDK | P2 | 完整真实工程验收通过，业务确认待老板 |
 | P4 / L6–L7 | Codex 自主查询、专业交接与协同优化 | 真正 Flow/Code receiver；统一数据入口；预算内完整闭环；归因上下文可核对 | Codex / Query / Flow / Code / 底座 | L1–L5 | 待做，实际契约按源码审计确认 |
-| P5 / L2–L4 | 两个源码项目原生复现并接统一执行 | DPLEvolve、GoalEvolve 分别 smoke/最小真实设计/新源码候选评价；实际 EDA 统一管理 | Code 项目 / 底座 | P3；原生复现优先于全面整合 | L2 原生复现工程验收通过，业务确认待老板；L3/L4 未开始 |
+| P5 / L2–L4 | 两个源码项目原生复现并接统一执行 | DPLEvolve、GoalEvolve 分别 smoke/最小真实设计/新源码候选评价；实际 EDA 统一管理 | Code 项目 / 底座 | P3；原生复现优先于全面整合 | L2 原生复现工程验收通过，业务确认待老板；L3 环境/AE-1/模拟 smoke/真实 AE-2/p0 基线冻结通过；AE-3 未启动，模型入口待选择、上游九项失败未解决；L4 未开始 |
 | L5 | 统一设计数据与原因查询 | 设计实验视图、身份映射、事实覆盖、Query 诊断上下文与来源 | EF / DF / DI / Query / Toolkits | L1–L4 | 待做 |
 | L8 | 本机量化产品收益 | ORFS PPA 基线、同一 Codex 数据增强前后 token/时间及正确完成情况 | 现有测量与记录 | L7，基线提前冻结 | 待做 |
 | P6 公开交付 | 教学与论文产品 | 新用户安装、Tutorial、论文和公开评测材料 | 全平台 / 材料 | 后续显式发起 | 本轮暂缓 |
 
 ## 当前证据与限制
+
+- L3 / GoalEvolve 原生复现进行中：正式独立上游固定 `1cc20aa6`；AE-1、模拟 smoke、AST 初始化、AES / ASAP7 已发布源码真实重放及本机 p0 基线通过。基线为 |TNS| 12.37 ns、动态功耗 427,394,076,214.0958 pW、漏电功耗 95,383,300.50418 pW。AE-3 尚未启动；项目 API 入口与本机 Codex 登录之间的选择待回复，上游缺历史配置/知识文档的九项失败未解决。L3 未通过全部门禁，报告见 `admin/L3_GOALEVOLVE_REPORT_20261011.md`。
 
 - L2 / DPLEvolve 原生复现工程验收通过：独立工具源码构建、GCD 真实 RTL→布局快照、三条原生合法基线、prompt/workspace smoke、一轮真实 Teacher/Student/review、真正新源码候选及固定源码独立重放均通过；37 项总核查见 `var/code-agent/l2-dplevolve-20261011/l2-acceptance.json`。候选 HPWL 2941.7 µm，比 OpenROAD 默认 2969.1 µm 少 0.92%，仍略差于项目自带框架 2941.1 µm，最大位移增加，原生选择为拒绝晋升。工程复现与优化质量分开，业务确认待老板；统一执行/数据尚未接入。详见 `admin/L2_DPLEVOLVE_REPORT_20261011.md`。
 
