@@ -4,6 +4,7 @@ data-foundation/
 data-interface/
 toolkits/
 flow-agent/
+dplevolve/
 wheelhouse/
 var/
 admin/.venv/

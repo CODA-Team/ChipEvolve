@@ -13,7 +13,7 @@
 | Data Foundation | 统一事实快照、指标/对象/关系、来源与持久导入回执。 |
 | Data Interface | 对外工具语义与已安装 SDK；不新增后台服务或数据库。 |
 | Query Agent | Codex 的 EDA 垂直形态：统一事实、比较、领域技能、调查状态、证据与补 STA。当前 host 路径复用 Codex 推理；真实 Flow/Code 接收与可靠诊断效果仍待验收。 |
-| Code Agent | 后续独立接入 DPLEvolve 和 GoalEvolve；当前未交付。 |
+| Code Agent | DPLEvolve 原生复现工程验收通过，真实新源码构建/评价及固定源码重放可运行；统一平台接入尚未交付。GoalEvolve 原生复现为下一切片。 |
 
 ## 模块依赖
 
@@ -79,7 +79,7 @@ sequenceDiagram
     E-->>F: 原任务与注册产物
     F->>J: 复用已完成模型响应及原调用账本
     F->>F: 继续未提交阶段
-    Note over U,E: 单元边界已检查；完整真实中断恢复尚未验收
+    Note over U,E: L1 四个真实中断窗口工程验收通过，业务确认待老板
 ```
 
 ## 对外接口及关键决策
@@ -92,9 +92,10 @@ sequenceDiagram
 - Query→Flow 的业务接收器仍未实现，不把 `contract_only` 标记改成完成。
 - 运行状态放 `var`，模型 cache 不跨实验复用；保留未知调用成本和失败现场。
 - 专业源码项目各自冻结工具链，不强行迁就 Flow 的工具版本。
+- L2 的 DPLEvolve 保留原生 Teacher/Student 和 evaluator；确定性接点为官方共享 core configure/build、私有 variant configure/relink、带明确私有 binary 的原生 baseline 评价。当前独立原生执行及结果留证通过，尚未由 EF/DF 接管；统一接入分别在 L4、L6 实现。详细源码与接点证据见 `admin/L2_DPLEVOLVE_REPORT_20261011.md`。
 
 ## 已知缺口
 
-P3 完整真实恢复、评价自动回流及四个中断窗口已通过工程验收，业务确认待老板；两个 Code 项目原生复现/接入、统一身份与数据入口、三项目协同及本机收益测量未完成。现有 Query 的查证/比较不能自动被包装为已证明的因果结论。教学、新用户安装和论文交付本轮暂缓。
+P3 完整真实恢复、评价自动回流及四个中断窗口、L2 的 DPLEvolve 原生复现已通过工程验收，业务确认待老板；GoalEvolve 原生复现、两个 Code 项目的统一接入、统一身份与数据入口、三项目协同及本机收益测量未完成。DPLEvolve 本轮新源码候选可运行但未晋升，不能记为已验证优化质量。现有 Query 的查证/比较不能自动被包装为已证明的因果结论。教学、新用户安装和论文交付本轮暂缓。
 
 源码优化交接包含候选源码、构建工具身份与实际评价，最终设计 PPA 通过兼容工具下的实际物理流程确认。两个 Code 项目分别保留原始工具锚点进行复现，组合工具版本由构建/运行兼容性验证决定。

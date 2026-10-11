@@ -8,7 +8,9 @@ P3 / L1 完整真实工程验收通过，业务确认待老板；当前汇报为
 
 大物理产物通过现有 materialize_artifact 的本机文件复制/hash 路径交接，HTTP 传少量管理与定位信息。真实 17.6 MB 包合计约 0.026 秒（已有缓存）。完整 SDK 收尾以 API-only 方式重开本实验原 EF/DF 状态，12 个快照验证通过且 42 个 run 身份/状态不变，无 EDA 重跑；一次查询分页参数错误与 SDK 回执尚未齐全的初次审计均保留。正式 Flow 48 项检查、新收尾脚本静态检查、9 项恢复/资源/进程检查和 4 项数据来源检查通过。
 
-DPLEvolve / GoalEvolve 尚未原生复现或接入；按已确认 L2–L8 计划推进，未交付能力不记完成。以下内容保留为历史过程，不覆盖上述最终回执。
+L2 / DPLEvolve 原生复现工程验收通过，业务确认待老板；报告为 `admin/L2_DPLEVOLVE_REPORT_20261011.md`，回执为 `var/code-agent/l2-dplevolve-20261011/l2-acceptance.json`。正式独立仓库固定上游 `96d8c613` 且源码干净；独立 ORFS/OpenROAD 按原项目 anchor 准备，共享 core 真实构建成功，GCD / Nangate45 的 RTL→布局快照、三条合法原生基线、prompt/workspace smoke、一轮 Teacher/Student/review 和新源码候选完成。原生轮次 15:37:02–15:54:02 正常结束；控制/基线未变，37 项总核查和六项固定源码重放对照通过，新增及既有根回归共 25 项、数据回归四项通过。
+
+本轮候选源码 `8a7a417` 相对准确 diamond 起点真正修改九个算法文件，固定 candidate/rejected refs 并保留干净工作树；独立 clone、全新私有构建及明确 binary 重放产生相同的 2941.7 µm HPWL、阶段值、位移和合法性，原生时间 0.660 s。相对 OpenROAD 默认 2969.1 µm 少 0.923%，但仍未超过项目自带框架 2941.1 µm，最大位移 15.377 µm 比默认 8.989 µm 高约 71.1%，Student 拒绝晋升、Teacher 确认可运行并保留研究证据。本次不是最终布线 PPA 或平台收益。三项模型操作累计输入 4,234,420、输出 39,522 token，其中输入缓存 3,947,520，不含主对话或前期失败成本。首次 Python/yaml 和合法性审计问题均保留现场并修正。DPLEvolve / GoalEvolve 尚未接入统一平台；下一切片 L3 / GoalEvolve 原生复现，L4 再收口统一执行。以下内容保留为历史过程，不覆盖上述最终回执。
 
 ## 历史执行过程
 
