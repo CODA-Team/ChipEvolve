@@ -40,6 +40,7 @@ def process_identity(pid):
             "pid": pid,
             "start_ticks": fields[19],
             "process_group": int(fields[2]),
+            "session_id": int(fields[3]),
             "state": fields[0],
         }
     except (FileNotFoundError, ProcessLookupError):
@@ -47,24 +48,45 @@ def process_identity(pid):
 
 
 def stop_controller(process):
-    os.killpg(process.pid, signal.SIGTERM)
-    try:
-        process.wait(timeout=30)
-    except subprocess.TimeoutExpired:
-        os.killpg(process.pid, signal.SIGKILL)
-        process.wait(timeout=30)
-    # Reap the whole native publisher group; EF workers belong to the gateway.
-    deadline = time.monotonic() + 10
-    while time.monotonic() < deadline:
-        living = [
+    identity = process_identity(process.pid)
+    if identity is None or identity["session_id"] != process.pid:
+        raise RuntimeError("Controller must own its dedicated process session.")
+
+    def publishers():
+        return [
             row
             for path in Path("/proc").iterdir()
             if path.name.isdigit()
             for row in [process_identity(int(path.name))]
-            if row and row["process_group"] == process.pid and row["state"] != "Z"
+            if row and row["session_id"] == process.pid and row["state"] != "Z"
         ]
-        if not living:
-            return
+
+    def signal_publishers(signum):
+        rows = publishers()
+        for group in {row["process_group"] for row in rows}:
+            try:
+                os.killpg(group, signum)
+            except ProcessLookupError:
+                pass
+        return rows
+
+    # GNU timeout starts another process group inside the controller session.
+    # Stop every publisher group, while EF workers stay in their own session.
+    before = signal_publishers(signal.SIGTERM)
+    try:
+        process.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        signal_publishers(signal.SIGKILL)
+        process.wait(timeout=10)
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        if not publishers():
+            return {
+                "session_id": process.pid,
+                "publishers_before": before,
+                "publishers_after": [],
+            }
+        signal_publishers(signal.SIGKILL)
         time.sleep(0.1)
     raise RuntimeError("Interrupted controller still has live publishers.")
 
@@ -140,6 +162,31 @@ def snapshot(client, run):
     }
 
 
+def gateway_command(run: Path, plugins: Path, number: int) -> list[str]:
+    """Use the whole dedicated eight-core allocation, bounded to this gateway."""
+    return [
+        str(WORKSPACE / "execution-foundation/.venv/bin/python"),
+        "-m",
+        "openroad_platform_gateway",
+        "--state-root",
+        str(run / "kernel"),
+        "--plugins-root",
+        str(plugins),
+        "--admissions-root",
+        str(WORKSPACE / "execution-foundation/admissions"),
+        "--port",
+        str(number),
+        "--input-root",
+        str(run),
+        "--capacity-cpu-cores",
+        "8",
+        "--capacity-memory-bytes",
+        str(12 << 30),
+        "--platform-fraction",
+        "1.0",
+    ]
+
+
 def supervise(run):
     receipt_path = run / "receipt.json"
     if receipt_path.exists():
@@ -197,25 +244,7 @@ def supervise(run):
         check=True,
     )
     initial = capture_environment(run / "environment-start", environment)
-    kernel_command = [
-        str(WORKSPACE / "execution-foundation/.venv/bin/python"),
-        "-m",
-        "openroad_platform_gateway",
-        "--state-root",
-        str(run / "kernel"),
-        "--plugins-root",
-        str(plugins),
-        "--admissions-root",
-        str(WORKSPACE / "execution-foundation/admissions"),
-        "--port",
-        str(kernel_port),
-        "--input-root",
-        str(run),
-        "--capacity-cpu-cores",
-        "8",
-        "--capacity-memory-bytes",
-        str(12 << 30),
-    ]
+    kernel_command = gateway_command(run, plugins, kernel_port)
     data_command = [
         str(WORKSPACE / "data-foundation/.venv/bin/python"),
         "-m",
@@ -356,12 +385,13 @@ def supervise(run):
                                 raise RuntimeError(
                                     "Submit-loss gate did not cover the intended window."
                                 )
-                        stop_controller(controller)
+                        stopped = stop_controller(controller)
                         row.update(
                             status="interrupted",
                             exit_code=controller.returncode,
                             stopped_at=now(),
                             process_group_stopped=True,
+                            stopped_session=stopped,
                         )
                         write_json(
                             run / f"interruption-{epoch}-after.json",

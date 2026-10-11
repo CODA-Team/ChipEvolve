@@ -1,6 +1,6 @@
 # Agentic EDA 施工状态
 
-更新日期：2026-10-10。P0/P1 已完成，P2 真实阶段、取消与数据回流已通过。P3 同实验恢复和自动评价回流实现已提交，47 项 Flow 检查及新增模块静态门禁通过；完整真实实验未启动、P3 尚未验收。按老板最新要求本轮收尾后暂停，停在老板运行验证的位置，不推进 P4。现行产品与协作边界见根目录 PROJECT.md / ARCHITECTURE.md / TASKS.md / AGENTS.md，本轮文件清单和验证入口见 admin/P3_SLICE_REPORT_20261010.md。后文早期记录保留为历史。
+更新日期：2026-10-11。老板已明确同意恢复本机施工：Query 增强成熟 Codex 的领域能力；先跑通本机实验和三项目协同，教学/新用户安装/论文交付暂缓。本轮执行 P3 / L1：首次任务拒绝是 8 核额度再乘默认 60%，未启动物理实验；修正本实验 platform-fraction=1.0 后，retry1 真正受理并运行 placement，但第一个中断后恢复失败，验收脚本漏停 GNU timeout 的子进程组，残留 publisher 持锁。两次失败保留；retry1 的 EF placement 已成功，残留 publisher 按专有运行路径核实后清理，旧服务未动。修复只涉及验收 Controller 会话的停止，不改 Flow 算法和公共接口；静态检查、资源 API 与真实进程锁回归通过，Flow 原有 47 项检查通过。检查记录见 var/flow-agent/p3-local-checks-20261011-control/receipt.json。下一次在 var/flow-agent/p3-platform-campaign-20261011-retry2 重试，仍未验收。后续计划见 admin/LOCAL_EXECUTION_PLAN_20261011.md。根目录 PROJECT.md / ARCHITECTURE.md / TASKS.md 同步业务范围；后文早期记录保留为历史。
 
 ## 最新验收与运行
 
