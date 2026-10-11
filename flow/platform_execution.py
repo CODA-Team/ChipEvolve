@@ -188,7 +188,8 @@ class PlatformExecution:
         else:
             artifact = next(row for row in record['artifacts'] if row['kind'] == 'flow_archive')
             destination = path.with_suffix('.zip')
-            destination.write_bytes(self.client.artifact_bytes(run['run_id'], artifact['artifact_id']))
+            self.client.materialize_artifact(run['run_id'], artifact['artifact_id'],
+                                             str(destination))
             if digest(destination) != artifact['sha256']:
                 raise ValueError('Registered stage archive hash does not match downloaded bytes.')
             project_archive(destination, self.flow, platform, design, slot)

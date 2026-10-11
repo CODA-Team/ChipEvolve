@@ -59,6 +59,9 @@ class FakeClient:
     def artifact_bytes(self, run_id, artifact_id):
         return archive_bytes()
 
+    def materialize_artifact(self, run_id, artifact_id, destination):
+        Path(destination).write_bytes(archive_bytes())
+
 
 class PlatformBoundaryTests(unittest.TestCase):
     def setUp(self):
@@ -102,6 +105,38 @@ class PlatformBoundaryTests(unittest.TestCase):
         self.assertEqual(len(self.client.submissions), 1)
         self.assertEqual((self.flow / 'logs/nangate45_aes_run1.log').read_bytes(),
                          b'upstream\nplacement\n')
+
+    def test_large_stage_archive_uses_public_materialization(self):
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, 'w') as archive:
+            archive.writestr('flow/results/3_place.odb', b'actual-checkpoint-bytes')
+            archive.writestr('flow/results/3_place.sdc', b'clock-constraints')
+            archive.writestr('flow/combined.log', b'upstream\nplacement\n')
+            archive.writestr('flow/reports/large.rpt', b'x' * (5 << 20))
+        content = buffer.getvalue()
+        self.assertGreater(len(content), 4 << 20)
+        inventory = self.client.artifacts('run-1')
+        inventory[0]['sha256'] = hashlib.sha256(content).hexdigest()
+        self.client.artifacts = lambda run_id: inventory
+
+        def reject_whole_download(run_id, artifact_id):
+            raise RuntimeError('whole-artifact download response limit')
+
+        materialized = []
+
+        def materialize(run_id, artifact_id, destination):
+            materialized.append((run_id, artifact_id))
+            Path(destination).write_bytes(content)
+
+        self.client.artifact_bytes = reject_whole_download
+        self.client.materialize_artifact = materialize
+        record = self.executor.execute(**self.arguments)
+        self.assertEqual(materialized, [('run-1', 'archive-run-1')])
+        self.assertEqual(record['status'], 'succeeded')
+        self.assertEqual((self.flow / 'reports/nangate45/aes/run_1/large.rpt').stat().st_size,
+                         5 << 20)
+        self.assertEqual((self.flow / 'results/nangate45/aes/run_1/3_place.odb').read_bytes(),
+                         b'actual-checkpoint-bytes')
 
     def test_changed_candidate_inputs_do_not_reuse_old_success(self):
         self.executor.execute(**self.arguments)
