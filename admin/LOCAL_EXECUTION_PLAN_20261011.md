@@ -152,6 +152,8 @@ sequenceDiagram
 
 ## 当前执行与后续交接
 
-2026-10-11 首次 P3 运行因验收配置的 CPU 预算失败，未启动物理实验、模型调用为零。retry1 确实完成任务受理并进入真实中断窗口，但验收脚本遗漏 GNU timeout 的子进程组，导致恢复被占用锁拒绝；独立 EF 的 placement 成功，整个 campaign 未验收。两次失败完整保留。修正后的静态检查、资源受理与真实进程锁回归通过，Flow 原有 47 项检查通过，记录见 `var/flow-agent/p3-local-checks-20261011-control/receipt.json`。下一次在独立 retry2 运行目录重试；启动不等于验收通过。
+2026-10-11 首次 P3 运行因验收配置的 CPU 预算失败，未启动物理实验、模型调用为零。retry1 确实完成任务受理并进入真实中断窗口，但验收脚本遗漏 GNU timeout 的子进程组，导致恢复被占用锁拒绝；独立 EF 的 placement 成功，整个 campaign 未验收。两次失败完整保留。修正后的静态检查、资源受理与真实进程锁回归通过，Flow 原有 47 项检查通过，记录见 `var/flow-agent/p3-local-checks-20261011-control/receipt.json`。
+
+retry2 已开始完整物理实验，第一个真实中断窗口恢复通过：本地未存 run_id 的原请求恢复后绑定同一受理 run，Controller 会话无残留 publisher，EF 的实际 placement 成功，并且公共 runs 接口仅登记一个该 slot/stage 的任务。证据见 `var/flow-agent/p3-platform-campaign-20261011-retry2/first-window-resume-review.json`。记录时后续候选仍在运行；其余三个窗口、两轮完整结束与全量数据回流尚待核实，不据此签署完整 P3。
 
 每个切片按工程门禁、真实业务证据和 Git 检查点收尾；两到三个切片后同步架构/任务清单。已批准业务路线不会替代新模块契约确认，后续实现计划以复现结果决定。

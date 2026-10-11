@@ -1,6 +1,8 @@
 # Agentic EDA 施工状态
 
-更新日期：2026-10-11。老板已明确同意恢复本机施工：Query 增强成熟 Codex 的领域能力；先跑通本机实验和三项目协同，教学/新用户安装/论文交付暂缓。本轮执行 P3 / L1：首次任务拒绝是 8 核额度再乘默认 60%，未启动物理实验；修正本实验 platform-fraction=1.0 后，retry1 真正受理并运行 placement，但第一个中断后恢复失败，验收脚本漏停 GNU timeout 的子进程组，残留 publisher 持锁。两次失败保留；retry1 的 EF placement 已成功，残留 publisher 按专有运行路径核实后清理，旧服务未动。修复只涉及验收 Controller 会话的停止，不改 Flow 算法和公共接口；静态检查、资源 API 与真实进程锁回归通过，Flow 原有 47 项检查通过。检查记录见 var/flow-agent/p3-local-checks-20261011-control/receipt.json。下一次在 var/flow-agent/p3-platform-campaign-20261011-retry2 重试，仍未验收。后续计划见 admin/LOCAL_EXECUTION_PLAN_20261011.md。根目录 PROJECT.md / ARCHITECTURE.md / TASKS.md 同步业务范围；后文早期记录保留为历史。
+更新日期：2026-10-11。老板已明确同意恢复本机施工：Query 增强成熟 Codex 的领域能力；先跑通本机实验和三项目协同，教学/新用户安装/论文交付暂缓。本轮执行 P3 / L1：首次任务拒绝是 8 核额度再乘默认 60%，未启动物理实验；修正本实验 platform-fraction=1.0 后，retry1 真正受理并运行 placement，但第一个中断后恢复失败，验收脚本漏停 GNU timeout 的子进程组，残留 publisher 持锁。两次失败保留；retry1 的 EF placement 已成功，残留 publisher 按专有运行路径核实后清理，旧服务未动。修复只涉及验收 Controller 会话的停止，不改 Flow 算法和公共接口；静态检查、资源 API 与真实进程锁回归通过，Flow 原有 47 项检查通过。检查记录见 var/flow-agent/p3-local-checks-20261011-control/receipt.json。
+
+retry2 完整物理实验已启动，第一个实际中断窗口恢复通过：丢提交回执的请求恢复后接回同一 EF run，实际 placement 成功，公共 runs 接口确认该 slot/stage 仅有一个 run，原 Controller 会话无残留 publisher。证据见 var/flow-agent/p3-platform-campaign-20261011-retry2/first-window-resume-review.json。记录时后续候选仍在运行；其余三个窗口、两轮正常结束、全量反馈与来源仍待核实，P3 未验收。即时状态见该目录 receipt.json / supervisor.log / campaign.log。后续计划见 admin/LOCAL_EXECUTION_PLAN_20261011.md。根目录 PROJECT.md / ARCHITECTURE.md / TASKS.md 同步业务范围；后文早期记录保留为历史。
 
 ## 最新验收与运行
 
