@@ -1,0 +1,557 @@
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import re
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Callable
+
+from openroad_platform_contracts import (
+    Artifact,
+    ArtifactKind,
+    ExecutionPlan,
+    Metric,
+    RunRequest,
+    RunResult,
+    RunStage,
+    RunStatus,
+    StageResult,
+)
+
+from .orfs_config import infer_clock, infer_top, write_design_files
+from .process_guardian import ProcessGuardian
+from .toolchain import ToolchainConfig
+
+
+STAGE_ARTIFACT = {
+    RunStage.SYNTH: "1_synth.odb",
+    RunStage.FLOORPLAN: "2_floorplan.odb",
+    RunStage.PLACE: "3_place.odb",
+    RunStage.CTS: "4_cts.odb",
+    RunStage.ROUTE: "5_route.odb",
+    RunStage.FINISH: "6_final.odb",
+}
+
+
+class ORFSRunner:
+    def __init__(
+        self,
+        *,
+        orfs_root: str | Path | None = None,
+        work_root: str | Path,
+        openroad_bin: str | Path | None = None,
+        yosys_bin: str | Path | None = None,
+        toolchain: ToolchainConfig | None = None,
+        guardian: ProcessGuardian | None = None,
+    ):
+        if toolchain is not None and any(
+            value is not None for value in (orfs_root, openroad_bin, yosys_bin)
+        ):
+            raise ValueError("toolchain cannot be combined with explicit tool paths")
+        self.toolchain = toolchain or ToolchainConfig.from_environment(
+            name="legacy-orfs",
+            orfs_root=orfs_root,
+            openroad_bin=openroad_bin,
+            yosys_bin=yosys_bin,
+        )
+        self.orfs_root = self.toolchain.orfs_root
+        self.flow_home = self.toolchain.flow_home
+        self.work_root = Path(work_root).expanduser().resolve()
+        self.openroad_bin = self.toolchain.openroad_bin
+        self.yosys_bin = self.toolchain.yosys_bin
+        self.guardian = guardian or ProcessGuardian()
+
+    def prepare(self, request: RunRequest) -> ExecutionPlan:
+        request.validate()
+        self._validate_runtime()
+        rtl_path = Path(request.rtl_path).expanduser().resolve()
+        rtl = rtl_path.read_text(encoding="utf-8", errors="replace")
+        design = request.top or infer_top(rtl, rtl_path.stem)
+        if not re.fullmatch(r"[A-Za-z_]\w*", design):
+            raise ValueError(f"Invalid inferred top module: {design}")
+        clock = request.clock or infer_clock(rtl, design)
+        workdir = self.work_root / request.run_id
+        if workdir.exists() and any(workdir.iterdir()):
+            raise FileExistsError(f"Run workspace is not empty: {workdir}")
+        workdir.mkdir(parents=True, exist_ok=True)
+        config_path = write_design_files(
+            workdir=workdir,
+            rtl_path=rtl_path,
+            design=design,
+            platform=request.platform,
+            clock=clock,
+            clock_period_ns=request.clock_period_ns,
+            core_utilization_pct=request.core_utilization_pct,
+            place_density=request.place_density,
+            or_seed=request.or_seed,
+            minimum_die_size_um=request.minimum_die_size_um,
+        )
+        stages = tuple(stage for stage in RunStage
+                       if list(RunStage).index(stage) <= list(RunStage).index(request.target_stage))
+        plan = ExecutionPlan(
+            run_id=request.run_id,
+            design=design,
+            clock=clock,
+            workdir=str(workdir),
+            flow_home=str(self.flow_home),
+            config_path=str(config_path),
+            stages=stages,
+            request=request,
+        )
+        self._write_json(workdir / "plan.json", {
+            "schema_version": 1,
+            "run_id": plan.run_id,
+            "design": plan.design,
+            "clock": plan.clock,
+            "workdir": plan.workdir,
+            "flow_home": plan.flow_home,
+            "config_path": plan.config_path,
+            "stages": [stage.value for stage in plan.stages],
+            "request": request.to_dict(),
+            "tools": self.tool_versions(),
+        })
+        self._write_json(
+            workdir / "toolchain_snapshot.json", self.toolchain_snapshot(plan)
+        )
+        return plan
+
+    def run(
+        self,
+        plan: ExecutionPlan,
+        *,
+        cancel_requested: Callable[[], bool] | None = None,
+        on_line: Callable[[str], None] | None = None,
+        on_stage_start: Callable[[RunStage], None] | None = None,
+        on_stage: Callable[[StageResult], None] | None = None,
+    ) -> RunResult:
+        workdir = Path(plan.workdir)
+        log_path = workdir / "logs" / "flow.log"
+        started = datetime.now(timezone.utc)
+        stage_results: list[StageResult] = []
+        final_status = RunStatus.SUCCEEDED
+        error = None
+
+        for stage in plan.stages:
+            if on_stage_start is not None:
+                on_stage_start(stage)
+            command = self._command(plan, stage)
+            outcome = self.guardian.run(
+                command,
+                cwd=self.flow_home,
+                env=self._environment(),
+                log_path=log_path,
+                timeout_seconds=plan.request.stage_timeout_seconds,
+                cancel_requested=cancel_requested,
+                on_line=on_line,
+            )
+            gds_exported = False
+            if stage == RunStage.FINISH and self._can_export_gds(plan):
+                gds_exported = self._export_gds(
+                    plan,
+                    cancel_requested=cancel_requested,
+                    on_line=on_line,
+                )
+            artifact_error = self._stage_gate(plan, stage)
+            if outcome.cancelled:
+                status = RunStatus.CANCELLED
+                message = "Cancellation requested"
+            elif outcome.timed_out:
+                status = RunStatus.FAILED
+                message = f"Stage exceeded {plan.request.stage_timeout_seconds}s timeout"
+            elif outcome.returncode != 0:
+                status = RunStatus.FAILED
+                message = self._process_failure_message(
+                    log_path, stage, outcome.returncode, gds_exported=gds_exported
+                )
+            elif artifact_error:
+                status = RunStatus.FAILED
+                message = artifact_error
+            else:
+                status = RunStatus.SUCCEEDED
+                message = None
+            stage_result = StageResult(
+                stage=stage,
+                status=status,
+                returncode=outcome.returncode,
+                seconds=round(outcome.seconds, 3),
+                message=message,
+            )
+            stage_results.append(stage_result)
+            if on_stage is not None:
+                on_stage(stage_result)
+            if status != RunStatus.SUCCEEDED:
+                final_status = status
+                error = message
+                self._write_flow_error(workdir, stage, message or status.value)
+                break
+
+        self._run_analysis(plan, stage_results)
+        artifacts = self._collect_artifacts(plan)
+        metrics = self._collect_metrics(plan)
+        completed_stages = {item.stage for item in stage_results
+                            if item.status == RunStatus.SUCCEEDED}
+        gds_path = self._results_dir(plan) / "6_final.gds"
+        result = RunResult(
+            run_id=plan.run_id,
+            status=final_status,
+            design=plan.design,
+            workdir=plan.workdir,
+            started_at=started.isoformat(),
+            finished_at=datetime.now(timezone.utc).isoformat(),
+            stages=tuple(stage_results),
+            artifacts=tuple(artifacts),
+            milestones={
+                "synthesizable": RunStage.SYNTH in completed_stages,
+                "functionally_verified": False,
+                "implementation_valid": (
+                    plan.request.target_stage == RunStage.FINISH and
+                    final_status == RunStatus.SUCCEEDED
+                ),
+                "gds_complete": gds_path.is_file() and gds_path.stat().st_size > 0,
+            },
+            metrics=tuple(metrics),
+            error=error,
+        )
+        self._write_json(workdir / "run_result.json", result.to_dict())
+        return result
+
+    def tool_versions(self) -> dict[str, str | None]:
+        versions = {
+            "openroad": self._version([str(self.openroad_bin), "-version"]),
+            "yosys": self._version([str(self.yosys_bin), "-V"]),
+            "orfs_commit": self._version(["git", "-C", str(self.orfs_root), "rev-parse", "HEAD"]),
+        }
+        if self.toolchain.klayout_bin is not None:
+            versions["klayout"] = self._version(
+                [str(self.toolchain.klayout_bin), "-v"]
+            )
+        return versions
+
+    def toolchain_snapshot(self, plan: ExecutionPlan) -> dict[str, object]:
+        platform_config = self.flow_home / "platforms" / plan.request.platform / "config.mk"
+        generated_config = Path(plan.config_path)
+        rtl = Path(plan.request.rtl_path).expanduser().resolve()
+        return {
+            "schema_version": 1,
+            "toolchain": self.toolchain.snapshot(),
+            "versions": self.tool_versions(),
+            "orfs_worktree_status": self._command_lines([
+                "git", "-C", str(self.orfs_root), "status", "--porcelain=v1",
+            ]),
+            "files": {
+                "openroad": self._file_record(self.openroad_bin),
+                "yosys": self._file_record(self.yosys_bin),
+                "klayout": self._file_record(self.toolchain.klayout_bin),
+                "platform_config": self._file_record(platform_config),
+                "generated_config": self._file_record(generated_config),
+                "rtl": self._file_record(rtl),
+            },
+            "request": {
+                "platform": plan.request.platform,
+                "target_stage": plan.request.target_stage.value,
+                "top": plan.design,
+                "clock": plan.clock,
+                "clock_period_ns": plan.request.clock_period_ns,
+                "core_utilization_pct": plan.request.core_utilization_pct,
+                "place_density": plan.request.place_density,
+                "or_seed": plan.request.or_seed,
+                "minimum_die_size_um": plan.request.minimum_die_size_um,
+                "stage_timeout_seconds": plan.request.stage_timeout_seconds,
+            },
+        }
+
+    def _validate_runtime(self) -> None:
+        if not (self.flow_home / "Makefile").is_file():
+            raise FileNotFoundError(f"ORFS Makefile not found: {self.flow_home / 'Makefile'}")
+        for name, binary in (("OpenROAD", self.openroad_bin), ("Yosys", self.yosys_bin)):
+            if not binary.is_file() or not os.access(binary, os.X_OK):
+                raise FileNotFoundError(f"{name} executable not found: {binary}")
+
+    def _command(self, plan: ExecutionPlan, stage: RunStage) -> list[str]:
+        return self._make_command(plan, stage.value)
+
+    def _make_command(self, plan: ExecutionPlan, target: str) -> list[str]:
+        workdir = Path(plan.workdir)
+        raw_cores = os.environ.get("OPENROAD_PLATFORM_ORFS_CORES", "16")
+        try:
+            cores = int(raw_cores)
+        except ValueError as exc:
+            raise ValueError("OPENROAD_PLATFORM_ORFS_CORES must be an integer") from exc
+        if not 1 <= cores <= 64:
+            raise ValueError("OPENROAD_PLATFORM_ORFS_CORES must be between 1 and 64")
+        return [
+            "make",
+            f"DESIGN_CONFIG={plan.config_path}",
+            f"DESIGN_HOME={workdir / 'designs'}",
+            f"WORK_HOME={workdir}",
+            f"OPENROAD_EXE={self.openroad_bin}",
+            f"YOSYS_EXE={self.yosys_bin}",
+            f"NUM_CORES={cores}",
+            "EQUIVALENCE_CHECK=0",
+            "LEC_CHECK=0",
+            target,
+        ]
+
+    def _environment(self) -> dict[str, str]:
+        return self.toolchain.build_environment()
+
+    @staticmethod
+    def _results_dir(plan: ExecutionPlan) -> Path:
+        return (Path(plan.workdir) / "results" / plan.request.platform /
+                plan.design / "base")
+
+    def _stage_gate(self, plan: ExecutionPlan, stage: RunStage) -> str | None:
+        results = self._results_dir(plan)
+        required = [results / STAGE_ARTIFACT[stage]]
+        if stage == RunStage.FINISH:
+            required.extend(results / name for name in ("6_final.def", "6_final.v", "6_final.gds"))
+        missing = [str(path) for path in required if not path.is_file() or path.stat().st_size == 0]
+        return f"Required artifacts missing or empty: {', '.join(missing)}" if missing else None
+
+    def _can_export_gds(self, plan: ExecutionPlan) -> bool:
+        results = self._results_dir(plan)
+        return not (results / "6_final.gds").is_file() and (results / "6_final.odb").is_file()
+
+    def _export_gds(
+        self,
+        plan: ExecutionPlan,
+        *,
+        cancel_requested: Callable[[], bool] | None,
+        on_line: Callable[[str], None] | None,
+    ) -> bool:
+        results = self._results_dir(plan)
+        outcome = self.guardian.run(
+            self._make_command(plan, "gds"),
+            cwd=self.flow_home,
+            env=self._environment(),
+            log_path=Path(plan.workdir) / "logs" / "flow.log",
+            timeout_seconds=plan.request.stage_timeout_seconds,
+            cancel_requested=cancel_requested,
+            on_line=on_line,
+        )
+        gds = results / "6_final.gds"
+        return outcome.returncode == 0 and not outcome.timed_out and not outcome.cancelled \
+            and gds.is_file() and gds.stat().st_size > 0
+
+    @staticmethod
+    def _process_failure_message(
+        log_path: Path,
+        stage: RunStage,
+        returncode: int,
+        *,
+        gds_exported: bool,
+    ) -> str:
+        detail = None
+        try:
+            lines = log_path.read_text(errors="replace").splitlines()
+            detail = next(
+                (line.strip() for line in reversed(lines)
+                 if "[ERROR" in line or re.search(r"\bError:\s", line)),
+                None,
+            )
+        except OSError:
+            pass
+        message = f"make {stage.value} exited with {returncode}"
+        if detail:
+            message += f": {detail[:300]}"
+        if gds_exported:
+            message += "; GDS export succeeded, but implementation validity failed"
+        return message
+
+    def _collect_artifacts(self, plan: ExecutionPlan) -> list[Artifact]:
+        workdir = Path(plan.workdir)
+        candidates = [
+            workdir / "plan.json",
+            workdir / "toolchain_snapshot.json",
+            workdir / "logs/flow.log",
+            workdir / "analysis/report.json",
+            workdir / "analysis/flow_error.log",
+            Path(plan.config_path),
+            Path(plan.config_path).with_name("constraint.sdc"),
+            Path(plan.config_path).with_name("pdn.tcl"),
+        ]
+        results = self._results_dir(plan)
+        candidates.extend(results / name for name in (
+            "1_synth.odb", "2_floorplan.odb", "3_place.odb", "4_cts.odb",
+            "5_route.odb", "6_final.odb", "6_final.def", "6_final.v", "6_final.gds",
+        ))
+        reports = (workdir / "reports" / plan.request.platform /
+                   plan.design / "base")
+        candidates.extend(reports / name for name in (
+            "6_finish.rpt", "5_route_drc.rpt", "synth_check.txt", "synth_stat.txt",
+        ))
+        suffix_kinds = {
+            ".v": ArtifactKind.NETLIST,
+            ".odb": ArtifactKind.ODB,
+            ".def": ArtifactKind.DEF,
+            ".gds": ArtifactKind.GDS,
+            ".log": ArtifactKind.LOG,
+            ".json": ArtifactKind.REPORT,
+            ".rpt": ArtifactKind.REPORT,
+            ".txt": ArtifactKind.REPORT,
+        }
+        artifacts = []
+        for path in candidates:
+            # A clean ORFS run may create an empty DRC/antenna report.  Empty
+            # files are absence markers, not evidence artifacts; Runtime
+            # correctly rejects them as an artifact protocol violation.
+            if not path.is_file() or path.stat().st_size == 0:
+                continue
+            artifacts.append(Artifact(
+                kind=suffix_kinds.get(path.suffix.lower(), ArtifactKind.OTHER),
+                path=str(path.relative_to(workdir)),
+                size_bytes=path.stat().st_size,
+                sha256=self._sha256(path),
+            ))
+        return artifacts
+
+    @staticmethod
+    def _write_flow_error(workdir: Path, stage: RunStage, message: str) -> None:
+        path = workdir / "analysis" / "flow_error.log"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"stage={stage.value}\nreason={message}\n", encoding="utf-8")
+
+    @staticmethod
+    def _run_analysis(plan: ExecutionPlan, stages: list[StageResult]) -> None:
+        try:
+            from openroad_platform_analysis.pipeline import analyze_run
+        except ImportError:
+            # The native CLI is a first-class platform path, not a reduced
+            # demo mode.  In a source checkout make the sibling analysis
+            # package discoverable; installed deployments should carry it as
+            # a dependency.  Never silently drop the structured report.
+            local_analysis = Path(__file__).resolve().parents[4] / "packages" / "analysis" / "src"
+            if local_analysis.is_dir() and str(local_analysis) not in sys.path:
+                sys.path.insert(0, str(local_analysis))
+            try:
+                from openroad_platform_analysis.pipeline import analyze_run
+            except ImportError as exc:
+                path = Path(plan.workdir) / "analysis" / "analysis_error.log"
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(f"analysis dependency unavailable: {exc}\n", encoding="utf-8")
+                return
+        runtime = sum(item.seconds for item in stages)
+        try:
+            analyze_run(
+                plan.workdir,
+                platform=plan.request.platform,
+                design=plan.design,
+                runtime_seconds=runtime,
+                expected_stage=plan.request.target_stage.value,
+            )
+        except Exception as exc:
+            path = Path(plan.workdir) / "analysis" / "analysis_error.log"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(f"{type(exc).__name__}: {exc}\n", encoding="utf-8")
+
+    def _collect_metrics(self, plan: ExecutionPlan) -> list[Metric]:
+        try:
+            from openroad_platform_analysis.parsers.stage_json import extract_metrics
+        except ImportError:
+            # The native CLI is also a supported platform entrypoint.  Do not
+            # silently turn a complete physical-design run into metric-less
+            # evidence merely because the optional reporting package was not
+            # installed in that process.  The finish JSON is ORFS's own
+            # authoritative output, so a minimal dependency-free extraction
+            # still preserves the ranking-critical terminal facts.
+            return self._collect_finish_metrics_fallback(plan)
+        payload = extract_metrics(
+            Path(plan.workdir), plan.request.platform, plan.design,
+            expected_stage=plan.request.target_stage.value,
+        )
+        summary = payload.get("summary", {})
+        metrics = []
+        for key, value in summary.items():
+            if isinstance(value, (str, int, float)) or value is None:
+                metrics.append(Metric(name=key, value=value, source="ORFS stage JSON"))
+        # Candidate ranking must consume the same terminal QoR facts a human
+        # sees in the ORFS report.  Previously Runtime only exposed the
+        # pass/fail summary above, even though the parser had already found
+        # area, WNS and power under ``stages.finish``.  That made a real ORFS
+        # campaign unable to honour its declared objective profile.
+        finish = ((payload.get("stages") or {}).get("finish") or {}).get("metrics") or {}
+        terminal_qor = {
+            "finish__design__instance__area": finish.get("instance_area_um2"),
+            "finish__timing__setup__ws": finish.get("setup_wns_ns"),
+            "finish__power__total": finish.get("power_W"),
+        }
+        for name, value in terminal_qor.items():
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                metrics.append(Metric(name=name, value=value,
+                                      source="ORFS finish-stage parsed metric"))
+        return metrics
+
+    @staticmethod
+    def _collect_finish_metrics_fallback(plan: ExecutionPlan) -> list[Metric]:
+        finish = (Path(plan.workdir) / "logs" / plan.request.platform / plan.design
+                  / "base" / "6_report.json")
+        try:
+            payload = json.loads(finish.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return []
+        names = (
+            "finish__design__instance__area",
+            "finish__timing__setup__ws",
+            "finish__power__total",
+            "finish__route__drc_errors",
+            "finish__detailedroute__route__drc_errors",
+        )
+        metrics = []
+        for name in names:
+            value = payload.get(name)
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                metrics.append(Metric(name=name, value=value,
+                                      source="ORFS finish JSON fallback"))
+        return metrics
+
+    @staticmethod
+    def _sha256(path: Path) -> str:
+        digest = hashlib.sha256()
+        with path.open("rb") as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
+
+    @staticmethod
+    def _write_json(path: Path, payload: object) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = path.with_suffix(path.suffix + ".tmp")
+        temporary.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+        temporary.replace(path)
+
+    @staticmethod
+    def _version(command: list[str]) -> str | None:
+        try:
+            result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                    text=True, timeout=15, check=False)
+        except (OSError, subprocess.TimeoutExpired):
+            return None
+        return next((line.strip() for line in result.stdout.splitlines() if line.strip()), None)
+
+    @staticmethod
+    def _command_lines(command: list[str]) -> list[str]:
+        try:
+            result = subprocess.run(
+                command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                text=True, timeout=15, check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            return ["unknown"]
+        return [line for line in result.stdout.splitlines() if line.strip()]
+
+    @classmethod
+    def _file_record(cls, path: Path | None) -> dict[str, object] | None:
+        if path is None:
+            return None
+        resolved = path.expanduser().resolve()
+        if not resolved.is_file():
+            return {"path": str(resolved), "size_bytes": None, "sha256": None}
+        return {
+            "path": str(resolved),
+            "size_bytes": resolved.stat().st_size,
+            "sha256": cls._sha256(resolved),
+        }

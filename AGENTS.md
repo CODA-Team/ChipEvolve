@@ -1,6 +1,13 @@
 # 工作区规则
 
-本工作区包含 Execution Foundation、Data Foundation、Data Interface、Query Agent、Toolkits 和 Flow Agent 六个独立 Git 项目；进入对应项目后读取其 AGENTS.md。
+本工作区包含 Execution Foundation、Data Foundation、Data Interface、Query Agent、Toolkits、Flow Agent、DPLEvolve 和 GoalEvolve 八个独立 Git 项目；进入对应项目后读取其 AGENTS.md（若提供）。
+
+## 仓库发布与历史边界
+
+- 根仓库为 `CODA-Team/ChipEvolve`，用 Git 子模块固定各项目提交；具体版本见 `SOURCE_MANIFEST.json`。`discarded/` 完整归档旧 ChipEvolve，不从归档中取当前业务接口、运行入口或测试依据。
+- 六个自有模块发布到 ChipEvolve 的 `modules/<目录名>` 分支；先提交并推送模块，再在根仓库更新 gitlink 和来源 manifest。保留每个模块的独立环境和跨项目 wheel/HTTP 边界。
+- DPLEvolve / GoalEvolve 目前引用官方上游固定提交。未经对应施工计划，不改指针、不推送原研究仓库，不把平台接入写成已完成。
+- 发布已提交检查点；本机未提交修改、凭据、`.venv`、wheel、镜像及 `var` 运行数据不自动纳入发布。
 
 - 后续开发只修改这里的正式项目。旧路径是运行基线或历史证据。
 - Query Agent 主实现来自独立 `/home/wjyuan/query-agent`，不是历史 `apps/query_agent`。

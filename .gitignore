@@ -1,14 +1,19 @@
-execution-foundation/
-query-agent/
-data-foundation/
-data-interface/
-toolkits/
-flow-agent/
-dplevolve/
-goalevolve/
+# Module source is tracked as pinned Git submodules.
+# Local dependencies and runtime state are not source assets.
 wheelhouse/
 var/
-admin/.venv/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.py[cod]
+*.egg-info/
+.coverage
 admin/incomplete-*/
 admin/*.log
 __pycache__/
+.env
+.env.*
+!.env.example
+!.env.template
+config/env.local.sh

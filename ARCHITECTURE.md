@@ -4,6 +4,8 @@
 
 ## 模块清单
 
+仓库层面由 ChipEvolve 根仓库以 Git 子模块固定八个独立项目；六个自有模块的 Git 历史保存在同一远程的 `modules/<目录名>` 分支，两个 Code 项目当前固定其官方上游提交。模块源码、环境和 wheel/HTTP 依赖边界没有因发布而改变。`discarded/` 为旧仓库原始 tree 的历史归档，不参与当前模块依赖。源码来源见 `SOURCE_MANIFEST.json`，发布记录见 admin/REPOSITORY_PUBLICATION_20261012.md。
+
 | 模块 | 职责与实际边界 |
 |---|---|
 | Codex | 用户入口、全局目标、决策、判断、工具调用与下一步规划。 |

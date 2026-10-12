@@ -1,0 +1,45 @@
+[submodule "execution-foundation"]
+	path = execution-foundation
+	url = https://github.com/CODA-Team/ChipEvolve.git
+	shallow = true
+	branch = modules/execution-foundation
+
+[submodule "data-foundation"]
+	path = data-foundation
+	url = https://github.com/CODA-Team/ChipEvolve.git
+	shallow = true
+	branch = modules/data-foundation
+
+[submodule "data-interface"]
+	path = data-interface
+	url = https://github.com/CODA-Team/ChipEvolve.git
+	shallow = true
+	branch = modules/data-interface
+
+[submodule "query-agent"]
+	path = query-agent
+	url = https://github.com/CODA-Team/ChipEvolve.git
+	shallow = true
+	branch = modules/query-agent
+
+[submodule "toolkits"]
+	path = toolkits
+	url = https://github.com/CODA-Team/ChipEvolve.git
+	shallow = true
+	branch = modules/toolkits
+
+[submodule "flow-agent"]
+	path = flow-agent
+	url = https://github.com/CODA-Team/ChipEvolve.git
+	shallow = true
+	branch = modules/flow-agent
+
+[submodule "dplevolve"]
+	path = dplevolve
+	url = https://github.com/CODA-Team/DPLEvolve.git
+	shallow = true
+
+[submodule "goalevolve"]
+	path = goalevolve
+	url = https://github.com/CODA-Team/GoalEvolve.git
+	shallow = true

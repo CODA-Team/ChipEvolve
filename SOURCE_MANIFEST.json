@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "repository": "https://github.com/CODA-Team/ChipEvolve",
+  "workspace_source_commit": "45f817a3a1c416617c068db3daf6016f09227231",
+  "archived_legacy_commit": "5219cd94a92de649afd25367ebf4df5517acf69d",
+  "archived_legacy_tree": "1a6bcb0b90f0aee06448f7bc7251bdbcb9723079",
+  "archive_path": "discarded",
+  "modules": [
+    {
+      "path": "execution-foundation",
+      "source_commit": "d0302c113cd2c786caac621b5afa23a3ca63512a",
+      "source_tree": "9da21c20a352ba8bdb498b997fd5e5b8765985fd",
+      "url": "https://github.com/CODA-Team/ChipEvolve.git",
+      "branch": "modules/execution-foundation"
+    },
+    {
+      "path": "data-foundation",
+      "source_commit": "b29e5a90b1819f63f62e2f02fc43aaa8f2596b42",
+      "source_tree": "c1992d8fa9a9f26b4becd1fcd0e6682bf27a4e62",
+      "url": "https://github.com/CODA-Team/ChipEvolve.git",
+      "branch": "modules/data-foundation"
+    },
+    {
+      "path": "data-interface",
+      "source_commit": "4f2e195c05bfe80a72b557985d9577206efe9d9b",
+      "source_tree": "5b3d70424cb555fd44341edc211efabcd8067168",
+      "url": "https://github.com/CODA-Team/ChipEvolve.git",
+      "branch": "modules/data-interface"
+    },
+    {
+      "path": "query-agent",
+      "source_commit": "b6910d06f522c093b0a2133225ab7d4079e2e097",
+      "source_tree": "d66dba01c8902d739c56117ed0bfa0ac01736c66",
+      "url": "https://github.com/CODA-Team/ChipEvolve.git",
+      "branch": "modules/query-agent"
+    },
+    {
+      "path": "toolkits",
+      "source_commit": "39f48a478ce1f4bfacfe6a81773bdab54bd8f873",
+      "source_tree": "52f471081f127e111526462143901010267a77b6",
+      "url": "https://github.com/CODA-Team/ChipEvolve.git",
+      "branch": "modules/toolkits"
+    },
+    {
+      "path": "flow-agent",
+      "source_commit": "a90bd07e304e2572fbd3e201809d93d6e50cbe1c",
+      "source_tree": "2b2eaf856166cea485628b296083d87fbd136b73",
+      "url": "https://github.com/CODA-Team/ChipEvolve.git",
+      "branch": "modules/flow-agent"
+    },
+    {
+      "path": "dplevolve",
+      "source_commit": "96d8c613d62bf3431083bb5e52c7df8853d5a622",
+      "source_tree": "3cb8ad338bd5d0eca8a895daa1c5544d166d78ac",
+      "url": "https://github.com/CODA-Team/DPLEvolve.git",
+      "branch": null
+    },
+    {
+      "path": "goalevolve",
+      "source_commit": "1cc20aa611e687c2745ff7da6a006a5d25f49f85",
+      "source_tree": "d19848940dc7ddf09cd49c40fc21b8c4a5190a9e",
+      "url": "https://github.com/CODA-Team/GoalEvolve.git",
+      "branch": null
+    }
+  ],
+  "scope": "committed source checkpoints; local uncommitted edits and runtime assets are not included"
+}
