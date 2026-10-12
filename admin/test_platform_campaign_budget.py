@@ -11,7 +11,10 @@ from openroad_platform_contracts import ResourceRequest, TaskSpec
 from run_platform_campaign import WORKSPACE, gateway_command, port, wait_service
 
 
-def test_dedicated_budget_accepts_eight_cores_and_rejects_nine(tmp_path: Path):
+@pytest.mark.parametrize("large_task", [False, True])
+def test_dedicated_budget_accepts_eight_cores_and_rejects_nine(
+    tmp_path: Path, large_task
+):
     environment = dict(os.environ)
     environment.pop("PYTHONPATH", None)
     environment.update(PYTHONNOUSERSITE="1", NO_PROXY="127.0.0.1,localhost")
@@ -30,7 +33,8 @@ def test_dedicated_budget_accepts_eight_cores_and_rejects_nine(tmp_path: Path):
         capture_output=True,
     )
     number = port()
-    command = gateway_command(tmp_path, plugins, number) + ["--api-only"]
+    execution = {"capacity_memory_bytes": 32 << 30} if large_task else None
+    command = gateway_command(tmp_path, plugins, number, execution) + ["--api-only"]
     # API-only exercises real validation without launching an EDA worker.
     with (tmp_path / "gateway.log").open("w") as log:
         process = subprocess.Popen(command, env=environment, stdout=log, stderr=log)
@@ -43,8 +47,11 @@ def test_dedicated_budget_accepts_eight_cores_and_rejects_nine(tmp_path: Path):
                 design_id="aes",
                 plugin_id="openroad-data",
                 inputs={"adapter": "a2_stage", "stage": "place"},
+                labels={"memory_approval": "manual"} if large_task else {},
                 resources=ResourceRequest(
-                    cpu_cores=8, memory_bytes=6 << 30, processes=256
+                    cpu_cores=8,
+                    memory_bytes=(24 if large_task else 6) << 30,
+                    processes=2048 if large_task else 256,
                 ),
             )
             accepted = client.submit(task.to_dict())["run"]

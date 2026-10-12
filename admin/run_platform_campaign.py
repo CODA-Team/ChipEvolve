@@ -162,10 +162,14 @@ def snapshot(client, run):
     }
 
 
-def gateway_command(run: Path, plugins: Path, number: int) -> list[str]:
+def gateway_command(run: Path, plugins: Path, number: int, execution=None) -> list[str]:
     """Use the whole dedicated eight-core allocation, bounded to this gateway."""
+    execution = execution or {}
     return [
-        str(WORKSPACE / "execution-foundation/.venv/bin/python"),
+        execution.get("interpreters", {}).get(
+            "execution-foundation",
+            str(WORKSPACE / "execution-foundation/.venv/bin/python"),
+        ),
         "-m",
         "openroad_platform_gateway",
         "--state-root",
@@ -179,27 +183,56 @@ def gateway_command(run: Path, plugins: Path, number: int) -> list[str]:
         "--input-root",
         str(run),
         "--capacity-cpu-cores",
-        "8",
+        str(execution.get("threads", 8)),
         "--capacity-memory-bytes",
-        str(12 << 30),
+        str(execution.get("capacity_memory_bytes", 12 << 30)),
         "--platform-fraction",
         "1.0",
     ]
 
 
-def supervise(run):
+def capture_installed_environment(destination, execution, environment):
+    """Inspect installed wheel code, independently of unrelated working trees."""
+    destination.mkdir()
+    script = """import importlib.metadata as m,json,hashlib
+records={}
+for dist in m.distributions():
+ name=dist.metadata['Name']
+ if name.startswith(('openroad-', 'eda-')):
+  for file in dist.files or []:
+   path=dist.locate_file(file)
+   if path.is_file() and path.suffix not in {'.pyc'}:
+    records[name+'/'+str(file)]=hashlib.sha256(path.read_bytes()).hexdigest()
+print(json.dumps({'packages':sorted([d.metadata['Name'],d.version] for d in m.distributions()),'files':records}))
+"""
+    records = {
+        name: json.loads(
+            subprocess.check_output([python, "-c", script], env=environment, text=True)
+        )
+        for name, python in execution["interpreters"].items()
+    }
+    write_json(destination / "manifest.json", records)
+    return records
+
+
+def supervise(run, execution=None):
     receipt_path = run / "receipt.json"
     if receipt_path.exists():
         raise RuntimeError(
             "This supervisor cannot overwrite an earlier campaign receipt."
         )
     source = run / "source"
+    execution = execution or {}
+    interpreters = execution.get("interpreters", {})
+    controller_env = Path(
+        interpreters.get("controller", str(FORMAL / ".venv/bin/python"))
+    ).parent.parent
     manifest = json.loads((run / "source-manifest.json").read_text())
     environment = dict(os.environ)
     environment.pop("PYTHONPATH", None)
     environment.update(
-        VIRTUAL_ENV=str(FORMAL / ".venv"),
-        PATH=str(FORMAL / ".venv/bin") + os.pathsep + environment["PATH"],
+        VIRTUAL_ENV=str(controller_env),
+        PATH=str(controller_env / "bin") + os.pathsep + environment["PATH"],
         PYTHONNOUSERSITE="1",
         NO_PROXY="127.0.0.1,localhost",
         no_proxy="127.0.0.1,localhost",
@@ -226,14 +259,19 @@ def supervise(run):
             "data_url": data_url,
             "state_root": str(run / "platform-state"),
             "profile_path": str(run / "profile.json"),
-            "threads": 8,
+            "threads": execution.get("threads", 8),
             "timeout_seconds": 5400,
+            **(
+                {"resources": execution["resources"]}
+                if "resources" in execution
+                else {}
+            ),
         },
     )
     plugins = run / "plugins"
     subprocess.run(
         [
-            str(WORKSPACE / "toolkits/.venv/bin/python"),
+            interpreters.get("toolkits", str(WORKSPACE / "toolkits/.venv/bin/python")),
             "-m",
             "eda_toolkits",
             "configure",
@@ -243,10 +281,21 @@ def supervise(run):
         env=environment,
         check=True,
     )
-    initial = capture_environment(run / "environment-start", environment)
-    kernel_command = gateway_command(run, plugins, kernel_port)
+    capture = (
+        (
+            lambda destination: capture_installed_environment(
+                destination, execution, environment
+            )
+        )
+        if interpreters
+        else (lambda destination: capture_environment(destination, environment))
+    )
+    initial = capture(run / "environment-start")
+    kernel_command = gateway_command(run, plugins, kernel_port, execution)
     data_command = [
-        str(WORKSPACE / "data-foundation/.venv/bin/python"),
+        interpreters.get(
+            "data-foundation", str(WORKSPACE / "data-foundation/.venv/bin/python")
+        ),
         "-m",
         "openroad_app_data_foundation",
         "--host",
@@ -419,7 +468,7 @@ def supervise(run):
                         )
                 controller = None
             write_json(run / "final-execution.json", snapshot(client, run))
-            final = capture_environment(run / "environment-finish", environment)
+            final = capture(run / "environment-finish")
             receipt.update(
                 status="completed",
                 exit_code=0,
