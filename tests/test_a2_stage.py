@@ -11,7 +11,8 @@ from eda_toolkits.openroad.a2_evaluation import parse_evaluation
 from eda_toolkits.openroad.a2_stage import run_stage
 
 
-def test_restored_predecessors_do_not_rebuild_missing_upstream(tmp_path):
+@pytest.mark.parametrize('container', [False, True])
+def test_restored_predecessors_do_not_rebuild_missing_upstream(tmp_path, monkeypatch, container):
     source = tmp_path / 'native'
     source.mkdir()
     makefile = source / 'Makefile'
@@ -28,6 +29,15 @@ $(RESULTS_DIR)/3_place.sdc: $(RESULTS_DIR)/missing_floorplan.sdc
     profile = {'flow_dir': str(source), 'makefile_sha256': hashlib.sha256(makefile.read_bytes()).hexdigest(),
                'source_commit': 'a' * 40, 'openroad_bin': '/usr/bin/true',
                'yosys_bin': '/usr/bin/true', 'python_bin': '/usr/bin/python3'}
+    if container:
+        profile['runtime'] = {'kind': 'apptainer', 'image': '/fixed.sif'}
+        monkeypatch.setattr('eda_toolkits.openroad.a2_stage.binary_identity',
+                            lambda value: {'verified_runtime': value['runtime']})
+        # Execute the real make dependency graph after observing the runtime seam.
+        def wrap(command, workspace, value, environment):
+            assert '-o' in command and str(workspace / 'flow/results/3_place.odb') in command
+            return command
+        monkeypatch.setattr('eda_toolkits.openroad.a2_stage.stage_command', wrap)
     workspace = tmp_path / 'attempt'
     workspace.mkdir()
     (workspace / 'profile.json').write_text(json.dumps(profile))
@@ -54,6 +64,8 @@ $(RESULTS_DIR)/3_place.sdc: $(RESULTS_DIR)/missing_floorplan.sdc
         assert archive.read('flow/combined.log').startswith(b'inherited-placement-history\n')
     receipt = json.loads((workspace / 'extractor_receipt.json').read_text())
     assert receipt['config_sha256'] == hashlib.sha256(original_config).hexdigest()
+    if container:
+        assert receipt['toolchain'] == {'verified_runtime': profile['runtime']}
 
 
 @pytest.mark.parametrize('member', ['../outside', '/absolute', 'flow/../../outside',

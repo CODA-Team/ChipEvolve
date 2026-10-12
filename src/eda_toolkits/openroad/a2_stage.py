@@ -7,6 +7,7 @@ from pathlib import Path
 from .a2_checkpoint import clear_downstream, required_checkpoint, restore_checkpoint
 from .a2_evaluation import evaluation_plan, parse_evaluation
 from .a2_feedback import write_feedback
+from .a2_runtime import binary_identity, runtime_environment, stage_command
 from .adapter import _write_result, now, progress
 from .flow import archive_flow
 from .process import run_logged
@@ -87,6 +88,11 @@ def run_stage(result_path, started, workspace, inputs):
         command = evaluation_plan(inputs, profile, flow, environment)
     else:
         command = make_plan(workspace, inputs, profile, flow)
+    toolchain = None
+    if 'runtime' in profile:
+        toolchain = binary_identity(profile)
+        command = stage_command(command, workspace, profile, environment)
+        environment = runtime_environment()
     progress('a2.' + stage, 'started')
     returncode = run_logged(command, workspace, environment=environment)
     failure = None if returncode == 0 else {'category': 'a2_stage_error',
@@ -113,6 +119,8 @@ def run_stage(result_path, started, workspace, inputs):
     receipt = {'stage': stage, 'command': command, 'profile': profile,
                'profile_sha256': fingerprint(profile_path), 'returncode': returncode,
                'started_at': started, 'ended_at': now(), 'observations': observations}
+    if toolchain is not None:
+        receipt['toolchain'] = toolchain
     if stage.startswith('eval_'):
         receipt['evaluation'] = inputs['evaluation']
         stem = {'eval_place': '3_place', 'eval_cts': '4_cts', 'eval_final': '6_final'}[stage]
