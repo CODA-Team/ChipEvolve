@@ -2,9 +2,17 @@
 
 ## 本轮最新结论：2026-10-12
 
+U1 共同工具链资格验证工程验收通过，业务确认待老板。完整固定源码与递归依赖在选定镜像内通过 EF 构建成功；115 MB 实际 binary 加载真实 GCD 产物、检查合法性/时序并写出 byte-identical ODB。原厂 GCD RTL→GDS、OpenDB/STA 导出及最终指标/单位的公共适配导入全部通过；SDK 返回 5,682 实体、11,805 关系、76 路径/1,882 点和 14 项单位明确的指标，来源与原报告值核对通过。六个 EF run 均成功；数据收尾只新增元数据转换，没有重复四项已完成的任务。
+
+老板要求按任务规模分配资源，单构建已调整为 64 GiB / 2048 进程、8 编译线程及单 LTO worker；成功构建进程树 RSS 峰值约 31.8 GiB、33 进程。构建检查点明确绑定原失败 EF run、源码、镜像和编译参数；原失败与缺指标/单位的初次审计保留。35 项新增检查、137 项相关回归通过，另有一项条件跳过；业务代码/公共契约和用户原有修改未动。
+
+报告 `U1_COMMON_TOOLCHAIN_REPORT_20261012.md`；最终回执 `var/toolchains/common-u1-20261012-retry6/u1-acceptance.json`；数据收尾 `unit-completion-retry1-runtime.json` 及对应 SDK evidence。当前只完成 U1：尚未迁移 Flow 或两个 Code、未接完所有执行/数据入口，U2–U5 及 L3/L4–L8 的缺口保持。下文保留本轮来源审计和历史过程。
+
+## 来源审计时的状态（历史，2026-10-12）
+
 老板已确认三专业项目后续采用本机 10 月 ORFS SIF `8e6ee7…` 为共同基础环境。官方 Jenkins master/1642 的 checkout、OpenROAD 子模块及镜像 digest 发布记录已核实 ORFS `5105b0a77` / OpenROAD `27288f5c90`；2,407 个镜像保留文件与对应源码完全一致，13 个迁移关键文件 blob 核对通过，三个指定历史 ODB 单向读取成功。来源审计已完成；尚未切换运行环境、构建共同源码或移植专业补丁。
 
-DPLEvolve 基础 patch 在新版 `src/CMakeLists.txt`、`src/Main.cc`、`src/OpenRoad.cc` 需适配，ORFS overlay 也不能原样应用；GoalEvolve 需要追踪并迁移定制 `repair_power` 及必要 policy/move/rmp/STA 依赖，不覆盖新版整目录。报告见 `COMMON_TOOLCHAIN_AUDIT_20261012.md`，具体 U1 文件/数据流/接口/验证/影响面及 U2–U5 路线见 `COMMON_TOOLCHAIN_PLAN_20261012.md`。U1 待计划确认；当前 Git 基线 `5b3df77`、既有 evaluation 用户修改保留。
+DPLEvolve 基础 patch 在新版 `src/CMakeLists.txt`、`src/Main.cc`、`src/OpenRoad.cc` 需适配，ORFS overlay 也不能原样应用；GoalEvolve 需要追踪并迁移定制 `repair_power` 及必要 policy/move/rmp/STA 依赖，不覆盖新版整目录。报告见 `COMMON_TOOLCHAIN_AUDIT_20261012.md`，具体 U1 文件/数据流/接口/验证/影响面及 U2–U5 路线见 `COMMON_TOOLCHAIN_PLAN_20261012.md`。U1 已授权并进入实现；当前 Git 基线 `4163504`（已发布 ChipEvolve），分支 `u1-common-toolchain-20261012`、既有 evaluation 用户修改保留。
 
 L1/L2 的实测成果与 L3 的未完成项保持如下事实。L3 的本机 Codex 登录适配仍待具体入口确认，未启动 AE-3，九项上游测试失败未解决；旧六小时预算已过期，本轮没有重置。共同版本审计不等于原生复现、统一执行/数据接入或协同 workflow 完成。
 

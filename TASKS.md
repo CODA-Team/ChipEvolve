@@ -10,13 +10,14 @@
 | P3 / L1 | 可查询、可继续同一优化实验 | 完整平台两轮实验；四个实际中断窗口；原计算和模型决策不重复；评价自动回流 | Flow / EF / Toolkits / DF / SDK | P2 | 完整真实工程验收通过，业务确认待老板 |
 | P4 / L6–L7 | Codex 自主查询、专业交接与协同优化 | 真正 Flow/Code receiver；统一数据入口；预算内完整闭环；归因上下文可核对 | Codex / Query / Flow / Code / 底座 | L1–L5 | 待做，实际契约按源码审计确认 |
 | P5 / L2–L4 | 两个源码项目原生复现并接统一执行 | DPLEvolve、GoalEvolve 分别 smoke/最小真实设计/新源码候选评价；实际 EDA 统一管理 | Code 项目 / 底座 | P3；原生复现优先于全面整合 | L2 原生复现工程验收通过，业务确认待老板；L3 环境/AE-1/模拟 smoke/真实 AE-2/p0 基线冻结通过；AE-3 未启动，模型入口待选择、上游九项失败未解决；L4 未开始 |
+| U1 | 有固定源码、能构建和运行真实设计的共同基础工具 | 源码/递归依赖/SIF/实际 binary 可核对；GCD RTL→GDS、source-built 设计检查、DF/DI 事实/指标/单位/证据通过 | EF / Toolkits / DF / DI / admin | 共同版本选择与来源审计 | 工程验收通过，业务确认待老板；未开始专业迁移 |
 | L5 | 统一设计数据与原因查询 | 设计实验视图、身份映射、事实覆盖、Query 诊断上下文与来源 | EF / DF / DI / Query / Toolkits | L1–L4 | 待做 |
 | L8 | 本机量化产品收益 | ORFS PPA 基线、同一 Codex 数据增强前后 token/时间及正确完成情况 | 现有测量与记录 | L7，基线提前冻结 | 待做 |
 | P6 公开交付 | 教学与论文产品 | 新用户安装、Tutorial、论文和公开评测材料 | 全平台 / 材料 | 后续显式发起 | 本轮暂缓 |
 
 ## 当前证据与限制
 
-- 共同工具链：老板确认采用本机 10 月 SIF `8e6ee7…`，官方构建日志已把 OCI digest 与 ORFS `5105b0a77` / OpenROAD `27288f5c90` 关联；2,407 个镜像保留文件零内容差异、13 个关键源码 blob 核对通过、三个指定历史 ODB 可读。仅来源与迁移审计完成；U1 共同源码构建/平台真实设计资格验证待计划确认，U2 Flow、U3 DPLEvolve、U4 GoalEvolve、U5 组合接力均未开始。两个 Code 的定制功能仍须移植，L3 和 L4–L8 的缺口没有因版本选择而解决。报告见 `admin/COMMON_TOOLCHAIN_AUDIT_20261012.md`。
+- 共同工具链：老板确认采用本机 10 月 SIF `8e6ee7…`，官方构建日志已把 OCI digest 与 ORFS `5105b0a77` / OpenROAD `27288f5c90` 关联；2,407 个镜像保留文件零内容差异、13 个关键源码 blob 核对通过、三个指定历史 ODB 可读。U1 共同源码构建/平台真实设计资格验证工程验收通过，业务确认待老板，U2 Flow、U3 DPLEvolve、U4 GoalEvolve、U5 组合接力均未开始。两个 Code 的定制功能仍须移植，L3 和 L4–L8 的缺口没有因版本选择而解决。来源审计见 `admin/COMMON_TOOLCHAIN_AUDIT_20261012.md`，本轮结果见 `admin/U1_COMMON_TOOLCHAIN_REPORT_20261012.md`。
 
 - L3 / GoalEvolve 原生复现进行中：正式独立上游固定 `1cc20aa6`；AE-1、模拟 smoke、AST 初始化、AES / ASAP7 已发布源码真实重放及本机 p0 基线通过。基线为 |TNS| 12.37 ns、动态功耗 427,394,076,214.0958 pW、漏电功耗 95,383,300.50418 pW。AE-3 尚未启动；项目 API 入口与本机 Codex 登录之间的选择待回复，上游缺历史配置/知识文档的九项失败未解决。L3 未通过全部门禁，报告见 `admin/L3_GOALEVOLVE_REPORT_20261011.md`。
 
