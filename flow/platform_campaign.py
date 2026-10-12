@@ -15,6 +15,7 @@ from pathlib import Path
 from llm_usage import _calls, load_events
 from platform_execution import digest, find_predecessor, project_archive, write_record
 from platform_model import process_identity
+from platform_toolchain import tool_fingerprint
 
 
 def settings():
@@ -42,9 +43,7 @@ def fingerprint(flow):
             files[name] = digest(source / name)
     profile_path = Path(settings()["profile_path"])
     profile = json.loads(profile_path.read_text())
-    tools = {
-        name: digest(Path(profile[name])) for name in ("openroad_bin", "yosys_bin")
-    }
+    tools = tool_fingerprint(profile)
     packages = sorted(
         [row.metadata["Name"], row.version]
         for row in importlib.metadata.distributions()

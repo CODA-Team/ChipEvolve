@@ -64,6 +64,21 @@ class FakeClient:
 
 
 class PlatformBoundaryTests(unittest.TestCase):
+    def test_explicit_large_task_resources_persist_and_cannot_change_on_resume(self):
+        resources = {'memory_bytes': 24 << 30, 'processes': 2048}
+        executor = PlatformExecution(self.client, self.flow, self.state,
+                                     self.profile, 'campaign-a', 8, 3600, resources)
+        record = executor.execute(**self.arguments)
+        self.assertEqual(record['task']['resources']['memory_bytes'], 24 << 30)
+        self.assertEqual(record['task']['resources']['processes'], 2048)
+        self.assertEqual(record['resources'], record['task']['resources'])
+        changed = PlatformExecution(self.client, self.flow, self.state,
+                                    self.profile, 'campaign-a', 8, 3600,
+                                    {'memory_bytes': 32 << 30, 'processes': 2048})
+        with self.assertRaisesRegex(ValueError, 'identity changed'):
+            changed.execute(**self.arguments)
+        self.assertEqual(len(self.client.submissions), 1)
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)

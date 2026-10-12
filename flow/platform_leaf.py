@@ -46,7 +46,8 @@ def main():
     candidate_id, donor = candidate_binding(flow, campaign, iteration, args.slot, args.stage)
     client = KernelClient(settings['kernel_url'], timeout=60)
     executor = PlatformExecution(client, flow, settings['state_root'], settings['profile_path'],
-                                 campaign, settings['threads'], settings['timeout_seconds'])
+                                 campaign, settings['threads'], settings['timeout_seconds'],
+                                 resources=settings.get('resources'))
     evaluation = None
     sdc = None
     if args.stage.startswith('eval_'):

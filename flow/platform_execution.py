@@ -98,7 +98,8 @@ def project_archive(archive_path, flow, platform, design, slot):
 
 
 class PlatformExecution:
-    def __init__(self, client, flow, state, profile, campaign, threads, timeout_seconds):
+    def __init__(self, client, flow, state, profile, campaign, threads, timeout_seconds,
+                 resources=None):
         self.client = client
         self.flow = Path(flow).resolve()
         self.state = Path(state).resolve()
@@ -106,6 +107,9 @@ class PlatformExecution:
         self.campaign = campaign
         self.threads = threads
         self.timeout = timeout_seconds
+        self.resources = resources
+        self.request_resources = ResourceRequest(cpu_cores=threads, **(
+            resources if resources is not None else {'memory_bytes': 6 << 30, 'processes': 256}))
 
     def execute(self, *, iteration, slot, candidate_id, platform, design, stage,
                 config=None, sdc=None, evaluation=None, donor_slot=None):
@@ -119,6 +123,8 @@ class PlatformExecution:
                     'input_hashes': hashes, 'evaluation': evaluation,
                     'threads': self.threads, 'timeout_seconds': self.timeout,
                     'donor_slot': donor_slot}
+        if self.resources is not None:
+            identity['resources'] = self.request_resources.to_dict()
         if path.exists():
             record = json.loads(path.read_text())
             if any(record[key] != value for key, value in identity.items()):
@@ -134,6 +140,9 @@ class PlatformExecution:
                 staged.append(InputFile(input_id=uploaded['input_id'], destination=destination))
             labels = {'campaign_id': self.campaign, 'iteration': str(iteration),
                       'candidate_id': candidate_id, 'candidate_slot': str(slot), 'stage': stage}
+            if (self.resources is not None and self.request_resources.memory_bytes is not None
+                    and self.request_resources.memory_bytes > 6 << 30):
+                labels['memory_approval'] = 'manual'
             parent = None
             if stage != 'place':
                 parent = find_predecessor(self.state, self.flow, self.campaign,
@@ -151,8 +160,7 @@ class PlatformExecution:
                             design_id=design, experiment_id=self.campaign, plugin_id='openroad-data',
                             inputs=inputs, staged_inputs=tuple(staged), labels=labels,
                             timeout_seconds=self.timeout,
-                            resources=ResourceRequest(cpu_cores=self.threads,
-                                                      memory_bytes=6 << 30, processes=256))
+                            resources=self.request_resources)
             record = {**identity, 'idempotency_key': key, 'task': task.to_dict(),
                       'parent_run_id': None if parent is None else parent['run_id'],
                       'status': 'prepared'}
