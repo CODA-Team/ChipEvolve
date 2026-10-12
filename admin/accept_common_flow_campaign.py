@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import zipfile
 from pathlib import Path
 
 from flow_native_baseline import digest, now, write_json
@@ -31,6 +33,50 @@ def verify_identity(profile, receipt):
         raise ValueError("Stage did not execute inside the common image")
     if receipt["returncode"] != 0:
         raise ValueError("Failed physical stage cannot pass")
+
+
+def area_facts(run, tasks):
+    """Read geometry from the already verified registered physical bundles."""
+    facts = []
+    for name, task in sorted(tasks.items()):
+        if task.get("stage") != "route_finish":
+            continue
+        with zipfile.ZipFile(
+            run / "platform-state" / Path(name).with_suffix(".zip")
+        ) as archive:
+            values = {}
+            evidence = {}
+            for member in ("flow/logs/6_report.json", "flow/logs/2_1_floorplan.json"):
+                artifact = next(
+                    a for a in task["artifacts"] if a["store_key"] == member
+                )
+                raw = archive.read(member)
+                if hashlib.sha256(raw).hexdigest() != artifact["sha256"]:
+                    raise ValueError("Area report differs from registered evidence")
+                values[member] = json.loads(raw)
+                evidence[member] = artifact
+            if (
+                values["flow/logs/2_1_floorplan.json"][
+                    "run__flow__platform__distance_units"
+                ]
+                != "1um"
+            ):
+                raise ValueError(
+                    "U2 area report requires the declared Nangate45 micrometre unit"
+                )
+            measured = values["flow/logs/6_report.json"]
+            facts.append(
+                {
+                    "iteration": task["iteration"],
+                    "slot": task["candidate_slot"],
+                    "run_id": task["run_id"],
+                    "unit": "um^2",
+                    "die_area": measured["finish__design__die__area"],
+                    "stdcell_area": measured["finish__design__instance__area__stdcell"],
+                    "evidence": evidence,
+                }
+            )
+    return facts
 
 
 def audit(run):
@@ -85,6 +131,7 @@ def audit(run):
         toolchain=profile["toolchain"],
         native_flow_commit=profile["source_commit"],
         baseline_scope="this common environment campaign only",
+        areas=area_facts(run, final["tasks"]),
     )
     return result
 

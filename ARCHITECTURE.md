@@ -91,14 +91,15 @@ sequenceDiagram
 - DF：`POST /snapshots/from-run` 指定注册产物导入，`GET /imports/{artifact_id}` 回执、快照/指标查询；POST 直接结果和 GET envelope 语义沿用现有契约。
 - Data Interface：已发布 SDK 工具和来源读取。Query 通过 SDK 访问 DF；不直接读 sibling 源码。
 - Flow：既有 `run.sh` 入口保留；新增 opt-in 平台运行和显式同 campaign 恢复。`-F` 是归档重开，不能冒充恢复。
+- U2 的 opt-in A2 profile 增加 `runtime`（固定本机 Apptainer/SIF）和 `toolchain`（SIF/OCI/source/binary 身份）；实际 A2 Makefile/scripts 与 PDK/设计仍分别冻结。EF 的 A2 adapter 在镜像内执行原生阶段，冻结 source 只读、独立 workspace 可写、磁盘 scratch 绑定 `/tmp`；controller 留在原生 Python 环境调用 Codex。宿主身份入口只能查工具身份，不能发动 EDA。`platform.json.resources` 把单任务内存/进程额度显式传到原 TaskSpec，原公共 HTTP/schema 不变；恢复核对实际镜像/工具身份与配置。AES 完整两轮、四类恢复及 12 个 SDK 评价快照工程验收通过，业务确认待老板；具体契约与结果见 `admin/U2_FLOW_COMMON_TOOLCHAIN_PLAN_20261012.md` / `admin/U2_FLOW_COMMON_TOOLCHAIN_REPORT_20261012.md`。
 - Query→Flow 的业务接收器仍未实现，不把 `contract_only` 标记改成完成。
 - 运行状态放 `var`，模型 cache 不跨实验复用；保留未知调用成本和失败现场。
-- 老板已确认三专业项目后续使用共同基础工具链：本机 SIF `8e6ee7…`、ORFS `5105b0a77`、OpenROAD `27288f5c90`，不使用移动 latest 作为身份。各项目原生旧工具链保留为历史复现证据；共同环境尚未完成切换。
+- 老板已确认三专业项目后续使用共同基础工具链：本机 SIF `8e6ee7…`、ORFS `5105b0a77`、OpenROAD `27288f5c90`，不使用移动 latest 作为身份。各项目原生旧工具链保留为历史复现证据；Flow 的共同模式完整工程验收已通过，两个 Code 尚未切换。
 - Code 项目在共同基础源码上保留专业 overlay 与私有候选编译，分别记录源码/依赖/编译配置及实际 binary hash。原厂镜像没有 DPLEvolve evolve/GoalEvolve repair_power，不能只替换工具路径。专业组合补丁及跨阶段读写需真实验证，不强迫使用同一个未修改的原厂 binary。
 - L2 的 DPLEvolve 保留原生 Teacher/Student 和 evaluator；确定性接点为官方共享 core configure/build、私有 variant configure/relink、带明确私有 binary 的原生 baseline 评价。当前独立原生执行及结果留证通过，尚未由 EF/DF 接管；统一接入分别在 L4、L6 实现。详细源码与接点证据见 `admin/L2_DPLEVOLVE_REPORT_20261011.md`。
 
 ## 已知缺口
 
-P3 完整真实恢复、评价自动回流及四个中断窗口、L2 的 DPLEvolve 原生复现已通过工程验收，业务确认待老板；GoalEvolve 新 AE-3、模型入口与全部门禁尚未完成，两个 Code 项目的统一接入、共同工具链迁移、统一身份与数据入口、三项目协同及本机收益测量未完成。DPLEvolve 本轮新源码候选可运行但未晋升，不能记为已验证优化质量。现有 Query 的查证/比较不能自动被包装为已证明的因果结论。教学、新用户安装和论文交付本轮暂缓。
+P3 / U2 的 Flow 完整真实恢复、评价自动回流、四个中断窗口与共同环境迁移，以及 L2 的 DPLEvolve 原生复现已通过工程验收，业务确认待老板；GoalEvolve 新 AE-3、模型入口与全部门禁尚未完成，两个 Code 项目的统一接入/共同工具链迁移、统一身份与数据入口、三项目协同及本机收益测量未完成。DPLEvolve 本轮新源码候选可运行但未晋升，不能记为已验证优化质量。现有 Query 的查证/比较不能自动被包装为已证明的因果结论。教学、新用户安装和论文交付本轮暂缓。
 
 源码优化交接包含候选源码、构建工具身份与实际评价，最终设计 PPA 通过兼容工具下的实际物理流程确认。共同基础版本已确认，专业改动的具体迁移与组合由源码差异、构建及真实运行决定。三个指定历史 ODB 在共同镜像下读取通过，只证明单向样本可读，不等于完整接力；同设计/PDK/约束/评价条件的兼容性属于 U5/L7 验收。

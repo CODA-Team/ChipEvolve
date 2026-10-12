@@ -64,7 +64,7 @@
 
 不计划改 A2 专业 Makefile/Tcl/搜索代码。若真实运行发现新版工具 API 不兼容，先保存失败并列出最小修复文件、影响与是否改变算法；新增该范围须按切片协议确认，不能临时换回旧 binary 或移除验收。
 
-## 待确认的内部契约
+## 已确认的内部契约
 
 EF TaskSpec/schema v3、HTTP 路径、DF/DI 公共契约不变。新增的是 Flow/Toolkit 共同消费的 **opt-in 本机 profile 字段**，不是新后台服务：
 

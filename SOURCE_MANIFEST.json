@@ -36,15 +36,15 @@
     },
     {
       "path": "toolkits",
-      "source_commit": "39f48a478ce1f4bfacfe6a81773bdab54bd8f873",
-      "source_tree": "52f471081f127e111526462143901010267a77b6",
+      "source_commit": "e7e77c698268c9d153b9de1bf3583d1215e3846e",
+      "source_tree": "1b53b0a57749f5a31507a4516825bef9dcd75afd",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/toolkits"
     },
     {
       "path": "flow-agent",
-      "source_commit": "a90bd07e304e2572fbd3e201809d93d6e50cbe1c",
-      "source_tree": "2b2eaf856166cea485628b296083d87fbd136b73",
+      "source_commit": "9bdb41731f81dcd17a3350f1ed83ef5d703c78a6",
+      "source_tree": "d7918d40952ccbad1613fbe803593c85c5376236",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/flow-agent"
     },
