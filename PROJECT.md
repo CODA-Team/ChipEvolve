@@ -31,4 +31,6 @@
 
 当前优先在老板的 Linux 本机跑完整 Flow、分别复现和接入 DPLEvolve/GoalEvolve、统一执行/数据入口，并完成协同 PPA 优化。ORFS PPA 基线和同一 Codex 使用数据能力前后的 token/耗时测量属于本机验收。
 
-新用户安装、公开发布、ASP-DAC Tutorial 和论文交付暂缓，保留公共接口与模块边界供后续扩展。老板于 2026-10-11 明确同意执行，当前恢复 P3 完整真实验证；后续按切片计划和契约确认推进，详见 admin/LOCAL_EXECUTION_PLAN_20261011.md。
+新用户安装、公开发布、ASP-DAC Tutorial 和论文交付暂缓，保留公共接口与模块边界供后续扩展。老板于 2026-10-11 明确同意本机施工，路线见 admin/LOCAL_EXECUTION_PLAN_20261011.md；实际完成状态见 TASKS.md。
+
+2026-10-12 老板确认采用本机 10 月 ORFS 镜像作为三专业项目后续共同基础版本。其官方源码为 ORFS `5105b0a77` / OpenROAD `27288f5c90`，通过 SIF 来源、官方构建日志和内容对照核实；固定 digest/commit，不自动跟随移动的 latest。两个 Code 项目在共同源码上保留各自定制能力和私有候选构建。历史原生环境保留为复现证据，新版本使用新实验及本机基线；尚未完成运行切换。审计与待确认的迁移切片计划见 admin/COMMON_TOOLCHAIN_AUDIT_20261012.md 和 admin/COMMON_TOOLCHAIN_PLAN_20261012.md。

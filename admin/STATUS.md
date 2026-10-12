@@ -1,6 +1,14 @@
 # Agentic EDA 施工状态
 
-## 本轮最新结论：2026-10-11
+## 本轮最新结论：2026-10-12
+
+老板已确认三专业项目后续采用本机 10 月 ORFS SIF `8e6ee7…` 为共同基础环境。官方 Jenkins master/1642 的 checkout、OpenROAD 子模块及镜像 digest 发布记录已核实 ORFS `5105b0a77` / OpenROAD `27288f5c90`；2,407 个镜像保留文件与对应源码完全一致，13 个迁移关键文件 blob 核对通过，三个指定历史 ODB 单向读取成功。来源审计已完成；尚未切换运行环境、构建共同源码或移植专业补丁。
+
+DPLEvolve 基础 patch 在新版 `src/CMakeLists.txt`、`src/Main.cc`、`src/OpenRoad.cc` 需适配，ORFS overlay 也不能原样应用；GoalEvolve 需要追踪并迁移定制 `repair_power` 及必要 policy/move/rmp/STA 依赖，不覆盖新版整目录。报告见 `COMMON_TOOLCHAIN_AUDIT_20261012.md`，具体 U1 文件/数据流/接口/验证/影响面及 U2–U5 路线见 `COMMON_TOOLCHAIN_PLAN_20261012.md`。U1 待计划确认；当前 Git 基线 `5b3df77`、既有 evaluation 用户修改保留。
+
+L1/L2 的实测成果与 L3 的未完成项保持如下事实。L3 的本机 Codex 登录适配仍待具体入口确认，未启动 AE-3，九项上游测试失败未解决；旧六小时预算已过期，本轮没有重置。共同版本审计不等于原生复现、统一执行/数据接入或协同 workflow 完成。
+
+## 原生复现检查点：2026-10-11
 
 L3 / GoalEvolve 计划已获老板确认，环境/AE-1/模拟 smoke/AST 初始化/真实 AES AE-2 重放/p0 本机基线冻结通过。p0 为 |TNS| 12.37 ns、动态功耗 427,394,076,214.0958 pW、漏电功耗 95,383,300.50418 pW。未启动 AE-3；模型入口待老板选择，未修改上游仍有九项历史资产缺失测试失败，因此 L3 尚未通过全部门禁。报告 `L3_GOALEVOLVE_REPORT_20261011.md`；统一执行和数据接入仍为 L4/L6，实施分支 `l3-goalevolve-native-20261011`。
 
