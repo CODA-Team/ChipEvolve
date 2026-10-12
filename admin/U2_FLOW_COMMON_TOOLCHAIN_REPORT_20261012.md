@@ -121,6 +121,8 @@ admin/.venv/bin/python admin/accept_common_flow_campaign.py audit \
 
 实验专有服务已停止，数据与产物完整保留。根分支 `u2-common-flow-20261012`，两个自有模块已推送到 ChipEvolve 的 `modules/flow-agent` / `modules/toolkits`；根检查点发布到同名 U2 分支。原有 admin/evaluation、DF/DI 用户修改未纳入提交或运行基线。
 
+发布校验发现首次 Flow push 误用了仍指向 `yfz2024/A2-ORFO` 的 source `origin`，在上游创建了 `modules/flow-agent`。已根据 GitHub activity 核实该分支由本次操作新建（before 为零、after 为本次 `9bdb417`），通过指定 SHA 的 lease 删除误发布分支，再显式推送到 `CODA-Team/ChipEvolve`；没有推送上游主分支。修正与清理证据见 `var/flow-agent/u2-preparation-20261012/flow-publication-correction.json`。最终发布按 manifest 的目标 URL 校验根分支、两个模块分支及 gitlink，而不使用研究项目的 source origin 作为发布目标。
+
 下一阶段是 U3：DPLEvolve 在共同基础源码上的专业 overlay 迁移；U4 的 GoalEvolve 仍需解决模型入口/AE-3/九项历史资产缺失问题。统一 Code 执行/数据入口、设计实验与原因视图、真正 Query 交接、三项目同设计/工艺/约束接力及平台 PPA/token/时间对照仍未完成；ECO、教学和论文交付继续暂缓。
 
 1. 本切片修改 Flow 的工具身份/资源入口和 Toolkit 的 A2 runtime，增加本机完整运行/验收工具与对应测试，完整文件职责见上表。
