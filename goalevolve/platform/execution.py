@@ -16,6 +16,7 @@ import subprocess
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+from uuid import uuid4
 
 if TYPE_CHECKING:
     from ..execution.execution import ExecutionPolicy, ExecutionReport
@@ -50,9 +51,11 @@ def source_files(source: Path) -> dict[str, str]:
 
 
 def build_root(command: list[str], cwd: Path) -> Path | None:
-    for flag in ("-B", "--build"):
-        if flag in command:
-            return Path(command[command.index(flag) + 1]).resolve()
+    # make -B forces a rebuild; only CMake uses -B for a build directory.
+    if Path(command[0]).name == "cmake":
+        for flag in ("-B", "--build"):
+            if flag in command:
+                return Path(command[command.index(flag) + 1]).resolve()
     if Path(command[0]).name == "openroad":
         return Path(command[0]).resolve().parent.parent
     for path in (cwd, *cwd.parents):
@@ -76,9 +79,7 @@ def request_for(
     operation = (
         "build"
         if Path(command[0]).name in {"cmake", "make", "gmake", "ninja"}
-        else "physical"
-        if Path(command[0]).name == "openroad"
-        else "analysis"
+        else "physical" if Path(command[0]).name == "openroad" else "analysis"
     )
     inputs = dict(profile["input_files"])
     if operation == "physical":
@@ -333,17 +334,25 @@ def delegate(profile: dict[str, Any], call: dict[str, Any]) -> dict[str, Any]:
             "ok": row["status"] == "succeeded" and code == 0 and not timeout,
             "attempts": attempt,
             "returncode": None if timeout else code,
-            "stdout_tail": (folder / "stdout.log").read_text(errors="replace")[-4000:]
-            if (folder / "stdout.log").exists()
-            else "",
-            "stderr_tail": (folder / "stderr.log").read_text(errors="replace")[-4000:]
-            if (folder / "stderr.log").exists()
-            else json.dumps(row),
-            "resource_error": "timeout"
-            if timeout
-            else None
-            if code == 0 and row["status"] == "succeeded"
-            else "command_failed",
+            "stdout_tail": (
+                (folder / "stdout.log").read_text(errors="replace")[-4000:]
+                if (folder / "stdout.log").exists()
+                else ""
+            ),
+            "stderr_tail": (
+                (folder / "stderr.log").read_text(errors="replace")[-4000:]
+                if (folder / "stderr.log").exists()
+                else json.dumps(row)
+            ),
+            "resource_error": (
+                "timeout"
+                if timeout
+                else (
+                    None
+                    if code == 0 and row["status"] == "succeeded"
+                    else "command_failed"
+                )
+            ),
         }
         if timeout:
             client.cancel(run_id)
@@ -433,6 +442,7 @@ def maybe_delegate(
     if not profile or os.environ.get("GOALEVOLVE_EXECUTION_LEAF") == "1":
         return None
     call = {
+        "invocation_id": uuid4().hex,
         "command": command,
         "cwd": str(cwd.resolve()),
         "policy": asdict(policy),

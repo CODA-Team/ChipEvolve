@@ -7,6 +7,7 @@ import os
 from unittest.mock import patch
 
 import pytest
+
 from goalevolve.execution.execution import (
     ExecutionPolicy,
     ExecutionReport,
@@ -66,6 +67,55 @@ def test_runner_returns_delegated_failure_without_native_subprocess(tmp_path):
     assert bridge.call_count == 1
 
 
+def test_identical_forced_build_invocations_have_distinct_task_intents(tmp_path):
+    from types import SimpleNamespace
+
+    calls = []
+    profile = {
+        "client_python": "client-python",
+        "profile_path": "profile.json",
+        "operations_root": str(tmp_path / "operations"),
+    }
+
+    def run_delegate(command, *, check):
+        call_path = command[command.index("--request") + 1]
+        result_path = command[command.index("--result") + 1]
+        from pathlib import Path
+
+        calls.append(json.loads(Path(call_path).read_text()))
+        Path(result_path).write_text(
+            json.dumps(
+                {
+                    "ok": True,
+                    "attempts": 1,
+                    "returncode": 0,
+                    "stdout_tail": "",
+                    "stderr_tail": "",
+                    "resource_error": None,
+                }
+            )
+        )
+        return SimpleNamespace(returncode=0)
+
+    with (
+        patch(
+            "goalevolve.platform.profile.load_platform_profile", return_value=profile
+        ),
+        patch("subprocess.run", side_effect=run_delegate),
+    ):
+        for _ in range(2):
+            result = maybe_delegate(
+                command=["make", "-B", "policy.o"],
+                cwd=tmp_path,
+                policy=ExecutionPolicy(),
+                output_log=None,
+                environment=None,
+            )
+            assert result.ok
+    assert calls[0]["command"] == calls[1]["command"]
+    assert calls[0]["invocation_id"] != calls[1]["invocation_id"]
+
+
 def test_build_root_handles_transitive_object_commands(tmp_path):
     build = tmp_path / "build"
     build.mkdir()
@@ -73,6 +123,7 @@ def test_build_root_handles_transitive_object_commands(tmp_path):
     object_dir = build / "src/rsz/CMakeFiles/rsz.dir"
     object_dir.mkdir(parents=True)
     assert build_root(["make", "RepairPowerPolicy.cc.o"], object_dir) == build
+    assert build_root(["make", "-B", "-j8", "policy.cc.o"], object_dir) == build
     assert (
         build_root([str(build / "bin/openroad"), "-exit", "flow.tcl"], tmp_path)
         == build
