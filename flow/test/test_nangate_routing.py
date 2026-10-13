@@ -42,6 +42,8 @@ def test_initial_baseline_preserves_platform_capacities_and_binds_hooks(tmp_path
     design = tmp_path / 'designs/nangate45/aes'
     design.mkdir(parents=True)
     shutil.copy2(FLOW / 'run_sequential.sh', tmp_path / 'run_sequential.sh')
+    for helper in ('initial_constraints.py', 'drp_config.json'):
+        shutil.copy2(FLOW / helper, tmp_path / helper)
     for name in ('config.mk', 'constraint.sdc'):
         shutil.copy2(DESIGN / name, design / name)
     subprocess.run(['bash', str(tmp_path / 'run_sequential.sh'), 'nangate45', 'aes', '3', '1'],

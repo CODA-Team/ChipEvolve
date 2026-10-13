@@ -2,13 +2,13 @@
 
 import argparse
 import csv
+import json
 from pathlib import Path
-
-from common import get_design_config, load_config
 
 
 def constrain(path: Path, config: dict, platform: str, design: str) -> None:
-    design_config = get_design_config(config, platform, design) or {}
+    design_config = next((c for c in config["configurations"]
+                          if c["platform"] == platform and c["design"] == design), {})
     overrides = design_config.get("placement_range_override", {})
     if not overrides:
         return
@@ -34,4 +34,5 @@ if __name__ == "__main__":
     parser.add_argument("platform")
     parser.add_argument("design")
     args = parser.parse_args()
-    constrain(args.csv, load_config(Path("drp_config.json")), args.platform, args.design)
+    config_path = Path(__file__).with_name("drp_config.json")
+    constrain(args.csv, json.loads(config_path.read_text()), args.platform, args.design)
