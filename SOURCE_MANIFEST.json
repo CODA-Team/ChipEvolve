@@ -29,8 +29,8 @@
     },
     {
       "path": "query-agent",
-      "source_commit": "0e657738238ada9e9f9684e1fb94361ab9615f94",
-      "source_tree": "fcb1bddad68ce3220d5531f855adad159f07d122",
+      "source_commit": "67320e76906128e091ac9b9e4162a0eeef0adfbb",
+      "source_tree": "e8514d63f2334329b1053d8450f17421a8e53af7",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/query-agent"
     },
@@ -70,8 +70,8 @@
     },
     {
       "path": "timing-eco-agent",
-      "source_commit": "78da6145664c204ea00720f5cb9847d8cd26203b",
-      "source_tree": "d34720583ab51c1bf0a611513baaf9413713308e",
+      "source_commit": "0f8bb065794c1eda8f4d93eb0c0bd97567e48e52",
+      "source_tree": "4ac949799fbe708fffcefebcb80d82d491772c3c",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/timing-eco-agent",
       "upstream_url": "https://github.com/ASU-VDA-Lab/TimingECOAgent.git",

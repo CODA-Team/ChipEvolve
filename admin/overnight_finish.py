@@ -12,6 +12,21 @@ from overnight_runtime import command
 from run_dplevolve_native import digest, write_json
 
 
+def sdc_export_commands(path: Path) -> list[str]:
+    """Keep an OpenSTA SDC independent of the reader's previous time units."""
+    return [
+        "set_cmd_units -time ps",
+        f"write_sdc {{{path}}}",
+        f"set sdc_handle [open {{{path}}} r]",
+        "set sdc_content [read $sdc_handle]",
+        "close $sdc_handle",
+        f"set sdc_handle [open {{{path}}} w]",
+        "puts $sdc_handle {set_cmd_units -time ps}",
+        "puts -nonewline $sdc_handle $sdc_content",
+        "close $sdc_handle",
+    ]
+
+
 def finish(state: Path, key: str, odb: Path, sdc: Path, pdk: Path, parent_run: str):
     runtime = json.loads((state / "runtime.json").read_text())
     output = state / "handoffs" / key
@@ -60,7 +75,7 @@ def finish(state: Path, key: str, odb: Path, sdc: Path, pdk: Path, parent_run: s
                 f"write_db {{{output / 'final.odb'}}}",
                 f"write_def {{{output / 'final.def'}}}",
                 f"write_verilog {{{output / 'final.v'}}}",
-                f"write_sdc {{{output / 'final.sdc'}}}",
+                *sdc_export_commands(output / "final.sdc"),
                 "exit",
             ]
         )
@@ -77,6 +92,7 @@ def finish(state: Path, key: str, odb: Path, sdc: Path, pdk: Path, parent_run: s
             "library_corner": "FF",
             "library_sha256": {str(p): digest(p) for p in libs},
             "metrics_units": {"timing": "ns", "power": "W", "area": "um^2"},
+            "exported_sdc_time_unit": "ps (explicit set_cmd_units declaration)",
             "routing": "full default detailed_route, not the native ECO one-iteration route",
         },
     )

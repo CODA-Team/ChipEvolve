@@ -11,6 +11,7 @@
 - 根仓库为 `CODA-Team/ChipEvolve`，用 Git 子模块固定各项目提交；具体版本见 `SOURCE_MANIFEST.json`。`discarded/` 完整归档旧 ChipEvolve，不从归档中取当前业务接口、运行入口或测试依据。
 - 六个自有模块及 U3 / U4 授权适配的 DPLEvolve / GoalEvolve 发布到 ChipEvolve 的 `modules/<目录名>` 分支；先提交并推送模块，再在根仓库更新 gitlink 和来源 manifest。保留每个模块的独立环境和跨项目 wheel/HTTP 边界，两研究项目保留官方上游来源。
 - 两个 Code 的平台 fork 不推原研究仓库；GoalEvolve U4 演化/独立重放与业务验收的实际状态以本轮报告为准，不把接入实现检查点写成全部验收已完成。
+- TimingECOAgent 的 `origin` 是第三方上游，只读；发布必须使用其 `platform` remote，目标为 ChipEvolve 的 `modules/timing-eco-agent` 分支。
 - 发布已提交检查点；本机未提交修改、凭据、`.venv`、wheel、镜像及 `var` 运行数据不自动纳入发布。
 
 - 后续开发只修改这里的正式项目。旧路径是运行基线或历史证据。

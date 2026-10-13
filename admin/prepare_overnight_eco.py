@@ -92,7 +92,15 @@ def prepare(state: Path, key: str, data_key: str) -> Path:
         },
         "toolchain": runtime["toolchain"],
         "source_files": {
-            str(p.relative_to(source)): digest(p) for p in (source / "src").glob("*.py")
+            str(p.relative_to(source)): digest(p)
+            for pattern in (
+                "src/*.py",
+                "OpenROAD_utils/*.tcl",
+                "prompts/AGENTS.md",
+                "prompts/static/**/*.toon",
+            )
+            for p in source.glob(pattern)
+            if p.is_file()
         },
     }
     # EF intentionally strips the host environment. Carry only the local model
