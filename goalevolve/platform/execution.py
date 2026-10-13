@@ -99,7 +99,10 @@ def request_for(
         if len(command) > 2 and Path(command[-1]).is_file():
             inputs[command[-1]] = digest(Path(command[-1]))
     if operation == "analysis":
-        for value in command[1:]:
+        for index, value in enumerate(command[1:], start=1):
+            if command[index - 1] == "--csv":
+                # The official parser appends to this output on reevaluation.
+                continue
             if Path(value).is_file():
                 inputs[str(Path(value).resolve())] = digest(Path(value))
     return {

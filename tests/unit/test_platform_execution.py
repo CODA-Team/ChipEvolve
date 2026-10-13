@@ -192,6 +192,35 @@ def test_profile_failure_never_returns_native_fallback(tmp_path, monkeypatch):
     assert result.resource_error == "delegation_failed"
 
 
+def test_repeated_metrics_parser_can_append_output_but_not_modify_log(tmp_path):
+    from goalevolve.platform.execution import digest
+
+    image = tmp_path / "image.sif"
+    image.write_bytes(b"test")
+    log = tmp_path / "evaluation.log"
+    log.write_text("completed physical flow")
+    csv = tmp_path / "metrics.csv"
+    csv.write_text("first measurement\n")
+    profile = {
+        "image": str(image),
+        "input_files": {},
+        "toolchain": {"image_sha256": digest(image)},
+    }
+    request = request_for(
+        profile,
+        {
+            "command": ["python3", "parse_log.py", str(log), "--csv", str(csv)],
+            "cwd": str(tmp_path),
+        },
+        1,
+    )
+    csv.write_text("first measurement\nsecond measurement\n")
+    validate_request(profile, request)
+    log.write_text("modified physical evidence")
+    with pytest.raises(ValueError, match="Frozen input changed"):
+        validate_request(profile, request)
+
+
 def test_physical_evaluation_rejects_stale_binary(tmp_path):
     from goalevolve.platform.execution import digest, record_build
 
