@@ -92,6 +92,7 @@ report_wns
 # row's 4th number is total power (internal + switching + leakage), matching
 # finish__power__total. eval_tns.sh parses it.
 puts "DEBUG: --- report_power under CP_0 = $cp0 ---"
+set_cmd_units -power W
 if {[catch {report_power} rp_err]} {
     puts "DEBUG: report_power error: $rp_err"
 }

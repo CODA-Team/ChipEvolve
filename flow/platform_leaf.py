@@ -11,6 +11,13 @@ from platform_execution import PlatformExecution
 from platform_feedback import publish_feedback
 
 
+def native_evaluation(platform, cp0, clock_port, library_patterns):
+    source_time_unit = 'ps' if platform == 'asap7' else 'ns'
+    return {'cp0_ns': float(cp0) * (0.001 if source_time_unit == 'ps' else 1.0),
+            'source_time_unit': source_time_unit, 'clock_port': clock_port,
+            'library_patterns': library_patterns}
+
+
 def candidate_binding(flow, campaign, iteration, slot, stage):
     lifecycle = json.loads((flow / f'tmp/candidate_lifecycle_iter{iteration}.json').read_text())
     if lifecycle['campaign_id'] != campaign or lifecycle['iteration'] != iteration:
@@ -51,8 +58,8 @@ def main():
     evaluation = None
     sdc = None
     if args.stage.startswith('eval_'):
-        evaluation = {'cp0_ns': float(os.environ['CP0']), 'clock_port': os.environ['CLK_PORT'],
-                      'library_patterns': shlex.split(os.environ['LIB_FILES'])}
+        evaluation = native_evaluation(args.platform, os.environ['CP0'], os.environ['CLK_PORT'],
+                                       shlex.split(os.environ['LIB_FILES']))
     else:
         snapshot = config_snapshot(args.config)
         if snapshot['effective_sdc']['resolved_path'] is None:
