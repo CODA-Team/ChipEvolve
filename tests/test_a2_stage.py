@@ -101,6 +101,23 @@ Total                  1.90e-01   2.10e-01   5.32e-04   4.00e-01 100.0%
                                           'power': {'value': .4, 'unit': 'W'}}
 
 
+def test_asap7_picoseconds_are_normalized_without_changing_physical_clock(tmp_path):
+    from eda_toolkits.openroad.a2_evaluation import evaluation_plan
+    environment = {}
+    evaluation_plan({'stage': 'eval_final', 'threads': 1, 'evaluation': {
+        'cp0_ns': 0.310, 'source_time_unit': 'ps', 'clock_port': 'clk',
+        'library_patterns': ['/asap7/*.lib']}},
+        {'openroad_bin': 'openroad', 'flow_dir': str(tmp_path)}, tmp_path, environment)
+    assert float(environment['CP0']) == pytest.approx(310.0)
+    content = 'tns -4360\nwns -80\nTotal 0.1 0.2 0.1 0.4 100%\n'
+    result = parse_evaluation(content, source_time_unit='ps')
+    assert result['tns'] == {'value': -4.36, 'unit': 'ns'}
+    assert result['wns'] == {'value': -.08, 'unit': 'ns'}
+    assert result['power'] == {'value': .4, 'unit': 'W'}
+    with pytest.raises(ValueError, match='source_time_unit'):
+        parse_evaluation(content, source_time_unit='unknown')
+
+
 @pytest.mark.parametrize('content', ['tns max -4.36\nwns max -.08\n',
                                     'tns max -4.36\nwns max -.08\nTotal 1 2 3 nan\n',
                                     'tns max -4.36\nwns max -.08\nTotal 1 2 3 -1\n'])

@@ -101,7 +101,8 @@ def run_stage(result_path, started, workspace, inputs):
     if returncode == 0:
         if stage.startswith('eval_'):
             try:
-                observations = parse_evaluation((workspace / 'extractor.log').read_text())
+                observations = parse_evaluation((workspace / 'extractor.log').read_text(),
+                    source_time_unit=inputs['evaluation'].get('source_time_unit', 'ns'))
             except ValueError as error:
                 returncode = 1
                 failure = {'category': 'a2_evaluation_missing', 'message': str(error), 'retryable': False}
