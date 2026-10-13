@@ -1,5 +1,32 @@
 # 架构与源码边界
 
+## 2026-10-14 实测增量
+
+本轮新增 TimingECOAgent，平台包含九个独立项目。共同基础为 OpenROAD `27288f5c90` / ORFS `5105b0a77` 的固定镜像；DPLEvolve 与 GoalEvolve 保留专业源码覆盖和私有二进制，设计交接通过同基础版本的实际 ODB/DEF、SDC、SPEF、已注册产物及数据快照，不删除专业能力以强行共用 stock binary。
+
+当前已验证 Flow→DPLEvolve→CTS/route 的真实输入继承，以及独立 ECO 的真实模型优化和完整布线结果。GoalEvolve 的真实 GCD 基线和原结构检查通过，四 Student 原生轮次运行中；整个四项目接力待 N4 最终核查。运行事实与公开 API 回执在 `var/overnight/gcd-20261014`。
+
+```mermaid
+flowchart LR
+    C[Codex 决策] --> Q[Query 事实与证据]
+    Q --> SDK[Data Interface SDK]
+    SDK --> DF[Data Foundation]
+    C --> A[Flow / DPLEvolve / GoalEvolve / TimingECO]
+    A --> EF[Execution Foundation]
+    EF --> TK[Toolkits / 专业执行桥接]
+    TK --> EDA[共同基础工具与专业二进制]
+    EF --> DF
+    DF --> Q
+```
+
+执行底座管理任务、输入、文件产物、进程/资源、日志及实际来源；数据底座管理设计/修订/运行/快照、对象/关系、指标、摘要及证据索引。数据接口是 SDK，不新增第三个服务。Query 增强 Codex 的领域查证与理解，业务判断仍由 Codex 完成。
+
+新增接点：两个 Code 的 `design_context(profile)` 消费已安装 `EdaAiClient`，将 `snapshot_id` / `metrics_snapshot_id` / `parent_run_id` 与确定性请求绑定；ECO 的 `platform_execution.submit(profile_path)` 经 SDK 解析当前设计，再提交一个保留持续 OpenROAD 会话的 EF 任务；`platform_codex.call_codex(system_prompt, user_prompt)` 复用登录和原提示。原生项目内部循环、专业上下文、评分和筛选保留。
+
+Query 只对明确 snapshot 的设计对象/专业分析事实查询使用该精确快照，由数据端口继续校验范围；运行状态与跨运行比较仍走既有实验选择策略。OpenSTA JSON 时间值为 SI 秒；ORFS 原字段保持原单位，单位声明与功耗 SI Watts 分开处理。不能依据单位缺失或不同分析条件直接推导收益/因果。
+
+TimingECOAgent 默认专业 DRT 校准只运行一个详细布线迭代；本轮额外通过共同工具完整 DRT+RCX 验证其最佳 ODB，最终 DRC 和布局违例均零。原停止路径未产生的 DEF/V 由平台边界确定性导出，不改模型策略。后续使用仍需记录原生实验条件和最终共同验收条件，不能混合 Flow TT、Goal GRT/ideal-clock 和 ECO routed/SPEF 指标。
+
 本页整理现有实现和已确认职责，不以预设架构强迫专业项目重构。源码证据、历史审计和接点依据见 [admin/INTEGRATION_MAP.md](admin/INTEGRATION_MAP.md)。更新：2026-10-13；本机目标关系与分阶段验收见 admin/LOCAL_EXECUTION_PLAN_20261011.md；共同工具链审计与迁移路线见 admin/COMMON_TOOLCHAIN_AUDIT_20261012.md 和 admin/COMMON_TOOLCHAIN_PLAN_20261012.md。
 
 ## 模块清单

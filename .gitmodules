@@ -45,3 +45,8 @@
 	url = https://github.com/CODA-Team/ChipEvolve.git
 	shallow = true
 	branch = modules/goalevolve
+[submodule "timing-eco-agent"]
+	path = timing-eco-agent
+	url = https://github.com/CODA-Team/ChipEvolve.git
+	branch = modules/timing-eco-agent
+	shallow = true

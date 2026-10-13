@@ -1,6 +1,10 @@
 # 工作区规则
 
-本工作区包含 Execution Foundation、Data Foundation、Data Interface、Query Agent、Toolkits、Flow Agent、DPLEvolve 和 GoalEvolve 八个独立 Git 项目；进入对应项目后读取其 AGENTS.md（若提供）。
+## 本轮连续施工授权（2026-10-14）
+
+老板明确授权夜间八小时计划、阶段验收后自动推进和必要兼容 / 共享接点适配，不再逐项交互审批；随后取消额度限制，要求推进至任务完成。本轮范围见 `admin/OVERNIGHT_GCD_PLAN_20261014.md`。ECO 暂缓被本轮接入 TimingECOAgent 的明确要求替代。保留专业算法、来源 / 版权及模块边界；不删除第三方署名、不动无关用户修改。当前已授权范围不重复问批准。八小时是计划窗口，不延长已结束 U4 实验的旧监督预算。
+
+本工作区包含 Execution Foundation、Data Foundation、Data Interface、Query Agent、Toolkits、Flow Agent、DPLEvolve、GoalEvolve 和 TimingECOAgent 九个独立 Git 项目；进入对应项目后读取其 AGENTS.md（若提供）。
 
 ## 仓库发布与历史边界
 

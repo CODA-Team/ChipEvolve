@@ -8,7 +8,7 @@
 2. 调用专业 Flow Agent 自动优化参数，保留原项目的优化算法和阶段继承。
 3. 通过统一执行与数据管理，查到每次实验的输入、结果、产物和来源。
 4. 实验中断后继续同一实验，复用已完成的计算和模型决策。
-5. 后续调用 DPLEvolve、GoalEvolve 做源码优化，并复用平台记录和查询能力。
+5. 调用 DPLEvolve、GoalEvolve 做源码优化，调用 TimingECOAgent 做时序 ECO，并复用平台记录和查询能力。
 
 这些是目标能力，当前交付范围见 [TASKS.md](TASKS.md)，不能全部视作已实现。
 
@@ -24,7 +24,7 @@
 - 固定评价条件下的可行结果才参与改善判断。超出功耗约束的时序改善不计可行收益。
 - 失败、回退与未知模型用量保留；一次实验改善不能等同于公平对照收益。
 - ReviewDSE 与 DPLEvolve 为同一项目，工程实现为 CODA-Team/DPLEvolve；GoalEvolve 独立。
-- ECO 暂缓。DPLEvolve 共同环境与统一执行在 U3 工程验收通过；GoalEvolve 及两个 Code 的统一数据入口仍待做，论文不能宣称 Flow/ECO/Code 三个 Agent 均已实现。
+- 2026-10-14 老板授权接入 ASU-VDA-Lab/TimingECOAgent，替代 ECO 暂缓；保留上游来源和专业算法。当前本机 GCD 的独立 ECO、统一执行、数据回流及完整布线验证已通过；Flow→DPLEvolve 的真实交接已通过，GoalEvolve 四 Student 原生轮次和完整接力仍在验收。论文和 Tutorial 不作为这轮施工范围。
 - 新材料中“Reset”的调参职责对应当前 Flow Agent；未经确认不改工程名称。
 
 ## 产品形态与交付

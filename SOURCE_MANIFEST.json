@@ -29,29 +29,29 @@
     },
     {
       "path": "query-agent",
-      "source_commit": "b6910d06f522c093b0a2133225ab7d4079e2e097",
-      "source_tree": "d66dba01c8902d739c56117ed0bfa0ac01736c66",
+      "source_commit": "0e657738238ada9e9f9684e1fb94361ab9615f94",
+      "source_tree": "fcb1bddad68ce3220d5531f855adad159f07d122",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/query-agent"
     },
     {
       "path": "toolkits",
-      "source_commit": "e7e77c698268c9d153b9de1bf3583d1215e3846e",
-      "source_tree": "1b53b0a57749f5a31507a4516825bef9dcd75afd",
+      "source_commit": "94db076ac7e5ac060459b25179293f455177475f",
+      "source_tree": "54117b958f6919296860c1a283f2ad4029b6931f",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/toolkits"
     },
     {
       "path": "flow-agent",
-      "source_commit": "9bdb41731f81dcd17a3350f1ed83ef5d703c78a6",
-      "source_tree": "d7918d40952ccbad1613fbe803593c85c5376236",
+      "source_commit": "01408b9f52afb198bcbd9bbef53504fe0d57fac0",
+      "source_tree": "09506806b1b96ecf655e9c2d51a803c3f1f34643",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/flow-agent"
     },
     {
       "path": "dplevolve",
-      "source_commit": "55ec40a1176fdf10cc4b18f81cf33a443881c030",
-      "source_tree": "0fca6e0321b00b369c06df5473c63871c1fa9fae",
+      "source_commit": "2b915db3b426a0e9c4d39c3d25a402b556318b46",
+      "source_tree": "dd15191e32d52328d28934e81839c389fd54a9c1",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/dplevolve",
       "upstream_url": "https://github.com/CODA-Team/DPLEvolve.git",
@@ -60,13 +60,23 @@
     },
     {
       "path": "goalevolve",
-      "source_commit": "879a3a31fc496c118da6d2aa4bfa3c167651d151",
-      "source_tree": "163e7c856c0013529aadeef0d73da0a076df06ef",
+      "source_commit": "4aa51f17713bc6999cb7200fcbc816c60b357de2",
+      "source_tree": "0d0b19284790d95f50e12cb7087221f9cd733353",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/goalevolve",
       "upstream_url": "https://github.com/CODA-Team/GoalEvolve.git",
       "upstream_commit": "1cc20aa611e687c2745ff7da6a006a5d25f49f85",
       "upstream_tree": "d19848940dc7ddf09cd49c40fc21b8c4a5190a9e"
+    },
+    {
+      "path": "timing-eco-agent",
+      "source_commit": "78da6145664c204ea00720f5cb9847d8cd26203b",
+      "source_tree": "d34720583ab51c1bf0a611513baaf9413713308e",
+      "url": "https://github.com/CODA-Team/ChipEvolve.git",
+      "branch": "modules/timing-eco-agent",
+      "upstream_url": "https://github.com/ASU-VDA-Lab/TimingECOAgent.git",
+      "upstream_commit": "80101610d9e39563b76203ab422184ad93d52249",
+      "upstream_benchmark_lfs_status": "404 for AES checkpoint; actual local GCD used"
     }
   ],
   "scope": "committed source checkpoints; local uncommitted edits and runtime assets are not included"
