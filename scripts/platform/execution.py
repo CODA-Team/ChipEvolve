@@ -156,6 +156,7 @@ def request_for(
         )
         outputs = [str(result)]
     return {
+        "design_context": design_context(profile) if operation == "baseline" else None,
         "operation": operation,
         "attempt": os.environ.get("DPL_EVOLVE_OPERATION_ATTEMPT", "initial"),
         "argv": argv,
@@ -174,6 +175,22 @@ def request_for(
             "resources": profile["resources"],
             "core_root": profile["core_root"],
         },
+    }
+
+
+def design_context(profile: dict[str, Any]) -> dict[str, Any] | None:
+    """Consume the optional registered handoff through the public data SDK."""
+    scope = profile.get("data_context")
+    if not scope:
+        return None
+    from eda_ai_client import EdaAiClient
+
+    client = EdaAiClient(data_url=scope["data_url"], kernel_url=profile["kernel_url"])
+    return {
+        "scope": client.resolve_scope(snapshot_id=scope["snapshot_id"]),
+        "summary": client.get_stage_summary(scope["snapshot_id"]),
+        "metrics": client.get_metrics(snapshot_id=scope["metrics_snapshot_id"]),
+        "parent_run_id": scope["parent_run_id"],
     }
 
 
