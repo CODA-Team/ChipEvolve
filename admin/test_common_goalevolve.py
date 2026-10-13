@@ -13,7 +13,7 @@ import zipfile
 from pathlib import Path
 from unittest.mock import patch
 
-from accept_common_goalevolve import compare_replay, measured, validate_archive
+from accept_common_goalevolve import audit, compare_replay, measured, validate_archive
 from run_common_goalevolve import (
     configure_adapter_ceiling,
     host_environment,
@@ -38,10 +38,16 @@ class CommonGoalControllerTests(unittest.TestCase):
                 capabilities=("test",),
                 supported_arch=("x86_64",),
                 default_timeout_seconds=3600,
+                environment={
+                    "EDA_ACTIVITY_LOCK": str(state / "activity.lock"),
+                    "LANG": "C",
+                },
             )
             path.write_text(json.dumps(original.to_dict()))
             configure_adapter_ceiling(state, {"adapter_timeout_ceiling_seconds": 7260})
             updated = PluginManifest.from_dict(json.loads(path.read_text()))
+            self.assertNotIn("EDA_ACTIVITY_LOCK", updated.environment)
+            self.assertEqual(updated.environment["LANG"], "C")
             spec = TaskSpec(
                 task_id="native-timeout",
                 project_id="p",
@@ -187,6 +193,42 @@ class CommonGoalControllerTests(unittest.TestCase):
 
 
 class CommonGoalEvidenceTests(unittest.TestCase):
+    def test_prior_completed_round_cannot_certify_new_partial_round_or_its_replay(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            state = Path(temporary)
+            (state / "config.json").write_text("{}")
+            campaign = state / "campaigns/aes_cipher_top/u4"
+            baseline = campaign / "baseline/baseline.json"
+            baseline.parent.mkdir(parents=True)
+            baseline.write_text(json.dumps(self.result()))
+            first = campaign / "campaign/rounds/round_001"
+            second = first.parent / "round_002"
+            first.mkdir(parents=True)
+            second.mkdir()
+            (first / "round.json").write_text('{"student_count": 4}')
+            with self.assertRaisesRegex(
+                ValueError, "Latest native round is incomplete"
+            ):
+                audit(state)
+            (second / "round.json").write_text('{"student_count": 4}')
+            for number in range(1, 5):
+                path = second / f"students/student_{number}/artifacts/candidate.json"
+                path.parent.mkdir(parents=True)
+                value = self.result()
+                value.update(
+                    student_id=f"student_{number}",
+                    source_commit="source",
+                    evaluation_error=None,
+                )
+                path.write_text(json.dumps(value))
+            replay = state / "replay/replay.json"
+            replay.parent.mkdir()
+            replay.write_text(
+                json.dumps({"candidate_json": str(first / "candidate.json")})
+            )
+            with self.assertRaisesRegex(ValueError, "different native round"):
+                audit(state)
+
     def test_registered_archive_requires_actual_output_bytes(self):
         with tempfile.TemporaryDirectory() as temporary:
             folder = Path(temporary)

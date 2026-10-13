@@ -48,6 +48,7 @@ def start_service(state: Path) -> None:
         check=True,
     )
     configure_adapter_ceiling(state, profile)
+    capacity = profile["service_capacity"]
     command = [
         python,
         "-m",
@@ -63,15 +64,15 @@ def start_service(state: Path) -> None:
         "--port",
         profile["kernel_url"].rsplit(":", 1)[1],
         "--input-root",
-        str(state),
+        profile["state_root"],
         "--capacity-cpu-cores",
-        "8",
+        str(capacity["cpu_cores"]),
         "--capacity-memory-bytes",
-        str(64 << 30),
+        str(capacity["memory_bytes"]),
         "--platform-fraction",
         "1.0",
         "--worker-concurrency",
-        "1",
+        str(capacity["workers"]),
     ]
     with (state / "kernel.log").open("a") as log:
         process = subprocess.Popen(
@@ -84,6 +85,7 @@ def start_service(state: Path) -> None:
             "command": command,
             "kernel_url": profile["kernel_url"],
             "started_at": now(),
+            "service_capacity": capacity,
             "adapter_timeout_ceiling_seconds": profile[
                 "adapter_timeout_ceiling_seconds"
             ],
@@ -105,6 +107,9 @@ def configure_adapter_ceiling(state: Path, profile: dict[str, Any]) -> None:
     path = state / "plugins/openroad-data/openroad-data.plugin.json"
     manifest = json.loads(path.read_text())
     manifest["default_timeout_seconds"] = profile["adapter_timeout_ceiling_seconds"]
+    # U4 uses private source/build directories; EF owns its resource admission.
+    # The optional host lease would also serialize version queries and parsers.
+    manifest.setdefault("environment", {}).pop("EDA_ACTIVITY_LOCK", None)
     write_json(path, manifest)
 
 
@@ -186,7 +191,12 @@ def prepare_replay(
     summary_path = round_root / "round.json"
     summary = json.loads(summary_path.read_text()) if summary_path.exists() else {}
     candidates = []
-    for path in (round_root / "students").glob("*/artifacts/candidate.json"):
+    candidate_paths = (
+        [candidate_path]
+        if candidate_path
+        else list((round_root / "students").glob("*/artifacts/candidate.json"))
+    )
+    for path in candidate_paths:
         row = json.loads(path.read_text())
         if (
             row["evaluation_error"] is None
@@ -213,7 +223,10 @@ def prepare_replay(
     code = r"""from pathlib import Path
 import json, os
 from dataclasses import replace
-from goalevolve.config import load_config, build_runtime
+from goalevolve.config import load_config
+from goalevolve.core.contracts import build_contract
+from goalevolve.evaluation.contest2026 import Contest2026Config, Contest2026OpenROADEvaluator, _project_toolchain
+from goalevolve.execution.execution import ExecutionPolicy
 from goalevolve.core.models import Parent
 from goalevolve.evaluation.contest2026 import _tree_hash
 from goalevolve.execution.workspace import clone_source_tree
@@ -228,8 +241,9 @@ snapshot=folder/'snapshot/source'; clone_source_tree(source,snapshot)
 assert _tree_hash(snapshot,allowed_roots=cfg.allowed_patch_roots)==candidate['source_commit']
 private=folder/'private-source'; clone_source_tree(snapshot,private)
 replay_cfg=replace(cfg,source_root=snapshot,build_seed_root=None)
-contract, registry=build_runtime(replay_cfg)
-evaluator=registry.evaluator('contest_openroad')
+contract=build_contract(design=cfg.design,baseline_metrics=cfg.baseline_metrics,target_metrics=cfg.target_metrics,weights=cfg.metric_weights,hard_metrics=cfg.hard_metrics,maximize_metrics=cfg.maximize_metrics)
+tool_env,cmake_args=_project_toolchain()
+evaluator=Contest2026OpenROADEvaluator(Contest2026Config(design=cfg.design,benchmark_root=cfg.benchmark_root,source_seed=snapshot,build_seed_root=None,allowed_patch_roots=cfg.allowed_patch_roots,require_cpp_patch=cfg.require_cpp_patch,power_reclaim_phase=cfg.power_reclaim_phase,power_reclaim_proportion_percent=cfg.power_reclaim_proportion_percent,power_reclaim_max_moves=cfg.power_reclaim_max_moves,power_stage_tns_ceiling_ns=cfg.power_stage_tns_ceiling_ns,build_jobs=cfg.build_jobs,execution_policy=ExecutionPolicy(cfg.command_timeout_s,cfg.command_retries,cfg.min_free_gb),toolchain_environment=tool_env,toolchain_cmake_args=cmake_args))
 parent=Parent('u4_independent_replay',candidate['metrics'],candidate['source_commit'],candidate['source_commit'],0.0)
 hypothesis=candidate['hypothesis']
 measurement=evaluator.evaluate_parent(contract=contract,parent=parent,source=private,output=folder/'measurement',optimization_mode=hypothesis['evaluation_mode'],timing_recipe_id=hypothesis['timing_recipe_id'])

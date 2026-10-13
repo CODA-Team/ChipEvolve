@@ -140,10 +140,13 @@ def audit(state: Path) -> dict[str, Any]:
     campaign = state / "campaigns/aes_cipher_top/u4"
     baseline = json.loads((campaign / "baseline/baseline.json").read_text())
     baseline_metrics = measured(baseline)
-    rounds = sorted((campaign / "campaign/rounds").glob("round_*/round.json"))
-    if not rounds:
-        raise ValueError("No completed native round")
-    round_root = rounds[-1].parent
+    round_roots = sorted((campaign / "campaign/rounds").glob("round_*"))
+    if not round_roots or not (round_roots[-1] / "round.json").is_file():
+        raise ValueError("Latest native round is incomplete")
+    round_root = round_roots[-1]
+    rounds = [
+        path / "round.json" for path in round_roots if (path / "round.json").is_file()
+    ]
     summary = json.loads((round_root / "round.json").read_text())
     if summary["student_count"] != 4:
         raise ValueError("Four native Students required")
@@ -168,6 +171,12 @@ def audit(state: Path) -> dict[str, Any]:
     }:
         raise ValueError("Missing Student result")
     replay_receipt = json.loads((state / "replay/replay.json").read_text())
+    if (
+        not Path(replay_receipt["candidate_json"])
+        .resolve()
+        .is_relative_to(round_root.resolve())
+    ):
+        raise ValueError("Replay candidate belongs to a different native round")
     candidate = json.loads(Path(replay_receipt["candidate_json"]).read_text())
     replay = json.loads(Path(replay_receipt["measurement_json"]).read_text())
     if (
@@ -180,6 +189,12 @@ def audit(state: Path) -> dict[str, Any]:
         )
     delta = compare_replay(candidate, replay)
     operations = audit_operations(state, profile)
+    replay_service = state / "replay-service"
+    if replay_service.is_dir():
+        replay_profile = json.loads((replay_service / "config.json").read_text())
+        if replay_profile["toolchain"] != profile["toolchain"]:
+            raise ValueError("Independent replay toolchain differs")
+        operations.extend(audit_operations(replay_service, replay_profile))
     return {
         "engineering_status": "physical_evidence_passed_pending_remaining_gates_and_owner",
         "baseline_metrics": baseline_metrics,

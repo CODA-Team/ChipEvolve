@@ -189,6 +189,7 @@ def prepare(state: Path, revision: str) -> dict[str, Any]:
         if p.is_file() and p.suffix != ".pyc"
     }
     profile = {
+        "service_capacity": {"cpu_cores": 8, "memory_bytes": 64 << 30, "workers": 1},
         "adapter_timeout_ceiling_seconds": 7260,
         "profile_path": str(state / "config.json"),
         "experiment_id": state.name,

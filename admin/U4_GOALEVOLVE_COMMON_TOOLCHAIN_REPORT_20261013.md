@@ -4,7 +4,7 @@
 
 最新：首轮已结束，四个候选全部无效，原生未晋升，不能声称 PPA 改善。修复后的 control-r5 / 模块 `879a3a31fc496c118da6d2aa4bfa3c167651d151` 正在第二轮工程重试；继续同一原生 campaign、同一冻结基线与 EPD，原八小时绝对截止时间不变。工程与业务验收仍未完成。
 
-GoalEvolve 已使用本机 Codex 登录、固定共同工具链与公共 Execution Foundation 完成真实 AES / ASAP7 基线。Teacher 和四个 Student 已完成首轮规划/编辑，私有候选正在统一构建队列中；本轮新候选收益与独立重放尚未完成。两个 Code 的 DF/DI/Query 入口及最终三项目 PPA 接力属于后续切片。
+GoalEvolve 已使用本机 Codex 登录、固定共同工具链与公共 Execution Foundation 完成真实 AES / ASAP7 基线。Teacher 和四个 Student 已完成两轮真实规划/编辑；首轮全部无效，第二轮四份新源码均已链接，Student 4 已完成合法物理测量，其他原生结果和独立重放仍在收尾。两个 Code 的 DF/DI/Query 入口及最终三项目 PPA 接力属于后续切片。
 
 ## 已验证的效果
 
@@ -68,7 +68,7 @@ flowchart LR
 
 构建失败曾暴露未迁入的重布线、私有方法声明及 RMP/BLIF 依赖；老板确认后合并。准备脚本的重复常量已修正。第一次 AES 流程使用了错误 Diamond 选项，已按实际共同版本修正并成功重跑；失败未冻结为基线。所有原始失败留在新的 var。
 
-- 全套原生回归：411 个 JUnit 记录，0 failure/error/skip；新增 Diamond 流程对照测试单独通过。
+- 最新全套原生回归：416 个 JUnit 记录（含子测试），0 failure/error/skip；原行为断言和 Diamond 流程对照保留。
 - 模块与根控制器定向测试：23 项通过。Toolkits 相关回归 26 项通过；EF 相关回归 40 项通过，另 1 项按本机能力条件跳过。
 - 新文件 lint/格式/类型通过。原共享文件基线有 33 项风格诊断，本轮为 32，未引入新诊断；未将其伪称为全库风格整治完成。
 - 差异与架构最终审查、真实四候选结果、独立重放、发布与业务验收仍待完成。
@@ -104,3 +104,25 @@ Student 1 的首次功耗流程并非成功结束，而是被已有 EF `min(task
 第二次服务配置切换在当前链接结算后开始，暂停约 1 秒；回执 `ef-lock/adapter-cap-restart.json`。第二轮与独立重放尚待真实结果，当前数据不构成优化收益。
 
 证据根：`var/code-agent/u4-goalevolve-common-20261013/`。用户原有 26 份修改截至当前逐字节未变。原研究仓库不推送，正式发布仅使用 ChipEvolve 平台分支。
+
+## 第二轮实测及独立重放进度
+
+修复后的原生第二轮四份源码均已编译链接。Student 4 完整物理评价通过，原检查 `SUMMARY: 4/4 checks passed` / `RESULT: VALID`，DRV=0、布局合法：
+
+| 指标 | 同条件基线 | Student 4 | 业务含义 |
+|---|---:|---:|---|
+| 动态功耗 pW | 425774918185.19775 | 422270954739.3606 | 降约 0.823%。 |
+| 漏电功耗 pW | 92758549.72656816 | 89048255.17674908 | 降约 4.000%。 |
+| 绝对 TNS ns | 18.390079498291016 | 23.248600006103516 | 增约 26.42%，时序变差。 |
+
+原冻结业务目标是动态功耗 ≤0.35 W、漏电 ≤35 µW、|TNS| ≤12 ns；该候选尚未满足三项目标。60 ns 是物理功耗阶段的安全上限，不是业务目标。
+
+这是本轮真实的新源码候选，既不是发布历史结果，也不是 baseline 重命名。因原生四 future 尚未全部收尾，使用原 `recover_completed_candidate` 从已完成且有来源的不可变物理产物恢复单个见证，文件为 `round_002/students/student_4/artifacts/engineering_recovered_candidate.json`。不改原 `candidate.json`、轮次结果、筛选、EPD 或晋升；不能提前宣称原生晋升或总体优化达标。
+
+第二轮专属 EF 容量曾调为 32 CPU / 96 GiB / 4 worker，但 Toolkits 私有 manifest 的可选 `EDA_ACTIVITY_LOCK` 将构建、OpenROAD、版本查询和 parser 全部串行。原短版本查询和第一次重放 configure 因而等待长物理任务。此瓶颈是 U4 配置问题，不能写成 SQLite 修复无效，也不能用它评判算法质量。主实验仍保留该配置和实际阻塞记录。
+
+只调整 U4 准备脚本的私有 manifest：不配置可选宿主串行锁，由 EF 做资源准入，源码/构建/输出使用私有目录；Toolkits 与 EF 公共接口、资源保护和其他服务不改。回归同时确认原 timeout、adapter 及其余 environment 保留。原重放经公共 cancel 终止并保留为 `replay-failed-host-lease`；没有删除被占用的锁或注入运行中的 worker。
+
+独立重放使用单独 U4 EF 服务（`replay-service/service.json`），8 CPU / 64 GiB / 1 worker；主服务 32 CPU / 96 GiB。启动时本机可用内存约 128 GiB，新额度 64 GiB，仍保留任务进程与内存监管。输入来自已测 Student 4 的源码快照，空构建目录、无 donor，原完整 recipe/parser/checker 不减。两监督器共享原八小时绝对截止时间 `1791906224.4836223`，不追加预算。当前空目录 configure 已成功，完整编译运行中，重放测量尚未产生。
+
+根控制器新增防止误验收的检查：最新原生轮次未完成时，不用前一轮的终态替它验收；重放候选必须属于本次被审轮次；独立服务的实际 EF 产物也纳入审计。11 项根控制器回归通过，lint/格式/类型检查通过。最终轮次和重放状态还需更新，U4 不算完成。
