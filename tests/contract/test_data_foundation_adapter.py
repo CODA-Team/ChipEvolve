@@ -17,6 +17,7 @@ from query_agent.adapters.data_foundation import (
 from query_agent.application.collection import EvidenceCollector
 from query_agent.application.planning import KeywordIntentParser, QueryPlanner
 from query_agent.application.service import QueryService
+from query_agent.domain.errors import DataBoundaryError
 from query_agent.domain.query import (
     QueryContext,
     QueryRequest,
@@ -48,6 +49,46 @@ class Handler(BaseHTTPRequestHandler):
                 data = {"candidates": [{"snapshot_id": "s1"}, {"snapshot_id": "s2"}]}
             else:
                 data = {"snapshot": scope}
+        elif parsed.path == "/runs/ambiguous/summary":
+            data = {
+                "run_id": "ambiguous",
+                "snapshots": [
+                    {
+                        "snapshot": {
+                            **scope,
+                            "run_id": "ambiguous",
+                            "snapshot_id": sid,
+                            "source_artifacts": [
+                                {
+                                    "artifact_id": sid + "-source",
+                                    "run_id": "exporter",
+                                    "sha256": "a" * 64,
+                                }
+                            ],
+                        }
+                    }
+                    for sid in ("objects", "metrics")
+                ],
+            }
+        elif parsed.path == "/runs/run1/summary":
+            data = {
+                "run_id": "run1",
+                "snapshots": [
+                    {
+                        "snapshot": {
+                            **scope,
+                            "source_artifacts": [
+                                {
+                                    "artifact_id": "report",
+                                    "run_id": "analysis-producer",
+                                    "sha256": "a" * 64,
+                                    "category": "timing_report",
+                                }
+                            ],
+                        }
+                    }
+                ],
+            }
         elif parsed.path.endswith("/resolve-object"):
             name = query["name"][0]
             if name == "missing":
@@ -90,6 +131,13 @@ class Handler(BaseHTTPRequestHandler):
                 metric = data["metrics"][0]
                 metric["name"] = "TNS"
                 metric["evidence"] = [{"artifact_id": "unverified-report"}]
+            if parsed.path == "/runs/ambiguous/metrics":
+                metric = data["metrics"][0]
+                metric["snapshot_id"] = "metrics"
+                if query.get("name") == ["WRONG_SNAPSHOT"]:
+                    metric["snapshot_id"] = "unrelated"
+                if query.get("name") == ["WRONG_STAGE"]:
+                    metric["stage"] = "finish"
         elif parsed.path.endswith("/summary"):
             data = {
                 "snapshot": {
@@ -244,3 +292,34 @@ def test_data_stage_artifacts_follow_snapshot_sources_not_control_stages(
     )
     assert source.source_hash == "a" * 64
     assert source.locator.endswith("/snapshots/s1/sources/report/excerpt")
+
+
+def test_run_metrics_do_not_require_one_snapshot_for_all_fact_types(
+    provider: DataFoundationProvider,
+) -> None:
+    adapter = DataExperimentProvider(FakeExperimentContextProvider(), provider)
+    observations = adapter.list_metrics("ambiguous", stage_key="route")
+    assert len(observations) == 1
+    observation = observations[0]
+    assert observation.run_id == "ambiguous"
+    assert observation.stage_key == "route"
+    assert observation.value == -0.2
+    assert observation.complete
+    assert observation.source_hash == "a" * 64
+    artifacts = adapter.list_artifacts("ambiguous", stage_key="route")
+    assert {item.artifact_id for item in artifacts} == {
+        "objects-source",
+        "metrics-source",
+    }
+    assert all(
+        item.run_id == "ambiguous" and item.stage_key == "route" for item in artifacts
+    )
+
+
+@pytest.mark.parametrize("metric", ["WRONG_SNAPSHOT", "WRONG_STAGE"])
+def test_run_metrics_still_check_the_indexed_snapshot_and_requested_stage(
+    provider: DataFoundationProvider, metric: str
+) -> None:
+    adapter = DataExperimentProvider(FakeExperimentContextProvider(), provider)
+    with pytest.raises(DataBoundaryError, match="metric response crosses"):
+        adapter.list_metrics("ambiguous", stage_key="route", metric_name=metric)

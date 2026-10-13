@@ -14,10 +14,9 @@ from query_agent.domain.experiment import (
     MetricObservation,
     ProvenanceRef,
 )
-from query_agent.domain.query import QueryContext, QuerySource
 from query_agent.ports.experiment_context import ExperimentContextProvider
 
-from .models import Metrics, RunSummary, Summary, read
+from .models import Metrics, RunSummary, Snapshot, read
 from .provider import DataFoundationProvider, call
 
 
@@ -82,33 +81,49 @@ class DataExperimentProvider:
     ) -> Sequence[ArtifactRef]:
         if stage_key is None:
             return self.execution.list_artifacts(run_id)
-        scope = self.data.resolve(
-            QueryContext(run_id=run_id, stage=stage_key, source=QuerySource.MANAGED_RUN)
-        )
-        snapshot = read(
-            call(lambda: self.data.client.get_stage_summary(scope.snapshot_id)), Summary
-        ).data.snapshot
-        if snapshot.model_dump(exclude={"source_artifacts"}) != scope.model_dump():
-            raise DataBoundaryError("artifact summary crosses resolved snapshot scope")
-        return tuple(
-            ArtifactRef(
-                artifact_id=source.artifact_id,
-                run_id=scope.run_id,
-                design_id=scope.design_id,
-                stage_key=scope.stage,
-                kind=source.category,
-                source_hash=source.sha256,
-                locator=(
-                    f"{self.data.client.data_url}/snapshots/"
-                    f"{quote(scope.snapshot_id, safe='')}/sources/"
-                    f"{quote(source.artifact_id, safe='')}/excerpt"
-                ),
-            )
-            for source in snapshot.source_artifacts
-        )
+        artifacts: dict[str, ArtifactRef] = {}
+        for snapshot in self._run_snapshots(run_id):
+            if snapshot.stage != stage_key:
+                continue
+            for source in snapshot.source_artifacts:
+                reference = ArtifactRef(
+                    artifact_id=source.artifact_id,
+                    run_id=snapshot.run_id,
+                    design_id=snapshot.design_id,
+                    stage_key=snapshot.stage,
+                    kind=source.category,
+                    source_hash=source.sha256,
+                    locator=(
+                        f"{self.data.client.data_url}/snapshots/"
+                        f"{quote(snapshot.snapshot_id, safe='')}/sources/"
+                        f"{quote(source.artifact_id, safe='')}/excerpt"
+                    ),
+                )
+                previous = artifacts.get(source.artifact_id)
+                if (
+                    previous is not None
+                    and previous.source_hash != reference.source_hash
+                ):
+                    raise DataBoundaryError(
+                        "indexed artifact identity has conflicting hashes"
+                    )
+                artifacts.setdefault(source.artifact_id, reference)
+        return tuple(artifacts.values())
 
     def get_provenance(self, run_id: str) -> Sequence[ProvenanceRef]:
         return self.execution.get_provenance(run_id)
+
+    def _run_snapshots(self, run_id: str) -> tuple[Snapshot, ...]:
+        summary = read(
+            call(lambda: self.data.client.get_run_summary(run_id)), RunSummary
+        ).data
+        if (
+            summary.run_id != run_id
+            or any(row.snapshot.run_id != run_id for row in summary.snapshots)
+            or len({row.snapshot.design_id for row in summary.snapshots}) > 1
+        ):
+            raise DataBoundaryError("data catalog crosses requested run ownership")
+        return tuple(row.snapshot for row in summary.snapshots)
 
     def list_metrics(
         self,
@@ -117,20 +132,25 @@ class DataExperimentProvider:
         metric_name: str | None = None,
         stage_key: str | None = None,
     ) -> Sequence[MetricObservation]:
-        scope = self.data.resolve(
-            QueryContext(run_id=run_id, stage=stage_key, source=QuerySource.MANAGED_RUN)
-        )
+        scopes = {
+            snapshot.snapshot_id: snapshot for snapshot in self._run_snapshots(run_id)
+        }
         result = read(
             call(
                 lambda: self.data.client.get_metrics(
-                    snapshot_id=scope.snapshot_id, name=metric_name
+                    run_id=run_id, stage=stage_key, name=metric_name
                 )
             ),
             Metrics,
         )
         observations: list[MetricObservation] = []
         for row in result.data.metrics:
-            if row.snapshot_id != scope.snapshot_id or row.stage != scope.stage:
+            scope = scopes.get(row.snapshot_id)
+            if (
+                scope is None
+                or row.stage != scope.stage
+                or (stage_key is not None and row.stage != stage_key)
+            ):
                 raise DataBoundaryError(
                     "metric response crosses resolved snapshot scope"
                 )
