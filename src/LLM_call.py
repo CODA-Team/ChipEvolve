@@ -56,6 +56,7 @@ ALLOWED_PREFIXES = {
     "eco_resize_gate", "eco_clone_gate", "eco_clone_gate_worst_half",
     "eco_rank_fanout_by_slack", "eco_dump_path_siblings",
     "eco_dump_fanout_ranks", "eco_top_paths_through",
+    "eco_net_sink_report",
 }
 
 

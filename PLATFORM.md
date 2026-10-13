@@ -14,4 +14,6 @@ The persistent native controller and all its OpenROAD children belong to one Exe
 
 Native ECO primitives, path context, score weights, backtrace/best-state rules and detailed-route calibration remain upstream behavior. The supported upstream `DRT_EVERY_ITER=1` mode is selected for small GCD. The original one-iteration detailed-route result is separately qualified by a full common-toolchain route and RCX; it is not silently presented as full routing. Exported final artifacts and source hashes are recorded by EF and imported into DF for Query.
 
+The upstream expert guide requests `eco_net_sink_report`, but its published Tcl and command filter omit the implementation. The platform restores this read-only probe, reporting actual OpenDB terminal directions and cell masters; it does not add an optimization move or change the scoring policy. A real GCD EF probe verifies connectivity and missing-net behavior. Exported SDC handoffs explicitly declare their time unit, independently of the consuming tool's default.
+
 Local model connection settings must be explicitly supplied in the profile, because EF strips the host environment. Credentials are never staged or copied into containers. Native mode without the profile remains available.

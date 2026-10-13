@@ -625,6 +625,29 @@ proc eco_dump_path_siblings { out_file {n 5} } {
 # Returns:
 #   Tcl list of {sink_iterm_name slack_ns}, sorted worst-slack first.
 # ======================================================================
+proc eco_net_sink_report { net_name } {
+    # The upstream expert guide requests this read-only connectivity probe.
+    set nets [get_nets -quiet $net_name]
+    if {[llength $nets] != 1} {
+        error "eco_net_sink_report: expected one net '$net_name'"
+    }
+    set db_net [sta::sta_to_db_net [lindex $nets 0]]
+    if {$db_net eq "NULL" || $db_net eq ""} {
+        error "eco_net_sink_report: no OpenDB net for '$net_name'"
+    }
+    set rows {}
+    foreach iterm [$db_net getITerms] {
+        set inst [$iterm getInst]
+        set mterm [$iterm getMTerm]
+        lappend rows "PIN [$inst getName]/[$mterm getName] direction=[$mterm getIoType] master=[[$inst getMaster] getName]"
+    }
+    foreach bterm [$db_net getBTerms] {
+        lappend rows "PORT [$bterm getName] direction=[$bterm getIoType]"
+    }
+    puts "NET [$db_net getName] terminals=[llength $rows]"
+    foreach row [lsort $rows] { puts $row }
+}
+
 proc eco_rank_fanout_by_slack { driver_inst {out_file ""} {mode "max"} } {
     set block [ord::get_db_block]
     set dbi [$block findInst $driver_inst]
