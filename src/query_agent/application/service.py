@@ -8,7 +8,12 @@ from typing import cast
 from query_agent.domain.errors import DataBoundaryError, MissingDataError
 from query_agent.domain.evidence import Evidence, EvidenceStatus, JsonValue
 from query_agent.domain.experiment import ResolvedExperimentContext
-from query_agent.domain.query import QueryRequest, QueryResponse, QueryStatus
+from query_agent.domain.query import (
+    QueryIntent,
+    QueryRequest,
+    QueryResponse,
+    QueryStatus,
+)
 from query_agent.domain.trace import QueryTrace
 from query_agent.ports.experiment_context import ExperimentContextProvider
 
@@ -77,7 +82,14 @@ class QueryService:
         intent = self._intent_parser.parse(request)
         plan = self._planner.plan(request, intent)
         resolved: ResolvedExperimentContext | None = None
-        if self._context_resolver is not None:
+        explicit_snapshot_fact = request.context.snapshot_id is not None and intent in {
+            QueryIntent.DESIGN_OBJECT_QUERY,
+            QueryIntent.ANALYSIS_QUERY,
+        }
+        # A snapshot is already an exact data scope. Re-selecting by run/stage
+        # can choose another revision or reject two legitimate snapshots as
+        # ambiguous. The typed data provider still validates its full scope.
+        if self._context_resolver is not None and not explicit_snapshot_fact:
             resolved = self._context_resolver.resolve(request, plan)
         evidence = self._collector.collect(plan, request, resolved)
         decision = self._answerability.evaluate(
