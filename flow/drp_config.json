@@ -393,6 +393,32 @@
         "CTS_CLUSTER_SIZE": [10, 40],
         "CTS_CLUSTER_DIAMETER": [80, 120]
       }
+    },
+    {
+      "platform": "asap7",
+      "design": "gcd",
+      "clock_period_range": [
+        100,
+        1000
+      ],
+      "clock_period_unit": "ps",
+      "default_clock_period": 310,
+      "baseline": {
+        "ecp_base": 329.16,
+        "wl_base": 772,
+        "reference": "ORFS 5105b0a77 / OpenROAD 27288f5c90, GCD ASAP7 BC, real post-route 2026-10-14"
+      },
+      "cts_range_override": {
+        "CTS_CLUSTER_SIZE": [
+          10,
+          40
+        ],
+        "CTS_CLUSTER_DIAMETER": [
+          80,
+          120
+        ]
+      },
+      "routing_range_override": {}
     }
   ]
 }
