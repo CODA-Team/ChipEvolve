@@ -169,3 +169,11 @@ one transition implementation and one SQLite transaction. This prevents a
 maintenance worker from calling a completed attempt an unstarted cancellation.
 A late cancellation preserves the real attempt outcome with an explicit reason.
 No state-machine rule or negative fixture is weakened.
+
+2026-10-14 overnight authorisation: maximum 1495 physical lines. The boss
+authorised necessary shared integration fixes and automatic phase progression.
+The native four-Student GCD run exposed HTTP run-detail InterfaceError during
+concurrent worker writes, cancelling healthy links. The private usage query is
+the remaining connection read without the existing RLock; one lock line fixes
+that boundary. Resource rules, database schema, public API and algorithms are
+unchanged. A transaction/read regression and complete gates validate the fix.

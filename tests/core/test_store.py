@@ -98,6 +98,37 @@ def test_resource_totals_waits_for_reservation_transaction(store, tmp_path):
     assert results == [(3, 100)]
 
 
+def test_attempt_usage_waits_for_the_worker_transaction(store, tmp_path):
+    """The run-detail usage projection must not read uncommitted worker rows."""
+    run = submit(store)
+    stage = store.list_stages(run.run_id)[0]
+    attempt = store.start_attempt(stage.stage_run_id, worker_id="w", workspace=tmp_path, lease_seconds=30)
+    started, finished = threading.Event(), threading.Event()
+    results = []
+
+    def read_usage():
+        started.set()
+        try:
+            results.append(store._attempt_usage(attempt.attempt_id))
+        finally:
+            finished.set()
+
+    with store._lock:
+        store._connection.execute("BEGIN IMMEDIATE")
+        store._connection.execute("UPDATE runtime_attempts SET cpu_seconds=77 WHERE attempt_id=?", (attempt.attempt_id,))
+        reader = threading.Thread(target=read_usage)
+        reader.start()
+        try:
+            assert started.wait(2)
+            read_uncommitted = finished.wait(0.2)
+        finally:
+            store._connection.execute("ROLLBACK")
+    reader.join(timeout=2)
+    assert not reader.is_alive()
+    assert not read_uncommitted, "run-detail usage bypassed the writer lock"
+    assert results == [None]
+
+
 def test_late_cancel_preserves_attempt_outcome_without_prestart_claim(store, tmp_path):
     run = submit(store)
     stage = store.list_stages(run.run_id)[0]

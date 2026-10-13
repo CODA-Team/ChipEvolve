@@ -1481,10 +1481,11 @@ class RuntimeStore:
             "stages": stages,
         }
     def _attempt_usage(self, attempt_id: str) -> dict[str, Any] | None:
-        row = self._connection.execute(
-            "SELECT cpu_seconds, peak_memory_bytes, peak_processes FROM runtime_attempts WHERE attempt_id = ?",
-            (attempt_id,),
-        ).fetchone()
+        with self._lock:
+            row = self._connection.execute(
+                "SELECT cpu_seconds, peak_memory_bytes, peak_processes FROM runtime_attempts WHERE attempt_id = ?",
+                (attempt_id,),
+            ).fetchone()
         if row is None or all(row[key] is None for key in ("cpu_seconds", "peak_memory_bytes", "peak_processes")):
             return None
         return {
