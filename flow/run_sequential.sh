@@ -313,6 +313,7 @@ if [[ "$ITERATION" -eq 1 ]]; then
     # First iteration: generate random parameters
     rm -f "$CSV_FILE"
     generate_initial_parameters
+    python3 initial_constraints.py "$CSV_FILE" "$PLATFORM" "$DESIGN"
 else
     # Subsequent iterations: CSV should already exist from optimize.py
     if [[ ! -f "$CSV_FILE" ]]; then
