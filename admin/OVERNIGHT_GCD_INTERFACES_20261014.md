@@ -30,7 +30,7 @@ flowchart TD
     F & D & G & E --> EF[Execution Foundation]
     EF --> T[Toolkits与专业执行桥接]
     T --> O[OpenROAD与构建工具]
-    EF --> DF
+    DF --> EF
 ```
 
 ## 实际公共接口
@@ -142,6 +142,7 @@ sequenceDiagram
 5. 指标显式单位、工艺角和评价条件；导出 SDC 自带 `set_cmd_units -time ps`。禁止混合 TT/FF、ideal-clock/routed 条件计算改善。
 6. 原 ECO 的一次 detailed-route 迭代保留为专业校准；另行完整 detailed_route / RCX 验证 DRC 与 PPA。
 7. 保留失败、回退和原筛选，保留上游署名。没有降低目标或关闭原能力来取得“通过”。
+8. Goal 的官方解析器 `--csv` 是可追加的输出；重复测量不冻结它为输入。真正的物理日志、源码、镜像和二进制仍核验身份，恢复原专业证据后按原规则处理电气违例。
 
 ## 边界与后续
 

@@ -24,7 +24,7 @@
 - 固定评价条件下的可行结果才参与改善判断。超出功耗约束的时序改善不计可行收益。
 - 失败、回退与未知模型用量保留；一次实验改善不能等同于公平对照收益。
 - ReviewDSE 与 DPLEvolve 为同一项目，工程实现为 CODA-Team/DPLEvolve；GoalEvolve 独立。
-- 2026-10-14 老板授权接入 ASU-VDA-Lab/TimingECOAgent，替代 ECO 暂缓；保留上游来源和专业算法。当前本机 GCD 的独立 ECO、统一执行、数据回流及完整布线验证已通过；Flow→DPLEvolve 的真实交接已通过，GoalEvolve 四 Student 原生轮次和完整接力仍在验收。论文和 Tutorial 不作为这轮施工范围。
+- 2026-10-14 老板授权接入 ASU-VDA-Lab/TimingECOAgent，替代 ECO 暂缓；保留上游来源和专业算法。当前本机 GCD 的四专业能力环境、统一执行、数据回流、原生轮次和完整接力工程验收已通过。Goal 四候选的原生指标恢复后仍因电气违例被原规则拒绝，未晋升源码；完整链路取得功耗 / 时序 / footprint 的取舍，未获得满足原时序条件的整体 PPA 改善。论文和 Tutorial 不作为这轮施工范围。
 - 新材料中“Reset”的调参职责对应当前 Flow Agent；未经确认不改工程名称。
 
 ## 产品形态与交付
@@ -33,4 +33,6 @@
 
 新用户安装、公开发布、ASP-DAC Tutorial 和论文交付暂缓，保留公共接口与模块边界供后续扩展。老板于 2026-10-11 明确同意本机施工，路线见 admin/LOCAL_EXECUTION_PLAN_20261011.md；实际完成状态见 TASKS.md。
 
-2026-10-12 老板确认采用本机 10 月 ORFS 镜像作为三专业项目后续共同基础版本。其官方源码为 ORFS `5105b0a77` / OpenROAD `27288f5c90`，通过 SIF 来源、官方构建日志和内容对照核实；固定 digest/commit，不自动跟随移动的 latest。两个 Code 在共同源码上保留定制能力与私有候选构建；历史原生环境留作复现证据，新版本使用新实验及本机基线。截至 2026-10-13，Flow / DPLEvolve 分别在 U2 / U3 完成工程验证，GoalEvolve 迁移和完整接力尚未完成。审计与迁移切片见 admin/COMMON_TOOLCHAIN_AUDIT_20261012.md 和 admin/COMMON_TOOLCHAIN_PLAN_20261012.md。
+2026-10-12 老板确认采用本机 10 月 ORFS 镜像作为三专业项目后续共同基础版本。其官方源码为 ORFS `5105b0a77` / OpenROAD `27288f5c90`，通过 SIF 来源、官方构建日志和内容对照核实；固定 digest/commit，不自动跟随移动的 latest。两个 Code 在共同源码上保留定制能力与私有候选构建；历史原生环境留作复现证据，新版本使用新实验及本机基线。截至 2026-10-13，Flow / DPLEvolve 分别在 U2 / U3 完成工程验证，GoalEvolve 的迁移和 GCD 完整接力现已通过工程核查；原 U4 AES 历史轮次不改写，最新状态以夜间报告为准。审计与迁移切片见 admin/COMMON_TOOLCHAIN_AUDIT_20261012.md 和 admin/COMMON_TOOLCHAIN_PLAN_20261012.md。
+
+本轮最终交付与真实效果见 [admin/OVERNIGHT_GCD_REPORT_20261014.md](admin/OVERNIGHT_GCD_REPORT_20261014.md)，架构与实际接口见 [admin/OVERNIGHT_GCD_INTERFACES_20261014.md](admin/OVERNIGHT_GCD_INTERFACES_20261014.md)。所有工程通过状态仍待老板业务验收。

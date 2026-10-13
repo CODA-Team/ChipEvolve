@@ -9,9 +9,33 @@ from pathlib import Path
 from unittest.mock import patch
 
 from overnight_runtime import command, leaf
+from prepare_overnight_eco import source_hashes
 
 
 class OvernightRuntimeTests(unittest.TestCase):
+    def test_native_probe_and_expert_prompt_change_frozen_source_identity(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary)
+            for name in (
+                "src/main.py",
+                "OpenROAD_utils/probe.tcl",
+                "prompts/AGENTS.md",
+            ):
+                path = source / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("original")
+            (source / "prompts/runtime.log").write_text("not source")
+            before = source_hashes(source)
+            (source / "OpenROAD_utils/probe.tcl").write_text("changed probe")
+            (source / "prompts/AGENTS.md").write_text("changed strategy")
+            after = source_hashes(source)
+            self.assertEqual(before["src/main.py"], after["src/main.py"])
+            self.assertNotEqual(
+                before["OpenROAD_utils/probe.tcl"], after["OpenROAD_utils/probe.tcl"]
+            )
+            self.assertNotEqual(before["prompts/AGENTS.md"], after["prompts/AGENTS.md"])
+            self.assertNotIn("prompts/runtime.log", after)
+
     def test_failed_leaf_preserves_real_log_and_never_claims_design_facts(self):
         with tempfile.TemporaryDirectory() as temporary:
             work = Path(temporary)

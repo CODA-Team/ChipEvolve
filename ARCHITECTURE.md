@@ -1,144 +1,109 @@
 # 架构与源码边界
 
-## 2026-10-14 实测增量
+更新：2026-10-14。本页以本轮实际接口和 GCD 验收为准，历史状态保留在 Git 与各切片报告。最终工程回执见 `var/overnight/gcd-20261014/final-acceptance.json`；老板业务确认独立。
 
-本轮新增 TimingECOAgent，平台包含九个独立项目。共同基础为 OpenROAD `27288f5c90` / ORFS `5105b0a77` 的固定镜像；DPLEvolve 与 GoalEvolve 保留专业源码覆盖和私有二进制，设计交接通过同基础版本的实际 ODB/DEF、SDC、SPEF、已注册产物及数据快照，不删除专业能力以强行共用 stock binary。
+## 系统边界
 
-当前已验证 Flow→DPLEvolve→CTS/route 的真实输入继承，以及独立 ECO 的真实模型优化和完整布线结果。GoalEvolve 的真实 GCD 基线和原结构检查通过，四 Student 原生轮次运行中；整个四项目接力待 N4 最终核查。运行事实与公开 API 回执在 `var/overnight/gcd-20261014`。
+Codex 是入口、通用 harness、规划者与业务判断者。平台提供可复现执行、统一设计事实、Query 领域能力和四项专业能力，不新造通用 Agent harness 或评测底座。
 
-```mermaid
-flowchart LR
-    C[Codex 决策] --> Q[Query 事实与证据]
-    Q --> SDK[Data Interface SDK]
-    SDK --> DF[Data Foundation]
-    C --> A[Flow / DPLEvolve / GoalEvolve / TimingECO]
-    A --> EF[Execution Foundation]
-    EF --> TK[Toolkits / 专业执行桥接]
-    TK --> EDA[共同基础工具与专业二进制]
-    EF --> DF
-    DF --> Q
-```
+根仓库以 Git 子模块固定九个独立项目，提交和上游来源见 `SOURCE_MANIFEST.json`。跨项目仅通过安装的公共 wheel / HTTP；Data Interface 是 SDK，无第三个后台服务或数据库。运行数据在 var，旧 ChipEvolve 在 discarded，不参与实际执行。
 
-执行底座管理任务、输入、文件产物、进程/资源、日志及实际来源；数据底座管理设计/修订/运行/快照、对象/关系、指标、摘要及证据索引。数据接口是 SDK，不新增第三个服务。Query 增强 Codex 的领域查证与理解，业务判断仍由 Codex 完成。
-
-新增接点：两个 Code 的 `design_context(profile)` 消费已安装 `EdaAiClient`，将 `snapshot_id` / `metrics_snapshot_id` / `parent_run_id` 与确定性请求绑定；ECO 的 `platform_execution.submit(profile_path)` 经 SDK 解析当前设计，再提交一个保留持续 OpenROAD 会话的 EF 任务；`platform_codex.call_codex(system_prompt, user_prompt)` 复用登录和原提示。原生项目内部循环、专业上下文、评分和筛选保留。
-
-Query 只对明确 snapshot 的设计对象/专业分析事实查询使用该精确快照，由数据端口继续校验范围；运行状态与跨运行比较仍走既有实验选择策略。OpenSTA JSON 时间值为 SI 秒；ORFS 原字段保持原单位，单位声明与功耗 SI Watts 分开处理。不能依据单位缺失或不同分析条件直接推导收益/因果。
-
-TimingECOAgent 默认专业 DRT 校准只运行一个详细布线迭代；本轮额外通过共同工具完整 DRT+RCX 验证其最佳 ODB，最终 DRC 和布局违例均零。原停止路径未产生的 DEF/V 由平台边界确定性导出，不改模型策略。后续使用仍需记录原生实验条件和最终共同验收条件，不能混合 Flow TT、Goal GRT/ideal-clock 和 ECO routed/SPEF 指标。
-
-本页整理现有实现和已确认职责，不以预设架构强迫专业项目重构。源码证据、历史审计和接点依据见 [admin/INTEGRATION_MAP.md](admin/INTEGRATION_MAP.md)。更新：2026-10-13；本机目标关系与分阶段验收见 admin/LOCAL_EXECUTION_PLAN_20261011.md；共同工具链审计与迁移路线见 admin/COMMON_TOOLCHAIN_AUDIT_20261012.md 和 admin/COMMON_TOOLCHAIN_PLAN_20261012.md。
-
-## 模块清单
-
-U3 的 DPLEvolve 共同工具链及确定性 EF 入口工程验收通过，业务确认待老板。真实基线、源码演化及固定来源独立编译重放通过，专业决策/原生筛选与指标含义保留。数据接入仍按 L5/L6 验收；接口与证据见 `admin/U3_DPLEVOLVE_COMMON_TOOLCHAIN_PLAN_20261013.md` / `admin/U3_DPLEVOLVE_COMMON_TOOLCHAIN_REPORT_20261013.md`。
-
-U4 GoalEvolve 本轮已暂停，完整验收待补齐：原生 Teacher、四 Student、AST、EPD 与筛选保持，由原集中 runner 将构建、OpenROAD、parser/checker 和版本查询交给 EF。共同专业源码完整构建、新 AST、实际 AES 基线已通过；两轮四 Student 真实编辑与构建已运行，第二轮 Student 4 新源码完成合法物理实测但未达原目标；Student 4 空目录独立重放已通过；原生最新轮次已按原截止时间停止，正常收尾及最终验收仍待完成。两个 Code 的 DF/DI/Query 数据入口不在本轮接入范围。实际签名、数据流和证据见 `admin/U4_GOALEVOLVE_COMMON_TOOLCHAIN_REPORT_20261013.md`。
-
-仓库层面由 ChipEvolve 根仓库以 Git 子模块固定八个独立项目；六个自有模块与两个 Code 的平台适配分支保存在同一远程的 `modules/<目录名>`，DPLEvolve / GoalEvolve 官方上游来源在 manifest 保留。模块源码、环境和 wheel/HTTP 边界保持独立。`discarded/` 为旧仓库原始 tree 的历史归档，不参与当前模块依赖。源码来源见 `SOURCE_MANIFEST.json`，原始发布记录见 admin/REPOSITORY_PUBLICATION_20261012.md。
-
-| 模块 | 职责与实际边界 |
+| 模块 | 职责与本轮实际接点 |
 |---|---|
-| Codex | 用户入口、全局目标、决策、判断、工具调用与下一步规划。 |
-| Flow Agent | A2 原生候选生成、阶段屏障、DRP 替换/继承、固定 CP0 与功耗约束；平台接入不改优化算法。 |
-| Execution Foundation | 幂等任务、资源调度、进程生命周期、日志和注册产物。 |
-| Toolkits | 现有 OpenROAD/A2 阶段适配、真实评价和数据导出。 |
-| Data Foundation | 统一事实快照、指标/对象/关系、来源与持久导入回执。 |
-| Data Interface | 对外工具语义与已安装 SDK；不新增后台服务或数据库。 |
-| Query Agent | Codex 的 EDA 垂直形态：统一事实、比较、领域技能、调查状态、证据与补 STA。当前 host 路径复用 Codex 推理；真实 Flow/Code 接收与可靠诊断效果仍待验收。 |
-| Code Agent | DPLEvolve 原生复现及 U3 共同环境/统一执行工程验收通过；GoalEvolve U4 已实际完成共同专业构建、新 AST、本机 Codex 和经 EF 的 AES 基线，首轮四候选无效，第二轮已测一个合法新源码候选但目标未达，Student 4 空目录独立重放已通过，原生轮次已按原截止时间停止，正常收尾和最终验收待完成。两个 Code 的统一数据入口待做。 |
+| Execution Foundation | 任务、排队、资源、进程树、取消、日志、输入身份和注册文件产物；所有平台 EDA / 构建 / 专业测量的入口 |
+| Data Foundation | 设计 / 修订 / 运行 / 快照、对象 / 关系、指标、摘要、来源、持久导入回执 |
+| Data Interface | 公共查询语义和 SDK；EF 提供运行目录，DF 提供设计事实，原文件仍由 EF 登记 |
+| Query Agent | Codex 的垂直能力：领域工具、固定 scope、查证、比较、调查、证据与交接；不凭空推定因果 |
+| Toolkits | 共同 OpenROAD / ORFS / A2 调用、实际测量和事实导出；不负责全局判断 |
+| Flow Agent | A2-ORFO 的原候选、阶段继承、DRP / GWTW 与固定 CP0 评分；控制器只委派确定性阶段 |
+| DPLEvolve | ReviewDSE 的同一工程实现；Teacher / Student、布局源码优化及原指标 / 筛选；集中 helper 委派 EF |
+| GoalEvolve | Teacher / 四 Student / AST / EPD、功耗感知源码演化；集中 runner 委派 EF，SDK 输入上下文 |
+| TimingECOAgent | ASU-VDA-Lab 的时序 ECO；保留原专业提示、操作、评分和回退；整个持续会话属于一个 EF 任务 |
 
 ## 模块依赖
 
 ```mermaid
 flowchart TD
-    C[Codex] --> Q[Query Agent]
-    Q --> DI[Data Interface SDK]
-    DI --> DF[Data Foundation]
-    C -. 完整业务接收器待实现 .-> F[Flow Agent]
-    F --> EF[Execution Foundation 公共 HTTP / wheel]
-    EF --> TK[Toolkits]
-    TK --> OR[OpenROAD / Yosys]
-    DF --> EF
-    C --> DPL[DPLEvolve Teacher与Student]
-    DPL --> EF
-    C --> CODE[GoalEvolve Teacher与四Student]
-    CODE --> EF
+  C[Codex] --> Q[Query]
+  Q --> DI[Data Interface SDK]
+  DI --> DF[Data Foundation]
+  C --> A[Flow与两个Code及ECO]
+  A --> EF[Execution Foundation]
+  EF --> T[Toolkits与专业执行桥接]
+  T --> O[共同基础工具与专业二进制]
+  DF --> EF
 ```
 
-## 核心数据流
+DF 引用 EF 的产物与实际生产者。专业内部原生上下文和工作文件仍在原项目会话内；跨项目输入、设计事实和产物通过公共入口。没有将所有原内部查询重写成远程 RPC。
+
+## 数据流
 
 ```mermaid
 flowchart LR
-    Goal[用户目标] --> C[Codex 判断与调度]
-    C --> Query[Query 查询与证据]
-    Query --> Facts[DF 事实 / SDK]
-    C -. P4 待完成 .-> Flow[原生 A2 优化]
-    Flow --> Task[带候选身份的阶段任务]
-    Task --> EF[EF 执行与注册产物]
-    EF --> Eval[Toolkits 实际 CP0 测量]
-    Eval --> Import[导出 / 指定产物导入]
-    Import --> Facts
-    Facts --> C
-    C --> DPL[DPLEvolve 原生源码优化]
-    DPL --> EF
-    EF --> Native[原生指标和来源证据]
-    Native --> DPL
-    Native --> C
+  F[Flow真实选中checkpoint] --> D[DPLEvolve布局结果]
+  D --> R[CTS与route]
+  R --> G[Goal合法基线与源码筛选]
+  G --> E[ECO原生会话]
+  E --> P[完整DRT与RCX]
+  P --> A[EF注册物理产物]
+  A --> B[EF导出事实包]
+  B --> DF[DF指定导入]
+  DF --> Q[SDK与Query查证]
+  Q --> C[Codex判断]
 ```
 
-数据底座提供事实和来源；Query 提供解释与证据；Codex 负责业务判断。工具测量与开发验收脚本不是独立评测底座。
+输入继承含 parent_run_id、snapshot_id、artifact_id、文件 hash、源 / 镜像 / 二进制身份及 PDK / SDC / SPEF。构建留证包与设计事实包区分。源码候选无合法晋升时保留原生合法基线，再继续专业接力；这不是源码收益。
 
-## 两个关键场景
+## 核心场景
 
 ```mermaid
 sequenceDiagram
-    participant F as 原生 Flow
-    participant E as EF
-    participant T as Toolkits/OpenROAD
-    participant D as Data Foundation
-    F->>E: 保存请求后提交单候选物理阶段
-    E->>T: 运行真实阶段 / CP0 评价
-    T-->>E: 产物、实际数值及评价条件
-    E-->>F: run_id、artifact_id、hash
-    F->>E: 引用实际评价 metadata 导出快照
-    F->>D: 从指定注册产物导入
-    D-->>F: 同一快照与持久回执
-    Note over F,D: P3 自动回流与完整恢复工程验收通过；业务确认待老板
+  participant C as Codex或专业Controller
+  participant E as EF
+  participant O as 实际工具
+  participant D as DF
+  participant Q as SDK与Query
+  C->>E: 固定输入和资源提交
+  E->>O: 执行并监督所有子进程
+  O-->>E: 真实结果与产物
+  E-->>C: run_id artifact_id和hash
+  C->>E: 对注册产物导出事实
+  E-->>C: data_snapshot
+  C->>D: from-run指定导入
+  Q->>D: 查对象指标时序和来源
+  D-->>Q: 明确scope单位和覆盖
+  Q-->>C: 差异证据和下一步上下文
 ```
 
-```mermaid
-sequenceDiagram
-    participant U as 操作者
-    participant F as Flow Controller
-    participant J as 本实验状态
-    participant E as EF
-    U->>F: 原命令加 --resume
-    F->>J: 核对源代码 / 工具 / 选项 / 实验身份
-    J-->>F: 最后提交阶段、原生小状态、产物引用
-    F->>E: 原 run 查询或原幂等键重取
-    E-->>F: 原任务与注册产物
-    F->>J: 复用已完成模型响应及原调用账本
-    F->>F: 继续未提交阶段
-    Note over U,E: L1 四个真实中断窗口工程验收通过，业务确认待老板
-```
+跨专业交接及调查时序、函数签名、HTTP 路径、数据结构和关键决定见 [admin/OVERNIGHT_GCD_INTERFACES_20261014.md](admin/OVERNIGHT_GCD_INTERFACES_20261014.md)。
 
-## 对外接口及关键决策
+## 已确认接口和决定
 
-- EF：已发布公共 client/contracts wheel 和 HTTP，提交、状态、取消、产物与上传输入；不访问其私有数据库。
-- 本机物理产物交接：HTTP 传任务、状态和产物定位元数据；大文件通过公共 `KernelClient.materialize_artifact` 使用执行底座核准的本机路径复制并校验 hash，不受整包 HTTP 的 4 MiB 响应上限限制。远程才使用该接口已有的分块下载。2026-10-11 实际 17,579,571 字节布局包的本机取回/校验约 0.026 秒（已有文件缓存），证据见 `var/flow-agent/p3-platform-campaign-20261011-retry3/local-transfer-check/receipt.json`；此单次测量不是磁盘稳定吞吐基准。
-- DF：`POST /snapshots/from-run` 指定注册产物导入，`GET /imports/{artifact_id}` 回执、快照/指标查询；POST 直接结果和 GET envelope 语义沿用现有契约。
-- Data Interface：已发布 SDK 工具和来源读取。Query 通过 SDK 访问 DF；不直接读 sibling 源码。
-- Flow：既有 `run.sh` 入口保留；新增 opt-in 平台运行和显式同 campaign 恢复。`-F` 是归档重开，不能冒充恢复。
-- U2 的 opt-in A2 profile 增加 `runtime`（固定本机 Apptainer/SIF）和 `toolchain`（SIF/OCI/source/binary 身份）；实际 A2 Makefile/scripts 与 PDK/设计仍分别冻结。EF 的 A2 adapter 在镜像内执行原生阶段，冻结 source 只读、独立 workspace 可写、磁盘 scratch 绑定 `/tmp`；controller 留在原生 Python 环境调用 Codex。宿主身份入口只能查工具身份，不能发动 EDA。`platform.json.resources` 把单任务内存/进程额度显式传到原 TaskSpec，原公共 HTTP/schema 不变；恢复核对实际镜像/工具身份与配置。AES 完整两轮、四类恢复及 12 个 SDK 评价快照工程验收通过，业务确认待老板；具体契约与结果见 `admin/U2_FLOW_COMMON_TOOLCHAIN_PLAN_20261012.md` / `admin/U2_FLOW_COMMON_TOOLCHAIN_REPORT_20261012.md`。
-- Query→Flow 的业务接收器仍未实现，不把 `contract_only` 标记改成完成。
-- 运行状态放 `var`，模型 cache 不跨实验复用；保留未知调用成本和失败现场。
-- 老板已确认三专业项目后续使用共同基础工具链：本机 SIF `8e6ee7…`、ORFS `5105b0a77`、OpenROAD `27288f5c90`，不使用移动 latest 作为身份。各项目原生旧工具链保留为历史复现证据；Flow 的共同模式完整工程验收已通过，两个 Code 尚未切换。
-- Code 项目在共同基础源码上保留专业 overlay 与私有候选编译，分别记录源码/依赖/编译配置及实际 binary hash。原厂镜像没有 DPLEvolve evolve/GoalEvolve repair_power，不能只替换工具路径。专业组合补丁及跨阶段读写需真实验证，不强迫使用同一个未修改的原厂 binary。
-- DPLEvolve 保留原生 Teacher/Student 与 evaluator；`DPL_EVOLVE_PLATFORM_PROFILE` 经薄桥接 `maybe_delegate(operation: str, argv: list[str]) -> int | None` 将共享构建、私有 relink、明确私有 binary 的完整原生评价提交 EF。无 profile 为原生复现，平台模式失败不退回独立执行。构建/评价仍在固定共同镜像内；输入/source/binary/指标绑定，三条基线显式保留 Diamond/negotiation/framework 含义。私有 relink 重新编译使用候选对象布局的 OpenRoad.cc。U3 工程通过，DF/DI/Query 数据入口仍待 L6；构建证据包只留证，不当作设计事实快照。L2 历史证据见 `admin/L2_DPLEVOLVE_REPORT_20261011.md`，本轮见 U3 报告。
+- EF 的 TaskSpec v3、KernelClient 提交 / 状态 / 资源 / 产物 / 取消接口沿用公共契约，不读取其内部数据库。
+- DF 使用 `POST /snapshots/from-run` 指定 run_id / artifact_id 导入；SDK 根据 design、run、snapshot 和 stage 查询。
+- 本机 HTTP 传控制和身份。大文件通过公开 locator 和磁盘复制，同步校验 hash；远程才走已有分块下载。历史17.6MB布局包本机取回约0.026秒的单次缓存测量保留，不作为稳定吞吐基准。
+- 共同基础固定为 OpenROAD `27288f5c90` / ORFS `5105b0a77`、SIF digest `8e6ee7aac233da078364649fa8111dac5de33a3589f5445dcffd96f9d6d8dd39`。两个 Code 保留专业源码覆盖及私有二进制，不用 stock binary 替代专业命令。
+- 专业循环保留，在确定性执行接点委派 EF。ECO 保留持续 OpenROAD 状态，避免拆散会话；新只读 probe 补齐上游提示已声明但缺失的命令。
+- 两个 Code 和 ECO 的平台输入上下文由已安装 SDK 取得，绑定固定设计与指标快照。构建、解析、结构检查和版本查询也由 EF 执行；无平台 profile 的原生模式保留，平台失败不静默回落。
+- Query 的明确快照对象 / 分析查询不被按 run 重新选择覆盖。按 run 比较从各类已索引快照读取指标 / 产物，核对所有权，保留歧义和不完整事实。
+- OpenSTA JSON 时间是 SI 秒，原 ASAP7 Flow 为 ps，公共指标边界明确 ns / W / µm²。SDC 导出自带 `set_cmd_units -time ps`，最终310ps时钟经真实下游读取确认。
+- 专业原生 ECO 一次 DRT 校准与完整 detailed_route / RCX 验收分开，完整验收记录实际 DRC、布局和 PPA。Flow TT / 固定 CP0、Goal GRT / ideal clocks、最终 FF / propagated clocks 的指标分开。
+- EF 共享连接读锁修复与 Goal CSV 输出识别修复只针对实测故障；未改公共 API、资源规则或原算法。大构建64GiB / 2048进程 / 8核，物理阶段24GiB，专属服务32核 / 128GiB / 4workers，按任务配置而非固定小限额。
 
-## 已知缺口
+## 当前验证状态
 
-P3 / U2 的 Flow 完整恢复、评价回流与共同环境，以及 L2 / U3 的 DPLEvolve 原生复现、共同环境与统一执行通过工程验收，业务确认待老板。U3 新候选由原生 helper 保留且独立重放通过，测得 HPWL 减少 3.53%，位移尾部增加、前段零收益均保留；这不是完整 PPA 或公平平台收益。GoalEvolve 新 AE-3、模型入口、共同迁移、统一执行与全部门禁尚未完成。两个 Code 统一数据入口、三项目协同及本机收益测量未完成。现有 Query 的查证/比较不能自动包装为已证明的因果结论。教学、新用户安装和论文交付暂缓。
+真实 Flow 两轮十二候选、DPL 三基线 / 已优化源码和后续 CTS-route、Goal 四份 C++ 候选 / 原生完整轮次 / 证据恢复、独立 ECO 和完整专业接力均已执行。最终 DRC / placement violations 为零，物理产物、对象、时序及指标均已回流；11个最终快照重启查询一致。公开目录记录335个运行及各自资源，全部终态，包含真实失败和取消。
 
-源码优化交接包含候选源码、构建工具身份与实际评价，最终设计 PPA 通过兼容工具下的实际物理流程确认。共同基础版本已确认，专业改动的具体迁移与组合由源码差异、构建及真实运行决定。三个指定历史 ODB 在共同镜像下读取通过，只证明单向样本可读，不等于完整接力；同设计/PDK/约束/评价条件的兼容性属于 U5/L7 验收。
+Goal 原轮次因重复 CSV 输出误冻结而遮住指标；新桥接下八次重复解析成功，原恢复函数确认四候选结构检查和实际 metrics，原筛选仍因36–37个DRV拒绝，未晋升新源码。原轮次和 EPD 不覆盖。原 U4 AES 的已截止轮次仍未完成，这轮新的 GCD 收尾不改写其历史。
+
+完整协同链路在共同条件下功耗降低约43.6%，但 TNS、单元面积和核心 / die footprint 退化，不晋升为全面 PPA 改善。独立 ECO 在原基准上闭合 setup 时序，功耗增加约1.1%。详细条件、全部指标和证据见 [admin/OVERNIGHT_GCD_REPORT_20261014.md](admin/OVERNIGHT_GCD_REPORT_20261014.md)。
+
+## 已知技术债与后续边界
+
+- 单项目候选收益不保证串联收益；后续优先提高电气约束可行率和跨阶段选优，不放宽原规则来晋升失败设计。
+- 对象和采样时序索引不等于全部时序覆盖。29条证据的真实 Codex调查可给出差异与竞争解释，但尚未证明单一因果或完整signoff。
+- 平台初次输入与跨项目交接统一；专业原生会话内部动态查询保留，没有逐条改写成 DF RPC。直接 Query→所有专业项目的一键通用接收器仍待后续契约 / 切片；这轮由 Codex 使用实际 SDK、公开产物和本机准备器调度。
+- Root本机验收助手保留GCD、ASAP7和本机profile假设，源码 / 提示 / Tcl 身份有记录；更大设计、跨机器安装和公开产品化后续显式开展。
+- 数据增强节省 token / 时间的公平因果对照、Tutorial、新用户安装与论文发布暂缓，不以调用总量声称节省比例。
+- TimingECOAgent官方AES的LFS对象404，保留指针与来源；本轮用真实本机GCD，不冒称官方AES复现或第三方算法原创。
+- 26份已有用户修改保持原状；运行数据、凭据、镜像、环境及未提交编辑不纳入源码发布。

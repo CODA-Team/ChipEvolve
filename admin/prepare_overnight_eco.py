@@ -15,6 +15,20 @@ from run_dplevolve_native import digest, write_json
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def source_hashes(source: Path) -> dict[str, str]:
+    return {
+        str(p.relative_to(source)): digest(p)
+        for pattern in (
+            "src/*.py",
+            "OpenROAD_utils/*.tcl",
+            "prompts/AGENTS.md",
+            "prompts/static/**/*.toon",
+        )
+        for p in source.glob(pattern)
+        if p.is_file()
+    }
+
+
 def prepare(state: Path, key: str, data_key: str) -> Path:
     run = state / "agents" / key
     run.mkdir(parents=True, exist_ok=False)
@@ -91,17 +105,7 @@ def prepare(state: Path, key: str, data_key: str) -> Path:
             + os.environ["PATH"],
         },
         "toolchain": runtime["toolchain"],
-        "source_files": {
-            str(p.relative_to(source)): digest(p)
-            for pattern in (
-                "src/*.py",
-                "OpenROAD_utils/*.tcl",
-                "prompts/AGENTS.md",
-                "prompts/static/**/*.toon",
-            )
-            for p in source.glob(pattern)
-            if p.is_file()
-        },
+        "source_files": source_hashes(source),
     }
     # EF intentionally strips the host environment. Carry only the local model
     # connection settings; no credential files are staged or copied.

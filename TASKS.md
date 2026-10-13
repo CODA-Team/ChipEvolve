@@ -1,19 +1,21 @@
 # 施工切片与验收状态
 
-## 2026-10-14 连续施工检查点
+## 2026-10-14 最终工程检查点
 
-老板授权阶段验收后自动推进，取消额度停止条件，要求完成本轮目标。计划见 `admin/OVERNIGHT_GCD_PLAN_20261014.md`，运行状态和恢复指针在 `var/overnight/gcd-20261014/progress.json` / `runtime.json`。以下是工程验证状态，最终业务确认仍由老板给出。
+本轮工程验收完成，老板业务确认待给出。最终报告 `admin/OVERNIGHT_GCD_REPORT_20261014.md`，接口与图 `admin/OVERNIGHT_GCD_INTERFACES_20261014.md`，权威运行回执 `var/overnight/gcd-20261014/final-acceptance.json` / `progress.json` / `runtime.json`。下方2026-10-13条目为历史切片状态；本轮GCD不改写原U4 AES已截止事实。
 
-| 阶段 | 当前交付 | 状态 |
+| 阶段 | 实际交付 | 状态 |
 |---|---|---|
-| N0 | 固定共同镜像，真实 ORFS ASAP7 GCD 完整 finish，专业版本及输入来源已核查 | 工程通过 |
-| N1 | Flow 原单位边界修正、保持原基线的首轮设计范围；真实两轮十二候选、22 次成功模型请求、四专业模块 EF 入口 | 工程通过 |
-| N2 | 注册布局/SDC/SPEF/指标→DF→SDK/Query；真实对象/关系/20 条采样时序路径/526 个时序点；Code 交接读取 SDK；精确快照查询修复 | 工程通过，完整协同事实仍随 N4 回流 |
-| N3 | TimingECOAgent 原生 15 次迭代，最佳 setup WNS/TNS 为零；另行完整布线+RCX，DRC/布局违例均零，最终产物已入库 | 工程通过 |
-| N4 | Flow 结果实际交给 DPLEvolve，三条原基线和已优化源码候选合法；后续 CTS/route 通过；Goal 真实 GCD 基线与原四项结构检查通过，四 Student 原生源码轮次运行中 | 进行中 |
-| N5 | 模块静态/单测/回归与用户 26 份修改保护核查已执行；源码检查点已发布，最终交接、重启验证和报告待 N4 收尾 | 进行中 |
+| N0 | 固定共同镜像 / 源提交，真实 ORFS ASAP7 GCD 完整 finish；上游ECO资料缺失有404证据 | 工程通过 |
+| N1 | 四专业平台入口统一 EF；全335个运行终态、资源和产物可查；修复EF并发与Goal重复CSV输出误冻结 | 工程通过 |
+| N2 | 注册产物→DF→SDK/Query；对象/关系/指标/采样时序/原始来源；Code交接读取SDK；11个最终快照重启查询一致；真实Codex调查29条证据 | 工程通过 |
+| N3 | TimingECOAgent可选本机Codex和EF持续会话；独立15迭代及完整route闭合setup；修复上游缺失只读probe，新版9迭代实际接力和最终导出 | 工程通过 |
+| N4 | Flow两轮十二候选→DPL真实布局→CTS/route→Goal原四Student/Teacher收尾与证据恢复→新版ECO→完整DRT/RCX→DF/Query | 工程通过；Goal无晋升，整体时序收益未达标 |
+| N5 | 静态/对应单元/逐文件差异/边界/回归、26份用户修改保护、来源、最终资产与Git检查点 | 工程通过，业务验收待老板 |
 
-已知边界：TimingECOAgent 上游 AES LFS 文件返回 404，本轮使用真实本机 GCD；原 U4 AES 已结束的预算不恢复。原生 Flow TT 固定 CP0 评价、Goal 原专业评价及最终共同条件复测分别记录，不将不同条件的指标混合成平台收益。错误/失败实验保留；第一次错误标为 ps 的 STA JSON 快照不用于判断，正确快照单位为 SI 秒。完整 Tutorial / 公平对照暂缓。
+原生完整轮次与原专业筛选保留。Goal四候选恢复后原结构检查通过，但36–37个DRV使原规则拒绝；原CSV协议失败记录不覆盖。全链路DRC/布局违例为零，功耗降低约43.6%，同时TNS和footprint退化，不能记为全面PPA改善。原基准上的独立ECO闭合setup，功耗约增加1.1%。全部条件和指标见报告。
+
+本轮未做：公开安装/Tutorial/论文公平对照、数据增强节省token和时间的公平测量、全部设计通用的一键Query→专业receiver。当前闭环由Codex使用实际公共SDK和本机准备器完成；专业内部原生上下文仍保留，不逐条重写为DF RPC。
 
 更新：2026-10-13。老板已同意本机施工并调整优先级；P3 / L1 完整真实工程验收已通过，最终业务确认待老板。八个本机切片及验收标准见 admin/LOCAL_EXECUTION_PLAN_20261011.md；共同版本选择已确认，来源审计完成，迁移切片计划见 admin/COMMON_TOOLCHAIN_PLAN_20261012.md。下表保留原 P 编号，尚未交付的能力仍如实标记。
 
@@ -23,12 +25,12 @@
 | P1 | 专业 Flow 的真实可复建基线 | 同一实验两轮三候选、真实模型、实际参数消费、固定 CP0 与功耗、完整物理产物 | Flow / OpenROAD | P0 | 已通过 |
 | P2 | 统一管理物理阶段并保存可查询结果 | place→CTS→route→eval、实际取消、实体/指标导入、重启后来源一致 | EF / Toolkits / DF / SDK | P1 | 已通过 |
 | P3 / L1 | 可查询、可继续同一优化实验 | 完整平台两轮实验；四个实际中断窗口；原计算和模型决策不重复；评价自动回流 | Flow / EF / Toolkits / DF / SDK | P2 | 完整真实工程验收通过，业务确认待老板 |
-| P4 / L6–L7 | Codex 自主查询、专业交接与协同优化 | 真正 Flow/Code receiver；统一数据入口；预算内完整闭环；归因上下文可核对 | Codex / Query / Flow / Code / 底座 | L1–L5 | 待做，实际契约按源码审计确认 |
-| P5 / L2–L4 | 两个源码项目原生复现并接统一执行 | DPLEvolve、GoalEvolve 分别 smoke/最小真实设计/新源码候选评价；实际 EDA 统一管理 | Code 项目 / 底座 | P3；原生复现优先于全面整合 | L2 / U3 DPLEvolve 原生复现、共同环境及统一执行工程通过，待业务验收；L3 环境/AE-1/模拟 smoke/真实 AE-2/p0 基线冻结通过；U4 已选择本机 Codex 并启动 AE-3，新共同基线及测试资料修复通过，Student 4 真实新候选及独立重放通过，四路正常收尾及完整 U4 仍待完成；L4 GoalEvolve 正在实施 |
+| P4 / L6–L7 | Codex 自主查询、专业交接与协同优化 | 真正 Flow/Code receiver；统一数据入口；预算内完整闭环；归因上下文可核对 | Codex / Query / Flow / Code / 底座 | L1–L5 | N4本机GCD协同工程通过；通用Query→专业receiver仍待单独切片 |
+| P5 / L2–L4 | 两个源码项目原生复现并接统一执行 | DPLEvolve、GoalEvolve 分别 smoke/最小真实设计/新源码候选评价；实际 EDA 统一管理 | Code 项目 / 底座 | P3；原生复现优先于全面整合 | L2 / U3 DPLEvolve 原生复现、共同环境及统一执行工程通过，待业务验收；L3 环境/AE-1/模拟 smoke/真实 AE-2/p0 基线冻结通过；U4 已选择本机 Codex 并启动 AE-3，新共同基线及测试资料修复通过，Student 4 真实新候选及独立重放通过，原U4 AES四路正常收尾仍待完成；N1/N4已完成Goal共同环境、统一执行、真实GCD四Student轮次和恢复验收 |
 | U1 | 有固定源码、能构建和运行真实设计的共同基础工具 | 源码/递归依赖/SIF/实际 binary 可核对；GCD RTL→GDS、source-built 设计检查、DF/DI 事实/指标/单位/证据通过 | EF / Toolkits / DF / DI / admin | 共同版本选择与来源审计 | 工程验收通过，业务确认待老板；专业迁移见 U2–U5 |
 | U2 | 共同工具环境下继续使用完整 Flow 调参产品 | AES 两轮×三候选、原生阶段继承与参数消费、统一反馈、四个真实恢复窗口、新环境基线 | Flow / Toolkits / EF / DF / DI / admin | U1；实际计划已获老板确认 | 完整真实工程验收通过：42 个 run / 180 项核查 / 12 个 SDK 快照；业务确认待老板 |
 | U4 | GoalEvolve 使用本机 Codex、共同专业源码及统一执行 | 原 Teacher/四 Student/AST/EPD/筛选保留；真实 AES 基线、新 C++ 候选完整评价、独立空目录重建重放；执行全部走 EF | GoalEvolve / EF / Toolkits / admin | U1；完整 U4 与追加源码及 EF 并发修复范围已获确认 | 进行中（本轮已暂停，未全部验收）：完整专业构建、新 AST、真实 AES 基线和代码回归通过；首轮四候选无效、无晋升；第二轮四份源码均已链接，Student 4 合法实测但目标未达；Student 4 空目录独立重放已通过；最新原生轮次按原八小时截止时间停止、未正常收尾 |
-| L5 | 统一设计数据与原因查询 | 设计实验视图、身份映射、事实覆盖、Query 诊断上下文与来源 | EF / DF / DI / Query / Toolkits | L1–L4 | 待做 |
+| L5 | 统一设计数据与原因查询 | 设计实验视图、身份映射、事实覆盖、Query 诊断上下文与来源 | EF / DF / DI / Query / Toolkits | L1–L4 | 本轮N2工程通过；严格因果与全时序覆盖不自动成立 |
 | L8 | 本机量化产品收益 | ORFS PPA 基线、同一 Codex 数据增强前后 token/时间及正确完成情况 | 现有测量与记录 | L7，基线提前冻结 | 待做 |
 | P6 公开交付 | 教学与论文产品 | 新用户安装、Tutorial、论文和公开评测材料 | 全平台 / 材料 | 后续显式发起 | 本轮暂缓 |
 
