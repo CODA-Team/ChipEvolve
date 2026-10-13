@@ -18,10 +18,11 @@ from .config import PLANNING_MODES, PROJECT_ROOT, _load_raw_config
 from .core.io import atomic_json, load_json, sha256_file
 from .planning.repository_graph import RepositoryGraphIndex
 from .runtime_preflight import require_ast_graph_runtime
+from .platform.profile import source_seed
 
 
-P0_SOURCE_ROOT = PROJECT_ROOT / "artifact_evaluation" / "lineage" / "openroad_power" / "p0" / "source"
-P0_REPOSITORY_GRAPH_ROOT = PROJECT_ROOT / "artifact_evaluation" / "lineage" / "openroad_power" / "p0" / "repository_graph"
+P0_SOURCE_ROOT = source_seed(PROJECT_ROOT / "artifact_evaluation" / "lineage" / "openroad_power" / "p0" / "source")
+P0_REPOSITORY_GRAPH_ROOT = P0_SOURCE_ROOT.parent / "repository_graph"
 P0_TEMPLATE_REGISTRY = PROJECT_ROOT / "experiments" / "p0_templates.json"
 CAMPAIGN_MANIFEST = "p0_campaign.json"
 BASELINE_CONFIG = "config/baseline.json"

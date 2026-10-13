@@ -21,6 +21,7 @@ from ..core.models import CandidateResult, CheckResult, Hypothesis, Parent
 from ..execution.preflight import preflight_candidate
 from .sfinal import observe_sfinal
 from ..planning.timing_recovery import timing_recipe
+from ..platform.profile import load_platform_profile
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -66,7 +67,8 @@ def _fresh_stage_qor_tcl(*, parasitics_command: str) -> list[str]:
 
 def _project_toolchain() -> tuple[dict[str, str] | None, tuple[str, ...]]:
     """Use the matching OpenROAD/ORFS environment activated by the caller."""
-    return dict(os.environ), ()
+    profile = load_platform_profile()
+    return dict(os.environ), tuple(profile["cmake_args"]) if profile else ()
 
 
 @dataclass(frozen=True)
@@ -1206,6 +1208,9 @@ class Contest2026OpenROADEvaluator:
         binary = build / "bin" / "openroad"
         if not binary.is_file():
             raise RuntimeError("candidate_build_failed:openroad_binary_missing")
+        from ..platform.execution import record_build
+
+        record_build(source, binary)
         return binary
 
     def _build_relocated_cow(
@@ -1903,7 +1908,7 @@ class Contest2026OpenROADEvaluator:
             # sequence.  Post-placement QoR is measured only after it has
             # completed and placement parasitics have been re-estimated.
             "set_placement_padding -global -left 0 -right 0",
-            "detailed_placement",
+            "detailed_placement -use_diamond_legalizer" if load_platform_profile() else "detailed_placement",
             "improve_placement -max_displacement {5 1}",
             "optimize_mirroring",
             "check_placement -verbose",

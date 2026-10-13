@@ -8,6 +8,11 @@ from .io import sha256_file
 
 
 def toolchain_fingerprint(*, source_root: Path | None = None) -> dict[str, Any]:
+    from ..platform.execution import toolchain_evidence
+
+    delegated = toolchain_evidence(source_root)
+    if delegated is not None:
+        return delegated
     payload: dict[str, Any] = {"openroad_bin": None, "openroad_version": None, "openroad_sha256": None, "source_git_commit": None}
     if source_root and source_root.is_dir():
         for relative in (Path("build/bin/openroad"), Path("build_power/bin/openroad")):

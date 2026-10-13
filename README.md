@@ -53,6 +53,20 @@ GoalEvolve/
 
 `goalevolve/cli.py` is the public command implementation. `artifact_evaluation/lineage/` is immutable input to fixed replay; fresh Students never edit it in place. All generated content belongs under `outputs/`.
 
+## ChipEvolve local integration
+
+This fork adds an explicit `GOALEVOLVE_PLATFORM_PROFILE` integration. In that
+mode the existing Codex login can serve native Teacher/Student roles; the
+common professional source and its new AST are separate from released p0
+snapshots. Deterministic builds, physical flows, official parsing/checking and
+tool identity queries go through Execution Foundation. Native objectives,
+recipes, EPD, repairs and promotion remain GoalEvolve responsibilities.
+
+Profiles, private sources, logs and experiment outputs stay in the root
+platform's `var` directory. See [toolchain/README.md](toolchain/README.md) and
+the root U4 plan/report for the actual local validation status. DF/DI/Query
+integration and the full three-project PPA relay remain subsequent slices.
+
 ## Dependencies
 
 - [Python](https://www.python.org/) 3.12 (validated with 3.12.13; 3.11 or newer supported)

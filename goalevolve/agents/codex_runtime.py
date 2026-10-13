@@ -11,6 +11,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from ..core.io import atomic_json
+from ..platform.profile import existing_codex
 
 
 RETRYABLE_FAILURES = (
@@ -80,6 +81,9 @@ class PersistentCodexRunner:
             # a different worker.  The old ID remains in prior artifacts and
             # is retained in the session record for audit.
             requested_runtime = {"model": self.config.model, "reasoning_effort": self.config.reasoning_effort}
+            login = existing_codex()
+            if login:
+                requested_runtime.update(auth_mode="existing_codex", codex_home=str(home))
             previous_runtime = previous.get("runtime")
             operation_round = self._operation_round(operation_id)
             started_round = previous.get("started_round")
@@ -97,7 +101,7 @@ class PersistentCodexRunner:
             else:
                 session_reset_reason = "session_context_round_budget"
             command = self._command(cwd=cwd, final_message=final_message, prior_thread=thread)
-            atomic_json(invocation, {"operation_id": operation_id, "attempt": attempt, "command": command, "cwd": str(cwd), "codex_home": str(home), "credential_source": str(self.config.credential_env or PROJECT_CREDENTIAL_ENV), **requested_runtime, "resumed_thread": thread or None, "session_reset_reason": session_reset_reason or None})
+            atomic_json(invocation, {"operation_id": operation_id, "attempt": attempt, "command": command, "cwd": str(cwd), "codex_home": str(home), "credential_source": "existing_codex_login" if login else str(self.config.credential_env or PROJECT_CREDENTIAL_ENV), **requested_runtime, "resumed_thread": thread or None, "session_reset_reason": session_reset_reason or None})
             print(f"[GoalEvolve][codex][{identity}] start attempt={attempt}/{self.config.retries} resume={str(bool(thread)).lower()}", flush=True)
             proc = self._invoke(command=command, prompt=prompt, cwd=cwd, home=home, events=events, stderr=stderr)
             thread_id, completed, usage = self._events(events)
@@ -117,6 +121,12 @@ class PersistentCodexRunner:
         return CodexTurn(False, operation_id, None, f"codex_failed:{last_error[-500:]}", {})
 
     def _ensure_home(self, state_root: Path, identity: str) -> Path:
+        login = existing_codex()
+        if login:
+            home = Path(login["home"]).expanduser().resolve()
+            if not home.is_dir():
+                raise FileNotFoundError(f"Explicit existing Codex home is missing: {home}")
+            return home
         home = state_root / "codex_homes" / identity
         # Sessions live under ``codex_sessions``; a worker home must not become
         # a second, stale source of credentials.  Refresh its generated auth
@@ -258,6 +268,12 @@ class PersistentCodexRunner:
         return thread_id, completed, usage
 
     def _environment(self, *, home: Path, cwd: Path) -> dict[str, str]:
+        if existing_codex():
+            env = dict(os.environ)
+            env["CODEX_HOME"] = str(home)
+            env.pop("OPENAI_API_KEY", None)
+            env["GIT_CEILING_DIRECTORIES"] = str(cwd.parent)
+            return env
         credentials = self._project_credentials()
         env = dict(os.environ)
         # Do not inherit a shell or user-home credential. Both Codex's explicit

@@ -38,6 +38,7 @@ from goalevolve.evaluation.sfinal import score_sfinal
 from goalevolve.token_ledger import record_round_token_usage
 from goalevolve.agents.teacher import CodexTeacher
 from goalevolve.execution.workspace import IsolatedWorkspace
+from release_fixtures import released_unit_assets
 from goalevolve.evaluation.leaderboard import collect_campaign_results, rank_top_results, update_unified_leaderboard
 
 
@@ -4115,6 +4116,7 @@ Keep the checked parent.
         self.assertNotIn("draft_rejected", prompt)
         self.assertNotIn("IDEA_UNUSABLE", prompt)
 
+    @released_unit_assets("lessons")
     def test_teacher_repair_prompt_includes_cross_design_experience(self) -> None:
         from goalevolve.planning.cross_design_experience import (
             cross_design_experience_packet,
@@ -4867,6 +4869,7 @@ Keep the checked parent.
         self.assertIn("no_promotion_streak: 2", prompt)
         self.assertIn("promotion_authority: Controller only", prompt)
 
+    @released_unit_assets("lessons")
     def test_cross_design_experience_reaches_teacher_student_and_review_packets(self) -> None:
         from goalevolve.agents.prompting import student_packet, teacher_packet
         from goalevolve.planning.cross_design_experience import (
@@ -10005,6 +10008,7 @@ Inspect the timing handoff.
                 load_json(root / "runtime_provenance.json")["entries"][0]["repository_graph_enabled"]
             )
 
+    @released_unit_assets("profiles")
     def test_portable_design_profiles_resolve_only_project_assets(self) -> None:
         project_root = Path(__file__).resolve().parents[2]
         expected_evolution_designs = {
@@ -11876,6 +11880,7 @@ Inspect the timing handoff.
             with self.assertRaisesRegex(RuntimeError, "configured baseline is incomplete"):
                 _attach_configured_baseline(engine=engine, config=config)
 
+    @released_unit_assets("profiles")
     def test_aes_p0_revalidation_profile_contract(self) -> None:
         project_root = Path(__file__).resolve().parents[2]
         config = load_config(
@@ -11899,6 +11904,7 @@ Inspect the timing handoff.
         self.assertEqual(config.max_campaign_rounds, 10)
         self.assertGreaterEqual(len(config.historical_seed_cards), 3)
 
+    @released_unit_assets("profiles")
     def test_aes_original_power_eight_round_profile_uses_direct_power_seeds(self) -> None:
         project_root = Path(__file__).resolve().parents[2]
         config = load_config(
@@ -11946,6 +11952,7 @@ Inspect the timing handoff.
             ],
         )
 
+    @released_unit_assets("profiles")
     def test_aes_original_power_rerun_profile_only_changes_output_roots(self) -> None:
         project_root = Path(__file__).resolve().parents[2]
         config = load_config(
@@ -11962,6 +11969,7 @@ Inspect the timing handoff.
         self.assertEqual(config.max_campaign_rounds, 10)
         self.assertEqual(config.max_consecutive_no_promotion_rounds, 10)
 
+    @released_unit_assets("profiles")
     def test_aes_original_power_rerun3_profile_is_a_new_clean_campaign_root(self) -> None:
         project_root = Path(__file__).resolve().parents[2]
         config = load_config(
@@ -11976,6 +11984,7 @@ Inspect the timing handoff.
         self.assertEqual(config.power_reclaim_phase, "early_forced_reclaim")
         self.assertEqual(config.max_campaign_rounds, 10)
 
+    @released_unit_assets("profiles")
     def test_aes_original_power_20260806_profile_is_a_clean_eight_round_80ns_campaign(self) -> None:
         project_root = Path(__file__).resolve().parents[2]
         config = load_config(
@@ -11989,6 +11998,7 @@ Inspect the timing handoff.
         self.assertEqual(config.power_stage_tns_ceiling_ns, 80.0)
         self.assertEqual(config.max_campaign_rounds, 10)
 
+    @released_unit_assets("profiles")
     def test_aes_ast_recovery_profile_is_fresh_and_preserves_direct_power_contract(self) -> None:
         """The post-AST recovery proof must not resume an old 60 ns ledger."""
         project_root = Path(__file__).resolve().parents[2]

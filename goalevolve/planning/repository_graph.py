@@ -392,11 +392,13 @@ class RepositoryGraphIndex:
         p0_source_root: Path | None = None,
         p0_artifact_root: Path | None = None,
     ) -> None:
+        from ..platform.profile import source_seed
+
         project_root = Path(__file__).resolve().parents[2]
         self.state_root = Path(state_root)
         self.p0_source_root = Path(
             p0_source_root
-            or project_root / "artifact_evaluation" / "lineage" / "openroad_power" / "p0" / "source"
+            or source_seed(project_root / "artifact_evaluation" / "lineage" / "openroad_power" / "p0" / "source")
         ).resolve()
         self._project_p0_artifact_root = (self.p0_source_root.parent / "repository_graph").resolve()
         self._campaign_p0_artifact_root = (

@@ -25,6 +25,7 @@ from .evaluation.contest2026 import Contest2026Config, Contest2026OpenROADEvalua
 from .agents.codex_student import CodexStudentConfig, CodexStudentEditor, NoopStudentEditor
 from .agents.narrator import CodexNarrativeSummarizer, CodexNarratorConfig
 from .agents.teacher import CodexTeacher, CodexTeacherConfig, HeuristicTeacher
+from .platform.profile import load_platform_profile
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -77,6 +78,9 @@ class PowerReclaimProfile:
 
 def load_codex_settings(path: Path = CODEX_CONFIG_PATH) -> CodexSettings:
     """Load one project-wide, versioned Codex runtime policy."""
+    profile = load_platform_profile()
+    if profile:
+        path = Path(profile["codex"]["config_path"])
     raw = json.loads(path.read_text(encoding="utf-8"))
 
     def worker(name: str, *, needs_repairs: bool, needs_plan_repairs: bool = False) -> CodexWorkerSettings:

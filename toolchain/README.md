@@ -17,3 +17,25 @@ The release ships all eight contest benchmarks and ASAP7 data under
 `third_party/benchmarks/`. The shared source-only OpenROAD p0 lives
 at `artifact_evaluation/lineage/openroad_power/p0/source`; verify its manifest
 with `python3 artifact_evaluation/verify_openroad_snapshot.py --verify`.
+
+## ChipEvolve common toolchain (opt-in)
+
+`GOALEVOLVE_PLATFORM_PROFILE` selects a runtime JSON outside this source tree.
+It fixes the qualified SIF and source commits, private professional source,
+new AST root, build flags, installed EF client, resource limits, frozen input
+hashes and the original supervision deadline. The profile can explicitly use
+`codex.auth_mode=existing_codex` with an existing login directory; native API
+mode and the published Codex settings remain available without this profile.
+
+The controller retains native planning, source edits, scoring and selection.
+`platform.execution.maybe_delegate` sends deterministic command attempts to EF
+with `max_attempts=1`, preserving the native retry count. OpenROAD/builds run
+inside the common SIF; the official parser/checker use the independent Python
+3.12 environment through EF. Physical evaluations verify a source/binary build
+receipt. Large registered evidence is retrieved through the public local
+materialization API. This evidence archive is not a DF design snapshot.
+
+Use the root repository's `admin/prepare_common_goalevolve.py` and
+`admin/run_common_goalevolve.py` for the recorded local U4 preparation and
+phases. Real baseline/evolution/replay and their acceptance are tracked in the
+root slice report; integration code alone does not establish those results.

@@ -53,6 +53,11 @@ class ResilientCommandRunner:
             report = ExecutionReport(False, 0, None, "", "", f"insufficient_disk:{free_gb:.2f}GB<{self.policy.min_free_gb:.2f}GB")
             self._write_log(output_log, report)
             return report
+        from ..platform.execution import maybe_delegate
+
+        delegated = maybe_delegate(command=command, cwd=cwd, policy=self.policy, output_log=output_log, environment=environment)
+        if delegated is not None:
+            return delegated
         last: subprocess.CompletedProcess[str] | None = None
         command_label = Path(command[0]).name if command else "<empty>"
         heartbeat_s = max(0.05, float(self.policy.heartbeat_s))

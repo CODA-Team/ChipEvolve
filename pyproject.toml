@@ -31,4 +31,5 @@ packages = [
   "goalevolve.execution",
   "goalevolve.planning",
   "goalevolve.testing",
+  "goalevolve.platform",
 ]
