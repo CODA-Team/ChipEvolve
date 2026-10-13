@@ -104,6 +104,7 @@ def request_for(
                 inputs[str(Path(value).resolve())] = digest(Path(value))
     return {
         **call,
+        "design_context": design_context(profile) if operation == "physical" else None,
         "operation": operation,
         "attempt": attempt,
         "source": str(source) if source else None,
@@ -122,6 +123,22 @@ def request_for(
                 "deadline_epoch",
             )
         },
+    }
+
+
+def design_context(profile: dict[str, Any]) -> dict[str, Any] | None:
+    """Read evidence for a handoff using the installed public data SDK."""
+    scope = profile.get("data_context")
+    if not scope:
+        return None
+    from eda_ai_client import EdaAiClient
+
+    client = EdaAiClient(data_url=scope["data_url"], kernel_url=profile["kernel_url"])
+    return {
+        "scope": client.resolve_scope(snapshot_id=scope["snapshot_id"]),
+        "summary": client.get_stage_summary(scope["snapshot_id"]),
+        "metrics": client.get_metrics(snapshot_id=scope["metrics_snapshot_id"]),
+        "parent_run_id": scope["parent_run_id"],
     }
 
 
