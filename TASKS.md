@@ -9,7 +9,7 @@
 | P2 | 统一管理物理阶段并保存可查询结果 | place→CTS→route→eval、实际取消、实体/指标导入、重启后来源一致 | EF / Toolkits / DF / SDK | P1 | 已通过 |
 | P3 / L1 | 可查询、可继续同一优化实验 | 完整平台两轮实验；四个实际中断窗口；原计算和模型决策不重复；评价自动回流 | Flow / EF / Toolkits / DF / SDK | P2 | 完整真实工程验收通过，业务确认待老板 |
 | P4 / L6–L7 | Codex 自主查询、专业交接与协同优化 | 真正 Flow/Code receiver；统一数据入口；预算内完整闭环；归因上下文可核对 | Codex / Query / Flow / Code / 底座 | L1–L5 | 待做，实际契约按源码审计确认 |
-| P5 / L2–L4 | 两个源码项目原生复现并接统一执行 | DPLEvolve、GoalEvolve 分别 smoke/最小真实设计/新源码候选评价；实际 EDA 统一管理 | Code 项目 / 底座 | P3；原生复现优先于全面整合 | L2 原生复现工程验收通过，业务确认待老板；L3 环境/AE-1/模拟 smoke/真实 AE-2/p0 基线冻结通过；AE-3 未启动，模型入口待选择、上游九项失败未解决；L4 未开始 |
+| P5 / L2–L4 | 两个源码项目原生复现并接统一执行 | DPLEvolve、GoalEvolve 分别 smoke/最小真实设计/新源码候选评价；实际 EDA 统一管理 | Code 项目 / 底座 | P3；原生复现优先于全面整合 | L2 / U3 DPLEvolve 原生复现、共同环境及统一执行工程通过，待业务验收；L3 环境/AE-1/模拟 smoke/真实 AE-2/p0 基线冻结通过；AE-3 未启动，模型入口待选择、上游九项失败未解决；L4 GoalEvolve 部分仍待做 |
 | U1 | 有固定源码、能构建和运行真实设计的共同基础工具 | 源码/递归依赖/SIF/实际 binary 可核对；GCD RTL→GDS、source-built 设计检查、DF/DI 事实/指标/单位/证据通过 | EF / Toolkits / DF / DI / admin | 共同版本选择与来源审计 | 工程验收通过，业务确认待老板；专业迁移见 U2–U5 |
 | U2 | 共同工具环境下继续使用完整 Flow 调参产品 | AES 两轮×三候选、原生阶段继承与参数消费、统一反馈、四个真实恢复窗口、新环境基线 | Flow / Toolkits / EF / DF / DI / admin | U1；实际计划已获老板确认 | 完整真实工程验收通过：42 个 run / 180 项核查 / 12 个 SDK 快照；业务确认待老板 |
 | L5 | 统一设计数据与原因查询 | 设计实验视图、身份映射、事实覆盖、Query 诊断上下文与来源 | EF / DF / DI / Query / Toolkits | L1–L4 | 待做 |
@@ -18,7 +18,9 @@
 
 ## 当前证据与限制
 
-- 共同工具链：U1 / U2 工程验收通过，业务确认待老板。U2 的共同工具与原生 A2 overlay 完成真实 AES 两轮六候选、四个恢复窗口、42 个 EF run 和 12 个 SDK 快照；最优可行 \|TNS\| 1.76→1.47 ns（约 16.48%），CP0=0.81 ns，功耗报告值 0.352 W、芯片面积 38,927.3 µm² 不增加，这是本次单实验观测。模型 17 次请求 / 16 成功 / 1 次原生默认回退，失败成本未知，已知成功用量 281,540 token，不作精确成本对比。U3 DPLEvolve、U4 GoalEvolve、U5 组合接力尚未开始，L3 和 L4–L8 的缺口保持。报告 `admin/U2_FLOW_COMMON_TOOLCHAIN_REPORT_20261012.md`，证据 `var/flow-agent/u2-common-20261012/u2-acceptance.json`。
+- U3 / DPLEvolve 共同工具链迁移及确定性 EF 入口接入：工程验收通过，业务确认待老板。共享构建、真实 GCD 输入、三条合法原生基线、新源码候选、固定来源独立编译重放、138 项测试及 89 项工程核查通过。HPWL 3206.7→3093.5 µm（减少 3.53%），候选/重放时间 0.768/1.008 s，均在原生预算内；最大位移相对 framework 增加约 38.37%，前段 producer 零收益均已披露。见 `admin/U3_DPLEVOLVE_COMMON_TOOLCHAIN_REPORT_20261013.md`；L4 只完成 DPLEvolve 部分，统一数据入口和完整三项目 PPA 尚未完成。暂停于 U3 边界。
+
+- 共同工具链：U1 / U2 工程验收通过，业务确认待老板。U2 的共同工具与原生 A2 overlay 完成真实 AES 两轮六候选、四个恢复窗口、42 个 EF run 和 12 个 SDK 快照；最优可行 \|TNS\| 1.76→1.47 ns（约 16.48%），CP0=0.81 ns，功耗报告值 0.352 W、芯片面积 38,927.3 µm² 不增加，这是本次单实验观测。模型 17 次请求 / 16 成功 / 1 次原生默认回退，失败成本未知，已知成功用量 281,540 token，不作精确成本对比。U3 结果见上项；U4 GoalEvolve、U5 组合接力尚未开始，L3 和 L4–L8 其他缺口保持。报告 `admin/U2_FLOW_COMMON_TOOLCHAIN_REPORT_20261012.md`，证据 `var/flow-agent/u2-common-20261012/u2-acceptance.json`。
 
 - L3 / GoalEvolve 原生复现进行中：正式独立上游固定 `1cc20aa6`；AE-1、模拟 smoke、AST 初始化、AES / ASAP7 已发布源码真实重放及本机 p0 基线通过。基线为 |TNS| 12.37 ns、动态功耗 427,394,076,214.0958 pW、漏电功耗 95,383,300.50418 pW。AE-3 尚未启动；项目 API 入口与本机 Codex 登录之间的选择待回复，上游缺历史配置/知识文档的九项失败未解决。L3 未通过全部门禁，报告见 `admin/L3_GOALEVOLVE_REPORT_20261011.md`。
 

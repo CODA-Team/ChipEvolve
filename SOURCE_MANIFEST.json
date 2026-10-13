@@ -50,10 +50,13 @@
     },
     {
       "path": "dplevolve",
-      "source_commit": "96d8c613d62bf3431083bb5e52c7df8853d5a622",
-      "source_tree": "3cb8ad338bd5d0eca8a895daa1c5544d166d78ac",
-      "url": "https://github.com/CODA-Team/DPLEvolve.git",
-      "branch": null
+      "source_commit": "55ec40a1176fdf10cc4b18f81cf33a443881c030",
+      "source_tree": "0fca6e0321b00b369c06df5473c63871c1fa9fae",
+      "url": "https://github.com/CODA-Team/ChipEvolve.git",
+      "branch": "modules/dplevolve",
+      "upstream_url": "https://github.com/CODA-Team/DPLEvolve.git",
+      "upstream_commit": "96d8c613d62bf3431083bb5e52c7df8853d5a622",
+      "upstream_tree": "3cb8ad338bd5d0eca8a895daa1c5544d166d78ac"
     },
     {
       "path": "goalevolve",

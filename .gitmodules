@@ -36,8 +36,9 @@
 
 [submodule "dplevolve"]
 	path = dplevolve
-	url = https://github.com/CODA-Team/DPLEvolve.git
+	url = https://github.com/CODA-Team/ChipEvolve.git
 	shallow = true
+	branch = modules/dplevolve
 
 [submodule "goalevolve"]
 	path = goalevolve

@@ -1,10 +1,12 @@
 # 架构与源码边界
 
-本页整理现有实现和已确认职责，不以预设架构强迫专业项目重构。源码证据、历史审计和接点依据见 [admin/INTEGRATION_MAP.md](admin/INTEGRATION_MAP.md)。更新：2026-10-12；本机目标关系与分阶段验收见 admin/LOCAL_EXECUTION_PLAN_20261011.md；共同工具链审计与迁移路线见 admin/COMMON_TOOLCHAIN_AUDIT_20261012.md 和 admin/COMMON_TOOLCHAIN_PLAN_20261012.md。
+本页整理现有实现和已确认职责，不以预设架构强迫专业项目重构。源码证据、历史审计和接点依据见 [admin/INTEGRATION_MAP.md](admin/INTEGRATION_MAP.md)。更新：2026-10-13；本机目标关系与分阶段验收见 admin/LOCAL_EXECUTION_PLAN_20261011.md；共同工具链审计与迁移路线见 admin/COMMON_TOOLCHAIN_AUDIT_20261012.md 和 admin/COMMON_TOOLCHAIN_PLAN_20261012.md。
 
 ## 模块清单
 
-仓库层面由 ChipEvolve 根仓库以 Git 子模块固定八个独立项目；六个自有模块的 Git 历史保存在同一远程的 `modules/<目录名>` 分支，两个 Code 项目当前固定其官方上游提交。模块源码、环境和 wheel/HTTP 依赖边界没有因发布而改变。`discarded/` 为旧仓库原始 tree 的历史归档，不参与当前模块依赖。源码来源见 `SOURCE_MANIFEST.json`，发布记录见 admin/REPOSITORY_PUBLICATION_20261012.md。
+U3 的 DPLEvolve 共同工具链及确定性 EF 入口工程验收通过，业务确认待老板。真实基线、源码演化及固定来源独立编译重放通过，专业决策/原生筛选与指标含义保留。数据接入仍按 L5/L6 验收；接口与证据见 `admin/U3_DPLEVOLVE_COMMON_TOOLCHAIN_PLAN_20261013.md` / `admin/U3_DPLEVOLVE_COMMON_TOOLCHAIN_REPORT_20261013.md`。
+
+仓库层面由 ChipEvolve 根仓库以 Git 子模块固定八个独立项目；六个自有模块与 DPLEvolve 平台适配分支保存在同一远程的 `modules/<目录名>`，GoalEvolve 仍固定官方上游提交。DPLEvolve 官方来源在 manifest 保留。模块源码、环境和 wheel/HTTP 边界保持独立。`discarded/` 为旧仓库原始 tree 的历史归档，不参与当前模块依赖。源码来源见 `SOURCE_MANIFEST.json`，原始发布记录见 admin/REPOSITORY_PUBLICATION_20261012.md。
 
 | 模块 | 职责与实际边界 |
 |---|---|
@@ -15,7 +17,7 @@
 | Data Foundation | 统一事实快照、指标/对象/关系、来源与持久导入回执。 |
 | Data Interface | 对外工具语义与已安装 SDK；不新增后台服务或数据库。 |
 | Query Agent | Codex 的 EDA 垂直形态：统一事实、比较、领域技能、调查状态、证据与补 STA。当前 host 路径复用 Codex 推理；真实 Flow/Code 接收与可靠诊断效果仍待验收。 |
-| Code Agent | DPLEvolve 原生真实候选/评价及独立重放工程验收通过；GoalEvolve 环境、已发布候选/p0 真实重放通过，新的 AE-3 与全部门禁尚未通过。两个项目的统一平台接入尚未交付。 |
+| Code Agent | DPLEvolve 原生复现及 U3 共同环境/统一执行工程验收通过；GoalEvolve 环境、已发布候选/p0 真实重放通过，新的 AE-3、共同环境、统一执行与全部门禁尚未通过。两个 Code 的统一数据入口待做。 |
 
 ## 模块依赖
 
@@ -29,7 +31,9 @@ flowchart TD
     EF --> TK[Toolkits]
     TK --> OR[OpenROAD / Yosys]
     DF --> EF
-    C -. 后续接入 .-> CODE[DPLEvolve / GoalEvolve]
+    C --> DPL[DPLEvolve Teacher与Student]
+    DPL --> EF
+    C -. 后续接入 .-> CODE[GoalEvolve]
 ```
 
 ## 核心数据流
@@ -46,6 +50,11 @@ flowchart LR
     Eval --> Import[导出 / 指定产物导入]
     Import --> Facts
     Facts --> C
+    C --> DPL[DPLEvolve 原生源码优化]
+    DPL --> EF
+    EF --> Native[原生指标和来源证据]
+    Native --> DPL
+    Native --> C
 ```
 
 数据底座提供事实和来源；Query 提供解释与证据；Codex 负责业务判断。工具测量与开发验收脚本不是独立评测底座。
@@ -96,10 +105,10 @@ sequenceDiagram
 - 运行状态放 `var`，模型 cache 不跨实验复用；保留未知调用成本和失败现场。
 - 老板已确认三专业项目后续使用共同基础工具链：本机 SIF `8e6ee7…`、ORFS `5105b0a77`、OpenROAD `27288f5c90`，不使用移动 latest 作为身份。各项目原生旧工具链保留为历史复现证据；Flow 的共同模式完整工程验收已通过，两个 Code 尚未切换。
 - Code 项目在共同基础源码上保留专业 overlay 与私有候选编译，分别记录源码/依赖/编译配置及实际 binary hash。原厂镜像没有 DPLEvolve evolve/GoalEvolve repair_power，不能只替换工具路径。专业组合补丁及跨阶段读写需真实验证，不强迫使用同一个未修改的原厂 binary。
-- L2 的 DPLEvolve 保留原生 Teacher/Student 和 evaluator；确定性接点为官方共享 core configure/build、私有 variant configure/relink、带明确私有 binary 的原生 baseline 评价。当前独立原生执行及结果留证通过，尚未由 EF/DF 接管；统一接入分别在 L4、L6 实现。详细源码与接点证据见 `admin/L2_DPLEVOLVE_REPORT_20261011.md`。
+- DPLEvolve 保留原生 Teacher/Student 与 evaluator；`DPL_EVOLVE_PLATFORM_PROFILE` 经薄桥接 `maybe_delegate(operation: str, argv: list[str]) -> int | None` 将共享构建、私有 relink、明确私有 binary 的完整原生评价提交 EF。无 profile 为原生复现，平台模式失败不退回独立执行。构建/评价仍在固定共同镜像内；输入/source/binary/指标绑定，三条基线显式保留 Diamond/negotiation/framework 含义。私有 relink 重新编译使用候选对象布局的 OpenRoad.cc。U3 工程通过，DF/DI/Query 数据入口仍待 L6；构建证据包只留证，不当作设计事实快照。L2 历史证据见 `admin/L2_DPLEVOLVE_REPORT_20261011.md`，本轮见 U3 报告。
 
 ## 已知缺口
 
-P3 / U2 的 Flow 完整真实恢复、评价自动回流、四个中断窗口与共同环境迁移，以及 L2 的 DPLEvolve 原生复现已通过工程验收，业务确认待老板；GoalEvolve 新 AE-3、模型入口与全部门禁尚未完成，两个 Code 项目的统一接入/共同工具链迁移、统一身份与数据入口、三项目协同及本机收益测量未完成。DPLEvolve 本轮新源码候选可运行但未晋升，不能记为已验证优化质量。现有 Query 的查证/比较不能自动被包装为已证明的因果结论。教学、新用户安装和论文交付本轮暂缓。
+P3 / U2 的 Flow 完整恢复、评价回流与共同环境，以及 L2 / U3 的 DPLEvolve 原生复现、共同环境与统一执行通过工程验收，业务确认待老板。U3 新候选由原生 helper 保留且独立重放通过，测得 HPWL 减少 3.53%，位移尾部增加、前段零收益均保留；这不是完整 PPA 或公平平台收益。GoalEvolve 新 AE-3、模型入口、共同迁移、统一执行与全部门禁尚未完成。两个 Code 统一数据入口、三项目协同及本机收益测量未完成。现有 Query 的查证/比较不能自动包装为已证明的因果结论。教学、新用户安装和论文交付暂缓。
 
 源码优化交接包含候选源码、构建工具身份与实际评价，最终设计 PPA 通过兼容工具下的实际物理流程确认。共同基础版本已确认，专业改动的具体迁移与组合由源码差异、构建及真实运行决定。三个指定历史 ODB 在共同镜像下读取通过，只证明单向样本可读，不等于完整接力；同设计/PDK/约束/评价条件的兼容性属于 U5/L7 验收。
