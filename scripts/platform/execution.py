@@ -233,7 +233,17 @@ def task_for(
         "project_id": "dplevolve-common-u3",
         "design_id": profile["design"],
         "plugin_id": "openroad-data",
-        "labels": {"memory_approval": "manual"},
+        "labels": {
+            "memory_approval": "manual",
+            **(
+                {
+                    "parent_run_id": profile["data_context"]["parent_run_id"],
+                    "input_snapshot_id": profile["data_context"]["snapshot_id"],
+                }
+                if profile.get("data_context")
+                else {}
+            ),
+        },
         "inputs": {
             "adapter": "command",
             "extractor_command": [
