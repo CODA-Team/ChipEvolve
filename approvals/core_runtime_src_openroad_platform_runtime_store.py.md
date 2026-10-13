@@ -1,5 +1,11 @@
 # Approval: `core/runtime/src/openroad_platform_runtime/store.py` 800 -> 828
 
+2026-10-13 U4 concurrent-query repair: maximum 1494 physical lines (+1).
+Owner explicitly approved serializing resource_totals execute/fetch under the
+existing RLock after real four-Student HTTP reads failed during worker writes.
+Public signatures, resource policy and schema are unchanged; a regression
+demonstrates the original reader observing an uncommitted reservation removal.
+
 ## What is being added
 
 The store records, for every attempt, the failure the adapter reported:

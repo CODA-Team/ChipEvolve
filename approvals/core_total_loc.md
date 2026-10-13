@@ -482,3 +482,9 @@ its separate terminal run transition; RuntimeStore atomically commits the
 attempt and run outcome. The net change is 11 lines, with live-log and concurrent
 reader regressions. This is required lifecycle correctness in the authorized
 30-hour execution acceptance, with no tool logic in the kernel.
+
+# 2026-10-13 U4 concurrent-query repair
+
+Owner approved maximum 8982 physical lines (+1): resource_totals now uses the
+existing RuntimeStore RLock around the shared connection query and fetch.
+No new kernel contract, resource policy, schema or dependency is introduced.

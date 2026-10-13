@@ -273,7 +273,8 @@ class RuntimeStore:
     # -- lifecycle ---------------------------------------------------------
     def resource_totals(self) -> tuple[int, int]:
         """Return currently reserved CPU cores and memory bytes."""
-        row = self._connection.execute("SELECT COALESCE(SUM(cpu_cores),0) cpu, COALESCE(SUM(memory_bytes),0) mem FROM runtime_resource_reservations").fetchone()
+        with self._lock:
+            row = self._connection.execute("SELECT COALESCE(SUM(cpu_cores),0) cpu, COALESCE(SUM(memory_bytes),0) mem FROM runtime_resource_reservations").fetchone()
         return int(row["cpu"]), int(row["mem"])
     def release_resources(self, attempt_id: str) -> None:
         with self._lock:

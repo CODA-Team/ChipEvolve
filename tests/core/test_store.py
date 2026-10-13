@@ -57,6 +57,47 @@ def test_resource_claim_is_fifo_capacity_and_release(store: RuntimeStore, tmp_pa
     assert released is not None
 
 
+def test_resource_totals_waits_for_reservation_transaction(store, tmp_path):
+    """HTTP readers must not share the connection during a worker transaction."""
+    run = submit(store, resources=ResourceRequest(cpu_cores=3, memory_bytes=100))
+    stage = store.list_stages(run.run_id)[0]
+    attempt = store.start_attempt(
+        stage.stage_run_id,
+        worker_id="w",
+        workspace=tmp_path,
+        lease_seconds=30,
+        resources=run.task_spec.resources,
+        capacity_cpu_cores=8,
+        capacity_memory_bytes=1000,
+    )
+    assert attempt is not None
+    started = threading.Event()
+    finished = threading.Event()
+    results = []
+
+    def read_totals():
+        started.set()
+        try:
+            results.append(store.resource_totals())
+        finally:
+            finished.set()
+
+    with store._lock:
+        store._connection.execute("BEGIN IMMEDIATE")
+        store._connection.execute("DELETE FROM runtime_resource_reservations")
+        reader = threading.Thread(target=read_totals)
+        reader.start()
+        try:
+            assert started.wait(2)
+            read_uncommitted = finished.wait(0.2)
+        finally:
+            store._connection.execute("ROLLBACK")
+    reader.join(timeout=2)
+    assert not reader.is_alive()
+    assert not read_uncommitted, "resource query bypassed the writer lock"
+    assert results == [(3, 100)]
+
+
 def test_late_cancel_preserves_attempt_outcome_without_prestart_claim(store, tmp_path):
     run = submit(store)
     stage = store.list_stages(run.run_id)[0]
