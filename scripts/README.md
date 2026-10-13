@@ -93,3 +93,14 @@ experiments/analysis/
 Treat those launchers as human-only campaign recipes.  Teacher/Student agents
 should prefer the top-level README flow, generated workspace helpers, and the
 canonical `scripts/matrix/` replay tools.
+
+## ChipEvolve platform execution
+
+Set `DPL_EVOLVE_PLATFORM_PROFILE` to the experiment's explicit profile file to
+use the fixed common environment and Execution Foundation for builds and EDA
+evaluation. The implementation is in `scripts/platform/execution.py`; existing
+core, variant, baseline and Student helper commands keep their responsibilities.
+No profile selects native legacy reproduction mode. An EF failure never falls
+back to independent execution. An explicit `DPL_EVOLVE_OPERATION_ATTEMPT` names
+a new attempt after a diagnosed failure; an unchanged request reopens its run.
+Profile paths and all generated artifacts belong under the external state root.

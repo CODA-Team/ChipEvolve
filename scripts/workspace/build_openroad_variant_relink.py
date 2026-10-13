@@ -18,7 +18,12 @@ AGENT_ROOT = SCRIPT_DIR.parents[1]
 if str(AGENT_ROOT) not in sys.path:
     sys.path.insert(0, str(AGENT_ROOT))
 
-from runtime_paths import clean_subprocess_env, resolve_input_path, resolve_runtime_paths
+from runtime_paths import (
+    clean_subprocess_env,
+    resolve_input_path,
+    resolve_runtime_paths,
+)
+from scripts.platform.execution import maybe_delegate
 
 
 def is_relative_to(path: Path, other: Path) -> bool:
@@ -74,8 +79,7 @@ def extract_recipe_commands(makefile: Path, target: str) -> list[str]:
         line = lines[idx]
         if line.startswith("\t"):
             command = line[1:]
-            if command.startswith("@"):
-                command = command[1:]
+            command = command.removeprefix("@")
             if "cmake_echo_color" not in command:
                 commands.append(command)
             idx += 1
@@ -87,7 +91,7 @@ def extract_recipe_commands(makefile: Path, target: str) -> list[str]:
 def extract_make_variables(makefile: Path) -> dict[str, str]:
     variables: dict[str, str] = {}
     for line in read_text(makefile).splitlines():
-        if not line or line.startswith("#") or line.startswith("\t"):
+        if not line or line.startswith(("#", "\t")):
             continue
         if " = " not in line:
             continue
@@ -144,13 +148,31 @@ def build_generated_sources(
     variant_build: Path,
     variant_dpl_src: Path,
 ) -> None:
-    dpl_make = core_build / "src" / "dpl_evolve" / "CMakeFiles" / "dpl_evolve.dir" / "build.make"
-    py_make = core_build / "src" / "dpl_evolve" / "CMakeFiles" / "dpl_evolve_py.dir" / "build.make"
+    dpl_make = (
+        core_build
+        / "src"
+        / "dpl_evolve"
+        / "CMakeFiles"
+        / "dpl_evolve.dir"
+        / "build.make"
+    )
+    py_make = (
+        core_build
+        / "src"
+        / "dpl_evolve"
+        / "CMakeFiles"
+        / "dpl_evolve_py.dir"
+        / "build.make"
+    )
     dpl_vars = extract_make_variables(dpl_make)
     py_vars = extract_make_variables(py_make) if py_make.exists() else {}
 
     targets = [
-        (dpl_make, dpl_vars, "src/dpl_evolve/CMakeFiles/dpl_evolve.dir/OpendpTCL_wrap.cxx"),
+        (
+            dpl_make,
+            dpl_vars,
+            "src/dpl_evolve/CMakeFiles/dpl_evolve.dir/OpendpTCL_wrap.cxx",
+        ),
         (dpl_make, dpl_vars, "src/dpl_evolve/dpl_evolve-tclInitVar.cc"),
     ]
     if py_make.exists():
@@ -245,7 +267,9 @@ def add_variant_only_source_compile_entries(
 
         template = templates.get(source.suffix) or templates.get(".cpp")
         if template is None:
-            raise SystemExit(f"Could not synthesize compile command for new source: {source}")
+            raise SystemExit(
+                f"Could not synthesize compile command for new source: {source}"
+            )
 
         template_file = Path(template["file"])
         fake_core_source = core_dpl_src / rel
@@ -263,7 +287,9 @@ def add_variant_only_source_compile_entries(
                 parts[idx + 1] = f"CMakeFiles/dpl_evolve_lib.dir/{rel}.o"
                 break
         else:
-            raise SystemExit(f"Could not find -o output in template compile command: {template['command']}")
+            raise SystemExit(
+                f"Could not find -o output in template compile command: {template['command']}"
+            )
 
         extra = dict(template)
         extra["file"] = str(fake_core_source)
@@ -302,7 +328,11 @@ def rewrite_compile_entry(
             break
     if output_path is None:
         raise SystemExit(f"Could not find -o output in compile command: {command}")
-    output_parent = output_path.parent if output_path.is_absolute() else directory / output_path.parent
+    output_parent = (
+        output_path.parent
+        if output_path.is_absolute()
+        else directory / output_path.parent
+    )
     ensure_dir(output_parent)
     return command, directory
 
@@ -418,7 +448,9 @@ def resolve_archive_tool(*, link_txt: Path, tool_kind: str) -> str:
     )
 
 
-def append_extra_dpl_lib_objects(*, core_link_txt: Path, variant_dpl_build: Path) -> None:
+def append_extra_dpl_lib_objects(
+    *, core_link_txt: Path, variant_dpl_build: Path
+) -> None:
     """Archive source files that exist only in a materialized family variant.
 
     The common-core CMake link recipe only knows the clean-base object list.
@@ -426,7 +458,9 @@ def append_extra_dpl_lib_objects(*, core_link_txt: Path, variant_dpl_build: Path
     compiled by the rewritten compile commands, but the old archive recipe will
     not include them unless we append the extra objects explicitly.
     """
-    commands = [line.strip() for line in read_text(core_link_txt).splitlines() if line.strip()]
+    commands = [
+        line.strip() for line in read_text(core_link_txt).splitlines() if line.strip()
+    ]
     known_objects: set[str] = set()
     for command in commands:
         for token in shlex.split(command):
@@ -446,8 +480,29 @@ def append_extra_dpl_lib_objects(*, core_link_txt: Path, variant_dpl_build: Path
     quoted = " ".join(shlex.quote(item) for item in extra_objects)
     ar_tool = resolve_archive_tool(link_txt=core_link_txt, tool_kind="ar")
     ranlib_tool = resolve_archive_tool(link_txt=core_link_txt, tool_kind="ranlib")
-    run_shell(f"{shlex.quote(ar_tool)} q libdpl_evolve_lib.a {quoted}", cwd=variant_dpl_build)
+    run_shell(
+        f"{shlex.quote(ar_tool)} q libdpl_evolve_lib.a {quoted}", cwd=variant_dpl_build
+    )
     run_shell(f"{shlex.quote(ranlib_tool)} libdpl_evolve_lib.a", cwd=variant_dpl_build)
+
+
+def compile_variant_allocator(
+    *, core_build: Path, variant_build: Path, variant_dpl_src: Path
+) -> Path:
+    """OpenRoad.cc owns new/delete of Opendp and must see the private layout."""
+    entries = json.loads(read_text(core_build / "compile_commands.json"))
+    entry = next(e for e in entries if Path(e["file"]).name == "OpenRoad.cc")
+    arguments = shlex.split(entry["command"])
+    output = variant_build / "src/CMakeFiles/openroad.dir/OpenRoad.cc.o"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    arguments[arguments.index("-o") + 1] = str(output)
+    arguments.insert(1, "-I" + str(variant_dpl_src / "include"))
+    arguments.insert(2, "-I" + str(variant_dpl_src / "src"))
+    print("[INFO] Compiling private OpenRoad.cc allocation/lifecycle consumer")
+    subprocess.run(
+        arguments, cwd=entry["directory"], env=clean_subprocess_env(), check=True
+    )
+    return output
 
 
 def relink_openroad(
@@ -463,7 +518,14 @@ def relink_openroad(
     command = read_text(link_txt).strip()
     replacements = [
         ("-o ../bin/openroad", f"-o {binary_path}"),
-        ("dpl_evolve/dpl_evolve.a", str(variant_build / "src" / "dpl_evolve" / "dpl_evolve.a")),
+        (
+            "CMakeFiles/openroad.dir/OpenRoad.cc.o",
+            str(variant_build / "src/CMakeFiles/openroad.dir/OpenRoad.cc.o"),
+        ),
+        (
+            "dpl_evolve/dpl_evolve.a",
+            str(variant_build / "src" / "dpl_evolve" / "dpl_evolve.a"),
+        ),
         (
             "dpl_evolve/libdpl_evolve_lib.a",
             str(variant_build / "src" / "dpl_evolve" / "libdpl_evolve_lib.a"),
@@ -541,6 +603,9 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    delegated = maybe_delegate("variant_build", sys.argv[1:])
+    if delegated is not None:
+        raise SystemExit(delegated)
     start_time = time.perf_counter()
     args = parse_args()
     runtime = resolve_runtime_paths(
@@ -564,29 +629,41 @@ def main() -> None:
     build_dir_input = args.build_dir or str(variant_root / "build")
     install_root_input = args.install_root or str(variant_root / "install" / "OpenROAD")
     dpl_src_input = args.dpl_src or str(variant_root / "dpl_evolve")
-    core_root_input = args.core_root or str(state_root / "openroad_core" / openroad_head)
+    core_root_input = args.core_root or str(
+        state_root / "openroad_core" / openroad_head
+    )
 
-    build_dir = resolve_input_path(build_dir_input, cwd=Path.cwd(), agent_root=agent_root, orfs_root=orfs_root)
+    build_dir = resolve_input_path(
+        build_dir_input, cwd=Path.cwd(), agent_root=agent_root, orfs_root=orfs_root
+    )
     install_root = resolve_input_path(
         install_root_input, cwd=Path.cwd(), agent_root=agent_root, orfs_root=orfs_root
     )
     dpl_evolve_src = resolve_input_path(
         dpl_src_input, cwd=Path.cwd(), agent_root=agent_root, orfs_root=orfs_root
     )
-    core_root = resolve_input_path(core_root_input, cwd=Path.cwd(), agent_root=agent_root, orfs_root=orfs_root)
+    core_root = resolve_input_path(
+        core_root_input, cwd=Path.cwd(), agent_root=agent_root, orfs_root=orfs_root
+    )
 
     core_build = core_root / "build"
     compile_commands_path = core_build / "compile_commands.json"
-    core_home_raw = read_cmake_cache_value(core_build / "CMakeCache.txt", "CMAKE_HOME_DIRECTORY")
+    core_home_raw = read_cmake_cache_value(
+        core_build / "CMakeCache.txt", "CMAKE_HOME_DIRECTORY"
+    )
     core_openroad_src = Path(core_home_raw) if core_home_raw else openroad_src
     core_dpl_src = core_openroad_src / "src" / "dpl_evolve"
 
     if not compile_commands_path.is_file():
-        raise SystemExit(f"Missing common-core compile_commands.json: {compile_commands_path}")
+        raise SystemExit(
+            f"Missing common-core compile_commands.json: {compile_commands_path}"
+        )
     if not (core_build / "src" / "CMakeFiles" / "openroad.dir" / "link.txt").is_file():
         raise SystemExit(f"Missing common-core openroad link recipe under {core_build}")
     if not dpl_evolve_src.joinpath("CMakeLists.txt").is_file():
-        raise SystemExit(f"Variant dpl_evolve source dir lacks CMakeLists.txt: {dpl_evolve_src}")
+        raise SystemExit(
+            f"Variant dpl_evolve source dir lacks CMakeLists.txt: {dpl_evolve_src}"
+        )
 
     ensure_dir(build_dir / "src" / "dpl_evolve")
     ensure_dir(install_root / "bin")
@@ -626,7 +703,14 @@ def main() -> None:
     )
 
     dpl_build_dir = build_dir / "src" / "dpl_evolve"
-    dpl_lib_link = core_build / "src" / "dpl_evolve" / "CMakeFiles" / "dpl_evolve_lib.dir" / "link.txt"
+    dpl_lib_link = (
+        core_build
+        / "src"
+        / "dpl_evolve"
+        / "CMakeFiles"
+        / "dpl_evolve_lib.dir"
+        / "link.txt"
+    )
     framework_lib_link = (
         core_build
         / "src"
@@ -637,15 +721,37 @@ def main() -> None:
     )
     remove_stale_archives(dpl_build_dir=dpl_build_dir)
     run_link_recipe(dpl_lib_link, cwd=dpl_build_dir)
-    append_extra_dpl_lib_objects(core_link_txt=dpl_lib_link, variant_dpl_build=dpl_build_dir)
+    append_extra_dpl_lib_objects(
+        core_link_txt=dpl_lib_link, variant_dpl_build=dpl_build_dir
+    )
     if framework_lib_link.is_file():
         run_link_recipe(framework_lib_link, cwd=dpl_build_dir)
-    run_link_recipe(core_build / "src" / "dpl_evolve" / "CMakeFiles" / "dpl_evolve.dir" / "link.txt", cwd=dpl_build_dir)
-    py_link = core_build / "src" / "dpl_evolve" / "CMakeFiles" / "dpl_evolve_py.dir" / "link.txt"
+    run_link_recipe(
+        core_build
+        / "src"
+        / "dpl_evolve"
+        / "CMakeFiles"
+        / "dpl_evolve.dir"
+        / "link.txt",
+        cwd=dpl_build_dir,
+    )
+    py_link = (
+        core_build
+        / "src"
+        / "dpl_evolve"
+        / "CMakeFiles"
+        / "dpl_evolve_py.dir"
+        / "link.txt"
+    )
     if py_link.is_file():
         run_link_recipe(py_link, cwd=dpl_build_dir)
 
-    binary_path = relink_openroad(core_build=core_build, variant_build=build_dir, install_root=install_root)
+    compile_variant_allocator(
+        core_build=core_build, variant_build=build_dir, variant_dpl_src=dpl_evolve_src
+    )
+    binary_path = relink_openroad(
+        core_build=core_build, variant_build=build_dir, install_root=install_root
+    )
     sta_binary = link_core_sta(core_root=core_root, install_root=install_root)
     env_path = write_variant_env(
         variant_root=variant_root,

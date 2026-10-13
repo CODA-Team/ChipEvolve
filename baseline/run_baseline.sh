@@ -4,6 +4,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/../scripts/runtime_env.sh"
 dpl_init_runtime "run_baseline.sh"
+if [[ -n "${DPL_EVOLVE_PLATFORM_PROFILE:-}" && "${DPL_EVOLVE_EXECUTION_LEAF:-0}" != "1" ]]; then
+  exec "${DPL_EVOLVE_PYTHON}" "${DPL_EVOLVE_AGENT_ROOT}/scripts/platform/execution.py" delegate baseline -- "$@"
+fi
 
 WORKSPACE_ROOT="${ORFS_BUILD_ROOT:-${ORFS_ROOT}}"
 FLOW_DIR="${WORKSPACE_ROOT}/flow"

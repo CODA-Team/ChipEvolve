@@ -1,0 +1,325 @@
+diff --git a/src/dpl_evolve/CMakeLists.txt b/src/dpl_evolve/CMakeLists.txt
+index f5294e2..d20dcd4 100644
+--- a/src/dpl_evolve/CMakeLists.txt
++++ b/src/dpl_evolve/CMakeLists.txt
+@@ -109,7 +109,7 @@ target_link_libraries(dpl_evolve
+   PRIVATE
+     ${TCL_LIBRARY}
+     dpl_evolve_lib
+-    gui
++    gui_core
+ )
+
+ messages(
+@@ -140,7 +140,7 @@ if (Python3_FOUND AND BUILD_PYTHON)
+     PUBLIC
+       ${Boost_LIBRARIES}
+       dpl_evolve_lib
+-      gui
++      gui_core
+       odb
+   )
+
+diff --git a/src/dpl_evolve/include/dpl_evolve/Opendp.h b/src/dpl_evolve/include/dpl_evolve/Opendp.h
+index f8fefde..970178e 100644
+--- a/src/dpl_evolve/include/dpl_evolve/Opendp.h
++++ b/src/dpl_evolve/include/dpl_evolve/Opendp.h
+@@ -209,7 +209,7 @@ class Opendp
+   // row height -> GapFillers, by implant layer
+   using GapFillersByHeight = std::map<DbuY, GapFillers>;
+
+-  using MasterByImplant = std::map<odb::dbTechLayer*, dbMasterSeq>;
++  using MasterByImplant = odb::PtrMap<odb::dbTechLayer, dbMasterSeq>;
+
+   using YCoordToGap = std::map<DbuY, std::vector<std::unique_ptr<GapInfo>>>;
+
+@@ -430,8 +430,8 @@ class Opendp
+
+   // Filler placement.
+   // gap (in sites) -> seq of masters by implant and row height
+-  std::map<odb::dbTechLayer*, GapFillersByHeight> gap_fillers_;
+-  std::map<odb::dbMaster*, int> filler_count_;
++  odb::PtrMap<odb::dbTechLayer, GapFillersByHeight> gap_fillers_;
++  odb::PtrMap<odb::dbMaster, int> filler_count_;
+   bool have_fillers_ = false;
+
+   // Decap placement.
+diff --git a/src/dpl_evolve/src/DecapPlacement.cpp b/src/dpl_evolve/src/DecapPlacement.cpp
+index 4449678..21e0eea 100644
+--- a/src/dpl_evolve/src/DecapPlacement.cpp
++++ b/src/dpl_evolve/src/DecapPlacement.cpp
+@@ -29,7 +29,7 @@ using utl::DPL;
+ using odb::dbMaster;
+ using odb::dbPlacementStatus;
+
+-using IRDropByLayer = std::map<odb::dbTechLayer*, IRDropByPoint>;
++using IRDropByLayer = odb::PtrMap<odb::dbTechLayer, IRDropByPoint>;
+
+ void Opendp::addDecapMaster(dbMaster* decap_master, double decap_cap)
+ {
+diff --git a/src/dpl_evolve/src/graphics/Graphics.cpp b/src/dpl_evolve/src/graphics/Graphics.cpp
+index 04961b5..73f5575 100644
+--- a/src/dpl_evolve/src/graphics/Graphics.cpp
++++ b/src/dpl_evolve/src/graphics/Graphics.cpp
+@@ -11,7 +11,7 @@
+
+ #include "dpl_evolve/Opendp.h"
+ #include "graphics/DplObserver.h"
+-#include "gui/gui.h"
++#include "web/core.h"
+ #include "infrastructure/Coordinates.h"
+ #include "infrastructure/Grid.h"
+ #include "infrastructure/Objects.h"
+@@ -30,7 +30,7 @@ Graphics::Graphics(Opendp* dp,
+       paint_pixels_(paint_pixels),
+       paint_negotiation_pixels_(paint_negotiation_pixels)
+ {
+-  gui::Gui::get()->registerRenderer(this);
++  web::Gui::get()->registerRenderer(this);
+ }
+
+ void Graphics::startPlacement(odb::dbBlock* block)
+@@ -45,7 +45,7 @@ void Graphics::drawSelected(odb::dbInst* instance, bool force)
+     return;
+   }
+
+-  auto gui = gui::Gui::get();
++  auto gui = web::Gui::get();
+
+   auto selected = gui->makeSelected(instance);
+   gui->setSelected(selected);
+@@ -72,20 +72,20 @@ void Graphics::binSearch(const Node* cell,
+
+ void Graphics::redrawAndPause()
+ {
+-  auto gui = gui::Gui::get();
++  auto gui = web::Gui::get();
+   gui->redraw();
+   gui->pause();
+ }
+
+-void Graphics::drawObjects(gui::Painter& painter)
++void Graphics::drawObjects(web::Painter& painter)
+ {
+   if (!block_) {
+     return;
+   }
+
+   // Create a set of selected instances for fast lookup
+-  std::set<odb::dbInst*> selected_insts;
+-  auto selection = gui::Gui::get()->selection();
++  odb::PtrSet<odb::dbInst> selected_insts;
++  auto selection = web::Gui::get()->selection();
+   for (const auto& selected : selection) {
+     if (selected.isInst()) {
+       selected_insts.insert(std::any_cast<odb::dbInst*>(selected.getObject()));
+@@ -98,7 +98,7 @@ void Graphics::drawObjects(gui::Painter& painter)
+     }
+
+     if (!cell->isPlaced()) {
+-      auto color = gui::Painter::kDarkMagenta;
++      auto color = web::Painter::kDarkMagenta;
+       painter.setPen(color);
+       painter.setBrush(color);
+       odb::Rect bbox;
+@@ -108,7 +108,7 @@ void Graphics::drawObjects(gui::Painter& painter)
+     }
+
+     if (cell->getDbInst()->isFixed()) {
+-      auto color = gui::Painter::kGray;
++      auto color = web::Painter::kGray;
+       color.a = 100;
+       painter.setPen(color);
+       painter.setBrush(color);
+@@ -126,11 +126,11 @@ void Graphics::drawObjects(gui::Painter& painter)
+
+     int dx = final_location.x() - initial_location.x();
+     int dy = final_location.y() - initial_location.y();
+-    gui::Painter::Color line_color;
++    web::Painter::Color line_color;
+
+     // Check if the instance is selected
+     if (selected_insts.contains(cell->getDbInst())) {
+-      line_color = gui::Painter::kYellow;
++      line_color = web::Painter::kYellow;
+
+       // Draw outline of instance at target location
+       odb::Rect bbox = cell->getDbInst()->getBBox()->getBox();
+@@ -140,10 +140,10 @@ void Graphics::drawObjects(gui::Painter& painter)
+                             final_location.y(),
+                             final_location.x() + width,
+                             final_location.y() + height);
+-      auto outline_color = gui::Painter::kCyan;
++      auto outline_color = web::Painter::kCyan;
+       // outline_color.a = 150;
+       painter.setPen(outline_color, /* cosmetic */ true);
+-      painter.setBrush(gui::Painter::kTransparent);
++      painter.setBrush(web::Painter::kTransparent);
+       painter.drawRect(target_bbox);
+
+       // Indicate orientation change at the target location with a corner notch
+@@ -155,9 +155,9 @@ void Graphics::drawObjects(gui::Painter& painter)
+                        target_bbox.xMin(),
+                        target_bbox.yMin() + tag_size * 2);
+     } else if (std::abs(dx) > std::abs(dy)) {
+-      line_color = (dx > 0) ? gui::Painter::kGreen : gui::Painter::kRed;
++      line_color = (dx > 0) ? web::Painter::kGreen : web::Painter::kRed;
+     } else {
+-      line_color = (dy > 0) ? gui::Painter::kMagenta : gui::Painter::kBlue;
++      line_color = (dy > 0) ? web::Painter::kMagenta : web::Painter::kBlue;
+     }
+
+     painter.setPen(line_color, /* cosmetic */ true);
+@@ -170,7 +170,7 @@ void Graphics::drawObjects(gui::Painter& painter)
+   }
+
+   // Diamond search range
+-  auto color = gui::Painter::kCyan;
++  auto color = web::Painter::kCyan;
+   color.a = 100;
+   painter.setPen(color);
+   painter.setBrush(color);
+@@ -184,7 +184,7 @@ void Graphics::drawObjects(gui::Painter& painter)
+       const odb::Rect core = grid->getCore();
+       const DbuX site_width = grid->getSiteWidth();
+
+-      auto color = gui::Painter::kWhite;
++      auto color = web::Painter::kWhite;
+       color.a = 100;
+       painter.setPen(color);
+       painter.setBrush(color);
+@@ -216,34 +216,34 @@ void Graphics::drawObjects(gui::Painter& painter)
+       const int y_hi = negotiation_die_ylo_ + negotiation_row_y_dbu_[gy + 1];
+       for (int gx = 0; gx < negotiation_grid_w_; ++gx) {
+         const auto state = negotiation_pixels_[gy * negotiation_grid_w_ + gx];
+-        gui::Painter::Color c;
++        web::Painter::Color c;
+         switch (state) {
+           case NegotiationPixelState::kNoRow:
+-            c = gui::Painter::kDarkGray;
++            c = web::Painter::kDarkGray;
+             c.a = 60;
+             break;
+           case NegotiationPixelState::kFree:
+-            c = gui::Painter::kGreen;
++            c = web::Painter::kGreen;
+             c.a = 100;
+             break;
+           case NegotiationPixelState::kOccupied:
+-            c = gui::Painter::kWhite;
++            c = web::Painter::kWhite;
+             c.a = 100;
+             break;
+           case NegotiationPixelState::kOveruse:
+-            c = gui::Painter::kRed;
++            c = web::Painter::kRed;
+             c.a = 150;
+             break;
+           case NegotiationPixelState::kBlocked:
+-            c = gui::Painter::kYellow;
++            c = web::Painter::kYellow;
+             c.a = 80;
+             break;
+           case NegotiationPixelState::kInvalid:
+-            c = gui::Painter::kBlack;
++            c = web::Painter::kBlack;
+             c.a = 200;
+             break;
+           case NegotiationPixelState::kDrcViolation:
+-            c = gui::Painter::Color{255, 140, 0, 200};  // orange
++            c = web::Painter::Color{255, 140, 0, 200};  // orange
+             break;
+         }
+         painter.setPen(c);
+@@ -258,7 +258,7 @@ void Graphics::drawObjects(gui::Painter& painter)
+   }
+
+   if (!negotiation_search_windows_.empty()) {
+-    painter.setBrush(gui::Painter::kTransparent);
++    painter.setBrush(web::Painter::kTransparent);
+     for (const auto& sel : selection) {
+       if (!sel.isInst()) {
+         continue;
+@@ -271,13 +271,13 @@ void Graphics::drawObjects(gui::Painter& painter)
+       const auto& [init_win, curr_win] = it->second;
+
+       // Init-position search window
+-      auto init_color = gui::Painter::kCyan;
++      auto init_color = web::Painter::kCyan;
+       painter.setPen(init_color, /* cosmetic */ true);
+       painter.drawRect(init_win);
+
+       // Current-position window (only when the cell is displaced).
+       if (!curr_win.isInverted() && curr_win.area() > 0) {
+-        auto curr_color = gui::Painter::kWhite;
++        auto curr_color = web::Painter::kWhite;
+         curr_color.a = 200;
+         painter.setPen(curr_color, /* cosmetic */ true);
+         painter.drawRect(curr_win);
+@@ -328,6 +328,6 @@ void Graphics::clearNegotiationSearchWindows()
+ /* static */
+ bool Graphics::guiActive()
+ {
+-  return gui::Gui::enabled();
++  return web::Gui::enabled();
+ }
+ }  // namespace dpl_evolve
+diff --git a/src/dpl_evolve/src/graphics/Graphics.h b/src/dpl_evolve/src/graphics/Graphics.h
+index 9bb2d57..3d9173d 100644
+--- a/src/dpl_evolve/src/graphics/Graphics.h
++++ b/src/dpl_evolve/src/graphics/Graphics.h
+@@ -9,7 +9,7 @@
+
+ #include "DplObserver.h"
+ #include "dpl_evolve/Opendp.h"
+-#include "gui/gui.h"
++#include "web/core.h"
+ #include "odb/db.h"
+ #include "odb/geom.h"
+
+@@ -18,7 +18,7 @@ namespace dpl_evolve {
+ class Opendp;
+ class Node;
+
+-class Graphics : public gui::Renderer, public DplObserver
++class Graphics : public web::Renderer, public DplObserver
+ {
+  public:
+   Graphics(Opendp* dp,
+@@ -54,7 +54,7 @@ class Graphics : public gui::Renderer, public DplObserver
+   void clearNegotiationSearchWindows() override;
+
+   // From Renderer API
+-  void drawObjects(gui::Painter& painter) override;
++  void drawObjects(web::Painter& painter) override;
+
+   static bool guiActive();
+
+diff --git a/src/dpl_evolve/src/infrastructure/Grid.h b/src/dpl_evolve/src/infrastructure/Grid.h
+index e0d2ba6..5c99ebc 100644
+--- a/src/dpl_evolve/src/infrastructure/Grid.h
++++ b/src/dpl_evolve/src/infrastructure/Grid.h
+@@ -176,7 +176,7 @@ class Grid
+
+  private:
+   // Maps a site to the right orientation to use in a given row
+-  using SiteToOrientation = std::map<odb::dbSite*, odb::dbOrientType>;
++  using SiteToOrientation = odb::PtrMap<odb::dbSite, odb::dbOrientType>;
+
+   // Used to combine the SiteToOrientation for two intervals when merged
+   template <typename MapType>
+diff --git a/src/dpl_evolve/src/infrastructure/Padding.h b/src/dpl_evolve/src/infrastructure/Padding.h
+index 6b2fb70..79ecb99 100644
+--- a/src/dpl_evolve/src/infrastructure/Padding.h
++++ b/src/dpl_evolve/src/infrastructure/Padding.h
+@@ -32,8 +32,8 @@ class Padding
+   DbuX paddedWidth(const Node* cell) const;
+
+  private:
+-  using InstPaddingMap = std::map<odb::dbInst*, std::pair<GridX, GridX>>;
+-  using MasterPaddingMap = std::map<odb::dbMaster*, std::pair<GridX, GridX>>;
++  using InstPaddingMap = odb::PtrMap<odb::dbInst, std::pair<GridX, GridX>>;
++  using MasterPaddingMap = odb::PtrMap<odb::dbMaster, std::pair<GridX, GridX>>;
+
+   GridX pad_left_{0};
+   GridX pad_right_{0};

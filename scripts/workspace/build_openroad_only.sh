@@ -6,6 +6,9 @@ BOOTSTRAP_AGENT_ROOT="${DPL_EVOLVE_AGENT_ROOT:-$(cd "${SCRIPT_DIR}/../.." && pwd
 BOOTSTRAP_AGENT_ROOT="$(realpath -m "${BOOTSTRAP_AGENT_ROOT}")"
 source "${BOOTSTRAP_AGENT_ROOT}/scripts/runtime_env.sh"
 dpl_init_runtime "build_openroad_only.sh"
+if [[ -n "${DPL_EVOLVE_PLATFORM_PROFILE:-}" && "${DPL_EVOLVE_EXECUTION_LEAF:-0}" != "1" ]]; then
+  exec "${DPL_EVOLVE_PYTHON}" "${DPL_EVOLVE_AGENT_ROOT}/scripts/platform/execution.py" delegate core_build -- "$@"
+fi
 echo "[INFO] runtime_orfs_build_root=${ORFS_BUILD_ROOT:-}"
 ROOT_DIR="${ORFS_ROOT}"
 THREADS="8"

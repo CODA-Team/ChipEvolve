@@ -1,0 +1,87 @@
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 2d9d3c3..9ce7e6c 100755
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -263,6 +263,17 @@ endif()
+ add_subdirectory(stt)
+ add_subdirectory(gpl)
+ add_subdirectory(dpl)
++set(DPL_EVOLVE_SRC_DIR "" CACHE PATH "Optional external dpl_evolve source directory override")
++if(DPL_EVOLVE_SRC_DIR)
++  get_filename_component(DPL_EVOLVE_SRC_DIR_ABS "${DPL_EVOLVE_SRC_DIR}" ABSOLUTE
++                         BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
++  if(NOT EXISTS "${DPL_EVOLVE_SRC_DIR_ABS}/CMakeLists.txt")
++    message(FATAL_ERROR "DPL_EVOLVE_SRC_DIR lacks CMakeLists.txt")
++  endif()
++  add_subdirectory("${DPL_EVOLVE_SRC_DIR_ABS}" dpl_evolve_external)
++else()
++  add_subdirectory(dpl_evolve)
++endif()
+ add_subdirectory(exa)
+ add_subdirectory(fin)
+ add_subdirectory(ram)
+@@ -330,6 +341,7 @@ target_link_libraries(openroad
+   ord
+   gpl
+   dpl
++  dpl_evolve
+   exa
+   fin
+   ram
+@@ -420,6 +432,7 @@ if (Python3_FOUND AND BUILD_PYTHON)
+       grt_py
+       gpl_py
+       dpl_py
++      dpl_evolve_py
+       exa_py
+       ppl_py
+       tap_py
+diff --git a/src/Main.cc b/src/Main.cc
+index c347700..78498b4 100644
+--- a/src/Main.cc
++++ b/src/Main.cc
+@@ -66,6 +66,7 @@ using std::string;
+   X(grt)                                 \
+   X(gpl)                                 \
+   X(dpl)                                 \
++  X(dpl_evolve)                          \
+   X(exa)                                 \
+   X(web)                                 \
+   X(wmk)                                 \
+diff --git a/src/OpenRoad.cc b/src/OpenRoad.cc
+index 6a6c2a5..c118423 100644
+--- a/src/OpenRoad.cc
++++ b/src/OpenRoad.cc
+@@ -35,6 +35,8 @@
+ #include "dft/MakeDft.hh"
+ #include "dpl/MakeOpendp.h"
+ #include "dpl/Opendp.h"
++#include "dpl_evolve/MakeOpendp.h"
++#include "dpl_evolve/Opendp.h"
+ #include "drt/MakeTritonRoute.h"
+ #include "drt/TritonRoute.h"
+ #include "dst/Distributed.h"
+@@ -131,6 +133,7 @@ OpenRoad::~OpenRoad()
+   delete resizer_;
+   delete synthesis_;
+   delete opendp_;
++  delete opendp_evolve_;
+   delete global_router_;
+   delete restructure_;
+   delete clock_gating_;
+@@ -221,6 +224,7 @@ void OpenRoad::init(Tcl_Interp* tcl_interp,
+   stt_builder_ = new stt::SteinerTreeBuilder(logger_);
+   antenna_checker_ = new ant::AntennaChecker(db_, logger_);
+   opendp_ = new dpl::Opendp(db_, logger_);
++  opendp_evolve_ = new dpl_evolve::Opendp(db_, logger_);
+   global_router_ = new grt::GlobalRouter(logger_,
+                                          service_registry_,
+                                          stt_builder_,
+@@ -299,6 +303,7 @@ void OpenRoad::init(Tcl_Interp* tcl_interp,
+   gpl::initReplace(tcl_interp);
+   gpl::initReplaceGraphics(replace_, logger_);
+   dpl::initOpendp(tcl_interp);
++  dpl_evolve::initOpendp(tcl_interp);
+   fin::initFinale(tcl_interp);
+   ram::initRamGen(tcl_interp);
+   grt::initTcl(tcl_interp);

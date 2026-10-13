@@ -6,6 +6,18 @@ purpose: >
   default context.
 
 prepare_patches:
+  - path: patches/common_toolchain/openroad_registration.patch
+    status: active_prepare_patch
+    meaning: Register the isolated evolve module in the fixed common OpenROAD.
+    apply_target: common OpenROAD anchor from metadata/common_toolchain.json
+  - path: patches/common_toolchain/orfs_run_arguments.patch
+    status: active_prepare_patch
+    meaning: Forward evaluator arguments while keeping the modern ORFS runner.
+    apply_target: common ORFS anchor from metadata/common_toolchain.json
+  - path: patches/common_toolchain/evolve_api.patch
+    status: active_prepare_patch
+    meaning: Adapt OpenDB pointer containers and GUI core APIs without algorithm changes.
+    apply_target: clean evolve module on the common OpenROAD anchor
   - path: patches/openroad_dpl_evolve_base.patch
     status: active_prepare_patch
     meaning: >

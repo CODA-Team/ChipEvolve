@@ -52,6 +52,10 @@ dpl_evolve_baseline::dump_instance_snapshot $before_snapshot
 log_cmd set_placement_padding -global -left 0 -right 0
 set dpl_args [list detailed_placement \
   -report_file_name [dpl_evolve_baseline::resolve_flow_path $dp_report]]
+if { [info exists ::env(DPL_EVOLVE_PLATFORM_PROFILE)] && $::env(DPL_EVOLVE_PLATFORM_PROFILE) ne "" } {
+  # Common OpenROAD defaults to negotiation; preserve the Diamond reference.
+  lappend dpl_args -use_diamond_legalizer
+}
 set detail_arg_env [append_optional_env_args dpl_args \
   {OPENROAD_DPL_DETAIL_ARGS}]
 log_cmd {*}$dpl_args

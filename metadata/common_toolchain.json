@@ -1,0 +1,8 @@
+{
+  "workspace_model": {
+    "orfs_base_commit": "5105b0a77fe8b3ae107bed67112eb5f83caca5d5",
+    "openroad_base_commit": "27288f5c90265ae5296b2f5a9fa6e8714fa191ad"
+  },
+  "image_sha256": "8e6ee7aac233da078364649fa8111dac5de33a3589f5445dcffd96f9d6d8dd39",
+  "opensta_commit": "e983e15b2cb346badf8f23725fd3914d25312c44"
+}

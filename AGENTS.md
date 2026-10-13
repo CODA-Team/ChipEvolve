@@ -271,6 +271,24 @@ Hard failures include:
 
 ## Build And Evaluation Rules
 
+### ChipEvolve platform profile
+
+An explicit `DPL_EVOLVE_PLATFORM_PROFILE` selects the fixed common toolchain
+and delegates core builds, private variant relinks, and native baseline
+evaluation to Execution Foundation through `scripts/platform/execution.py`.
+Keep the original Teacher/Student routing, trial handling and promotion rules.
+Do not bypass the native build/evaluate helpers with direct host EDA commands.
+An unavailable EF service is a failed platform operation, not permission to
+run the experiment independently. Without this profile, native legacy mode
+remains available for reproduction.
+
+Runtime paths, credentials and profile files stay outside tracked source.
+The common source is immutable; CMake-generated files use a private build
+copy mounted at stable paths. Preserve actual source and binary identities.
+The common Diamond reference explicitly selects `-use_diamond_legalizer`;
+negotiation uses the new default entrypoint. These are the original algorithm
+comparisons despite the changed upstream default.
+
 Build common OpenROAD once, then relink private variants:
 
 ```bash

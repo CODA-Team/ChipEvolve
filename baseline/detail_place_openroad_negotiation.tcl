@@ -51,8 +51,12 @@ dpl_evolve_baseline::dump_instance_snapshot $before_snapshot
 
 log_cmd set_placement_padding -global -left 0 -right 0
 set dpl_args [list detailed_placement \
-  -use_negotiation \
   -report_file_name [dpl_evolve_baseline::resolve_flow_path $dp_report]]
+set legalize_stage "detailed_placement"
+if { ![info exists ::env(DPL_EVOLVE_PLATFORM_PROFILE)] || $::env(DPL_EVOLVE_PLATFORM_PROFILE) eq "" } {
+  lappend dpl_args -use_negotiation
+  set legalize_stage "detailed_placement -use_negotiation"
+}
 set detail_arg_env [append_optional_env_args dpl_args \
   {OPENROAD_DPL_DETAIL_ARGS}]
 log_cmd {*}$dpl_args
@@ -86,7 +90,7 @@ set summary [dict create \
   hpwl_before_dbu $hpwl_before \
   hpwl_after_dbu $hpwl_after \
   hpwl_delta_dbu [expr {$hpwl_after - $hpwl_before}] \
-  stage_sequence "detailed_placement -use_negotiation,improve_placement,optimize_mirroring" \
+  stage_sequence "${legalize_stage},improve_placement,optimize_mirroring" \
   place_command [join $dpl_args " "] \
   improve_command [join $improve_args " "] \
   optimize_command [join $optimize_args " "] \

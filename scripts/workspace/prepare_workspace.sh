@@ -92,6 +92,11 @@ done
 workspace_root="$(realpath -m "${workspace_root}")"
 seed_root="$(realpath -m "${seed_root}")"
 anchors_json="${AGENT_ROOT}/metadata/anchors.json"
+common_profile=0
+if [[ -n "${DPL_EVOLVE_PLATFORM_PROFILE:-}" ]]; then
+  common_profile=1
+  anchors_json="${AGENT_ROOT}/metadata/common_toolchain.json"
+fi
 orfs_make_patch="${AGENT_ROOT}/patches/orfs_make_overlay.patch"
 openroad_patch="${AGENT_ROOT}/patches/openroad_dpl_evolve_base.patch"
 openroad_framework_patch="${AGENT_ROOT}/patches/openroad_dpl_evolve_framework.patch"
@@ -166,19 +171,20 @@ apply_patch_if_needed() {
   local repo_root="$1"
   local patch_file="$2"
   local label="$3"
+  shift 3
 
   if [[ ! -s "${patch_file}" ]]; then
     echo "[INFO] ${label}: patch file is empty, skipping ${patch_file}"
     return
   fi
 
-  if git -C "${repo_root}" apply --whitespace=nowarn --check "${patch_file}" >/dev/null 2>&1; then
-    git -C "${repo_root}" apply --whitespace=nowarn "${patch_file}"
+  if git -C "${repo_root}" apply --whitespace=nowarn "$@" --check "${patch_file}" >/dev/null 2>&1; then
+    git -C "${repo_root}" apply --whitespace=nowarn "$@" "${patch_file}"
     echo "[INFO] ${label}: applied $(basename "${patch_file}")"
     return
   fi
 
-  if git -C "${repo_root}" apply --whitespace=nowarn --reverse --check "${patch_file}" >/dev/null 2>&1; then
+  if git -C "${repo_root}" apply --whitespace=nowarn "$@" --reverse --check "${patch_file}" >/dev/null 2>&1; then
     echo "[INFO] ${label}: patch already present, skipping $(basename "${patch_file}")"
     return
   fi
@@ -406,8 +412,19 @@ if [[ -f "${workspace_root}/tools/OpenROAD/.gitmodules" ]]; then
   git -C "${workspace_root}/tools/OpenROAD" checkout -- .gitmodules
 fi
 
-apply_patch_if_needed "${workspace_root}" "${orfs_make_patch}" "ORFS"
-apply_patch_if_needed "${workspace_root}/tools/OpenROAD" "${openroad_patch}" "OpenROAD"
+if [[ "${common_profile}" -eq 1 ]]; then
+  apply_patch_if_needed "${workspace_root}" "${AGENT_ROOT}/patches/common_toolchain/orfs_run_arguments.patch" "ORFS"
+  apply_patch_if_needed "${workspace_root}/tools/OpenROAD" "${openroad_patch}" "OpenROAD" \
+    --include='src/dpl_evolve/**' --include='include/ord/Design.h' \
+    --include='include/ord/OpenRoad.hh' --include='src/Design.cc'
+  apply_patch_if_needed "${workspace_root}/tools/OpenROAD" "${AGENT_ROOT}/patches/common_toolchain/openroad_registration.patch" "OpenROAD"
+  if [[ -s "${AGENT_ROOT}/patches/common_toolchain/evolve_api.patch" ]]; then
+    apply_patch_if_needed "${workspace_root}/tools/OpenROAD" "${AGENT_ROOT}/patches/common_toolchain/evolve_api.patch" "OpenROAD"
+  fi
+else
+  apply_patch_if_needed "${workspace_root}" "${orfs_make_patch}" "ORFS"
+  apply_patch_if_needed "${workspace_root}/tools/OpenROAD" "${openroad_patch}" "OpenROAD"
+fi
 snapshot_dpl_seed "diamond_dpl_evolve" "0"
 apply_patch_if_needed "${workspace_root}/tools/OpenROAD" "${openroad_framework_patch}" "OpenROAD"
 snapshot_dpl_seed "framework_dpl_evolve" "1"
