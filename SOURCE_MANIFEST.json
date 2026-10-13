@@ -8,8 +8,8 @@
   "modules": [
     {
       "path": "execution-foundation",
-      "source_commit": "d0302c113cd2c786caac621b5afa23a3ca63512a",
-      "source_tree": "9da21c20a352ba8bdb498b997fd5e5b8765985fd",
+      "source_commit": "8b7a50093961e947974679bf97f31b8768de4aaa",
+      "source_tree": "95b61aedcdd093bfd323110c8df629ebe3abb04a",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/execution-foundation"
     },
@@ -60,10 +60,13 @@
     },
     {
       "path": "goalevolve",
-      "source_commit": "1cc20aa611e687c2745ff7da6a006a5d25f49f85",
-      "source_tree": "d19848940dc7ddf09cd49c40fc21b8c4a5190a9e",
-      "url": "https://github.com/CODA-Team/GoalEvolve.git",
-      "branch": null
+      "source_commit": "879a3a31fc496c118da6d2aa4bfa3c167651d151",
+      "source_tree": "163e7c856c0013529aadeef0d73da0a076df06ef",
+      "url": "https://github.com/CODA-Team/ChipEvolve.git",
+      "branch": "modules/goalevolve",
+      "upstream_url": "https://github.com/CODA-Team/GoalEvolve.git",
+      "upstream_commit": "1cc20aa611e687c2745ff7da6a006a5d25f49f85",
+      "upstream_tree": "d19848940dc7ddf09cd49c40fc21b8c4a5190a9e"
     }
   ],
   "scope": "committed source checkpoints; local uncommitted edits and runtime assets are not included"

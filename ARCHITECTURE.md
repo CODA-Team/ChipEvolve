@@ -6,7 +6,9 @@
 
 U3 的 DPLEvolve 共同工具链及确定性 EF 入口工程验收通过，业务确认待老板。真实基线、源码演化及固定来源独立编译重放通过，专业决策/原生筛选与指标含义保留。数据接入仍按 L5/L6 验收；接口与证据见 `admin/U3_DPLEVOLVE_COMMON_TOOLCHAIN_PLAN_20261013.md` / `admin/U3_DPLEVOLVE_COMMON_TOOLCHAIN_REPORT_20261013.md`。
 
-仓库层面由 ChipEvolve 根仓库以 Git 子模块固定八个独立项目；六个自有模块与 DPLEvolve 平台适配分支保存在同一远程的 `modules/<目录名>`，GoalEvolve 仍固定官方上游提交。DPLEvolve 官方来源在 manifest 保留。模块源码、环境和 wheel/HTTP 边界保持独立。`discarded/` 为旧仓库原始 tree 的历史归档，不参与当前模块依赖。源码来源见 `SOURCE_MANIFEST.json`，原始发布记录见 admin/REPOSITORY_PUBLICATION_20261012.md。
+U4 正在实施 GoalEvolve：原生 Teacher、四 Student、AST、EPD 与筛选保持，由原集中 runner 将构建、OpenROAD、parser/checker 和版本查询交给 EF。共同专业源码完整构建、新 AST、实际 AES 基线已通过；真实演化、独立重放及最终验收仍待完成。两个 Code 的 DF/DI/Query 数据入口不在本轮接入范围。实际签名、数据流和证据见 `admin/U4_GOALEVOLVE_COMMON_TOOLCHAIN_REPORT_20261013.md`。
+
+仓库层面由 ChipEvolve 根仓库以 Git 子模块固定八个独立项目；六个自有模块与两个 Code 的平台适配分支保存在同一远程的 `modules/<目录名>`，DPLEvolve / GoalEvolve 官方上游来源在 manifest 保留。模块源码、环境和 wheel/HTTP 边界保持独立。`discarded/` 为旧仓库原始 tree 的历史归档，不参与当前模块依赖。源码来源见 `SOURCE_MANIFEST.json`，原始发布记录见 admin/REPOSITORY_PUBLICATION_20261012.md。
 
 | 模块 | 职责与实际边界 |
 |---|---|
@@ -17,7 +19,7 @@ U3 的 DPLEvolve 共同工具链及确定性 EF 入口工程验收通过，业�
 | Data Foundation | 统一事实快照、指标/对象/关系、来源与持久导入回执。 |
 | Data Interface | 对外工具语义与已安装 SDK；不新增后台服务或数据库。 |
 | Query Agent | Codex 的 EDA 垂直形态：统一事实、比较、领域技能、调查状态、证据与补 STA。当前 host 路径复用 Codex 推理；真实 Flow/Code 接收与可靠诊断效果仍待验收。 |
-| Code Agent | DPLEvolve 原生复现及 U3 共同环境/统一执行工程验收通过；GoalEvolve 环境、已发布候选/p0 真实重放通过，新的 AE-3、共同环境、统一执行与全部门禁尚未通过。两个 Code 的统一数据入口待做。 |
+| Code Agent | DPLEvolve 原生复现及 U3 共同环境/统一执行工程验收通过；GoalEvolve U4 已实际完成共同专业构建、新 AST、本机 Codex 和经 EF 的 AES 基线，四 Student 真演化运行中，独立重放和最终验收待完成。两个 Code 的统一数据入口待做。 |
 
 ## 模块依赖
 
@@ -33,7 +35,8 @@ flowchart TD
     DF --> EF
     C --> DPL[DPLEvolve Teacher与Student]
     DPL --> EF
-    C -. 后续接入 .-> CODE[GoalEvolve]
+    C --> CODE[GoalEvolve Teacher与四Student]
+    CODE --> EF
 ```
 
 ## 核心数据流
