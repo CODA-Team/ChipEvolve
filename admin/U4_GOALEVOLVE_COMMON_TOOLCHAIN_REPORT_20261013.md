@@ -1,10 +1,10 @@
 # U4：GoalEvolve 共同工具链与统一执行报告
 
-状态：实施中，未完成工程或业务验收。本文件随实际实验结果更新；不将基线成功记作演化成功。
+状态：本轮已暂停，U4 未完成全部工程或业务验收。EF 并发修复、真实新源码候选及独立空目录重放通过；最新原生四路演化未正常收尾，业务三目标未达。
 
-最新：首轮已结束，四个候选全部无效，原生未晋升，不能声称 PPA 改善。修复后的 control-r5 / 模块 `879a3a31fc496c118da6d2aa4bfa3c167651d151` 正在第二轮工程重试；继续同一原生 campaign、同一冻结基线与 EPD，原八小时绝对截止时间不变。工程与业务验收仍未完成。
+最新：原八小时绝对截止时间于 2026-10-13 23:43:44（北京时间）到达；监督器于 15:43:45 UTC 完成原生客户端停止。第二轮 Student 3 长物理操作在截止时间附近由 EF 标为 timed_out，未得到最终指标；原生 round_002 未形成完整 round.json，未作晋升结论。Student 4 的合法实测与无 donor 重放已通过且三指标一致。所有本轮所属 run 均终态，两个 U4 专属 EF 服务已停止；不自动进入后续切片。
 
-GoalEvolve 已使用本机 Codex 登录、固定共同工具链与公共 Execution Foundation 完成真实 AES / ASAP7 基线。Teacher 和四个 Student 已完成两轮真实规划/编辑；首轮全部无效，第二轮四份新源码均已链接，Student 4 已完成合法物理测量，其他原生结果和独立重放仍在收尾。两个 Code 的 DF/DI/Query 入口及最终三项目 PPA 接力属于后续切片。
+GoalEvolve 已使用本机 Codex 登录、固定共同工具链与公共 Execution Foundation 完成真实 AES / ASAP7 基线。Teacher 和四个 Student 已完成两轮真实规划/编辑；首轮全部无效，第二轮四份新源码均已链接，Student 4 已完成合法物理测量及空目录独立重放，三项最终指标逐值一致；最新原生轮次未正常收尾，已按截止时间停止。两个 Code 的 DF/DI/Query 入口及最终三项目 PPA 接力属于后续切片。
 
 ## 已验证的效果
 
@@ -101,7 +101,7 @@ Student 1 的首次功耗流程并非成功结束，而是被已有 EF `min(task
 
 最新 Goal 全套回归 JUnit 416（含子测试）通过；首次重跑中的 dashboard 502 是 localhost 被宿主代理转发，使用原本的 NO_PROXY 设置后全套通过，没有改 dashboard。桥接定向 17 项、根控制器 10 项通过；新源码 lint/格式/类型检查通过。SDK wheel 未发布 py.typed，消费者类型门禁只关闭 import-untyped，EF 自身 41 份源码独立类型检查仍通过。
 
-第二次服务配置切换在当前链接结算后开始，暂停约 1 秒；回执 `ef-lock/adapter-cap-restart.json`。第二轮与独立重放尚待真实结果，当前数据不构成优化收益。
+第二次服务配置切换在当前链接结算后开始，暂停约 1 秒；回执 `ef-lock/adapter-cap-restart.json`。后续 Student 4 的独立重放已通过；最新轮次仍未完整收尾，不能宣称完整 U4 或达标优化。
 
 证据根：`var/code-agent/u4-goalevolve-common-20261013/`。用户原有 26 份修改截至当前逐字节未变。原研究仓库不推送，正式发布仅使用 ChipEvolve 平台分支。
 
@@ -123,6 +123,20 @@ Student 1 的首次功耗流程并非成功结束，而是被已有 EF `min(task
 
 只调整 U4 准备脚本的私有 manifest：不配置可选宿主串行锁，由 EF 做资源准入，源码/构建/输出使用私有目录；Toolkits 与 EF 公共接口、资源保护和其他服务不改。回归同时确认原 timeout、adapter 及其余 environment 保留。原重放经公共 cancel 终止并保留为 `replay-failed-host-lease`；没有删除被占用的锁或注入运行中的 worker。
 
-独立重放使用单独 U4 EF 服务（`replay-service/service.json`），8 CPU / 64 GiB / 1 worker；主服务 32 CPU / 96 GiB。启动时本机可用内存约 128 GiB，新额度 64 GiB，仍保留任务进程与内存监管。输入来自已测 Student 4 的源码快照，空构建目录、无 donor，原完整 recipe/parser/checker 不减。两监督器共享原八小时绝对截止时间 `1791906224.4836223`，不追加预算。当前空目录 configure 已成功，完整编译运行中，重放测量尚未产生。
+独立重放使用单独 U4 EF 服务（`replay-service/service.json`），8 CPU / 64 GiB / 1 worker；主服务 32 CPU / 96 GiB。启动时本机可用内存约 128 GiB，新额度 64 GiB，仍保留任务进程与内存监管。输入来自已测 Student 4 的源码快照，空构建目录、无 donor，原完整 recipe/parser/checker 不减。两监督器共享原八小时绝对截止时间 `1791906224.4836223`，不追加预算。空目录 configure、完整编译链接和原物理流程/解析/检查均已成功。原候选 runtime 207 秒，独立重放 209 秒；三项最终指标逐值完全一致。
 
-根控制器新增防止误验收的检查：最新原生轮次未完成时，不用前一轮的终态替它验收；重放候选必须属于本次被审轮次；独立服务的实际 EF 产物也纳入审计。11 项根控制器回归通过，lint/格式/类型检查通过。最终轮次和重放状态还需更新，U4 不算完成。
+根控制器新增防止误验收的检查：最新原生轮次未完成时，不用前一轮的终态替它验收；重放候选必须属于本次被审轮次；独立服务的实际 EF 产物也纳入审计。11 项根控制器回归通过，lint/格式/类型检查通过。Student 4 独立重放通过；最新原生轮次在原截止时间停止且未正常收尾，U4 不算完成。
+
+### 独立空目录重放已通过（2026-10-13 15:18 UTC）
+
+同一新源码 `0f6e1bae8f95e25e3890a9196141c3075b0ffc5dddbb1ee7ee0d3c9768f55e54` 经 source-only snapshot、私有空构建目录重编译，无 donor，原 AES 输入、`power_only / legacy_setup`、原 13 项 evaluator 配置及原完整测量/检查不改。三项结果与原候选逐值相同：|TNS| 23.248600006103516 ns、动态功耗 422270954739.3606 pW、漏电 89048255.17674908 pW；DRV=0，合法性和原官方 4/4 通过。4/4 仍不是完整逻辑等价证明。
+
+`replay-physical-acceptance.json` 只证明该候选独立物理重放；并不把第二轮未收尾的原生 Teacher/四 Student、业务目标或统一数据接入记作通过。独立服务的所有实际 EF 执行包均核对注册 hash、包内产物字节及 source/output 回执。原候选、基线、失败与首轮全无效记录均保留。
+
+## 本轮停止与后续恢复
+
+`u4-closure.json` 保存真实终态与未通过原因；主服务 57 个 run：37 成功、10 失败、6 取消、4 超时，独立重放服务另有 5 个成功 run。全部 42 个成功执行证据包的注册 hash、包内实际产物、source/output 回执检查通过；失败与超时终态从公共接口收齐，无私读 EF 数据库。完整验收脚本仍拒绝：`Latest native round is incomplete`，没有生成虚假的完整验收通过记录。
+
+`handover.json` 指向冻结 profile、control-r5、原生 campaign、独立重放和暂停回执。已有候选及成功重放保留，不覆盖失败记录，不延长原八小时截止时间。后续先用已修正的 U4 私有服务配置完成原生四 Student 的正常收尾和原筛选/EPD 更新，再提交完整工程及老板业务验收；新工作不能继续使用已过期监督预算。随后才处理两个 Code 的 DF/DI/Query 入口和 U5 接力，本轮没有开始。
+
+本次收尾根文件清单：`admin/prepare_common_goalevolve.py`（默认资源容量）、`admin/run_common_goalevolve.py`（私有调度和无 donor 重放）、`admin/accept_common_goalevolve.py`（同轮次及实际包审计）、`admin/test_common_goalevolve.py`（11 项控制器回归）、本报告、`TASKS.md`、`ARCHITECTURE.md`（如实状态与边界）。先前 GoalEvolve / EF 授权实现和补丁文件按施工计划及 `gates/architecture-diff-audit.json` 留存。未修改 Toolkits、DF、DI、Query、Flow、DPLEvolve 或原发布快照。用户原有 26 份修改最终逐字节未变。
