@@ -115,6 +115,9 @@ def call_claude(system_prompt: str, user_prompt: str) -> Tuple[str, Dict[str, An
     Returns (reply_text, meta) where meta contains the raw Claude JSON
     (usage tokens, num_turns, duration, cost) plus local timing.
     """
+    if os.environ.get("TIMINGECO_MODEL_BACKEND") == "codex":
+        from platform_codex import call_codex
+        return call_codex(system_prompt, user_prompt)
     sys_tokens_est = estimate_tokens(system_prompt)
     usr_tokens_est = estimate_tokens(user_prompt)
     print(

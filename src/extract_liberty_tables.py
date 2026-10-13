@@ -40,6 +40,9 @@ OUTPUT  = _REPO_ROOT / "prompts" / "static" / "cell_delay_reference.toon"
 
 # Only TT corner — matches what OpenROAD loads for STA in this flow.
 LIB_PATTERN = "*{group}_{vt}_{corner}_nldm_*.lib*"
+LIB_CORNER = os.environ.get("TIMINGECO_LIB_CORNER", "TT")
+if LIB_CORNER not in {"FF", "TT", "SS"}:
+    raise ValueError("TIMINGECO_LIB_CORNER must be FF, TT or SS")
 
 # Combinational families we dump. Curated for setup-WNS ECO relevance.
 # Sequential (DFF/LATCH) and clock cells are excluded — model cannot touch
@@ -328,7 +331,7 @@ def extract_all() -> Dict[str, Dict[str, Dict]]:
     groups_needed = sorted({FAMILY_GROUP[f] for f in FAMILIES if f in FAMILY_GROUP})
     for grp in groups_needed:
         for vt_suffix, vt_substring in VTS:
-            matches = list(LIB_DIR.glob(f"*{grp}_{vt_substring}_TT*.lib*"))
+            matches = list(LIB_DIR.glob(f"*{grp}_{vt_substring}_{LIB_CORNER}*.lib*"))
             if not matches:
                 continue
             lib_path = matches[0]
@@ -355,7 +358,7 @@ def extract_all() -> Dict[str, Dict[str, Dict]]:
 
 def format_reference(data: Dict[str, Dict[str, Dict]]) -> str:
     out: List[str] = []
-    out.append("# CELL DELAY REFERENCE (ASAP7, TT corner — matches what OpenROAD loads for STA)")
+    out.append(f"# CELL DELAY REFERENCE (ASAP7, {LIB_CORNER} corner)")
     out.append("#")
     out.append("# For each cell: input_cap_ff and 'cell_delay_ps / out_slew_ps' at a 4x3 grid.")
     out.append("# Grid columns (output_load_ff): " +

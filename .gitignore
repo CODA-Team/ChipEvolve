@@ -1,6 +1,8 @@
 # Python
 __pycache__/
 *.pyc
+.venv/
+.pytest_cache/
 parsers_old/
 
 # Local Claude Code state (per-machine, not shared)

@@ -40,8 +40,7 @@ ASAP7_PDK = _os.environ.get("ASAP7_PDK", str(_REPO_ROOT / "asap7"))
 # OpenROAD binary — resolved from the environment so no source edit is needed.
 # Set OPENROAD_BIN to an absolute path to a local build, or leave it unset to
 # use whatever `openroad` is on PATH (e.g. an OpenROAD-flow-scripts install).
-OpenROAD_bin = "/data/jethiraj/OpenROAD/build/bin/openroad"
-#OpenROAD_bin = _os.environ.get("OPENROAD_BIN", "openroad")
+OpenROAD_bin = _os.environ.get("OPENROAD_BIN", "openroad")
 OpenROAD_design_tcl = f"{workdir}/OpenROAD_utils/OpenROAD_load_design.tcl"
 OpenROAD_design_tcl_best = f"{workdir}/OpenROAD_utils/OpenROAD_load_design_best.tcl"
 # Snapshot load tcl for DRT_EVERY_ITER backtrace: read_db points at the best-DRT
@@ -107,7 +106,7 @@ FINAL_SUMMARY = f"{workdir}/outputs/final_summary.txt"
 # environment so OpenROAD_load_design.tcl can pick them up via $::env(...).
 # ---------------------------------------------------------------------------
 #DESIGN_DIR = _os.environ.get("DESIGN_DIR")
-DESIGN_DIR = Path(workdir) / _os.environ.get("DESIGN_DIR")
+DESIGN_DIR = (Path(workdir) / _os.environ["DESIGN_DIR"]) if _os.environ.get("DESIGN_DIR") else None
 DESIGN_TOP = _os.environ.get("TOP", "6_final")
 
 def _validate_design_dir() -> None:
@@ -904,7 +903,7 @@ def start_openroad():
     OpenROAD_load_design.tcl resolves them via $::env(...)."""
     env = _os.environ.copy()
     if DESIGN_DIR:
-        env["DESIGN_DIR"] = DESIGN_DIR
+        env["DESIGN_DIR"] = str(DESIGN_DIR)
     env["TOP"] = DESIGN_TOP
     env["ASAP7_PDK"] = ASAP7_PDK
     return subprocess.Popen(
@@ -999,7 +998,7 @@ def run_llm(max_iter=1, timeout=60, hard_timeout_s: float = 600.0):
     """
     try:
         cp = subprocess.run(
-            ["python3", LLM_CALL, "--max-iter", str(max_iter), "--timeout", str(timeout)],
+            [sys.executable, LLM_CALL, "--max-iter", str(max_iter), "--timeout", str(timeout)],
             check=False,
             timeout=hard_timeout_s,
         )
@@ -1703,7 +1702,7 @@ def run_loop(loop_max=48):
     # Build initial context (iteration 0)
     subprocess.run(
         [
-            "python3", CONTEXT_BUILD,
+            sys.executable, CONTEXT_BUILD,
             "--iteration", "0",
             "--max-paths", "20",
             "--node-file", NODE_FILE,
@@ -2049,7 +2048,7 @@ def run_loop(loop_max=48):
             prev_qor = curr_qor
             prev_path_slacks = parse_report_path_slacks(rpt_path)
             subprocess.run(
-                ["python3", CONTEXT_BUILD,
+                [sys.executable, CONTEXT_BUILD,
                  "--iteration", str(i + 1),
                  "--max-paths", "20",
                  "--node-file", NODE_FILE,
@@ -2395,15 +2394,16 @@ def run_loop(loop_max=48):
             "output_tokens": tok_agg.get("output_tokens", 0),
             "cache_read_tokens": tok_agg.get("cache_read_input_tokens", 0),
             "cache_creation_tokens": tok_agg.get("cache_creation_input_tokens", 0),
-            "llm_cost_usd": round(tok_agg.get("total_cost_usd", 0.0), 6),
+            "llm_cost_usd": None if _os.environ.get("TIMINGECO_MODEL_BACKEND") == "codex" else round(tok_agg.get("total_cost_usd", 0.0), 6),
         }
         append_iter_metrics_row(ITER_METRICS_CSV, iter_row)
+        iter_cost_text = "not measured" if iter_row["llm_cost_usd"] is None else f"${iter_row['llm_cost_usd']:.4f}"
         print(f"  [METRICS] iter {i+1} → wns={iter_row['wns_ps']} "
               f"tns={iter_row['tns_ps']} "
               f"total_pw_mW={(iter_row['total_pw_w'] or 0)*1000:.3f} "
               f"area_um2={iter_row['design_area_um2']} "
               f"iter_rt={iter_runtime_s}s llm_rt={llm_runtime_s}s "
-              f"cost=${iter_row['llm_cost_usd']:.4f} "
+              f"cost={iter_cost_text} "
               f"tok={iter_row['input_tokens']}/{iter_row['output_tokens']}", flush=True)
 
         # ---- DRT_EVERY_ITER: crown the GLOBAL best inline ----
@@ -2677,7 +2677,7 @@ def run_loop(loop_max=48):
                 # Skip DRT post-processing; continue to context rebuild.
                 # ---- Rebuild context for next iteration ----
                 subprocess.run(
-                    ["python3", CONTEXT_BUILD,
+                    [sys.executable, CONTEXT_BUILD,
                      "--iteration", str(i + 1),
                      "--max-paths", "20",
                      "--node-file", NODE_FILE,
@@ -2858,7 +2858,7 @@ def run_loop(loop_max=48):
         # ---- Rebuild context for next iteration ----
         subprocess.run(
             [
-                "python3", CONTEXT_BUILD,
+                sys.executable, CONTEXT_BUILD,
                 "--iteration", str(i + 1),
                 "--max-paths", "20",
                 "--node-file", NODE_FILE,
@@ -2937,7 +2937,8 @@ def run_loop(loop_max=48):
     print(table, flush=True)
     print(f"Best-DRT cycle {best_cycle} (GRT-best iter {best_qor.get('iteration')}) WNS={best_qor.get('wns')} TNS={best_qor.get('tns')}", flush=True)
     print(f"Total run wall-clock: {total_runtime_s} s", flush=True)
-    print(f"Total LLM cost: ${llm_cost:.4f} over {total_tok_agg.get('num_calls', 0)} call(s)", flush=True)
+    cost_label = "not measured (Codex login)" if _os.environ.get("TIMINGECO_MODEL_BACKEND") == "codex" else f"${llm_cost:.4f}"
+    print(f"Total LLM cost: {cost_label} over {total_tok_agg.get('num_calls', 0)} call(s)", flush=True)
 
     # Write final summary file.
     summary_path = Path(FINAL_SUMMARY)
@@ -2946,7 +2947,7 @@ def run_loop(loop_max=48):
         fp.write(f"Best-DRT cycle: {best_cycle} (GRT-best iter {best_qor.get('iteration')})\n")
         fp.write(f"Total iterations: {len(slacks)}\n")
         fp.write(f"Total wall-clock: {total_runtime_s} s\n")
-        fp.write(f"Total LLM cost (USD): {llm_cost:.4f}\n")
+        fp.write(f"Total LLM cost: {cost_label}\n")
         fp.write(f"Baseline WNS: {baseline_wns}  TNS: {baseline_tns}\n")
         fp.write(f"Best WNS (SPEF/DRT): {best_qor.get('wns')}  TNS: {best_qor.get('tns')}\n")
         fp.write("\n=== QoR Summary Table ===\n")
@@ -2972,4 +2973,8 @@ if __name__ == "__main__":
     # loop_max MUST be a multiple of DRT_CYCLE so the final iteration is a
     # DRT boundary — finals are shipped from the best-DRT odb, never an
     # un-routed GRT state.
-    run_loop(loop_max=48)
+    if _os.environ.get("TIMINGECO_PLATFORM_PROFILE") and not _os.environ.get("TIMINGECO_EF_LEAF"):
+        from platform_execution import submit
+        submit(Path(_os.environ["TIMINGECO_PLATFORM_PROFILE"]).resolve())
+    else:
+        run_loop(loop_max=48)
