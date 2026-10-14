@@ -24,6 +24,19 @@ def test_shared_objective_is_saved_before_actual_codex_invocation(
     path.write_text(json.dumps(value))
     monkeypatch.setenv("DPL_EVOLVE_PLATFORM_PROFILE", "explicit-platform")
     monkeypatch.setenv("EDA_PLATFORM_OBJECTIVE", str(path))
+    import hashlib
+
+    packet = {
+        "schema_version": "chip-evolve.design-context.v1",
+        "scope": {"design_id": "example"},
+        "summary": "supported diagnosis from current design",
+    }
+    packet["context_id"] = hashlib.sha256(
+        json.dumps(packet, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    context = tmp_path / "context.json"
+    context.write_text(json.dumps(packet))
+    monkeypatch.setenv("EDA_PLATFORM_CONTEXT", str(context))
     args = SimpleNamespace(
         cwd=tmp_path,
         operations_dir=tmp_path / "operations",
@@ -47,6 +60,7 @@ def test_shared_objective_is_saved_before_actual_codex_invocation(
         prompt = (tmp_path / "operations/turn/codex_prompt.md").read_text()
         assert prompt.startswith("original Student prompt")
         assert value["objective_id"] in prompt
+        assert packet["summary"] in prompt
         raise RuntimeError("verified actual command boundary")
 
     monkeypatch.setattr(runner, "build_command", boundary)

@@ -9,7 +9,6 @@ import types
 from pathlib import Path
 
 import pytest
-
 from scripts.platform import execution as pe
 
 
@@ -134,6 +133,37 @@ def test_container_keeps_stable_paths_and_core_read_only(tmp_path):
     assert "DPL_EVOLVE_EXECUTION_LEAF=1" in command
     assert "--no-home" in command
     assert command[-2:] == ["--dpl-src", "/state/candidate"]
+
+
+def test_relocated_flow_keeps_compiled_cmake_source_prefix(tmp_path):
+    cache = tmp_path / "core/build/CMakeCache.txt"
+    cache.parent.mkdir(parents=True)
+    cache.write_text("CMAKE_HOME_DIRECTORY:INTERNAL=/original/orfs/tools/OpenROAD\n")
+    profile = {
+        "agent_root": "/control",
+        "orfs_root": "/new/orfs",
+        "state_root": "/state",
+        "flow_output_roots": [],
+        "core_root": str(tmp_path / "core"),
+        "container_environment": {},
+        "container_python": "python3",
+        "image": "/image",
+    }
+    workspace = tmp_path / "attempt"
+    workspace.mkdir()
+    command = pe.container_command(
+        profile,
+        {"operation": "variant_build", "cwd": "/control", "argv": []},
+        workspace,
+    )
+    assert (
+        str(tmp_path / "core/generated-source") + ":/original/orfs/tools/OpenROAD:ro"
+        in command
+    )
+    assert (
+        str(tmp_path / "core/generated-source") + ":/new/orfs/tools/OpenROAD:ro"
+        in command
+    )
 
 
 def test_task_registers_original_metrics_and_odb(tmp_path):

@@ -357,6 +357,10 @@ def main(argv: list[str] | None = None) -> int:
         from eda_toolkits.objectives import append_objective
 
         prompt_text = append_objective(prompt_text)
+    if os.environ.get("DPL_EVOLVE_PLATFORM_PROFILE") and os.environ.get("EDA_PLATFORM_CONTEXT"):
+        from eda_toolkits.context import append_context
+
+        prompt_text = append_context(prompt_text)
     session_store_home, session_store_reason = default_codex_home(
         runtime, args.session_state
     )

@@ -161,6 +161,12 @@ def request_for(
     if objective_path:
         objective = Path(objective_path)
         inputs[str(objective)] = digest(objective)
+    if os.environ.get("EDA_PLATFORM_CONTEXT"):
+        context = Path(os.environ["EDA_PLATFORM_CONTEXT"])
+        inputs[str(context)] = digest(context)
+    cache = Path(profile["core_root"]) / "build/CMakeCache.txt"
+    if cache.is_file():
+        inputs[str(cache)] = digest(cache)
     return {
         "design_context": design_context(profile) if operation == "baseline" else None,
         "operation": operation,
@@ -237,6 +243,7 @@ def task_for(
         "schema_version": 3,
         "task_id": profile["experiment_id"] + "-" + key,
         "project_id": "dplevolve-common-u3",
+        "experiment_id": profile["experiment_id"],
         "design_id": profile["design"],
         "plugin_id": "openroad-data",
         "labels": {
@@ -277,6 +284,10 @@ def task_for(
         from eda_toolkits.objectives import bind_task_objective
 
         bind_task_objective(spec, profile.get("objective_path"))
+    if os.environ.get("EDA_PLATFORM_CONTEXT"):
+        from eda_toolkits.context import bind_task_context
+
+        bind_task_context(spec)
     return spec
 
 
@@ -372,14 +383,17 @@ def container_command(
         )
     # Upstream CMake generates Version.hh, messages.txt and STA documentation
     # in source paths. Compile from a private copy at the same container path.
-    command += [
-        "--bind",
-        str(generated_source)
-        + ":"
-        + profile["orfs_root"]
-        + "/tools/OpenROAD"
-        + (":ro" if request["operation"] != "core_build" else ""),
-    ]
+    targets = dict.fromkeys(
+        [profile["orfs_root"] + "/tools/OpenROAD", compiled_source_root(profile)]
+    )
+    for target in targets:
+        command += [
+            "--bind",
+            str(generated_source)
+            + ":"
+            + target
+            + (":ro" if request["operation"] != "core_build" else ""),
+        ]
     command += ["--bind", str(scratch) + ":/tmp", "--pwd", request["cwd"]]
     environment = dict(profile["container_environment"])
     environment.update(DPL_EVOLVE_EXECUTION_LEAF="1", DPL_EVOLVE_SKIP_ENV_SH="1")
@@ -401,6 +415,16 @@ def container_command(
             for argument in profile["cmake_args"]:
                 native += ["--cmake-arg", argument]
     return [*command, profile["image"], *native]
+
+
+def compiled_source_root(profile: dict[str, Any]) -> str:
+    """CMake's qualified recipes keep their original absolute source prefix."""
+    cache = Path(profile["core_root"]) / "build/CMakeCache.txt"
+    if cache.is_file():
+        for line in cache.read_text().splitlines():
+            if line.startswith("CMAKE_HOME_DIRECTORY:INTERNAL="):
+                return line.split("=", 1)[1]
+    return profile["orfs_root"] + "/tools/OpenROAD"
 
 
 def leaf(profile: dict[str, Any], request: dict[str, Any]) -> int:
