@@ -60,6 +60,28 @@ def compare(reference: dict[str, Any], candidate: dict[str, Any]) -> dict[str, A
         "objective_id": reference["objective_id"],
         "deltas": deltas,
         "constraint_violations": violations(candidate),
+        "professional_facts": {
+            "reference": professional_facts(reference),
+            "candidate": professional_facts(candidate),
+        },
+    }
+
+
+def professional_facts(frame: dict[str, Any]) -> dict[str, Any]:
+    """Keep the original professional decision separate from final feasibility."""
+    native = frame.get("native_method")
+    failed = violations(frame)
+    return {
+        "run_id": frame["run_id"],
+        "design_id": frame["design_id"],
+        "objective_id": frame["objective_id"],
+        "condition_id": frame["condition_id"],
+        "native_method": native,
+        "native_evidence_available": native is not None,
+        "final_metrics": {key: frame["metrics"][key] for key in METRICS},
+        "final_constraint_violations": failed,
+        "final_feasible": not failed,
+        "snapshot_ids": frame.get("snapshot_ids", {}),
     }
 
 

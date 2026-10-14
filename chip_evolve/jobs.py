@@ -162,6 +162,8 @@ class Jobs:
         parent: str | None = None,
         objective: Path | None = None,
         environment: dict[str, str] | None = None,
+        analysis_parent: str | None = None,
+        extra_paths: list[str] | None = None,
     ) -> dict[str, Any]:
         request = self.experiment / "requests" / (key + ".json")
         write(
@@ -184,6 +186,7 @@ class Jobs:
                     "--request",
                     "inputs/request.json",
                 ],
+                **({"native_extra_paths": extra_paths} if extra_paths else {}),
             },
             [{"source": str(request), "destination": "inputs/request.json"}],
             seconds=seconds,
@@ -191,6 +194,7 @@ class Jobs:
             memory_gib=memory_gib,
             parent=parent,
             objective=objective,
+            analysis_parent=analysis_parent,
         )
 
     def log(self, record: dict[str, Any], destination: Path) -> str:

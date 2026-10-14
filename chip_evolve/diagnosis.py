@@ -22,6 +22,11 @@ def diagnose(
     against: Path | None = None,
 ) -> dict[str, Any]:
     frame = read(result_path)
+    from .comparisons import professional_facts
+
+    question += "\nPrepared professional/final facts: " + json.dumps(
+        professional_facts(frame), ensure_ascii=False
+    )
     question += (
         "\nProfessional receiver capabilities: Flow changes ORFS configuration and parameters; "
         "DPLEvolve changes OpenROAD detailed-placement C++ mechanisms; GoalEvolve changes "
@@ -29,6 +34,10 @@ def diagnose(
         "and its native recipes), not design RTL; TimingECOAgent applies its existing local "
         "ECO primitives. Map recommendations to these actual capabilities. A diagnosis "
         "does not expand the native edit scope or replace original scoring."
+        " TimingECOAgent's default path report focuses on reg2reg; check whether "
+        "an action can affect the actual failing group, including register-to-output paths. "
+        "For setup investigation request get_timing_paths with check=setup, sort=slack, "
+        "order=worst across all groups. Record order alone is not global worst-slack order."
     )
     snapshots = list(frame["snapshot_ids"].values())
     if against:
@@ -38,6 +47,9 @@ def diagnose(
         require_same_conditions(baseline, frame)
         if baseline["design_id"] != frame["design_id"]:
             raise ValueError("Diagnosis comparison needs the same design")
+        question += "\nPrepared reference facts: " + json.dumps(
+            professional_facts(baseline), ensure_ascii=False
+        )
         snapshots = [*baseline["snapshot_ids"].values(), *snapshots]
         question += f"\nFixed baseline run: {baseline['run_id']}; current candidate run: {frame['run_id']}. Compare actual matching conditions and inputs before explaining deltas."
     folder = result_path.parent / "query"
