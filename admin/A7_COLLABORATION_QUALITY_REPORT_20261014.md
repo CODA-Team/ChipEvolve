@@ -1,6 +1,6 @@
 # A7：专业阶段证据与条件协作
 
-状态：比较/诊断增强、三个候选阶段查证与真实Codex Query调查通过；四轮ECO和不改动路由控制正在执行/排队，最终PPA及重放待验收。A6的新DPL完整轮次独立继续。
+状态：比较/诊断增强、三候选阶段查证、真实Query调查、四轮ECO/控制及AES公共接点验证通过；ECO没有新增收益，已按原Goal能力进入一轮四Student时序恢复续作。其最终PPA及重放待验收，A6的新DPL完整轮次独立继续。
 
 ## 已查明的业务问题
 
@@ -36,6 +36,20 @@ ECO默认报告只聚焦reg2reg，但resize/Vt/buffer原语仍可能作用于实
 - 偏好是在时序闭合的同时保留功耗不高于合法incumbent的0.0013784497278W、单元面积不高于43.4047µm²；原公共objective的硬条件不变。
 - 如果新结果合法且有价值，再做独立逻辑等价与空目录重放；没有增益时保留incumbent。实验结束前不声称联合收益。
 
+### ECO与控制的实际结论
+
+四轮ECO正常结束，实际Codex提示包含本片context_id和u129等路径事实；不是上下文未送达。四次模型回复均为原生只读probe，没有实际resize/Vt/buffer变更；原live报告/allowed实例仍聚焦reg2reg。最终setup TNS/WS为−0.034748/−0.0128986ns、功耗0.0011774579762W、单元面积40.3283µm²，与不改动route控制7项PPA逐值相同。因此不记ECO新增收益，也不能把上一轮同值结果的小幅变化单独归给ECO。原约束不放松，incumbent保留。
+
+### 原Goal的时序恢复续作
+
+`a7-goal-timing-continuation`使用已有public CLI的initial_parent字段导入验证过的a9a8fc8…/cc9419aa…父源码、原metrics和原checkpoint；原benchmark、baseline、targets、权重、hard_metrics、promotion、power_stage_tns_ceiling及protected rounds不变。父源码已满足原两项功耗目标，原PowerFirstPromotion自动选择timing_recovery，真实日志已启动`power_then_timing`阶段基线复测，然后原Teacher/四Student/审核继续。预算6小时、只新增一轮，不改算法或筛选规则。
+
+新增`admin/continue_goal_timing.py`是本片有限原生续作/验收驱动，所有构建/版本/原检查/物理都沿用EF桥接，结束后共同复测及DF入库。测试确认原契约字段逐项保留；不是新评测服务或新通用harness。
+
+### AES相关接点
+
+新EF下AES原Goal固定方法重放及完整DRT/RCX实际完成：7项最终PPA与A5固定方法逐值相同，三个公共scope均为design_id=aes/native top=aes_cipher_top；SDK指标查询通过。真实新Query `inv-9693a3dd29424e83b12e240d5bf241c2`导出context_id `2b86f0a79b10325f21e08f5419c8af63bd77c3d141c85e8be88e7317faf9749a`，确认可行基线并建议不做无必要ECO，未冒称AES四专业搜索。新调查从A7独立结果副本进行，原A5结果不改写。
+
 ## 文件职责与接口影响
 
 | 文件 | 变化 |
@@ -57,3 +71,5 @@ GCD实例名称只出现在本片实际证据/实验上下文中，未写入通�
 首次三份取证误选外层空日志而失败，失败目录保留；r2改为原注册ZIP成员，未伪造阶段。新调查trace已复制到A7，旧A5诊断指针按原字节恢复，原物理结果和失败不改写。原缺失corner/analysis/unit元数据及严格逐edit反事实缺口保留。
 
 根静态/类型/格式、差异/边界及回归检查与真实结果在最终收尾补齐。AES只验证本片相关公共接点与反馈身份，不在本片重跑四专业全搜索。公开benchmark、Tutorial和token节约第五项继续排除。
+
+截至续作启动，根回归167项通过，新代码Ruff/格式/pyright通过。最终真实收尾另记，不把这份工程检查点当作联合优化已经成功。

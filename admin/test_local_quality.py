@@ -1,5 +1,6 @@
 import pytest
 
+from admin.continue_goal_timing import continuation_contract
 from admin.run_local_quality import STAGES, stage_metrics
 from admin.test_local_business import deployment
 from admin.test_local_comparisons import result
@@ -57,3 +58,33 @@ def test_command_evidence_keeps_the_final_run_scope_and_registered_extra_paths(
     )
     assert captured["analysis_parent"] == "final"
     assert captured["inputs"]["native_extra_paths"] == ["query-data/0/native.log"]
+
+
+def test_timing_continuation_preserves_original_targets_and_promotion(tmp_path):
+    original = {
+        "target_metrics": {
+            "dynamic_power_pw": 10,
+            "leakage_power_pw": 10,
+            "tns_abs_ns": 0,
+        },
+        "baseline_metrics": {"dynamic_power_pw": 20},
+        "promotion": "power_first_promotion",
+        "power_stage_tns_ceiling_ns": 60,
+        "power_stage_protected_rounds": 10,
+    }
+    parent = {
+        "metrics": {"dynamic_power_pw": 5, "leakage_power_pw": 5, "tns_abs_ns": 0.4},
+        "source_commit": "commit",
+        "source_hash": "hash",
+        "evaluation_mode": "power_only",
+    }
+    config = continuation_contract(
+        original, parent, tmp_path, tmp_path / "source", tmp_path / "db"
+    )
+    for name, value in original.items():
+        assert config[name] == value
+    parent["metrics"]["dynamic_power_pw"] = 11
+    with pytest.raises(ValueError, match="power targets"):
+        continuation_contract(
+            original, parent, tmp_path, tmp_path / "source", tmp_path / "db"
+        )
