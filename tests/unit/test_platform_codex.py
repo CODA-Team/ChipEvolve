@@ -112,3 +112,48 @@ def test_version_query_uses_ef_in_platform_mode(tmp_path, monkeypatch):
     assert result["openroad_version"] == "common-version"
     assert result["source_git_commit"] == "common-source-commit"
     assert run.call_args.kwargs["command"] == [str(binary), "-version"]
+
+
+def test_shared_objective_reaches_real_turn_boundary_and_session_identity(
+    tmp_path, monkeypatch
+):
+    import json
+    import subprocess
+    from eda_toolkits.objectives import SCHEMA, objective_id
+
+    profile(tmp_path, monkeypatch)
+    value = {
+        "schema_version": SCHEMA,
+        "design_id": "example",
+        "reference_run_id": "reference",
+        "conditions": {"libraries": [{"sha256": "lib"}], "sdc": {"sha256": "sdc"}},
+        "constraints": {"power_total_w_max": 0.01},
+    }
+    value["objective_id"] = objective_id(value)
+    objective = tmp_path / "objective.json"
+    objective.write_text(json.dumps(value))
+    monkeypatch.setenv("EDA_PLATFORM_OBJECTIVE", str(objective))
+    runner = PersistentCodexRunner(CodexRuntimeConfig(retries=1))
+
+    def invoke(**kwargs):
+        assert kwargs["prompt"].startswith("native Teacher/Student prompt")
+        assert value["objective_id"] in kwargs["prompt"]
+        kwargs["events"].write_text(
+            '{"type":"thread.started","thread_id":"thread"}\n{"type":"turn.completed","usage":{}}\n'
+        )
+        kwargs["stderr"].write_text("")
+        return subprocess.CompletedProcess([], 0)
+
+    with patch.object(runner, "_invoke", side_effect=invoke):
+        result = runner.run(
+            state_root=tmp_path,
+            identity="teacher",
+            operation_id="round_01",
+            cwd=tmp_path,
+            artifact_root=tmp_path / "turn",
+            prompt="native Teacher/Student prompt",
+        )
+    assert result.ok
+    saved = json.loads((tmp_path / "codex_sessions/teacher.json").read_text())
+    assert saved["runtime"]["objective_id"] == value["objective_id"]
+    assert value["objective_id"] in (tmp_path / "turn/prompt.md").read_text()

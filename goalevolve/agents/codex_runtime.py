@@ -59,6 +59,10 @@ class PersistentCodexRunner:
         self.config = config
 
     def run(self, *, state_root: Path, identity: str, operation_id: str, cwd: Path, artifact_root: Path, prompt: str) -> CodexTurn:
+        if os.environ.get("GOALEVOLVE_PLATFORM_PROFILE") and os.environ.get("EDA_PLATFORM_OBJECTIVE"):
+            from eda_toolkits.objectives import append_objective
+
+            prompt = append_objective(prompt)
         # Codex receives its isolated home through environment variables while
         # executing in a different directory; relative paths would otherwise
         # be resolved against that directory and accidentally look missing.
@@ -81,6 +85,10 @@ class PersistentCodexRunner:
             # a different worker.  The old ID remains in prior artifacts and
             # is retained in the session record for audit.
             requested_runtime = {"model": self.config.model, "reasoning_effort": self.config.reasoning_effort}
+            if os.environ.get("GOALEVOLVE_PLATFORM_PROFILE") and os.environ.get("EDA_PLATFORM_OBJECTIVE"):
+                from eda_toolkits.objectives import load_objective
+
+                requested_runtime["objective_id"] = load_objective(os.environ["EDA_PLATFORM_OBJECTIVE"])["objective_id"]
             login = existing_codex()
             if login:
                 requested_runtime.update(auth_mode="existing_codex", codex_home=str(home))

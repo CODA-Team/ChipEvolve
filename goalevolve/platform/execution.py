@@ -79,7 +79,9 @@ def request_for(
     operation = (
         "build"
         if Path(command[0]).name in {"cmake", "make", "gmake", "ninja"}
-        else "physical" if Path(command[0]).name == "openroad" else "analysis"
+        else "physical"
+        if Path(command[0]).name == "openroad"
+        else "analysis"
     )
     inputs = dict(profile["input_files"])
     if operation == "physical":
@@ -105,6 +107,12 @@ def request_for(
                 continue
             if Path(value).is_file():
                 inputs[str(Path(value).resolve())] = digest(Path(value))
+    objective_path = profile.get("objective_path") or os.environ.get(
+        "EDA_PLATFORM_OBJECTIVE"
+    )
+    if objective_path:
+        objective = Path(objective_path)
+        inputs[str(objective)] = digest(objective)
     return {
         **call,
         "design_context": design_context(profile) if operation == "physical" else None,
@@ -176,7 +184,7 @@ def validate_request(profile: dict[str, Any], request: dict[str, Any]) -> None:
 def task_for(
     profile: dict[str, Any], request: dict[str, Any], path: Path, key: str
 ) -> dict[str, Any]:
-    return {
+    spec = {
         "schema_version": 3,
         "task_id": profile["experiment_id"] + "-" + key,
         "project_id": "goalevolve-common-u4",
@@ -216,6 +224,11 @@ def task_for(
         "max_attempts": 1,
         "expected_artifacts": ["data_snapshot"],
     }
+    if profile.get("objective_path") or os.environ.get("EDA_PLATFORM_OBJECTIVE"):
+        from eda_toolkits.objectives import bind_task_objective
+
+        bind_task_objective(spec, profile.get("objective_path"))
+    return spec
 
 
 def container_command(

@@ -487,3 +487,18 @@ If you find GoalEvolve useful in your research, please cite our paper:
 }
 ```
 The paper is available on [arXiv](https://arxiv.org/abs/2608.16733) and as a [PDF](https://arxiv.org/pdf/2608.16733).
+
+## Shared final objective (platform mode)
+
+Install the platform's current `eda-toolkits` wheel in this project's Python
+environment. Set `EDA_PLATFORM_OBJECTIVE` to the absolute path of the same frozen
+`chip-evolve.objective.v1` JSON used by the other professional projects and final
+measurements. Enable this project's existing platform backend as usual.
+
+The actual model prompt receives the team's final clock, library hashes, power
+and cell/core/die area limits. EF tasks stage the goal and record `objective_id`
+and `final_condition_id`; source execution receipts bind its file hash. If a
+profile also specifies `objective_path`, it must identify the same frozen goal.
+Native search, scoring, promotion and exploratory tradeoffs remain unchanged;
+Codex makes final adoption decisions using comparable final measurements.
+Without the explicit objective setting, the original model prompt is retained.
