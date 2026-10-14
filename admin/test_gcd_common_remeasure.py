@@ -3,9 +3,15 @@
 import hashlib
 import json
 import subprocess
+import zipfile
 
 import pytest
-from gcd_common_remeasure import power_total, reference_liberties, reference_sdc
+from gcd_common_remeasure import (
+    measure,
+    power_total,
+    reference_liberties,
+    reference_sdc,
+)
 
 
 def test_reference_sdc_uses_explicit_ns_with_ps_reader(tmp_path):
@@ -59,3 +65,114 @@ def test_reference_library_identity_rejects_same_filename_different_content(tmp_
     lib.write_text("another nominal corner")
     with pytest.raises(ValueError, match="reference liberty changed"):
         reference_liberties(tmp_path)
+
+
+def test_final_measurement_rejects_changed_sdc_before_submitting_eda(
+    tmp_path, monkeypatch
+):
+    from eda_toolkits.objectives import SCHEMA, objective_id
+
+    lib, sdc, other = (
+        tmp_path / "FF.lib",
+        tmp_path / "common.sdc",
+        tmp_path / "native.sdc",
+    )
+    lib.write_text("common liberty")
+    sdc.write_text("create_clock -period 0.31 clk")
+    other.write_text("create_clock -period 0.45 clk")
+    value = {
+        "schema_version": SCHEMA,
+        "design_id": "example",
+        "reference_run_id": "reference",
+        "conditions": {
+            "libraries": [
+                {
+                    "path": str(lib),
+                    "sha256": hashlib.sha256(lib.read_bytes()).hexdigest(),
+                }
+            ],
+            "sdc": {
+                "path": str(sdc),
+                "sha256": hashlib.sha256(sdc.read_bytes()).hexdigest(),
+            },
+        },
+        "constraints": {},
+    }
+    value["objective_id"] = objective_id(value)
+    objective = tmp_path / "objective.json"
+    objective.write_text(json.dumps(value))
+    (tmp_path / "runtime.json").write_text("{}")
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("mismatched conditions may not start an EDA measurement")
+
+    monkeypatch.setattr("gcd_common_remeasure.command", forbidden)
+    with pytest.raises(ValueError, match="SDC differs"):
+        measure(
+            tmp_path,
+            "bad-measurement",
+            tmp_path / "design.odb",
+            tmp_path / "design.spef",
+            other,
+            "producer",
+            objective=objective,
+        )
+
+
+def test_relative_objective_survives_ef_working_directory_and_data_projection(
+    tmp_path, monkeypatch
+):
+    from eda_toolkits.objectives import SCHEMA, file_sha256, objective_id
+
+    monkeypatch.chdir(tmp_path)
+    toolchain = {"image_sha256": "frozen"}
+    (tmp_path / "runtime.json").write_text(
+        json.dumps({"toolchain": toolchain, "image": "image.sif"})
+    )
+    lib, sdc, odb, spef = [
+        tmp_path / name
+        for name in ("FF.lib", "common.sdc", "design.odb", "design.spef")
+    ]
+    for path in (lib, sdc, odb, spef):
+        path.write_text("test input")
+    value = {
+        "schema_version": SCHEMA,
+        "design_id": "example",
+        "reference_run_id": "reference",
+        "conditions": {
+            "toolchain": toolchain,
+            "clock_period_ns": 0.31,
+            "libraries": [{"path": str(lib), "sha256": file_sha256(lib)}],
+            "sdc": {"path": str(sdc), "sha256": file_sha256(sdc)},
+        },
+        "constraints": {},
+    }
+    value["objective_id"] = objective_id(value)
+    objective = tmp_path / "objective.json"
+    objective.write_text(json.dumps(value))
+
+    def execution(state, key, argv, **kwargs):
+        assert kwargs["capture"][-1] == str(objective)
+        assert kwargs["objective"] == objective
+        (tmp_path / "handoffs/check/native-metrics.json").write_text("{}")
+        task = tmp_path / "tasks/check"
+        task.mkdir(parents=True)
+        with zipfile.ZipFile(task / "output.zip", "w") as archive:
+            archive.writestr("stdout.log", "Total 0.001 0.002 0 0.003\n")
+        return {"run": {"run_id": "measured", "status": "succeeded"}}
+
+    monkeypatch.setattr("gcd_common_remeasure.command", execution)
+    record = measure(
+        tmp_path,
+        "check",
+        odb,
+        spef,
+        sdc,
+        "physical",
+        objective=objective.relative_to(tmp_path),
+    )
+    metadata = json.loads((tmp_path / "handoffs/check/metrics.json").read_text())
+    conditions = metadata["metric_context"]["evaluation_conditions"]
+    assert conditions["objective_id"] == value["objective_id"]
+    assert conditions["condition_id"] == record["condition_id"]
+    assert conditions["library_sha256"] == [file_sha256(lib)]

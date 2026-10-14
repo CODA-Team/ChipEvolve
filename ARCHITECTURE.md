@@ -2,7 +2,16 @@
 
 更新：2026-10-14。本页以本轮实际接口和 GCD 验收为准，历史状态保留在 Git 与各切片报告。最终工程回执见 `var/overnight/gcd-20261014/final-acceptance.json`；老板业务确认独立。
 
-**A1审计更正：**旧N4的DPL→CTS交接未通过语义保真。新WORK_HOME下的`make finish`重新综合/布局，覆盖DPL候选；下游关键ODB与原Flow相同。因此旧“DPL候选真实继续CTS/route、完整专业接力通过”结论撤回，待修复重验。EF任务成功仅表示命令被执行，不能证明专业修改被下游保留；领域stage适配需记录真实消费起点和阶段改变。O2独立分支的改善和验证保持。详见 `admin/COLLABORATION_AUDIT_20261014.md`，其结论优先于本页保留的旧夜间状态。
+**A1审计更正：**旧N4的DPL→CTS交接未通过语义保真。新WORK_HOME下的`make finish`重新综合/布局，覆盖DPL候选；下游关键ODB与原Flow相同。因此旧“DPL候选真实继续CTS/route、完整专业接力通过”结论撤回。A2现已修复DPL→CTS/完整route并做匹配控制实验；这不恢复旧四专业联合收益结论。EF任务成功仅表示命令被执行，不能证明专业修改被下游保留；领域stage适配需记录真实消费起点和阶段改变。O2独立分支的改善和验证保持。详见 `admin/COLLABORATION_AUDIT_20261014.md`，其结论优先于本页保留的旧夜间状态。
+
+
+## A2/A3修复检查点（2026-10-14）
+
+布局交接复用现有Toolkit的阶段checkpoint与Make前置冻结；真实候选ODB、显式SDC进入CTS，再进入route_finish，校验保留hash和实际read_db消费。通用`resume`接收design/profile/config/checkpoint等输入，本机验收驱动仍针对GCD；没有改专业算法或扩大到通用业务receiver。
+
+共同目标由公共Toolkit wheel中的`objectives`小模块携带：实际模型提示、Flow决策重放、Goal会话身份、EF任务留证和最终测量绑定同一objective_id；comparison condition_id含实际库/SDC内容及工具/时钟/寄生条件。DF/SDK沿用现有evaluation_conditions字段提供这些身份；没有新增评测服务。原专业评分与阶段探索保留，Codex决定最终采用。
+
+四专业真实模型入口的目标送达、匹配DPL/无DPL完整布线和DF/SDK查询已核查。该DPL候选在共同阶段条件下使最终TNS绝对值增加约1.92%、功耗增加约3.41%、单元面积增加约1.85%，两分支也超出整体面积/时序边界，因此保留已有O2合法最好结果。详情与接口见`admin/HANDOFF_OBJECTIVES_REPORT_20261014.md`；本轮工程通过，待老板业务验收，完整联合PPA收益尚未达。
 
 ## 系统边界
 

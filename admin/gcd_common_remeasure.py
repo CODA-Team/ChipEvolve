@@ -90,12 +90,33 @@ def materialize(state: Path, iteration: int, slot: int) -> dict:
 
 
 def measure(
-    state: Path, key: str, odb: Path, spef: Path, sdc: Path, parent: str
+    state: Path,
+    key: str,
+    odb: Path,
+    spef: Path,
+    sdc: Path,
+    parent: str,
+    objective: Path | None = None,
 ) -> dict:
     runtime = json.loads((state / "runtime.json").read_text())
     output = state / "handoffs" / key
     output.mkdir(parents=True, exist_ok=False)
-    libs = reference_liberties(state)
+    shared = None
+    if objective is not None:
+        from eda_toolkits.objectives import (
+            condition_id,
+            load_objective,
+            verify_conditions,
+        )
+
+        objective = objective.resolve()
+        shared = load_objective(objective)
+        verify_conditions(shared, sdc=sdc)
+        if shared["conditions"]["toolchain"] != runtime["toolchain"]:
+            raise ValueError("Measurement toolchain differs from the shared objective")
+        libs = [Path(row["path"]) for row in shared["conditions"]["libraries"]]
+    else:
+        libs = reference_liberties(state)
     script = output / "measure.tcl"
     script.write_text(
         "\n".join(
@@ -147,6 +168,18 @@ def measure(
         },
     }
     write_json(output / "input-receipt.json", identity)
+    if shared is not None:
+        identity.update(
+            objective_id=shared["objective_id"], condition_id=condition_id(shared)
+        )
+        identity["conditions"].update(
+            objective_id=identity["objective_id"],
+            condition_id=identity["condition_id"],
+            clock_period_ns=shared["conditions"]["clock_period_ns"],
+            library_sha256=sorted(identity["liberty_sha256"].values()),
+            toolchain=runtime["toolchain"],
+        )
+        write_json(output / "input-receipt.json", identity)
     execution = command(
         state,
         key,
@@ -169,7 +202,14 @@ def measure(
         timeout=300,
         memory_gib=8,
         cpu=2,
-        capture=[str(odb), str(spef), str(sdc), str(script)],
+        objective=objective,
+        capture=[
+            str(odb),
+            str(spef),
+            str(sdc),
+            str(script),
+            *([str(objective)] if objective else []),
+        ],
     )
     if execution["run"]["status"] != "succeeded":
         raise RuntimeError("Common measurement failed: " + key)
@@ -192,6 +232,14 @@ def measure(
                 "corner": "FF",
                 "analysis": "post_route",
                 "evaluation_conditions": identity["conditions"],
+                **(
+                    {
+                        "objective_id": identity["objective_id"],
+                        "condition_id": identity["condition_id"],
+                    }
+                    if shared
+                    else {}
+                ),
                 "authoritative_source": "common OpenROAD read-only routed checkpoint remeasurement",
             },
         },
@@ -209,6 +257,7 @@ if __name__ == "__main__":
     parser.add_argument("--spef", type=Path, required=True)
     parser.add_argument("--sdc", type=Path, required=True)
     parser.add_argument("--parent-run", required=True)
+    parser.add_argument("--objective", type=Path)
     args = parser.parse_args()
     row = measure(
         args.state.resolve(),
@@ -217,5 +266,6 @@ if __name__ == "__main__":
         args.spef.resolve(),
         args.sdc.resolve(),
         args.parent_run,
+        objective=args.objective,
     )
     print(json.dumps({"run_id": row["run_id"], "metrics": row["metrics"]}))

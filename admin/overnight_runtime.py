@@ -181,6 +181,7 @@ def command(
     memory_gib: int = 16,
     cpu: int = 8,
     capture: list[str] | None = None,
+    objective: Path | None = None,
 ) -> dict[str, Any]:
     runtime = json.loads((state / "runtime.json").read_text())
     request = state / "requests" / (key + ".json")
@@ -218,6 +219,10 @@ def command(
         "max_attempts": 1,
         "expected_artifacts": ["data_snapshot"],
     }
+    if objective is not None:
+        from eda_toolkits.objectives import bind_task_objective
+
+        bind_task_objective(spec, objective)
     submit(state, key, spec)
     return collect(state, key)
 
@@ -228,15 +233,18 @@ def leaf(request_path: Path) -> int:
     output = Path.cwd() / "query-data"
     output.mkdir()
     started = now()
-    with (output / "stdout.log").open("w") as log, subprocess.Popen(
-        request["command"],
-        cwd=request["cwd"],
-        env=environment(),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-    ) as process:
+    with (
+        (output / "stdout.log").open("w") as log,
+        subprocess.Popen(
+            request["command"],
+            cwd=request["cwd"],
+            env=environment(),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        ) as process,
+    ):
         assert process.stdout is not None
         for line in process.stdout:
             log.write(line)

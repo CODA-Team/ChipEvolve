@@ -49,7 +49,7 @@ O2独立ORFS/ECO/功耗回收/Query修复分支的指标、重放与等价验证
 | P1 | 专业 Flow 的真实可复建基线 | 同一实验两轮三候选、真实模型、实际参数消费、固定 CP0 与功耗、完整物理产物 | Flow / OpenROAD | P0 | 已通过 |
 | P2 | 统一管理物理阶段并保存可查询结果 | place→CTS→route→eval、实际取消、实体/指标导入、重启后来源一致 | EF / Toolkits / DF / SDK | P1 | 已通过 |
 | P3 / L1 | 可查询、可继续同一优化实验 | 完整平台两轮实验；四个实际中断窗口；原计算和模型决策不重复；评价自动回流 | Flow / EF / Toolkits / DF / SDK | P2 | 完整真实工程验收通过，业务确认待老板 |
-| P4 / L6–L7 | Codex 自主查询、专业交接与协同优化 | 真正 Flow/Code receiver；统一数据入口；预算内完整闭环；归因上下文可核对 | Codex / Query / Flow / Code / 底座 | L1–L5 | N4本机GCD协同工程通过；通用Query→专业receiver仍待单独切片 |
+| P4 / L6–L7 | Codex 自主查询、专业交接与协同优化 | 真正 Flow/Code receiver；统一数据入口；预算内完整闭环；归因上下文可核对 | Codex / Query / Flow / Code / 底座 | L1–L5 | A1撤回旧完整专业接力验收；A2交接/A3共同目标工程通过，联合收益仍未达；通用Query→专业receiver待单独切片 |
 | P5 / L2–L4 | 两个源码项目原生复现并接统一执行 | DPLEvolve、GoalEvolve 分别 smoke/最小真实设计/新源码候选评价；实际 EDA 统一管理 | Code 项目 / 底座 | P3；原生复现优先于全面整合 | L2 / U3 DPLEvolve 原生复现、共同环境及统一执行工程通过，待业务验收；L3 环境/AE-1/模拟 smoke/真实 AE-2/p0 基线冻结通过；U4 已选择本机 Codex 并启动 AE-3，新共同基线及测试资料修复通过，Student 4 真实新候选及独立重放通过，原U4 AES四路正常收尾仍待完成；N1/N4已完成Goal共同环境、统一执行、真实GCD四Student轮次和恢复验收 |
 | U1 | 有固定源码、能构建和运行真实设计的共同基础工具 | 源码/递归依赖/SIF/实际 binary 可核对；GCD RTL→GDS、source-built 设计检查、DF/DI 事实/指标/单位/证据通过 | EF / Toolkits / DF / DI / admin | 共同版本选择与来源审计 | 工程验收通过，业务确认待老板；专业迁移见 U2–U5 |
 | U2 | 共同工具环境下继续使用完整 Flow 调参产品 | AES 两轮×三候选、原生阶段继承与参数消费、统一反馈、四个真实恢复窗口、新环境基线 | Flow / Toolkits / EF / DF / DI / admin | U1；实际计划已获老板确认 | 完整真实工程验收通过：42 个 run / 180 项核查 / 12 个 SDK 快照；业务确认待老板 |
@@ -76,6 +76,16 @@ O2独立ORFS/ECO/功耗回收/Query修复分支的指标、重放与等价验证
 - P3 / L1 完整真实工程验收：`var/flow-agent/p3-platform-campaign-20261011-retry3/p3-acceptance.json`；两轮六候选、18 项物理任务、四个真实中断、12 个实际评价快照和模型账本核查全部通过。当前汇报见 `admin/P3_SLICE_REPORT_20261011.md`。
 - P1 单次实验在固定功耗条件下观察到 |TNS| 改善约 5.73%，不是平台公平收益结论。
 - Query 已有查证、比较和引用；完整“为什么”的归因能力仍需后续业务标准及验收。
+
+
+## 本轮A2/A3交付（2026-10-14）
+
+| 切片 | 业务效果 | 验收标准 | 涉及模块/前置 | 状态 |
+|---|---|---|---|---|
+| A2 | DPL结果真正进入CTS与完整route | 注册候选hash保留；日志证明实际消费；无上游重跑；匹配无DPL控制组完整布线 | root适配器、既有Toolkit/EF；前置A1审计 | 工程验证通过，待老板业务验收；候选最终PPA退化 |
+| A3 | 专业团队和最终判断使用同一目标 | 四真实模型返回相同目标；实际库/SDC绑定；异条件不能混算；EF→DF→SDK查询保留条件身份；合法最好结果不被坏分支替换 | Toolkit、四专业入口、root测量/资料；前置A2 | 工程验证通过，待老板业务验收；未重跑新四Student轮次 |
+
+报告：`admin/HANDOFF_OBJECTIVES_REPORT_20261014.md`。本轮到这两项收尾，通用业务入口、benchmark和Tutorial不自动推进。
 
 ## 后续协作流程
 
