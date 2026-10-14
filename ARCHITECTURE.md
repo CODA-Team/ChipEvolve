@@ -149,3 +149,25 @@ Goal 原轮次因重复 CSV 输出误冻结而遮住指标；新桥接下八次�
 - 数据增强节省 token / 时间的公平因果对照、Tutorial、新用户安装与论文发布暂缓，不以调用总量声称节省比例。
 - TimingECOAgent官方AES的LFS对象404，保留指针与来源；本轮用真实本机GCD，不冒称官方AES复现或第三方算法原创。
 - 26份已有用户修改保持原状；运行数据、凭据、镜像、环境及未提交编辑不纳入源码发布。
+
+
+## A6/A7：长任务和专业事实接点（2026-10-15）
+
+EF attempt内部只保留一个独立租约续期对象，贯穿输入准备、guardian执行及证据/产物处理。慢采样/观察不会阻塞续租；对象随attempt收尾停止，原任务预算、取消、失联回收和资源规则保留。store在原连接锁内采样心跳时间。未改TaskSpec、数据库或公共HTTP/SDK。
+
+根比较入口的professional_facts并列原native_method、最终metrics及最终constraint violations，原晋升和Codex采用分开。原Goal阶段日志从EF注册包校验后，以已有analysis_of_run_id归属于最终scope；Query消费公开证据与SDK，不读取内部数据库。Jobs.command新增可选analysis_parent/extra_paths，仅透传既有标签/产物声明。
+
+```mermaid
+flowchart LR
+  Native[专业原Controller和判定] --> EF[EF统一执行及租约]
+  EF --> Art[注册产物和阶段证据]
+  Art --> DF[DF固定scope事实]
+  DF --> Query[SDK与Query调查]
+  Query --> Codex[Codex判断和选择专业动作]
+  Codex --> Native
+  Codex --> Best[保留合法incumbent]
+```
+
+Goal平台桥接对已提交任务的GET状态读取遇到KernelUnavailable最多尝试三次，保留观察错误并服从原deadline；不重交任务、不自动延长工具或搜索预算、不改专业算法。首轮续作一次GET超时触发原取消的失败证据保留，新r2独立验证。旧历史失联仍不改写；真实长构建/数据前置通过不等于新DPL完整轮次或联合收益通过。
+
+当前A7阶段事实已证明DPL→Goal在repair_power之后出现setup退化；四轮ECO实际只读动作的最终PPA与route-only控制逐值相同，不计新增收益。AES固定Goal方法7项PPA与原结果相同，SDK/真实Query反馈通过，不称AES四专业搜索。新DPL完整原生轮次和Goal一轮四Student时序恢复的收尾，以两份A6/A7报告及TASKS验收状态为准。
