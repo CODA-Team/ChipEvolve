@@ -247,6 +247,7 @@ def replay_goal_physical(
 ) -> dict[str, Any]:
     from chip_evolve.physical import container, qualify
 
+    request_path = request_path.resolve()
     built, request, reference = (
         read(build_result),
         read(request_path),
@@ -337,7 +338,24 @@ def main() -> None:
             args.reference,
             args.key,
         )
-    print(json.dumps(result))
+    if isinstance(result, dict):
+        print(
+            json.dumps(
+                {
+                    k: result[k]
+                    for k in (
+                        "run_id",
+                        "binary",
+                        "binary_sha256",
+                        "design_id",
+                        "metrics",
+                    )
+                    if k in result
+                }
+            )
+        )
+    else:
+        print(json.dumps(result))
 
 
 if __name__ == "__main__":

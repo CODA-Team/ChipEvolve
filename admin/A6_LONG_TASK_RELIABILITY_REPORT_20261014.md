@@ -1,6 +1,6 @@
 # A6：长任务可靠性修复与真实验证
 
-状态：执行底座修复及工程回归通过，真实长构建/物理与数据验证进行中；原 DPL 完整轮次尚待验收。老板已授权 A6/A7，业务验收独立。
+状态：执行底座修复、工程回归、两项真实长构建/物理与数据验证通过；新DPL完整轮次运行中，仍为A6最终验收项。已满足计划中A7的工程与真实长任务前置，A6代码冻结后进入A7调查，原生轮次在后台继续。业务验收独立。
 
 ## 已证实的问题和修复
 
@@ -39,10 +39,10 @@ EF 修改只在 core 层；guardian、worker、gateway、contracts 未改。模�
 
 | 验证 | 真实范围 | 当前状态 |
 |---|---|---|
-| `dpl-saved-source-replay` | 旧失败轮次保留的Student源码复制、原helper构建、原三基线/候选评价、CTS/route接续、共同测量与DF入库 | 长构建进行中 |
-| `goal-lost-source-relink-r2` | 原失联Goal源码701项hash逐项相同；私有source/build副本挂载到原CMake路径，执行原完整LTO链接 | 长构建进行中 |
-| Goal新binary真实GCD物理与查询 | 原专业Tcl只改输出目录；随后完整DRT/RCX、共同测量、EF产物→DF/SDK | 待构建通过 |
-| DPL一轮完整原生搜索 | Teacher/三Student/review正常收尾，原评分/晋升保持 | 待固定源码验证通过 |
+| `dpl-saved-source-replay` | 旧失败轮次保留的Student源码复制、原helper构建、原三基线/候选评价、CTS/route接续、共同测量与DF入库 | 通过；构建1198.7秒，峰值RSS37,096,685,568 bytes；setup TNS=0 |
+| `goal-lost-source-relink-r2` | 原失联Goal源码701项hash逐项相同；私有source/build副本挂载到原CMake路径，执行原完整LTO链接 | 通过；链接1180.8秒，峰值RSS37,122,605,056 bytes |
+| `goal-rebuilt-native-physical` | 原专业Tcl只改输出目录；随后完整DRT/RCX、共同测量、EF产物→DF/SDK | 运行/数据通过；该非晋升Student的最终时序不合法，不采用 |
+| `dpl-complete-campaign` | Teacher/三Student/review正常收尾，原评分/晋升保持 | 6小时新预算下运行中 |
 
 DPL保留源码是旧轮次最终保存版本，和历史失联时的未提交中间源码存在差异，不能称旧失联源码逐字复建；新实验按自己的固定source/binary身份验收。Goal与原失联记录的专业源码逐项一致。
 
@@ -58,3 +58,5 @@ DPL保留源码是旧轮次最终保存版本，和历史失联时的未提交�
 - Git/用户文件基线及保留incumbent：`var/business/a6-reliability-20261014/baseline.json`。
 
 真实验收结束前，不把A6记作全部通过，也不把旧DPL三小时截止改写为正常轮次。
+
+两项新物理结果的OpenDB/指标/OpenSTA三个scope均经公开SDK确认设计/run归属，设计摘要和指标可查询，回执见各实验`sdk-query.json`和本片`qualification.json`。根业务及既有回归163项通过，Ruff/新文件格式/pyright通过；运行可靠性前置通过与完整DPL轮次收尾分别记录。
