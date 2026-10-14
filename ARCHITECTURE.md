@@ -171,3 +171,16 @@ flowchart LR
 Goal平台桥接对已提交任务的GET状态读取遇到KernelUnavailable最多尝试三次，保留观察错误并服从原deadline；不重交任务、不自动延长工具或搜索预算、不改专业算法。首轮续作一次GET超时触发原取消的失败证据保留，新r2独立验证。旧历史失联仍不改写；真实长构建/数据前置通过不等于新DPL完整轮次或联合收益通过。
 
 当前A7阶段事实已证明DPL→Goal在repair_power之后出现setup退化；四轮ECO实际只读动作的最终PPA与route-only控制逐值相同，不计新增收益。AES固定Goal方法7项PPA与原结果相同，SDK/真实Query反馈通过，不称AES四专业搜索。新DPL完整原生轮次和Goal一轮四Student时序恢复的收尾，以两份A6/A7报告及TASKS验收状态为准。
+
+
+A6完整原生DPL轮次已通过工程验收，原规则无源码晋升：测量领先的候选因orientation/pin回滚缺陷被Teacher拒绝。默认方法的CTS/DRT/RCX、三scope和SDK查询均完成；原合法Goal单项继续保留。公开分析产物通过已有analysis_of_run_id提供拒绝原因。Goal冲突LTO旗修复后，真实链接1297.4秒、峰值4.821GB，actual argv只含显式-flto=1；source/libs/算法与原64GiB配额不改。A7四Student原生续作最终状态由TASKS及报告记录。
+
+A7收尾发现产物登记仍在共享连接锁内进行耗时文件托管。A6补充修复将hash/复制/内容验证放在锁外，元数据批次继续在一个原子事务内提交；public API、数据库、lease期限、取消和fencing不变。验证包含并发续租/批次回滚、默认30秒lease下35秒托管停顿与真实120MB专业ELF并发托管。新wheel先在隔离EF资格服务验证，活跃原生轮次收尾后才更新本轮专属服务。历史A7新失联run-68f0cf…保留，不能将首批42项无失联概括为所有实验无失联，也没有凭现存回执声称事故唯一原因。
+
+## A6/A7最终接口与决策收尾
+
+最终EF381/根175项回归通过；新EF wheel在活跃原专业收尾后按原状态根更新，当前配置var/business/a7-quality-20261014/production-runtime/local.json，EF/DF HTTP路径不变。metadata事务锁不再包裹输入/产物hash与文件托管；独立attempt续租、取消/预算/fencing及原资源规则保留。原数据库、公共契约和九模块边界不变。
+
+根scoped_analysis_references(deployment, frames)经EF公开runs/artifacts按analysis_of_run_id列出已绑定固定scope的成功analysis及raw_flow_metadata，诊断提示给出证据入口；原生父run权限不扩大。checkpoint_producer按源码与ODB是否真实继承定位原/新EF捕获；checkpoint_method并列实际阶段模式/metrics与lineage判定。stage collector验证选中测量方法，原Teacher/晋升记录保持。有限空目录验证新增可选pdk参数，允许复用实际上一实验冻结PDK，不造路径软链接或重跑搜索。
+
+最终GCD组合分支已有源码的power_then_timing合法改善，经过18功能输出数字等价、七项空目录PPA同值及DF/SDK/Query反馈后采用；新Student源码无晋升，ECO无新增收益。Codex判断采用，原算法保留；不据此宣称公平总预算或所有设计的团队优越性。物理零端口单元与内部名称的输出证明处理由已有EF工具和已核验JSON完成，完整流程证据留在A7，不新增评测服务。

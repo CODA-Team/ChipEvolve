@@ -12,6 +12,60 @@ from chip_evolve.config import read, write
 from chip_evolve.jobs import digest
 
 
+@pytest.mark.parametrize("explicit_pdk", [False, True])
+def test_replay_can_reuse_frozen_pdk_from_a_previous_continuation(
+    tmp_path, monkeypatch, explicit_pdk
+):
+    from types import SimpleNamespace
+
+    from admin import verify_long_task_reliability
+    from admin.test_local_business import deployment
+    from chip_evolve import physical
+
+    binary = tmp_path / "openroad"
+    binary.write_bytes(b"qualified-binary")
+    build = tmp_path / "build.json"
+    write(
+        build,
+        {"binary": str(binary), "binary_sha256": digest(binary), "run_id": "link"},
+    )
+    script = tmp_path / "original/evaluate.tcl"
+    script.parent.mkdir()
+    script.write_text(f"write_db {{{script.parent / 'post_route.odb'}}}\n")
+    request = tmp_path / "campaign/operations/physical/request.json"
+    write(
+        request,
+        {"operation": "physical", "command": [str(binary), "-exit", str(script)]},
+    )
+    reference = tmp_path / "reference.json"
+    write(
+        reference, {"design_id": "gcd", "objective": str(tmp_path / "objective.json")}
+    )
+    captured = {}
+
+    def qualify(jobs, odb, producer, objective, pdk):
+        captured.update(pdk=pdk, producer=producer)
+        return {"run_id": "final"}
+
+    monkeypatch.setattr(physical, "qualify", qualify)
+    monkeypatch.setattr(physical, "container", lambda deployment, command: command)
+    monkeypatch.setattr(
+        verify_long_task_reliability,
+        "Jobs",
+        lambda *args: SimpleNamespace(
+            command=lambda *args, **kwargs: {"run": {"run_id": "replayed-native"}}
+        ),
+    )
+    supplied = tmp_path / "original-frozen-inputs/asap7" if explicit_pdk else None
+    verify_long_task_reliability.replay_goal_physical(
+        deployment(tmp_path), build, request, reference, "replay", pdk=supplied
+    )
+    assert captured == {
+        "pdk": supplied if explicit_pdk else tmp_path / "campaign/inputs/asap7",
+        "producer": "replayed-native",
+    }
+
+
 @pytest.mark.parametrize(
     "queued,running,attempts", [([1], [], []), ([], [1], []), ([], [], ["a"])]
 )

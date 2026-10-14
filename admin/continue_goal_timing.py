@@ -42,6 +42,66 @@ def continuation_contract(
     }
 
 
+def checkpoint_producer(
+    previous: Path,
+    experiment: Path,
+    checkpoint: Path,
+    imported_parent: dict[str, Any],
+    final_parent: dict[str, Any],
+    previous_result: dict[str, Any],
+) -> str:
+    """Trace unchanged imported output through its original EF capture."""
+    inherited = (
+        final_parent["source_hash"] == imported_parent["source_hash"]
+        and digest(checkpoint) == previous_result["qualification"]["input_odb_sha256"]
+    )
+    operations = (previous if inherited else experiment) / "operations"
+    return latest_producer(
+        operations, checkpoint, previous_result["qualification"]["producer_run_id"]
+    )
+
+
+def checkpoint_method(
+    previous: Path,
+    experiment: Path,
+    producer: str,
+    checkpoint: Path,
+    parent: dict[str, Any],
+) -> dict[str, Any]:
+    """Describe the selected measured output separately from lineage metrics."""
+    for root in (experiment, previous):
+        for execution in (root / "operations").glob("*/execution.json"):
+            if read(execution)["run"]["run_id"] != producer:
+                continue
+            request = execution.parent / "request.json"
+            baseline = Path(read(request)["cwd"]) / "baseline.json"
+            method = read(baseline) if baseline.is_file() else parent
+            if method["source_hash"] != parent["source_hash"]:
+                raise ValueError(
+                    "Selected checkpoint source differs from native lineage"
+                )
+            if baseline.is_file() and digest(
+                Path(method["artifacts"]["checkpoint_post_route_db"])
+            ) != digest(checkpoint):
+                raise ValueError("Selected baseline does not own the checkpoint bytes")
+            return {
+                **{
+                    key: method[key]
+                    for key in (
+                        "source_hash",
+                        "evaluation_mode",
+                        "timing_recipe_id",
+                        "metrics",
+                    )
+                },
+                "producer_run_id": producer,
+                "checkpoint_sha256": digest(checkpoint),
+                "operation_request": str(request),
+                "baseline_metadata": str(baseline) if baseline.is_file() else None,
+            }
+    raise ValueError("Selected checkpoint has no recorded EF operation")
+
+
 def run(
     deployment: Deployment, previous: Path, context: Path, key: str, seconds: int
 ) -> dict[str, Any]:
@@ -154,7 +214,9 @@ def run(
         / final_parent["source_hash"]
         / "design_checkpoint.odb"
     )
-    producer = latest_producer(experiment / "operations", odb, frame["run_id"])
+    producer = checkpoint_producer(
+        previous, experiment, odb, parent, final_parent, frame
+    )
     measured = qualify(
         Jobs(deployment, frame["design_id"], experiment),
         odb,
@@ -167,6 +229,9 @@ def run(
         "imported_parent": parent,
         "parent": final_parent,
         "original_contract": str(previous / "evolve-config.json"),
+        "selected_checkpoint": checkpoint_method(
+            previous, experiment, producer, odb, final_parent
+        ),
     }
     write(experiment / "result.json", measured)
     return measured

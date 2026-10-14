@@ -244,6 +244,8 @@ def replay_goal_physical(
     request_path: Path,
     reference_path: Path,
     key: str,
+    *,
+    pdk: Path | None = None,
 ) -> dict[str, Any]:
     from chip_evolve.physical import container, qualify
 
@@ -295,7 +297,7 @@ def replay_goal_physical(
         output / "post_route.odb",
         record["run"]["run_id"],
         objective,
-        request_path.parent.parent.parent / "inputs/asap7",
+        pdk if pdk is not None else request_path.parent.parent.parent / "inputs/asap7",
     )
     result["native_method"] = {
         "kind": "fixed-source-replay",

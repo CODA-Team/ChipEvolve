@@ -9,7 +9,52 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from openroad_platform_client import KernelClient
+
 from .config import Deployment, read, write
+
+
+def scoped_analysis_references(
+    deployment: Deployment, frames: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Expose existing scoped evidence without widening investigation access."""
+    client = KernelClient(deployment.value["kernel_url"], timeout=60)
+    references = []
+    for frame in frames:
+        offset = 0
+        while rows := client.runs(
+            analysis_of_run_id=frame["run_id"],
+            run_type="analysis",
+            limit=100,
+            offset=offset,
+        ):
+            for row in rows:
+                if row["status"] != "succeeded":
+                    continue
+                artifacts = [
+                    {
+                        key: artifact[key]
+                        for key in (
+                            "artifact_id",
+                            "kind",
+                            "store_key",
+                            "sha256",
+                            "size_bytes",
+                        )
+                    }
+                    for artifact in client.artifacts(row["run_id"])
+                    if artifact["kind"] == "raw_flow_metadata"
+                ]
+                if artifacts:
+                    references.append(
+                        {
+                            "analysis_run_id": row["run_id"],
+                            "analysis_of_run_id": frame["run_id"],
+                            "artifacts": artifacts,
+                        }
+                    )
+            offset += len(rows)
+    return references
 
 
 def diagnose(
@@ -40,10 +85,12 @@ def diagnose(
         "order=worst across all groups. Record order alone is not global worst-slack order."
     )
     snapshots = list(frame["snapshot_ids"].values())
+    frames = [frame]
     if against:
         from eda_toolkits.objectives import require_same_conditions
 
         baseline = read(against)
+        frames.append(baseline)
         require_same_conditions(baseline, frame)
         if baseline["design_id"] != frame["design_id"]:
             raise ValueError("Diagnosis comparison needs the same design")
@@ -52,6 +99,14 @@ def diagnose(
         )
         snapshots = [*baseline["snapshot_ids"].values(), *snapshots]
         question += f"\nFixed baseline run: {baseline['run_id']}; current candidate run: {frame['run_id']}. Compare actual matching conditions and inputs before explaining deltas."
+    references = scoped_analysis_references(deployment, frames)
+    if references:
+        question += (
+            "\nExisting analysis runs already belong to these fixed scopes. Read their "
+            "registered raw_flow_metadata artifacts for stage/Teacher evidence; source "
+            "parent runs may be outside the scope and are not needed: "
+            + json.dumps(references, ensure_ascii=False)
+        )
     folder = result_path.parent / "query"
     if folder.exists():
         folder = result_path.parent / ("query-" + uuid4().hex[:8])

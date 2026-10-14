@@ -6,7 +6,7 @@
 
 A5本机对照收尾：GCD/AES的Goal原方法经专业EF桥接或直接EF执行，各7项最终PPA逐值相同；完整Flow→DPL原框架→Goal新源码→ECO已正常运行、共同复测并入库，时序未达，不采用。当前保留Goal新源码单项，满足本轮物理约束并通过网表逻辑等价，相对ORFS功耗约−36.9%、单元面积约−23.2%，不是联合收益。DPL修复后三个新Student取得真实布局评价，补充轮次三小时超时、未正常收尾，不记完整原生成功。实际指标、原评分与最终验收落差及成本见 [A5报告](admin/LOCAL_PROFESSIONAL_COMPARISON_REPORT_20261014.md)。老板业务验收独立；本轮不推进公开benchmark和token节约第五项。
 
-A6/A7最新检查点：已复现并修正EF慢生命周期操作阻塞续租及锁前心跳时间采样问题，两项约20分钟真实源码构建、后续物理运行及DF/SDK查询通过；历史三次租约失败原样保留。已查明DPL→Goal时序退化首次出现在功耗优化阶段，四轮ECO与仅重布线控制逐值相同，不计新增收益。新DPL完整轮次和原Goal时序恢复续作仍须正常收尾后验收，不能称所有长任务已成熟或联合优化成功。报告见admin/A6_LONG_TASK_RELIABILITY_REPORT_20261014.md和admin/A7_COLLABORATION_QUALITY_REPORT_20261014.md。
+A6/A7最终工程交付：长任务续租与共享文件托管锁问题经复现修复，真实构建/大输入/默认lease/完整DPL轮次通过；Goal原Teacher/四Student正常收尾，无新源码晋升。已有组合父源码使用原生时序恢复后，在共同FF/310ps下闭合时序，功耗1.1775332mW、单元面积40.27µm²，较旧合法单项分别降低14.5755%/7.2220%；18个功能输出等价、空目录七项PPA同值、DF/SDK与真实Query反馈通过，已采用。相对ORFS功耗−46.1086%/单元面积−28.7041%，core/die不增；这是GCD实际分支收益，公平总预算团队优势未验证。历史失败与旧结果保留，老板业务验收独立。报告见admin/A6_LONG_TASK_RELIABILITY_REPORT_20261014.md和admin/A7_COLLABORATION_QUALITY_REPORT_20261014.md。
 
 ## 最终用户能做什么
 

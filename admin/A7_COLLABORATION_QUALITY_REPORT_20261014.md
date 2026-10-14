@@ -1,8 +1,32 @@
 # A7：专业阶段证据与条件协作
 
-状态：比较/诊断增强、三候选阶段查证、真实Query调查、四轮ECO/控制及AES公共接点验证通过；ECO没有新增收益，已按原Goal能力进入一轮四Student时序恢复续作。其最终PPA及重放待验收，A6的新DPL完整轮次独立继续。
+状态：A7工程验收通过，老板业务验收待确认。原Teacher/四Student/review正常结束，无新源码晋升；既有组合父源码切换到原生power_then_timing后得到合法更优结果，逻辑等价、空目录重放、DF/SDK与真实Query反馈均通过，已采用。以下先给最终交付，其后保留过程与历史失败。
 
-## 已查明的业务问题
+
+## 最终业务交付（2026-10-15）
+
+| 指标 | 旧合法Goal单项 | A7新结果 | 变化 |
+|---|---:|---:|---:|
+| 功耗 | 1.3784497 mW | 1.1775332 mW | −14.5755% |
+| 单元面积 | 43.4047 µm² | 40.2700 µm² | −7.2220% |
+| setup TNS | 0 ns | 0 ns | 保持闭合 |
+| 最差setup裕量 | +10.2599 ps | +11.5930 ps | +1.3331 ps |
+
+共同条件为ASAP7 FF、310ps、固定实际库/SDC与完整DRT/RCX。hold、slew/cap、布局及DRC通过，core/die为58.7866/78.4819µm²不增。相对ORFS固定基准，功耗−46.1086%、单元面积−28.7041%；setup裕量低于ORFS，但仍满足原约束，不能说所有时序指标均比ORFS更好。
+
+原四Student的recipe匹配gain分别−0.00279132/−0.09242549/0/−0.00368106；第三项机制未激活。原Teacher正常复盘，保持所有评分/晋升规则，无新源码晋升。父源码a9a8fc8…/cc9419aa…不变，原框架完成power_only→power_then_timing阶段重测并更新checkpoint；本轮收益来自这条已有专业机制，不算新Student C++成果。原DPL→Goal输入继承与产物hash保留；这是GCD实际组合分支较旧最好单项的改善，不是同总预算公平对照或四Agent普遍优于单项的证明。四轮ECO与route-only控制仍七项同值，ECO没有新增收益。
+
+完整原生续作在预算内正常结束，最终run-8552eaed8e7a45c98551679eac1bb288入库；空目录重放run-7d0283ffa2d8477aa9a60c65be0b7b0b七项PPA逐值相同，六个SDK scope及摘要/指标身份核查通过。新结果已由Codex采用，旧incumbent及失败分支保留；当前使用var/business/a7-quality-20261014/production-runtime/local.json。
+
+逻辑证明run-4bae10bf2cf843ac955d711be6efba57覆盖全部18个顶层输出位，未证明项为零。原默认证明先遇到TAPCELL/FILLER缺SAT模型；补充证明从EF生成的Yosys JSON核实零端口连接，仅在证明模型中排除这些物理单元与无功能的scope元数据，并隐藏内部名称以免要求可交换引脚逐名相等。Liberty、顺序电路归纳与equiv_status -assert保留，实际网表/ODB/约束未修改。完整脚本、解析JSON、排除类型与日志保存于a7-output-proof-r2；这是固定Liberty数字逻辑证明，不替代物理验收。默认逐内部名证明仍可能对合法换脚过严，输出证明流程由Codex执行现有EF工具完成，没有新评测服务；通用CLI是否增加此选项留给后续独立决策。两个不完整模型尝试及原失败日志保留。
+
+真实Query最终PPA调查inv-3b18c9cb450346868ae8fae89cb0e127提供10条确认事实；首次没有发现已登记stage/Teacher分析子项。根诊断入口现通过既有公开EF接口列出绑定固定run的成功analysis及raw_flow_metadata引用，不扩大权限。补充调查inv-9430303dd2d341c8b682e33188647c5b/a772ffce…提供11条事实、0假设，已实际读到原规则与阶段证据：repair_power开放setup、placement恢复、native GRT再次开放、最终DRT/RCX恢复。观察不证明某一参数唯一因果。它是同一Codex的领域证据增强，不重造通用harness。
+
+EF最终381项通过/1主机条件跳过，根最终175项回归通过；新增源文件lint/格式/pyright、逐文件差异及边界检查通过。A7审计112项运行全终态（104成功/6失败/1失联/1取消）；失联发生于托管锁修复前，事故唯一阻塞位置仍不能从旧回执推出。新wheel的真实979秒链接、120MB输入/产物及默认30秒lease跨35秒托管测试通过；活跃原轮次收尾后升级本轮服务。26份用户文件原hash不变，临时资格服务已停止，数据与失败保留。AES只验本片公共接点/固定方法与Query，七项PPA同值，不宣称AES四专业全搜索。
+
+权威回执：var/business/a7-quality-20261014/acceptance.json、closeout.json、adoption.json、continuation-vs-incumbent.json、continuation-vs-orfs.json、continuation-empty-replay.json、continuation-logic-output.json、final-sdk-query.json及两份final-*-diagnosis-receipt.json。
+
+## 过程记录：已查明的业务问题
 
 DPL→Goal的时序退化首次可见于Goal的功耗优化阶段，早于最终布线。原生父源码的evaluation_mode是`power_only`，晋升并不代表最终setup可行。原生placement/GRT估计与最终DRT/RCX的分析条件不同，原算法、原指标与原晋升均保留，Codex单独判断采用。
 
@@ -86,3 +110,38 @@ GCD实例名称只出现在本片实际证据/实验上下文中，未写入通�
 续作r2的原两个LTO链接尝试分别以resource_exceeded结束，公开进程树RSS75,676,360,704/96,423,223,296 bytes、35/42进程，超过原64GiB；不是心跳或模型错误。EF只读检查镜像编译器wrapper及GCC dry-link，确认同一链接同时携带-flto=auto/-flto=1。平台bridge仅在明确两旗冲突的单行链接中移除auto，把已有显式单worker要求落实，继续使用原-O3/LTO/源码/库/输出与工作目录；多行静态归档及仅auto调用原样。原脚本作为冻结输入登记，实际执行argv进入leaf receipt。新增两项测试覆盖参数边界/不改其他调用及链接输入hash。r3预算17500秒早于原截止，失败r1/r2目录保留，实际内存改善和正常轮次仍待验证。
 
 Goal完整既有回归393通过/3依赖跳过，桥接SDK环境13通过；LTO修复后桥接15通过、专业单元回归通过，未重做不受修改影响的八份历史源码归档hash校验。记录在var/business/a7-quality-20261014/goal-regression-qualified-final.log与goal-regression-lto-final.log。首次误用Query环境缺tree-sitter、代理导致dashboard 502及错误测试目录的门禁失败保留，改用原Goal环境且本机HTTP不经代理；未据此修无关业务代码。
+
+
+r3真实验证：链接run-8438816f49c940c8bad0c361a9be9657于19:16:05–19:37:43 UTC正常成功，实际leaf argv只含-flto=1，峰值RSS4,821,483,520 bytes、10进程；CPU1266.35秒，链接1297.4秒，原64GiB配额未增。相同父源码的power_then_timing基线通过，原生TNS abs由0.410835504532降至0.00229744007811ns，dynamic power1,232,783,159.821338pW、leakage993,289.404505pW、DRV0。它是原生阶段估计，不代替最终共同DRT/RCX或FF约束；Teacher/四Student继续，原targets/promotion未改。
+
+A6新DPL完整轮次已正常收尾，无源码晋升：Teacher识别第一候选orientation/pin回滚缺陷，即使HPWL领先也拒绝。公开分析产物run-3929c0eec11d49a29a7b6927057b9293归属于最终run-ca33897503094510aae669c6f6c78c45，文本hash经公开ZIP核验。新DPL默认方法的合法最终PPA也未优于原Goal单项，不替换incumbent。
+
+
+## 收尾可靠性复核
+
+A6首批42次运行的“无新增失联”只对该批成立。A7 Student3链接`run-68f0cf01a0a34db5b56d90443eb133e5`于20:30:30–20:55:30 UTC以lease_expired结束，失联前有两次公开GET超时；任务声明7260秒，不能归为声明超时。原生重试后来成功，此失败原样保留。已有公开回执不足以证明这次事故的唯一阻塞位置。
+
+源码和可控测试进一步确认：`RuntimeStore.register_artifacts`在共享连接锁内校验、复制产物，能挡住别的attempt续租。测试修改前失败，修改后通过。补充修复`dd56c15`把文件托管移到锁外，所有元数据仍在一个事务中提交；重复声明失败时无部分记录，原对象内容校验、路径边界、取消与fencing不变。两项相关回归通过，完整EF回归378通过/1主机条件跳过，类型和11项尺寸/层级门禁通过。store净增3行，1498行/core 9022行的具体审批留存，不扩大其他文件限额。
+
+新wheel在独立临时EF验证服务中完成真实120,460,336字节专业ELF托管及并发OpenROAD身份调用（run-efe47752a1514189bb2c8c26a5ec9063/run-cee79edd9b0d49528bd0df9fce466941）；真实长链接与默认30秒租约测试继续收尾后补记。生产服务仍保留活跃原Goal轮次，先不在活跃进程中替换运行代码。对这次历史事故的完整唯一根因不作过度结论。
+
+同一锁机制也在ingest_input_file/ingest_input两条输入托管入口被可控复现：修改前两项失败，移出文件I/O后全部通过。不增源码行数，不改返回字段或事务；最终存储55项、完整EF381项通过/1主机条件跳过，类型/边界门禁通过。最终r2 wheel保留于var/business/a7-quality-20261014/runtime-wheels-r2，前一wheel及其真实长链接验证不覆盖。
+
+## 未晋升输出的真实来源交接
+
+原续作收尾只在本轮operations找选中checkpoint的EF捕获；未晋升、沿用导入的原checkpoint时，没有本轮新生产者，严格校验会拒绝收尾。新增checkpoint_producer：只有源码hash与原导入父项一致、ODB hash与原已验收输入一致时，查原实验的实际EF physical捕获；任一变化就查本轮，缺失仍报错，不把final metrics的run_id当作来源。三个分支测试及根170项回归通过，新文件Ruff/格式/pyright通过。
+
+真实公开验证从本轮EF生产者的注册data_snapshot ZIP找到与阶段重测后选中ODB相同hash的成员，证据见var/business/a7-quality-20261014/inherited-checkpoint-evidence.json。活跃旧Python驱动已加载旧代码，若其在原生正常结束后被严格producer检查拒绝，只续做共同测量/入库，保留收尾异常、不重跑Teacher/四Student，不伪造leaf记录或修改专业算法。
+
+## 最终改动清单
+
+- chip_evolve/diagnosis.py：发现固定scope内已登记分析证据并交给Codex。
+- admin/continue_goal_timing.py：有限原生续作、继承/新checkpoint生产者及实际测量方法。
+- admin/run_local_quality.py：从注册日志提取阶段事实，以选中方法验证指标。
+- admin/verify_long_task_reliability.py：空目录验证可显式复用实际冻结PDK。
+- admin/test_local_quality.py、admin/test_long_task_reliability.py：对应来源、模式、证据发现与PDK回归。
+- PROJECT.md、ARCHITECTURE.md、TASKS.md、admin/NEXT_RELIABILITY_COLLABORATION_PLAN_20261014.md：同步最终目标/边界/状态，保留原验收标准。
+- admin/A6_LONG_TASK_RELIABILITY_REPORT_20261014.md、admin/A7_COLLABORATION_QUALITY_REPORT_20261014.md：实际验收、失败与范围。
+- execution-foundation gitlink、SOURCE_MANIFEST.json：固定已推送EF修复15d9586及来源tree；其他模块指针/用户修改保持。
+
+运行数据、wheel、凭据、镜像和环境均留在var，不纳入Git。模块内实际改动为store/lease/runtime与对应测试及精确尺寸审批；本轮Goal桥接的GET观察和显式LTO冲突修复已在独立模块提交，不改专业算法。

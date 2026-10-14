@@ -64,7 +64,9 @@ def collect(deployment: Deployment, result_path: Path, output: Path) -> dict[str
         member = names[0]
         (output / "native.log").write_bytes(bundle.read(member))
     stages = stage_metrics((output / "native.log").read_text())
-    parent = frame["native_method"].get("parent")
+    parent = frame["native_method"].get("selected_checkpoint") or frame[
+        "native_method"
+    ].get("parent")
     if (
         parent
         and abs(abs(stages[-1]["setup_tns_ns"]) - parent["metrics"]["tns_abs_ns"])
