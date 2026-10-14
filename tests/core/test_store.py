@@ -10,6 +10,7 @@ import hashlib
 import sqlite3
 import subprocess
 import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -27,6 +28,27 @@ from openroad_platform_runtime.store import (
     RuntimeStore,
     RuntimeStoreError,
 )
+
+
+def test_heartbeat_lease_begins_after_waiting_for_the_connection_lock(store, tmp_path):
+    run = submit(store)
+    stage = store.list_stages(run.run_id)[0]
+    attempt = store.start_attempt(stage.stage_run_id, worker_id="w1",
+                                  workspace=tmp_path / "ws", lease_seconds=30)
+    started = threading.Event()
+
+    def renew():
+        started.set()
+        store.heartbeat(attempt.attempt_id, worker_id="w1", lease_seconds=1)
+
+    with store._lock:
+        waiter = threading.Thread(target=renew)
+        waiter.start()
+        assert started.wait(2)
+        time.sleep(1.5)
+    waiter.join(timeout=5)
+    assert not waiter.is_alive()
+    assert store.reclaim_expired_attempts() == []
 
 
 def test_resource_claim_is_fifo_capacity_and_release(store: RuntimeStore, tmp_path: Path):

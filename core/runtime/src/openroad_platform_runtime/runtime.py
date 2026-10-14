@@ -16,7 +16,6 @@ import os
 import platform
 import shutil
 import socket
-import time
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, replace
@@ -46,6 +45,7 @@ from openroad_platform_contracts import (
 
 from .adapter import AdapterExecution, ProcessAdapter, validate_artifact_declarations
 from .digest import sha256
+from .lease import LeasePulse
 from .observer import ProgressObserver
 from .store import (
     Attempt,
@@ -577,12 +577,13 @@ class WorkflowRuntime:
         except InvalidTransition:
             return self.store.get_run(run_id), False
 
-        pulse = _LeasePulse(
+        pulse = LeasePulse(
             self.store,
             run_id,
             attempt.attempt_id,
             worker_id=self.config.worker_id,
             lease_seconds=self.config.lease_seconds,
+            timeout_seconds=min(run.task_spec.timeout_seconds, manifest.default_timeout_seconds),
             external_cancel_requested=external_cancel_requested,
         )
         observer = ProgressObserver(
@@ -596,15 +597,10 @@ class WorkflowRuntime:
         )
 
         try:
-            self._run_attempt(
-                run,
-                stage,
-                attempt,
-                manifest,
-                workspace,
-                pulse,
-                observer,
-            )
+            with pulse:
+                self._run_attempt(
+                    run, stage, attempt, manifest, workspace, pulse, observer,
+                )
         except Exception as exc:  # noqa: BLE001 - terminalize runtime failures
             self._record_runtime_failure(run, attempt, exc)
         finally:
@@ -619,7 +615,7 @@ class WorkflowRuntime:
         attempt: Attempt,
         manifest: PluginManifest,
         workspace: Path,
-        pulse: _LeasePulse,
+        pulse: LeasePulse,
         observer: ProgressObserver,
     ) -> None:
         environment = {**dict(self.environment_resolver(run) if self.environment_resolver else {}),
@@ -655,6 +651,7 @@ class WorkflowRuntime:
                 process_start_ticks=ticks,
             ),
         )
+        pulse.check()
         self._reject_forged_authority(execution)
         # Keep the small platform evidence files outside the mutable workspace
         # so a later bundle export remains possible after workspace cleanup.
@@ -701,6 +698,7 @@ class WorkflowRuntime:
             )
 
         retry = self._should_retry(run, attempt, execution)
+        pulse.check()
         self.store.finish_attempt(
             attempt.attempt_id,
             _attempt_status(execution.result.status),
@@ -1032,49 +1030,6 @@ class WorkflowRuntime:
             if stage.status in {RuntimeStatus.QUEUED, RuntimeStatus.RETRY_WAIT}:
                 return stage
         return None
-
-
-class _LeasePulse:
-    """Callable handed to the guardian: returns True when we must stop.
-
-    Doubles as the heartbeat.  A long run with no output still keeps its lease,
-    which is what separates "slow" from "dead".
-    """
-
-    def __init__(
-        self,
-        store: RuntimeStore,
-        run_id: str,
-        attempt_id: str,
-        *,
-        worker_id: str,
-        lease_seconds: int,
-        external_cancel_requested: Callable[[], bool] | None = None,
-    ):
-        self.store = store
-        self.run_id = run_id
-        self.attempt_id = attempt_id
-        self.worker_id = worker_id
-        self.lease_seconds = lease_seconds
-        self.external_cancel_requested = external_cancel_requested
-        self._last = 0.0
-
-    def __call__(self) -> bool:
-        if self.external_cancel_requested is not None and self.external_cancel_requested():
-            self.store.request_cancel(self.run_id)
-            return True
-        if self.store.get_run(self.run_id).status is RuntimeStatus.CANCEL_REQUESTED:
-            return True
-        now = time.monotonic()
-        if now - self._last >= max(1.0, self.lease_seconds / 3):
-            self.store.heartbeat(
-                self.attempt_id,
-                worker_id=self.worker_id,
-                lease_seconds=self.lease_seconds,
-            )
-            touch_worker(self.store, self.worker_id, attempt_id=self.attempt_id)
-            self._last = now
-        return False
 
 
 def _within(path: Path, root: Path) -> bool:

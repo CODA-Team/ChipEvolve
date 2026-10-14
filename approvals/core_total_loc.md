@@ -488,3 +488,21 @@ reader regressions. This is required lifecycle correctness in the authorized
 Owner approved maximum 8982 physical lines (+1): resource_totals now uses the
 existing RuntimeStore RLock around the shared connection query and fetch.
 No new kernel contract, resource policy, schema or dependency is introduced.
+
+## 2026-10-14 A6 attempt-scoped lease renewal: 8983 -> 9019
+
+The owner authorized A6/A7 on 2026-10-14, including the planned lifecycle
+repair and exact size accounting. Four controlled delays (input staging,
+resource metering, progress observation, evidence collection) each reproduced
+healthy attempts being reclaimed. Replace guardian-poll-driven renewal with
+one attempt-scoped renewer, stopped on exit and bounded by the existing task
+and manifest timeout plus one lease. A real killed worker still stops renewal;
+the existing reclaim/fencing path remains authoritative.
+
+The old implementation is removed from runtime.py (1101 approved maximum ->
+1054 physical lines); the single new internal lease.py is 94 lines. Actual
+kernel total is 9019, a net 36-line increase over the previous 8983 ceiling.
+No extra headroom is granted. Public contracts, schemas, algorithms and task
+resource policies are unchanged. A separate contention regression reproduced
+an already-stale lease timestamp; heartbeat now samples time after acquiring
+the existing store lock, with no line growth.

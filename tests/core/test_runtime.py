@@ -10,8 +10,11 @@ from __future__ import annotations
 import base64
 import io
 import json
+import multiprocessing
 import shutil
 import sys
+import threading
+import time
 import zipfile
 from pathlib import Path
 
@@ -703,3 +706,117 @@ def test_a_timed_out_run_is_not_retried(tmp_path):
     assert run.status is RuntimeStatus.TIMED_OUT, run.status
     stage = rt.store.list_stages(run.run_id)[0]
     assert len(rt.store.list_attempts(stage.stage_run_id)) == 1
+
+
+@pytest.mark.parametrize("phase", ["staging", "meter", "observer", "collection"])
+def test_slow_lifecycle_phase_does_not_lose_a_healthy_lease(tmp_path, monkeypatch, phase):
+    rt = runtime(tmp_path, manifest())
+    rt.config.lease_seconds = 2
+    run = rt.submit(task("ok"))
+    entered = threading.Event()
+    stop = threading.Event()
+    reclaimed = []
+
+    def delay_once(original):
+        def delayed(*args, **kwargs):
+            if not entered.is_set():
+                entered.set()
+                time.sleep(3)
+            return original(*args, **kwargs)
+        return delayed
+
+    observer = None
+    if phase == "staging":
+        monkeypatch.setattr(rt, "_stage_inputs", delay_once(rt._stage_inputs))
+    elif phase == "meter":
+        monkeypatch.setattr(rt.adapter.guardian, "measure", delay_once(rt.adapter.guardian.measure))
+    elif phase == "observer":
+        observer = delay_once(lambda line: None)
+    else:
+        monkeypatch.setattr(rt.store, "snapshot_evidence", delay_once(rt.store.snapshot_evidence))
+
+    def reclaim():
+        while not stop.wait(0.05):
+            reclaimed.extend(rt.store.reclaim_expired_attempts())
+
+    reaper = threading.Thread(target=reclaim)
+    reaper.start()
+    try:
+        finished = rt.execute_once(run.run_id, on_line=observer)
+    finally:
+        stop.set()
+        reaper.join(timeout=10)
+    assert not reaper.is_alive()
+    assert entered.is_set(), "the intended slow phase was not exercised"
+    assert finished.status is RuntimeStatus.SUCCEEDED
+    assert reclaimed == []
+    attempt = rt.store.list_attempts(rt.store.list_stages(run.run_id)[0].stage_run_id)[0]
+    assert attempt.status is AttemptStatus.SUCCEEDED
+    assert rt.store.list_artifacts(attempt.attempt_id)
+
+
+def test_lease_renewer_stops_when_a_real_worker_dies(tmp_path):
+    pid_file = tmp_path / "adapter.pid"
+    entry = (sys.executable, "-c", (
+        "import os,time; from pathlib import Path; "
+        f"Path({str(pid_file)!r}).write_text(str(os.getpid())); time.sleep(60)"
+    ))
+    description = manifest(adapter_entry=entry)
+    rt = runtime(tmp_path, description)
+    rt.config.lease_seconds = 2
+    run = rt.submit(task("ok"))
+
+    def execute():
+        own = runtime(tmp_path, description)
+        own.config.lease_seconds = 2
+        own.execute_once(run.run_id)
+
+    worker = multiprocessing.get_context("fork").Process(target=execute)
+    worker.start()
+    try:
+        deadline = time.monotonic() + 10
+        while not pid_file.exists() and time.monotonic() < deadline:
+            time.sleep(0.05)
+        assert pid_file.exists(), "real adapter never started"
+        adapter_pid = int(pid_file.read_text())
+        time.sleep(2.5)
+        assert rt.store.reclaim_expired_attempts() == []
+        worker.kill()
+        worker.join(timeout=5)
+        deadline = time.monotonic() + 10
+        while rt.store.get_run(run.run_id).status is not RuntimeStatus.LOST:
+            rt.store.reclaim_expired_attempts()
+            assert time.monotonic() < deadline
+            time.sleep(0.05)
+        stat = Path(f"/proc/{adapter_pid}/stat")
+        assert not stat.exists() or stat.read_text().split(")", 1)[1].split()[0] == "Z"
+        attempt = rt.store.list_attempts(rt.store.list_stages(run.run_id)[0].stage_run_id)[0]
+        with pytest.raises(RuntimeStoreError):
+            rt.store.finish_attempt(attempt.attempt_id, AttemptStatus.SUCCEEDED, exit_code=0)
+    finally:
+        if worker.is_alive():
+            worker.kill()
+        worker.join(timeout=5)
+
+
+def test_lifecycle_renewal_is_bounded_and_does_not_leave_a_thread(tmp_path):
+    from openroad_platform_runtime.lease import LeasePulse
+
+    rt = runtime(tmp_path, manifest())
+    run = rt.submit(task("ok"))
+    stage = rt.store.list_stages(run.run_id)[0]
+    attempt = rt.store.start_attempt(stage.stage_run_id, worker_id="test-worker",
+                                    workspace=tmp_path / "ws", lease_seconds=1)
+    pulse = LeasePulse(rt.store, run.run_id, attempt.attempt_id,
+                       worker_id="test-worker", lease_seconds=1, timeout_seconds=0.1)
+    with pulse:
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            try:
+                pulse.check()
+            except TimeoutError:
+                break
+            time.sleep(0.05)
+        else:
+            pytest.fail("a stalled lifecycle renewed indefinitely")
+    assert not any(t.name == f"lease-{attempt.attempt_id}" for t in threading.enumerate())

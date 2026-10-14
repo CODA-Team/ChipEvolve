@@ -163,3 +163,9 @@ above that threshold must carry the explicit `memory_approval=manual` label,
 making large-machine consumption visible and deliberate.
 
 2026-10-08 ratchet: current maximum 1101 physical lines; earlier ceilings above are historical.
+
+2026-10-14 A6 ratchet: maximum 1054 physical lines. The old poll-driven
+heartbeat implementation is removed; the one internal attempt-scoped renewer
+lives in lease.py and covers staging, execution and artifact handling. Public
+runtime signatures remain unchanged. Exact total growth is recorded in
+core_total_loc.md and ceiling.json.

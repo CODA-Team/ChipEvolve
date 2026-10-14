@@ -688,8 +688,8 @@ class RuntimeStore:
         )
     def heartbeat(self, attempt_id: str, *, worker_id: str, lease_seconds: int) -> None:
         """Extend a lease.  A mismatched worker is refused, not ignored."""
-        now = datetime.now(timezone.utc)
         with self._lock:
+            now = datetime.now(timezone.utc)
             row = self._connection.execute(
                 "SELECT worker_id, status FROM runtime_attempts WHERE attempt_id = ?",
                 (attempt_id,),
