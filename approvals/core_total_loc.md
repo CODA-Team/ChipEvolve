@@ -506,3 +506,13 @@ No extra headroom is granted. Public contracts, schemas, algorithms and task
 resource policies are unchanged. A separate contention regression reproduced
 an already-stale lease timestamp; heartbeat now samples time after acquiring
 the existing store lock, with no line growth.
+
+2026-10-15 A6/A7 authorised reliability follow-up: artifact custody performed
+hashing and copying while holding the shared connection lock. A deterministic
+regression failed before the fix: another active attempt could not heartbeat
+until the copy was released. Prepare validated content-addressed objects outside
+the lock, then retain one atomic metadata transaction. No public API, schema,
+lease duration, fencing rule or professional algorithm changes. The store grows
+by exactly three physical lines, 1495 -> 1498; core total 9019 -> 9022. The boss
+already authorised A6 store fixes supported by reproduction and necessary shared
+integration repairs; no general budget exemption is introduced.

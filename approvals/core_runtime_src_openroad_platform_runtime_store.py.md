@@ -177,3 +177,13 @@ concurrent worker writes, cancelling healthy links. The private usage query is
 the remaining connection read without the existing RLock; one lock line fixes
 that boundary. Resource rules, database schema, public API and algorithms are
 unchanged. A transaction/read regression and complete gates validate the fix.
+
+2026-10-15 A6/A7 authorised reliability follow-up: artifact custody performed
+hashing and copying while holding the shared connection lock. A deterministic
+regression failed before the fix: another active attempt could not heartbeat
+until the copy was released. Prepare validated content-addressed objects outside
+the lock, then retain one atomic metadata transaction. No public API, schema,
+lease duration, fencing rule or professional algorithm changes. The store grows
+by exactly three physical lines, 1495 -> 1498; core total 9019 -> 9022. The boss
+already authorised A6 store fixes supported by reproduction and necessary shared
+integration repairs; no general budget exemption is introduced.

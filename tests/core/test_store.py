@@ -30,6 +30,53 @@ from openroad_platform_runtime.store import (
 )
 
 
+def test_artifact_custody_io_does_not_block_other_attempt_heartbeat(store, tmp_path, monkeypatch):
+    run = submit(store)
+    stage = store.list_stages(run.run_id)[0]
+    attempt = store.start_attempt(stage.stage_run_id, worker_id="w1",
+                                  workspace=tmp_path, lease_seconds=30)
+    other = submit(store, task_id="other-attempt")
+    other_stage = store.list_stages(other.run_id)[0]
+    other_attempt = store.start_attempt(other_stage.stage_run_id, worker_id="w2",
+                                        workspace=tmp_path / "other", lease_seconds=30)
+    (tmp_path / "binary").write_bytes(b"real-artifact")
+    copying, release, renewed = threading.Event(), threading.Event(), threading.Event()
+    original = store._store_object
+    errors, registered = [], []
+
+    def slow_custody(*args):
+        copying.set()
+        assert release.wait(5)
+        return original(*args)
+
+    def register():
+        try:
+            registered.extend(store.register_artifacts(attempt.attempt_id, tmp_path,
+                                                       [{"kind": "binary", "store_key": "binary"}]))
+        except Exception as error:
+            errors.append(error)
+
+    def renew():
+        store.heartbeat(other_attempt.attempt_id, worker_id="w2", lease_seconds=30)
+        renewed.set()
+
+    monkeypatch.setattr(store, "_store_object", slow_custody)
+    publisher = threading.Thread(target=register)
+    publisher.start()
+    assert copying.wait(2)
+    heartbeat = threading.Thread(target=renew)
+    heartbeat.start()
+    try:
+        responsive = renewed.wait(1)
+    finally:
+        release.set()
+        publisher.join(5)
+        heartbeat.join(5)
+    assert responsive, "artifact file I/O held the connection lock across heartbeats"
+    assert not errors and len(registered) == 1
+    assert store.artifact_path(registered[0]).read_bytes() == b"real-artifact"
+
+
 def test_heartbeat_lease_begins_after_waiting_for_the_connection_lock(store, tmp_path):
     run = submit(store)
     stage = store.list_stages(run.run_id)[0]
@@ -49,6 +96,22 @@ def test_heartbeat_lease_begins_after_waiting_for_the_connection_lock(store, tmp
     waiter.join(timeout=5)
     assert not waiter.is_alive()
     assert store.reclaim_expired_attempts() == []
+
+
+def test_artifact_metadata_batch_remains_atomic_after_file_custody(store, tmp_path):
+    run = submit(store)
+    stage = store.list_stages(run.run_id)[0]
+    attempt = store.start_attempt(stage.stage_run_id, worker_id="w1",
+                                  workspace=tmp_path, lease_seconds=30)
+    (tmp_path / "binary").write_bytes(b"atomic-artifact")
+    declaration = {"kind": "binary", "store_key": "binary"}
+    with pytest.raises(sqlite3.IntegrityError):
+        store.register_artifacts(attempt.attempt_id, tmp_path,
+                                 [declaration, declaration])
+    assert store.list_artifacts(attempt.attempt_id) == []
+    registered = store.register_artifacts(attempt.attempt_id, tmp_path, [declaration])
+    assert len(registered) == 1
+    assert store.artifact_path(registered[0]).read_bytes() == b"atomic-artifact"
 
 
 def test_resource_claim_is_fifo_capacity_and_release(store: RuntimeStore, tmp_path: Path):

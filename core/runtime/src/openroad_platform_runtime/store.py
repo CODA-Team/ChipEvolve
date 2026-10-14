@@ -1044,30 +1044,34 @@ class RuntimeStore:
         which of the two places a reader should look.
         """
         workspace = Path(workspace).resolve()
-        created: list[str] = []
+        prepared: list[Artifact] = []
+        # File custody can take longer than a lease. Keep it outside the shared
+        # connection lock so other attempts can renew and report their state.
+        for declaration in declarations:
+            store_key = str(declaration["store_key"])
+            path = (workspace / store_key).resolve()
+            try:
+                path.relative_to(workspace)
+            except ValueError as exc:
+                raise RuntimeStoreError(f"artifact escapes the attempt workspace: {store_key!r}") from exc
+            if not path.is_file():
+                raise RuntimeStoreError(f"declared artifact is missing: {store_key!r}")
+            artifact = Artifact(
+                artifact_id=_new_id("art"),
+                kind=str(declaration["kind"]),
+                store_key=store_key,
+                sha256=sha256(path),
+                size_bytes=path.stat().st_size,
+                media_type=declaration.get("media_type"),
+                metadata=dict(declaration.get("metadata") or {}),
+            )
+            artifact.validate()
+            self._store_object(path, artifact.sha256, artifact.size_bytes)
+            prepared.append(artifact)
         with self._lock:
             self._connection.execute("BEGIN IMMEDIATE")
             try:
-                for declaration in declarations:
-                    store_key = str(declaration["store_key"])
-                    path = (workspace / store_key).resolve()
-                    try:
-                        path.relative_to(workspace)
-                    except ValueError as exc:
-                        raise RuntimeStoreError(f"artifact escapes the attempt workspace: {store_key!r}") from exc
-                    if not path.is_file():
-                        raise RuntimeStoreError(f"declared artifact is missing: {store_key!r}")
-                    artifact = Artifact(
-                        artifact_id=_new_id("art"),
-                        kind=str(declaration["kind"]),
-                        store_key=store_key,
-                        sha256=sha256(path),
-                        size_bytes=path.stat().st_size,
-                        media_type=declaration.get("media_type"),
-                        metadata=dict(declaration.get("metadata") or {}),
-                    )
-                    artifact.validate()
-                    self._store_object(path, artifact.sha256, artifact.size_bytes)
+                for artifact in prepared:
                     self._connection.execute(
                         "INSERT INTO runtime_artifacts (artifact_id, attempt_id, kind, store_key, size_bytes, sha256, metadata_json, created_at, storage) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         (
@@ -1082,12 +1086,11 @@ class RuntimeStore:
                             STORAGE_OBJECT,
                         ),
                     )
-                    created.append(artifact.artifact_id)
                 self._connection.execute("COMMIT")
             except Exception:
                 self._connection.execute("ROLLBACK")
                 raise
-        return created
+        return [artifact.artifact_id for artifact in prepared]
     def ingest_input(self, content: bytes) -> UploadedInput:
         if not isinstance(content, bytes):
             raise TypeError("uploaded input content must be bytes")
