@@ -10,7 +10,6 @@ import subprocess
 import time
 from pathlib import Path
 
-from overnight_runtime import command
 from run_dplevolve_native import digest, source_inventory, write_json
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -185,70 +184,61 @@ def measure(state: Path):
 
 def finish(state: Path, key: str = "dpl-routed"):
     """Resume CTS/routing from the actual source-optimized placement."""
+    from openroad_platform_client import KernelClient
+    from resume_placement import resume
+
     run = state / "agents/dpl"
     profile = json.loads((run / "profile.json").read_text())
     runtime = json.loads((state / "runtime.json").read_text())
     work = state / "handoffs" / key
-    results = work / "results/asap7/gcd/base"
-    results.mkdir(parents=True, exist_ok=False)
-    for path in (state / "handoffs/flow/flow/results").iterdir():
-        if path.is_file() and path.name[0] in "123":
-            shutil.copyfile(path, results / path.name)
     native = (
         Path(profile["orfs_root"])
         / "flow/results/asap7/gcd/overnight/dpl_evolve_baseline/candidate/legalized.odb"
     )
-    for name in ("3_5_place_dp.odb", "3_place.odb"):
-        shutil.copyfile(native, results / name)
     flow = state / "agents/flow-r5/source/flow"
     original = flow / "backup_dir/asap7/gcd/result_dump_2/config_6.mk"
-    config = work / "config.mk"
-    # Preserve the selected candidate's full actual config and constraints.
-    shutil.copy2(original, config)
     parents = [
         json.loads(p.read_text())["run"]["run_id"]
         for p in (run / "operations").glob("*/execution.json")
     ]
-    write_json(
-        work / "handoff.json",
-        {
-            "flow_run_id": profile["data_context"]["parent_run_id"],
-            "dpl_run_ids": parents,
-            "dpl_odb_sha256": digest(native),
-            "config_sha256": digest(config),
-            "resume_stage": "cts",
-            "built_source_candidate": "U3 independently replayed source",
-        },
+    client = KernelClient(runtime["kernel_url"])
+    source_run, source_artifact = next(
+        (parent, artifact)
+        for parent in parents
+        for artifact in client.artifacts(parent)
+        if artifact["kind"] == "raw_design_database"
+        and artifact["sha256"] == digest(native)
     )
-    result = command(
+    preparation = state / "requests" / key
+    preparation.mkdir(parents=True, exist_ok=False)
+    candidate = preparation / "placement.odb"
+    client.materialize_artifact(
+        source_run, source_artifact["artifact_id"], str(candidate)
+    )
+    selected = json.loads((state / "flow-selection.json").read_text())
+    archive = preparation / "flow.zip"
+    client.materialize_artifact(
+        selected["run_id"], selected["flow_archive_artifact_id"], str(archive)
+    )
+    result = resume(
         state,
-        key + "-finish",
-        [
-            "apptainer",
-            "exec",
-            "--cleanenv",
-            "--no-home",
-            "--bind",
-            str(state) + ":" + str(state),
-            "--pwd",
-            str(flow),
-            runtime["image"],
-            "make",
-            "DESIGN_CONFIG=" + str(config),
-            "WORK_HOME=" + str(work),
-            "FLOW_VARIANT=base",
-            "NUM_CORES=8",
-            "OPENROAD_EXE=/OpenROAD-flow-scripts/tools/install/OpenROAD/bin/openroad",
-            "YOSYS_EXE=/OpenROAD-flow-scripts/tools/install/yosys/bin/yosys",
-            "PYTHON_EXE=/usr/bin/python3",
-            "finish",
-        ],
-        timeout=1800,
-        memory_gib=24,
-        cpu=8,
+        key,
+        design=profile["design"],
+        profile=state / "agents/flow-r5/profile.json",
+        config=original,
+        sdc=state / "handoffs/flow/flow/results/3_place.sdc",
+        flow_archive=archive,
+        placement=candidate,
+        parent_run=source_run,
     )
-    if result["run"]["status"] != "succeeded":
-        raise RuntimeError("DPL checkpoint to real CTS/route failed")
+    receipt = json.loads((work / "handoff.json").read_text())
+    receipt.update(
+        source_placement_artifact_id=source_artifact["artifact_id"],
+        flow_run_id=selected["run_id"],
+        dpl_run_ids=parents,
+        built_source_candidate="U3 independently replayed source",
+    )
+    write_json(work / "handoff.json", receipt)
     return result
 
 
