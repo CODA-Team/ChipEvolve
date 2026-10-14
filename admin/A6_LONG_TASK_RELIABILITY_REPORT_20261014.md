@@ -71,3 +71,25 @@ DPL保留源码是旧轮次最终保存版本，和历史失联时的未提交�
 OpenDB/ORFS/OpenSTA三个scope及summary/metrics经公开SDK确认，见实验sdk-query.json。Teacher拒绝原因及原selection通过既有analysis_of_run_id登记到最终scope，analysis run-3929c0eec11d49a29a7b6927057b9293，公开ZIP成员0/codex_last_message.txt与原review hash一致；不是私有数据库查询。
 
 最终回执：var/business/a6-reliability-20261014/acceptance.json、a6-closeout.json、qualification.json及两份dpl-round-vs-*.json。A6相关42次公开运行全终态，无新增lease_expired，26份用户文件hash一致。增补证据驱动第一次用了相对experiment路径而被公共契约以400拒绝；改用绝对路径的新r2登记，拒绝的本机请求文件保留，没有修改平台校验。首次ZIP成员核验误加query-data前缀，核对真实包根后验证0/...成员；未改变声明的工作区query-data/...路径。
+
+
+42次终态细分为40次成功、2次真实失败：一项原DPL增量构建超过请求资源，随后专业原生以96GiB完整构建恢复；另一项extractor_error保留。公开失败attempt均检查无lease_expired，真实失败不删、不当成租约故障，也不把42次全部写成成功。
+
+
+## A7收尾暴露的A6补充接点（2026-10-15）
+
+A6首批42次运行的“无新增失联”只对该批成立。A7 Student3链接`run-68f0cf01a0a34db5b56d90443eb133e5`于20:30:30–20:55:30 UTC以lease_expired结束，失联前有两次公开GET超时；任务声明7260秒，不能归为声明超时。原生重试后来成功，此失败原样保留。已有公开回执不足以证明这次事故的唯一阻塞位置。
+
+源码和可控测试进一步确认：`RuntimeStore.register_artifacts`在共享连接锁内校验、复制产物，能挡住别的attempt续租。测试修改前失败，修改后通过。补充修复`dd56c15`把文件托管移到锁外，所有元数据仍在一个事务中提交；重复声明失败时无部分记录，原对象内容校验、路径边界、取消与fencing不变。两项相关回归通过，完整EF回归378通过/1主机条件跳过，类型和11项尺寸/层级门禁通过。store净增3行，1498行/core 9022行的具体审批留存，不扩大其他文件限额。
+
+新wheel在独立临时EF验证服务中完成真实120,460,336字节专业ELF托管及并发OpenROAD身份调用（run-efe47752a1514189bb2c8c26a5ec9063/run-cee79edd9b0d49528bd0df9fce466941）；真实长链接与默认30秒租约测试继续收尾后补记。生产服务仍保留活跃原Goal轮次，先不在活跃进程中替换运行代码。对这次历史事故的完整唯一根因不作过度结论。
+
+默认租约补充验证通过：两项活跃attempt在35秒托管停顿（超过默认30秒lease）期间保持续租，reaper没有误回收，350次状态读取及时返回。回执var/business/a7-quality-20261014/default-lease-custody/receipt.json；这是隔离EF实现fixture，与真实ELF/长链接证据分别记录。
+
+同一锁机制也在ingest_input_file/ingest_input两条输入托管入口被可控复现：修改前两项失败，移出文件I/O后全部通过。不增源码行数，不改返回字段或事务；最终存储55项、完整EF381项通过/1主机条件跳过，类型/边界门禁通过。最终r2 wheel保留于var/business/a7-quality-20261014/runtime-wheels-r2，前一wheel及其真实长链接验证不覆盖。
+
+补充真实长链接通过：新wheel隔离EF的run-afb5c00a60b34721b86401e0828fa9b0正常完成，CPU966.83秒、包含观察/托管的等待979.46秒、峰值RSS4,803,137,536字节/9进程；核对701份源码，120,460,336字节binary的SHA256与原成功构建完全一致（3d1577d4…）。最终含输入修复的r2 wheel另以120MB实际输入冻结/暂存/sha校验与并发OpenROAD身份任务验证通过。原失联失败不覆盖。
+
+## 最终部署与验收补记
+
+补充修复最终commit15d9586及新wheel已在原Goal轮次正常结束、公开API确认无活跃/排队消费者后更新本轮专属服务。EF/DF仍为127.0.0.1:41151/53305，运行状态和历史DB保留；当前配置var/business/a7-quality-20261014/production-runtime/local.json。最终EF381通过/1主机条件跳过，根175通过；临时资格EF5项真实任务全部成功，服务已停止。首批42项与A7112项审计分开记录，A7历史新失联并未被清除。健康慢生命周期及共享文件I/O锁问题均有可控复现、最小修复和实际证据；不声称未来所有主机负载/设计都已验证。A6工程验收通过，老板业务验收待确认。
