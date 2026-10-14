@@ -8,6 +8,7 @@ import urllib.request
 from pathlib import Path
 
 from openroad_platform_contracts import InputFile, ResourceRequest, TaskSpec
+
 from platform_execution import TERMINAL, write_record
 
 
@@ -22,7 +23,15 @@ def request(base, path, payload=None):
         return json.load(response)
 
 
-def publish_feedback(client, state, data_url, evaluation, timeout_seconds=180):
+def publish_feedback(
+    client,
+    state,
+    data_url,
+    evaluation,
+    timeout_seconds=180,
+    *,
+    wait_timeout_seconds=None,
+):
     """A saved request plus public idempotency also covers a lost export reply."""
     state = Path(state)
     path = (
@@ -98,9 +107,17 @@ def publish_feedback(client, state, data_url, evaluation, timeout_seconds=180):
     )
     record.update(producer_run_id=run["run_id"], status=run["status"])
     write_record(path, record)
-    deadline = time.monotonic() + timeout_seconds
+    deadline = time.monotonic() + (
+        timeout_seconds if wait_timeout_seconds is None else wait_timeout_seconds
+    )
+    running_deadline = None
     while run["status"] not in TERMINAL:
-        if time.monotonic() > deadline:
+        current = time.monotonic()
+        if run["status"] == "running" and running_deadline is None:
+            running_deadline = current + timeout_seconds
+        if current > deadline or (
+            running_deadline is not None and current > running_deadline
+        ):
             client.cancel(run["run_id"])
             raise TimeoutError("Feedback snapshot export exceeded its budget.")
         time.sleep(0.2)

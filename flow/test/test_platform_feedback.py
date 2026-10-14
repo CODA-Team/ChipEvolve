@@ -118,6 +118,35 @@ class FeedbackTests(unittest.TestCase):
             self.publish()
         self.assertEqual(self.posts, [])
 
+    def test_queue_wait_uses_campaign_budget_and_execution_keeps_short_budget(self):
+        self.client.submit = lambda task, **kwargs: {
+            "run": {"run_id": "feedback-producer", "status": "queued"}
+        }
+        states = iter(
+            [
+                {"run_id": "feedback-producer", "status": "queued"},
+                {"run_id": "feedback-producer", "status": "running"},
+                {"run_id": "feedback-producer", "status": "succeeded"},
+            ]
+        )
+        self.client.run = lambda run_id: next(states)
+        self.client.cancel = lambda run_id: self.fail(
+            "A valid queued export must not be cancelled"
+        )
+        with (
+            patch("platform_feedback.time.monotonic", side_effect=[0, 0, 200, 400]),
+            patch("platform_feedback.time.sleep"),
+        ):
+            result = publish_feedback(
+                self.client,
+                self.state,
+                "http://data",
+                self.evaluation,
+                timeout_seconds=180,
+                wait_timeout_seconds=600,
+            )
+        self.assertTrue(result["imported"])
+
     def test_wrong_physical_lineage_is_rejected_and_response_preserved(self):
         self.physical = "unrelated-physical"
         with self.assertRaisesRegex(ValueError, "lineage"):

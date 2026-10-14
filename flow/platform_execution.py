@@ -117,6 +117,8 @@ class PlatformExecution:
         hashes = {'profile': digest(self.profile)}
         if os.environ.get('EDA_PLATFORM_OBJECTIVE'):
             hashes['shared_objective'] = digest(Path(os.environ['EDA_PLATFORM_OBJECTIVE']))
+        if os.environ.get('EDA_PLATFORM_CONTEXT'):
+            hashes['design_context'] = digest(Path(os.environ['EDA_PLATFORM_CONTEXT']))
         if not stage.startswith('eval_'):
             hashes.update(config=digest(config), sdc=digest(sdc))
         identity = {'campaign_id': self.campaign, 'iteration': iteration,
@@ -168,6 +170,10 @@ class PlatformExecution:
                 from eda_toolkits.objectives import bind_task_objective
 
                 bind_task_objective(spec)
+            if os.environ.get('EDA_PLATFORM_CONTEXT'):
+                from eda_toolkits.context import bind_task_context
+
+                bind_task_context(spec)
             record = {**identity, 'idempotency_key': key, 'task': spec,
                       'parent_run_id': None if parent is None else parent['run_id'],
                       'status': 'prepared'}

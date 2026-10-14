@@ -3,6 +3,7 @@ import argparse
 import json
 import os
 import shlex
+import time
 from pathlib import Path
 
 from lineage import config_snapshot
@@ -70,7 +71,9 @@ def main():
                               config=args.config, sdc=sdc, evaluation=evaluation,
                               donor_slot=None if args.stage == 'place' else donor)
     if evaluation is not None:
-        publish_feedback(client, settings['state_root'], settings['data_url'], record)
+        remaining = max(1, settings.get('deadline_epoch', time.time() + settings['timeout_seconds']) - time.time())
+        publish_feedback(client, settings['state_root'], settings['data_url'], record,
+                         wait_timeout_seconds=remaining)
     print(json.dumps({'stage': args.stage, 'run_id': record['run_id'],
                       'candidate_id': candidate_id, 'status': record['status']}))
 

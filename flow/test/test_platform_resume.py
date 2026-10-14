@@ -140,6 +140,26 @@ class DurableModelTests(unittest.TestCase):
             tracked_completion(self.client, self.payload, self.context)
         self.assertEqual(len(self.calls), 1)
 
+    def test_new_diagnosis_reaches_model_and_invalidates_response_replay(self):
+        import hashlib
+
+        packet = {
+            "schema_version": "chip-evolve.design-context.v1",
+            "scope": {"design_id": "example"},
+        }
+        context_path = self.root / "context.json"
+        for fact in ("first diagnosed net", "different diagnosed net"):
+            packet["summary"] = fact
+            packet.pop("context_id", None)
+            packet["context_id"] = hashlib.sha256(
+                json.dumps(packet, sort_keys=True, separators=(",", ":")).encode()
+            ).hexdigest()
+            context_path.write_text(json.dumps(packet))
+            with patch.dict(os.environ, {"EDA_PLATFORM_CONTEXT": str(context_path)}):
+                tracked_completion(self.client, self.payload, self.context)
+            self.assertIn(fact, self.calls[-1]["messages"][-1]["content"])
+        self.assertEqual(len(self.calls), 2)
+
 
 class CampaignCheckpointTests(unittest.TestCase):
     flow: Path
