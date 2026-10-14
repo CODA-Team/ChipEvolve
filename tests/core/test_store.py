@@ -30,7 +30,8 @@ from openroad_platform_runtime.store import (
 )
 
 
-def test_artifact_custody_io_does_not_block_other_attempt_heartbeat(store, tmp_path, monkeypatch):
+@pytest.mark.parametrize("custody", ["artifact", "uploaded_file", "uploaded_bytes"])
+def test_artifact_custody_io_does_not_block_other_attempt_heartbeat(store, tmp_path, monkeypatch, custody):
     run = submit(store)
     stage = store.list_stages(run.run_id)[0]
     attempt = store.start_attempt(stage.stage_run_id, worker_id="w1",
@@ -41,7 +42,7 @@ def test_artifact_custody_io_does_not_block_other_attempt_heartbeat(store, tmp_p
                                         workspace=tmp_path / "other", lease_seconds=30)
     (tmp_path / "binary").write_bytes(b"real-artifact")
     copying, release, renewed = threading.Event(), threading.Event(), threading.Event()
-    original = store._store_object
+    original = store._store_bytes if custody == "uploaded_bytes" else store._store_object
     errors, registered = [], []
 
     def slow_custody(*args):
@@ -51,8 +52,13 @@ def test_artifact_custody_io_does_not_block_other_attempt_heartbeat(store, tmp_p
 
     def register():
         try:
-            registered.extend(store.register_artifacts(attempt.attempt_id, tmp_path,
-                                                       [{"kind": "binary", "store_key": "binary"}]))
+            if custody == "artifact":
+                registered.extend(store.register_artifacts(attempt.attempt_id, tmp_path,
+                                                           [{"kind": "binary", "store_key": "binary"}]))
+            elif custody == "uploaded_file":
+                registered.append(store.ingest_input_file(tmp_path / "binary"))
+            else:
+                registered.append(store.ingest_input(b"real-artifact"))
         except Exception as error:
             errors.append(error)
 
@@ -60,7 +66,7 @@ def test_artifact_custody_io_does_not_block_other_attempt_heartbeat(store, tmp_p
         store.heartbeat(other_attempt.attempt_id, worker_id="w2", lease_seconds=30)
         renewed.set()
 
-    monkeypatch.setattr(store, "_store_object", slow_custody)
+    monkeypatch.setattr(store, "_store_bytes" if custody == "uploaded_bytes" else "_store_object", slow_custody)
     publisher = threading.Thread(target=register)
     publisher.start()
     assert copying.wait(2)
@@ -74,7 +80,12 @@ def test_artifact_custody_io_does_not_block_other_attempt_heartbeat(store, tmp_p
         heartbeat.join(5)
     assert responsive, "artifact file I/O held the connection lock across heartbeats"
     assert not errors and len(registered) == 1
-    assert store.artifact_path(registered[0]).read_bytes() == b"real-artifact"
+    if custody == "artifact":
+        assert store.artifact_path(registered[0]).read_bytes() == b"real-artifact"
+    else:
+        copied = tmp_path / "round-trip"
+        store.materialize_input(registered[0].input_id, copied)
+        assert copied.read_bytes() == b"real-artifact"
 
 
 def test_heartbeat_lease_begins_after_waiting_for_the_connection_lock(store, tmp_path):

@@ -1095,8 +1095,8 @@ class RuntimeStore:
         if not isinstance(content, bytes):
             raise TypeError("uploaded input content must be bytes")
         digest, created_at, input_id = sha256(content), _now(), _new_id("input")
+        self._store_bytes(content, digest, len(content))
         with self._lock:
-            self._store_bytes(content, digest, len(content))
             self._connection.execute(
                 "INSERT INTO runtime_uploaded_inputs (input_id, store_key, size_bytes, sha256, created_at) VALUES (?, ?, ?, ?, ?)",
                 (input_id, digest, len(content), digest, created_at),
@@ -1109,8 +1109,8 @@ class RuntimeStore:
             raise RuntimeStoreError(f"input file is not readable: {source}")
         digest, size = sha256(source), source.stat().st_size
         input_id, created_at = _new_id("input"), _now()
+        self._store_object(source, digest, size)
         with self._lock:
-            self._store_object(source, digest, size)
             self._connection.execute(
                 "INSERT INTO runtime_uploaded_inputs (input_id, store_key, size_bytes, sha256, created_at) VALUES (?,?,?,?,?)",
                 (input_id, digest, size, digest, created_at),

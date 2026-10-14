@@ -187,3 +187,8 @@ lease duration, fencing rule or professional algorithm changes. The store grows
 by exactly three physical lines, 1495 -> 1498; core total 9019 -> 9022. The boss
 already authorised A6 store fixes supported by reproduction and necessary shared
 integration repairs; no general budget exemption is introduced.
+
+The same controlled regression also failed for ingest_input_file and ingest_input.
+Their existing custody calls likewise move before the connection lock; no new
+lines or contracts are added. All three custody entry paths share the tested
+lock boundary and retain byte/hash validation and transactional metadata writes.
