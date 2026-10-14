@@ -30,10 +30,23 @@ class CodexTransportTests(unittest.TestCase):
             value["objective_id"] = objective_id(value)
             objective = root / "objective.json"
             objective.write_text(json.dumps(value))
+            import hashlib
+
+            packet = {
+                "schema_version": "chip-evolve.design-context.v1",
+                "scope": {"design_id": "example"},
+                "summary": "supported diagnosis from current design",
+            }
+            packet["context_id"] = hashlib.sha256(
+                json.dumps(packet, sort_keys=True, separators=(",", ":")).encode()
+            ).hexdigest()
+            context = root / "context.json"
+            context.write_text(json.dumps(packet))
 
             def execute(argv, **kwargs):
                 self.assertIn("original guide", kwargs["input"])
                 self.assertIn(value["objective_id"], kwargs["input"])
+                self.assertIn(packet["summary"], kwargs["input"])
                 kwargs["stdout"].write('{"type":"turn.completed","usage":{}}\n')
                 Path(argv[argv.index("--output-last-message") + 1]).write_text("reply")
                 return SimpleNamespace(returncode=0)
@@ -47,6 +60,7 @@ class CodexTransportTests(unittest.TestCase):
                     {
                         "TIMINGECO_EF_LEAF": "1",
                         "EDA_PLATFORM_OBJECTIVE": str(objective),
+                        "EDA_PLATFORM_CONTEXT": str(context),
                     },
                 ),
                 patch.object(platform_codex.subprocess, "run", side_effect=execute),
@@ -97,15 +111,17 @@ class CodexTransportTests(unittest.TestCase):
                 self.assertEqual(meta["usage_reported"]["input_tokens"], 80)
                 self.assertIsNone(meta["total_cost_usd"])
                 self.assertFalse(meta["monetary_cost_measured"])
-                with patch.object(
-                    platform_codex.subprocess,
-                    "run",
-                    return_value=SimpleNamespace(
-                        returncode=1, stdout="", stderr="provider failed"
+                with (
+                    patch.object(
+                        platform_codex.subprocess,
+                        "run",
+                        return_value=SimpleNamespace(
+                            returncode=1, stdout="", stderr="provider failed"
+                        ),
                     ),
+                    self.assertRaisesRegex(RuntimeError, "transport failed"),
                 ):
-                    with self.assertRaisesRegex(RuntimeError, "transport failed"):
-                        platform_codex.call_codex("guide", "context")
+                    platform_codex.call_codex("guide", "context")
 
 
 if __name__ == "__main__":

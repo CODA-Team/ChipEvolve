@@ -39,6 +39,12 @@ def call_codex(system_prompt: str, user_prompt: str) -> tuple[str, dict]:
         from eda_toolkits.objectives import append_objective
 
         prompt = append_objective(prompt)
+    if os.environ.get("TIMINGECO_EF_LEAF") == "1" and os.environ.get(
+        "EDA_PLATFORM_CONTEXT"
+    ):
+        from eda_toolkits.context import append_context
+
+        prompt = append_context(prompt)
     (folder / "prompt.txt").write_text(prompt)
     model = os.environ.get("TIMINGECO_CODEX_MODEL", "gpt-6.1-sol")
     command = [

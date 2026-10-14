@@ -2977,4 +2977,7 @@ if __name__ == "__main__":
         from platform_execution import submit
         submit(Path(_os.environ["TIMINGECO_PLATFORM_PROFILE"]).resolve())
     else:
-        run_loop(loop_max=48)
+        loop_max = int(_os.environ.get("TIMINGECO_MAX_ITERATIONS", "48"))
+        if loop_max < 1 or (not DRT_EVERY_ITER and loop_max % DRT_CYCLE):
+            raise ValueError("ECO iteration budget must end at a routed checkpoint")
+        run_loop(loop_max=loop_max)

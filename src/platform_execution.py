@@ -35,7 +35,7 @@ def submit(profile_path: Path) -> dict:
         "schema_version": 3,
         "task_id": profile["experiment_id"] + "-eco-session",
         "project_id": "timing-eco",
-        "design_id": "gcd",
+        "design_id": profile.get("design_id", "gcd"),
         "experiment_id": profile["experiment_id"],
         "plugin_id": "openroad-data",
         "labels": {
@@ -66,6 +66,10 @@ def submit(profile_path: Path) -> dict:
         from eda_toolkits.objectives import bind_task_objective
 
         bind_task_objective(spec, profile.get("objective_path"))
+    if profile.get("context_path") or os.environ.get("EDA_PLATFORM_CONTEXT"):
+        from eda_toolkits.context import bind_task_context
+
+        bind_task_context(spec, profile.get("context_path"))
     client = KernelClient(profile["kernel_url"], timeout=60)
     (state / "spec.json").write_text(json.dumps(spec, indent=2) + "\n")
     response = client.submit(spec, idempotent=True, idempotency_key=spec["task_id"])
@@ -98,6 +102,9 @@ def leaf(profile_path: Path) -> int:
     objective = Path.cwd() / "inputs/shared-objective.json"
     if objective.exists():
         environment["EDA_PLATFORM_OBJECTIVE"] = str(objective)
+    context = Path.cwd() / "inputs/design-context.json"
+    if context.exists():
+        environment["EDA_PLATFORM_CONTEXT"] = str(context)
     code = subprocess.call(
         [profile["python"], str(source / "src/main_orch.py")],
         cwd=source,
