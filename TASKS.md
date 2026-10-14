@@ -1,5 +1,14 @@
 # 施工切片与验收状态
 
+## O2：2026-10-14 路径证据驱动的定点时序修复
+
+工程检查及本机 GCD 指标条件通过，老板业务确认待给出。报告 `admin/GCD_TARGETED_REFINEMENT_REPORT_20261014.md`，权威回执 `var/overnight/gcd-20261014/optimization-r2/acceptance.json`。
+
+- SDK 查到 O1 低功耗方案 5 条负裕量采样路径都经过 `u158`；四组单项单元实验加不改动控制组，均通过 EF 完整路由、RCX、共同测量和 DF 回流。
+- 选择同尺寸 SLVT 修复：TNS=0、最差 slack +2.956ps、功耗相对原 ORFS −0.1583%、单元面积 −0.3846%、core/die 不变；hold、slew、cap、布局及 DRC 干净。O1 的剩余功耗代价问题在此本机条件下解决。
+- 空目录重放 11 项物理指标逐值相同；分别与原 ORFS 和 ECO 做 Yosys 逻辑等价，各 1628 点证明通过；133 项回归通过。26 份用户修改保留。
+- Query 事实→Codex 选择动作→EF→DF→Query 真实闭环；九业务模块及公共契约未改。收益来自独立 ORFS/ECO/功耗回收分支的定点修复，不改写夜间大占地完整协同链路的未达标历史，也不算 Goal 新源码收益。
+
 ## O1：2026-10-14 共同条件复测与功耗回收
 
 工程检查点通过，老板业务验收待确认。报告 `admin/GCD_OPTIMIZATION_REPORT_20261014.md`，权威回执 `var/overnight/gcd-20261014/optimization-r1/acceptance.json`。
