@@ -1,5 +1,28 @@
 # 架构与源码边界
 
+## A4：单机业务入口与诊断交付（最新）
+
+根 `chip-evolve.py` / `chip_evolve` 是确定性业务组合入口，登记设计、目标、能力、预算和源实验；继续调用独立专业控制器。没有新增服务、通用规划循环或综合评分。EF管理任务/资源/原始产物，DF管理设计事实/快照/索引/来源，SDK提供统一查询，Query使用已有Codex调查机制提供诊断，Codex决定下一步及采用结果。
+
+```mermaid
+flowchart LR
+  C[Codex任务与判断] --> B[本机业务CLI]
+  B --> P[原Flow / DPL / Goal / ECO]
+  P --> E[EF]
+  B --> E
+  E --> F[真实产物 / 完整布线 / 共同测量]
+  F --> D[DF]
+  D --> Q[SDK + Query / Codex]
+  Q --> P
+  Q --> C
+```
+
+公共Toolkit `context`把固定源run的Query事实、假设、证据与限制送入原专业提示及EF任务身份；Query `ProfessionalContext`复用既有scope/handoff输入冻结，不新增编辑权限。Goal的公开design_id与原生top分离，DEF保持数据库精度；DPL的原CMake源前缀和当前ORFS前缀共同挂载；Flow保留分支原配置，导出排队使用剩余实验预算。专业评分/原晋升与共同最终验收分别记录。
+
+对外接口为业务CLI `run/status/show/diagnose/select/collect-flow`、Query `export-professional-context`以及既有EF/DF/SDK公共接口；未变更公共HTTP签名。文件职责、函数签名、数据结构、决策及实测见 [A4报告](admin/LOCAL_BUSINESS_ENTRY_REPORT_20261014.md)。GCD四专业实际调用及AES ORFS→Goal/数据验证通过；不代表所有PDK、宏、多时钟或AES完整四专业搜索已验证。原生专业内部现场查询保留。比较端点的时序corner/单位元数据缺口、功耗活动假设缺口仍需明确，不伪造严格因果。
+
+以下各段是历史检查点；最新交付状态以A4/A5及TASKS为准，旧失败和审计更正不改写。
+
 更新：2026-10-14。本页以本轮实际接口和 GCD 验收为准，历史状态保留在 Git 与各切片报告。最终工程回执见 `var/overnight/gcd-20261014/final-acceptance.json`；老板业务确认独立。
 
 **A1审计更正：**旧N4的DPL→CTS交接未通过语义保真。新WORK_HOME下的`make finish`重新综合/布局，覆盖DPL候选；下游关键ODB与原Flow相同。因此旧“DPL候选真实继续CTS/route、完整专业接力通过”结论撤回。A2现已修复DPL→CTS/完整route并做匹配控制实验；这不恢复旧四专业联合收益结论。EF任务成功仅表示命令被执行，不能证明专业修改被下游保留；领域stage适配需记录真实消费起点和阶段改变。O2独立分支的改善和验证保持。详见 `admin/COLLABORATION_AUDIT_20261014.md`，其结论优先于本页保留的旧夜间状态。

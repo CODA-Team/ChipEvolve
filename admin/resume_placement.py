@@ -8,9 +8,6 @@ import re
 import zipfile
 from pathlib import Path
 
-from overnight_runtime import collect, submit
-from run_dplevolve_native import digest, write_json
-
 
 def placement_archive(source: Path, odb: Path, destination: Path, sdc: Path) -> None:
     """Keep native predecessors, replace placement, and omit stale successors."""
@@ -78,6 +75,8 @@ def stage(
     objective: Path | None = None,
 ) -> dict:
     from openroad_platform_client import KernelClient
+    from overnight_runtime import collect, submit
+    from run_dplevolve_native import write_json
 
     spec = {
         "schema_version": 3,
@@ -151,6 +150,8 @@ def resume(
     parent_run: str,
     objective: Path | None = None,
 ) -> dict:
+    from run_dplevolve_native import digest, write_json
+
     if objective is not None:
         from eda_toolkits.objectives import load_objective, verify_conditions
 
