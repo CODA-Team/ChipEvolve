@@ -1,9 +1,9 @@
 """Execute a complete ORFS flow in the attempt's isolated output directory."""
 import json
-from pathlib import Path
 import shutil
 import subprocess
 import zipfile
+from pathlib import Path
 
 from ..environment import require_eda_memory
 from .adapter import _write_result, now, progress
@@ -29,6 +29,24 @@ def run_flow(result_path, started, workspace, inputs):
                '--pwd', '/OpenROAD-flow-scripts/flow', str(image), 'make',
                f'DESIGN_CONFIG={config}', 'WORK_HOME=/work/flow', f'FLOW_VARIANT={variant}',
                f'NUM_CORES={threads}']
+    # Optional staged design bindings keep the stock flow while making inputs
+    # explicit. Defaults retain the original native configuration behavior.
+    for field, variable in (('config_path', 'DESIGN_CONFIG'), ('sdc_path', 'SDC_FILE')):
+        if inputs.get(field):
+            path = (workspace / inputs[field]).resolve()
+            path.relative_to(workspace)
+            if not path.is_file():
+                raise ValueError('missing staged design binding: ' + field)
+            command.append(variable + '=/work/' + path.relative_to(workspace).as_posix())
+    if inputs.get('liberty_paths'):
+        libraries = []
+        for value in inputs['liberty_paths']:
+            path = (workspace / value).resolve()
+            path.relative_to(workspace)
+            if not path.is_file():
+                raise ValueError('missing staged library')
+            libraries.append('/work/' + path.relative_to(workspace).as_posix())
+        command.append('LIB_FILES=' + ' '.join(libraries))
     progress('orfs', 'started')
     result = subprocess.CompletedProcess(command, run_logged(command, workspace))
     ended = now()
