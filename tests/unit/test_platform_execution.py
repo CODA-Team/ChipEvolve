@@ -129,6 +129,52 @@ def test_status_observation_respects_original_deadline(tmp_path):
     assert client.run.call_count == 1
 
 
+def test_link_removes_only_conflicting_auto_lto_and_keeps_argument_boundaries(tmp_path):
+    from goalevolve.platform.execution import link_command
+
+    script = tmp_path / "link.txt"
+    script.write_text('g++ -O3 -flto=auto -flto=1 "object space.o" -o "binary space"\n')
+    command = ["cmake", "-E", "cmake_link_script", str(script), "--verbose"]
+    assert link_command(command) == [
+        "g++",
+        "-O3",
+        "-flto=1",
+        "object space.o",
+        "-o",
+        "binary space",
+    ]
+    script.write_text("g++ -O3 -flto=auto object.o -o binary\n")
+    assert link_command(command) == command
+    script.write_text("ar qc archive.a object.o\nranlib archive.a\n")
+    assert link_command(command) == command
+
+
+def test_link_script_is_frozen_as_a_declared_input(tmp_path):
+    from goalevolve.platform.execution import digest
+
+    script = tmp_path / "link.txt"
+    script.write_text("g++ -flto=auto -flto=1 object.o -o binary\n")
+    image = tmp_path / "image"
+    image.write_bytes(b"image")
+    profile = {
+        "image": str(image),
+        "input_files": {},
+        "toolchain": {"image_sha256": digest(image)},
+    }
+    request = request_for(
+        profile,
+        {
+            "command": ["cmake", "-E", "cmake_link_script", str(script)],
+            "cwd": str(tmp_path),
+        },
+        1,
+    )
+    assert request["inputs"][str(script)] == digest(script)
+    script.write_text("g++ -flto=auto object.o -o binary\n")
+    with pytest.raises(ValueError, match="Frozen input changed"):
+        validate_request(profile, request)
+
+
 def test_runner_returns_delegated_failure_without_native_subprocess(tmp_path):
     expected = ExecutionReport(False, 2, 17, "stdout", "stderr", "command_failed")
     with (

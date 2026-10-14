@@ -10,6 +10,7 @@ import argparse
 import hashlib
 import json
 import os
+import shlex
 import shutil
 import signal
 import subprocess
@@ -84,6 +85,8 @@ def request_for(
         else "analysis"
     )
     inputs = dict(profile["input_files"])
+    if command[:3] == ["cmake", "-E", "cmake_link_script"]:
+        inputs[command[3]] = digest(Path(command[3]))
     if operation == "physical":
         binary = Path(command[0])
         receipt_path = binary.parent / "platform-build.json"
@@ -239,6 +242,19 @@ def task_for(
     return spec
 
 
+def link_command(command: list[str]) -> list[str]:
+    """Honor explicit single-worker LTO rather than the seed's automatic flag."""
+    if command[:3] != ["cmake", "-E", "cmake_link_script"]:
+        return command
+    lines = Path(command[3]).read_text().strip().splitlines()
+    if len(lines) != 1:
+        return command
+    arguments = shlex.split(lines[0])
+    if "-flto=auto" in arguments and "-flto=1" in arguments:
+        return [argument for argument in arguments if argument != "-flto=auto"]
+    return command
+
+
 def container_command(
     profile: dict[str, Any], request: dict[str, Any], workspace: Path
 ) -> list[str]:
@@ -252,7 +268,7 @@ def container_command(
     command += ["--bind", str(scratch) + ":/tmp", "--pwd", request["cwd"]]
     for key, value in profile["container_environment"].items():
         command += ["--env", key + "=" + value]
-    return [*command, profile["image"], *request["command"]]
+    return [*command, profile["image"], *link_command(request["command"])]
 
 
 def leaf(profile: dict[str, Any], request: dict[str, Any]) -> int:
