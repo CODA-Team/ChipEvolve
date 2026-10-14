@@ -111,6 +111,25 @@ class DurableModelTests(unittest.TestCase):
         tracked_completion(self.client, {**self.payload, "messages": []}, self.context)
         self.assertEqual(len(self.calls), 2)
 
+    def test_shared_goal_reaches_model_and_changed_goal_is_not_replayed(self):
+        from eda_toolkits.objectives import SCHEMA, objective_id
+
+        value = {
+            "schema_version": SCHEMA, "design_id": "example", "reference_run_id": "reference",
+            "conditions": {"libraries": [{"sha256": "lib"}], "sdc": {"sha256": "sdc"}},
+            "constraints": {"core_area_um2_max": 100},
+        }
+        objective = self.root / "objective.json"
+        for maximum in (100, 90):
+            value["constraints"]["core_area_um2_max"] = maximum
+            value["objective_id"] = objective_id(value)
+            objective.write_text(json.dumps(value))
+            with patch.dict(os.environ, {"EDA_PLATFORM_OBJECTIVE": str(objective)}):
+                tracked_completion(self.client, self.payload, self.context)
+            self.assertIn(value["objective_id"], self.calls[-1]["messages"][-1]["content"])
+        self.assertEqual(len(self.calls), 2)
+        self.assertEqual(len(self.payload["messages"]), 1)
+
     def test_corrupted_response_is_rejected_without_paid_duplicate(self):
         tracked_completion(self.client, self.payload, self.context)
         path = next((self.root / "model-responses").glob("*.json"))

@@ -115,6 +115,8 @@ class PlatformExecution:
                 config=None, sdc=None, evaluation=None, donor_slot=None):
         path = self.state / f'iteration-{iteration}/slot-{slot}-{stage}.json'
         hashes = {'profile': digest(self.profile)}
+        if os.environ.get('EDA_PLATFORM_OBJECTIVE'):
+            hashes['shared_objective'] = digest(Path(os.environ['EDA_PLATFORM_OBJECTIVE']))
         if not stage.startswith('eval_'):
             hashes.update(config=digest(config), sdc=digest(sdc))
         identity = {'campaign_id': self.campaign, 'iteration': iteration,
@@ -161,7 +163,12 @@ class PlatformExecution:
                             inputs=inputs, staged_inputs=tuple(staged), labels=labels,
                             timeout_seconds=self.timeout,
                             resources=self.request_resources)
-            record = {**identity, 'idempotency_key': key, 'task': task.to_dict(),
+            spec = task.to_dict()
+            if os.environ.get('EDA_PLATFORM_OBJECTIVE'):
+                from eda_toolkits.objectives import bind_task_objective
+
+                bind_task_objective(spec)
+            record = {**identity, 'idempotency_key': key, 'task': spec,
                       'parent_run_id': None if parent is None else parent['run_id'],
                       'status': 'prepared'}
             write_record(path, record)

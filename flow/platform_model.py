@@ -103,6 +103,10 @@ def tracked_completion(client, payload, context=None):
         finish_call(call, response)
         return response
 
+    if os.environ.get("EDA_PLATFORM_OBJECTIVE"):
+        from eda_toolkits.objectives import objective_messages
+
+        payload = objective_messages(payload)
     ledger, identity = _identity(context, payload["model"], provider)
     if ledger is None:
         raise LLMUsageError("Platform decisions require the campaign usage ledger.")
