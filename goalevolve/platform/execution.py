@@ -335,6 +335,31 @@ def leaf(profile: dict[str, Any], request: dict[str, Any]) -> int:
     return code if code else int(timed_out)
 
 
+def observe_run(
+    client: Any, run_id: str, deadline: float, folder: Path
+) -> dict[str, Any]:
+    """Retry only a failed read, without resubmitting or extending the experiment."""
+    from openroad_platform_client import KernelUnavailable
+
+    for attempt in range(3):
+        if time.time() >= deadline:
+            raise TimeoutError("U4 supervision budget exhausted")
+        try:
+            return client.run(run_id)
+        except KernelUnavailable as exc:
+            with (folder / "observation-errors.jsonl").open("a") as log:
+                log.write(
+                    json.dumps(
+                        {"run_id": run_id, "time": time.time(), "error": str(exc)}
+                    )
+                    + "\n"
+                )
+            if attempt == 2:
+                raise
+            time.sleep(min(1, max(0, deadline - time.time())))
+    raise AssertionError("unreachable")
+
+
 def delegate(profile: dict[str, Any], call: dict[str, Any]) -> dict[str, Any]:
     from openroad_platform_client import KernelClient
 
@@ -360,7 +385,7 @@ def delegate(profile: dict[str, Any], call: dict[str, Any]) -> dict[str, Any]:
         write_json(folder / "submission.json", {"run_id": run_id, "key": key})
         try:
             while True:
-                row = client.run(run_id)
+                row = observe_run(client, run_id, profile["deadline_epoch"], folder)
                 if row["status"] in TERMINAL:
                     break
                 if time.time() >= profile["deadline_epoch"]:

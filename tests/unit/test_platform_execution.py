@@ -50,6 +50,85 @@ def test_native_and_leaf_remain_native(tmp_path, monkeypatch):
     )
 
 
+def test_status_read_timeout_does_not_resubmit_or_cancel_a_healthy_task(tmp_path):
+    from unittest.mock import Mock
+
+    KernelUnavailable = pytest.importorskip(
+        "openroad_platform_client"
+    ).KernelUnavailable
+
+    from goalevolve.platform.execution import delegate
+
+    client = Mock()
+    client.submit.return_value = {"run": {"run_id": "owned-run"}}
+    client.run.side_effect = [
+        KernelUnavailable("slow status query"),
+        {"status": "succeeded"},
+    ]
+    client.artifacts.return_value = []
+    call = {"policy": {"retries": 0}}
+    profile = {
+        "kernel_url": "http://127.0.0.1:1",
+        "deadline_epoch": 100,
+        "operations_root": str(tmp_path),
+        "experiment_id": "test",
+    }
+    with (
+        patch("openroad_platform_client.KernelClient", return_value=client),
+        patch("goalevolve.platform.execution.request_for", return_value={}),
+        patch("goalevolve.platform.execution.task_for", return_value={}),
+        patch("goalevolve.platform.execution.time.time", return_value=1),
+        patch("goalevolve.platform.execution.time.sleep"),
+    ):
+        # No leaf receipt means failure; observing the task still must be safe.
+        assert not delegate(profile, call)["ok"]
+    assert client.submit.call_count == 1
+    assert client.run.call_count == 2
+    client.cancel.assert_not_called()
+    records = list(tmp_path.glob("*/observation-errors.jsonl"))
+    assert json.loads(records[0].read_text())["run_id"] == "owned-run"
+
+
+def test_status_observation_stops_after_three_transport_failures(tmp_path):
+    from unittest.mock import Mock
+
+    KernelUnavailable = pytest.importorskip(
+        "openroad_platform_client"
+    ).KernelUnavailable
+
+    from goalevolve.platform.execution import observe_run
+
+    client = Mock()
+    client.run.side_effect = KernelUnavailable("offline")
+    with (
+        patch("goalevolve.platform.execution.time.time", return_value=1),
+        patch("goalevolve.platform.execution.time.sleep"),
+        pytest.raises(KernelUnavailable),
+    ):
+        observe_run(client, "owned-run", 100, tmp_path)
+    assert client.run.call_count == 3
+
+
+def test_status_observation_respects_original_deadline(tmp_path):
+    from unittest.mock import Mock
+
+    KernelUnavailable = pytest.importorskip(
+        "openroad_platform_client"
+    ).KernelUnavailable
+
+    from goalevolve.platform.execution import observe_run
+
+    client = Mock()
+    client.run.side_effect = KernelUnavailable("slow")
+    with (
+        patch("goalevolve.platform.execution.time.time", side_effect=[1, 2, 101, 101]),
+        patch("goalevolve.platform.execution.time.sleep"),
+        pytest.raises(TimeoutError),
+    ):
+        observe_run(client, "owned-run", 100, tmp_path)
+    assert client.run.call_count == 1
+
+
 def test_runner_returns_delegated_failure_without_native_subprocess(tmp_path):
     expected = ExecutionReport(False, 2, 17, "stdout", "stderr", "command_failed")
     with (
