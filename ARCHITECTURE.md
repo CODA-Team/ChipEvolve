@@ -21,6 +21,10 @@ flowchart LR
 
 对外接口为业务CLI `run/status/show/diagnose/select/collect-flow`、Query `export-professional-context`以及既有EF/DF/SDK公共接口；未变更公共HTTP签名。文件职责、函数签名、数据结构、决策及实测见 [A4报告](admin/LOCAL_BUSINESS_ENTRY_REPORT_20261014.md)。GCD四专业实际调用及AES ORFS→Goal/数据验证通过；不代表所有PDK、宏、多时钟或AES完整四专业搜索已验证。原生专业内部现场查询保留。比较端点的时序corner/单位元数据缺口、功耗活动假设缺口仍需明确，不伪造严格因果。
 
+A5新增有限对照命令`chip_evolve.comparisons`：同条件事实差值、原Goal固定方法重放、固定Liberty模型下的Yosys网表等价；均由既有EF执行，没有后台评测服务或新综合分数。GCD/AES固定方法各7项PPA差值为零；完整Flow→DPL原框架→Goal新源码→ECO和数据回流实际完成，联合时序未闭合，保留Goal单项合法incumbent。原专业估计RC参数保留，最终RCX规则与镜像相同，不声称原搜索环境相同。DPL补充新轮次构建/三Student布局评价有效，但超出三小时预算未正常收尾，不能记完整原生验收通过。最终证据、成本和下一步需要独立决策的评分/最终route偏差见[A5报告](admin/LOCAL_PROFESSIONAL_COMPARISON_REPORT_20261014.md)。原失败、专业评分/晋升与Codex采用分别留存。
+
+A5最终技术债：三个真实构建发生EF心跳租约过期，默认30s租约/guardian心跳覆盖需要可控复现后修正；不能宣称长构建稳定性已验收。证据通过公共API保留，不读私有数据库或关闭失控进程保护。本轮不改EF公共契约，后续优先处理这一独立接点。
+
 以下各段是历史检查点；最新交付状态以A4/A5及TASKS为准，旧失败和审计更正不改写。
 
 更新：2026-10-14。本页以本轮实际接口和 GCD 验收为准，历史状态保留在 Git 与各切片报告。最终工程回执见 `var/overnight/gcd-20261014/final-acceptance.json`；老板业务确认独立。
