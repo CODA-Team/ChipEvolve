@@ -1,6 +1,6 @@
 # A6：长任务可靠性修复与真实验证
 
-状态：执行底座修复、工程回归、两项真实长构建/物理与数据验证通过；新DPL完整轮次运行中，仍为A6最终验收项。已满足计划中A7的工程与真实长任务前置，A6代码冻结后进入A7调查，原生轮次在后台继续。业务验收独立。
+状态：工程验收通过。执行底座修复、两项真实长构建/物理与数据验证、新DPL Teacher/三Student/review完整轮次及后续CTS/DRT/RCX/DF/SDK均已完成；本片42次公开运行全部终态、无新增租约失联。老板业务验收独立，历史失败不改写。
 
 ## 已证实的问题和修复
 
@@ -42,7 +42,7 @@ EF 修改只在 core 层；guardian、worker、gateway、contracts 未改。模�
 | `dpl-saved-source-replay` | 旧失败轮次保留的Student源码复制、原helper构建、原三基线/候选评价、CTS/route接续、共同测量与DF入库 | 通过；构建1198.7秒，峰值RSS37,096,685,568 bytes；setup TNS=0 |
 | `goal-lost-source-relink-r2` | 原失联Goal源码701项hash逐项相同；私有source/build副本挂载到原CMake路径，执行原完整LTO链接 | 通过；链接1180.8秒，峰值RSS37,122,605,056 bytes |
 | `goal-rebuilt-native-physical` | 原专业Tcl只改输出目录；随后完整DRT/RCX、共同测量、EF产物→DF/SDK | 运行/数据通过；该非晋升Student的最终时序不合法，不采用 |
-| `dpl-complete-campaign` | Teacher/三Student/review正常收尾，原评分/晋升保持 | 6小时新预算下运行中 |
+| `dpl-complete-campaign` | Teacher/三Student/review正常收尾，原评分/晋升保持 | 通过；00:34:34–03:26:01正常收尾，没有新源码晋升 |
 
 DPL保留源码是旧轮次最终保存版本，和历史失联时的未提交中间源码存在差异，不能称旧失联源码逐字复建；新实验按自己的固定source/binary身份验收。Goal与原失联记录的专业源码逐项一致。
 
@@ -57,6 +57,17 @@ DPL保留源码是旧轮次最终保存版本，和历史失联时的未提交�
 - 原失联回执继续在 `var/business/a4-a5-20261014/lease-failures.json`；新主动取消在 `goal-replay-driver-cancellation.json`。
 - Git/用户文件基线及保留incumbent：`var/business/a6-reliability-20261014/baseline.json`。
 
-真实验收结束前，不把A6记作全部通过，也不把旧DPL三小时截止改写为正常轮次。
+本片实际验收通过；旧DPL三小时截止仍是历史失败，不因新成功改写。
 
-两项新物理结果的OpenDB/指标/OpenSTA三个scope均经公开SDK确认设计/run归属，设计摘要和指标可查询，回执见各实验`sdk-query.json`和本片`qualification.json`。根业务及既有回归163项通过，Ruff/新文件格式/pyright通过；运行可靠性前置通过与完整DPL轮次收尾分别记录。
+两项新物理结果的OpenDB/指标/OpenSTA三个scope均经公开SDK确认设计/run归属，设计摘要和指标可查询，回执见各实验`sdk-query.json`和本片`qualification.json`。根业务及既有回归167项通过，Ruff/新文件格式/pyright通过；运行可靠性前置通过与完整DPL轮次收尾分别记录。
+
+
+## 完整原生轮次及业务结果
+
+`dpl-complete-campaign`于2026-10-15 00:34:34启动、03:26:01完成Teacher/三Student/review；不是预算截止。三个新候选原生最终HPWL586.7/592.9/611.2µm、均合法且正常结束。Teacher确认第一候选虽然线长最好，但MoveCellAction回滚没有完整恢复方向/引脚状态，晚期接受机制不可靠；其余候选没有充分收益，因此原规则拒绝三份源码，平台没有强行晋升。
+
+随后使用原生已有默认方法接续CTS、完整DRT/RCX、共同测量及DF导入，最终run-ca33897503094510aae669c6f6c78c45，setup/hold TNS均0，setup WS+0.0231264ns，电气/布局/DRC通过，功耗0.0020305505022W、单元面积53.3336µm²、core/die58.7866/78.4819不变。功耗相对同条件ORFS−7.0691%，但比已有合法Goal单项差，不采用；不是新Student源码或联合优化收益。
+
+OpenDB/ORFS/OpenSTA三个scope及summary/metrics经公开SDK确认，见实验sdk-query.json。Teacher拒绝原因及原selection通过既有analysis_of_run_id登记到最终scope，analysis run-3929c0eec11d49a29a7b6927057b9293，公开ZIP成员0/codex_last_message.txt与原review hash一致；不是私有数据库查询。
+
+最终回执：var/business/a6-reliability-20261014/acceptance.json、a6-closeout.json、qualification.json及两份dpl-round-vs-*.json。A6相关42次公开运行全终态，无新增lease_expired，26份用户文件hash一致。增补证据驱动第一次用了相对experiment路径而被公共契约以400拒绝；改用绝对路径的新r2登记，拒绝的本机请求文件保留，没有修改平台校验。首次ZIP成员核验误加query-data前缀，核对真实包根后验证0/...成员；未改变声明的工作区query-data/...路径。
