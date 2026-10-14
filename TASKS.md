@@ -1,5 +1,11 @@
 # 施工切片与验收状态
 
+## A1：2026-10-14 协同审计更正（优先于旧N4结论）
+
+源码、原日志与内容hash证实：`overnight_dpl.finish()`将DPL候选放入交接目录后，`make finish`重新综合/详细布局，覆盖候选；`dpl-routed-r3`的关键ODB与原Flow逐字节相同。因此撤回“DPL候选已保留并继续CTS/route”的验收结论，N4真实专业接力改为**待修复与重新验收**。四项目调用和各自实验存在，但不证明四专业能力被完整组合。
+
+O2独立ORFS/ECO/功耗回收/Query修复分支的指标、重放与等价验证保持，不作为四Agent联合收益。EF/DF核心本机可用；统一业务封装、自动数据回流及专业推理上下文接入仍有缺口。审计证据与修正优先级见 `admin/COLLABORATION_AUDIT_20261014.md`。本轮只改审计文档，尚未实施修复。
+
 ## O2：2026-10-14 路径证据驱动的定点时序修复
 
 工程检查及本机 GCD 指标条件通过，老板业务确认待给出。报告 `admin/GCD_TARGETED_REFINEMENT_REPORT_20261014.md`，权威回执 `var/overnight/gcd-20261014/optimization-r2/acceptance.json`。

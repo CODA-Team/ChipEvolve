@@ -2,6 +2,8 @@
 
 更新：2026-10-14。本页以本轮实际接口和 GCD 验收为准，历史状态保留在 Git 与各切片报告。最终工程回执见 `var/overnight/gcd-20261014/final-acceptance.json`；老板业务确认独立。
 
+**A1审计更正：**旧N4的DPL→CTS交接未通过语义保真。新WORK_HOME下的`make finish`重新综合/布局，覆盖DPL候选；下游关键ODB与原Flow相同。因此旧“DPL候选真实继续CTS/route、完整专业接力通过”结论撤回，待修复重验。EF任务成功仅表示命令被执行，不能证明专业修改被下游保留；领域stage适配需记录真实消费起点和阶段改变。O2独立分支的改善和验证保持。详见 `admin/COLLABORATION_AUDIT_20261014.md`，其结论优先于本页保留的旧夜间状态。
+
 ## 系统边界
 
 O1 共同条件复测补充：相同工具版本或同名 PDK 文件不足以确定相同评价环境。实际库内容 hash、nominal 电压/温度、SDC 单位和完整约束、时钟传播及寄生来源一并记录。Flow 原生 TT/固定 CP0 的专业评分保持独立，最终共同 FF/310ps 收益由 Codex 根据统一测量判断；不能混算。新本机测量脚本读取共同基准已记录的实际 Liberty 并逐文件核对 hash，不新增评分/晋升底座。发现的旧 Flow FF 副本差异及优化结果见 `admin/GCD_OPTIMIZATION_REPORT_20261014.md`；历史实验不改写。
