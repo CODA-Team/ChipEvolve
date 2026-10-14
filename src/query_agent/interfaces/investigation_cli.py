@@ -100,6 +100,7 @@ def add_commands(commands: Any) -> None:
         "state",
         "evidence",
         "export-handoff",
+        "export-professional-context",
         "receive-handoff",
     ):
         parser = commands.add_parser(name)
@@ -132,6 +133,8 @@ def add_commands(commands: Any) -> None:
             scopes.add_argument("--scope-request", type=Path)
             parser.add_argument("--max-seconds", type=float, default=180)
             parser.add_argument("--max-analyses", type=int, default=2)
+            parser.add_argument("--max-tool-calls", type=int, default=32)
+            parser.add_argument("--max-read-bytes", type=int, default=262144)
             parser.add_argument("--no-skills", action="store_true")
         elif name != "receive-handoff":
             parser.add_argument("investigation_id")
@@ -141,10 +144,13 @@ def add_commands(commands: Any) -> None:
             parser.add_argument("--evidence-id", required=True)
             parser.add_argument("--offset", type=int, default=0)
             parser.add_argument("--max-characters", type=int, default=6000)
-        if name == "export-handoff":
+        if name in ("export-handoff", "export-professional-context"):
             parser.add_argument("--snapshot", required=True)
             parser.add_argument(
-                "--role", choices=("eco", "flow", "code"), required=True
+                "--role",
+                choices=("eco", "flow", "code"),
+                required=name == "export-handoff",
+                default="code",
             )
             parser.add_argument("--objective", required=True)
             parser.add_argument("--buffer-permissions", type=Path)
@@ -194,7 +200,10 @@ def run_command(args: argparse.Namespace) -> int:
             args.question,
             snapshot_ids,
             budget=InvestigationBudget(
-                max_seconds=args.max_seconds, max_analyses=args.max_analyses
+                max_seconds=args.max_seconds,
+                max_analyses=args.max_analyses,
+                max_tool_calls=args.max_tool_calls,
+                max_read_bytes=args.max_read_bytes,
             ),
             use_skills=not args.no_skills,
         )
@@ -237,7 +246,7 @@ def run_command(args: argparse.Namespace) -> int:
                 )
             )
             return 0
-        elif args.command == "export-handoff":
+        elif args.command in ("export-handoff", "export-professional-context"):
             permissions = (
                 [
                     BufferPermission.model_validate(item)
@@ -249,10 +258,20 @@ def run_command(args: argparse.Namespace) -> int:
             package = application.export_handoff(
                 state,
                 snapshot_id=args.snapshot,
-                role=args.role,
+                role="code"
+                if args.command == "export-professional-context"
+                else args.role,
                 objective=args.objective,
                 permissions=permissions,
             )
+            if args.command == "export-professional-context":
+                from query_agent.application.professional import professional_context
+
+                context = professional_context(state, package)
+                args.package_output.parent.mkdir(parents=True, exist_ok=True)
+                args.package_output.write_text(context.model_dump_json(indent=2) + "\n")
+                print(context.model_dump_json(indent=2))
+                return 0
             args.package_output.parent.mkdir(parents=True, exist_ok=True)
             args.package_output.write_text(package.model_dump_json(indent=2) + "\n")
             print(package.model_dump_json(indent=2))

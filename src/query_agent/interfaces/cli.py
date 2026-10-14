@@ -43,6 +43,7 @@ def main(argv: list[str] | None = None) -> int:
         "state",
         "evidence",
         "export-handoff",
+        "export-professional-context",
         "receive-handoff",
     ):
         return run_command(args)
