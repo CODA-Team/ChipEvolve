@@ -33,6 +33,12 @@ def call_codex(system_prompt: str, user_prompt: str) -> tuple[str, dict]:
         "<eco_strategy>\n" + system_prompt + "\n</eco_strategy>\n"
         "<current_design_context>\n" + user_prompt + "\n</current_design_context>\n"
     )
+    if os.environ.get("TIMINGECO_EF_LEAF") == "1" and os.environ.get(
+        "EDA_PLATFORM_OBJECTIVE"
+    ):
+        from eda_toolkits.objectives import append_objective
+
+        prompt = append_objective(prompt)
     (folder / "prompt.txt").write_text(prompt)
     model = os.environ.get("TIMINGECO_CODEX_MODEL", "gpt-6.1-sol")
     command = [
@@ -66,9 +72,10 @@ def call_codex(system_prompt: str, user_prompt: str) -> tuple[str, dict]:
     for key, value in settings.items():
         command[2:2] = ["-c", f"{key}={json.dumps(value)}"]
     started = time.monotonic()
-    with (folder / "events.jsonl").open("w") as events, (folder / "stderr.log").open(
-        "w"
-    ) as errors:
+    with (
+        (folder / "events.jsonl").open("w") as events,
+        (folder / "stderr.log").open("w") as errors,
+    ):
         process = subprocess.run(
             command,
             input=prompt,

@@ -62,6 +62,10 @@ def submit(profile_path: Path) -> dict:
         "max_attempts": 1,
         "expected_artifacts": ["data_snapshot"],
     }
+    if profile.get("objective_path") or os.environ.get("EDA_PLATFORM_OBJECTIVE"):
+        from eda_toolkits.objectives import bind_task_objective
+
+        bind_task_objective(spec, profile.get("objective_path"))
     client = KernelClient(profile["kernel_url"], timeout=60)
     (state / "spec.json").write_text(json.dumps(spec, indent=2) + "\n")
     response = client.submit(spec, idempotent=True, idempotency_key=spec["task_id"])
@@ -91,6 +95,9 @@ def leaf(profile_path: Path) -> int:
     environment.update(
         DESIGN_DIR=str(Path.cwd() / "inputs"), TOP="6_final", TIMINGECO_EF_LEAF="1"
     )
+    objective = Path.cwd() / "inputs/shared-objective.json"
+    if objective.exists():
+        environment["EDA_PLATFORM_OBJECTIVE"] = str(objective)
     code = subprocess.call(
         [profile["python"], str(source / "src/main_orch.py")],
         cwd=source,

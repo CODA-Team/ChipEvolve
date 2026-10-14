@@ -157,3 +157,13 @@ design kit, © 2020 Lawrence T. Clark, Vinay Vashishtha, and Arizona State
 University, distributed under the **BSD 3-Clause License** (see the header of
 each file under `asap7/`). Those files retain their original license and
 copyright.
+
+## Shared final objective (platform mode)
+
+Install the current `eda-toolkits` wheel in the ECO environment. Set the session
+profile's `objective_path` (or `EDA_PLATFORM_OBJECTIVE` at submission) to the same
+frozen `chip-evolve.objective.v1` used by the other projects. EF stages this JSON
+and forwards its staged path to the supervised ECO model loop. The original
+ECO strategy, scoring and best-state policy remain intact; the prompt also sees
+the team's clock, library hashes, power and cell/core/die area limits. Codex
+judges final adoption after common-condition remeasurement.
