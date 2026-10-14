@@ -35,7 +35,7 @@ def digest(path: Path) -> str:
 
 def write_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(".tmp")
+    temporary = path.with_name(path.name + "." + uuid4().hex + ".tmp")
     temporary.write_text(json.dumps(value, indent=2) + "\n")
     temporary.replace(path)
 
@@ -113,6 +113,9 @@ def request_for(
     if objective_path:
         objective = Path(objective_path)
         inputs[str(objective)] = digest(objective)
+    if os.environ.get("EDA_PLATFORM_CONTEXT"):
+        context = Path(os.environ["EDA_PLATFORM_CONTEXT"])
+        inputs[str(context)] = digest(context)
     return {
         **call,
         "design_context": design_context(profile) if operation == "physical" else None,
@@ -188,7 +191,8 @@ def task_for(
         "schema_version": 3,
         "task_id": profile["experiment_id"] + "-" + key,
         "project_id": "goalevolve-common-u4",
-        "design_id": profile["design"],
+        "experiment_id": profile["experiment_id"],
+        "design_id": profile.get("design_id", profile["design"]),
         "plugin_id": "openroad-data",
         "labels": {
             "memory_approval": "manual",
@@ -228,6 +232,10 @@ def task_for(
         from eda_toolkits.objectives import bind_task_objective
 
         bind_task_objective(spec, profile.get("objective_path"))
+    if os.environ.get("EDA_PLATFORM_CONTEXT"):
+        from eda_toolkits.context import bind_task_context
+
+        bind_task_context(spec)
     return spec
 
 

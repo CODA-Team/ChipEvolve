@@ -63,6 +63,10 @@ class PersistentCodexRunner:
             from eda_toolkits.objectives import append_objective
 
             prompt = append_objective(prompt)
+        if os.environ.get("GOALEVOLVE_PLATFORM_PROFILE") and os.environ.get("EDA_PLATFORM_CONTEXT"):
+            from eda_toolkits.context import append_context
+
+            prompt = append_context(prompt)
         # Codex receives its isolated home through environment variables while
         # executing in a different directory; relative paths would otherwise
         # be resolved against that directory and accidentally look missing.
@@ -89,6 +93,10 @@ class PersistentCodexRunner:
                 from eda_toolkits.objectives import load_objective
 
                 requested_runtime["objective_id"] = load_objective(os.environ["EDA_PLATFORM_OBJECTIVE"])["objective_id"]
+            if os.environ.get("GOALEVOLVE_PLATFORM_PROFILE") and os.environ.get("EDA_PLATFORM_CONTEXT"):
+                from eda_toolkits.context import load_context
+
+                requested_runtime["context_id"] = load_context(os.environ["EDA_PLATFORM_CONTEXT"])["context_id"]
             login = existing_codex()
             if login:
                 requested_runtime.update(auth_mode="existing_codex", codex_home=str(home))

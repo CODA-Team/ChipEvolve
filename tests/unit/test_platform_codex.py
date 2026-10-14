@@ -119,6 +119,7 @@ def test_shared_objective_reaches_real_turn_boundary_and_session_identity(
 ):
     import json
     import subprocess
+
     from eda_toolkits.objectives import SCHEMA, objective_id
 
     profile(tmp_path, monkeypatch)
@@ -133,11 +134,25 @@ def test_shared_objective_reaches_real_turn_boundary_and_session_identity(
     objective = tmp_path / "objective.json"
     objective.write_text(json.dumps(value))
     monkeypatch.setenv("EDA_PLATFORM_OBJECTIVE", str(objective))
+    import hashlib
+
+    packet = {
+        "schema_version": "chip-evolve.design-context.v1",
+        "scope": {"design_id": "example"},
+        "summary": "supported diagnosis from current design",
+    }
+    packet["context_id"] = hashlib.sha256(
+        json.dumps(packet, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    context = tmp_path / "context.json"
+    context.write_text(json.dumps(packet))
+    monkeypatch.setenv("EDA_PLATFORM_CONTEXT", str(context))
     runner = PersistentCodexRunner(CodexRuntimeConfig(retries=1))
 
     def invoke(**kwargs):
         assert kwargs["prompt"].startswith("native Teacher/Student prompt")
         assert value["objective_id"] in kwargs["prompt"]
+        assert packet["summary"] in kwargs["prompt"]
         kwargs["events"].write_text(
             '{"type":"thread.started","thread_id":"thread"}\n{"type":"turn.completed","usage":{}}\n'
         )
@@ -156,4 +171,5 @@ def test_shared_objective_reaches_real_turn_boundary_and_session_identity(
     assert result.ok
     saved = json.loads((tmp_path / "codex_sessions/teacher.json").read_text())
     assert saved["runtime"]["objective_id"] == value["objective_id"]
+    assert saved["runtime"]["context_id"] == packet["context_id"]
     assert value["objective_id"] in (tmp_path / "turn/prompt.md").read_text()
