@@ -155,6 +155,12 @@ def request_for(
             / profile["flow_variant"]
         )
         outputs = [str(result)]
+    objective_path = profile.get("objective_path") or os.environ.get(
+        "EDA_PLATFORM_OBJECTIVE"
+    )
+    if objective_path:
+        objective = Path(objective_path)
+        inputs[str(objective)] = digest(objective)
     return {
         "design_context": design_context(profile) if operation == "baseline" else None,
         "operation": operation,
@@ -227,7 +233,7 @@ def task_for(
             "outputs/" + str(i) + "/" + Path(p).name
             for i, p in enumerate(request["outputs"])
         ]
-    return {
+    spec = {
         "schema_version": 3,
         "task_id": profile["experiment_id"] + "-" + key,
         "project_id": "dplevolve-common-u3",
@@ -267,6 +273,11 @@ def task_for(
         "max_attempts": 1,
         "expected_artifacts": ["data_snapshot"],
     }
+    if profile.get("objective_path") or os.environ.get("EDA_PLATFORM_OBJECTIVE"):
+        from eda_toolkits.objectives import bind_task_objective
+
+        bind_task_objective(spec, profile.get("objective_path"))
+    return spec
 
 
 def delegate(profile: dict[str, Any], operation: str, argv: list[str]) -> int:
