@@ -1,5 +1,14 @@
 # 施工切片与验收状态
 
+## O1：2026-10-14 共同条件复测与功耗回收
+
+工程检查点通过，老板业务验收待确认。报告 `admin/GCD_OPTIMIZATION_REPORT_20261014.md`，权威回执 `var/overnight/gcd-20261014/optimization-r1/acceptance.json`。
+
+- 复测全部 24 个 Flow 候选，冻结同一 SDC 与实际 FF 库 hash；发现一份同名 FF 库的 nominal 条件不同，保留首次诊断并排除在收益之外。
+- 八组功耗回收全部通过 EF 完成完整路由和 RCX；保留闭合方案：TNS=0、最差 slack +5.468ps、core/die 不变、单元面积 −0.128%、功耗相对原 ORFS +0.413%（此前 ECO 为 +1.10%）。空目录独立重放 11 项物理指标逐值相同。
+- 另保留功耗 −0.253%、单元面积 −0.385% 的中间方案，但仍欠约 9.147ps，不能记为时序闭合。严格闭合时序且功耗不增加的业务条件未全部满足，ORFS 默认基准保持。
+- 24 候选共同条件指标入库，代表性分支对象/产物/时序可查询；Query 实测差异与路径回答有出处。128 项回归通过，26 份用户原修改未动。九个业务模块和公共契约未改；新增回收不能记作 GoalEvolve 新源码收益或四 Agent 整链路新收益。
+
 ## 2026-10-14 最终工程检查点
 
 本轮工程验收完成，老板业务确认待给出。最终报告 `admin/OVERNIGHT_GCD_REPORT_20261014.md`，接口与图 `admin/OVERNIGHT_GCD_INTERFACES_20261014.md`，权威运行回执 `var/overnight/gcd-20261014/final-acceptance.json` / `progress.json` / `runtime.json`。下方2026-10-13条目为历史切片状态；本轮GCD不改写原U4 AES已截止事实。

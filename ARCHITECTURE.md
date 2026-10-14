@@ -4,6 +4,8 @@
 
 ## 系统边界
 
+O1 共同条件复测补充：相同工具版本或同名 PDK 文件不足以确定相同评价环境。实际库内容 hash、nominal 电压/温度、SDC 单位和完整约束、时钟传播及寄生来源一并记录。Flow 原生 TT/固定 CP0 的专业评分保持独立，最终共同 FF/310ps 收益由 Codex 根据统一测量判断；不能混算。新本机测量脚本读取共同基准已记录的实际 Liberty 并逐文件核对 hash，不新增评分/晋升底座。发现的旧 Flow FF 副本差异及优化结果见 `admin/GCD_OPTIMIZATION_REPORT_20261014.md`；历史实验不改写。
+
 Codex 是入口、通用 harness、规划者与业务判断者。平台提供可复现执行、统一设计事实、Query 领域能力和四项专业能力，不新造通用 Agent harness 或评测底座。
 
 根仓库以 Git 子模块固定九个独立项目，提交和上游来源见 `SOURCE_MANIFEST.json`。跨项目仅通过安装的公共 wheel / HTTP；Data Interface 是 SDK，无第三个后台服务或数据库。运行数据在 var，旧 ChipEvolve 在 discarded，不参与实际执行。
