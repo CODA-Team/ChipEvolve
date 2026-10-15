@@ -3,7 +3,6 @@
 import json
 
 import pytest
-
 from extract_metrics import reference_ecp
 
 
