@@ -63,7 +63,12 @@ fi
 # reports 0 registers / 0 paths / TNS = 0.
 case "$platform" in
     asap7)
-        LIB_FILES="${PLATFORM_DIR}/lib/NLDM/*_RVT_TT_nldm_*.lib.gz ${PLATFORM_DIR}/lib/NLDM/*_RVT_TT_nldm_*.lib ${PLATFORM_DIR}/lib/NLDM/*_SRAM_TT_nldm_*.lib.gz ${PLATFORM_DIR}/lib/NLDM/*_SRAM_TT_nldm_*.lib"
+        # Resizing can select LVT/SLVT even when synthesis starts with RVT.
+        # Keep the original TT evaluation corner and cover every native VT.
+        LIB_FILES=""
+        for vt in RVT LVT SLVT SRAM; do
+            LIB_FILES="${LIB_FILES} ${PLATFORM_DIR}/lib/NLDM/*_${vt}_TT_nldm_*.lib.gz ${PLATFORM_DIR}/lib/NLDM/*_${vt}_TT_nldm_*.lib"
+        done
         if [ "$design" == "swerv_wrapper" ]; then
             LIB_FILES="${LIB_FILES} ${SCRIPT_DIR}/designs/${platform}/${design}/lib/*.lib"
         fi

@@ -77,6 +77,12 @@ foreach clk [all_clocks] {
 if {[catch {llength [all_registers]} reg_count]} { set reg_count "(n/a: $reg_count)" }
 puts "DEBUG: Register count = $reg_count"
 
+# A numeric zero is not a valid score when timing models are unlinked.
+# Constrained combinational designs remain valid; require a path, not a flop.
+if {[llength [find_timing_paths -path_delay max -group_count 1]] == 0} {
+    error "Native CP0 evaluation has no constrained setup path; check Liberty models and clock constraints"
+}
+
 # Show worst setup path — no fancy options, just defaults
 puts "DEBUG: --- report_checks (default = worst setup path) ---"
 if {[catch {report_checks} rc_err]} {
