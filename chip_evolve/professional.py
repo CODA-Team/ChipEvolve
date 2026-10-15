@@ -461,9 +461,17 @@ def resume_layout(
         config.write_text(
             "include " + str(source / "flow" / design["orfs_config"]) + "\n"
         )
+    stage_sdc = Path(design["sdc"])
+    if frame.get("flow_recipe"):
+        # The native stage constraint belongs to the actual physical parent.
+        # Replacing it with the global measurement SDC can undo the tuned clock
+        # and change the units consumed by modern physical scripts.
+        stage_sdc = jobs.experiment / "placement-source.sdc"
+        with zipfile.ZipFile(flat) as bundle:
+            stage_sdc.write_bytes(bundle.read("flow/results/3_place.sdc"))
     checkpoint = jobs.experiment / "placement.zip"
     if not checkpoint.exists():
-        placement_archive(flat, placement, checkpoint, Path(design["sdc"]))
+        placement_archive(flat, placement, checkpoint, stage_sdc)
     sha = digest(placement)
     parent = producer
     record = None
@@ -484,7 +492,7 @@ def resume_layout(
                 for p, name in [
                     (profile, "profile.json"),
                     (config, "config.mk"),
-                    (Path(design["sdc"]), "design.sdc"),
+                    (stage_sdc, "design.sdc"),
                     (checkpoint, "checkpoint.zip"),
                 ]
             ],
@@ -527,6 +535,13 @@ def resume_layout(
         route_drc=route["detailedroute__route__drc_errors"],
         flow_archive=str(checkpoint),
     )
+    if frame.get("flow_recipe"):
+        measured.update(
+            flow_recipe=frame["flow_recipe"],
+            native_config=str(config),
+            native_flow_dir=str(source / "flow"),
+            placement_source_sdc_sha256=digest(stage_sdc),
+        )
     return publish(jobs, measured)
 
 
@@ -558,6 +573,23 @@ def flatten_archive(original: Path, destination: Path) -> None:
                 )
             names.add(target)
             result.writestr(target, source.read(name))
+
+
+def materialize_dpl_replay(installation: Path, state: Path, experiment: Path) -> Path:
+    """Reuse the verified installation inside the already mounted experiment."""
+    target = state / "replay-runtime/install/OpenROAD"
+    shutil.copytree(installation, target)
+    binary = target / "bin/openroad"
+    write(
+        experiment / "prebuilt-replay-identity.json",
+        {
+            "source_installation": str(installation),
+            "materialized_installation": str(target),
+            "binary_sha256": digest(binary),
+            "build_receipt_sha256": digest(target / "bin/platform-build.json"),
+        },
+    )
+    return binary
 
 
 def run_dpl(
@@ -684,6 +716,10 @@ def run_dpl(
         )
     ]
     candidate = Path(binding["candidate_source"]) / "install/OpenROAD/bin/openroad"
+    if args.operation == "replay" and not args.code_source:
+        candidate = materialize_dpl_replay(
+            candidate.parent.parent, Path(profile["state_root"]), experiment
+        )
     if args.operation == "replay" and args.code_source:
         variant = Path(profile["state_root"]) / "replayed-code"
         freeze(args.code_source.resolve(), variant / "dpl_evolve")

@@ -374,7 +374,7 @@ def qualify_prepared_recipe(
         "common",
         files["odb"],
         files["spef"],
-        Path(recipe["sdc"]),
+        Path(deployment.design(recipe["design_id"])["sdc"]),
         parent,
         objective,
     )
@@ -413,6 +413,16 @@ def inherit_prepared_source(frame: dict[str, Any], experiment: Path) -> Path:
         raise ValueError("Prepared source configuration changed")
     target = experiment / "source"
     shutil.copytree(source, target)
+    relocated = {}
+    for name in ("source-config.mk", recipe.get("design_config")):
+        if not name:
+            continue
+        path = target / "flow" / name
+        if path.is_file():
+            path.write_text(
+                path.read_text().replace(str(source / "flow"), str(target / "flow"))
+            )
+            relocated[name] = digest(path)
     write(
         experiment / "inherited-recipe.json",
         {
@@ -420,6 +430,7 @@ def inherit_prepared_source(frame: dict[str, Any], experiment: Path) -> Path:
             "source_recipe_sha256": digest(Path(frame["flow_recipe"])),
             "physical_tree_sha256": recipe["physical_tree_sha256"],
             "source": str(target),
+            "relocated_configuration_sha256": relocated,
         },
     )
     return target

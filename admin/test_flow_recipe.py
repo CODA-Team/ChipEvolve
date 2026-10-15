@@ -258,7 +258,14 @@ def test_handoff_inherits_pinned_physical_tree_and_rejects_changed_scripts(
     if native_overlay:
         write(original / "prepared-files.json", {"flow/Makefile": digest(makefile)})
     config = flow / "source-config.mk"
-    config.write_text("export CORE_UTILIZATION = 67\n")
+    config.write_text(
+        "include "
+        + str(flow / "designs/pdk/test/source-original.mk")
+        + "\nexport CORE_UTILIZATION = 67\n"
+    )
+    base = flow / "designs/pdk/test/config.mk"
+    base.parent.mkdir(parents=True)
+    base.write_text("include " + str(config) + "\n")
     recipe = tmp_path / "recipe.json"
     write(
         recipe,
@@ -267,12 +274,17 @@ def test_handoff_inherits_pinned_physical_tree_and_rejects_changed_scripts(
             "config_path": str(config),
             "resolved_config_sha256": digest(config),
             "physical_tree_sha256": "tree",
+            "design_config": "designs/pdk/test/config.mk",
         },
     )
     experiment = tmp_path / "next-agent"
     experiment.mkdir()
     result = inherit_prepared_source({"flow_recipe": str(recipe)}, experiment)
     assert (result / "flow/Makefile").read_bytes() == makefile.read_bytes()
+    for relative in ["source-config.mk", "designs/pdk/test/config.mk"]:
+        text = (result / "flow" / relative).read_text()
+        assert str(original / "flow") not in text
+        assert str(result / "flow") in text
     assert read(experiment / "inherited-recipe.json")["source_recipe_sha256"] == digest(
         recipe
     )
@@ -281,6 +293,55 @@ def test_handoff_inherits_pinned_physical_tree_and_rejects_changed_scripts(
     other.mkdir()
     with pytest.raises(ValueError, match="physical source changed"):
         inherit_prepared_source({"flow_recipe": str(recipe)}, other)
+
+
+@pytest.mark.parametrize("source_mode", [False, True])
+def test_layout_handoff_preserves_native_stage_sdc_only_in_source_mode(
+    tmp_path, monkeypatch, source_mode
+):
+    import zipfile
+    from types import SimpleNamespace
+
+    from admin.test_local_business import deployment
+    from chip_evolve import professional
+
+    d = deployment(tmp_path)
+    global_sdc = tmp_path / "measurement.sdc"
+    global_sdc.write_text(
+        "set_cmd_units -time ns\ncreate_clock -period 0.31 [get_ports clk]\n"
+    )
+    native_sdc = "set_cmd_units -time ps\ncreate_clock -period 322.58 [get_ports clk]\n"
+    d.value["designs"]["gcd"] = {
+        "sdc": str(global_sdc),
+        "orfs_config": "designs/pdk/test/config.mk",
+    }
+    exp = d.experiment("gcd", "stage-clock")
+    (exp / "source/flow").mkdir(parents=True)
+    with zipfile.ZipFile(exp / "source-checkpoint.zip", "w") as archive:
+        archive.writestr("flow/results/3_place.sdc", native_sdc)
+    odb = exp / "placement.odb"
+    odb.write_bytes(b"registered actual placement")
+    profile = exp / "profile.json"
+    profile.write_text("{}")
+    monkeypatch.setattr(professional, "tool_profile", lambda *a: profile)
+
+    class CheckedStage(Exception):
+        pass
+
+    def submit(phase, inputs, staged, **kwargs):
+        paths = {item["destination"]: Path(item["source"]) for item in staged}
+        expected = native_sdc if source_mode else global_sdc.read_text()
+        assert paths["inputs/design.sdc"].read_text() == expected
+        with zipfile.ZipFile(paths["inputs/checkpoint.zip"]) as archive:
+            assert archive.read("flow/results/3_place.sdc").decode() == expected
+        raise CheckedStage()
+
+    jobs = SimpleNamespace(deployment=d, experiment=exp, design_id="gcd", submit=submit)
+    frame = {"flow_archive": "registered.zip"}
+    if source_mode:
+        frame["flow_recipe"] = "registered-recipe.json"
+    with pytest.raises(CheckedStage):
+        professional.resume_layout(jobs, odb, frame, exp / "objective.json", "producer")
 
 
 @pytest.mark.parametrize("explicit_recipe", [False, True])
