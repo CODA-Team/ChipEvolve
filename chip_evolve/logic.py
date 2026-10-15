@@ -95,27 +95,20 @@ def verify_outputs(
     ]
     script = experiment / "equivalence.ys"
     script.write_text("\n".join(lines) + "\n")
-    record = jobs.command(
-        "logic",
-        container(deployment, [deployment.value["tools"]["yosys"], "-s", str(script)]),
-        capture=[
-            script,
-            evidence,
-            Path(reference["files"]["v"]),
-            Path(candidate["files"]["v"]),
-        ],
-        seconds=3600,
-        cpu=4,
-        memory_gib=32,
-        parent=candidate["run_id"],
-        objective=Path(candidate["objective"]),
-    )
-    points = proven_points(jobs.log(record, experiment / "proof.log"))
+    engine = deployment.value["tools"].get("equivalence", "yosys")
+    if engine not in {"yosys", "eqy"}:
+        raise ValueError("Unknown equivalence backend: " + engine)
+    if engine == "eqy":
+        from .eqy import verify
+
+        record, details = verify(jobs, reference, candidate, libraries, checks)
+    else:
+        record, details = _yosys_proof(jobs, candidate, reference, script, evidence)
     receipt = {
         "run_id": record["run"]["run_id"],
         "reference_result": str(reference_path),
         "candidate_result": str(candidate_path),
-        "proven_points": points,
+        **details,
         "unproven_points": 0,
         "top_output_bits": sum(
             p["width"]
@@ -135,3 +128,32 @@ def verify_outputs(
     }
     write(experiment / "logical-equivalence.json", receipt)
     return receipt
+
+
+def _yosys_proof(
+    jobs: Jobs,
+    candidate: dict[str, Any],
+    reference: dict[str, Any],
+    script: Path,
+    evidence: Path,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    record = jobs.command(
+        "logic",
+        container(
+            jobs.deployment,
+            [jobs.deployment.value["tools"]["yosys"], "-s", str(script)],
+        ),
+        capture=[
+            script,
+            evidence,
+            Path(reference["files"]["v"]),
+            Path(candidate["files"]["v"]),
+        ],
+        seconds=3600,
+        cpu=4,
+        memory_gib=32,
+        parent=candidate["run_id"],
+        objective=Path(candidate["objective"]),
+    )
+    points = proven_points(jobs.log(record, jobs.experiment / "proof.log"))
+    return record, {"engine": "yosys", "proven_points": points}

@@ -1,5 +1,11 @@
 # 架构与源码边界
 
+## A9：AES验证接点（进行中）
+
+Flow CP0 评分器补齐原 TT 角的 RVT/LVT/SLVT 库覆盖，并要求真实受约束 setup 路径，避免缺库时把空分析当 TNS=0；原专业评分、搜索与筛选不变。正式 flow_source 同步冻结评分脚本，避免继续复制旧模板。
+
+逻辑验证增加可选部署工具 `tools.equivalence=eqy` / `tools.eqy`，复用镜像已有 EQY 的 SAT 分区归纳；默认 Yosys 保持。logic.py 继续核对固定库、端口和零端口物理单元证据；eqy.py 只生成原生工具配置并经 EF 执行、读取全局及每个分区的通过状态，不增加服务或判断层。AES 实际同网表1072分区通过、单输出位翻转负控制被拒绝；真实专业候选仍须各自验证，不能用自检替代。AES完整迁移状态见当前A9报告。
+
 ## A8：正式本机恢复与验证（2026-10-15）
 
 现有CLI增加resume/continue-goal/validate/compare。delivery保存原专业成功的输入hash、实际producer和原判定；resume只恢复确定性交付，EF原任务身份不变，不重跑模型搜索。原Goal续作和placement归档/消费核查迁入正式continuation/handoff模块，业务不依赖admin脚本。Jobs对嵌套验证任务隔离身份，对已冻结输入/命令作重接校验。单实验驱动锁不管理EDA进程，EDA仍由EF监管。

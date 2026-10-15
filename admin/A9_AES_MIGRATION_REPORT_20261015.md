@@ -14,8 +14,8 @@
 |---|---|---|
 | ORFS | 新RTL→GDS、共同测量和三类DF快照 | 已通过 |
 | Query | 真实同一Codex调查，固定AES baseline scope | 已完成：9条确认事实/3条假设，真实上下文已送入Flow |
-| Flow | 两轮×三候选，原阶段继承/CP0/评分，10800s | 进行中：第一轮三候选已进入route_finish；尚未记完整专业成功 |
-| DPLEvolve | 一轮Teacher/三Student/review，原三基线，14400s | 待做 |
+| Flow | 两轮×三候选，原阶段继承/CP0/评分，10800s | 修复后的r2完整正常结束，六候选统一测量/DF完成；均超全局功耗/面积/轮廓上限，不采用 |
+| DPLEvolve | 一轮Teacher/三Student/review，原三基线，14400s | 进行中：三条基线成功，三Student均已真实构建/布局评价；模型连接曾中断，后已继续，整轮审查/交付尚未完成 |
 | GoalEvolve | 一轮Teacher/四Student/review，原AST/EPD/目标/晋升，21600s | 待做 |
 | ECO | 两轮原生操作、完整route校准，5400s | 待做 |
 | 最终验证 | 正式validate、Query比较、Codex采用/拒绝 | 待做 |
@@ -32,6 +32,22 @@
 
 实际新脚本在AES识别562寄存器、真实非零TNS；GCD识别34寄存器、存在受约束路径。Flow模块2674c7c，62项原生目录回归通过；根185项回归、Ruff、shell语法、pyright及边界检查通过。首次dev.py测试目录及旧开发环境缺新Toolkit导致的测试准备失败保留，资格环境使用实际运行的独立Flow wheel环境，没有修改无关开发环境。
 
-新实验a9-flow-r2使用正式修复脚本、同一基准及原两轮三候选，正在运行。证据：flow-invalid-feedback-stop.json、a9-eval-library-audit-r2/comparison.json、a9-eval-model-qualification/qualification.json及flow-model-diagnosis-receipt.json。初次审计容器未显式传入环境变量的失败、直接脚本调用未找到根模块的准备错误同样保留；有效控制均由EF执行。
+新实验a9-flow-r2使用正式修复脚本、同一基准及原两轮三候选，已完整结束。证据：flow-invalid-feedback-stop.json、a9-eval-library-audit-r2/comparison.json、a9-eval-model-qualification/qualification.json及flow-model-diagnosis-receipt.json。初次审计容器未显式传入环境变量的失败、直接脚本调用未找到根模块的准备错误同样保留；有效控制均由EF执行。
 
 本缺口说明“平台执行成功”不能代替专业评分有效性；此前独立测量/等价/重放验证的GCD最终PPA不受此错误反馈的重新解释影响，但不因此为旧多VT Flow轮次补造有效评分。
+
+## Flow实际结果与下一阶段选择
+
+r2完整两轮六候选正常结束，模型17次请求全部成功；原账本报告573106 token，此为本次专业原生用量，不是公平节省指标。六份共同FF结果时序/物理通过，但功耗59.42–89.04mW、单元面积1520.08–1758.84µm²、core2186.87–6587.24µm²，均超过冻结上限。因此保留ORFS基准，DPL以该合法基准为实际来源，不把本轮写成Flow→Code已产生联合收益。依据aes-flow-candidates.json和aes-dpl-source-decision.json。
+
+EF输入审计确认Flow与当前ORFS镜像的七份AES RTL完全同hash。配置/物理脚本存在差异，包括当前ORFS的SYNTH_USE_SYN=1、原Flow的ABC_AREA=1及其原路由调整钩子；这里只证明输入/起点差异，没有逐个配置的反事实因果实验，不把PPA差距唯一归因给某个参数。保留原研究算法，后续是否迁移这些流程需独立切片。
+
+对不可采用Flow分支启动的输出级Yosys证明在AES隐藏状态下开销较大，已通过EF取消，保留不完整记录；取消不证明逻辑不等价。相同RTL也不替代最终网表证明。正在使用镜像已有EQY校准分区证明；若最终采用Code输出，仍须完成真实逻辑验证。全局Yosys原型只在var中，不计正面验收，也没有写入通用新框架。
+
+## 大设计逻辑验证的实际校准
+
+镜像EQY v0.68/SAT不依赖额外模型服务或新平台。默认全名匹配会对扁平化库引脚形成过大依赖矩阵；全局隐藏内部名则对AES状态归纳开销较大。原型排除全部带点名称时，自检1004分区通过、32分区UNKNOWN，原因是同时丢掉了原网表声明的轮密钥状态切分点；这不构成设计错误结论。
+
+保留真实顶层端口与原网表中声明的层级信号，再排除新生库引脚别名后，同一真实AES基准1072分区全部通过（89秒）；将该网表的text_out[0]故意翻转，1071分区通过，准确拒绝text_out[0]，保留原生FAIL和非零退出码（89秒）。两个控制均由EF执行，原固定15份Liberty、全部129个输出、模型排除证据不变，没有修改真实设计或关闭断言。
+
+正式logic.py增加可选eqy后端，eqy.py只配置/调用已有工具并要求全局PASS及每分区PASS；默认GCD Yosys路径保持。新增4个回归覆盖原设计状态保留、部分证明/无全局标记/空分区拒绝；根189测试、Ruff/format及变动模块pyright通过。正式a9-reference-validation已证明129输出/1072分区，独立RTL重放仍在运行；尚不代表新专业候选通过。
