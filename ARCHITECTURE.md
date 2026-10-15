@@ -1,10 +1,14 @@
 # 架构与源码边界
 
-## A11/A12：迁移资格与候选事实交付（2026-10-15）
+## A11/A12/A13：现代完整来源与实测接力（2026-10-16）
 
 新增正式 `candidates --reference R --result C [--result C...] --key K`，由根 `candidate_facts.py` 组合已有公共入口：DF/SDK 核对最终指标和快照，EF 明确生产者提供原专业证据，紧凑视图/全文作为 analysis 产物登记，现有 diagnosis 优先交付给 Query。原生判定、最终物理可行性和 Codex 的业务决定分别记录；不新增服务、数据库、分数或模型循环。Flow 原生反馈保留实际 CP0/库/单位并合并相同反馈的多份来源引用，未知单位不补造。
 
-GCD/AES 实测与两次真实 Query 核查通过。真实 GCD 交付中断后，正式 resume 复用原 ORFS/common run_id，零重复物理计算，三类快照可查询。内置综合忽略原层次旋钮，完整能力仍未通过；老板已选择保留完整能力，迁移现代 ORFS/Yosys。新增显式 `--flow-recipe source`，准备器从登记来源冻结实际输入和物理树（含平台共享技术映射），在 EF 内展开真实 Make 参数，再叠加原控制器；原搜索、继承、淘汰、CP0 与 TT 评分保持。recipe 随候选结果交付，下游继续其物理脚本。GCD/AES 的 r2 物理复制均七项同值，但原生 ps 转换改变 Yosys 数字时钟，不能据此宣称原生起点合格。当前显式登记 ps 的 r3 来源并核对原生第一行，正式模式拒绝静默转换 ns 来源；两设计的诊断搜索证据保留。默认 legacy、公共 EF/DF/SDK 及用户修改保留。详见 `admin/A11_YOSYS_MIGRATION_20261016.md` 及历史部分交付 `admin/A11_A12_OVERNIGHT_REPORT_20261015.md`。
+显式 `--flow-recipe source` 从登记来源冻结实际输入、现代ORFS/Yosys物理树及平台共享映射，在EF内展开真实Make参数，再叠加原控制器；原参数域、搜索、继承、淘汰、CP0×0.9及TT评分保持。现代Yosys按SDC数字给ABC时钟，不自动换算ns/ps，正式模式拒绝静默转换；r3显式登记ps来源后，GCD/AES的物理复制及实际原生首行均七PPA同值，各完成两轮三候选。现代内置综合仍不支持原层次旋钮，完整能力未通过；legacy默认保留。
+
+source布局接力携带真实`3_place.sdc`与recipe，重定位复制工作树中的生成配置路径；共同测量继续用原业务SDC及固定FF库，二者不能互相覆盖。`materialize_dpl_replay`将已有验证安装放入当前已挂载state，保留二进制、权限及原构建回执hash，不重编或改算法。实际新GCD输入的空接力七PPA同值；固定DPL源码相对Flow功耗再降0.700843%，18输出证明和独立七PPA同值通过。AES完整轮次结束但六候选均超原功耗/面积上限，保留历史合法Goal。来源切换与方法贡献分开，不把大幅基线变化归为调参收益。
+
+紧凑候选事实使用既有`Jobs.command(extra_paths=...)`逐文件登记，解决只有归档、Query找不到摘要的问题；EF/DF/SDK无新增公共契约或服务。12个最终Flow候选三类快照/七指标已SDK核对。真实GCD中断复用原producer，零重复物理计算；AES导入超时后保持六native、五common及17模型请求身份，只补未执行的第六份共同测量。DF超时根因、Query摘要引用与身份一致性及路径索引比较元数据仍待独立切片；AESQuery曾混淆reference与Goal编号，该结论未用于采用。默认legacy、公共边界及26份用户文件保持。最终结果见`admin/A11_FINAL_REPORT_20261016.md`。
 
 ```mermaid
 flowchart LR
@@ -27,7 +31,7 @@ AES完整DPL轮次发现平台选择器遗漏原生round-root，误将有效候�
 
 原生Teacher判定、CSV源指标、源码hash与阶段结果可由现有Jobs.command登记为测量结果的analysis子运行及raw_flow_metadata；既有scoped_analysis_references把原始证据交给固定scope的Query，不增加后台服务或评分。AES已验证真实Goal→ECO上下文交付及最终ORFS对比，Query读取原始判定而非只读功耗排序；Codex保留采用理由及incumbent。专业内部工作状态仍由各原项目管理，DF不替代其算法状态，EF管理原始产物与运行来源。
 
-当前通用接点已在同一ASAP7的GCD/AES实测，未按设计名分支打补丁。保留技术债：Flow原流程与现代ORFS起点不同、HPWL/原生功耗代理与最终RCX收益不一致、ECO在已闭合路径上空操作、原生观测开销及公平收益未验证。Query发现OpenSTA路径索引的corner/analysis/unit比较元数据不完整；可结合原始metrics、SDC与受限路径样本调查，不能把样本索引当作全路径匹配认证。本轮未改动用户正在开发的DF/DI文件，后续须独立切片补齐元数据。
+当前通用接点已在同一ASAP7的GCD/AES实测，未按设计名分支打补丁。A11已在显式source模式修复实际起点继承，旧legacy路径及原始综合路线差异保留；HPWL/原生功耗代理与最终RCX收益不一致、ECO在已闭合路径上空操作、原生观测开销及公平收益仍未验证。Query发现OpenSTA路径索引的corner/analysis/unit比较元数据不完整；可结合原始metrics、SDC与受限路径样本调查，不能把样本索引当作全路径匹配认证。本轮未改动用户正在开发的DF/DI文件，后续须独立切片补齐元数据。
 
 ## A8：正式本机恢复与验证（2026-10-15）
 

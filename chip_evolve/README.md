@@ -14,7 +14,9 @@ A11 续作已增加显式现代来源入口，默认仍为 `legacy`：
 ./chip-evolve.py --config /absolute/path/local.json run --design aes --capability flow --flow-recipe source --source /absolute/path/registered-yosys-source/result.json --key native-search --rounds 2 --candidates 3
 ```
 
-完整来源需已登记固定镜像的 ORFS 任务、真实输入 hash、ps 序列化 SDC、Yosys 路线及原旋钮的明确数值；辅助布线脚本也必须随 EF 输入提交。准备器继承真实库/SDC/物理脚本，通过 EF 的 Make 查询初始化原参数，交接继续使用该 recipe。未定义的 LB addon 不能静默替换成旧默认值。现代 Yosys 的数字时钟提取不换算 SDC 单位，ns 来源必须先显式登记 ps 迁移来源，不能只改写 SDC 后声称起点不变。现代内置综合仍不支持原层次旋钮，完整能力资格未通过。当前来源与原生基准核查、完整搜索进行中；状态见 `admin/A11_YOSYS_MIGRATION_20261016.md`，历史部分交付见 `admin/A11_A12_OVERNIGHT_REPORT_20261015.md`。
+完整来源需已登记固定镜像的 ORFS 任务、真实输入 hash、ps 序列化 SDC、Yosys 路线及原旋钮的明确数值；辅助布线脚本也必须随 EF 输入提交。准备器继承真实库/SDC/物理脚本，通过 EF 的 Make 查询初始化原参数，交接继续使用该 recipe及真实阶段SDC，生成配置路径重定位到新工作树。最终共同测量仍用原业务SDC。未定义的 LB addon 不能静默替换成旧默认值。现代 Yosys 的数字时钟提取不换算 SDC 单位，ns 来源必须先显式登记 ps 迁移来源，不能只改写 SDC 后声称起点不变。现代内置综合仍不支持原层次旋钮，完整能力资格未通过。
+
+2026-10-16：GCD/AES r3来源复制与实际原生首行七PPA同值，各完成两轮三候选、17次模型请求；新GCD空接力零损失，固定DPL源码再降功耗约0.70%，18输出证明与独立七PPA同值通过。AES六候选均超原约束，保留历史合法A9Goal。固定DPL安装在当前已挂载state材料化，保留原构建和二进制身份；候选摘要逐项登记，可供Query发现。最终报告 `admin/A11_FINAL_REPORT_20261016.md`；历史途中报告不能代替最终状态。最终修复另补现代线长键，12真实归档重提取通过，历史完整搜索不因此改写。
 
 Codex 指定设计、能力、预算和上一份结果；入口准备输入、调用原专业程序，再完成统一复测、数据入库和查询。部署文件登记本机镜像、环境及设计资产。入口没有后台服务、模型规划循环或新的评分体系。
 
