@@ -13,6 +13,7 @@ from scripts.teacher_loop.evidence import (
     source_repo_ref_for_candidate,
     value_reference_anchor,
 )
+from scripts.teacher_loop.orchestrator import runtime_with_round_outputs
 
 
 def main() -> None:
@@ -25,6 +26,7 @@ def main() -> None:
     runtime = resolve_runtime_paths(
         anchor_file=__file__, agent_root_levels_up=2, script_name="platform_selection"
     )
+    runtime = runtime_with_round_outputs(runtime, runtime.state_root / args.round_id)
     metrics = discover_case_metrics(
         orfs_root=runtime.orfs_root, case_id=args.case, flow_variant=args.flow_variant
     )
