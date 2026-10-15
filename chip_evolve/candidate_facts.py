@@ -276,6 +276,7 @@ def build_candidate_facts(
     write(full, document)
     brief = experiment / "candidate-brief.json"
     write(brief, compact_view(document, full))
+    captured = [brief, full, *sorted(experiment.glob("candidate-*/*.json"))]
     # Existing analysis artifacts make this view discoverable from the reference
     # scope. Original result paths and hashes remain intact; no EDA is launched.
     record = jobs.command(
@@ -285,7 +286,10 @@ def build_candidate_facts(
             "-c",
             "print('SDK-verified candidate facts')",
         ],
-        capture=[brief, full, *sorted(experiment.glob("candidate-*/*.json"))],
+        capture=captured,
+        extra_paths=[
+            "query-data/" + str(i) + "/" + path.name for i, path in enumerate(captured)
+        ],
         analysis_parent=reference["run_id"],
         parent=reference["run_id"],
         objective=Path(reference["objective"]),

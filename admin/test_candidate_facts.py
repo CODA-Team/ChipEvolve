@@ -125,6 +125,12 @@ def test_original_winner_can_be_final_infeasible_without_being_reselected(tmp_pa
     assert view["constraints"]["cell_area_um2_max"] == 10
     assert "winner" not in view and "adopted" not in row
     assert commands[0][2]["analysis_parent"] == "reference"
+    registered = commands[0][2]
+    assert registered["extra_paths"][0] == "query-data/0/candidate-brief.json"
+    assert registered["extra_paths"] == [
+        f"query-data/{index}/{path.name}"
+        for index, path in enumerate(registered["capture"])
+    ]
     assert read(experiment / "facts-receipt.json")["eda_jobs_launched"] == 0
     assert row["evidence"]["result"]["sha256"] == digest(paths[1])
 
