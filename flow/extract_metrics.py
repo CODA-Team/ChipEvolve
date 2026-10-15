@@ -282,6 +282,10 @@ def _extract_from_json(json_dir: Optional[Path], stage: str) -> Optional[Dict[st
     wl_pref = spec.get("wl_prefix", P)
     wd = d if wl_json == spec["json"] else _load_json(Path(json_dir) / wl_json)
     m["wl"] = _num(wd, f"{wl_pref}__{spec['wl_key']}")
+    # Modern OpenROAD scopes the same estimated wirelength under dpl.
+    # Keep the legacy key primary; routed wirelength has no such alias.
+    if m["wl"] is None and stage in {"place", "cts"}:
+        m["wl"] = _num(wd, f"{wl_pref}__dpl__{spec['wl_key']}")
     return m
 
 
