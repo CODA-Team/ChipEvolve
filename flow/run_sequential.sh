@@ -96,6 +96,14 @@ get_config_param() {
     local param_name="$2"
     local default_val="$3"
 
+    # Source mode supplies values resolved by the actual modern Makefile through
+    # EF. Do not substitute legacy grep defaults for inherited source values.
+    if [[ -n "${DRP_SOURCE_PARAMETERS:-}" ]]; then
+        python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])' \
+            "$DRP_SOURCE_PARAMETERS" "$param_name"
+        return
+    fi
+
     local val
     val=$(grep -E "^(export\s+)?${param_name}\s*=" "$config_file" 2>/dev/null | \
           sed "s/.*=\s*//" | tr -d ' ' | head -1)
