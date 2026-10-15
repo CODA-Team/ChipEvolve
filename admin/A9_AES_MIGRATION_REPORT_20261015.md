@@ -50,4 +50,20 @@ EF输入审计确认Flow与当前ORFS镜像的七份AES RTL完全同hash。配�
 
 保留真实顶层端口与原网表中声明的层级信号，再排除新生库引脚别名后，同一真实AES基准1072分区全部通过（89秒）；将该网表的text_out[0]故意翻转，1071分区通过，准确拒绝text_out[0]，保留原生FAIL和非零退出码（89秒）。两个控制均由EF执行，原固定15份Liberty、全部129个输出、模型排除证据不变，没有修改真实设计或关闭断言。
 
-正式logic.py增加可选eqy后端，eqy.py只配置/调用已有工具并要求全局PASS及每分区PASS；默认GCD Yosys路径保持。新增4个回归覆盖原设计状态保留、部分证明/无全局标记/空分区拒绝；根189测试、Ruff/format及变动模块pyright通过。正式a9-reference-validation已证明129输出/1072分区，独立RTL重放仍在运行；尚不代表新专业候选通过。
+正式logic.py增加可选eqy后端，eqy.py只配置/调用已有工具并要求全局PASS及每分区PASS；默认GCD Yosys路径保持。新增4个回归覆盖原设计状态保留、部分证明/无全局标记/空分区拒绝；根189测试、Ruff/format及变动模块pyright通过。正式a9-reference-validation已通过：129输出/1072分区、独立RTL重放七项PPA逐值相同、三个DF/SDK身份及源指标一致；再次进入复用原8个EF任务，新增0。默认GCD Yosys路径复核仍通过。尚不代表新专业候选通过。
+
+## AES相同交接路径控制
+
+a9-handoff-control直接提取已登记ORFS archive中的3_5_place_dp.odb，保存producer及输入hash，经现有delivery/EF接口原样进入与专业输出相同的CTS/route_finish、共同测量与DF。两阶段消费校验通过；没有新专业优化，也没有改平台源码。
+
+相对stock ORFS，最终setup/hold TNS仍0，WS从227.247ps到232.025ps；功耗35.107899457→34.952811897mW（−0.4417%），cell1255.75→1255.94µm²（+0.01513%），core/die完全相同。仍违反冻结的cell area上限，不采用。说明统一交接后的物理流程本身可带来小差异；后续DPL同时与stock ORFS和该控制比较，不将流程差异全部归于源码算法。证据aes-handoff-control-comparison.json、控制实验cts/route_finish-consumption.json。
+
+## 完整轮次收尾暴露的晋升/溯源接点修复
+
+a9-dpl的原三Student及Teacher审查均正常结束，三候选均通过原生工件检查；HPWL依次33873.7/33785.0/34058.8µm。平台selection却返回accepted=false。源码与真实路径核实：原orchestrator通过runtime_with_round_outputs将operations定位到STATE_ROOT/round_id/checkpoints/operations；平台只解析全局runtime，查错为STATE_ROOT/checkpoints/operations，因此误认为原生证据缺失。不是算法未胜出，不能通过降低筛选规则处理。
+
+正式DPLEvolve selection.py复用原runtime_with_round_outputs，仅补齐轮次定位；原best_round_candidate(require_baseline_beat=True)、合法性、源码与证据门禁均保持。新增真实文件/临时Git回归证明：只有轮次目录存在原生usage时接受；不胜出或缺证据仍拒绝。21项模块回归、原静态release gate通过。模块186153d已推ChipEvolve modules/dplevolve，不推研究上游。
+
+同一Student原生修订会复用run tag。root professional.py不再仅按tag假定唯一producer，改为同时匹配原生成功回执中的最终ODB内容hash；新增多次同名试验/失败/异tag/未登记内容回归。根190测试、Ruff/format、指定已安装client环境的完整chip_evolve pyright通过。首次client未装pytest及未指定解释器的类型检查缺依赖错误保留，不修改服务或无关环境。
+
+不改活跃/历史controller副本，也不覆盖a9-dpl旧选择及交付检查点。用正式修复选择器只读重查同一已完成原生轮次，得到Student2/candidate ref14a59657…；建立新a9-dpl-delivery-r2交付，原布局hash及真实producer按内容绑定，重新CTS/route/测量/DF。模型搜索没有重跑。当前新交付仍在进行，后续Goal以实际测量及来源决策为准。

@@ -783,21 +783,7 @@ def run_dpl(
         / tag
         / "legalized.odb"
     )
-    producers = [
-        read(p)
-        for p in (experiment / "operations").glob("*/request.json")
-        if "--run-tag" in read(p)["argv"]
-        and read(p)["argv"][read(p)["argv"].index("--run-tag") + 1] == tag
-    ]
-    if len(producers) != 1:
-        raise ValueError("Selected DPL placement needs exactly one recorded producer")
-    request = producers[0]
-    record_path = next(
-        p.parent / "execution.json"
-        for p in (experiment / "operations").glob("*/request.json")
-        if read(p) == request
-    )
-    producer = read(record_path)["run"]["run_id"]
+    producer = dpl_producer(experiment / "operations", placement, tag)
     native_method = {
         "kind": "native-search"
         if args.operation == "evolve"
@@ -819,3 +805,25 @@ def run_dpl(
         native_method=native_method,
     )
     return finish(deployment, experiment)
+
+
+def dpl_producer(operations: Path, placement: Path, tag: str) -> str:
+    """Bind the measured placement to its successful native trial, not just its tag."""
+    sha, matches = digest(placement), []
+    for path in operations.glob("*/leaf.json"):
+        row = read(path)
+        argv = row["request"]["argv"]
+        if (
+            row["request"]["operation"] == "baseline"
+            and "--run-tag" in argv
+            and argv[argv.index("--run-tag") + 1] == tag
+            and row["output_files"].get(str(placement)) == sha
+        ):
+            run = read(path.parent / "execution.json")["run"]
+            if run["status"] == "succeeded":
+                matches.append((run["ended_at"], run["run_id"]))
+    if not matches:
+        raise ValueError(
+            "Selected DPL placement has no successful producer with matching content"
+        )
+    return max(matches)[1]
