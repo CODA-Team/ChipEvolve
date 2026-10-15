@@ -103,21 +103,16 @@ effective_runs=$parallel_runs
 # Uses Python with the same regex as optimize.py to ensure consistency.
 extract_ecp_from_log() {
     local log_file=$1
-    python3 -c "
-import re, sys
-content = open(sys.argv[1]).read()
-# Primary: clock_period_min from stage 6 finish (same regex as optimize.py)
-m = re.search(r'Report metrics stage 6, finish[\s\S]*?(?:core_)?cl[ock]*\s+period_min\s*=\s*([-\d.]+)', content)
-if m:
-    print(m.group(1))
-    sys.exit(0)
-# Fallback: clock_period - worst_slack from stage 6
-p = re.search(r'clock period to\s*([\d.]+)', content)
-w = re.search(r'Report metrics stage 6, finish[\s\S]*?wns max\s+([-\d.]+)', content)
-if p and w:
-    print(f'{float(p.group(1)) - float(w.group(1)):.4f}')
-    sys.exit(0)
-" "$log_file"
+    local native_unit=ns
+    [[ "$platform" == "asap7" ]] && native_unit=ps
+    python3 -c '
+import sys
+from pathlib import Path
+from extract_metrics import reference_ecp
+value = reference_ecp(Path(sys.argv[1]), Path(sys.argv[2]), time_unit=sys.argv[3])
+if value is not None and value > 0:
+    print(value)
+' "$log_file" "${SCRIPT_DIR}/logs/${platform}/${design}/run_1" "$native_unit"
 }
 
 # ============================================================

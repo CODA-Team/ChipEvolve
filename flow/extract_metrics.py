@@ -285,6 +285,29 @@ def _extract_from_json(json_dir: Optional[Path], stage: str) -> Optional[Dict[st
     return m
 
 
+def reference_ecp(log_path: Path, json_dir: Path, *, time_unit: str = "ps") -> Optional[float]:
+    """Read the same baseline minimum clock period from old text or modern JSON.
+
+    CP0's 0.9 factor and TT evaluation are applied by the existing controller.
+    This helper only handles the physical report's representation and units.
+    """
+    content = log_path.read_text()
+    match = FINAL_ECP_PATTERN.search(content)
+    if match:
+        return _finite_float(match.group(1))
+    period = re.search(r'clock period to\s*([\d.]+)', content)
+    slack = re.search(r'Report metrics stage 6, finish[\s\S]*?wns max\s+([-\d.]+)', content)
+    if period and slack:
+        return _finite_float(float(period.group(1)) - float(slack.group(1)))
+    metrics = _extract_from_json(json_dir, "final")
+    ecp_ps = metrics.get("ecp") if metrics else None
+    if ecp_ps is None:
+        return None
+    if time_unit not in {"ps", "ns"}:
+        raise ValueError("unsupported native clock unit: " + time_unit)
+    return ecp_ps if time_unit == "ps" else ecp_ps / 1000
+
+
 def extract_metrics(log_path: Path, stage: str,
                     json_dir: Optional[Path] = None) -> Dict[str, Optional[float]]:
     """
