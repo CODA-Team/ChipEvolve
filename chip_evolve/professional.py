@@ -230,7 +230,13 @@ def run_flow(
     context: Path,
 ) -> dict[str, Any]:
     design = deployment.design(args.design)
-    source = flow_source(deployment, experiment)
+    source_mode = getattr(args, "flow_recipe", "legacy") == "source"
+    if source_mode:
+        from .flow_recipe import prepare_native_source
+
+        source = prepare_native_source(deployment, args.source, experiment)
+    else:
+        source = flow_source(deployment, experiment)
     config_dir = source / "flow/designs" / design["platform"] / design["nickname"]
     # Use OpenSTA's unit-explicit serialization and expose the same clock as
     # the native tuner's variable. All remaining constraints stay verbatim.
@@ -283,6 +289,11 @@ def run_flow(
         DRP_LLM_TRANSPORT="codex",
         DRP_CODEX_AUDIT_DIR=str(experiment / "model-audit"),
     )
+    if source_mode:
+        env["DRP_SOURCE_PARAMETERS"] = str(experiment / "baseline-parameters.json")
+        identity = inventory(source)
+        identity.pop("prepared-files.json", None)
+        write(source / "prepared-files.json", identity)
     command = [
         "bash",
         "run.sh",
@@ -377,6 +388,8 @@ def collect_flow(
             native_flow_dir=str(source / "flow"),
             native_score="Retained in original Flow reports/CP0 feedback",
         )
+        if (experiment / "recipe.json").is_file():
+            measured["flow_recipe"] = str(experiment / "recipe.json")
         candidate_frame = publish(jobs, measured)
         write(folder / "result.json", candidate_frame)
         candidates.append(candidate_frame)
@@ -425,7 +438,12 @@ def resume_layout(
         flatten_archive(Path(archive_path), flat)
     source = jobs.experiment / "source"
     if not source.exists():
-        source = flow_source(deployment, jobs.experiment)
+        if frame.get("flow_recipe"):
+            from .flow_recipe import inherit_prepared_source
+
+            source = inherit_prepared_source(frame, jobs.experiment)
+        else:
+            source = flow_source(deployment, jobs.experiment)
     profile = tool_profile(deployment, source, jobs.experiment)
     config = jobs.experiment / "resume.mk"
     if frame.get("native_config"):

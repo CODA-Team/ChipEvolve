@@ -58,6 +58,7 @@ def test_business_help_needs_no_tool_environment():
         ["--capability", "flow", "--operation", "framework"],
         ["--capability", "goal", "--candidates", "1"],
         ["--capability", "dpl", "--code-source", "/saved/source"],
+        ["--capability", "dpl", "--flow-recipe", "source"],
         [
             "--capability",
             "eco",

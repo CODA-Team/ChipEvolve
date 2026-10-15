@@ -28,6 +28,7 @@ def main() -> int:
     run.add_argument("--seconds", type=int)
     run.add_argument("--rounds", type=int)
     run.add_argument("--candidates", type=int)
+    run.add_argument("--flow-recipe", choices=["legacy", "source"], default="legacy")
     run.add_argument(
         "--operation", choices=["replay", "evolve", "framework"], default="evolve"
     )
@@ -235,6 +236,8 @@ def main() -> int:
             )
         )
     elif args.command == "run":
+        if args.flow_recipe != "legacy" and args.capability != "flow":
+            parser.error("--flow-recipe source applies to Flow only")
         if args.operation == "framework" and args.capability != "dpl":
             parser.error(
                 "--operation framework selects the original DPL framework only"
