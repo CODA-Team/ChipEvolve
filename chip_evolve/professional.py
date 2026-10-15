@@ -126,6 +126,8 @@ def flow_source(deployment: Deployment, experiment: Path) -> Path:
     formal = Path(deployment.value["professional"]["flow"]["source"])
     for file in (formal / "flow").glob("*.py"):
         shutil.copyfile(file, source / "flow" / file.name)
+    for name in ("eval_tns.sh", "eval_tns.tcl"):
+        shutil.copyfile(formal / "flow" / name, source / "flow" / name)
     shutil.copyfile(formal / "run.sh", source / "run.sh")
     for design in deployment.value["designs"].values():
         for library in design["libraries"]:
