@@ -101,6 +101,29 @@ def diagnose(
         question += f"\nFixed baseline run: {baseline['run_id']}; current candidate run: {frame['run_id']}. Compare actual matching conditions and inputs before explaining deltas."
     references = scoped_analysis_references(deployment, frames)
     if references:
+        compact = [
+            {
+                **row,
+                "artifacts": [
+                    artifact
+                    for artifact in row["artifacts"]
+                    if artifact["store_key"].endswith("/candidate-brief.json")
+                ],
+            }
+            for row in references
+            if any(
+                artifact["store_key"].endswith("/candidate-brief.json")
+                for artifact in row["artifacts"]
+            )
+        ]
+        if compact:
+            question += (
+                "\nRead these SDK-verified compact candidate views FIRST. They retain "
+                "the frozen constraints, native decisions, final PPA and original "
+                "refs. Expand individual candidate details only to resolve a specific "
+                "question; do not expand every experiment object: "
+                + json.dumps(compact, ensure_ascii=False)
+            )
         question += (
             "\nExisting analysis runs already belong to these fixed scopes. Read their "
             "registered raw_flow_metadata artifacts for stage/Teacher evidence; source "

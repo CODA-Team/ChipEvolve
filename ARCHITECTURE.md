@@ -1,5 +1,22 @@
 # 架构与源码边界
 
+## A11/A12：迁移资格与候选事实交付（2026-10-15）
+
+新增正式 `candidates --reference R --result C [--result C...] --key K`，由根 `candidate_facts.py` 组合已有公共入口：DF/SDK 核对最终指标和快照，EF 明确生产者提供原专业证据，紧凑视图/全文作为 analysis 产物登记，现有 diagnosis 优先交付给 Query。原生判定、最终物理可行性和 Codex 的业务决定分别记录；不新增服务、数据库、分数或模型循环。Flow 原生反馈保留实际 CP0/库/单位并合并相同反馈的多份来源引用，未知单位不补造。
+
+GCD/AES 实测与两次真实 Query 核查通过。真实 GCD 交付中断后，正式 resume 复用原 ORFS/common run_id，零重复物理计算，三类快照可查询。Flow 共同起点迁移资格未通过：内置综合忽略原层次旋钮，Yosys 正对照显示其有实际作用，不能静默删掉。未实现 source 模式、未启动新 Flow 搜索和新接力；原模板、专业算法、公共 EF/DF/SDK 及用户修改保留。详见 `admin/A11_A12_OVERNIGHT_REPORT_20261015.md`。
+
+```mermaid
+flowchart LR
+  C[Codex指定候选与判断] --> B[candidates]
+  B --> D[DF与SDK最终事实]
+  B --> E[EF原生证据]
+  D --> V[紧凑事实与原始引用]
+  E --> V
+  V --> Q[既有Query]
+  Q --> C
+```
+
 ## A9：AES迁移接点与实测边界
 
 Flow CP0 评分器补齐原 TT 角的 RVT/LVT/SLVT 库覆盖，并要求真实受约束 setup 路径，避免缺库时把空分析当 TNS=0；原专业评分、搜索与筛选不变。正式 flow_source 同步冻结评分脚本，避免继续复制旧模板。

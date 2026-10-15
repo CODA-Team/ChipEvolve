@@ -65,6 +65,10 @@ def main() -> int:
     comparison = commands.add_parser("compare")
     comparison.add_argument("--result", type=Path, required=True)
     comparison.add_argument("--against", type=Path, required=True)
+    candidates = commands.add_parser("candidates")
+    candidates.add_argument("--reference", type=Path, required=True)
+    candidates.add_argument("--result", type=Path, action="append", required=True)
+    candidates.add_argument("--key", required=True)
     args = parser.parse_args()
     if args.command == "leaf":
         from .jobs import leaf
@@ -73,7 +77,45 @@ def main() -> int:
     if not args.config:
         parser.error("--config identifies the local deployment")
     deployment = Deployment(args.config)
-    if args.command == "resume":
+    if args.command == "candidates":
+        from .candidate_facts import build_candidate_facts
+
+        design_id = read(args.reference)["design_id"]
+        experiment = deployment.experiment(design_id, args.key)
+        write(
+            experiment / "request.json",
+            {
+                "design": design_id,
+                "capability": "candidate-facts",
+                "reference": str(args.reference.resolve()),
+                "results": [str(p.resolve()) for p in args.result],
+            },
+        )
+        with business_lock(experiment):
+            try:
+                brief = build_candidate_facts(
+                    deployment,
+                    args.reference.resolve(),
+                    [p.resolve() for p in args.result],
+                    experiment,
+                )
+            except Exception as error:
+                write(
+                    experiment / "status.json",
+                    {
+                        "status": "failed",
+                        "error_type": type(error).__name__,
+                        "detail": str(error),
+                    },
+                )
+                raise
+            write(experiment / "status.json", {"status": "succeeded"})
+        print(
+            json.dumps(
+                {"brief": str(brief), "receipt": str(experiment / "facts-receipt.json")}
+            )
+        )
+    elif args.command == "resume":
         from .delivery import recover
 
         experiment = deployment.state / "experiments" / args.design / args.key

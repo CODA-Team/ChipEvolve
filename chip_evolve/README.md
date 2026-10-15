@@ -1,5 +1,15 @@
 # 单机业务入口
 
+候选事实交付（A12）：
+
+```bash
+./chip-evolve.py --config /absolute/path/local.json candidates --reference /absolute/path/reference/result.json --result /absolute/path/candidate1/result.json --result /absolute/path/candidate2/result.json --key candidate-review
+```
+
+返回 `candidate-brief.json` 和事实登记回执。入口通过已安装 SDK 核对最终指标/约束/条件，通过 EF 的明确原生产者取得专业评分证据；原生 winner 与最终可行性并列，不自动采用。完整条件、约束、原始引用和详细事实保留，较大材料使用带最终 PPA 的目录按需展开。既有 `diagnose` 优先向 Query 提供这些已登记紧凑事实；不新增后台服务或评分。Flow 原生反馈的 CP0/库/单位不改写为最终条件，未知原生单位保持未知。
+
+A11 的共同起点迁移尚未通过：现代内置综合忽略原层次化旋钮，因此本轮未新增 `--flow-recipe source`，原 Flow 运行保持。实际 GCD/AES 控制、候选事实核查和交付中断恢复见 `admin/A11_A12_OVERNIGHT_REPORT_20261015.md`。
+
 Codex 指定设计、能力、预算和上一份结果；入口准备输入、调用原专业程序，再完成统一复测、数据入库和查询。部署文件登记本机镜像、环境及设计资产。入口没有后台服务、模型规划循环或新的评分体系。
 
 ```bash
