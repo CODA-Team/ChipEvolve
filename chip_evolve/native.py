@@ -11,7 +11,7 @@ from typing import Any
 
 from .config import Deployment, read, write
 from .jobs import Jobs, digest
-from .physical import container, qualify
+from .physical import container
 from .professional import environment, freeze, inventory, invoke
 
 
@@ -229,10 +229,18 @@ def run_goal(
             )
         verdict = {"kind": "native-search", "parent": parent, "baseline": verdict}
     producer = latest_producer(experiment / "operations", odb, frame["run_id"])
-    result = qualify(jobs, odb, producer, objective, pdk)
-    result["native_method"] = verdict
-    write(experiment / "result.json", result)
-    return result
+    from .delivery import checkpoint, finish
+
+    checkpoint(
+        experiment,
+        design_id=args.design,
+        odb=odb,
+        producer=producer,
+        objective=objective,
+        pdk=pdk,
+        native_method=verdict,
+    )
+    return finish(deployment, experiment)
 
 
 def latest_producer(operations: Path, checkpoint: Path, fallback: str) -> str:
@@ -377,11 +385,20 @@ def run_eco(
     native = read(experiment / "session/execution.json")
     odb = experiment / "native.odb"
     jobs.materialize(native, "raw_design_database", odb, suffix="/final_eco.odb")
-    result = qualify(jobs, odb, native["run"]["run_id"], objective, source / "asap7")
-    result["native_method"] = {
+    native_method = {
         "kind": "native-ECO",
         "iterations": args.rounds,
         "execution": str(experiment / "session/execution.json"),
     }
-    write(experiment / "result.json", result)
-    return result
+    from .delivery import checkpoint, finish
+
+    checkpoint(
+        experiment,
+        design_id=args.design,
+        odb=odb,
+        producer=native["run"]["run_id"],
+        objective=objective,
+        pdk=source / "asap7",
+        native_method=native_method,
+    )
+    return finish(deployment, experiment)

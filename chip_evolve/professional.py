@@ -413,14 +413,17 @@ def recover_config(
 def resume_layout(
     jobs: Jobs, placement: Path, frame: dict[str, Any], objective: Path, producer: str
 ) -> dict[str, Any]:
-    from admin.resume_placement import placement_archive, verify_stage_archive
+    from .handoff import placement_archive, verify_stage_archive
 
     deployment = jobs.deployment
     design = deployment.design(jobs.design_id)
     archive_path = frame.get("flow_archive") or read(frame["native_inputs"])["archive"]
     flat = jobs.experiment / "source-checkpoint.zip"
-    flatten_archive(Path(archive_path), flat)
-    source = flow_source(deployment, jobs.experiment)
+    if not flat.exists():
+        flatten_archive(Path(archive_path), flat)
+    source = jobs.experiment / "source"
+    if not source.exists():
+        source = flow_source(deployment, jobs.experiment)
     profile = tool_profile(deployment, source, jobs.experiment)
     config = jobs.experiment / "resume.mk"
     if frame.get("native_config"):
@@ -434,7 +437,8 @@ def resume_layout(
             "include " + str(source / "flow" / design["orfs_config"]) + "\n"
         )
     checkpoint = jobs.experiment / "placement.zip"
-    placement_archive(flat, placement, checkpoint, Path(design["sdc"]))
+    if not checkpoint.exists():
+        placement_archive(flat, placement, checkpoint, Path(design["sdc"]))
     sha = digest(placement)
     parent = producer
     record = None
@@ -792,10 +796,7 @@ def run_dpl(
         if read(p) == request
     )
     producer = read(record_path)["run"]["run_id"]
-    result = resume_layout(
-        Jobs(deployment, args.design, experiment), placement, frame, objective, producer
-    )
-    result["native_method"] = {
+    native_method = {
         "kind": "native-search"
         if args.operation == "evolve"
         else (
@@ -804,5 +805,15 @@ def run_dpl(
         "choice": choice,
         "native_search_verdicts": str(experiment / "native-state"),
     }
-    write(experiment / "result.json", result)
-    return result
+    from .delivery import checkpoint, finish
+
+    checkpoint(
+        experiment,
+        design_id=args.design,
+        odb=placement,
+        producer=producer,
+        objective=objective,
+        source=args.source,
+        native_method=native_method,
+    )
+    return finish(deployment, experiment)

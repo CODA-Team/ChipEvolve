@@ -31,7 +31,7 @@ def qualify(
     """Complete a native GRT/ECO checkpoint without applying extra optimization."""
     design = jobs.deployment.design(jobs.design_id)
     output = jobs.experiment / "qualification"
-    output.mkdir()
+    output.mkdir(exist_ok=True)
     script = output / "route.tcl"
     script.write_text(
         "\n".join(
@@ -112,12 +112,17 @@ def container(deployment: Deployment, command: list[str]) -> list[str]:
 
 
 def baseline(
-    deployment: Deployment, design_id: str, experiment: Path, seconds: int
+    deployment: Deployment,
+    design_id: str,
+    experiment: Path,
+    seconds: int,
+    *,
+    objective: Path | None = None,
 ) -> dict[str, Any]:
     design = deployment.design(design_id)
     jobs = Jobs(deployment, design_id, experiment)
     config = experiment / "inputs/design.mk"
-    config.parent.mkdir()
+    config.parent.mkdir(exist_ok=True)
     config.write_text(
         "include /OpenROAD-flow-scripts/flow/"
         + design["orfs_config"]
@@ -168,6 +173,7 @@ def baseline(
         files["spef"],
         Path(design["sdc"]),
         result["run"]["run_id"],
+        objective,
     )
     with zipfile.ZipFile(archive) as bundle:
         route_name = next(
@@ -175,7 +181,7 @@ def baseline(
         )
         route = json.loads(bundle.read(route_name))
     measured["route_drc"] = route["detailedroute__route__drc_errors"]
-    goal = freeze_goal(deployment, design_id, experiment, measured)
+    goal = objective or freeze_goal(deployment, design_id, experiment, measured)
     measured["objective"] = str(goal)
     # This is the same measured fact, now bound to the baseline-derived limits.
     annotate(measured, read(goal))
@@ -257,7 +263,16 @@ def measure(
     if objective:
         verify_conditions(read(objective), sdc=sdc)
     folder = jobs.experiment / key
-    folder.mkdir(exist_ok=False)
+    identity = {
+        "parent": parent,
+        "files": {str(p): digest(p) for p in (odb, spef, sdc)},
+        "objective": str(objective) if objective else None,
+    }
+    saved = folder / "measurement-inputs.json"
+    if saved.exists() and read(saved) != identity:
+        raise ValueError("A saved measurement cannot change inputs")
+    folder.mkdir(exist_ok=True)
+    write(saved, identity)
     script = folder / "measure.tcl"
     libraries = [Path(row["path"]) for row in design["libraries"]]
     if any(

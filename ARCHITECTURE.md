@@ -1,5 +1,25 @@
 # 架构与源码边界
 
+## A8：正式本机恢复与验证（2026-10-15）
+
+现有CLI增加resume/continue-goal/validate/compare。delivery保存原专业成功的输入hash、实际producer和原判定；resume只恢复确定性交付，EF原任务身份不变，不重跑模型搜索。原Goal续作和placement归档/消费核查迁入正式continuation/handoff模块，业务不依赖admin脚本。Jobs对嵌套验证任务隔离身份，对已冻结输入/命令作重接校验。单实验驱动锁不管理EDA进程，EDA仍由EF监管。
+
+接口：checkpoint(experiment, *, design_id, odb, producer, objective, native_method, pdk=None, source=None)；recover(deployment, design_id, key)；validate(deployment, result_path, reference_path, key)。原EF/DF HTTP、DI SDK和部署schema不变。validate使用EF Yosys/路由/测量、DF源指标和scope，输出事实/证明/重放回执；Codex仍给出select理由。
+
+```mermaid
+flowchart LR
+  C[Codex] --> B[正式业务CLI]
+  B --> P[原专业]
+  P --> K[已完成专业交付检查点]
+  K --> E[EF与原任务身份]
+  B --> V[证明与独立重放]
+  V --> E
+  E --> D[DF与SDK事实]
+  D --> Q[Query与Codex判断]
+```
+
+GCD真实恢复与验证通过，AES完整迁移为A9。技术债：未完成原生模型会话的恢复仍属于原项目；重复源码构建、专业适用范围和公平预算优势未解决。数字输出证明不代替物理检查；物理单元仅在已证实无端口连接时从证明模型排除。详细证据见admin/A8_LOCAL_WORKFLOW_REPORT_20261015.md；以下旧段落为历史检查点，最新状态以TASKS顶部及最新报告为准。
+
 ## A4：单机业务入口与诊断交付（最新）
 
 根 `chip-evolve.py` / `chip_evolve` 是确定性业务组合入口，登记设计、目标、能力、预算和源实验；继续调用独立专业控制器。没有新增服务、通用规划循环或综合评分。EF管理任务/资源/原始产物，DF管理设计事实/快照/索引/来源，SDK提供统一查询，Query使用已有Codex调查机制提供诊断，Codex决定下一步及采用结果。

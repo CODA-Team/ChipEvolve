@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from .config import Deployment, read, write
+from .config import Deployment, business_lock, read, write
 
 
 def main() -> int:
@@ -50,6 +50,21 @@ def main() -> int:
     collect = commands.add_parser("collect-flow")
     collect.add_argument("--design", required=True)
     collect.add_argument("--key", required=True)
+    resume = commands.add_parser("resume")
+    resume.add_argument("--design", required=True)
+    resume.add_argument("--key", required=True)
+    continuation = commands.add_parser("continue-goal")
+    continuation.add_argument("--result", type=Path, required=True)
+    continuation.add_argument("--context", type=Path, required=True)
+    continuation.add_argument("--key", required=True)
+    continuation.add_argument("--seconds", type=int, default=21600)
+    validation = commands.add_parser("validate")
+    validation.add_argument("--result", type=Path, required=True)
+    validation.add_argument("--against", type=Path, required=True)
+    validation.add_argument("--key", required=True)
+    comparison = commands.add_parser("compare")
+    comparison.add_argument("--result", type=Path, required=True)
+    comparison.add_argument("--against", type=Path, required=True)
     args = parser.parse_args()
     if args.command == "leaf":
         from .jobs import leaf
@@ -58,7 +73,63 @@ def main() -> int:
     if not args.config:
         parser.error("--config identifies the local deployment")
     deployment = Deployment(args.config)
-    if args.command == "collect-flow":
+    if args.command == "resume":
+        from .delivery import recover
+
+        experiment = deployment.state / "experiments" / args.design / args.key
+        with business_lock(experiment):
+            result = recover(deployment, args.design, args.key)
+        print(
+            json.dumps(
+                {"result": str(experiment / "result.json"), "run_id": result["run_id"]}
+            )
+        )
+    elif args.command == "continue-goal":
+        from .continuation import run as continue_goal
+
+        design_id = read(args.result)["design_id"]
+        experiment = deployment.state / "experiments" / design_id / args.key
+        try:
+            result = continue_goal(
+                deployment,
+                args.result.resolve().parent,
+                args.context.resolve(),
+                args.key,
+                args.seconds,
+            )
+        except Exception as error:
+            if experiment.exists():
+                write(
+                    experiment / "status.json",
+                    {
+                        "status": "failed",
+                        "error_type": type(error).__name__,
+                        "detail": str(error),
+                    },
+                )
+            raise
+        print(
+            json.dumps(
+                {
+                    "result": str(experiment / "result.json"),
+                    "run_id": result["run_id"],
+                    "metrics": result["metrics"],
+                }
+            )
+        )
+    elif args.command == "validate":
+        from .validation import validate
+
+        receipt = validate(
+            deployment, args.result.resolve(), args.against.resolve(), args.key
+        )
+        print(json.dumps(receipt))
+        return 0 if receipt["passed"] else 2
+    elif args.command == "compare":
+        from .comparisons import compare
+
+        print(json.dumps(compare(read(args.against), read(args.result))))
+    elif args.command == "collect-flow":
         from .professional import collect_flow
 
         experiment = deployment.state / "experiments" / args.design / args.key
@@ -77,9 +148,11 @@ def main() -> int:
         from .jobs import Jobs
 
         rows = []
-        for path in sorted(
-            (deployment.state / "experiments" / args.design).glob("*/request.json")
-        ):
+        design_root = deployment.state / "experiments" / args.design
+        paths = set(design_root.glob("*/request.json")) | set(
+            design_root.glob("*/validation-request.json")
+        )
+        for path in sorted(paths):
             status_file = path.parent / "status.json"
             result = path.parent / "result.json"
             current = (
@@ -94,7 +167,7 @@ def main() -> int:
             rows.append(
                 {
                     "experiment": path.parent.name,
-                    "capability": read(path).get("capability"),
+                    "capability": read(path).get("capability", "validation"),
                     "status": current,
                     "result": str(result) if result.exists() else None,
                 }
@@ -151,26 +224,27 @@ def main() -> int:
             for key, value in vars(args).items()
         }
         write(experiment / "request.json", request)
-        try:
-            if args.capability == "orfs":
-                from .physical import baseline
+        with business_lock(experiment):
+            try:
+                if args.capability == "orfs":
+                    from .physical import baseline
 
-                result = baseline(deployment, args.design, experiment, args.seconds)
-            else:
-                from .professional import execute
+                    result = baseline(deployment, args.design, experiment, args.seconds)
+                else:
+                    from .professional import execute
 
-                result = execute(deployment, args, experiment)
-            write(experiment / "status.json", {"status": "succeeded"})
-        except Exception as error:
-            write(
-                experiment / "status.json",
-                {
-                    "status": "failed",
-                    "error_type": type(error).__name__,
-                    "detail": str(error),
-                },
-            )
-            raise
+                    result = execute(deployment, args, experiment)
+                write(experiment / "status.json", {"status": "succeeded"})
+            except Exception as error:
+                write(
+                    experiment / "status.json",
+                    {
+                        "status": "failed",
+                        "error_type": type(error).__name__,
+                        "detail": str(error),
+                    },
+                )
+                raise
         print(
             json.dumps(
                 {

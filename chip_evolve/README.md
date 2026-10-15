@@ -44,6 +44,23 @@ flowchart LR
 
 历史运行只读。每次运行必须用新 key；只恢复已成功的计算证据，不覆盖历史失败。`collect-flow` 可以补完已成功原生 Flow 的数据交付；它不会重跑布局布线。`--operation replay --code-source` 可在新运行中构建并重放已保存的 DPL 源码，原分数和筛选规则保留。
 
+统一收尾和验证入口：
+
+```bash
+./chip-evolve.py --config /absolute/path/local.json resume --design aes --key original-experiment
+./chip-evolve.py --config /absolute/path/local.json compare --result /absolute/path/candidate/result.json --against /absolute/path/reference/result.json
+./chip-evolve.py --config /absolute/path/local.json validate --result /absolute/path/candidate/result.json --against /absolute/path/reference/result.json --key qualification
+./chip-evolve.py --config /absolute/path/local.json continue-goal --result /absolute/path/goal/result.json --context /absolute/path/professional-context.json --key next-round --seconds 21600
+```
+
+`resume` 重接 ORFS 已提交任务、补完已结束 Flow 的交付，或从 DPL/Goal/ECO 保存的成功交付检查点继续 CTS/route/测量/入库。不重启尚未完成的专业模型搜索。恢复保留原失败状态副本，并拒绝改变输入内容；同一实验的活跃业务驱动持有本机锁，不能同时恢复。
+
+`validate` 返回共同条件差值、固定 Liberty 下的数字逻辑输出证明、独立目录阶段重放和 DF/SDK 事实核查。相同 key 可继续未完成的验证，原 EF 任务使用相同身份；不同验证的子任务身份互不冲突。成功返回 0，已完成但指标不一致或约束未满足返回 2；工具/证明失败保留原回执。ORFS 从 RTL 重新执行，DPL 从原布局继续 CTS/route，Goal/ECO 从原专业 checkpoint 完整 DRT/RCX；不宣称重新做了模型搜索或源码演化。是否采用仍由 Codex 调用 `select` 并给出理由。
+
+证明只在 EF 解析 JSON 已确认没有端口连接时，排除 TAPCELL/FILLER/DECAP 物理单元和 scope 元数据；实际网表不改动。隐藏内部名称避免把等价换脚误判为不等价，保留顶层端口一致、原 Liberty、顺序归纳和断言。完整输入 hash、模型排除证据和日志可查。
+
+`continue-goal` 适用于已达到原功耗目标的 Goal 源码父项：在新实验继承原目标、规则和四 Student，继续原生时序恢复。它是新的有预算续作，区别于不重做专业搜索的 `resume`。
+
 当前注册验证覆盖 ASAP7 的 GCD 与 AES 标准单元设计。新设计需要登记真实 RTL/原设计配置、SDC、库、top、原生 case 与路由层；不宣称未经验证的 PDK、存储宏或不同周期的多时钟设计已支持。
 
 有限本机对照使用部署 client Python 的 `python -m chip_evolve.comparisons`，提供 `compare`、`replay-goal`、`verify-logic` 三个命令，具体参数可用 `--help` 查看。它们保留固定方法、真实失败与原评分，只返回可复查事实；Codex仍决定是否采用。实测和限制见 `admin/LOCAL_PROFESSIONAL_COMPARISON_REPORT_20261014.md`。

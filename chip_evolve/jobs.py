@@ -47,6 +47,18 @@ class Jobs:
             experiment,
         )
         self.campaign = design_id + "-" + experiment.name
+        try:
+            relative = experiment.relative_to(
+                deployment.state / "experiments" / design_id
+            )
+        except ValueError:
+            relative = Path(experiment.name)
+        if len(relative.parts) > 1:
+            # Independent validation children must not collide with another
+            # validation's equally named logic/replay child.
+            self.campaign += (
+                "-" + hashlib.sha256(str(relative).encode()).hexdigest()[:12]
+            )
         self.client = KernelClient(deployment.value["kernel_url"], timeout=60)
 
     def submit(
@@ -102,6 +114,11 @@ class Jobs:
         saved = folder / "task.json"
         if saved.exists() and read(saved) != task:
             raise ValueError("A saved business job cannot silently change inputs")
+        identity = {row["source"]: digest(Path(row["source"])) for row in staged}
+        hashes = folder / "staged-hashes.json"
+        if hashes.exists() and read(hashes) != identity:
+            raise ValueError("A saved business job cannot change staged content")
+        write(hashes, identity)
         write(saved, task)
         submitted = self.client.submit(
             task, idempotent=True, idempotency_key=self.campaign + ":" + key
@@ -166,15 +183,15 @@ class Jobs:
         extra_paths: list[str] | None = None,
     ) -> dict[str, Any]:
         request = self.experiment / "requests" / (key + ".json")
-        write(
-            request,
-            {
-                "command": command,
-                "cwd": str(cwd or self.experiment),
-                "capture": [str(p.resolve()) for p in capture or []],
-                "environment": environment or {},
-            },
-        )
+        value = {
+            "command": command,
+            "cwd": str(cwd or self.experiment),
+            "capture": [str(p.resolve()) for p in capture or []],
+            "environment": environment or {},
+        }
+        if request.exists() and read(request) != value:
+            raise ValueError("A saved command cannot change on recovery")
+        write(request, value)
         return self.submit(
             key,
             {
