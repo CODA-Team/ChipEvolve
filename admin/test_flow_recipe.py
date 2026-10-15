@@ -83,6 +83,79 @@ def test_changed_registered_source_cannot_become_a_new_recipe(tmp_path):
         source_binding(frame)
 
 
+def test_native_source_does_not_silently_convert_ns_to_ps(tmp_path, monkeypatch):
+    from admin.test_local_business import deployment
+    from chip_evolve import flow_recipe
+
+    frame = source(tmp_path)
+    sdc = frame.parent / "design.sdc"
+    sdc.write_text(
+        "set_cmd_units -time ns\ncreate_clock -period 0.31 [get_ports clk]\n"
+    )
+    hashes = frame.parent / "jobs/orfs/staged-hashes.json"
+    write(hashes, {**read(hashes), str(sdc): digest(sdc)})
+    d = deployment(tmp_path)
+    exp = d.experiment("gcd", "units")
+    monkeypatch.setattr(
+        flow_recipe,
+        "prepare_flow_recipe",
+        lambda *a: pytest.fail("must reject before EDA"),
+    )
+    with pytest.raises(ValueError, match="ps-serialized source"):
+        flow_recipe.prepare_native_source(d, frame, exp)
+
+
+def test_native_clock_binding_uses_registered_input_not_a_later_measurement(
+    tmp_path, monkeypatch
+):
+    from types import SimpleNamespace
+
+    from admin.test_local_business import deployment
+    from chip_evolve import flow_recipe, professional
+
+    d = deployment(tmp_path)
+    d.value["designs"]["gcd"] = {
+        "platform": "pdk",
+        "nickname": "test",
+        "clock_period_ns": 0.31,
+    }
+    exp = d.experiment("gcd", "clock-binding")
+    prepared = exp / "source"
+    design = prepared / "flow/designs/pdk/test"
+    design.mkdir(parents=True)
+    registered = exp / "actual-source.sdc"
+    registered.write_text(
+        "set_cmd_units -time ps\ncreate_clock -period 310 [get_ports clk]\nset_input_delay 62 -clock clk [get_ports d]\n"
+    )
+    measured = exp / "later-measurement.sdc"
+    measured.write_text(registered.read_text().replace("delay 62", "delay 22"))
+    write(exp / "recipe.json", {"sdc": str(registered)})
+    monkeypatch.setattr(flow_recipe, "prepare_native_source", lambda *a: prepared)
+
+    class CheckedBinding(Exception):
+        pass
+
+    def check(*args):
+        actual = (design / "constraint.sdc").read_text()
+        assert "set_input_delay 62" in actual and "set_input_delay 22" not in actual
+        assert "-period $clk_period" in actual
+        raise CheckedBinding()
+
+    monkeypatch.setattr(professional, "tool_profile", check)
+    args = SimpleNamespace(
+        flow_recipe="source", source=exp / "result.json", design="gcd"
+    )
+    with pytest.raises(CheckedBinding):
+        professional.run_flow(
+            d,
+            args,
+            exp,
+            {"files": {"sdc": str(measured)}},
+            exp / "objective.json",
+            exp / "context.json",
+        )
+
+
 def test_staged_source_hook_is_relocated_with_its_frozen_bytes(tmp_path):
     frame = source(tmp_path)
     hook = frame.parent / "routing.tcl"

@@ -43,8 +43,8 @@
     },
     {
       "path": "flow-agent",
-      "source_commit": "c2d5291a0c1d4bdba0b1c7b526cb815df009e93b",
-      "source_tree": "24a7cadcfd2749d9de5480b190b11c26006b6d67",
+      "source_commit": "1a33015912f58e216ff82012b08c015429972a9b",
+      "source_tree": "ab804f0af8d1cb3b0f28efee377a39559a368f8c",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/flow-agent"
     },

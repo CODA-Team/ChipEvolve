@@ -8,7 +8,13 @@
 
 返回 `candidate-brief.json` 和事实登记回执。入口通过已安装 SDK 核对最终指标/约束/条件，通过 EF 的明确原生产者取得专业评分证据；原生 winner 与最终可行性并列，不自动采用。完整条件、约束、原始引用和详细事实保留，较大材料使用带最终 PPA 的目录按需展开。既有 `diagnose` 优先向 Query 提供这些已登记紧凑事实；不新增后台服务或评分。Flow 原生反馈的 CP0/库/单位不改写为最终条件，未知原生单位保持未知。
 
-A11 的共同起点迁移尚未通过：现代内置综合忽略原层次化旋钮，因此本轮未新增 `--flow-recipe source`，原 Flow 运行保持。实际 GCD/AES 控制、候选事实核查和交付中断恢复见 `admin/A11_A12_OVERNIGHT_REPORT_20261015.md`。
+A11 续作已增加显式现代来源入口，默认仍为 `legacy`：
+
+```bash
+./chip-evolve.py --config /absolute/path/local.json run --design aes --capability flow --flow-recipe source --source /absolute/path/registered-yosys-source/result.json --key native-search --rounds 2 --candidates 3
+```
+
+完整来源需已登记固定镜像的 ORFS 任务、真实输入 hash、ps 序列化 SDC、Yosys 路线及原旋钮的明确数值；辅助布线脚本也必须随 EF 输入提交。准备器继承真实库/SDC/物理脚本，通过 EF 的 Make 查询初始化原参数，交接继续使用该 recipe。未定义的 LB addon 不能静默替换成旧默认值。现代 Yosys 的数字时钟提取不换算 SDC 单位，ns 来源必须先显式登记 ps 迁移来源，不能只改写 SDC 后声称起点不变。现代内置综合仍不支持原层次旋钮，完整能力资格未通过。当前来源与原生基准核查、完整搜索进行中；状态见 `admin/A11_YOSYS_MIGRATION_20261016.md`，历史部分交付见 `admin/A11_A12_OVERNIGHT_REPORT_20261015.md`。
 
 Codex 指定设计、能力、预算和上一份结果；入口准备输入、调用原专业程序，再完成统一复测、数据入库和查询。部署文件登记本机镜像、环境及设计资产。入口没有后台服务、模型规划循环或新的评分体系。
 
@@ -32,6 +38,7 @@ Codex 指定设计、能力、预算和上一份结果；入口准备输入、�
 | physical.py | 原 ORFS 基线、完整路由校准、共同测量及 DF 入库 |
 | clock.py | 将 OpenSTA 的明确 ps 约束绑定到原 Flow 时钟变量；保留匹配虚拟时钟和其他约束 |
 | professional.py | 原 Flow / DPL 控制器、真实 placement→CTS 交接及候选配置恢复 |
+| flow_recipe.py | 固定现代物理来源、实际 Make 参数初始化、recipe 身份与下游继承 |
 | native.py | 原 Goal / ECO 控制器与其输入准备；DEF 保留原数据库精度 |
 | diagnosis.py | 已有 Query 的 Codex hosted 调查、引用证据与专业上下文导出 |
 | selection.py | 保存 Codex 的采用理由、核查明确硬约束、保留合法 incumbent |

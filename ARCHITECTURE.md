@@ -4,7 +4,7 @@
 
 新增正式 `candidates --reference R --result C [--result C...] --key K`，由根 `candidate_facts.py` 组合已有公共入口：DF/SDK 核对最终指标和快照，EF 明确生产者提供原专业证据，紧凑视图/全文作为 analysis 产物登记，现有 diagnosis 优先交付给 Query。原生判定、最终物理可行性和 Codex 的业务决定分别记录；不新增服务、数据库、分数或模型循环。Flow 原生反馈保留实际 CP0/库/单位并合并相同反馈的多份来源引用，未知单位不补造。
 
-GCD/AES 实测与两次真实 Query 核查通过。真实 GCD 交付中断后，正式 resume 复用原 ORFS/common run_id，零重复物理计算，三类快照可查询。Flow 共同起点迁移资格未通过：内置综合忽略原层次旋钮，Yosys 正对照显示其有实际作用，不能静默删掉。未实现 source 模式、未启动新 Flow 搜索和新接力；原模板、专业算法、公共 EF/DF/SDK 及用户修改保留。详见 `admin/A11_A12_OVERNIGHT_REPORT_20261015.md`。
+GCD/AES 实测与两次真实 Query 核查通过。真实 GCD 交付中断后，正式 resume 复用原 ORFS/common run_id，零重复物理计算，三类快照可查询。内置综合忽略原层次旋钮，完整能力仍未通过；老板已选择保留完整能力，迁移现代 ORFS/Yosys。新增显式 `--flow-recipe source`，准备器从登记来源冻结实际输入和物理树（含平台共享技术映射），在 EF 内展开真实 Make 参数，再叠加原控制器；原搜索、继承、淘汰、CP0 与 TT 评分保持。recipe 随候选结果交付，下游继续其物理脚本。GCD/AES 的 r2 物理复制均七项同值，但原生 ps 转换改变 Yosys 数字时钟，不能据此宣称原生起点合格。当前显式登记 ps 的 r3 来源并核对原生第一行，正式模式拒绝静默转换 ns 来源；两设计的诊断搜索证据保留。默认 legacy、公共 EF/DF/SDK 及用户修改保留。详见 `admin/A11_YOSYS_MIGRATION_20261016.md` 及历史部分交付 `admin/A11_A12_OVERNIGHT_REPORT_20261015.md`。
 
 ```mermaid
 flowchart LR

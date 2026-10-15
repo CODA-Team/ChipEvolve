@@ -268,6 +268,13 @@ def prepare_native_source(
     """Overlay only native control code, preserving the pinned physical flow."""
     from .professional import freeze, inventory
 
+    binding = source_binding(source_result)
+    if not Path(binding["sdc"]).read_text().startswith("set_cmd_units -time ps\n"):
+        raise ValueError(
+            "Register a ps-serialized source before native Flow search: modern "
+            "Yosys extracts numeric clock periods without converting SDC units; "
+            "silently serializing an ns source would change the physical starting point"
+        )
     source = prepare_flow_recipe(deployment, source_result, experiment)
     recipe_path = experiment / "recipe.json"
     recipe = read(recipe_path)

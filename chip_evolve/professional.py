@@ -240,7 +240,12 @@ def run_flow(
     config_dir = source / "flow/designs" / design["platform"] / design["nickname"]
     # Use OpenSTA's unit-explicit serialization and expose the same clock as
     # the native tuner's variable. All remaining constraints stay verbatim.
-    sdc = Path(frame["files"]["sdc"]).read_text()
+    sdc_path = (
+        Path(read(experiment / "recipe.json")["sdc"])
+        if source_mode
+        else Path(frame["files"]["sdc"])
+    )
+    sdc = sdc_path.read_text()
     (config_dir / "constraint.sdc").write_text(flow_sdc(sdc, design["clock_period_ns"]))
     profile = tool_profile(deployment, source, experiment)
     wrappers = experiment / "identity-tools"
