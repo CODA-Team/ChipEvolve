@@ -65,4 +65,6 @@ flowchart LR
 
 当前注册验证覆盖 ASAP7 的 GCD 与 AES 标准单元设计。新设计需要登记真实 RTL/原设计配置、SDC、库、top、原生 case 与路由层；不宣称未经验证的 PDK、存储宏或不同周期的多时钟设计已支持。
 
+A9在AES已完成原Flow两轮六候选、DPL一轮三Student、Goal一轮四Student和ECO两轮运行。采用实际DPL Student2→Goal Student4的共同测量结果，129功能输出证明及独立DRT/RCX重放通过。Flow候选超全局上限，ECO无可修目标且有效动作0；Codex保留合法Goal结果，不要求每个专业都进入最终分支。相对ORFS功耗约−0.502%、单元面积约−0.129%，setup余量减少35.293ps但仍闭合。迁移结果、失败证据和限制见admin/A9_AES_MIGRATION_REPORT_20261015.md。
+
 有限本机对照使用部署 client Python 的 `python -m chip_evolve.comparisons`，提供 `compare`、`replay-goal`、`verify-logic` 三个命令，具体参数可用 `--help` 查看。它们保留固定方法、真实失败与原评分，只返回可复查事实；Codex仍决定是否采用。实测和限制见 `admin/LOCAL_PROFESSIONAL_COMPARISON_REPORT_20261014.md`。

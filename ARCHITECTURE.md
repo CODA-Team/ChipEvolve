@@ -1,12 +1,16 @@
 # 架构与源码边界
 
-## A9：AES验证接点（进行中）
+## A9：AES迁移接点与实测边界
 
 Flow CP0 评分器补齐原 TT 角的 RVT/LVT/SLVT 库覆盖，并要求真实受约束 setup 路径，避免缺库时把空分析当 TNS=0；原专业评分、搜索与筛选不变。正式 flow_source 同步冻结评分脚本，避免继续复制旧模板。
 
-逻辑验证增加可选部署工具 `tools.equivalence=eqy` / `tools.eqy`，复用镜像已有 EQY 的 SAT 分区归纳；默认 Yosys 保持。logic.py 继续核对固定库、端口和零端口物理单元证据；eqy.py 只生成原生工具配置并经 EF 执行、读取全局及每个分区的通过状态，不增加服务或判断层。AES 实际同网表1072分区通过、单输出位翻转负控制被拒绝；真实专业候选仍须各自验证，不能用自检替代。AES完整迁移状态见当前A9报告。
+逻辑验证增加可选部署工具 `tools.equivalence=eqy` / `tools.eqy`，复用镜像已有 EQY 的 SAT 分区归纳；默认 Yosys 保持。logic.py 继续核对固定库、端口和零端口物理单元证据；eqy.py 只生成原生工具配置并经 EF 执行、读取全局及每个分区的通过状态，不增加服务或判断层。AES同网表1072分区通过、单输出位翻转负控制被拒绝；真实DPL/Goal输出各129功能位/1071分区通过，独立DRT/RCX七项PPA同值、DF/SDK身份正确。DPL面积超限的失败状态保留，Goal合法采用，不能用工具执行成功替代业务约束。完整状态见当前A9报告。
 
 AES完整DPL轮次发现平台选择器遗漏原生round-root，误将有效候选视为缺证据；正式选择器复用原orchestrator的runtime_with_round_outputs，不改晋升规则。professional.dpl_producer按原生成功回执中ODB内容hash及run tag定位实际试验，支持同一Student多次修订。历史错误选择与交付不可变，本轮用新交付记录重查已完成轮次并继续物理流程，不重启模型、不修改原runtime源码副本。
+
+原生Teacher判定、CSV源指标、源码hash与阶段结果可由现有Jobs.command登记为测量结果的analysis子运行及raw_flow_metadata；既有scoped_analysis_references把原始证据交给固定scope的Query，不增加后台服务或评分。AES已验证真实Goal→ECO上下文交付及最终ORFS对比，Query读取原始判定而非只读功耗排序；Codex保留采用理由及incumbent。专业内部工作状态仍由各原项目管理，DF不替代其算法状态，EF管理原始产物与运行来源。
+
+当前通用接点已在同一ASAP7的GCD/AES实测，未按设计名分支打补丁。保留技术债：Flow原流程与现代ORFS起点不同、HPWL/原生功耗代理与最终RCX收益不一致、ECO在已闭合路径上空操作、原生观测开销及公平收益未验证。Query发现OpenSTA路径索引的corner/analysis/unit比较元数据不完整；可结合原始metrics、SDC与受限路径样本调查，不能把样本索引当作全路径匹配认证。本轮未改动用户正在开发的DF/DI文件，后续须独立切片补齐元数据。
 
 ## A8：正式本机恢复与验证（2026-10-15）
 
