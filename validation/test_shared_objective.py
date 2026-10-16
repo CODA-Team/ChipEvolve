@@ -66,3 +66,48 @@ def test_shared_objective_is_saved_before_actual_codex_invocation(
     monkeypatch.setattr(runner, "build_command", boundary)
     with pytest.raises(RuntimeError, match="verified actual command boundary"):
         runner.main([])
+
+
+@pytest.mark.parametrize("platform", [False, True])
+def test_execution_ownership_reaches_native_prompt_only_in_platform_mode(
+    tmp_path, monkeypatch, platform
+):
+    for name in (
+        "DPL_EVOLVE_PLATFORM_PROFILE",
+        "EDA_PLATFORM_OBJECTIVE",
+        "EDA_PLATFORM_CONTEXT",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    if platform:
+        monkeypatch.setenv("DPL_EVOLVE_PLATFORM_PROFILE", "explicit-platform")
+    args = SimpleNamespace(
+        cwd=tmp_path,
+        operations_dir=tmp_path / "operations",
+        operation_id="turn",
+        prompt="original mechanism and promotion rules",
+        prompt_file=None,
+        session_state=None,
+    )
+    monkeypatch.setattr(runner, "parse_args", lambda argv: args)
+    monkeypatch.setattr(
+        runner,
+        "runtime_paths",
+        lambda: SimpleNamespace(
+            agent_root=tmp_path, orfs_root=tmp_path, state_root=tmp_path
+        ),
+    )
+    monkeypatch.setattr(runner, "default_codex_home", lambda *a: (tmp_path, "test"))
+    monkeypatch.setattr(runner, "state_resume_thread_id", lambda *a: (None, "test"))
+
+    def boundary(*args):
+        prompt = (tmp_path / "operations/turn/codex_prompt.md").read_text()
+        assert prompt.startswith("original mechanism and promotion rules")
+        assert ("## Platform execution ownership" in prompt) is platform
+        if platform:
+            assert "same command session" in prompt
+            assert "resource profile" in prompt
+        raise RuntimeError("verified native command boundary")
+
+    monkeypatch.setattr(runner, "build_command", boundary)
+    with pytest.raises(RuntimeError, match="verified native command boundary"):
+        runner.main([])

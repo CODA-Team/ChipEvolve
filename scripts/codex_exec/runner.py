@@ -361,6 +361,12 @@ def main(argv: list[str] | None = None) -> int:
         from eda_toolkits.context import append_context
 
         prompt_text = append_context(prompt_text)
+    if os.environ.get("DPL_EVOLVE_PLATFORM_PROFILE"):
+        execution_hint = (
+            AGENT_ROOT
+            / "prompt_templates/teacher_loop/shared/platform_execution.md"
+        ).read_text(encoding="utf-8")
+        prompt_text += "\n\n" + execution_hint
     session_store_home, session_store_reason = default_codex_home(
         runtime, args.session_state
     )
