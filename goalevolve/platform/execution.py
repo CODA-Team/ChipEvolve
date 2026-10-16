@@ -14,6 +14,7 @@ import shlex
 import shutil
 import signal
 import subprocess
+import threading
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -272,6 +273,20 @@ def container_command(
     return [*command, profile["image"], *link_command(request["command"])]
 
 
+def _forward_logs(stdout: Path, stderr: Path, stop: threading.Event) -> None:
+    """Mirror original file bytes into EF's live log, without buffering the run."""
+    with stdout.open("rb") as out, stderr.open("rb") as err:
+
+        def drain():
+            for stream in (out, err):
+                while chunk := stream.read(65536):
+                    print(chunk.decode("utf-8", errors="replace"), end="", flush=True)
+
+        while not stop.wait(0.1):
+            drain()
+        drain()
+
+
 def leaf(profile: dict[str, Any], request: dict[str, Any]) -> int:
     workspace = Path.cwd()
     validate_request(profile, request)
@@ -300,6 +315,11 @@ def leaf(profile: dict[str, Any], request: dict[str, Any]) -> int:
             stderr=err,
             start_new_session=True,
         )
+        forwarding_stop = threading.Event()
+        forwarding = threading.Thread(
+            target=_forward_logs, args=(stdout, stderr, forwarding_stop), daemon=True
+        )
+        forwarding.start()
         try:
             code = process.wait(timeout=request["policy"]["timeout_s"])
         except subprocess.TimeoutExpired:
@@ -316,6 +336,9 @@ def leaf(profile: dict[str, Any], request: dict[str, Any]) -> int:
             except ProcessLookupError:
                 pass
             code = process.wait()
+        finally:
+            forwarding_stop.set()
+            forwarding.join()
     validate_request(profile, request)
     output_log = request["output_log"]
     if output_log:
