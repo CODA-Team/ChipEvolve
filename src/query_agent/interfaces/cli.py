@@ -26,6 +26,7 @@ from query_agent.application.collection import EvidenceCollector
 from query_agent.application.planning import KeywordIntentParser, QueryPlanner
 from query_agent.application.service import QueryService
 from query_agent.benchmark import BenchmarkRunner
+from query_agent.domain.investigation import InvestigationDecision
 from query_agent.domain.query import QueryContext, QueryRequest, QuerySource
 
 from .investigation_cli import add_commands, run_command
@@ -34,6 +35,9 @@ from .investigation_cli import add_commands, run_command
 def main(argv: list[str] | None = None) -> int:
     parser = _parser()
     args = parser.parse_args(argv)
+    if args.command == "decision-schema":
+        print(json.dumps(InvestigationDecision.model_json_schema(), indent=2))
+        return 0
     if args.command in (
         "investigate",
         "resume",
@@ -70,6 +74,10 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="query-agent")
     commands = parser.add_subparsers(dest="command", required=True)
     add_commands(commands)
+    commands.add_parser(
+        "decision-schema",
+        help="print the existing host act JSON Schema without services",
+    )
     ask = commands.add_parser("ask", help="ask an evidence-scoped question")
     ask.add_argument("question")
     ask.add_argument("--workspace", type=Path)

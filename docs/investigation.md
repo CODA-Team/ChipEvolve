@@ -22,6 +22,18 @@ same application instead of launching another model. `--model flash` requires
 `--flash-config` and a shared `--cost-ledger`; settings reference a user-only
 credential file. Credentials never enter prompts or model traces.
 
+An existing host can retrieve the current `act --decision` format without an
+investigation, service connection or model call:
+
+```bash
+query-agent decision-schema > decision-schema.json
+```
+
+This prints the same `InvestigationDecision` JSON Schema used by validation and
+hosted mode, including answer/claim fields and their allowed values. It does not
+change the action contract. Use `--output observation` after actions for new
+evidence, and `evidence` pagination when a saved preview is truncated.
+
 Each checkpoint contains fixed scopes, original skill versions, hypotheses,
 counterevidence, saved wire responses, operation receipts, analysis identities,
 budget usage and stop reason. Evidence pages retain a digest and continuation;
