@@ -48,7 +48,11 @@ Query接点另发现两个不同ECO入口被混淆：Query内建`propose_handoff
 
 真实Query的严格路径比较发现`analysis/corner/unit`为空，源码审计定位到根`physical.publish`调用已有OpenSTA adapter时漏传三字段。Toolkit已支持这些字段，DF/SDK也保留并核对它们；本次只补根最终导出接点：`analysis=post_route`、实际measurement的corner，以及原生`report_checks -format json`的SI秒`unit=s`。OpenSTA源码`ReportPath.cc::reportJson`直接输出内部delay浮点；本轮SDK原始slack约−2.014e−11s与共同PPA约−0.02014ns相符，不能给原始JSON套用共同指标的ns标签。原数值、PPA、库/SDC、专业算法与公共接口不改。
 
-旧不可变导出任务恢复时保留原字段和created_at，复用既有submission/snapshot；不回写旧snapshot或悄悄补成已知上下文。旧事实若需补齐，将另建带原输入指纹和parent的supplemental导出，经EF/DF验收。新增两角点全链归一化检查及旧任务恢复检查，覆盖setup/hold、原始数值、元数据和不重复提交。14项针对检查、386项根回归及Ruff/格式/Pyright/差异检查通过；真实新导出/严格路径比较待证明后的资源窗口，不用单元检查冒充在线通过。
+旧不可变导出任务恢复时保留原字段和created_at，复用既有submission/snapshot；不回写旧snapshot或悄悄补成已知上下文。旧事实若需补齐，将另建带原输入指纹和parent的supplemental导出，经EF/DF验收。新增两角点全链归一化检查及旧任务恢复检查，覆盖setup/hold、原始数值、元数据和不重复提交。14项针对检查、386项根回归及Ruff/格式/Pyright/差异检查通过；空闲窗口已完成两次真实STA补充导出（`run-df92016d14a149d1bc94537a9327ff76`、`run-fd4d58b349964e34837fc34454f55d3a`）、DF导入及SDK核验。新视图保留原run/目标/条件和七PPA，原result和旧快照逐hash不变；严格同端点比较为`COMPARABLE`，原最差端点slack增加20.65ps。全局最差端点切换，故该值不同于15.3699ps的全局最差改善。RC/部分物理关联仍不完整，规范化envelope维持partial，不据此声称唯一因果或整体时序通过。完整回执为`runtime/experiments/jpeg/a24-timing-context-live-r4/posthoc-acceptance.json`。
+
+明确编号的补充分析定位：公共SDK已有`origin=all`，Query-Agent已正确使用；根`validation.query_facts`漏传，因目录缺省`origin=flow`而排除了补充STA。根现按已知snapshot编号显式使用all，并继续严格核对design/run及七PPA。对应测试修复前复现KeyError，修复后根390项及静态/格式/类型通过；Data Foundation/Interface未改源码、数据结构或部署。为核查建立的干净DF worktree已移除，原26份用户文件保持。
+
+补充验证脚本的准备错误单列：r2/r3重复绑定目标输入，被EF在创建run前拒绝；r4两STA已成功，后续断言误从缺省summary读取full才有的status字段。失败记录均保留，之后仅展开SDK full回执及原结果只读验收，没有重跑这两次STA。原生比较与所有视图均已验收，脚本错误未通过更改平台门禁处理。
 
 ## 后续门槛
 

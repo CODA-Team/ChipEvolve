@@ -22,7 +22,7 @@ def query_facts(deployment: Deployment, frame: dict[str, Any]) -> dict[str, Any]
     )
     scopes = {}
     for mode, snapshot in frame["snapshot_ids"].items():
-        scope = client.resolve_scope(snapshot_id=snapshot)["scope"]
+        scope = client.resolve_scope(snapshot_id=snapshot, origin="all")["scope"]
         if (scope["design_id"], scope["run_id"]) != (
             frame["design_id"],
             frame["run_id"],

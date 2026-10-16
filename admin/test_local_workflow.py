@@ -154,7 +154,7 @@ def test_query_checks_source_values_without_confusing_ws_and_wns(tmp_path, monke
     d.value["data_url"] = "http://localhost:2"
     frame = result(tmp_path)
     frame["metrics"]["finish__timing__setup__ws"] = 0.025
-    frame["snapshot_ids"] = {"orfs": "snapshot"}
+    frame["snapshot_ids"] = {"orfs": "snapshot", "opensta": "analysis-supplement"}
     canonical = [
         {
             "raw_key": key,
@@ -176,7 +176,10 @@ def test_query_checks_source_values_without_confusing_ws_and_wns(tmp_path, monke
     }
     client = SimpleNamespace(
         resolve_scope=lambda **kwargs: {
-            "scope": {"design_id": frame["design_id"], "run_id": frame["run_id"]}
+            "scope": {}
+            if kwargs["snapshot_id"] == "analysis-supplement"
+            and kwargs.get("origin", "flow") == "flow"
+            else {"design_id": frame["design_id"], "run_id": frame["run_id"]}
         },
         get_metrics=lambda **kwargs: response,
     )
