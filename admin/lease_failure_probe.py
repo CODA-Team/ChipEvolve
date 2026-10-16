@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ROUND = ROOT / "var/business/a22-lease-stability-20261016"
 
 
-def main(folder: Path | None = None) -> None:
+def main(folder: Path | None = None, *, runtime_python: Path | None = None) -> None:
     folder = folder or ROUND / "failure-scenarios-r4"
     folder.mkdir(exist_ok=False)
     with socket.socket() as channel:
@@ -27,7 +27,7 @@ def main(folder: Path | None = None) -> None:
     config = read(
         ROOT / "var/business/a19-a21-purposeful-relay-20261016/runtime/local.json"
     )
-    python = ROUND / "runtime/after-r3-env/bin/python"
+    python = runtime_python or ROUND / "runtime/after-r3-env/bin/python"
     config.update(
         kernel_url=f"http://127.0.0.1:{port}",
         client_python=str(python),

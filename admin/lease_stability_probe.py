@@ -36,12 +36,16 @@ def port() -> int:
 
 
 def execute(
-    mode: str, *, storage_root: Path | None = None, data_wal: bool = False
+    mode: str,
+    *,
+    storage_root: Path | None = None,
+    data_wal: bool = False,
+    runtime_python: Path | None = None,
 ) -> None:
     folder = (storage_root or ROUND) / mode
     folder.mkdir(exist_ok=False)
     config = read(PREVIOUS / "local.json")
-    python = ROUND / "runtime" / (mode + "-env/bin/python")
+    python = runtime_python or ROUND / "runtime" / (mode + "-env/bin/python")
     config.update(
         state_root=str(folder / "business"),
         kernel_url=f"http://127.0.0.1:{port()}",

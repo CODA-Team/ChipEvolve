@@ -1,5 +1,7 @@
 # ChipEvolve：Codex 驱动的 OpenROAD 垂直能力平台
 
+2026-10-16 A23：EF已提交状态只读连接、续租/监控单事务、五秒监控写入合并完成；原目录三AES最终七PPA同值、JPEG三类事实、64/64和持续1725/1725查询通过，1352次完整覆盖692秒大写入，lost/续租错误均0。最长续租10.7秒、两秒health短采样超时2次，仍保留I/O限制。取消/真失联回收通过，空闲备份后原位更新EF，DF不动；实际在线回执和完整限制见 [A23报告](admin/A23_METADATA_STABILITY_REPORT_20261016.md)。老板已批准A23–A28持续推进，下一项JPEG完整优化预演/预算校准；正式双核心结果尚未完成。
+
 ChipEvolve 为成熟 Agent（当前以 Codex 为入口）提供芯片物理设计的专业能力：可复现的实验执行、统一的设计事实与产物，以及基于证据的查询、理解和诊断。Codex 负责目标、规划和判断，平台负责运行实验、提供事实与专业优化能力。
 
 当前优先在本机跑通实验和协同 PPA 优化。产品目标见 [PROJECT.md](PROJECT.md)，模块职责见 [ARCHITECTURE.md](ARCHITECTURE.md)，实际完成状态见 [TASKS.md](TASKS.md) 和 [admin/STATUS.md](admin/STATUS.md)。

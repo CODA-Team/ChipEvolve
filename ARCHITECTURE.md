@@ -1,5 +1,19 @@
 # 架构与源码边界
 
+## A23：已提交观察与原子续租（2026-10-16）
+
+EF写连接继续独占事务来核验资源、领取、状态和失联；独立只读连接/读锁承载公开状态、证据索引及SDK所需EF读取，只能看到已提交WAL状态。heartbeat同一事务更新lease和worker presence，SQLite事务上下文负责提交/回滚；相同监控状态五秒合并、变化立即写入，原30秒lease/stale、EDA期限和派发/取消/回收不变。没有新服务、数据库、公共契约或模型循环。原目录三AES/JPEG与1725次查询验证、两个短health超时和10.7秒续租限制见 [A23报告](admin/A23_METADATA_STABILITY_REPORT_20261016.md)。原位更新后权威PID/命令在A23 `production-update.json`，DF保持原进程/路径/配置，旧回执不改写。
+
+```mermaid
+flowchart LR
+  A[Codex与专业] --> W[EF原子写事务]
+  W --> P[WAL与持久产物]
+  P --> R[EF已提交只读状态]
+  R --> A
+  P --> D[DF事实与SDK/Query]
+  D --> A
+```
+
 ## A22：并发租约、交付恢复与持久状态位置（2026-10-16）
 
 EF bundle 文件/字节托管移出共享连接锁，元数据和 first-writer 身份仍原子注册；worker 相同状态每秒合并写，PID/当前任务/状态变化立即记录，租约、失联隔离及SQLite持久化不变。根 `delivery.import_snapshot` 在首次回执查询故障后重查，明确无回执且本次未提交才发原POST；请求已发则只对账。函数签名、EF/DF/SDK路径及数据结构保持。
