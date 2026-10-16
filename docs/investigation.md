@@ -47,6 +47,11 @@ authorize execution or prove causality. Low confidence/service failures return
 to the main reasoner. Default adoption requires measured whole-task benefit;
 classification accuracy alone is insufficient.
 
+`export-professional-context` removes exact duplicate claims. Explicit hypotheses
+and possible/unknown claims remain hypotheses; limitation claims remain in the
+limitations with their citations. It preserves original inputs and evidence and
+does not rewrite existing context files.
+
 `export-handoff` freezes input hashes, facts, unconfirmed hypotheses, evidence,
 allowed actions and success criteria. ECO grants come from the operator and are
 bound to a snapshot. `receive-handoff` accepts a package hash and permitted
