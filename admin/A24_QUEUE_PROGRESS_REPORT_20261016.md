@@ -1,5 +1,7 @@
 # A24进行中：跨设计交接和异步队列修复
 
+DPL后续提示契约已在原共享platform片段补充：不启动EF worker、不构造kernel store/runtime或访问内部执行/领取/数据库；有真实基础设施故障时沿原helper/公开client报告给父级。原Student源码机制、Teacher、评分、晋升及非平台模式不变，当前活跃副本未改。实际命令边界测试确认提示到达；公共wheel测试环境完整30项及静态/格式/类型通过。模块d86379c已发布；本机旧DPL开发venv缺既有Toolkit context的失败另存，未据此改业务逻辑或在线安装。原Student3后续改源码构建峰值93,296,545,792 bytes再超其64GiB，被EF明确停止，先前成功构建不作当前源码的成功证明；原始命令事件和EF证据见`dpl-native-internal-worker-audit.json`。提示契约是使用边界，不能宣称已经阻止任意模型越界，后续实测还须验证。
+
 2026-10-17本机最新核查：旧两轮50候选Flow在原route批次结束后以原生exit1失败，completed_iterations=0，不能视作完成第一轮。确认精确timeout/owner均退出及terminal summary后，经公开EF取消该闭合阶段35项，15项成功保留、50份原leaf字节不变；回执`flow-route-close-manual-receipt.json`，根人工恢复/清理累计4次。原驱动丢弃的批次退出码保持null，不伪造124。另发现DPL Student3自行通过EF内部构造器直接领取已提交任务；这是统一入口和封装缺口，单独记录，不能计无干预稳定。未据worker名称推断其他历史进程的来源，未中断其健康计算。
 
 Flow运行资源与批次时限现在由根私有`professional.flow.execution`显式提供，缺省仍为8线程/24GiB/7200秒，原生参数域、阶段继承和总体监督保持。新七项配置边界/实际命令测试及全根358项通过；额外改动仅为`professional.py`、新预算测试、既有SDC测试的最小绑定及本片文档。不宣称当前旧Flow已用新设置恢复成功，也不改写原失败。实测JPEG资源汇总在`partial-resource-calibration-summary.json`，后续按其校准大设计预算，正式实验尚未开始。

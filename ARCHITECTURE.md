@@ -2,6 +2,8 @@
 
 ## A24进行中：批量事实与所选设计对象（2026-10-16）
 
+DPL原生平台提示明确只用生成助手与公开EF client；worker、内部store/runtime、领取与服务维护属于父级平台职责。实际命令边界与非平台隔离测试通过；不创建新沙箱或通用harness，尚不能把提示约束当运行强制隔离。原Student自行领取的预演失败记录保留，活跃副本不改。
+
 根私有部署项`professional.flow.execution`可提供正整数`threads`、`memory_gib`、`stage_timeout_seconds`，缺省8/24/7200保持原行为；线程/内存交给既有EF预约，阶段时限传给原生`--timeout`并记入`platform.json`，总体监督仍受原`--seconds`约束。它解决大设计无法配置原批次预算的问题，不改变搜索参数域、轮次、筛选或公共接口，也不更新活跃副本。
 
 Code完成候选也交付最终事实：DPL/Goal各自的只读`candidate_evidence` CLI导出原完整性/质量判定及实际检查点，根`code_evidence.collect`冻结来源并核对公开EF生产者/原生artifact bytes。额外候选复用`delivery.checkpoint→finish`，DPL走原CTS/全route，Goal走原完整DRT/RCX；默认原生parent与评分不变，额外结果集合不自动选择或采用。额外批量先交付指标/时序，已有`design_facts.ensure`按需补齐对象；根run/resume/continue-goal回执给私有索引/计数。失败单列、不自动重试；恢复重接同一清单，已成功旧结果不自动升级，历史校准单独目录，子收尾不递归。没有新评测/执行服务、通用harness或公共EF/DF/SDK变化。
