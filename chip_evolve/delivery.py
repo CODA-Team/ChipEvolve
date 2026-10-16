@@ -222,19 +222,37 @@ def finish(deployment: Deployment, experiment: Path) -> dict[str, Any]:
     from .physical import qualify
     from .professional import resume_layout
 
+    prior_result, prior_status = experiment / "result.json", experiment / "status.json"
+    completed_legacy_result = (
+        prior_result.is_file()
+        and prior_status.is_file()
+        and read(prior_status).get("status") == "succeeded"
+        and "native_candidate_evidence" not in read(prior_result)
+    )
     saved = read(experiment / "delivery-checkpoint.json")
     for name, sha in saved["input_hashes"].items():
         if digest(Path(name)) != sha:
             raise ValueError("Delivery input changed: " + name)
     jobs = Jobs(deployment, saved["design_id"], experiment)
     odb, objective = Path(saved["odb"]), Path(saved["objective"])
+    modes = (
+        {"fact_modes": ("orfs", "opensta")}
+        if saved["native_method"].get("kind") == "native-candidate"
+        else {}
+    )
     if saved["kind"] == "layout":
         result = resume_layout(
-            jobs, odb, read(saved["source"]), objective, saved["producer"]
+            jobs, odb, read(saved["source"]), objective, saved["producer"], **modes
         )
     else:
-        result = qualify(jobs, odb, saved["producer"], objective, Path(saved["pdk"]))
+        result = qualify(
+            jobs, odb, saved["producer"], objective, Path(saved["pdk"]), **modes
+        )
     result["native_method"] = saved["native_method"]
+    from .code_evidence import maybe_collect
+
+    if not completed_legacy_result:
+        maybe_collect(deployment, experiment, result, saved)
     write(experiment / "result.json", result)
     return result
 

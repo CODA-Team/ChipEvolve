@@ -152,6 +152,9 @@ def _main() -> int:
                     "result": str(experiment / "result.json"),
                     "run_id": result.get("run_id"),
                     "candidate_results": result.get("candidate_results", []),
+                    "native_candidate_evidence": result.get(
+                        "native_candidate_evidence"
+                    ),
                 }
             )
         )
@@ -187,6 +190,9 @@ def _main() -> int:
                     "result": str(experiment / "result.json"),
                     "run_id": result["run_id"],
                     "metrics": result["metrics"],
+                    "native_candidate_evidence": result.get(
+                        "native_candidate_evidence"
+                    ),
                 }
             )
         )
@@ -394,6 +400,9 @@ def _main() -> int:
                     "execution_state": "succeeded",
                     "delivery_state": "completed",
                     "candidate_results": result.get("candidate_results", []),
+                    "native_candidate_evidence": result.get(
+                        "native_candidate_evidence"
+                    ),
                 }
             )
         )

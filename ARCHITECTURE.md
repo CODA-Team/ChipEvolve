@@ -2,6 +2,17 @@
 
 ## A24进行中：批量事实与所选设计对象（2026-10-16）
 
+Code完成候选也交付最终事实：DPL/Goal各自的只读`candidate_evidence` CLI导出原完整性/质量判定及实际检查点，根`code_evidence.collect`冻结来源并核对公开EF生产者/原生artifact bytes。额外候选复用`delivery.checkpoint→finish`，DPL走原CTS/全route，Goal走原完整DRT/RCX；默认原生parent与评分不变，额外结果集合不自动选择或采用。额外批量先交付指标/时序，已有`design_facts.ensure`按需补齐对象；根run/resume/continue-goal回执给私有索引/计数。失败单列、不自动重试；恢复重接同一清单，已成功旧结果不自动升级，历史校准单独目录，子收尾不递归。没有新评测/执行服务、通用harness或公共EF/DF/SDK变化。
+
+```mermaid
+flowchart LR
+  A[Code原生轮次与原晋升] --> B[只读完成候选导出]
+  B --> C[EF原产物与共同测量]
+  C --> D[DF指标与时序]
+  D --> E[Codex比较和选择]
+  E --> F[所选对象按需补齐与完整验证]
+```
+
 Flow原批次明确返回后由`maindriver.sh→platform_stage_finalize.py→EF.cancel`收尾本批次残留任务，所有权以campaign/iteration/stage/slot/design双重核验；独立回执保留原返回码/取消确认/待终态列表，原leaf证据不改。普通前端中断继续使用原恢复语义，不自动取消EDA。阶段时限和原算法不变，新源码不编辑活跃副本；80项回归通过，新批次实际自动收尾待核验。DPL平台重链接仅在auto与显式单LTO worker并存时去除auto，原生/其他参数保持；真实独立build-only验证待完成，不据源码检查宣称内存根因或PPA改善。
 
 根`professional.flow_source`旧来源准备也复制正式maindriver；现代来源原本复制全量脚本，原模板仅提供物理流程/设计材料。隔离running GCD经新helper取消/释放/幂等验证通过，完整新批次自动超时仍待核验。完整功能证明预算由根私有`validation.equivalence_seconds`显式提供给现有EF任务，缺省3600秒；模型/输出范围/SAT策略/结果判定和公共契约不变，不借加时修改已提交作业。相关根336项回归通过。

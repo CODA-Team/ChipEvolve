@@ -26,7 +26,13 @@ def now() -> str:
 
 
 def qualify(
-    jobs: Jobs, odb: Path, parent: str, objective: Path, pdk: Path
+    jobs: Jobs,
+    odb: Path,
+    parent: str,
+    objective: Path,
+    pdk: Path,
+    *,
+    fact_modes: tuple[str, ...] = ("opendb", "orfs", "opensta"),
 ) -> dict[str, Any]:
     """Complete a native GRT/ECO checkpoint without applying extra optimization."""
     design = jobs.deployment.design(jobs.design_id)
@@ -100,7 +106,7 @@ def qualify(
             "full_drt_rcx": True,
         },
     )
-    return publish(jobs, measured)
+    return publish(jobs, measured, modes=fact_modes)
 
 
 def container(deployment: Deployment, command: list[str]) -> list[str]:

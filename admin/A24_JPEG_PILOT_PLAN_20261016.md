@@ -60,3 +60,19 @@ DPL真实链接命令同时包含`-flto=auto`和`-flto=1`。仅在平台重链�
 JPEG全输出证明解析、匹配与6331分区准备已消耗接近原3600秒预算，不能将未完成写成不等价。根`eqy.verify`及`logic._yosys_proof`沿用已有EF任务，仅从私有部署`validation.equivalence_seconds`读取显式时限，缺省3600秒不变；函数签名、完整输出/Liberty模型、SAT深度10、判定与4核/32GiB不变。`test_local_eqy.py`核验两backend的新旧期限、原资源/来源/目标/策略；修复前2失败/6通过，修复后8通过，连同旧来源控制器复制后根336项及Ruff/格式/Pyright/差异检查通过。只准备新`local-validation4h-prepared.json`，未修改原配置或活动任务；只有旧证明真实终态和原因核验后才决定新独立尝试，原失败和成本保持。
 
 该旧证明随后实际终态为`resource_exceeded`：run e139cb…进程树峰值34,421,301,248 bytes，超过原32GiB；CPU2833.27秒，11进程。原SAT尚无完整结果，不是功能反例或一小时deadline超时。回执`jpeg-proof-resource-failure.json`保留原EF身份/错误/用量。补入根私有`validation.equivalence_memory_gib`（默认32）与`equivalence_jobs`（EQY默认2），同一任务边界分别控制预约与原EQY的`-j`，不改输出/分区/模型/归纳深度/判定；两个backend的旧新额度与EQY并发均由原四组合边界测试验证，修复前2失败/6通过，根336项及静态门禁通过。下一次独立完整证明准备64GiB、`-j 1`、四小时，先让已排队的104GiB Code构建完成，避免验证任务挤占专业大构建。只做一次该配置的独立尝试，不循环抬预算或删分区；失败和全部成本仍计入校准。
+
+## 完成的Code候选共同事实交付
+
+只读审计`dpl-candidate-pool-audit.json`确认历史A9 AES三个Student均无原生artifact problems，但原生selection未接受任何一个，根常规入口只复测fallback。当前Goal同样只交付最后parent。局部研究指标与业务最终PPA不同，因此需要把完成候选的事实交给Codex，而不是改原晋升规则。
+
+- DPL新增` scripts/platform/candidate_evidence.py`、Goal新增`goalevolve/platform/candidate_evidence.py`及各自对应测试：在各自项目进程中只读导出已完成候选、原完整性判定、实际检查点和原判定/源码引用；不搜索、不提交EDA、不改原评分/晋升/源文件。DPL复用原候选发现/产物gate，不在根复制算法。
+- 根新增`chip_evolve/code_evidence.py`及针对测试：绑定原实验/设计/目标、原生完成记录、成功EF生产者和检查点hash，将额外候选存入独立子目录。原生选中且已交付的同一检查点不重复EDA；缺检查点/原完整性失败单列跳过。所有原判定保留，不自动采用或把非晋升候选冒充原生parent。
+- 根`delivery.finish`在真实Code evolve的原生收尾后调用该交付，恢复时重接同一冻结候选清单；原所选结果及专业晋升语义保持，新增私有证据索引引用供Codex查证。历史独立验证在新输出目录运行，不改旧result/status。子候选不递归收集。
+- 同样覆盖已有Goal时序续作；根`cli.py`的run/resume/continue-goal回执透传私有`native_candidate_evidence`，包含完成/失败/原生拒绝计数、是否全部交付及索引/额外结果集合引用，Codex无需寻找底层目录。已成功的历史无索引结果不在恢复时自动升级，保持原字节；历史校准单列新输出。新子目录加原实验前缀，避免DF使用目录名作为revision_id时跨轮次候选同名。
+- 根`physical.qualify`及`professional.resume_layout`仅加私有可选事实模式，默认完整交付保持；额外批量Code候选沿已实现的指标/时序先交付、所选对象按需补齐，防止重复大量对象导入。公开EF/DF/SDK、逻辑证明/最终约束及专业算法不变。
+
+验证先复现遗漏、核对只读导出的原判定，再检查错设计/失败生产者/变更hash拒绝、所选检查点复用、恢复不重复EDA、原结果字节保持与原约束完整；各受影响模块静态/对应单元/差异/边界/回归门禁通过后发布。用历史AES完成候选做隔离真实共同交付，并按同一规则纳入当前JPEG完整轮次后的交付。新增编译/测量/数据/失败成本均属于本次预演及未来正式两侧共同预算，不把补交付当作PPA收益。
+
+工程检查点：DPL只读导出器cb48484完整30项、Goal导出器6d0f19b完整411项/24子测试通过，均已发布ChipEvolve模块分支；实际只读AES导出分别覆盖原三个/四个完成候选，旧文件不改、新增EDA为0。根覆盖注册EF快照真实bytes/manifest与本地记录一致、完整性与收益判定分开、批量轻事实、根/子收尾不递归、终态失败显式计数不自动重试、旧结果不升级、历史pending指向新输出等回归；最终完整检查结果与真实共同测量状态以本片发布回执/进展报告为准。真实公共PPA交付尚待执行，不能以导出通过冒称该项业务已完成。
+
+最终根351项、15个针对边界/生命周期用例及静态/类型/格式门禁通过，发布前26用户文件hash不变；完整回执`code-candidate-delivery-source-proof.json`。共享收尾新增的历史兼容判断在重写结果前识别原已成功无索引结果，恢复时保持旧字节；真实额外PPA交付及所选对象业务核验仍待完成。

@@ -481,7 +481,13 @@ def recover_config(
 
 
 def resume_layout(
-    jobs: Jobs, placement: Path, frame: dict[str, Any], objective: Path, producer: str
+    jobs: Jobs,
+    placement: Path,
+    frame: dict[str, Any],
+    objective: Path,
+    producer: str,
+    *,
+    fact_modes: tuple[str, ...] = ("opendb", "orfs", "opensta"),
 ) -> dict[str, Any]:
     from .handoff import placement_archive, verify_stage_archive
 
@@ -592,7 +598,7 @@ def resume_layout(
             native_flow_dir=str(source / "flow"),
             placement_source_sdc_sha256=digest(stage_sdc),
         )
-    return publish(jobs, measured)
+    return publish(jobs, measured, modes=fact_modes)
 
 
 def flatten_archive(original: Path, destination: Path) -> None:
