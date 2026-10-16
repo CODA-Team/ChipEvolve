@@ -25,6 +25,7 @@ def run_goal(
 ) -> dict[str, Any]:
     from .goal_replay import descriptor, write_driver
 
+    deadline = time.time() + args.seconds
     fixed = None
     if args.code_source:
         if args.operation != "replay":
@@ -119,7 +120,7 @@ def run_goal(
         client_python=deployment.value["client_python"],
         agent_python=deployment.value["goal_python"],
         operations_root=str(experiment / "operations"),
-        deadline_epoch=time.time() + args.seconds,
+        deadline_epoch=deadline,
         read_roots=[str(source), profile["source_seed"]],
         write_roots=[str(experiment)],
         controller_files=inventory(source),
@@ -169,6 +170,7 @@ def run_goal(
     write(config_path, config)
     env = environment(objective, context)
     env["GOALEVOLVE_PLATFORM_PROFILE"] = str(profile_path)
+    env["EDA_PLATFORM_DEADLINE_EPOCH"] = str(deadline)
     folder = experiment / "baseline-controller"
     folder.mkdir()
     command = [

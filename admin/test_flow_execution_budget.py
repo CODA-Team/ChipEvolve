@@ -121,3 +121,24 @@ def test_invalid_budget_fails_before_preparing_native_files(tmp_path, field, val
             tmp_path / "context.json",
         )
     prepare.assert_not_called()
+
+
+def test_explicit_campaign_seed_reaches_native_search(tmp_path):
+    d, args, experiment, source, sdc, profile = fixture(tmp_path)
+    d.value["professional"]["flow"]["seed"] = 29
+    with (
+        patch("chip_evolve.professional.flow_source", return_value=source),
+        patch("chip_evolve.professional.tool_profile", return_value=profile),
+        patch("chip_evolve.professional.invoke") as invoke,
+        patch("chip_evolve.professional.collect_flow", return_value={}),
+    ):
+        run_flow(
+            d,
+            args,
+            experiment,
+            {"files": {"sdc": str(sdc)}},
+            tmp_path / "objective.json",
+            tmp_path / "context.json",
+        )
+    command = invoke.call_args.args[0]
+    assert command[command.index("--seed") + 1] == "29"

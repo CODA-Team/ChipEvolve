@@ -11,6 +11,7 @@ import subprocess
 import tarfile
 import time
 import zipfile
+from http.client import HTTPException
 from pathlib import Path
 from typing import Any
 
@@ -114,6 +115,11 @@ def environment(objective: Path, context: Path) -> dict[str, str]:
 def invoke(
     command: list[str], source: Path, env: dict[str, str], folder: Path, seconds: int
 ) -> None:
+    timeout = float(seconds)
+    if "EDA_PLATFORM_DEADLINE_EPOCH" in env:
+        timeout = min(timeout, float(env["EDA_PLATFORM_DEADLINE_EPOCH"]) - time.time())
+        if timeout <= 0:
+            raise subprocess.TimeoutExpired(command, seconds)
     with (folder / "controller.log").open("x") as log:
         process = subprocess.Popen(
             command,
@@ -124,7 +130,7 @@ def invoke(
             start_new_session=True,
         )
         try:
-            code = process.wait(timeout=seconds)
+            code = process.wait(timeout=timeout)
         except (subprocess.TimeoutExpired, KeyboardInterrupt) as error:
             from .native_process import stop
 
@@ -260,17 +266,27 @@ def execute(
             ),
         },
     )
-    if args.capability == "flow":
-        return run_flow(deployment, args, experiment, frame, objective, context)
-    if args.capability == "dpl":
-        return run_dpl(deployment, args, experiment, frame, objective, context)
-    if args.capability == "goal":
-        from .native import run_goal
+    try:
+        if args.capability == "flow":
+            return run_flow(deployment, args, experiment, frame, objective, context)
+        if args.capability == "dpl":
+            return run_dpl(deployment, args, experiment, frame, objective, context)
+        if args.capability == "goal":
+            from .native import run_goal
 
-        return run_goal(deployment, args, experiment, frame, objective, context)
-    from .native import run_eco
+            return run_goal(deployment, args, experiment, frame, objective, context)
+        from .native import run_eco
 
-    return run_eco(deployment, args, experiment, frame, objective, context)
+        return run_eco(deployment, args, experiment, frame, objective, context)
+    except (subprocess.TimeoutExpired, KeyboardInterrupt):
+        try:
+            Jobs(deployment, args.design, experiment).cancel_active()
+        except (OSError, RuntimeError, HTTPException) as error:
+            write(
+                experiment / "native-job-cancellation-error.json",
+                {"error_type": type(error).__name__, "detail": str(error)},
+            )
+        raise
 
 
 def run_flow(
@@ -282,7 +298,11 @@ def run_flow(
     context: Path,
 ) -> dict[str, Any]:
     design = deployment.design(args.design)
-    execution = deployment.value["professional"]["flow"].get("execution", {})
+    binding = deployment.value["professional"]["flow"]
+    execution = binding.get("execution", {})
+    seed = binding.get("seed", 42)
+    if type(seed) is not int or seed < 0:
+        raise ValueError("Flow seed must be a nonnegative integer")
     threads = execution.get("threads", 8)
     memory_gib = execution.get("memory_gib", 24)
     stage_seconds = execution.get("stage_timeout_seconds", 7200)
@@ -382,7 +402,7 @@ def run_flow(
         "-P",
         "-F",
         "--seed",
-        "42",
+        str(seed),
         "--cpus",
         str(threads),
         "--timeout",
@@ -694,6 +714,46 @@ def materialize_dpl_replay(installation: Path, state: Path, experiment: Path) ->
     return binary
 
 
+def dpl_search_command(
+    binding: dict[str, Any],
+    python: str,
+    source: Path,
+    args: argparse.Namespace,
+    case_id: str,
+    key: str,
+) -> list[str]:
+    command = [
+        python,
+        str(source / "scripts/optimize_case_with_codex.py"),
+        "--case",
+        case_id,
+        "--flow-variant",
+        key,
+        "--round-id",
+        key,
+        "--iterations",
+        str(args.rounds),
+        "--children",
+        str(args.candidates),
+        "--max-parallel",
+        "2",
+        "--skip-core-build",
+        "--reuse-baseline-preflight",
+        "--launch",
+    ]
+    for name in (
+        "model",
+        "reasoning_effort",
+        "teacher_model",
+        "teacher_reasoning_effort",
+        "student_model",
+        "student_reasoning_effort",
+    ):
+        if binding.get(name) is not None:
+            command += ["--" + name.replace("_", "-"), binding[name]]
+    return command
+
+
 def run_dpl(
     deployment: Deployment,
     args: argparse.Namespace,
@@ -704,6 +764,7 @@ def run_dpl(
 ) -> dict[str, Any]:
     from .dpl_case import prepare_case
 
+    deadline = time.time() + args.seconds
     design = deployment.design(args.design)
     binding = deployment.value["professional"]["dpl"]
     template = read(binding["profile_template"])
@@ -771,7 +832,7 @@ def run_dpl(
         "design": design["nickname"],
         "case": case_id,
         "flow_variant": experiment.name,
-        "deadline_epoch": time.time() + args.seconds,
+        "deadline_epoch": deadline,
         "controller_files": inventory(source),
         "flow_output_roots": [
             str(orfs / "flow" / name)
@@ -810,7 +871,9 @@ def run_dpl(
     env = environment(objective, context)
     env.update(profile["container_environment"])
     env.update(
-        DPL_EVOLVE_PYTHON=deployment.value["client_python"], DPL_EVOLVE_SKIP_ENV_SH="1"
+        DPL_EVOLVE_PYTHON=deployment.value["client_python"],
+        DPL_EVOLVE_SKIP_ENV_SH="1",
+        EDA_PLATFORM_DEADLINE_EPOCH=str(deadline),
     )
     baseline_tags = [
         (method, "baseline_probe_" + method, profile["core_binary"])
@@ -887,25 +950,14 @@ def run_dpl(
     if args.operation == "evolve":
         folder = experiment / "evolve"
         folder.mkdir()
-        command = [
+        command = dpl_search_command(
+            binding,
             deployment.value["client_python"],
-            str(source / "scripts/optimize_case_with_codex.py"),
-            "--case",
+            source,
+            args,
             case_id,
-            "--flow-variant",
             experiment.name,
-            "--round-id",
-            experiment.name,
-            "--iterations",
-            str(args.rounds),
-            "--children",
-            str(args.candidates),
-            "--max-parallel",
-            "2",
-            "--skip-core-build",
-            "--reuse-baseline-preflight",
-            "--launch",
-        ]
+        )
         invoke(command, source, env, folder, args.seconds)
         subprocess.run(
             [

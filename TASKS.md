@@ -1,3 +1,5 @@
+2026-10-17 A25接点准备：两个Code原生前端共用绝对期限，超时后经公开EF取消本实验活跃任务；Flow种子和DPL原CLI模型配置可显式传递。尚未冻结正式协议，A24完整JPEG证明/完整Flow仍进行中；见[预算与模型接点](admin/A25_CAMPAIGN_BOUNDARY_PREP_20261017.md)。
+
 2026-10-17 A24运行验收：安全更新EF942/Toolkit688，真实消费/取消/失败日志托管及GCD七PPA/DF/SDK通过，旧AES可查；实际账号内存上限约93.13GiB，本轮池设32GiB，专业算法保留。JPEG接力完成但时序不合格、未采用；完整证明及新完整搜索待完成。见[运行验收](admin/A24_RUNTIME_ACCEPTANCE_20261017.md)。
 
 2026-10-17 A24证据交付：JPEG失败批次15个完成分支和历史AES三个DPL候选已共同测量/DF/SDK核验；不改原搜索失败与晋升。两Goal失败日志经注册解析ZIP逐hash恢复，既有Query引用可见；Toolkit失败产物登记/66项、Goal实时日志/414项及24子测试和真实公开EF探针通过，生产更新待安全空闲。候选45有约3.1%功耗空间但setup约−15.8ps，Query已完成，Goal timing-only接力运行中；64GiB完整证明因实际账号OOM失败，尚无等价结论；完整A24/正式对照未完成。详见[证据报告](admin/A24_FAILURE_OBSERVABILITY_REPORT_20261017.md)。

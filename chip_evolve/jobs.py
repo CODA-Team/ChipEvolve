@@ -61,6 +61,41 @@ class Jobs:
             )
         self.client = KernelClient(deployment.value["kernel_url"], timeout=60)
 
+    def cancel_active(self) -> dict[str, Any]:
+        """Retire this experiment's EF work after its frontend has stopped."""
+        rows = {}
+        for status in (
+            "queued",
+            "preparing",
+            "running",
+            "retry_wait",
+            "cancel_requested",
+        ):
+            offset = 0
+            while batch := self.client.runs(
+                design_id=self.design_id, status=status, limit=100, offset=offset
+            ):
+                rows.update(
+                    {
+                        row["run_id"]: row
+                        for row in batch
+                        if row.get("experiment_id") == self.campaign
+                    }
+                )
+                offset += len(batch)
+        # Gather before cancellation: changing a status while paging would skip rows.
+        cancelled = []
+        for row in rows.values():
+            response = self.client.cancel(row["run_id"])
+            cancelled.append({"run_id": row["run_id"], "response": response})
+        receipt = {
+            "experiment_id": self.campaign,
+            "cancel_requests": cancelled,
+            "note": "Cancellation requests; EF owns process cleanup and terminal state.",
+        }
+        write(self.experiment / "native-job-cancellation.json", receipt)
+        return receipt
+
     def submit(
         self,
         key: str,

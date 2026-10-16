@@ -2,6 +2,8 @@
 
 ## A24进行中：批量事实与所选设计对象（2026-10-16）
 
+正式协议所需的根私有接点：Flow绑定可设`seed`（缺省42）；DPL绑定可传原CLI已有模型/推理参数。DPL/Goal准备及原生基线/搜索使用同一个绝对期限，前端真正超时后公开EF仅取消本实验活跃任务，任务终态仍由EF确认。没有新增服务或评测底座；正式整体预算/协议尚未冻结，见[A25接点准备](admin/A25_CAMPAIGN_BOUNDARY_PREP_20261017.md)。
+
 既有EQY完整输出验证可由私有`validation.equivalence_strategy`选择原SAT缺省或原生SBY/ABC PDR；PDR使用固定私有Z3 manifest、校验镜像/二进制/库身份，并把启动脚本和solver记录交给同一EF。Liberty模型、完整端口、匹配规则及每分区PASS门禁不变，不新增服务/评测底座或公共SDK接口。真实正反例和16项针对检查通过，JPEG全量仍待验证；见[A24运行验收](admin/A24_RUNTIME_ACCEPTANCE_20261017.md)。
 
 失败事实沿既有证据入口交付：Toolkit `688174b`对普通native非零退出登记真实输出并标明`incomplete_output`，保留失败且不生成`data_snapshot`；Goal `c17139f`将原stdout/stderr文件实时转发至EF日志，原字节/命令/期限保持。旧两个Goal失败的注册解析ZIP可经hash核对恢复日志/部分阶段，另作当前baseline的scoped analysis，不伪造失败FinalFrame。实际公开日志探针和恢复引用已通过，生产EF942/Toolkit688现已安全原位更新并完成真实消费/取消/失败托管及GCD七PPA/DF/SDK核验；真实账号约93.13GiB上限下，本轮资源池按空闲余量设32GiB。现有实验路由控制也支持原生timing-only baseline，保留原二进制/转换/布线，只在单独控制脚本省略修复；详情见[A24证据报告](admin/A24_FAILURE_OBSERVABILITY_REPORT_20261017.md)。
