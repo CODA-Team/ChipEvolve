@@ -68,6 +68,10 @@ def checked_validation(result_path: Path, validation: Path) -> dict[str, Any]:
     ):
         raise ValueError("Validation and candidate have different business goals")
     proof, replay = receipt["logic"], receipt["independent_replay"]
+    if proof.get("engine") == "eqy":
+        from .eqy import qualified_strategy
+
+        qualified_strategy({"equivalence_strategy": proof.get("strategy", "sat")})
     if (
         not all(
             receipt[key] is True

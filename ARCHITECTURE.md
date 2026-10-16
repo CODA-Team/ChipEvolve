@@ -1,5 +1,7 @@
 # 架构与源码边界
 
+新采用对EQY回执复用既有策略资格检查，旧SAT/缺策略/未知策略不能授权新决定；历史读取及原Yosys路线保持。GCD/AES用新关联验证明确复用原同值物理重放并引用新完整PDR，原实验字节不变；无公共签名、模块或服务变化。见[采用补核](admin/A24_QUALIFIED_ADOPTION_REPORT_20261017.md)。
+
 根私有`validation.equivalence_merge_partitions`可显式选择原生EQY整体合并，缺省false，不改模型/端口/策略。它处理状态编码不同且输出之间有切分依赖的情况，回执披露模式，仍要求全部输出/实际分区通过；无设计网名特判。真实GCD整体通过及固定FF正反例已核验，JPEG27输出/7082分区、AES129输出/695分区也已完整通过；实际边界见[完整证明与复核](admin/A24_FULL_PROOF_AND_REQUALIFICATION_REPORT_20261017.md)。
 
 Query现有动作格式可经只读`decision-schema`发现，结构/校验保持原样；新专业上下文导出去重，并按原kind/certainty将事实、未确认假设及带引用限制分别交付。真实原生Codex比较/回答/导出及只读重导出已核对，原证据和历史包不变；实际开销包含43命令/13失败，未宣称效率收益。见[原生host核查](admin/A25_NATIVE_HOST_QUERY_REVIEW_20261017.md)。

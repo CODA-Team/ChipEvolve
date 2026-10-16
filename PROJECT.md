@@ -1,5 +1,7 @@
 # Agentic EDA 产品目标
 
+2026-10-17最新补核：JPEG全27输出/7082分区、GCD全18输出整体1分区、AES全129输出/695分区PDR均已通过；GCD/AES新证明与原物理重放、当前SDK核对已关联，旧SAT不能授权新采用。JPEG完整调参仍运行，两个Code健康轮次/接力及正式PPA/效率对照尚未完成，不能宣称公平团队优势。见[完整证明](admin/A24_FULL_PROOF_AND_REQUALIFICATION_REPORT_20261017.md)与[采用补核](admin/A24_QUALIFIED_ADOPTION_REPORT_20261017.md)。
+
 2026-10-17 A24验证补核：真实固定Liberty时序负例暴露旧SAT误通过；PDR正反例通过。JPEG声明层次证明因重复大分区成本主动停止，模型状态切分待新JPEG复验；正式交付的GCD/AES功能证明也须重新核验。当前没有JPEG完整等价或正式协同优势结论，专业算法、物理PPA及旧记录保持，见[时序证明核查](admin/A24_SEQUENTIAL_PROOF_REVIEW_20261017.md)。
 
 2026-10-17 A24补充：完成候选事实和失败证据已可统一观察；Goal实时日志通过真实公开EF验证。JPEG15份已完成Flow分支中四份可行，另候选45功耗较canonical低约3.1%但时序不合格，Query诊断已完成，Goal时序接力正在共同复测，未采用。EF/Toolkit已原位更新并通过真实消费/取消/失败托管、GCD七PPA和SDK核验；JPEG接力功耗继续降低但时序不合格，未采用。账号内存组OOM已定位，资源按实际余量校准；完整证明与正式对照仍未完成，见[A24运行验收](admin/A24_RUNTIME_ACCEPTANCE_20261017.md)。
