@@ -12,6 +12,41 @@ from .jobs import Jobs, digest
 from .physical import container
 
 
+def common_flop_states(
+    gold: dict[str, Any], gate: dict[str, Any], top: str
+) -> set[str]:
+    """Proposed cut points; EQY must still prove every corresponding state."""
+    left, right = gold["modules"], gate["modules"]
+    common = {
+        name: cell["type"]
+        for name, cell in left[top]["cells"].items()
+        if right[top]["cells"].get(name, {}).get("type") == cell["type"]
+    }
+    by_master: dict[str, set[str]] = {}
+    for master in set(common.values()):
+        model = left.get(master)
+        if model is None or model != right.get(master):
+            continue
+        states = set()
+        for cell in model.get("cells", {}).values():
+            if not cell["type"].startswith("$_DFF"):
+                continue
+            bits = cell["connections"]["Q"]
+            aliases = [
+                name
+                for name, wire in model["netnames"].items()
+                if wire["bits"] == bits and not wire.get("hide_name")
+            ]
+            if aliases:
+                states.add(min(aliases))
+        by_master[master] = states
+    return {
+        name + "." + state
+        for name, master in common.items()
+        for state in by_master.get(master, set())
+    }
+
+
 def configuration(
     top: str,
     sources: list[Path],
@@ -20,9 +55,12 @@ def configuration(
     declared: list[set[str]],
     *,
     strategy: str = "sat",
+    state_points: set[str] | None = None,
 ) -> str:
     if strategy not in {"sat", "abc-pdr"}:
         raise ValueError("Unknown EQY strategy: " + strategy)
+    if state_points and strategy != "abc-pdr":
+        raise ValueError("Model-derived state matching requires qualified PDR")
     lines = []
     for name, source, checked in zip(("gold", "gate"), sources, checks, strict=True):
         lines += [f"[{name}]"]
@@ -43,6 +81,14 @@ def configuration(
         name for name in declared[0] & declared[1] if "." in name
     }
     lines += ["final-gold-match /" + re.escape(name) + "/" for name in sorted(names)]
+    if state_points:
+        # One exact alternation avoids rescanning the entire flattened ID table
+        # separately for thousands of individual register states.
+        lines += [
+            "final-gold-match /(?:"
+            + "|".join(re.escape(name) for name in sorted(state_points))
+            + ")/"
+        ]
     lines += [
         r"gold-nomatch /.*\..*/",
         r"gate-nomatch /.*\..*/",
@@ -93,13 +139,24 @@ def verify(
     strategy = policy.get("equivalence_strategy", "sat")
     top = deployment.design(candidate["design_id"])["top"]
     sources = [Path(frame["files"]["v"]) for frame in (reference, candidate)]
-    declared = [
-        set(read(folder / (side + ".json"))["modules"][top]["netnames"])
-        for side in ("gold", "gate")
-    ]
+    models = [read(folder / (side + ".json")) for side in ("gold", "gate")]
+    declared = [set(model["modules"][top]["netnames"]) for model in models]
+    states = (
+        common_flop_states(models[0], models[1], top)
+        if policy.get("equivalence_match_flops", False)
+        else set()
+    )
     script, wrapper, work = folder / "proof.eqy", folder / "yosys", folder / "eqy-work"
     script.write_text(
-        configuration(top, sources, libraries, checks, declared, strategy=strategy)
+        configuration(
+            top,
+            sources,
+            libraries,
+            checks,
+            declared,
+            strategy=strategy,
+            state_points=states,
+        )
     )
     # Suppress only the native partitioner's very large dependency matrix log.
     # The Yosys script, model, partitioner and exit status stay unchanged.
@@ -124,6 +181,16 @@ def verify(
     ]
     extra: list[Path] = []
     details: dict[str, Any] = {"matching_policy": "ports-and-common-declared-hierarchy"}
+    if policy.get("equivalence_match_flops", False):
+        from .config import write
+
+        matched_states = folder / "proof-state-matches.json"
+        write(matched_states, {"count": len(states), "points": sorted(states)})
+        extra.append(matched_states)
+        details.update(
+            matching_policy="ports-common-declared-hierarchy-and-model-flop-state",
+            proposed_state_points=len(states),
+        )
     if strategy == "abc-pdr":
         manifest_path = policy.get("equivalence_solver_manifest")
         if not manifest_path:
@@ -151,7 +218,7 @@ def verify(
             "os.execv(command[0],command)\n"
         )
         command = ["python3", str(launcher)]
-        extra = [saved_solver, launcher]
+        extra.extend([saved_solver, launcher])
         details.update(strategy=strategy, solver=solver)
     record = jobs.command(
         "logic-eqy",

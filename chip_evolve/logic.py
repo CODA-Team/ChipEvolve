@@ -42,12 +42,28 @@ def verify_outputs(
             raise ValueError("Declared Liberty logic model changed")
     experiment.mkdir(parents=True, exist_ok=True)
     jobs = Jobs(deployment, candidate["design_id"], experiment)
+    state_matching = deployment.value.get("validation", {}).get(
+        "equivalence_match_flops", False
+    )
+    if state_matching and (
+        deployment.value["tools"].get("equivalence") != "eqy"
+        or deployment.value["validation"].get("equivalence_strategy") != "abc-pdr"
+    ):
+        raise ValueError("Model-derived state matching requires qualified EQY PDR")
     checks, lines = [], []
     for frame, name in ((reference, "gold"), (candidate, "gate")):
         source = Path(frame["files"]["v"])
         parsed, script = experiment / (name + ".json"), experiment / (name + ".ys")
+        model_imports = (
+            "".join(
+                f'read_liberty -ignore_miss_func -ignore_miss_dir "{p}"\n'
+                for p in libraries
+            )
+            if state_matching
+            else ""
+        )
         script.write_text(
-            f'read_verilog "{source}"\nhierarchy -top {design["top"]}\n'
+            model_imports + f'read_verilog "{source}"\nhierarchy -top {design["top"]}\n'
             f'proc\nwrite_json "{parsed}"\n'
         )
         jobs.command(
