@@ -1,3 +1,4 @@
 # Install the platform's published wheels; do not use a sibling editable install.
 openroad-platform-client==0.2.0
 openroad-platform-contracts==0.2.0
+eda-toolkits==0.1.1.dev1

@@ -397,6 +397,14 @@ platform_commit() {
     fi
 }
 
+platform_finalize_stage() {
+    if [[ "${DRP_EXECUTION_BACKEND:-native}" == "platform" ]]; then
+        python3 "$SCRIPT_DIR/platform_stage_finalize.py" \
+            "$PLATFORM" "$DESIGN" "$iter" "$1" "$2" \
+            || { echo "ABORT: platform stage closure failed at iteration $iter ($1)." >&2; exit 1; }
+    fi
+}
+
 
 # ─── Stage success gate ─────────────────────────────────────────────────────
 # Reports the usable-run count AND enforces a minimum: when fewer than MIN_SUCCESS
@@ -667,7 +675,9 @@ for iter in $(seq "$START_ITER" "$TOTAL_ITERS"); do
     # ─── Phase 1: Placement stage ─────────────────────────────────────
     echo ""
     echo ">>> Phase 1: Running PLACEMENT stage..."
-    timeout "$TIMEOUT" ./run_stage.sh "$PLATFORM" "$DESIGN" "$PARALLEL_RUNS" "place" "$CPUS_PER_RUN" "$MAX_CONCURRENT_RUNS" || true
+    stage_rc=0
+    timeout "$TIMEOUT" ./run_stage.sh "$PLATFORM" "$DESIGN" "$PARALLEL_RUNS" "place" "$CPUS_PER_RUN" "$MAX_CONCURRENT_RUNS" || stage_rc=$?
+    platform_finalize_stage place "$stage_rc"
 
     # TNS_EVAL: re-evaluate place-stage TNS at the fixed CP_0. On iter1 CP_0 is not
     # known yet (baseline run_1 is not routed) -> skip; extract_metrics then falls
@@ -733,7 +743,9 @@ for iter in $(seq "$START_ITER" "$TOTAL_ITERS"); do
     # ─── Phase 3: CTS stage ───────────────────────────────────────────
     echo ""
     echo ">>> Phase 3: Running CTS stage..."
-    timeout "$TIMEOUT" ./run_stage.sh "$PLATFORM" "$DESIGN" "$PARALLEL_RUNS" "cts" "$CPUS_PER_RUN" "$MAX_CONCURRENT_RUNS" || true
+    stage_rc=0
+    timeout "$TIMEOUT" ./run_stage.sh "$PLATFORM" "$DESIGN" "$PARALLEL_RUNS" "cts" "$CPUS_PER_RUN" "$MAX_CONCURRENT_RUNS" || stage_rc=$?
+    platform_finalize_stage cts "$stage_rc"
 
     # TNS_EVAL: re-evaluate cts-stage TNS at CP_0 (iter2+; iter1 uses native TNS).
     if [[ "$OBJECTIVE" == "TNS_EVAL" && "$iter" -gt 1 ]]; then
@@ -796,7 +808,9 @@ for iter in $(seq "$START_ITER" "$TOTAL_ITERS"); do
     # ─── Phase 5: Route + Finish stage ────────────────────────────────
     echo ""
     echo ">>> Phase 5: Running ROUTE + FINISH stage..."
-    timeout "$TIMEOUT" ./run_stage.sh "$PLATFORM" "$DESIGN" "$PARALLEL_RUNS" "route_finish" "$CPUS_PER_RUN" "$MAX_CONCURRENT_RUNS" || true
+    stage_rc=0
+    timeout "$TIMEOUT" ./run_stage.sh "$PLATFORM" "$DESIGN" "$PARALLEL_RUNS" "route_finish" "$CPUS_PER_RUN" "$MAX_CONCURRENT_RUNS" || stage_rc=$?
+    platform_finalize_stage route_finish "$stage_rc"
 
     # TNS_EVAL: on iter1 this is where CP_0 = baseline(run_1) ECP * 0.9 is computed
     # (run_1 is now routed) and saved to cp0.txt; then evaluate final-stage TNS at
