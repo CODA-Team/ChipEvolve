@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import re
+import shutil
 from pathlib import Path
 from typing import Any
 
 from .config import read
-from .jobs import Jobs
+from .jobs import Jobs, digest
 from .physical import container
 
 
@@ -17,7 +18,11 @@ def configuration(
     libraries: list[Path],
     checks: list[dict[str, Any]],
     declared: list[set[str]],
+    *,
+    strategy: str = "sat",
 ) -> str:
+    if strategy not in {"sat", "abc-pdr"}:
+        raise ValueError("Unknown EQY strategy: " + strategy)
     lines = []
     for name, source, checked in zip(("gold", "gate"), sources, checks, strict=True):
         lines += [f"[{name}]"]
@@ -42,10 +47,18 @@ def configuration(
         r"gate-nomatch /n[0-9]+|_[0-9]+_/",
         "gold-match *",
         "",
-        "[strategy simple]",
-        "use sat",
-        "depth 10",
     ]
+    if strategy == "sat":
+        lines += ["[strategy simple]", "use sat", "depth 10"]
+    else:
+        lines += [
+            "[strategy pdr]",
+            "use sby",
+            "engine abc pdr",
+            "depth 10",
+            "xprop on",
+            "option aigsmt z3",
+        ]
     return "\n".join(lines) + "\n"
 
 
@@ -74,6 +87,8 @@ def verify(
     checks: list[dict[str, Any]],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     folder, deployment = jobs.experiment, jobs.deployment
+    policy = deployment.value.get("validation", {})
+    strategy = policy.get("equivalence_strategy", "sat")
     top = deployment.design(candidate["design_id"])["top"]
     sources = [Path(frame["files"]["v"]) for frame in (reference, candidate)]
     declared = [
@@ -81,7 +96,9 @@ def verify(
         for side in ("gold", "gate")
     ]
     script, wrapper, work = folder / "proof.eqy", folder / "yosys", folder / "eqy-work"
-    script.write_text(configuration(top, sources, libraries, checks, declared))
+    script.write_text(
+        configuration(top, sources, libraries, checks, declared, strategy=strategy)
+    )
     # Suppress only the native partitioner's very large dependency matrix log.
     # The Yosys script, model, partitioner and exit status stay unchanged.
     wrapper.write_text(
@@ -93,21 +110,50 @@ def verify(
         "os.execv(real,[real,*args])\n"
     )
     wrapper.chmod(0o755)
+    command = [
+        deployment.value["tools"]["eqy"],
+        "--yosys",
+        str(wrapper),
+        "-j",
+        str(policy.get("equivalence_jobs", 2)),
+        "-d",
+        str(work),
+        str(script),
+    ]
+    extra: list[Path] = []
+    details: dict[str, Any] = {}
+    if strategy == "abc-pdr":
+        manifest_path = policy.get("equivalence_solver_manifest")
+        if not manifest_path:
+            raise ValueError("PDR proof requires a pinned solver manifest")
+        solver = read(manifest_path)
+        if (
+            solver["name"] != "z3"
+            or solver["image_sha256"] != deployment.value["toolchain"]["image_sha256"]
+        ):
+            raise ValueError("Proof solver does not match the qualified tool image")
+        for field in ("binary", "library"):
+            if digest(Path(solver[field]["path"])) != solver[field]["sha256"]:
+                raise ValueError("Proof solver changed: " + field)
+        saved_solver = folder / "proof-solver.json"
+        shutil.copyfile(manifest_path, saved_solver)
+        command[1:1] = [
+            "--abc",
+            str(Path(deployment.value["tools"]["yosys"]).with_name("yosys-abc")),
+        ]
+        launcher = folder / "launch-proof.py"
+        launcher.write_text(
+            "import os\n"
+            f"os.environ['PATH']={str(Path(solver['binary']['path']).parent)!r}+os.pathsep+os.environ['PATH']\n"
+            f"command={command!r}\n"
+            "os.execv(command[0],command)\n"
+        )
+        command = ["python3", str(launcher)]
+        extra = [saved_solver, launcher]
+        details = {"strategy": strategy, "solver": solver}
     record = jobs.command(
         "logic-eqy",
-        container(
-            deployment,
-            [
-                deployment.value["tools"]["eqy"],
-                "--yosys",
-                str(wrapper),
-                "-j",
-                str(deployment.value.get("validation", {}).get("equivalence_jobs", 2)),
-                "-d",
-                str(work),
-                str(script),
-            ],
-        ),
+        container(deployment, command),
         capture=[
             script,
             wrapper,
@@ -117,6 +163,7 @@ def verify(
             work / "partition.list",
             work / "matched.ids",
             work / "logfile.txt",
+            *extra,
         ],
         seconds=deployment.value.get("validation", {}).get("equivalence_seconds", 3600),
         cpu=4,
@@ -127,4 +174,4 @@ def verify(
         objective=Path(candidate["objective"]),
     )
     jobs.log(record, folder / "proof.log")
-    return record, proof_receipt(work, checks)
+    return record, {**proof_receipt(work, checks), **details}

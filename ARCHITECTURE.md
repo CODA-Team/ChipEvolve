@@ -2,7 +2,9 @@
 
 ## A24进行中：批量事实与所选设计对象（2026-10-16）
 
-失败事实沿既有证据入口交付：Toolkit `688174b`对普通native非零退出登记真实输出并标明`incomplete_output`，保留失败且不生成`data_snapshot`；Goal `c17139f`将原stdout/stderr文件实时转发至EF日志，原字节/命令/期限保持。旧两个Goal失败的注册解析ZIP可经hash核对恢复日志/部分阶段，另作当前baseline的scoped analysis，不伪造失败FinalFrame。实际公开日志探针和恢复引用已通过，生产Toolkit仍待安全空闲更新。现有实验路由控制也支持原生timing-only baseline，保留原二进制/转换/布线，只在单独控制脚本省略修复；详情见[A24证据报告](admin/A24_FAILURE_OBSERVABILITY_REPORT_20261017.md)。
+既有EQY完整输出验证可由私有`validation.equivalence_strategy`选择原SAT缺省或原生SBY/ABC PDR；PDR使用固定私有Z3 manifest、校验镜像/二进制/库身份，并把启动脚本和solver记录交给同一EF。Liberty模型、完整端口、匹配规则及每分区PASS门禁不变，不新增服务/评测底座或公共SDK接口。真实正反例和16项针对检查通过，JPEG全量仍待验证；见[A24运行验收](admin/A24_RUNTIME_ACCEPTANCE_20261017.md)。
+
+失败事实沿既有证据入口交付：Toolkit `688174b`对普通native非零退出登记真实输出并标明`incomplete_output`，保留失败且不生成`data_snapshot`；Goal `c17139f`将原stdout/stderr文件实时转发至EF日志，原字节/命令/期限保持。旧两个Goal失败的注册解析ZIP可经hash核对恢复日志/部分阶段，另作当前baseline的scoped analysis，不伪造失败FinalFrame。实际公开日志探针和恢复引用已通过，生产EF942/Toolkit688现已安全原位更新并完成真实消费/取消/失败托管及GCD七PPA/DF/SDK核验；真实账号约93.13GiB上限下，本轮资源池按空闲余量设32GiB。现有实验路由控制也支持原生timing-only baseline，保留原二进制/转换/布线，只在单独控制脚本省略修复；详情见[A24证据报告](admin/A24_FAILURE_OBSERVABILITY_REPORT_20261017.md)。
 
 原生前端监督使用独立会话；`professional.invoke`在真正超时或键盘中断时，调用根私有`native_process`，先按父子关系捕获同账号进程及启动标识，再停止该原生树，保存`native-frontend-cleanup.json`后传播原异常。新建子会话也在捕获范围，独立EF服务/计算不在原生树中；正常返回、原专业预算和算法保持，不增加进程数/资源上限。EF任务继续遵循原公开取消及任务期限，不能据前端收尾就宣称所有物理任务已终态。真实子会话隔离/原返回/中断回归及根364项通过；后续完整专业运行仍须观察。
 
