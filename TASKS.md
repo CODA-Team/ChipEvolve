@@ -1,3 +1,5 @@
+2026-10-17 A25实测：原生Codex通过Query host独立读数、同路径/各run最差比较、解释限制并导出，数值与引用核对通过；原包混入possible假设和重复事实的语义缺陷另判失败。Query9ab/7bee分别公开只读动作格式和修正新导出，wheel已部署；新包保留32条原证据，4事实/1假设/5限制，0新模型或EDA。Flow未启动前已从同一调查换用新包并归档旧等待器；同一原搜索不重开。Query164/根413回归通过；A24全证明/完整轮次和A25冻结仍未完成，见[原生host核查](admin/A25_NATIVE_HOST_QUERY_REVIEW_20261017.md)。
+
 2026-10-17 A25准备：单次原生Codex启动与事件/用量记录脚本及12项针对检查通过。真实workspace-write容器版本启动失败完整保留；显式共同账号权限下两条版本命令成功且与普通账号输出一致，无sudo/系统或全局配置修改。完整设计权限仍未验收，A25未冻结。JPEG原参考时序上下文缺失已确认，GCD/AES PDR及补充STA检查按完整证明→Flow启动顺序等待，未新增搜索。见[入口记录与权限核查](admin/A25_NATIVE_EPISODE_RUNNER_PREPARATION_20261017.md)。
 
 2026-10-17 A25入口准备：本机原生Codex 0.159.3文件/loopback检查完成；首个后处理日志名错误保留，只读补核通过且没有重调模型。现有Query host模式在真实JPEG三scope完成七PPA取证、回答、上下文导出及专业加载校验，0新增EF run/Query内部模型调用；不作总token为零或效率优势结论。预算/权限完整资格和矩阵仍待冻结，见[原生入口准备](admin/A25_NATIVE_CODEX_ENTRY_PREPARATION_20261017.md)。JPEG 7082分区已生成，正在PDR求解。

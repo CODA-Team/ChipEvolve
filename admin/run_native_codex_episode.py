@@ -211,7 +211,19 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     result = run(args.spec, args.output)
-    print(json.dumps(result, ensure_ascii=False))
+    print(
+        json.dumps(
+            {
+                "status": result["status"],
+                "receipt": str(args.output.resolve() / "receipt.json"),
+                "business_correctness": result["business_correctness"],
+                "usage_complete": result["usage_complete"],
+                "usage": result["usage"],
+                "wall_seconds": result["wall_seconds"],
+            },
+            ensure_ascii=False,
+        )
+    )
     raise SystemExit(0 if result["status"] == "native_completed" else 1)
 
 

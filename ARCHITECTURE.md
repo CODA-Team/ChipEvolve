@@ -1,5 +1,7 @@
 # 架构与源码边界
 
+Query现有动作格式可经只读`decision-schema`发现，结构/校验保持原样；新专业上下文导出去重，并按原kind/certainty将事实、未确认假设及带引用限制分别交付。真实原生Codex比较/回答/导出及只读重导出已核对，原证据和历史包不变；实际开销包含43命令/13失败，未宣称效率收益。见[原生host核查](admin/A25_NATIVE_HOST_QUERY_REVIEW_20261017.md)。
+
 正式对照的单次原生启动/事件记录位于`admin/run_native_codex_episode.py`，不承担推理或业务判分。真实检查发现workspace-write无法挂载现有EDA镜像；显式共同账号权限配置下两条版本命令与普通账号运行一致，正式两侧须匹配，完整设计资格仍待验证。累计token实测而非硬限额，所有失败/未知成本保留；无公共接口或服务变化，见[入口记录与权限核查](admin/A25_NATIVE_EPISODE_RUNNER_PREPARATION_20261017.md)。
 
 Query-Agent已有`--model host`入口可由当前Codex直接使用调查上下文、动作和证据，再导出专业上下文；不要求另起模型。A25准备已用真实JPEG事实核对该路径及既有专业上下文加载器，未新增Query源码或后台。hosted Codex子任务是另一种可选使用方式，其额外调用纳入成本；两者不混称零模型成本。实际边界见[原生入口准备](admin/A25_NATIVE_CODEX_ENTRY_PREPARATION_20261017.md)。

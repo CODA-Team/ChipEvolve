@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from admin.run_native_codex_episode import run, summarize
+from admin.run_native_codex_episode import main, run, summarize
 from chip_evolve.config import read, write
 from chip_evolve.jobs import digest
 
@@ -175,3 +175,31 @@ def test_timeout_retains_trace_and_does_not_invent_missing_usage(tmp_path):
     assert result["usage"] is None and not result["usage_complete"]
     assert result["exit_code"] != 0
     assert (output / "events.jsonl").read_text()
+
+
+def test_cli_prints_compact_receipt_without_repeating_native_command_output(
+    tmp_path, monkeypatch, capsys
+):
+    event = {
+        "type": "item.completed",
+        "item": {
+            "type": "command_execution",
+            "command": "native fact read",
+            "aggregated_output": "VERY_LARGE_TRACE_PAYLOAD",
+            "exit_code": 0,
+        },
+    }
+    spec, output = episode(tmp_path, f"print(json.dumps({event!r}),flush=True)\n")
+    monkeypatch.setattr(
+        sys, "argv", ["episode", "--spec", str(spec), "--output", str(output)]
+    )
+    with pytest.raises(SystemExit) as caught:
+        main()
+    assert caught.value.code == 0
+    text = capsys.readouterr().out
+    summary = json.loads(text)
+    assert summary["status"] == "native_completed"
+    assert "VERY_LARGE_TRACE_PAYLOAD" not in text
+    assert read(summary["receipt"])["commands"][0]["aggregated_output"] == (
+        "VERY_LARGE_TRACE_PAYLOAD"
+    )
