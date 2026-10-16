@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from eda_toolkits.objectives import condition_id, load_objective, prompt_context
 from openroad_platform_client import KernelClient
 
 from .config import Deployment, read, write
@@ -31,15 +32,19 @@ def identity_bindings(
     )
     return {
         "source": {"run_id": frame["run_id"], "design_id": frame["design_id"]},
-        "reference": {
-            "run_id": reference["run_id"],
-            "design_id": reference["design_id"],
-        }
-        if reference
-        else None,
-        "retained": {"run_id": retained["run_id"], "result": retained["result"]}
-        if retained is not None and retained_verified
-        else None,
+        "reference": (
+            {
+                "run_id": reference["run_id"],
+                "design_id": reference["design_id"],
+            }
+            if reference
+            else None
+        ),
+        "retained": (
+            {"run_id": retained["run_id"], "result": retained["result"]}
+            if retained is not None and retained_verified
+            else None
+        ),
         "authority": "Roles are input identities, not conclusions inferred from the natural-language answer. Null means no verified binding was provided.",
     }
 
@@ -99,6 +104,20 @@ def diagnose(
     from .candidates import result_frame
 
     frame = result_frame(result_path)
+    objective = load_objective(frame["objective"])
+    if (
+        objective["objective_id"] != frame["objective_id"]
+        or objective["design_id"] != frame["design_id"]
+        or condition_id(objective) != frame["condition_id"]
+    ):
+        raise ValueError(
+            "Query objective does not match the measured design/conditions"
+        )
+    question += (
+        "\nAuthoritative business requirements supplied by the caller, not measured "
+        "design facts. The frozen objective content and measurement binding were "
+        "verified before this investigation:" + prompt_context(objective)
+    )
     from .comparisons import professional_facts
 
     question += "\nPrepared professional/final facts: " + json.dumps(
