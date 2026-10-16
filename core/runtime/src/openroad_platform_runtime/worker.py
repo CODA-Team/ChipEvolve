@@ -169,10 +169,15 @@ class RuntimeWorker:
         """Serve with maintenance independent from long-running attempts."""
         stop = stop or threading.Event()
         active: set[str] = set()
-        with ThreadPoolExecutor(max_workers=self.batch, thread_name_prefix="runtime-attempt") as pool:
+        next_presence = 0.0
+        with ThreadPoolExecutor(
+            max_workers=self.batch, thread_name_prefix="runtime-attempt"
+        ) as pool:
             while not stop.is_set() or active:
                 report = CycleReport()
-                touch(self.store, self.runtime.config.worker_id)
+                if time.monotonic() >= next_presence:
+                    touch(self.store, self.runtime.config.worker_id)
+                    next_presence = time.monotonic() + 1.0
                 report.reclaimed = len(self.store.reclaim_expired_attempts())
                 report.cancelled = self._finish_abandoned_cancellations()
                 candidates = self._runnable_candidates() if not stop.is_set() else ()
@@ -198,7 +203,9 @@ class RuntimeWorker:
         except InvalidTransition:
             pass
         except Exception as exc:  # noqa: BLE001 - isolate one attempt
-            LOGGER.warning("run %s could not be advanced: %s: %s", run_id, type(exc).__name__, exc)
+            LOGGER.warning(
+                "run %s could not be advanced: %s: %s", run_id, type(exc).__name__, exc
+            )
             try:
                 if self.store.fail_queued_run(
                     run_id,
