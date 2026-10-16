@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "repository": "https://github.com/CODA-Team/ChipEvolve",
-  "workspace_source_commit": "51c1be321bb223e6d5aecdb3e135a5ecde2aa24c",
+  "workspace_source_commit": "daf03f98df554fe7dbe66a1fc4b43595b5d4fe43",
   "archived_legacy_commit": "5219cd94a92de649afd25367ebf4df5517acf69d",
   "archived_legacy_tree": "1a6bcb0b90f0aee06448f7bc7251bdbcb9723079",
   "archive_path": "discarded",
@@ -36,8 +36,8 @@
     },
     {
       "path": "toolkits",
-      "source_commit": "917c6b9b280b9ff392ef4c9b44d719da85a888c8",
-      "source_tree": "e878cd8acc09cb669975f853c6400cf4d2004bc8",
+      "source_commit": "688174b65b0241a3725405c28fc518dfe4b2aa81",
+      "source_tree": "2288a3c888422d3538acdd602630f5e9c6102cce",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/toolkits"
     },
@@ -60,8 +60,8 @@
     },
     {
       "path": "goalevolve",
-      "source_commit": "6d0f19bccf0cea3654427a047091932103e1d197",
-      "source_tree": "528dc607168cb9514b9b3ec4d46c97149be24eb8",
+      "source_commit": "c17139f9d73dd495f017f3aead118232cc1d032b",
+      "source_tree": "6b5daf45d9ab94585477c9a9972d1a2cfd9bc034",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/goalevolve",
       "upstream_url": "https://github.com/CODA-Team/GoalEvolve.git",

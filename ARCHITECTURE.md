@@ -2,6 +2,8 @@
 
 ## A24进行中：批量事实与所选设计对象（2026-10-16）
 
+失败事实沿既有证据入口交付：Toolkit `688174b`对普通native非零退出登记真实输出并标明`incomplete_output`，保留失败且不生成`data_snapshot`；Goal `c17139f`将原stdout/stderr文件实时转发至EF日志，原字节/命令/期限保持。旧两个Goal失败的注册解析ZIP可经hash核对恢复日志/部分阶段，另作当前baseline的scoped analysis，不伪造失败FinalFrame。实际公开日志探针和恢复引用已通过，生产Toolkit仍待安全空闲更新。现有实验路由控制也支持原生timing-only baseline，保留原二进制/转换/布线，只在单独控制脚本省略修复；详情见[A24证据报告](admin/A24_FAILURE_OBSERVABILITY_REPORT_20261017.md)。
+
 原生前端监督使用独立会话；`professional.invoke`在真正超时或键盘中断时，调用根私有`native_process`，先按父子关系捕获同账号进程及启动标识，再停止该原生树，保存`native-frontend-cleanup.json`后传播原异常。新建子会话也在捕获范围，独立EF服务/计算不在原生树中；正常返回、原专业预算和算法保持，不增加进程数/资源上限。EF任务继续遵循原公开取消及任务期限，不能据前端收尾就宣称所有物理任务已终态。真实子会话隔离/原返回/中断回归及根364项通过；后续完整专业运行仍须观察。
 
 DPL显式源码重放在`freeze(..., git_metadata=True)`后建立独立、干净的Git内容快照，原生`tree_files`因此从实际复制源码读取完整指纹，而不会误用上层忽略`var/`的Git仓库。默认控制器导出与其他调用保持原样，原源码和已运行回执不改；新重放后续仍经既有EF编译/评价与交付。源码快照测试、DPL进程实际89文件核对、根360项与静态门禁通过，尚不代表完整新重放PPA完成。

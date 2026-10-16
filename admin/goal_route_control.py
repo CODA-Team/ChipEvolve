@@ -24,15 +24,17 @@ def without_repairs(text: str) -> tuple[str, list[str]]:
             removed.append(line)
         else:
             lines.append(line)
-    if not any(line.strip().startswith("repair_power ") for line in removed):
-        raise ValueError("This control needs an actual original power-repair method")
+    if not any(
+        line.strip().startswith(("repair_power ", "repair_timing ")) for line in removed
+    ):
+        raise ValueError("This control needs an actual original power/timing repair")
     return "\n".join(lines) + "\n", removed
 
 
 def run(deployment: Deployment, result: Path, key: str) -> dict:
     frame = read(result)
-    if frame["native_method"]["kind"] != "native-fixed-source":
-        raise ValueError("Choose the completed explicit Goal fixed-source replay")
+    if frame["native_method"]["kind"] not in {"native-fixed-source", "native-baseline"}:
+        raise ValueError("Choose the completed Goal baseline or fixed-source replay")
     folder = deployment.state / "experiments" / frame["design_id"] / key
     request = {
         "result": reference(result),
