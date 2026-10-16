@@ -38,6 +38,33 @@ def test_netlist_hierarchical_state_and_all_ports_survive_alias_filter():
     assert "use sat\ndepth 10" in result
 
 
+def test_generated_route_names_are_not_implicit_correspondence_points():
+    result = configuration(
+        "design",
+        [Path("gold.v"), Path("gate.v")],
+        [],
+        checks(),
+        [{"net9999", "clknet_leaf_9_clk", "block.state"}] * 2,
+    )
+    assert "gold-match *" not in result.splitlines()
+    assert "final-gold-match /net9999/" not in result
+    assert "final-gold-match /clknet_leaf_9_clk/" not in result
+    assert r"final-gold-match /block\.state/" in result
+    assert "final-gold-match /out/" in result
+
+
+def test_actual_top_port_is_preserved_even_with_a_generated_looking_name():
+    frames = checks()
+    frames = [
+        {**c, "ports": {**c["ports"], "net9999": {"direction": "output", "width": 1}}}
+        for c in frames
+    ]
+    result = configuration(
+        "design", [Path("gold.v"), Path("gate.v")], [], frames, [{"net9999"}] * 2
+    )
+    assert "final-gold-match /net9999/" in result
+
+
 def test_no_pass_marker_is_not_a_completed_proof(tmp_path):
     with pytest.raises(ValueError, match="complete design"):
         proof_receipt(tmp_path, checks())

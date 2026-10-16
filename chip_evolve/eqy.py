@@ -34,6 +34,9 @@ def configuration(
         lines += ["prep -top " + top + " -flatten", "delete t:$scopeinfo", ""]
     lines += ["[match *]", "nodefault"]
     # Keep every actual port and the netlist's declared hierarchical wires.
+    # Routed flat names (netNNN, clknet_leaf_N_clk, etc.) are not semantic
+    # correspondences across independently optimized layouts. A wildcard here
+    # would cut their drivers and can produce spurious output counterexamples.
     # A dot also occurs in generated Liberty pin aliases after flattening;
     # those aliases must not form tens of thousands of redundant cut points.
     names = set(checks[0]["ports"]) | {
@@ -45,7 +48,6 @@ def configuration(
         r"gate-nomatch /.*\..*/",
         r"gold-nomatch /n[0-9]+|_[0-9]+_/",
         r"gate-nomatch /n[0-9]+|_[0-9]+_/",
-        "gold-match *",
         "",
     ]
     if strategy == "sat":
@@ -121,7 +123,7 @@ def verify(
         str(script),
     ]
     extra: list[Path] = []
-    details: dict[str, Any] = {}
+    details: dict[str, Any] = {"matching_policy": "ports-and-common-declared-hierarchy"}
     if strategy == "abc-pdr":
         manifest_path = policy.get("equivalence_solver_manifest")
         if not manifest_path:
@@ -150,7 +152,7 @@ def verify(
         )
         command = ["python3", str(launcher)]
         extra = [saved_solver, launcher]
-        details = {"strategy": strategy, "solver": solver}
+        details.update(strategy=strategy, solver=solver)
     record = jobs.command(
         "logic-eqy",
         container(deployment, command),
