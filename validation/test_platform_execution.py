@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -108,6 +109,56 @@ def test_private_binary_cannot_be_evaluated_with_stale_source(tmp_path, monkeypa
     with pytest.raises(ValueError, match="rebuild"):
         pe.request_for(
             profile, "baseline", ["--flow-variant", "one", "--run-tag", "trial"]
+        )
+
+
+def test_wrong_native_design_is_rejected_before_ef_request(tmp_path, monkeypatch):
+    agent = tmp_path / "controller"
+    registry = agent / "scripts/repo/case_registry.py"
+    registry.parent.mkdir(parents=True)
+    shutil.copyfile(
+        Path(__file__).resolve().parents[1] / "scripts/repo/case_registry.py", registry
+    )
+    problem = agent / "problems/gcd_asap7/problem.yaml"
+    problem.parent.mkdir(parents=True)
+    problem.write_text(
+        "name: gcd\ndesign: gcd\nplatform: asap7\ndesign_config: ./designs/asap7/gcd/config.mk\n"
+    )
+    binary = tmp_path / "bin/openroad"
+    binary.parent.mkdir()
+    binary.write_bytes(b"binary")
+    pe.write_json(
+        binary.parent / "platform-build.json",
+        {
+            "binary_sha256": pe.digest(binary),
+            "source": str(tmp_path / "source"),
+            "source_files": {},
+        },
+    )
+    monkeypatch.setattr(pe, "tree_files", lambda root: {})
+    result = tmp_path / "flow/results/asap7/jpeg/one"
+    result.mkdir(parents=True)
+    for name in ["3_4_place_resized.odb", "2_floorplan.sdc"]:
+        (result / name).write_text("registered JPEG input")
+    profile = {
+        "orfs_root": str(tmp_path),
+        "core_root": str(tmp_path),
+        "agent_root": str(agent),
+        "flow_variant": "one",
+        "core_binary": str(binary),
+        "case": "gcd_asap7",
+        "platform": "asap7",
+        "design": "jpeg",
+        "controller_files": {},
+        "prepared_source_sha256": "source",
+        "toolchain": {},
+        "cmake_args": [],
+        "container_environment": {},
+        "resources": {},
+    }
+    with pytest.raises(ValueError, match="case.*design.*binding"):
+        pe.request_for(
+            profile, "baseline", ["--case", "gcd_asap7", "--run-tag", "trial"]
         )
 
 

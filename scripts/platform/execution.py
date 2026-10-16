@@ -113,6 +113,23 @@ def request_for(
             raise ValueError(
                 "Candidate source changed after build; rebuild before evaluating"
             )
+        case_id = option(argv, "--case", profile["case"])
+        for field in ("design", "platform"):
+            actual = subprocess.check_output(
+                [
+                    sys.executable,
+                    str(agent / "scripts/repo/case_registry.py"),
+                    "--case",
+                    case_id,
+                    "--field",
+                    field,
+                ],
+                text=True,
+            ).strip()
+            if actual != profile[field]:
+                raise ValueError(
+                    f"Native case {case_id} {field} differs from platform binding"
+                )
         inputs[binary] = digest(Path(binary))
         inputs[str(build_receipt)] = digest(build_receipt)
         result = (
