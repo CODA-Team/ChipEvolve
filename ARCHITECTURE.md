@@ -6,6 +6,8 @@ Flow原生搜索、阶段继承、全部候选和最终共同测量保持。批�
 
 七项针对测试、根323项回归及静态检查已通过；真实GCD“同状态七指标→轻交付→补齐→温态不增EDA”正在统一EF/DF排队验证，尚不据此声称端到端节约。当前JPEG旧根进程的原生搜索保持，只有正常收尾后才可恢复确定性交付。EF异步队列修复942e0ef也仍待任务排空后原位部署，详见 [A24检查点](admin/A24_QUEUE_PROGRESS_REPORT_20261016.md)。
 
+Flow所选候选的验证补入根私有 `flow_replay.replay(deployment, result_path, experiment)`：从保存的原archive取真实pre-CTS placement，冻结原result/archive/config/recipe/objective内容，复用 `delivery.checkpoint→finish→professional.resume_layout` 和统一EF重跑CTS、完整DRT/RCX及测量/事实交付。原生stage SDC和参数保留，已有Code检查点优先；不声称从RTL或模型搜索重演。五项针对/根328项通过，真实GCD验证回执 `flow-replay-live-process.json`；完整A24仍未通过。DPL后续平台模式的原生prompt补充执行助手拥有等待/监控的说明（61c5897、24项回归），仅影响新冻结副本，未改活跃控制器或通用Codex harness。
+
 ```mermaid
 flowchart LR
   F[原Flow搜索与全部产物] --> E[EF共同测量及证据]

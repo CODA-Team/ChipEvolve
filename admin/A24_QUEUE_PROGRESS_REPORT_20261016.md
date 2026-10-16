@@ -44,3 +44,11 @@ Goal原Teacher/四Student已完成编辑，编译与原生EDA评价仍在运行�
 通用验证器此前仅能重放Code检查点或ORFS根实验；原生Flow候选虽已保存全部阶段，调用仍会报缺少professional checkpoint。新增 `chip_evolve/flow_replay.py` 从原archive提取实际pre-CTS placement，冻结原result、archive、参数、来源recipe和目标hash，沿已有交付/阶段入口独立重跑CTS、route/RCX及共同测量。`validation.py`保留现有Code检查点优先级；新增 `admin/test_flow_candidate_replay.py` 覆盖真实输入选择、原结果字节不变、幂等重接、变更拒绝和Code原行为。没有重启搜索或增设执行/数据通道，重放范围明确不包含前置RTL综合/布局。
 
 五项回归修复前4失败/1通过、修复后5通过；根现行`admin/test_*.py`328项通过；新增/改动文件Ruff、格式及使用实际wheel测试环境的Pyright通过，26用户文件hash不变。全目录递归收集会误收`legacy-integration`归档并失败，实际回归使用与前轮相同的现行测试集。根源码F检查通过；扩大到当前全默认Ruff规则会报此前`dpl_case.py`同步re.sub替换闭包的B023告警，本片未顺手修改。GCD真实在线重放待完成，不以单元检查冒充物理复现；JPEG搜索/后续交接及完整A24仍进行中。
+
+## 构建容量和等待职责的实测修正
+
+DPL Student1首次链接 `run-3d4485b43cd94666929047c6efcd09e1` 峰值97,092,243,456 bytes（约90.4GiB）；Student2 `run-586e1bbe66b7415582b5b16eb9c72cf6` 峰值85,438,132,224 bytes（约79.6GiB），均超过64GiB而被EF终止。不能再用历史较小重链接峰值解释当前大构建，也不能把Student2的源码最终化指针当成已通过的候选。Student1自行提交的104GiB运行及Student3仍64GiB请求各自保留，后续资源适配基于实测，不降低专业能力；当前原生控制器及私有profile未被根施工修改。
+
+队列等待还产生了大量额外模型/状态工具调用。DPL后续平台模式原生prompt补入 `platform_execution.md`（61c5897）：原构建/评价助手等待终态，模型保留同一命令会话，EF监控；实际基础设施失败交给父级处理，保留源码和回执。原生非平台prompt不变，原算法、模型、筛选和晋升不改；实际请求边界的平台/非平台两项测试修复前1失败/1通过，模块完整24项通过，F检查、测试格式和Python编译通过。当前活跃副本不编辑，未声称已节约token。
+
+为保护健康计算并推进已排队的真实数据/重放验证，启动安装942e0ef wheel的现有EF worker（单槽、最多扫描两小时，结束时等当前attempt后退出），连接原状态目录、同一32核/128GiB权威原子预约；不新增HTTP服务、不改生产安装、不替换gateway或放大总容量。`verified-worker-drain.json`单列第二次人工恢复；正式实验不能把这次操作算无干预成功。生产版本仍须空闲后原位更新和复测。
