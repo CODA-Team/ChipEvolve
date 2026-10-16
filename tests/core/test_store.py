@@ -153,7 +153,7 @@ def test_resource_claim_is_fifo_capacity_and_release(store: RuntimeStore, tmp_pa
     assert released is not None
 
 
-def test_resource_totals_waits_for_reservation_transaction(store, tmp_path):
+def test_resource_totals_reads_only_committed_reservations(store, tmp_path):
     """HTTP readers must not share the connection during a worker transaction."""
     run = submit(store, resources=ResourceRequest(cpu_cores=3, memory_bytes=100))
     stage = store.list_stages(run.run_id)[0]
@@ -185,16 +185,16 @@ def test_resource_totals_waits_for_reservation_transaction(store, tmp_path):
         reader.start()
         try:
             assert started.wait(2)
-            read_uncommitted = finished.wait(0.2)
+            read_completed = finished.wait(0.5)
         finally:
             store._connection.execute("ROLLBACK")
     reader.join(timeout=2)
     assert not reader.is_alive()
-    assert not read_uncommitted, "resource query bypassed the writer lock"
+    assert read_completed, "resource query blocked behind the writer transaction"
     assert results == [(3, 100)]
 
 
-def test_attempt_usage_waits_for_the_worker_transaction(store, tmp_path):
+def test_attempt_usage_reads_only_committed_worker_rows(store, tmp_path):
     """The run-detail usage projection must not read uncommitted worker rows."""
     run = submit(store)
     stage = store.list_stages(run.run_id)[0]
@@ -216,12 +216,12 @@ def test_attempt_usage_waits_for_the_worker_transaction(store, tmp_path):
         reader.start()
         try:
             assert started.wait(2)
-            read_uncommitted = finished.wait(0.2)
+            read_completed = finished.wait(0.5)
         finally:
             store._connection.execute("ROLLBACK")
     reader.join(timeout=2)
     assert not reader.is_alive()
-    assert not read_uncommitted, "run-detail usage bypassed the writer lock"
+    assert read_completed, "run-detail usage blocked behind the writer transaction"
     assert results == [None]
 
 

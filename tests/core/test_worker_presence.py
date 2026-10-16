@@ -16,7 +16,7 @@ def test_serving_leaves_refresh_interval_after_a_slow_durable_touch(monkeypatch)
 
     def cycle(report):
         cycles.append(report)
-        clock[0] += 0.1
+        clock[0] += worker_presence.PRESENCE_REFRESH_SECONDS / 10
         if len(cycles) == 20:
             stop.set()
 
@@ -35,7 +35,7 @@ def test_serving_leaves_refresh_interval_after_a_slow_durable_touch(monkeypatch)
     worker.serve_forever(stop)
     assert len(cycles) == 20  # Dispatch and cancellation maintenance remain live.
     assert len(touches) == 2
-    assert touches[1] - touches[0] >= 3.0
+    assert touches[1] - touches[0] >= 2 + worker_presence.PRESENCE_REFRESH_SECONDS
 
 
 def test_unchanged_presence_is_coalesced_but_stays_fresh(tmp_path, monkeypatch):
@@ -49,11 +49,14 @@ def test_unchanged_presence_is_coalesced_but_stays_fresh(tmp_path, monkeypatch):
             worker_presence.touch(store, "w")
         assert store._connection.total_changes == initial
         assert worker_presence.snapshot(store)[0]["state"] == "idle"
-        clock[0] = 101.0
+        clock[0] = 100.0 + worker_presence.PRESENCE_REFRESH_SECONDS
         worker_presence.touch(store, "w")
         assert store._connection.total_changes == initial + 1
-        assert worker_presence.snapshot(store)[0]["last_seen_at"] == 101.0
-        clock[0] = 132.0
+        assert (
+            worker_presence.snapshot(store)[0]["last_seen_at"]
+            == 100.0 + worker_presence.PRESENCE_REFRESH_SECONDS
+        )
+        clock[0] += 31.0
         assert worker_presence.snapshot(store)[0]["state"] == "stale"
 
 

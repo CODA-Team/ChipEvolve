@@ -5,9 +5,13 @@ from __future__ import annotations
 import os
 import time
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from .store import RuntimeStore
+if TYPE_CHECKING:
+    from .store import RuntimeStore
+
+# At least six refresh opportunities fit within the default stale interval.
+PRESENCE_REFRESH_SECONDS = 5.0
 
 
 def touch(
@@ -33,15 +37,22 @@ def touch(
             "WHERE runtime_workers.pid != excluded.pid "
             "OR runtime_workers.current_attempt_id IS NOT excluded.current_attempt_id "
             "OR runtime_workers.state != excluded.state "
-            "OR runtime_workers.last_seen_at <= excluded.last_seen_at - 1.0",
-            (worker_id, os.getpid(), now, current, "running" if active_ids else "idle"),
+            "OR runtime_workers.last_seen_at <= excluded.last_seen_at - ?",
+            (
+                worker_id,
+                os.getpid(),
+                now,
+                current,
+                "running" if active_ids else "idle",
+                PRESENCE_REFRESH_SECONDS,
+            ),
         )
 
 
 def snapshot(store: RuntimeStore, *, stale_after: float = 30.0) -> list[dict[str, Any]]:
     cutoff = time.time() - stale_after
-    with store._lock:
-        rows = store._connection.execute(
+    with store._read_lock:
+        rows = store._reader.execute(
             "SELECT worker_id,pid,last_seen_at,current_attempt_id,state "
             "FROM runtime_workers ORDER BY worker_id"
         ).fetchall()
@@ -59,8 +70,8 @@ def snapshot(store: RuntimeStore, *, stale_after: float = 30.0) -> list[dict[str
 
 
 def _active_attempts(store: RuntimeStore, worker_id: str) -> list[str]:
-    with store._lock:
-        rows = store._connection.execute(
+    with store._read_lock:
+        rows = store._reader.execute(
             "SELECT attempt_id FROM runtime_attempts WHERE worker_id = ? "
             "AND status = 'running' ORDER BY started_at",
             (worker_id,),
@@ -69,8 +80,8 @@ def _active_attempts(store: RuntimeStore, worker_id: str) -> list[str]:
 
 
 def queue(store: RuntimeStore) -> dict[str, Any]:
-    with store._lock:
-        row = store._connection.execute(
+    with store._read_lock:
+        row = store._reader.execute(
             "SELECT COUNT(*) AS waiting, MIN(r.created_at) AS oldest, "
             "SUM(CASE WHEN s.status = 'queued' THEN 1 ELSE 0 END) AS queued, "
             "SUM(CASE WHEN s.status = 'retry_wait' THEN 1 ELSE 0 END) AS retry_wait "

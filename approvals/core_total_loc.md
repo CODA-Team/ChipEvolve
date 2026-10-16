@@ -527,3 +527,10 @@ lock boundary and retain byte/hash validation and transactional metadata writes.
 A22 follow-up (9051 -> 9060): repeated isolated real-load stacks show worker presence UPSERT holding the shared metadata lock while unrelated heartbeat and health threads wait. Unchanged worker presence previously forced durable writes on every 50 ms cycle. Coalesce identical presence within one second in the existing SQL; PID, active-attempt and state changes still write immediately. Lease renewal, stale-worker threshold, schema, SQLite durability and public interfaces are unchanged. The regression fails before repair (19 unnecessary writes) and passes after; Black plus the SQL predicate grows worker_presence.py exactly 81 -> 90 lines. The same authorised concurrency-repair scope applies; this is no permission for unrelated growth.
 
 A22 unprivileged in-place follow-up (9060 -> 9067): the owner explicitly prohibited privileged operations. SSD diagnostics isolated slow durable I/O, but the existing SQL time predicate cannot leave a refresh interval when the write itself takes longer than that interval. A simulated two-second write reproduces 20 redundant refreshes over 20 live maintenance cycles. Schedule the serving loop's next monitoring refresh one second after completion, while continuing dispatch, cancellation and reclamation cycles unchanged. The regression then observes two refreshes and all 20 maintenance cycles. No lease, resource, public contract or durability setting changes. worker.py is exactly 212 -> 219 lines including required Black formatting; the total cap increases by those seven lines only. Real original-directory validation is required; SSD success is not substituted for it.
+
+
+2026-10-16 A23 authorised metadata stability repair: maximum 9076 physical lines.
+Separate committed-state observation and one heartbeat/presence transaction avoid
+readers blocking on writer fsync and duplicate durable updates. Observation refresh
+is five seconds inside the unchanged 30-second stale window. The store grant names
+its exact size; no gate, negative fixture, public interface or algorithm is weakened.

@@ -28,6 +28,7 @@ from openroad_platform_contracts import (
 
 from .digest import sha256
 from .process_fence import fence_expired_process
+from .worker_presence import touch as touch_worker
 
 RUNTIME_SCHEMA_VERSION = 10
 #: Where an artifact's bytes are.  Recorded per artifact rather than assumed,
@@ -267,14 +268,17 @@ class RuntimeStore:
         self._lock = threading.RLock()
         self._connection = sqlite3.connect(str(self.db_path), check_same_thread=False, isolation_level=None, timeout=30)
         self._connection.row_factory = sqlite3.Row
-        self._connection.execute("PRAGMA foreign_keys = ON")
-        self._connection.execute("PRAGMA journal_mode = WAL")
+        self._connection.executescript("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;")
         self._initialise()
+        # Observation reads committed WAL state without waiting for writer fsync.
+        self._read_lock = threading.RLock()
+        self._reader = sqlite3.connect(self.db_path.resolve().as_uri() + "?mode=ro", uri=True, check_same_thread=False, isolation_level=None, timeout=30)
+        self._reader.row_factory = sqlite3.Row
     # -- lifecycle ---------------------------------------------------------
     def resource_totals(self) -> tuple[int, int]:
         """Return currently reserved CPU cores and memory bytes."""
-        with self._lock:
-            row = self._connection.execute("SELECT COALESCE(SUM(cpu_cores),0) cpu, COALESCE(SUM(memory_bytes),0) mem FROM runtime_resource_reservations").fetchone()
+        with self._read_lock:
+            row = self._reader.execute("SELECT COALESCE(SUM(cpu_cores),0) cpu, COALESCE(SUM(memory_bytes),0) mem FROM runtime_resource_reservations").fetchone()
         return int(row["cpu"]), int(row["mem"])
     def release_resources(self, attempt_id: str) -> None:
         with self._lock:
@@ -344,7 +348,8 @@ class RuntimeStore:
         rows = self._connection.execute(f"PRAGMA table_info({table})").fetchall()
         return any(row["name"] == column for row in rows)
     def close(self) -> None:
-        with self._lock:
+        with self._lock, self._read_lock:
+            self._reader.close()
             self._connection.close()
     def __enter__(self) -> RuntimeStore:  # noqa: PYI034 - Python 3.9 support
         return self
@@ -425,15 +430,15 @@ class RuntimeStore:
                 raise
         return self.get_run(run_id)
     def find_run_by_task_id(self, task_id: str) -> RunRecord | None:
-        with self._lock:
-            row = self._connection.execute(
+        with self._read_lock:
+            row = self._reader.execute(
                 "SELECT * FROM runtime_runs WHERE task_id = ? ORDER BY created_at LIMIT 1",
                 (task_id,),
             ).fetchone()
         return self._run_from_row(row) if row else None
     def get_run(self, run_id: str) -> RunRecord:
-        with self._lock:
-            row = self._connection.execute("SELECT * FROM runtime_runs WHERE run_id = ?", (run_id,)).fetchone()
+        with self._read_lock:
+            row = self._reader.execute("SELECT * FROM runtime_runs WHERE run_id = ?", (run_id,)).fetchone()
         if row is None:
             raise RuntimeStoreError(f"unknown run {run_id!r}")
         return self._run_from_row(row)
@@ -466,8 +471,8 @@ class RuntimeStore:
             terminal_reason=row["terminal_reason"],
         )
     def list_stages(self, run_id: str) -> list[StageRun]:
-        with self._lock:
-            rows = self._connection.execute(
+        with self._read_lock:
+            rows = self._reader.execute(
                 "SELECT * FROM runtime_stage_runs WHERE run_id = ? ORDER BY ordinal",
                 (run_id,),
             ).fetchall()
@@ -484,8 +489,8 @@ class RuntimeStore:
             for r in rows
         ]
     def list_attempts(self, stage_run_id: str) -> list[Attempt]:
-        with self._lock:
-            rows = self._connection.execute(
+        with self._read_lock:
+            rows = self._reader.execute(
                 "SELECT * FROM runtime_attempts WHERE stage_run_id = ? ORDER BY attempt_number",
                 (stage_run_id,),
             ).fetchall()
@@ -687,8 +692,9 @@ class RuntimeStore:
             worker_id=worker_id,
         )
     def heartbeat(self, attempt_id: str, *, worker_id: str, lease_seconds: int) -> None:
-        """Extend a lease.  A mismatched worker is refused, not ignored."""
-        with self._lock:
+        """Atomically persist the owner's lease and worker presence."""
+        with self._lock, self._connection:
+            self._connection.execute("BEGIN IMMEDIATE")
             now = datetime.now(timezone.utc)
             row = self._connection.execute(
                 "SELECT worker_id, status FROM runtime_attempts WHERE attempt_id = ?",
@@ -700,17 +706,11 @@ class RuntimeStore:
                 raise RuntimeStoreError(f"attempt {attempt_id!r} is leased by {row['worker_id']!r}")
             if row["status"] != AttemptStatus.RUNNING.value:
                 raise InvalidTransition(f"cannot heartbeat a {row['status']} attempt")
-            updated = self._connection.execute(
+            self._connection.execute(
                 "UPDATE runtime_attempts SET heartbeat_at = ?, lease_expires_at = ? WHERE attempt_id = ? AND worker_id = ? AND status = 'running'",
-                (
-                    now.isoformat(),
-                    (now + timedelta(seconds=lease_seconds)).isoformat(),
-                    attempt_id,
-                    worker_id,
-                ),
+                (now.isoformat(), (now + timedelta(seconds=lease_seconds)).isoformat(), attempt_id, worker_id),
             )
-            if updated.rowcount != 1:
-                raise InvalidTransition(f"attempt {attempt_id!r} was fenced while heartbeating")
+            touch_worker(self, worker_id, attempt_id=attempt_id)
     def attach_process(
         self,
         attempt_id: str,
@@ -935,8 +935,8 @@ class RuntimeStore:
         """
         if not 1 <= limit <= 1000 or offset < 0:
             raise RuntimeStoreError("limit must be between 1 and 1000")
-        with self._lock:
-            rows = self._connection.execute(
+        with self._read_lock:
+            rows = self._reader.execute(
                 "SELECT DISTINCT r.run_id, r.created_at FROM runtime_runs r JOIN runtime_stage_runs s ON s.run_id = r.run_id WHERE s.status IN ('queued', 'retry_wait') AND r.status IN ('queued', 'preparing', 'running', 'retry_wait') ORDER BY r.created_at LIMIT ? OFFSET ?",
                 (limit, offset),
             ).fetchall()
@@ -950,14 +950,14 @@ class RuntimeStore:
         """
         if not 1 <= limit <= 1000:
             raise RuntimeStoreError("limit must be between 1 and 1000")
-        with self._lock:
-            rows = self._connection.execute(
+        with self._read_lock:
+            rows = self._reader.execute(
                 "SELECT run_id FROM runtime_runs WHERE status = 'cancel_requested' ORDER BY created_at LIMIT ?",
                 (limit,),
             ).fetchall()
             abandoned = []
             for row in rows:
-                active = self._connection.execute(
+                active = self._reader.execute(
                     "SELECT 1 FROM runtime_attempts a JOIN runtime_stage_runs s ON s.stage_run_id = a.stage_run_id WHERE s.run_id = ? AND a.status = 'running' LIMIT 1",
                     (row["run_id"],),
                 ).fetchone()
@@ -1117,8 +1117,8 @@ class RuntimeStore:
             )
         return UploadedInput(input_id, size, digest, created_at)
     def get_uploaded_input(self, input_id: str) -> UploadedInput:
-        with self._lock:
-            row = self._connection.execute(
+        with self._read_lock:
+            row = self._reader.execute(
                 "SELECT input_id, size_bytes, sha256, created_at FROM runtime_uploaded_inputs WHERE input_id = ?",
                 (input_id,),
             ).fetchone()
@@ -1202,8 +1202,8 @@ class RuntimeStore:
             if partial.exists():
                 partial.unlink()
     def get_artifact(self, artifact_id: str) -> Artifact:
-        with self._lock:
-            row = self._connection.execute(
+        with self._read_lock:
+            row = self._reader.execute(
                 "SELECT * FROM runtime_artifacts WHERE artifact_id = ?",
                 (artifact_id,),
             ).fetchone()
@@ -1219,8 +1219,8 @@ class RuntimeStore:
         )
     def artifact_run_id(self, artifact_id: str) -> str:
         """Return the run that owns an artifact, for an authorization check."""
-        with self._lock:
-            row = self._connection.execute(
+        with self._read_lock:
+            row = self._reader.execute(
                 "SELECT s.run_id FROM runtime_artifacts a JOIN runtime_attempts t ON t.attempt_id = a.attempt_id JOIN runtime_stage_runs s ON s.stage_run_id = t.stage_run_id WHERE a.artifact_id = ?",
                 (artifact_id,),
             ).fetchone()
@@ -1228,8 +1228,8 @@ class RuntimeStore:
             raise RuntimeStoreError(f"no such artifact: {artifact_id!r}")
         return str(row["run_id"])
     def artifact_path(self, artifact_id: str) -> Path:
-        with self._lock:
-            row = self._connection.execute(
+        with self._read_lock:
+            row = self._reader.execute(
                 "SELECT a.storage, a.store_key, a.sha256, t.workspace FROM runtime_artifacts a JOIN runtime_attempts t ON t.attempt_id = a.attempt_id WHERE a.artifact_id = ?",
                 (artifact_id,),
             ).fetchone()
@@ -1284,8 +1284,8 @@ class RuntimeStore:
                 raise
         return created
     def list_metrics(self, attempt_id: str) -> list[Metric]:
-        with self._lock:
-            rows = self._connection.execute(
+        with self._read_lock:
+            rows = self._reader.execute(
                 "SELECT * FROM runtime_metrics WHERE attempt_id = ? ORDER BY rowid",
                 (attempt_id,),
             ).fetchall()
@@ -1302,8 +1302,8 @@ class RuntimeStore:
             for r in rows
         ]
     def list_artifacts(self, attempt_id: str) -> list[Artifact]:
-        with self._lock:
-            rows = self._connection.execute(
+        with self._read_lock:
+            rows = self._reader.execute(
                 "SELECT * FROM runtime_artifacts WHERE attempt_id = ? ORDER BY rowid",
                 (attempt_id,),
             ).fetchall()
@@ -1345,8 +1345,8 @@ class RuntimeStore:
                 self._connection.execute("ROLLBACK")
                 raise
     def list_inputs(self, attempt_id: str) -> list[StagedInput]:
-        with self._lock:
-            rows = self._connection.execute(
+        with self._read_lock:
+            rows = self._reader.execute(
                 "SELECT * FROM runtime_inputs WHERE attempt_id = ? ORDER BY destination",
                 (attempt_id,),
             ).fetchall()
@@ -1398,8 +1398,8 @@ class RuntimeStore:
             )
         return event
     def list_events(self, run_id: str) -> list[Event]:
-        with self._lock:
-            rows = self._connection.execute(
+        with self._read_lock:
+            rows = self._reader.execute(
                 "SELECT * FROM runtime_events WHERE run_id = ? ORDER BY occurred_at, rowid",
                 (run_id,),
             ).fetchall()
@@ -1418,8 +1418,8 @@ class RuntimeStore:
         ]
     # -- projection --------------------------------------------------------
     def _artifact_storages(self, attempt_id: str) -> dict[str, str]:
-        with self._lock:
-            rows = self._connection.execute(
+        with self._read_lock:
+            rows = self._reader.execute(
                 "SELECT artifact_id, storage FROM runtime_artifacts WHERE attempt_id = ?",
                 (attempt_id,),
             ).fetchall()
@@ -1484,8 +1484,8 @@ class RuntimeStore:
             "stages": stages,
         }
     def _attempt_usage(self, attempt_id: str) -> dict[str, Any] | None:
-        with self._lock:
-            row = self._connection.execute(
+        with self._read_lock:
+            row = self._reader.execute(
                 "SELECT cpu_seconds, peak_memory_bytes, peak_processes FROM runtime_attempts WHERE attempt_id = ?",
                 (attempt_id,),
             ).fetchone()

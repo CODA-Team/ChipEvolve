@@ -32,8 +32,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "show":
             print(json.dumps(store.describe_run(args.run_id), indent=2))
         elif args.command == "runs":
-            with store._lock:
-                rows = store._connection.execute(
+            with store._read_lock:
+                rows = store._reader.execute(
                     "SELECT run_id, status, task_id FROM runtime_runs "
                     "ORDER BY created_at"
                 ).fetchall()

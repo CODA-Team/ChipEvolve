@@ -146,8 +146,8 @@ class EvidenceIndex:
         where, parameters = self._run_where(project_id=project_id, design_id=design_id,
             plugin_id=plugin_id, status=status, run_type=run_type,
             analysis_of_run_id=analysis_of_run_id, owner_run_ids=owner_run_ids)
-        with self.store._lock:
-            rows = self.store._connection.execute(
+        with self.store._read_lock:
+            rows = self.store._reader.execute(
                 "SELECT r.*,"
                 " (SELECT COUNT(*) FROM runtime_attempts a JOIN runtime_stage_runs s"
                 " ON s.stage_run_id=a.stage_run_id WHERE s.run_id=r.run_id) attempts,"
@@ -179,11 +179,11 @@ class EvidenceIndex:
         if status:
             clauses.append('status=?')
             parameters.append(RuntimeStatus(status).value)
-        for field, value in (('project_id', project_id), ('design_id', design_id),
+        for key, value in (('project_id', project_id), ('design_id', design_id),
                              ('plugin_id', plugin_id), ('labels.run_type', run_type),
                              ('labels.analysis_of_run_id', analysis_of_run_id)):
             if value:
-                clauses.append(f"json_extract(task_spec_json,'$.{field}')=?")
+                clauses.append(f"json_extract(task_spec_json,'$.{key}')=?")
                 parameters.append(value)
         if owner_run_ids is not None:
             clauses.append('run_id IN (SELECT value FROM json_each(?))')
@@ -193,8 +193,8 @@ class EvidenceIndex:
     def count_runs(self, **filters: Any) -> int:
         """Count all matching runs without the presentation page limit."""
         where, parameters = self._run_where(**filters)
-        with self.store._lock:
-            return self.store._connection.execute(
+        with self.store._read_lock:
+            return self.store._reader.execute(
                 'SELECT COUNT(*) FROM runtime_runs' + where, parameters).fetchone()[0]
 
     def run_detail(self, run_id: str) -> dict[str, Any]:

@@ -192,3 +192,13 @@ The same controlled regression also failed for ingest_input_file and ingest_inpu
 Their existing custody calls likewise move before the connection lock; no new
 lines or contracts are added. All three custody entry paths share the tested
 lock boundary and retain byte/hash validation and transactional metadata writes.
+
+
+2026-10-16 A23, explicitly authorised formal-acceptance gap repair: maximum 1498 physical lines.
+Committed-state observation uses one separate read-only SQLite connection under its
+own lock; authoritative writes and resource decisions retain the writer transaction.
+The heartbeat and worker presence commit together, with rollback if either fails.
+Four controlled regressions failed before the implementation; WAL/FULL, schema,
+public signatures, lease duration and professional algorithms remain unchanged.
+The boss approved continuous completion of these gaps; this is a precise size grant,
+not a future exemption.

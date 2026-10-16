@@ -32,7 +32,7 @@ from openroad_platform_contracts import RuntimeStatus
 
 from .runtime import WorkflowRuntime
 from .store import InvalidTransition, RuntimeStore
-from .worker_presence import touch
+from .worker_presence import PRESENCE_REFRESH_SECONDS, touch
 
 LOGGER = logging.getLogger("openroad_platform_runtime.worker")
 
@@ -177,7 +177,7 @@ class RuntimeWorker:
                 report = CycleReport()
                 if time.monotonic() >= next_presence:
                     touch(self.store, self.runtime.config.worker_id)
-                    next_presence = time.monotonic() + 1.0
+                    next_presence = time.monotonic() + PRESENCE_REFRESH_SECONDS
                 report.reclaimed = len(self.store.reclaim_expired_attempts())
                 report.cancelled = self._finish_abandoned_cancellations()
                 candidates = self._runnable_candidates() if not stop.is_set() else ()

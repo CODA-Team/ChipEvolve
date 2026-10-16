@@ -10,7 +10,6 @@ from types import TracebackType
 from openroad_platform_contracts import RuntimeStatus
 
 from .store import RuntimeStore
-from .worker_presence import touch
 
 
 class LeasePulse:
@@ -60,7 +59,6 @@ class LeasePulse:
             worker_id=self.worker_id,
             lease_seconds=self.lease_seconds,
         )
-        touch(self.store, self.worker_id, attempt_id=self.attempt_id)
 
     def _renew(self) -> None:
         while not self._stop.wait(self.lease_seconds / 3):
