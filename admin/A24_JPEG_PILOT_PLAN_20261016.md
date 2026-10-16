@@ -23,6 +23,8 @@
 
 第一次真实JPEG Query诊断正确报告缺少完整原验收约束：根准备器只给目标ID、测量和违例列表，没有交付目标正文。原部分诊断及模型成本保留。改动 `chip_evolve/diagnosis.py`，复用公共Toolkit的冻结目标加载、条件ID及已有提示格式，校验design/objective/condition与测量绑定后，把原目标完整交付Query；明确它是调用者提供的业务要求，观测事实仍由SDK/证据支持。对应 `admin/test_query_objective_handoff.py` 验证全约束/条件实际进入模型请求、错绑在模型调用前拒绝。影响所有专业共用的诊断准备器，不改函数签名、数据底座/API/SDK或专业算法，不编辑活跃副本；静态/相关/根回归通过后再做新诊断。
 
+JPEG首次DPL发现声明profile为JPEG、原生case仍指GCD：真实任务执行GCD，并在根收集JPEG报告时失败，未发布/采用。新增根 `dpl_case.py` 根据登记design生成私有原生problem的四项身份头，完整保留原目标/guardrail/patch_surface；`professional.py`仅DPL分支准备/传递实际case ID，原GCD/AES配置保持同名；DPL `scripts/platform/execution.py`在提交前调用已有原生case解析CLI，拒绝case与profile的design/platform错绑，防止错误实验被标记成另一设计。对应根/模块测试验证未知设计、原生CLI解析、原算法字段保留和错误绑定的提交前拒绝。原失败副本不改，模块检查点发布并重新冻结同物理来源资格后，新建DPL实验重试；不修改正在运行的Flow/Goal私有副本或配置。
+
 ## 初始预演预算与验证
 
 这些是预演上界，不是正式实验预算，也不是给团队每项分配一份正式总预算：Flow两轮、每轮三候选，原生执行最多14400秒；DPL一轮三Student最多21600秒；Goal一轮四Student最多28800秒；ECO适用时原生两轮最多7200秒。先运行Query与Flow，Code可从同一合法来源分别运行，再按瓶颈选择真实接力。保留原源代码最低轮次，不以缩减Student或参数域通过。

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "repository": "https://github.com/CODA-Team/ChipEvolve",
-  "workspace_source_commit": "0a5a0acc8ac1cda3eb799205ccf68ada122459b4",
+  "workspace_source_commit": "6a2cd96a64be45df0c7c7eb1d282a422b5169e83",
   "archived_legacy_commit": "5219cd94a92de649afd25367ebf4df5517acf69d",
   "archived_legacy_tree": "1a6bcb0b90f0aee06448f7bc7251bdbcb9723079",
   "archive_path": "discarded",
@@ -50,8 +50,8 @@
     },
     {
       "path": "dplevolve",
-      "source_commit": "186153d61d0ad5de48a9636b4991ddbd84e448db",
-      "source_tree": "a85026d70cdef9a9c597efa9a9ccb0a8b8d34a51",
+      "source_commit": "3cb373c143665c08537aee3142f8379293051e74",
+      "source_tree": "4e7e1d499c80e44a594433ae235be2989a98d0b3",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/dplevolve",
       "upstream_url": "https://github.com/CODA-Team/DPLEvolve.git",

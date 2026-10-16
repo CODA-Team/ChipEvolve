@@ -617,11 +617,14 @@ def run_dpl(
     objective: Path,
     context: Path,
 ) -> dict[str, Any]:
+    from .dpl_case import prepare_case
+
     design = deployment.design(args.design)
     binding = deployment.value["professional"]["dpl"]
     template = read(binding["profile_template"])
     source = experiment / "controller"
     freeze(Path(binding["source"]), source)
+    case_id = prepare_case(source, design)
     orfs = experiment / "orfs"
     shutil.copytree(
         Path(template["orfs_root"]) / "flow",
@@ -681,7 +684,7 @@ def run_dpl(
         "experiment_id": args.design + "-" + experiment.name,
         "platform": design["platform"],
         "design": design["nickname"],
-        "case": design["dpl_case"],
+        "case": case_id,
         "flow_variant": experiment.name,
         "deadline_epoch": time.time() + args.seconds,
         "controller_files": inventory(source),
@@ -773,7 +776,7 @@ def run_dpl(
             "--line",
             method,
             "--case",
-            design["dpl_case"],
+            case_id,
             "--flow-variant",
             experiment.name,
             "--input-stage",
@@ -803,7 +806,7 @@ def run_dpl(
             deployment.value["client_python"],
             str(source / "scripts/optimize_case_with_codex.py"),
             "--case",
-            design["dpl_case"],
+            case_id,
             "--flow-variant",
             experiment.name,
             "--round-id",
@@ -825,7 +828,7 @@ def run_dpl(
                 "-m",
                 "scripts.platform.selection",
                 "--case",
-                design["dpl_case"],
+                case_id,
                 "--flow-variant",
                 experiment.name,
                 "--round-id",
@@ -843,9 +846,11 @@ def run_dpl(
         if args.operation == "evolve"
         else {
             "accepted": True,
-            "candidate": "source-replay"
-            if args.operation == "replay"
-            else "baseline_probe_evolve_default",
+            "candidate": (
+                "source-replay"
+                if args.operation == "replay"
+                else "baseline_probe_evolve_default"
+            ),
         }
     )
     tag = choice["candidate"] if choice["accepted"] else "baseline_probe_evolve_default"
@@ -861,10 +866,14 @@ def run_dpl(
     )
     producer = dpl_producer(experiment / "operations", placement, tag)
     native_method = {
-        "kind": "native-search"
-        if args.operation == "evolve"
-        else (
-            "fixed-source-replay" if args.operation == "replay" else "native-framework"
+        "kind": (
+            "native-search"
+            if args.operation == "evolve"
+            else (
+                "fixed-source-replay"
+                if args.operation == "replay"
+                else "native-framework"
+            )
         ),
         "choice": choice,
         "native_search_verdicts": str(experiment / "native-state"),
