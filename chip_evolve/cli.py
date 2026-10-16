@@ -317,9 +317,9 @@ def _main() -> int:
                 "--operation framework selects the original DPL framework only"
             )
         if args.code_source and (
-            args.capability != "dpl" or args.operation != "replay"
+            args.capability not in {"dpl", "goal"} or args.operation != "replay"
         ):
-            parser.error("--code-source requires DPL --operation replay")
+            parser.error("--code-source requires DPL or Goal --operation replay")
         if args.environment:
             from .environment import check_environment
 

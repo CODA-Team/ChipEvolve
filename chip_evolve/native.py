@@ -23,6 +23,14 @@ def run_goal(
     objective: Path,
     context: Path,
 ) -> dict[str, Any]:
+    from .goal_replay import descriptor, write_driver
+
+    fixed = None
+    if args.code_source:
+        if args.operation != "replay":
+            raise ValueError("Goal --code-source currently selects fixed replay only")
+        fixed = descriptor(deployment, args.code_source.resolve())
+        write(experiment / "fixed-source.json", fixed)
     design = deployment.design(args.design)
     binding = deployment.value["professional"]["goal"]
     source = experiment / "controller"
@@ -132,6 +140,8 @@ def run_goal(
         "memory_bytes": 24 << 30,
         "processes": 2048,
     }
+    if fixed:
+        profile["read_roots"].append(fixed["source_root"])
     write(profile_path, profile)
     config = read(binding["campaign_template"])
     config.update(
@@ -150,20 +160,37 @@ def run_goal(
         target_metrics={"dynamic_power_pw": 0, "leakage_power_pw": 0, "tns_abs_ns": 0},
     )
     config_path = experiment / "baseline-config.json"
+    if fixed:
+        config.update(
+            source_root=fixed["source_root"],
+            build_seed_root=profile["source_seed"],
+            **fixed["recipe_parameters"],
+        )
     write(config_path, config)
     env = environment(objective, context)
     env["GOALEVOLVE_PLATFORM_PROFILE"] = str(profile_path)
     folder = experiment / "baseline-controller"
     folder.mkdir()
-    invoke(
-        [
+    command = [
+        profile["agent_python"],
+        "-m",
+        "goalevolve.cli",
+        "baseline",
+        "--config",
+        str(config_path),
+    ]
+    if fixed:
+        script = experiment / "replay-fixed-source.py"
+        write_driver(script)
+        command = [
             profile["agent_python"],
-            "-m",
-            "goalevolve.cli",
-            "baseline",
-            "--config",
+            "-c",
+            "import runpy; runpy.run_path(" + repr(str(script)) + ")",
             str(config_path),
-        ],
+            str(experiment / "fixed-source.json"),
+        ]
+    invoke(
+        command,
         source,
         env,
         folder,
@@ -174,10 +201,16 @@ def run_goal(
         raise RuntimeError("Native Goal baseline rejected its actual design inputs")
     odb = Path(baseline["artifacts"]["checkpoint_post_route_db"])
     verdict = {
-        "kind": "native-baseline",
+        "kind": "native-fixed-source" if fixed else "native-baseline",
         "checks": baseline["checks"],
         "metrics": baseline["metrics"],
     }
+    if fixed:
+        verdict.update(
+            fixed_source=fixed,
+            evaluation_mode=fixed["evaluation_mode"],
+            timing_recipe_id=fixed["timing_recipe_id"],
+        )
     if args.operation == "evolve":
         metrics = {
             name: baseline["metrics"][name] for name in config["baseline_metrics"]

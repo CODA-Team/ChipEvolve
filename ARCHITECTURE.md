@@ -1,5 +1,30 @@
 # 架构与源码边界
 
+## A19–A21：阶段证据与有目的的固定重放（2026-10-16）
+
+A20 已完成真实 Query 验证，报告 `admin/A20_NATIVE_STAGE_EVIDENCE_REPORT_20261016.md`。A19 第三设计资格和 A21 新功耗源码对照仍在运行，不能把接口实现当作最终 PPA 或迁移成功。
+
+`ensure_stage_facts(deployment, result_path) -> Path | None` 从根交付检查点定位所选 Goal producer，再用公开 EF 的归档/manifest核对阶段文件。阶段 JSON 必须引用同一次评价日志的 hash；保留原生 ns/pW、网表同值与指标同值的区别，并注册为当前结果的 analysis 证据。Query 优先读取小型阶段视图，原始日志可按需展开；不增加 DF 数据库、公共 HTTP/SDK 接口或通用 harness。
+
+根 CLI 的固定方法入口：`run --capability goal --operation replay --source DESIGN_RESULT --code-source GOAL_SEARCH_RESULT`。旧 CLI 仅允许 DPL 的 `--code-source`，会拒绝 Goal，并非静默忽略。Goal 新参数读取既有成功搜索结果的实际源码、evaluation_mode、timing_recipe_id及原配方参数；DPL 原目录参数保持。`goal_replay.descriptor(deployment, result) -> dict` 核对共同工具链、原生产者和 701 文件实例对应的源码指纹（数量随实际方法），不凭目录名或版本串推断。
+
+`--source` 是本次物理设计输入，`--code-source` 是跨设计可复用的专业源码方法，二者身份分开。根不导入相邻 Goal 源码；在原项目独立进程中调用原公开 `evaluate_parent`，私有复制、构建、原模式、原检查保持，全部确定性运算经 EF。固定 replay 不创建 Student 或新晋升。
+
+```mermaid
+flowchart LR
+  D[设计来源与原目标] --> N[原Goal evaluator]
+  S[已测专业源码和原配方] --> N
+  N --> E[EF统一运行与产物]
+  E --> F[DF与SDK最终事实]
+  E --> G[同生产者阶段证据]
+  G --> Q[Query]
+  F --> Q
+  Q --> C[Codex取舍]
+  C --> V[完整证明与独立重放]
+```
+
+`admin/goal_route_control.py` 是独立的实验消融：从完成的方法另生成脚本，仅省略明确的 repair 调用，保留转换/placement/route、同输入/二进制及共同最终测量。保存原/控制脚本 hash，不修改专业原脚本、不把控制称为完整 Goal。实际约束通过和正式采用仍是独立门槛。
+
 ## A18：固定方法预检与本轮数据服务（2026-10-16）
 
 本轮配置 `var/business/a18-preflight-20261016/runtime/local.json` 复用 EF `41151`，使用 A17 干净 wheel 的新 DF `43789`。DF 的新主库保存新快照，显式只读 archive 读取原历史库；旧 DF `53305` 保持运行，不重启也不静默切换其消费者。未构建或部署用户脏 DF/DI 代码。服务回执与 wheel 身份见本轮 `data-service.json`。
