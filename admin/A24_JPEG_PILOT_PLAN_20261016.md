@@ -1,5 +1,7 @@
 # A24：JPEG完整专业预演与预算校准
 
+原生监督实测补充：原DPL轮次在原21600秒原生调用监督期限结束，根status为TimeoutExpired，仍留下实际存活的Student/Codex。这是`subprocess.run(timeout)`只杀主控制器的缺口。`professional.invoke`改用独立会话Popen，真正超时/键盘中断时经新增`native_process.py`捕获并收尾自己的前端子树，按PID/启动标识核验；原正常结果、异常、专业算法和预算不改，独立EF不被该树清理。`admin/test_native_frontend_timeout.py`修复前真实跨会话子进程遗留1失败/2通过，修复后4项、根364项及静态/类型/格式/差异通过。旧运行不注入源码：确认原生owner已退出、failed状态和精确子进程身份后，暂停新推理，等待已经启动的独立EF构建自然成功，再仅退役原孤儿前端，记录为第6次根干预；原status/profile不改，晚完成构建只作为预算外工程证据，不算原轮次晋升或PPA成果。
+
 源码来源核查补充：`professional.freeze`缺省保持原导出，新增私有`git_metadata`可选项，仅DPL`--code-source`重放启用，为复制后的源码建立独立Git快照；接口缺省与控制器准备不改，原输入源码、当前运行和历史回执不动。实测导出位于上层Git忽略的`var/`下时，原DPL清单会为空；本片两个Git边界测试及DPL自己进程的89文件逐hash核对通过，根360项和静态/格式/类型通过。改动为`professional.py`、`admin/test_dpl_source_snapshot.py`及本片文档。实际独立构建沿原EF任务已成功，但旧回执清单为空，另以构建前Git archive和完整快照/原源码/实际复制字节交叉核对；保留限制，不改写旧回执、不晋升为原生候选，版本查询仍待排队。
 
 2026-10-17本机收尾补充：完整JPEG布线已测到单任务最高5718.66 CPU秒、7,658,938,368 bytes峰值。根`professional.py::run_flow`原先硬编码线程/内存且无法传递原生阶段时限；本片仅通过私有部署`professional.flow.execution`暴露`threads`、`memory_gib`和`stage_timeout_seconds`，默认8/24/7200保持。原搜索、CP0、轮次、模型、总体监督和公共接口不改，运行副本不动；配置正整数在准备前核验。`admin/test_flow_execution_budget.py`核验原生命令、EF预约、默认与显式预算及无效配置，已有`test_flow_recipe.py`补齐其最小Flow绑定。根358项回归、针对24项、静态/格式/类型通过；第一次回归的本机短读时限失败及缺失测试绑定记录保留，未修改数据交付逻辑。实际新配置的完整JPEG运行仍待验证。

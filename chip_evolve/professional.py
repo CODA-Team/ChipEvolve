@@ -115,16 +115,24 @@ def invoke(
     command: list[str], source: Path, env: dict[str, str], folder: Path, seconds: int
 ) -> None:
     with (folder / "controller.log").open("x") as log:
-        result = subprocess.run(
+        process = subprocess.Popen(
             command,
             cwd=source,
             env=env,
             stdout=log,
             stderr=subprocess.STDOUT,
-            timeout=seconds,
-            check=False,
+            start_new_session=True,
         )
-    if result.returncode:
+        try:
+            code = process.wait(timeout=seconds)
+        except (subprocess.TimeoutExpired, KeyboardInterrupt) as error:
+            from .native_process import stop
+
+            cleanup = stop(process)
+            cleanup["reason"] = type(error).__name__
+            write(folder / "native-frontend-cleanup.json", cleanup)
+            raise
+    if code:
         raise RuntimeError(
             "Native professional controller failed; evidence retained at " + str(folder)
         )
