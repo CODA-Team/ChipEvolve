@@ -40,6 +40,8 @@ Goal结果的完整共同测量、DF交付已成功，但最终TNS为−0.715618
 
 Query接点另发现两个不同ECO入口被混淆：Query内建`propose_handoff(role=eco)`/`EcoReceiver`仅消费明确cell/master权限的单缓冲器修改；ChipEvolve原生TimingECOAgent通过通用professional context及EF独立调度。前者无权限不能当后者不可用或未授权的证据。根`diagnosis.py`只澄清这项能力边界，不伪造权限、不移除原门禁，不在诊断中执行设计修改；修正后真实Query回验通过：新上下文`e88c1899...`正确面向调用者独立调度的原生TimingECOAgent，交付10条带证据内容、2条假设，确认实际最差reg2reg及相关数据锥，保留未执行/未验收与证据限制。未因内建小接口的权限拒绝推断原生ECO不可用。根383项回归与静态/类型/格式检查通过。
 
+完整SDC进一步核验：四份加载/生效约束均通过公开EF artifact取回并逐SHA校验；两组各自仅一行`write_sdc`生成时间注释不同，其余所有字节完全一致，没有删除或重解释任何Tcl命令。证据为`matched-sdc-evidence/receipt.json`，无新EDA。这排除了本匹配对照的约束内容差异；原Query中“未完整比较SDC”的限制属于当时调查覆盖，原上下文不回写。
+
 ## 时序事实上下文补齐
 
 真实Query的严格路径比较发现`analysis/corner/unit`为空，源码审计定位到根`physical.publish`调用已有OpenSTA adapter时漏传三字段。Toolkit已支持这些字段，DF/SDK也保留并核对它们；本次只补根最终导出接点：`analysis=post_route`、实际measurement的corner，以及原生`report_checks -format json`的SI秒`unit=s`。OpenSTA源码`ReportPath.cc::reportJson`直接输出内部delay浮点；本轮SDK原始slack约−2.014e−11s与共同PPA约−0.02014ns相符，不能给原始JSON套用共同指标的ns标签。原数值、PPA、库/SDC、专业算法与公共接口不改。
