@@ -540,6 +540,10 @@ def relink_openroad(
         ),
     ]
     command = replace_paths(command, replacements)
+    if os.environ.get("DPL_EVOLVE_PLATFORM_PROFILE") and "\n" not in command:
+        arguments = shlex.split(command)
+        if "-flto=auto" in arguments and "-flto=1" in arguments:
+            command = shlex.join(arg for arg in arguments if arg != "-flto=auto")
     run_shell(command, cwd=core_build / "src")
     return binary_path
 
