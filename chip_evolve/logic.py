@@ -42,6 +42,11 @@ def verify_outputs(
             raise ValueError("Declared Liberty logic model changed")
     experiment.mkdir(parents=True, exist_ok=True)
     jobs = Jobs(deployment, candidate["design_id"], experiment)
+    engine = deployment.value["tools"].get("equivalence", "yosys")
+    if engine == "eqy":
+        from .eqy import qualified_strategy
+
+        qualified_strategy(deployment.value.get("validation", {}))
     state_matching = deployment.value.get("validation", {}).get(
         "equivalence_match_flops", False
     )
@@ -111,7 +116,6 @@ def verify_outputs(
     ]
     script = experiment / "equivalence.ys"
     script.write_text("\n".join(lines) + "\n")
-    engine = deployment.value["tools"].get("equivalence", "yosys")
     if engine not in {"yosys", "eqy"}:
         raise ValueError("Unknown equivalence backend: " + engine)
     if engine == "eqy":

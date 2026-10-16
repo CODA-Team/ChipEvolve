@@ -12,6 +12,18 @@ from .jobs import Jobs, digest
 from .physical import container
 
 
+def qualified_strategy(policy: dict[str, Any]) -> str:
+    strategy = policy.get("equivalence_strategy", "sat")
+    if strategy == "sat":
+        raise ValueError(
+            "Legacy EQY SAT failed the fixed-Liberty sequential negative control; "
+            "configure equivalence_strategy=abc-pdr and its pinned solver manifest"
+        )
+    if strategy != "abc-pdr":
+        raise ValueError("Unknown EQY strategy: " + str(strategy))
+    return strategy
+
+
 def common_flop_states(
     gold: dict[str, Any], gate: dict[str, Any], top: str
 ) -> set[str]:
@@ -136,7 +148,7 @@ def verify(
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     folder, deployment = jobs.experiment, jobs.deployment
     policy = deployment.value.get("validation", {})
-    strategy = policy.get("equivalence_strategy", "sat")
+    strategy = qualified_strategy(policy)
     top = deployment.design(candidate["design_id"])["top"]
     sources = [Path(frame["files"]["v"]) for frame in (reference, candidate)]
     models = [read(folder / (side + ".json")) for side in ("gold", "gate")]

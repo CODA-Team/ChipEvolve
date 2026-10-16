@@ -4,6 +4,8 @@
 
 完整验证的显式私有`validation.equivalence_match_flops`只配合EQY/PDR启用：原解析任务导入相同Liberty，依据同实例/同master/相同逻辑模型的实际FF Q位提出状态匹配点；每点仍须证明，全部顶层输出与每分区PASS保持。缺省旧脚本/配置不升级，没有公共契约或服务变化。真实时序负例揭示旧SAT误通过，正式交付需PDR复核，见[时序证明核查](admin/A24_SEQUENTIAL_PROOF_REVIEW_20261017.md)。
 
+新EQY验证调用在提交EDA前拒绝已证实误通过负例的旧SAT路线，要求显式PDR与固定solver；历史回执及独立Yosys后端不改写。配置生成函数保留旧SAT供原生机制核查，不能通过该函数取得业务通过回执。
+
 最终时序导出沿既有adapter字段携带post_route、实际measurement corner及原生JSON的秒单位；共同PPA仍用ns。已知snapshot的根验收调用沿既有SDK显式传`origin=all`，覆盖补充分析，继续核对设计/run身份；目录缺省flow与Query-Agent原行为保持。旧任务恢复保留其原未知字段并复用submission，补充索引须新任务/快照，禁止回写历史。
 
 正式协议所需的根私有接点：Flow绑定可设`seed`（缺省42）；DPL绑定可传原CLI已有模型/推理参数。DPL/Goal准备及原生基线/搜索使用同一个绝对期限，前端真正超时后公开EF仅取消本实验活跃任务，任务终态仍由EF确认。没有新增服务或评测底座；正式整体预算/协议尚未冻结，见[A25接点准备](admin/A25_CAMPAIGN_BOUNDARY_PREP_20261017.md)。

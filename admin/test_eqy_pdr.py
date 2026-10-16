@@ -162,3 +162,13 @@ def test_pdr_cannot_fall_back_to_an_unconfigured_solver(tmp_path, monkeypatch):
     with pytest.raises(ValueError, match="solver manifest"):
         eqy.verify(jobs, reference, candidate, [], checks())
     assert not calls
+
+
+def test_legacy_sat_cannot_issue_a_new_certificate_after_failed_negative_control(
+    tmp_path, monkeypatch
+):
+    jobs, reference, candidate, _, _, _, calls = prepared(tmp_path, monkeypatch)
+    jobs.deployment.value["validation"]["equivalence_strategy"] = "sat"
+    with pytest.raises(ValueError, match="negative control"):
+        eqy.verify(jobs, reference, candidate, [], checks())
+    assert not calls

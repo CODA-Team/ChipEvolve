@@ -114,12 +114,32 @@ def test_proof_submission_uses_explicit_validation_budget_without_changing_strat
         raise Submitted
 
     value: dict[str, Any] = {"tools": {"yosys": "/yosys", "eqy": "/eqy"}}
-    if seconds is not None:
+    if engine == "eqy":
+        from chip_evolve.jobs import digest
+
+        solver = tmp_path / "z3"
+        solver.write_bytes(b"fixed solver fixture")
+        manifest = tmp_path / "solver.json"
+        write(
+            manifest,
+            {
+                "name": "z3",
+                "image_sha256": "image",
+                "binary": {"path": str(solver), "sha256": digest(solver)},
+                "library": {"path": str(solver), "sha256": digest(solver)},
+            },
+        )
+        value["toolchain"] = {"image_sha256": "image"}
         value["validation"] = {
-            "equivalence_seconds": seconds,
-            "equivalence_memory_gib": 64,
-            "equivalence_jobs": 1,
+            "equivalence_strategy": "abc-pdr",
+            "equivalence_solver_manifest": str(manifest),
         }
+    if seconds is not None:
+        value.setdefault("validation", {}).update(
+            equivalence_seconds=seconds,
+            equivalence_memory_gib=64,
+            equivalence_jobs=1,
+        )
     deployment = SimpleNamespace(
         value=value, design=lambda design_id: {"top": "design"}
     )
@@ -155,8 +175,11 @@ def test_proof_submission_uses_explicit_validation_budget_without_changing_strat
     assert calls[0]["parent"] == "run-candidate"
     assert calls[0]["objective"] == Path("objective.json")
     if engine == "eqy":
-        argv = calls[0]["argv"]
+        import ast
+
+        launcher = (tmp_path / "launch-proof.py").read_text()
+        argv = ast.literal_eval(launcher.split("command=", 1)[1].splitlines()[0])
         assert argv[argv.index("-j") + 1] == ("2" if seconds is None else "1")
         text = (tmp_path / "proof.eqy").read_text()
-        assert "use sat\ndepth 10" in text
+        assert "use sby\nengine abc pdr\ndepth 10" in text
         assert "final-gold-match /out/" in text
