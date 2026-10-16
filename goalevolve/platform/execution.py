@@ -190,6 +190,9 @@ def validate_request(profile: dict[str, Any], request: dict[str, Any]) -> None:
 def task_for(
     profile: dict[str, Any], request: dict[str, Any], path: Path, key: str
 ) -> dict[str, Any]:
+    resource_kind = "build" if request["operation"] == "build" else "physical"
+    if request["operation"] == "analysis" and "analysis" in profile["resources"]:
+        resource_kind = "analysis"
     spec = {
         "schema_version": 3,
         "task_id": profile["experiment_id"] + "-" + key,
@@ -225,9 +228,7 @@ def task_for(
             request["policy"]["timeout_s"] + 60,
             max(1, int(profile["deadline_epoch"] - time.time())),
         ),
-        "resources": profile["resources"][
-            "build" if request["operation"] == "build" else "physical"
-        ],
+        "resources": profile["resources"][resource_kind],
         "max_attempts": 1,
         "expected_artifacts": ["data_snapshot"],
     }

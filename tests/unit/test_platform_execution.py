@@ -236,6 +236,7 @@ def test_identical_forced_build_invocations_have_distinct_task_intents(tmp_path)
                 output_log=None,
                 environment=None,
             )
+            assert result is not None
             assert result.ok
     assert calls[0]["command"] == calls[1]["command"]
     assert calls[0]["invocation_id"] != calls[1]["invocation_id"]
@@ -292,6 +293,37 @@ def test_request_detects_source_change_and_preserves_native_policy(tmp_path):
     file.write_text("int changed;\n")
     with pytest.raises(ValueError, match="source changed"):
         validate_request(profile, request)
+
+
+@pytest.mark.parametrize("operation", ["build", "physical", "analysis"])
+@pytest.mark.parametrize("separate_analysis", [False, True])
+def test_analysis_reservation_is_explicit_without_weakening_eda_or_builds(
+    tmp_path, monkeypatch, operation, separate_analysis
+):
+    monkeypatch.delenv("EDA_PLATFORM_OBJECTIVE", raising=False)
+    monkeypatch.delenv("EDA_PLATFORM_CONTEXT", raising=False)
+    profile = {
+        "experiment_id": "native-test",
+        "design": "arbitrary-design",
+        "client_python": "python",
+        "profile_path": "profile.json",
+        "deadline_epoch": 9999999999,
+        "resources": {
+            "build": {"cpu_cores": 8, "memory_bytes": 64 << 30},
+            "physical": {"cpu_cores": 8, "memory_bytes": 24 << 30},
+        },
+    }
+    if separate_analysis:
+        profile["resources"]["analysis"] = {"cpu_cores": 1, "memory_bytes": 4 << 30}
+    request = {"operation": operation, "policy": {"timeout_s": 7200}}
+    task = task_for(profile, request, tmp_path / "request.json", "original-operation")
+    expected = operation if operation != "analysis" or separate_analysis else "physical"
+    assert task["resources"] == profile["resources"][expected]
+    assert task["max_attempts"] == 1
+    assert task["timeout_seconds"] == 7260
+    assert task["staged_inputs"] == [
+        {"source": str(tmp_path / "request.json"), "destination": "inputs/request.json"}
+    ]
 
 
 def test_profile_failure_never_returns_native_fallback(tmp_path, monkeypatch):
