@@ -7,7 +7,7 @@ from unittest.mock import patch
 import pytest
 
 from chip_evolve.clock import flow_sdc
-from chip_evolve.config import Deployment, write
+from chip_evolve.config import Deployment, read, write
 from chip_evolve.jobs import Jobs, digest
 from chip_evolve.native import latest_producer
 from chip_evolve.professional import flatten_archive, recover_config
@@ -198,50 +198,30 @@ def test_flow_configuration_is_recovered_after_the_next_round_replaces_it(tmp_pa
 def test_selection_retains_feasible_incumbent_and_rejects_mismatched_conditions(
     tmp_path,
 ):
+    from admin.test_adoption_consistency import frame_at, validation_for
+
     d = deployment(tmp_path)
-    limits = {
-        "setup_tns_ns_min": 0,
-        "hold_tns_ns_min": 0,
-        "max_slew_violations": 0,
-        "max_cap_violations": 0,
-        "placement_violations": 0,
-        "route_drc": 0,
-        "power_total_w_max": 2,
-        "cell_area_um2_max": 20,
-        "core_area_um2_max": 30,
-        "die_area_um2_max": 40,
-    }
-    objective = tmp_path / "objective.json"
-    write(objective, {"constraints": limits})
-    frame = {
-        "design_id": "gcd",
-        "run_id": "baseline",
-        "objective": str(objective),
-        "objective_id": "goal",
-        "condition_id": "same",
-        "route_drc": 0,
-        "metrics": {
-            "finish__timing__setup__tns": 0,
-            "finish__timing__hold__tns": 0,
-            "finish__timing__drv__max_slew": 0,
-            "finish__timing__drv__max_cap": 0,
-            "design__violations": 0,
-            "finish__power__total": 1,
-            "finish__design__instance__area": 10,
-            "finish__design__core__area": 30,
-            "finish__design__die__area": 40,
-        },
-    }
-    baseline = tmp_path / "baseline.json"
-    write(baseline, frame)
-    assert select(d, baseline, "Codex accepts legal reference")["adopted"]
-    frame["run_id"] = "worse"
-    frame["metrics"]["finish__power__total"] = 1.1
-    frame["metrics"]["finish__design__instance__area"] = 11
-    candidate = tmp_path / "candidate.json"
-    write(candidate, frame)
-    assert not select(d, candidate, "Check dominated alternative")["adopted"]
+    baseline = frame_at(tmp_path, "reference")
+    assert select(
+        d,
+        baseline,
+        "Codex accepts legal reference",
+        validation=validation_for(baseline, baseline),
+    )["adopted"]
+    candidate = frame_at(tmp_path, "worse", 1.1)
+    assert not select(
+        d,
+        candidate,
+        "Check dominated alternative",
+        validation=validation_for(candidate, baseline),
+    )["adopted"]
+    frame = read(candidate)
     frame["condition_id"] = "other"
     write(candidate, frame)
     with pytest.raises(ValueError, match="different shared conditions"):
-        select(d, candidate, "Different clock cannot establish a gain")
+        select(
+            d,
+            candidate,
+            "Different clock cannot establish a gain",
+            validation=validation_for(candidate, baseline),
+        )

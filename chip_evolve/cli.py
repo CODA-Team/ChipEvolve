@@ -46,6 +46,7 @@ def main() -> int:
         sub.add_argument("--result", type=Path, required=True)
         if name == "select":
             sub.add_argument("--reason", required=True)
+            sub.add_argument("--validation", type=Path, required=True)
     status = commands.add_parser("status")
     status.add_argument("--design", required=True)
     collect = commands.add_parser("collect-flow")
@@ -319,7 +320,16 @@ def main() -> int:
     elif args.command == "select":
         from .selection import select
 
-        print(json.dumps(select(deployment, args.result.resolve(), args.reason)))
+        print(
+            json.dumps(
+                select(
+                    deployment,
+                    args.result.resolve(),
+                    args.reason,
+                    validation=args.validation.resolve(),
+                )
+            )
+        )
     else:
         result = read(args.result)
         print(
