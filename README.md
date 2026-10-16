@@ -4,7 +4,7 @@ ChipEvolve 为成熟 Agent（当前以 Codex 为入口）提供芯片物理设�
 
 当前优先在本机跑通实验和协同 PPA 优化。产品目标见 [PROJECT.md](PROJECT.md)，模块职责见 [ARCHITECTURE.md](ARCHITECTURE.md)，实际完成状态见 [TASKS.md](TASKS.md) 和 [admin/STATUS.md](admin/STATUS.md)。
 
-2026-10-16 A18：GCD/AES 固定方法接力预检与候选查证对照见 [本轮报告](admin/A18_PREFLIGHT_REPORT_20261016.md)；[正式双核心实验协议](admin/FORMAL_EXPERIMENT_PROTOCOL_20261016.md)仍是待冻结草案。以下模块状态描述本机已验证能力，不代表新机器交付或正式同预算团队优势已通过。
+2026-10-16 A19–A21：JPEG 来源复制取得第三设计前置资格，Query 取得原专业阶段/动作证据，GCD/AES 固定功耗方法及路由控制、完整证明/同值复测完成。结果和取舍见 [A19](admin/A19_THIRD_DESIGN_REPORT_20261016.md)、[A20](admin/A20_NATIVE_STAGE_EVIDENCE_REPORT_20261016.md)、[A21](admin/A21_FIXED_POWER_RELAY_REPORT_20261016.md)；三个物理阶段同时失联后恢复，稳定性根因仍待修。此前候选查证对照见 [A18](admin/A18_PREFLIGHT_REPORT_20261016.md)，[正式双核心实验协议](admin/FORMAL_EXPERIMENT_PROTOCOL_20261016.md)仍是待冻结草案。以下状态描述本机已验证能力，不代表新机器交付、全部稳定性或正式同预算团队优势已通过。
 
 ## 模块
 
@@ -15,7 +15,7 @@ ChipEvolve 为成熟 Agent（当前以 Codex 为入口）提供芯片物理设�
 | Execution Foundation | `execution-foundation/` | 实验任务、资源、进程、工作空间、原始产物与溯源。 |
 | Data Foundation | `data-foundation/` | 设计事实、快照、对象/关系、指标、来源与独立数据存储。 |
 | Data Interface | `data-interface/` | 公开工具语义及 Python SDK；没有独立服务或数据库。 |
-| Query Agent | `query-agent/` | 用统一事实、领域工具与调查技能增强 Codex；已有查询/比较/来源，完整归因与专业接收仍待验收。 |
+| Query Agent | `query-agent/` | 用统一事实、领域工具与调查技能增强 Codex；已实测查询/比较/来源、Goal阶段及真实动作归因，单动作贡献分摊与全面证据覆盖仍有边界。 |
 | Toolkits | `toolkits/` | OpenROAD/ORFS 命令、原生输入、工具解析与数据导出。 |
 | Flow Agent / A2-ORFO | `flow-agent/` | 参数优化；完整真实调参、统一执行/回流与中断恢复已有工程验收。 |
 | DPLEvolve / ReviewDSE | `dplevolve/` | 同一个源码级布局优化项目；共同基础、统一 EF、新源码轮次及真实阶段交接已验证；局部 HPWL 与最终 PPA 分开判断。 |
