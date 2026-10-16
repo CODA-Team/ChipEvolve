@@ -169,6 +169,7 @@ class RuntimeWorker:
         """Serve with maintenance independent from long-running attempts."""
         stop = stop or threading.Event()
         active: set[str] = set()
+        candidates = iter(self._runnable_candidates())
         next_presence = 0.0
         with ThreadPoolExecutor(
             max_workers=self.batch, thread_name_prefix="runtime-attempt"
@@ -180,9 +181,14 @@ class RuntimeWorker:
                     next_presence = time.monotonic() + PRESENCE_REFRESH_SECONDS
                 report.reclaimed = len(self.store.reclaim_expired_attempts())
                 report.cancelled = self._finish_abandoned_cancellations()
-                candidates = self._runnable_candidates() if not stop.is_set() else ()
-                for run_id in candidates:
-                    if len(active) >= self.batch or run_id in active:
+                # Keep the scan position when slots fill, so blocked queue heads
+                # cannot monopolize every retry while later work fits capacity.
+                while not stop.is_set() and len(active) < self.batch:
+                    run_id = next(candidates, None)
+                    if run_id is None:
+                        candidates = iter(self._runnable_candidates())
+                        break
+                    if run_id in active:
                         continue
                     active.add(run_id)
                     pool.submit(self._run_async, run_id, active, report)

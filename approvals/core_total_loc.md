@@ -534,3 +534,16 @@ Separate committed-state observation and one heartbeat/presence transaction avoi
 readers blocking on writer fsync and duplicate durable updates. Observation refresh
 is five seconds inside the unchanged 30-second stale window. The store grant names
 its exact size; no gate, negative fixture, public interface or algorithm is weakened.
+
+
+2026-10-16 A24 authorised queue-progress repair: maximum 9082 physical lines
+(+6, exactly worker.py 219 -> 225). Real JPEG concurrency showed claimable
+small work waiting behind resource-blocked builds. Two real Runtime/Store
+regressions, with stationary and late-arriving small tasks, fail before the
+repair: the asynchronous dispatcher restarts from the blocked queue head every
+maintenance cycle. Retain the existing runnable iterator across cycles and
+refresh after exhaustion. No second queue, capacity policy, lease duration,
+public interface, source algorithm or authoritative reservation change. The
+owner authorised the A23-A28 gap-closing goal and necessary evidence-backed
+compatibility/stability repairs; this exact allowance grants no future headroom.
+Deploy only after isolation/regression gates and safe task drain.
