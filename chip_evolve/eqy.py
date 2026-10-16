@@ -102,7 +102,7 @@ def verify(
                 "--yosys",
                 str(wrapper),
                 "-j",
-                "2",
+                str(deployment.value.get("validation", {}).get("equivalence_jobs", 2)),
                 "-d",
                 str(work),
                 str(script),
@@ -120,7 +120,9 @@ def verify(
         ],
         seconds=deployment.value.get("validation", {}).get("equivalence_seconds", 3600),
         cpu=4,
-        memory_gib=32,
+        memory_gib=deployment.value.get("validation", {}).get(
+            "equivalence_memory_gib", 32
+        ),
         parent=candidate["run_id"],
         objective=Path(candidate["objective"]),
     )

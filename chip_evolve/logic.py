@@ -153,7 +153,9 @@ def _yosys_proof(
             "equivalence_seconds", 3600
         ),
         cpu=4,
-        memory_gib=32,
+        memory_gib=jobs.deployment.value.get("validation", {}).get(
+            "equivalence_memory_gib", 32
+        ),
         parent=candidate["run_id"],
         objective=Path(candidate["objective"]),
     )

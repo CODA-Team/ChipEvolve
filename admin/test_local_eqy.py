@@ -2,7 +2,7 @@
 
 from pathlib import Path
 from types import SimpleNamespace
-from typing import cast
+from typing import Any, cast
 
 import pytest
 
@@ -86,9 +86,13 @@ def test_proof_submission_uses_explicit_validation_budget_without_changing_strat
         calls.append({"key": key, "argv": argv, **kwargs})
         raise Submitted
 
-    value = {"tools": {"yosys": "/yosys", "eqy": "/eqy"}}
+    value: dict[str, Any] = {"tools": {"yosys": "/yosys", "eqy": "/eqy"}}
     if seconds is not None:
-        value["validation"] = {"equivalence_seconds": seconds}
+        value["validation"] = {
+            "equivalence_seconds": seconds,
+            "equivalence_memory_gib": 64,
+            "equivalence_jobs": 1,
+        }
     deployment = SimpleNamespace(
         value=value, design=lambda design_id: {"top": "design"}
     )
@@ -119,10 +123,13 @@ def test_proof_submission_uses_explicit_validation_budget_without_changing_strat
                 tmp_path / "models.json",
             )
     assert calls[0]["seconds"] == (3600 if seconds is None else seconds)
-    assert calls[0]["cpu"] == 4 and calls[0]["memory_gib"] == 32
+    assert calls[0]["cpu"] == 4
+    assert calls[0]["memory_gib"] == (32 if seconds is None else 64)
     assert calls[0]["parent"] == "run-candidate"
     assert calls[0]["objective"] == Path("objective.json")
     if engine == "eqy":
+        argv = calls[0]["argv"]
+        assert argv[argv.index("-j") + 1] == ("2" if seconds is None else "1")
         text = (tmp_path / "proof.eqy").read_text()
         assert "use sat\ndepth 10" in text
         assert "final-gold-match /out/" in text
