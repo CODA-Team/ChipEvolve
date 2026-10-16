@@ -136,6 +136,10 @@ def diagnose(
         "\nAuthoritative role bindings (do not relabel runs or invent a null retained result): "
         + json.dumps(bindings)
     )
+    from .stage_facts import ensure_stage_facts
+
+    for path in ([against] if against else []) + [result_path]:
+        ensure_stage_facts(deployment, path)
     references = scoped_analysis_references(deployment, frames)
     if references:
         compact = [
@@ -144,18 +148,22 @@ def diagnose(
                 "artifacts": [
                     artifact
                     for artifact in row["artifacts"]
-                    if artifact["store_key"].endswith("/candidate-brief.json")
+                    if artifact["store_key"].endswith(
+                        ("/candidate-brief.json", "/native-stages.json")
+                    )
                 ],
             }
             for row in references
             if any(
-                artifact["store_key"].endswith("/candidate-brief.json")
+                artifact["store_key"].endswith(
+                    ("/candidate-brief.json", "/native-stages.json")
+                )
                 for artifact in row["artifacts"]
             )
         ]
         if compact:
             question += (
-                "\nRead these SDK-verified compact candidate views FIRST. They retain "
+                "\nRead these SDK-verified compact candidate/stage views FIRST. They retain "
                 "the frozen constraints, native decisions, final PPA and original "
                 "refs. Expand individual candidate details only to resolve a specific "
                 "question; do not expand every experiment object: "

@@ -175,11 +175,15 @@ def candidate_row(
     if any(actual.get(key) != frame["metrics"][key] for key in checked):
         raise ValueError("DF hard-constraint facts differ from the result")
     failed = violations(frame)
+    from .stage_facts import ensure_stage_facts
+
+    stages = ensure_stage_facts(jobs.deployment, path)
     return {
         "run_id": frame["run_id"],
         "physical_run_id": frame["physical_run_id"],
         "snapshot_ids": frame["snapshot_ids"],
         "native": native_facts(jobs, frame, folder, path),
+        "stage_facts": file_ref(stages) if stages else None,
         "final_metrics": {k: frame["metrics"][k] for k in checked},
         "route_drc": frame.get("route_drc"),
         "final_constraint_violations": failed,
