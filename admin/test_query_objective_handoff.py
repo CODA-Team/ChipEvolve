@@ -75,6 +75,9 @@ def test_query_gets_complete_frozen_limits_and_conditions(tmp_path, monkeypatch)
     assert supplied["constraints"] == objective["constraints"]
     assert supplied["conditions"] == objective["conditions"]
     assert supplied["objective_id"] == objective["objective_id"]
+    assert "Native TimingECOAgent is dispatched separately by ChipEvolve" in prompt
+    assert "built-in per-cell buffer_eco receiver" in prompt
+    assert "Never invent cell/master permissions" in prompt
     assert receipt["identity_bindings"]["source"]["run_id"] == "reference"
 
 
