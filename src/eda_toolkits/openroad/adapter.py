@@ -112,10 +112,18 @@ def main() -> int:
             json.dumps(receipt, indent=2), encoding="utf-8")
         if completed:
             progress("extract", "finished", status="failed")
-            return _write_result(result_path, started, "failed", completed,
-                                 _failure_artifacts(), {"category": "extractor_error",
-                                      "message": f"extractor exited with status {completed}",
-                                      "retryable": False})
+            return _write_result(
+                result_path,
+                started,
+                "failed",
+                completed,
+                _failed_output_artifacts(workspace, output_dir, inputs),
+                {
+                    "category": "extractor_error",
+                    "message": f"extractor exited with status {completed}",
+                    "retryable": False,
+                },
+            )
         if mode in {"opensta", "openroad"}:
             normalize_opensta(output_dir, inputs)
         _attach_source_artifacts(output_dir, inputs)
@@ -315,6 +323,26 @@ def _failure_artifacts() -> list[dict[str, str]]:
         {"kind": "extractor_log", "path": "extractor.log"},
         {"kind": "extractor_receipt", "path": "extractor_receipt.json"},
     ]
+
+
+def _failed_output_artifacts(
+    workspace: Path, output_dir: Path, inputs: dict[str, Any]
+) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = list(_failure_artifacts())
+    occupied = {item["path"] for item in result}
+    discovered = [
+        source.relative_to(workspace).as_posix()
+        for source in sorted(output_dir.rglob("*"))
+        if source.is_file()
+    ]
+    for paths in (inputs.get("native_extra_paths", []), discovered):
+        partial = _raw_input_declarations(
+            {"native_extra_paths": paths}, workspace, occupied=occupied
+        )
+        for item in partial:
+            item["metadata"]["incomplete_output"] = True
+        result.extend(partial)
+    return result
 
 
 def _complete_result(result_path: Path, started: str, workspace: Path,
