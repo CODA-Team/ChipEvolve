@@ -46,3 +46,11 @@ Goal真实日志解析/合法性检查也被统一预约成8核/24GiB，原JPEG�
 这些是预演上界，不是正式实验预算，也不是给团队每项分配一份正式总预算：Flow两轮、每轮三候选，原生执行最多14400秒；DPL一轮三Student最多21600秒；Goal一轮四Student最多28800秒；ECO适用时原生两轮最多7200秒。先运行Query与Flow，Code可从同一合法来源分别运行，再按瓶颈选择真实接力。保留原源代码最低轮次，不以缩减Student或参数域通过。
 
 每个阶段通过公开状态观察任务是否消费、健康运行、资源等待和终态。先检查输入/环境身份，再运行真实阶段，逐项核对原约束/原生筛选、最后证明/独立重放。已有接口不改时不重复无关全仓测试；有实际修复时执行对应静态/单元/差异/边界/回归。预算不足保留未完成，不重启整个实验抹去成本。
+
+## 原批次关闭后的执行收尾
+
+真实JPEG两轮50候选预演出现布局批次已结束、journal进入CTS，而原布局slot17仍在EF运行的情况。原`maindriver.sh`的120m批次timeout会终止前端等待并丢弃返回码，不会自动结束EF任务。仅改正式源码`flow/maindriver.sh`：保留原timeout/原返回后继续规则，在place/cts/route_finish批次返回后调用新增`platform_stage_finalize.py`。helper先核验本地及EF的campaign/iteration/stage/slot/design归属，再取消尚未终态的本阶段任务，原leaf记录不改，独立收尾回执可重接；缺失提交结果明确报错，不为取消而重提任务。completed仅表示EF已确认取消请求，仍运行的attempt明确列在`awaiting_terminal_run_ids`，实际进程由原EF取消机制收尾。普通前端中断不触发此helper，原阶段预算、候选筛选、CP0与恢复契约保持；活跃运行副本不改。
+
+`test_platform_stage_finalize.py`覆盖跨范围拒绝、全量校验后才取消、部分取消中断重接、原证据不改、重复调用和native/platform shell分支；平台requirements补登记已有目标/上下文调用所需的`eda-toolkits`。首次回归76通过/1失败定位为Flow开发环境的旧Toolkit缺少已有context模块；仅从干净917c6b9源码构建wheel更新该开发环境后，完整80项通过，Ruff/格式/Pyright/bash语法与差异检查通过。原slot17在验证前已自行failed，记录`flow-abandoned-stage-observation.json`，本次未人工取消或编造旧timeout退出码。新helper尚未被活跃旧源码执行，实际新批次的自动收尾仍需核验。
+
+DPL真实链接命令同时包含`-flto=auto`和`-flto=1`。仅在平台重链接且两者并存时移除auto，保留显式单worker及全部其他参数，原生模式/无显式1保持；不改专业源码。四组合回归修复前1失败/3通过、后完整28项通过；新源码3abdd48已发布。保留Student2原未测源码另开104GiB真实build-only证明，原活跃Student/控制器及失败不改；在其真实终态和资源记录出来前不把LTO冲突认定为唯一内存根因，不记候选评价或PPA收益。
