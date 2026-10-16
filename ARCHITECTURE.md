@@ -2,7 +2,7 @@
 
 ## A19–A21：阶段证据与有目的的固定重放（2026-10-16）
 
-A20 已完成真实 Query 验证，报告 `admin/A20_NATIVE_STAGE_EVIDENCE_REPORT_20261016.md`。A19 第三设计资格和 A21 新功耗源码对照仍在运行，不能把接口实现当作最终 PPA 或迁移成功。
+A20 已完成真实 Query 验证，报告 `admin/A20_NATIVE_STAGE_EVIDENCE_REPORT_20261016.md`。A21 四个固定功耗方法、两个匹配控制、完整输出证明/同值复测与分支取舍已完成，见 `admin/A21_FIXED_POWER_RELAY_REPORT_20261016.md`；A19 第三设计资格仍在收尾。收尾实测暴露三个同时失联的物理阶段，AES 有界恢复通过，租约根因尚未修复；不能将静态通过或可恢复当作稳定性全部通过。
 
 `ensure_stage_facts(deployment, result_path) -> Path | None` 从根交付检查点定位所选 Goal producer，再用公开 EF 的归档/manifest核对阶段文件。阶段 JSON 必须引用同一次评价日志的 hash；保留原生 ns/pW、网表同值与指标同值的区别，并注册为当前结果的 analysis 证据。Query 优先读取小型阶段视图，原始日志可按需展开；不增加 DF 数据库、公共 HTTP/SDK 接口或通用 harness。
 
