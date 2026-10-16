@@ -47,6 +47,12 @@ Goal原Teacher/四Student已完成编辑，编译与原生EDA评价仍在运行�
 
 ## 构建容量和等待职责的实测修正
 
+GCD真实轻交付/所选对象补齐/温态复用已通过：`a24-deferred-facts-validation/validation.json`，同一run的ORFS/OpenSTA→OpenDB三视图和SDK身份正确、七项PPA完全相同、原result字节不变、再次补齐新增EDA为0。轻交付1500.717秒包含旧队列等待，对象冷补齐6.597秒、温态0.066秒也包含各自调度/读取；这是接点/复用证据，不能当JPEG或端到端效率对照。
+
+Goal Student2首次物理评价在原7200秒政策下超时，leaf `timed_out=true`、退出143、耗时7230.429秒，EF因extractor退出而记录failed/extractor_error；不是lease过期，也没有完整候选PPA。父级原生轮次继续，后续原日志解析仍排队。旧profile把所有非build任务都预约8核/24GiB；同一JPEG已完成解析和合法性检查的峰值仅约39/242MiB。后续profile准备独立analysis=1核/4GiB，原命令/期限/重试和专业算法不变。真实同一原解析器/原日志在该额度下成功，CSV逐字段一致、输入hash不变（`analysis-resource-proof-process.json`，run633a51ae…）；桥接支持显式analysis配置，旧profile缺该项时行为保持。模块23c9fc0完整404项/24子测试、静态/格式/编译/类型检查通过；两次继承代理的测试运行因本机dashboard请求被代理返回502而失败，停止后在带完整公共wheel/AST依赖、正确NO_PROXY的独立测试环境重跑通过，不改dashboard/活跃服务/安装。
+
+单槽临时worker又被健康Flow任务占满时，旧gateway仍会在大资源队首停住，明明可领取的小任务继续等待。第三次有界恢复 `verified-worker-finish.json` 令原临时worker停止领取并等当前attempt自然完成，用同一已验证wheel/原状态和总预算的四线程EF worker继续处理；沿用原两小时绝对扫描窗口，不杀EDA或放大容量。三次EDA恢复干预全部计入；生产旧scanner仍待安全空闲更新，不能称预演已无干预成熟。
+
 失败小批次Flow虽第一轮已完成三份实际布线，原`collect_flow`只允许完整成功，导致这些有效物理事实无法进入统一数据。新增根内部 `flow_evidence.collect`，在owner确已退出、terminal failed状态及campaign身份一致后，复用提取的原收集helper，将已完成候选共同测量/DF事实另存`completed-evidence`。原根失败status/result不动，候选与集合都携带原生失败/未完成语义，集合execution仍failed、交付completed，未选中/未采用。常规`collect-flow`成功门禁保持，不新增公共CLI或服务，不把候选证据交付记作整轮搜索成功。11项相关、根332项及静态/类型/格式检查通过，真实三候选交付待核查。
 
 临时验证worker已在生产相同状态/总预算下完成两项真实公共测量：Yosys来源对照`run-039a48be94254c1eaecf8232feb48150`与GCD`run-7f21eec0dc6640f3a80694f92da03e8b`，原生计算未中断。前者实际PPA为178.51299047mW、cell6742.33µm²、setup余量17.6363ps，功耗/面积均略超原上限，不能送作合法采用来源，也不是专业/协同收益；DF完整交付和独立来源全输出证明仍待完成。该次worker恢复计人工干预，不替代空闲后的正式部署及无干预复测。

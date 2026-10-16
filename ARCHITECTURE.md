@@ -4,11 +4,13 @@
 
 Flow原生搜索、阶段继承、全部候选和最终共同测量保持。批量候选先交付原ORFS完整最终指标/十项约束及OpenSTA时序事实，EF保留原ODB/SPEF/网表/阶段产物；未解析的对象索引以可选 `deferred_facts.opendb.publication_root` 明示，不生成假快照或空对象。实际Query诊断、专业接力、最终验证在入口调用根私有 `design_facts.ensure(deployment, source, frame)`，复用同一 `physical.publish(..., modes=("opendb",))`、EF导出和DF导入补齐；同一测量run/条件，原结果字节不改，扩展视图另存 `materialized-result.json`。旧调用默认三类事实，DF/SDK/公共HTTP接口不改；此策略由根交付层选择，不在Query或专业模块复制解析器。单位/条件和最终PPA不随对象索引时机改变。
 
-七项针对测试、根323项回归及静态检查已通过；真实GCD“同状态七指标→轻交付→补齐→温态不增EDA”正在统一EF/DF排队验证，尚不据此声称端到端节约。当前JPEG旧根进程的原生搜索保持，只有正常收尾后才可恢复确定性交付。EF异步队列修复942e0ef也仍待任务排空后原位部署，详见 [A24检查点](admin/A24_QUEUE_PROGRESS_REPORT_20261016.md)。
+七项针对测试、根323项回归及静态检查已通过；真实GCD“同状态七指标→轻交付→补齐→温态不增EDA”已通过，原结果字节和同run三视图/SDK事实一致；含争用排队的耗时不作端到端节约证据。当前JPEG旧根进程的原生搜索保持，只有正常收尾后才可恢复确定性交付。EF异步队列修复942e0ef也仍待任务排空后原位部署，三次临时恢复干预单列；详见 [A24检查点](admin/A24_QUEUE_PROGRESS_REPORT_20261016.md)。
 
 Flow所选候选的验证补入根私有 `flow_replay.replay(deployment, result_path, experiment)`：从保存的原archive取真实pre-CTS placement，冻结原result/archive/config/recipe/objective内容，复用 `delivery.checkpoint→finish→professional.resume_layout` 和统一EF重跑CTS、完整DRT/RCX及测量/事实交付。原生stage SDC和参数保留，已有Code检查点优先；不声称从RTL或模型搜索重演。五项针对/根328项通过，真实GCD验证回执 `flow-replay-live-process.json`；完整A24仍未通过。DPL后续平台模式的原生prompt补充执行助手拥有等待/监控的说明（61c5897、24项回归），仅影响新冻结副本，未改活跃控制器或通用Codex harness。
 
 失败批次中已完成物理分支的事实可经根内部 `flow_evidence.collect` 交付：先核实原生owner退出、terminal failed和journal/summary身份，复用原收集/测量/DF链路，另存`completed-evidence`。原根失败与原生晋升不动，集合execution failed、delivery completed，候选`native_method`明确原搜索未完成并沿现有Query/handoff传递；默认成功收集门禁不改。11项针对/根332项通过，三份JPEG真实完成分支正在交付核验。部分物理结果可观测，不等于完整原生搜索验收通过。
+
+Goal桥接23c9fc0可消费私有profile的显式`resources.analysis`，用于原日志解析/合法性检查；build和physical预约及旧profile缺该项时的规则保持，不建立新调度或数据服务。后续profile按实测配置1核/4GiB，现有活跃副本不改；原JPEG解析器真实EF复测CSV同值、模块404项/24子测试和类型/静态检查通过。资源类别和实际申请保留在EF任务中，原专业期限/重试/算法不变。
 
 ```mermaid
 flowchart LR
