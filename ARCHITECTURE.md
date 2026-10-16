@@ -1,5 +1,7 @@
 # 架构与源码边界
 
+Query-Agent已有`--model host`入口可由当前Codex直接使用调查上下文、动作和证据，再导出专业上下文；不要求另起模型。A25准备已用真实JPEG事实核对该路径及既有专业上下文加载器，未新增Query源码或后台。hosted Codex子任务是另一种可选使用方式，其额外调用纳入成本；两者不混称零模型成本。实际边界见[原生入口准备](admin/A25_NATIVE_CODEX_ENTRY_PREPARATION_20261017.md)。
+
 ## A24进行中：批量事实与所选设计对象（2026-10-16）
 
 完整验证的显式私有`validation.equivalence_match_flops`只配合EQY/PDR启用：原解析任务导入相同Liberty，依据同实例/同master/相同逻辑模型的实际FF Q位提出状态匹配点；每点仍须证明，全部顶层输出与每分区PASS保持。缺省旧脚本/配置不升级，没有公共契约或服务变化。真实时序负例揭示旧SAT误通过，正式交付需PDR复核，见[时序证明核查](admin/A24_SEQUENTIAL_PROOF_REVIEW_20261017.md)。
