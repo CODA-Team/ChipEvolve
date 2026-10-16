@@ -106,6 +106,9 @@ def test_execution_ownership_reaches_native_prompt_only_in_platform_mode(
         if platform:
             assert "same command session" in prompt
             assert "resource profile" in prompt
+            assert "Do not start or instantiate EF workers" in prompt
+            assert "kernel stores" in prompt
+            assert "parent/platform operator" in prompt
         raise RuntimeError("verified native command boundary")
 
     monkeypatch.setattr(runner, "build_command", boundary)
