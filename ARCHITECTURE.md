@@ -1,5 +1,13 @@
 # 架构与源码边界
 
+## A14/A15：采用一致性与显式候选交付（2026-10-16）
+
+`select --result R --validation V --reason ...` 必须绑定原结果hash、原目标、完整输出证明、独立同值重放及SDK回执。短暂的设计采用锁内重读当前结果并原子发布；按参考网表内容身份、目标和条件隔离scope，决定写入本轮`designs/<design>/decisions`，不修改历史实验的`adoption.json`。Codex继续决定取舍，探索不要求先通过最终采用验证。
+
+Flow顶层`result.json`现在是`candidate-delivery.v1`集合，包含全候选引用／hash／事实／可行性，`selected_source=null`，不再按TNS同分选择第一项。专业执行和验证要求明确的单候选路径；`candidates`能展开冻结集合，通过SDK查回全部事实。单个候选入库不再覆盖campaign的顶层结果。
+
+`handoff.input_contract`记录真实源字节、阶段转换及方法身份；Query导出保留原包并绑定确定性的source/reference/retained身份，新包重新计算内容ID，派发核对实际source。原专业算法和公共EF/DF/SDK不变。A14采用复现和真实GCD回执核查通过，A15真实AES六候选及三条既有实际接点复核通过；A16/A17仍继续施工，A18未启动。
+
 ## A11/A12/A13：现代完整来源与实测接力（2026-10-16）
 
 新增正式 `candidates --reference R --result C [--result C...] --key K`，由根 `candidate_facts.py` 组合已有公共入口：DF/SDK 核对最终指标和快照，EF 明确生产者提供原专业证据，紧凑视图/全文作为 analysis 产物登记，现有 diagnosis 优先交付给 Query。原生判定、最终物理可行性和 Codex 的业务决定分别记录；不新增服务、数据库、分数或模型循环。Flow 原生反馈保留实际 CP0/库/单位并合并相同反馈的多份来源引用，未知单位不补造。

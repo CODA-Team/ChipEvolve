@@ -125,7 +125,11 @@ def main() -> int:
             result = recover(deployment, args.design, args.key)
         print(
             json.dumps(
-                {"result": str(experiment / "result.json"), "run_id": result["run_id"]}
+                {
+                    "result": str(experiment / "result.json"),
+                    "run_id": result.get("run_id"),
+                    "candidate_results": result.get("candidate_results", []),
+                }
             )
         )
     elif args.command == "continue-goal":
@@ -185,7 +189,10 @@ def main() -> int:
         )
         print(
             json.dumps(
-                {"result": str(experiment / "result.json"), "run_id": result["run_id"]}
+                {
+                    "result": str(experiment / "result.json"),
+                    "candidate_results": result["candidate_results"],
+                }
             )
         )
     elif args.command == "status":
@@ -297,8 +304,11 @@ def main() -> int:
                     "result": str(experiment / "result.json"),
                     "design_id": args.design,
                     "capability": args.capability,
-                    "run_id": result["run_id"],
-                    "metrics": result["metrics"],
+                    "run_id": result.get("run_id"),
+                    "metrics": result.get("metrics"),
+                    "execution_state": "succeeded",
+                    "delivery_state": "completed",
+                    "candidate_results": result.get("candidate_results", []),
                 }
             )
         )
@@ -332,6 +342,9 @@ def main() -> int:
         )
     else:
         result = read(args.result)
+        if result.get("schema_version") == "chip-evolve.candidate-delivery.v1":
+            print(json.dumps(result, indent=2))
+            return 0
         print(
             json.dumps(
                 {

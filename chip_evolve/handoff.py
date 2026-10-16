@@ -6,6 +6,37 @@ import hashlib
 import re
 import zipfile
 from pathlib import Path
+from typing import Any
+
+from .jobs import digest
+
+
+def input_contract(frame: dict[str, Any], capability: str) -> dict[str, Any]:
+    """Describe real source bytes and intentional transformations before dispatch."""
+    transformations = {
+        "flow": "reconstruct registered RTL/ORFS recipe; preserve native stage inheritance",
+        "dpl": "consume actual pre-CTS placement from the source archive; continue CTS/route",
+        "goal": "remove fillers and signal wires; preserve source cells/connections; run original optimization and routing",
+        "eco": "consume routed ODB, SDC and SPEF; apply original local primitives and route calibration",
+    }
+    paths = {key: Path(value) for key, value in frame["files"].items()}
+    if frame.get("flow_archive"):
+        paths["flow_archive"] = Path(frame["flow_archive"])
+    return {
+        "source_run_id": frame["run_id"],
+        "design_id": frame["design_id"],
+        "objective_id": frame["objective_id"],
+        "condition_id": frame["condition_id"],
+        "receiver": capability,
+        "transformations": transformations[capability],
+        "source_files": {
+            key: {"path": str(path), "sha256": digest(path)}
+            for key, path in paths.items()
+        },
+        "flow_recipe": frame.get("flow_recipe"),
+        "native_method": frame.get("native_method"),
+        "acceptance": "exploratory input; original final constraints and native algorithm remain in force",
+    }
 
 
 def placement_archive(source: Path, odb: Path, destination: Path, sdc: Path) -> None:

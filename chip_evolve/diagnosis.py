@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -12,6 +13,35 @@ from uuid import uuid4
 from openroad_platform_client import KernelClient
 
 from .config import Deployment, read, write
+from .jobs import digest
+
+
+def identity_bindings(
+    deployment: Deployment, frame: dict[str, Any], reference: dict[str, Any] | None
+) -> dict[str, Any]:
+    """Assign roles from explicit inputs and retained records, never model prose."""
+    retained_path = deployment.state / "designs" / frame["design_id"] / "incumbent.json"
+    retained = read(retained_path) if retained_path.exists() else None
+    retained_verified = (
+        retained
+        and retained.get("objective_id") == frame["objective_id"]
+        and retained.get("condition_id") == frame["condition_id"]
+        and Path(retained["result"]).is_file()
+        and retained.get("result_sha256") == digest(Path(retained["result"]))
+    )
+    return {
+        "source": {"run_id": frame["run_id"], "design_id": frame["design_id"]},
+        "reference": {
+            "run_id": reference["run_id"],
+            "design_id": reference["design_id"],
+        }
+        if reference
+        else None,
+        "retained": {"run_id": retained["run_id"], "result": retained["result"]}
+        if retained is not None and retained_verified
+        else None,
+        "authority": "Roles are input identities, not conclusions inferred from the natural-language answer. Null means no verified binding was provided.",
+    }
 
 
 def scoped_analysis_references(
@@ -66,7 +96,9 @@ def diagnose(
     *,
     against: Path | None = None,
 ) -> dict[str, Any]:
-    frame = read(result_path)
+    from .candidates import result_frame
+
+    frame = result_frame(result_path)
     from .comparisons import professional_facts
 
     question += "\nPrepared professional/final facts: " + json.dumps(
@@ -99,6 +131,11 @@ def diagnose(
         )
         snapshots = [*baseline["snapshot_ids"].values(), *snapshots]
         question += f"\nFixed baseline run: {baseline['run_id']}; current candidate run: {frame['run_id']}. Compare actual matching conditions and inputs before explaining deltas."
+    bindings = identity_bindings(deployment, frame, frames[1] if against else None)
+    question += (
+        "\nAuthoritative role bindings (do not relabel runs or invent a null retained result): "
+        + json.dumps(bindings)
+    )
     references = scoped_analysis_references(deployment, frames)
     if references:
         compact = [
@@ -214,6 +251,17 @@ def diagnose(
     if completed.returncode:
         raise RuntimeError("Professional context export failed; trace retained")
     value = read(context)
+    write(folder / "query-context-original.json", value)
+    value["query_context_id"] = value["context_id"]
+    value["identity_bindings"] = bindings
+    value["context_id"] = hashlib.sha256(
+        json.dumps(
+            {key: item for key, item in value.items() if key != "context_id"},
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+    ).hexdigest()
+    write(context, value)
     receipt = {
         "context": str(context),
         "context_id": value["context_id"],
@@ -222,6 +270,7 @@ def diagnose(
         "facts": len(value["confirmed_facts"]),
         "hypotheses": len(value["hypotheses"]),
         "limitations": value["limitations"],
+        "identity_bindings": bindings,
     }
     write(folder / "receipt.json", receipt)
     write(result_path.parent / "diagnosis.json", receipt)

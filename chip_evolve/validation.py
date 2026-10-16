@@ -121,7 +121,9 @@ def replay(
 def validate(
     deployment: Deployment, result_path: Path, reference_path: Path, key: str
 ) -> dict[str, Any]:
-    frame = read(result_path)
+    from .candidates import result_frame
+
+    frame = result_frame(result_path)
     request = {
         "result": str(result_path),
         "reference": str(reference_path),

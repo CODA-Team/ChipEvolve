@@ -393,7 +393,9 @@ def measure(
     return measured
 
 
-def publish(jobs: Jobs, measured: dict[str, Any]) -> dict[str, Any]:
+def publish(
+    jobs: Jobs, measured: dict[str, Any], *, result_path: Path | None = None
+) -> dict[str, Any]:
     snapshot_ids, exports = {}, {}
     deployment = jobs.deployment
     for mode, field, source in (
@@ -475,6 +477,7 @@ def publish(jobs: Jobs, measured: dict[str, Any]) -> dict[str, Any]:
         if (jobs.experiment / "native-inputs.json").exists()
         else None,
     }
-    write(jobs.experiment / "result.json", frame)
-    write(jobs.experiment / "queried-facts.json", facts)
+    destination = result_path or jobs.experiment / "result.json"
+    write(destination, frame)
+    write(destination.parent / "queried-facts.json", facts)
     return frame

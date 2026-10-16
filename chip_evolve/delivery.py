@@ -96,7 +96,8 @@ def recover(deployment: Deployment, design_id: str, key: str) -> dict[str, Any]:
         {
             "status": "succeeded",
             "result": str(experiment / "result.json"),
-            "run_id": result["run_id"],
+            "run_id": result.get("run_id"),
+            "candidate_results": result.get("candidate_results", []),
             "native_search_restarted": False,
         },
     )

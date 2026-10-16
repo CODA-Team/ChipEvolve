@@ -160,7 +160,9 @@ def execute(
 ) -> dict[str, Any]:
     if not args.source:
         raise ValueError("A professional task needs a registered source result")
-    frame = read(args.source)
+    from .candidates import result_frame
+
+    frame = result_frame(args.source)
     if frame["design_id"] != args.design:
         raise ValueError("Professional source belongs to another design")
     objective = (args.objective or Path(frame["objective"])).resolve()
@@ -192,6 +194,15 @@ def execute(
         raise ValueError(
             "Professional diagnosis is not for the actual source design/run"
         )
+    if (
+        packet.get("identity_bindings")
+        and packet["identity_bindings"]["source"]["run_id"] != frame["run_id"]
+    ):
+        raise ValueError("Structured Query source identity differs from the task")
+    from .handoff import input_contract
+
+    handoff = input_contract(frame, args.capability)
+    write(experiment / "handoff-input.json", handoff)
     write(
         experiment / "input-receipt.json",
         {
@@ -206,6 +217,7 @@ def execute(
                 "candidates": args.candidates,
             },
             "operation": args.operation,
+            "handoff": str(experiment / "handoff-input.json"),
         },
     )
     if args.capability == "flow":
@@ -395,18 +407,18 @@ def collect_flow(
         )
         if (experiment / "recipe.json").is_file():
             measured["flow_recipe"] = str(experiment / "recipe.json")
-        candidate_frame = publish(jobs, measured)
+        candidate_frame = publish(jobs, measured, result_path=folder / "result.json")
         write(folder / "result.json", candidate_frame)
         candidates.append(candidate_frame)
     if not candidates:
         raise RuntimeError("No completed native Flow candidate")
     write(experiment / "candidates.json", candidates)
-    # Expose every branch to Codex; this is a factual ordering, not a promotion.
-    selected = max(
-        candidates, key=lambda row: row["metrics"]["finish__timing__setup__tns"]
+    from .candidates import deliver_candidates
+
+    return deliver_candidates(
+        experiment,
+        [Path(row["native_config"]).parent / "result.json" for row in candidates],
     )
-    write(experiment / "result.json", selected)
-    return selected
 
 
 def recover_config(

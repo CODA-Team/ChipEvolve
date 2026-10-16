@@ -229,7 +229,10 @@ def build_candidate_facts(
     result_paths: list[Path],
     experiment: Path,
 ) -> Path:
-    reference = read(reference_path)
+    from .candidates import expand_results, result_frame
+
+    result_paths = expand_results(result_paths)
+    reference = result_frame(reference_path)
     frames = [read(path) for path in result_paths]
     if not frames:
         raise ValueError("Candidate facts need at least one candidate")
