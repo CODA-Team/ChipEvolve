@@ -22,7 +22,10 @@ def prepare_case(controller: Path, design: dict[str, Any]) -> str:
     }
     for key, value in fields.items():
         text, count = re.subn(
-            r"(?m)^" + key + r":.*$", lambda _: key + ": " + value, text, count=1
+            r"(?m)^" + key + r":.*$",
+            lambda _, replacement=key + ": " + value: replacement,
+            text,
+            count=1,
         )
         if count != 1:
             raise ValueError("Native DPL problem template lacks " + key)

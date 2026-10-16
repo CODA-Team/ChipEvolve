@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import json
 import hashlib
+import json
 import os
 import subprocess
 import zipfile
@@ -140,7 +140,7 @@ def _producer(
         matches.append((run.get("ended_at", ""), run["run_id"]))
     if not matches:
         raise ValueError("Completed native checkpoint has no successful EF producer")
-    return sorted(matches)[-1][1]
+    return max(matches)[1]
 
 
 def _metadata(index: Path) -> dict[str, Any]:
