@@ -8,10 +8,10 @@
 
 返回 `candidate-brief.json` 和事实登记回执。入口通过已安装 SDK 核对最终指标/约束/条件，通过 EF 的明确原生产者取得专业评分证据；原生 winner 与最终可行性并列，不自动采用。完整条件、约束、原始引用和详细事实保留，较大材料使用带最终 PPA 的目录按需展开。既有 `diagnose` 优先向 Query 提供这些已登记紧凑事实；不新增后台服务或评分。Flow 原生反馈的 CP0/库/单位不改写为最终条件，未知原生单位保持未知。
 
-A11 续作已增加显式现代来源入口，默认仍为 `legacy`：
+A16 起，新 Flow 请求默认使用 `source`；重放旧来源须显式 `--flow-recipe legacy`。正式环境可由部署的 `qualified_environments` 按设计绑定，或显式传入 `--environment`：
 
 ```bash
-./chip-evolve.py --config /absolute/path/local.json run --design aes --capability flow --flow-recipe source --source /absolute/path/registered-yosys-source/result.json --key native-search --rounds 2 --candidates 3
+./chip-evolve.py --config /absolute/path/local.json run --design aes --capability flow --environment /absolute/path/environment.json --source /absolute/path/registered-yosys-source/result.json --key native-search --rounds 2 --candidates 3
 ```
 
 完整来源需已登记固定镜像的 ORFS 任务、真实输入 hash、ps 序列化 SDC、Yosys 路线及原旋钮的明确数值；辅助布线脚本也必须随 EF 输入提交。准备器继承真实库/SDC/物理脚本，通过 EF 的 Make 查询初始化原参数，交接继续使用该 recipe及真实阶段SDC，生成配置路径重定位到新工作树。最终共同测量仍用原业务SDC。未定义的 LB addon 不能静默替换成旧默认值。现代 Yosys 的数字时钟提取不换算 SDC 单位，ns 来源必须先显式登记 ps 迁移来源，不能只改写 SDC 后声称起点不变。现代内置综合仍不支持原层次旋钮，完整能力资格未通过。
@@ -22,16 +22,20 @@ Codex 指定设计、能力、预算和上一份结果；入口准备输入、�
 
 ```bash
 ./chip-evolve.py --config /absolute/path/local.json run --design gcd --capability orfs --key reference
-./chip-evolve.py --config /absolute/path/local.json run --design gcd --capability flow --key flow --source /absolute/path/reference/result.json
-./chip-evolve.py --config /absolute/path/local.json run --design gcd --capability dpl --key dpl --source /absolute/path/flow/result.json
+./chip-evolve.py --config /absolute/path/local.json run --design gcd --capability flow --key flow --source /absolute/path/registered-yosys-source/result.json
+./chip-evolve.py --config /absolute/path/local.json run --design gcd --capability dpl --key dpl --source /absolute/path/flow/iteration-1-1/result.json
 ./chip-evolve.py --config /absolute/path/local.json run --design gcd --capability goal --key goal --source /absolute/path/dpl/result.json
 ./chip-evolve.py --config /absolute/path/local.json run --design gcd --capability eco --key eco --source /absolute/path/goal/result.json
 ./chip-evolve.py --config /absolute/path/local.json status --design gcd
 ./chip-evolve.py --config /absolute/path/local.json diagnose --result /absolute/path/candidate/result.json --against /absolute/path/reference/result.json
-./chip-evolve.py --config /absolute/path/local.json select --result /absolute/path/candidate/result.json --reason 'Codex给出采用理由'
+./chip-evolve.py --config /absolute/path/local.json select --result /absolute/path/candidate/result.json --validation /absolute/path/validation/validation.json --reason 'Codex给出采用理由'
 ```
 
 这些是可选能力的调用示例。Codex 应根据事实选择顺序、是否继续及是否采用结果。默认 Flow 为两轮、12 个候选；DPL 为一轮、三个 Student；Goal 保留原四 Student；ECO 默认一轮且每轮做路由校准。参数可显式设置。`--seconds` 是本次专业运行预算；准备、Query 与最终数据交付的耗时也保留在实验记录中。
+
+A14/A15：Flow顶层结果是候选集合，`selected_source=null`，不会按TNS同分隐式选出业务winner；专业接力和验证使用明确单候选路径。`candidates --result`可展开集合并经SDK核对。正式采用必须传匹配验证回执，按设计／参考网表身份／目标／条件锁内保存到当前runtime的decisions，不改历史结果。Query上下文区分确定性身份与模型解释。
+
+A16：`python -m admin.freeze_formal_environment --config C --source R --qualification Q --key K`复用已完成的七指标同值来源控制，并通过EF探测实际二进制；Q含recipe、comparison和result。环境清单固定实际镜像、控制器脚本、专业构建回执、库、SDC和部署绑定。Code保持共同base上的私有研究增量；当前声明ASAP7／一个物理时钟，内置综合完整层次能力仍未通过。
 
 | 文件 | 职责 |
 |---|---|

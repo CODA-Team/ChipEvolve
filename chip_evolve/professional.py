@@ -218,6 +218,11 @@ def execute(
             },
             "operation": args.operation,
             "handoff": str(experiment / "handoff-input.json"),
+            "qualified_environment": (
+                {"path": str(args.environment), "sha256": digest(args.environment)}
+                if getattr(args, "environment", None)
+                else None
+            ),
         },
     )
     if args.capability == "flow":

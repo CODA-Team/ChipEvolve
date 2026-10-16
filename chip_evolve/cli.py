@@ -28,7 +28,8 @@ def main() -> int:
     run.add_argument("--seconds", type=int)
     run.add_argument("--rounds", type=int)
     run.add_argument("--candidates", type=int)
-    run.add_argument("--flow-recipe", choices=["legacy", "source"], default="legacy")
+    run.add_argument("--flow-recipe", choices=["legacy", "source"], default=None)
+    run.add_argument("--environment", type=Path)
     run.add_argument(
         "--operation", choices=["replay", "evolve", "framework"], default="evolve"
     )
@@ -244,6 +245,14 @@ def main() -> int:
             )
         )
     elif args.command == "run":
+        if args.environment is None:
+            configured = deployment.value.get("qualified_environments", {}).get(
+                args.design
+            )
+            args.environment = Path(configured) if configured else None
+        args.flow_recipe = args.flow_recipe or (
+            "source" if args.capability == "flow" else "legacy"
+        )
         if args.flow_recipe != "legacy" and args.capability != "flow":
             parser.error("--flow-recipe source applies to Flow only")
         if args.operation == "framework" and args.capability != "dpl":
@@ -254,6 +263,17 @@ def main() -> int:
             args.capability != "dpl" or args.operation != "replay"
         ):
             parser.error("--code-source requires DPL --operation replay")
+        if args.environment:
+            from .environment import check_environment
+
+            check_environment(
+                deployment,
+                args.environment.resolve(),
+                args.design,
+                args.capability,
+                args.source,
+                args.flow_recipe,
+            )
         if args.candidates is not None and args.capability not in {"flow", "dpl"}:
             parser.error("--candidates applies to Flow/DPL; Goal keeps four Students")
         args.seconds = (

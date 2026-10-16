@@ -142,6 +142,8 @@ def baseline(
         {"source": str(config), "destination": "inputs/design.mk"},
         {"source": design["sdc"], "destination": "inputs/design.sdc"},
     ]
+    # Explicit source scripts are frozen inputs, just like the SDC and libraries.
+    staged += design.get("flow_dependencies", [])
     inputs["liberty_paths"] = []
     for i, lib in enumerate(design["libraries"]):
         destination = "inputs/libraries/" + str(i) + "-" + Path(lib["path"]).name
