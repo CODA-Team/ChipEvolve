@@ -8,8 +8,8 @@
   "modules": [
     {
       "path": "execution-foundation",
-      "source_commit": "15d958693006ad11658b6c601337a10cc35dbd08",
-      "source_tree": "051b2457461208179112d558c5b1f04749afcdba",
+      "source_commit": "045df2d5210216bbd9e169fdb201d14af2d222b3",
+      "source_tree": "ec626fa1dc46e7f4c3828246a583c598a6d17d13",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/execution-foundation"
     },

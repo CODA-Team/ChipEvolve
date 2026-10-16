@@ -302,6 +302,41 @@ def import_jobs(tmp_path, url):
     return Jobs(d, "gcd", tmp_path / "experiment")
 
 
+def test_receipt_lookup_outage_before_submission_recovers_and_posts_once(
+    tmp_path, monkeypatch
+):
+    from chip_evolve.delivery import http
+
+    reads = 0
+
+    def interrupted(url, *args, **kwargs):
+        nonlocal reads
+        if url.endswith("/imports/art"):
+            reads += 1
+            if reads == 1:
+                raise TimeoutError("receipt lookup timed out before any POST")
+        return http(url, *args, **kwargs)
+
+    monkeypatch.setattr("chip_evolve.delivery.http", interrupted)
+    with data_server("committed") as (url, state):
+        jobs = import_jobs(tmp_path, url)
+        result = import_snapshot(jobs, "producer", "art", "snap", "subject")
+        assert result["snapshot"]["snapshot_id"] == "snap"
+        assert state["posts"] == state["commits"] == 1
+
+
+def test_unavailable_receipt_lookup_does_not_submit_blindly(tmp_path, monkeypatch):
+    def unavailable(*args, **kwargs):
+        raise TimeoutError("receipt service unavailable")
+
+    monkeypatch.setattr("chip_evolve.delivery.http", unavailable)
+    with data_server("committed") as (url, state):
+        jobs = import_jobs(tmp_path, url)
+        with pytest.raises(WorkPending, match="import_outcome_unknown"):
+            import_snapshot(jobs, "producer", "art", "snap", "subject")
+        assert state["posts"] == 0
+
+
 @pytest.mark.parametrize("mode", ["committed", "delayed", "timeout"])
 def test_actual_http_response_loss_recovers_receipt_without_repost(tmp_path, mode):
     with data_server(mode) as (url, state):

@@ -101,19 +101,26 @@ def import_snapshot(
             return error.code >= 500
         return isinstance(error, (OSError, HTTPException))
 
-    detail = ""
-    try:
-        prior = receipt()
-        if prior is not None:
-            return complete(prior)
+    requested = False
+
+    def request():
+        nonlocal requested
         write(
             path, {"phase": "delivery", "status": "request_sent", "identity": identity}
         )
+        requested = True
         http(
             base + "/snapshots/from-run",
             {"run_id": producer, "artifact_id": artifact},
             timeout=float(policy.get("import_request_seconds", 900)),
         )
+
+    detail = ""
+    try:
+        prior = receipt()
+        if prior is not None:
+            return complete(prior)
+        request()
         value = receipt()
         if value is not None:
             return complete(value)
@@ -145,6 +152,9 @@ def import_snapshot(
         )
         try:
             value = receipt()
+            if value is None and not requested:
+                request()
+                value = receipt()
             if value is not None:
                 return complete(value)
         except Exception as error:

@@ -1,5 +1,24 @@
 # 架构与源码边界
 
+## A22：并发租约、交付恢复与持久状态位置（2026-10-16）
+
+EF bundle 文件/字节托管移出共享连接锁，元数据和 first-writer 身份仍原子注册；worker 相同状态每秒合并写，PID/当前任务/状态变化立即记录，租约、失联隔离及SQLite持久化不变。根 `delivery.import_snapshot` 在首次回执查询故障后重查，明确无回执且本次未提交才发原POST；请求已发则只对账。函数签名、EF/DF/SDK路径及数据结构保持。
+
+真实机械盘负例出现误失联和大导入期间读超时，源码门禁通过不代表运行门禁通过。已捕获 EF `runtime.db-wal` 的数秒 `fdatasync`、SQL持锁者及心跳等待；SSD仅用于隔离诊断，老板明确不提权，不迁移系统目录或临时SSD。原目录最终三AES/JPEG及791次持续读完成、无lost，已按空闲检查/完整备份原位更新EF runtime及DF主库WAL/FULL；路径/端口/旧archive不变。当前PID为EF2935185/DF2935255，实际命令在 `var/business/a22-lease-stability-20261016/production-update.json`。EF最长心跳调用仍30.7秒、两秒短health超时57次，长尾未解决，正式长轮次暂缓。实际完成和限制见 [A22报告](admin/A22_LEASE_STABILITY_REPORT_20261016.md)。
+
+```mermaid
+flowchart LR
+  C[Codex与专业Agent] --> R[既有业务入口及交付恢复]
+  R --> E[EF任务与心跳]
+  E --> M[持久状态与原子元数据]
+  E --> A[锁外文件托管及原产物]
+  A --> D[DF导入与回执]
+  D --> Q[SDK及Query]
+  Q --> C
+```
+
+隔离脚本/fixture的故障注入和测量只用于验证，不安装进生产调用链；没有新增harness、后台服务、调度层或专业算法适配。相同PPA起点的存储诊断不计优化收益，也不代替正式同预算平台对照。
+
 ## A19–A21：阶段证据与有目的的固定重放（2026-10-16）
 
 A20 已完成真实 Query 验证，报告 `admin/A20_NATIVE_STAGE_EVIDENCE_REPORT_20261016.md`。A21 四个固定功耗方法、两个匹配控制、完整输出证明/同值复测与分支取舍已完成，见 `admin/A21_FIXED_POWER_RELAY_REPORT_20261016.md`；A19 JPEG 的显式完整旋钮来源取得七PPA同值复制/SDK/冻结环境资格，见 `admin/A19_THIRD_DESIGN_REPORT_20261016.md`，不等于 JPEG 全专业搜索已通过。收尾实测暴露三个同时失联的物理阶段，有界恢复通过，租约根因尚未修复；不能将静态通过或可恢复当作稳定性全部通过。
