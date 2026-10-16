@@ -32,6 +32,7 @@ def _register_bytes(
         metadata=metadata,
     )
     artifact.validate()
+    store._store_bytes(content, artifact.sha256, artifact.size_bytes)
     with store._lock:
         existing = store._connection.execute(
             "SELECT artifact_id FROM runtime_artifacts WHERE attempt_id = ? AND store_key = ?",
@@ -39,7 +40,6 @@ def _register_bytes(
         ).fetchone()
         if existing is not None:
             return store.get_artifact(str(existing["artifact_id"]))
-        store._store_bytes(content, artifact.sha256, artifact.size_bytes)
         store._connection.execute(
             "INSERT INTO runtime_artifacts (artifact_id, attempt_id, kind, store_key, "
             "size_bytes, sha256, metadata_json, created_at, storage) VALUES (?,?,?,?,?,?,?,?,?)",
@@ -67,10 +67,16 @@ def _register_file(
     path: Path,
     metadata: dict[str, Any],
 ) -> Artifact:
-    artifact = Artifact(artifact_id=_new_id("art"), kind=kind, store_key=store_key,
-                        sha256=sha256(path), size_bytes=path.stat().st_size,
-                        metadata=metadata)
+    artifact = Artifact(
+        artifact_id=_new_id("art"),
+        kind=kind,
+        store_key=store_key,
+        sha256=sha256(path),
+        size_bytes=path.stat().st_size,
+        metadata=metadata,
+    )
     artifact.validate()
+    store._store_object(path, artifact.sha256, artifact.size_bytes)
     with store._lock:
         existing = store._connection.execute(
             "SELECT artifact_id FROM runtime_artifacts WHERE attempt_id = ? AND store_key = ?",
@@ -78,13 +84,20 @@ def _register_file(
         ).fetchone()
         if existing is not None:
             return store.get_artifact(str(existing["artifact_id"]))
-        store._store_object(path, artifact.sha256, artifact.size_bytes)
         store._connection.execute(
             "INSERT INTO runtime_artifacts (artifact_id, attempt_id, kind, store_key, "
             "size_bytes, sha256, metadata_json, created_at, storage) VALUES (?,?,?,?,?,?,?,?,?)",
-            (artifact.artifact_id, attempt_id, artifact.kind, artifact.store_key,
-             artifact.size_bytes, artifact.sha256, json.dumps(metadata, sort_keys=True),
-             _now(), STORAGE_OBJECT),
+            (
+                artifact.artifact_id,
+                attempt_id,
+                artifact.kind,
+                artifact.store_key,
+                artifact.size_bytes,
+                artifact.sha256,
+                json.dumps(metadata, sort_keys=True),
+                _now(),
+                STORAGE_OBJECT,
+            ),
         )
     return artifact
 
@@ -92,7 +105,9 @@ def _register_file(
 def export_run_bundle(store: RuntimeStore, run_id: str) -> dict[str, Any]:
     """Create one content-addressed ZIP containing a run's evidence tree."""
     view = store.describe_run(run_id)
-    attempts = [(stage, attempt) for stage in view["stages"] for attempt in stage["attempts"]]
+    attempts = [
+        (stage, attempt) for stage in view["stages"] for attempt in stage["attempts"]
+    ]
     if not attempts:
         raise RuntimeStoreError("a run without an attempt has nothing to export")
     _, latest = attempts[-1]
@@ -101,10 +116,14 @@ def export_run_bundle(store: RuntimeStore, run_id: str) -> dict[str, Any]:
             return artifact
 
     entries: list[dict[str, Any]] = []
-    with tempfile.NamedTemporaryFile(prefix="runtime-bundle-", suffix=".zip", delete=False) as temporary:
+    with tempfile.NamedTemporaryFile(
+        prefix="runtime-bundle-", suffix=".zip", delete=False
+    ) as temporary:
         payload_path = Path(temporary.name)
     try:
-        with zipfile.ZipFile(payload_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        with zipfile.ZipFile(
+            payload_path, "w", compression=zipfile.ZIP_DEFLATED
+        ) as archive:
             archive.writestr(
                 "run.json",
                 json.dumps(view, ensure_ascii=False, sort_keys=True, indent=2),
@@ -159,7 +178,11 @@ def export_run_bundle(store: RuntimeStore, run_id: str) -> dict[str, Any]:
                         if not staged.get("present"):
                             continue
                         if staged.get("source_input_id"):
-                            source = store.object_path(store.get_uploaded_input(staged["source_input_id"]).sha256)
+                            source = store.object_path(
+                                store.get_uploaded_input(
+                                    staged["source_input_id"]
+                                ).sha256
+                            )
                         else:
                             source = (workspace / staged["destination"]).resolve()
                         if not staged.get("source_input_id"):
@@ -169,8 +192,12 @@ def export_run_bundle(store: RuntimeStore, run_id: str) -> dict[str, Any]:
                                 raise RuntimeStoreError(
                                     f"staged input escapes its workspace: {staged['destination']!r}"
                                 ) from exc
-                        if not source.is_file() or (staged.get("sha256") and sha256(source) != staged["sha256"]):
-                            raise RuntimeStoreError(f"staged input {staged['destination']!r} failed hash verification")
+                        if not source.is_file() or (
+                            staged.get("sha256") and sha256(source) != staged["sha256"]
+                        ):
+                            raise RuntimeStoreError(
+                                f"staged input {staged['destination']!r} failed hash verification"
+                            )
                         name = (
                             f"inputs/{current_stage['stage_key']}/"
                             f"attempt-{attempt['attempt_number']}/{staged['destination']}"
@@ -182,7 +209,9 @@ def export_run_bundle(store: RuntimeStore, run_id: str) -> dict[str, Any]:
                             continue
                         path = store.artifact_path(artifact["artifact_id"])
                         if not path.is_file() or sha256(path) != artifact["sha256"]:
-                            raise RuntimeStoreError(f"artifact {artifact['artifact_id']!r} failed hash verification")
+                            raise RuntimeStoreError(
+                                f"artifact {artifact['artifact_id']!r} failed hash verification"
+                            )
                         name = (
                             f"artifacts/{current_stage['stage_key']}/"
                             f"attempt-{attempt['attempt_number']}/{artifact['store_key']}"

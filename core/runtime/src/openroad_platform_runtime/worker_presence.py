@@ -10,9 +10,11 @@ from typing import Any
 from .store import RuntimeStore
 
 
-def touch(store: RuntimeStore, worker_id: str, *, attempt_id: str | None = None) -> None:
-    now = time.time()
+def touch(
+    store: RuntimeStore, worker_id: str, *, attempt_id: str | None = None
+) -> None:
     with store._lock:
+        now = time.time()
         active = store._connection.execute(
             "SELECT attempt_id FROM runtime_attempts WHERE worker_id = ? "
             "AND status = 'running' ORDER BY started_at",
@@ -27,9 +29,12 @@ def touch(store: RuntimeStore, worker_id: str, *, attempt_id: str | None = None)
             "(worker_id,pid,last_seen_at,current_attempt_id,state) VALUES (?,?,?,?,?) "
             "ON CONFLICT(worker_id) DO UPDATE SET pid=excluded.pid, "
             "last_seen_at=excluded.last_seen_at, "
-            "current_attempt_id=excluded.current_attempt_id, state=excluded.state",
-            (worker_id, os.getpid(), now, current,
-             "running" if active_ids else "idle"),
+            "current_attempt_id=excluded.current_attempt_id, state=excluded.state "
+            "WHERE runtime_workers.pid != excluded.pid "
+            "OR runtime_workers.current_attempt_id IS NOT excluded.current_attempt_id "
+            "OR runtime_workers.state != excluded.state "
+            "OR runtime_workers.last_seen_at <= excluded.last_seen_at - 1.0",
+            (worker_id, os.getpid(), now, current, "running" if active_ids else "idle"),
         )
 
 
@@ -42,7 +47,8 @@ def snapshot(store: RuntimeStore, *, stale_after: float = 30.0) -> list[dict[str
         ).fetchall()
     return [
         {
-            "worker_id": row["worker_id"], "pid": row["pid"],
+            "worker_id": row["worker_id"],
+            "pid": row["pid"],
             "last_seen_at": row["last_seen_at"],
             "current_attempt_id": row["current_attempt_id"],
             "active_attempt_ids": _active_attempts(store, row["worker_id"]),
@@ -56,7 +62,8 @@ def _active_attempts(store: RuntimeStore, worker_id: str) -> list[str]:
     with store._lock:
         rows = store._connection.execute(
             "SELECT attempt_id FROM runtime_attempts WHERE worker_id = ? "
-            "AND status = 'running' ORDER BY started_at", (worker_id,)
+            "AND status = 'running' ORDER BY started_at",
+            (worker_id,),
         ).fetchall()
     return [str(row["attempt_id"]) for row in rows]
 
@@ -75,7 +82,9 @@ def queue(store: RuntimeStore) -> dict[str, Any]:
     if oldest:
         age = max(0.0, time.time() - datetime.fromisoformat(oldest).timestamp())
     return {
-        "waiting": int(row["waiting"]), "queued": int(row["queued"] or 0),
+        "waiting": int(row["waiting"]),
+        "queued": int(row["queued"] or 0),
         "retry_wait": int(row["retry_wait"] or 0),
-        "oldest_created_at": oldest, "oldest_age_seconds": age,
+        "oldest_created_at": oldest,
+        "oldest_age_seconds": age,
     }
