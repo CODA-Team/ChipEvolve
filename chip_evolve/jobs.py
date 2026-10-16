@@ -63,26 +63,47 @@ class Jobs:
 
     def cancel_active(self) -> dict[str, Any]:
         """Retire this experiment's EF work after its frontend has stopped."""
-        rows = {}
-        for status in (
-            "queued",
-            "preparing",
-            "running",
-            "retry_wait",
-            "cancel_requested",
-        ):
-            offset = 0
-            while batch := self.client.runs(
-                design_id=self.design_id, status=status, limit=100, offset=offset
+        scopes: list[tuple[str, str, str | None]] = [
+            (self.design_id, self.campaign, None)
+        ]
+        journal = self.experiment / "platform-state/campaign.json"
+        if journal.exists():
+            native = read(journal)
+            design = self.deployment.design(self.design_id)
+            if (native["platform"], native["design"]) != (
+                design["platform"],
+                design["nickname"],
             ):
-                rows.update(
-                    {
-                        row["run_id"]: row
-                        for row in batch
-                        if row.get("experiment_id") == self.campaign
-                    }
-                )
-                offset += len(batch)
+                raise RuntimeError("Native Flow campaign belongs to another design")
+            scopes.append((native["design"], native["campaign_id"], "a2-flow"))
+        rows = {}
+        for design_id in dict.fromkeys(scope[0] for scope in scopes):
+            for status in (
+                "queued",
+                "preparing",
+                "running",
+                "retry_wait",
+                "cancel_requested",
+            ):
+                offset = 0
+                while batch := self.client.runs(
+                    design_id=design_id, status=status, limit=100, offset=offset
+                ):
+                    rows.update(
+                        {
+                            row["run_id"]: row
+                            for row in batch
+                            if any(
+                                row.get("experiment_id") == campaign
+                                and (
+                                    project is None or row.get("project_id") == project
+                                )
+                                for scoped_design, campaign, project in scopes
+                                if scoped_design == design_id
+                            )
+                        }
+                    )
+                    offset += len(batch)
         # Gather before cancellation: changing a status while paging would skip rows.
         cancelled = []
         for row in rows.values():
@@ -90,6 +111,10 @@ class Jobs:
             cancelled.append({"run_id": row["run_id"], "response": response})
         receipt = {
             "experiment_id": self.campaign,
+            "experiment_scopes": [
+                {"design_id": d, "experiment_id": c, "project_id": p}
+                for d, c, p in scopes
+            ],
             "cancel_requests": cancelled,
             "note": "Cancellation requests; EF owns process cleanup and terminal state.",
         }

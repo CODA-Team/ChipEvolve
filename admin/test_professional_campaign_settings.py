@@ -9,7 +9,7 @@ import pytest
 from openroad_platform_client import KernelClient
 
 from chip_evolve import professional
-from chip_evolve.config import read
+from chip_evolve.config import read, write
 from chip_evolve.jobs import Jobs
 
 
@@ -158,3 +158,63 @@ def test_dispatcher_cancels_owned_jobs_and_preserves_native_timeout(
         professional.execute(deployment, args, experiment)
     assert caught.value is original
     assert cancelled == ["gcd-owned-timeout"]
+
+
+def test_cancellation_includes_verified_native_flow_campaign_only(tmp_path):
+    from types import SimpleNamespace
+
+    jobs = object.__new__(Jobs)
+    jobs.design_id, jobs.campaign, jobs.experiment = "jpeg", "jpeg-owned", tmp_path
+    jobs.deployment = cast(
+        professional.Deployment,
+        SimpleNamespace(design=lambda _: {"platform": "asap7", "nickname": "jpeg"}),
+    )
+    write(
+        tmp_path / "platform-state/campaign.json",
+        {"design": "jpeg", "platform": "asap7", "campaign_id": "native-owned"},
+    )
+    candidates = [
+        {
+            "run_id": "outer",
+            "experiment_id": "jpeg-owned",
+            "project_id": "chip-evolve-local",
+        },
+        {"run_id": "native", "experiment_id": "native-owned", "project_id": "a2-flow"},
+        {"run_id": "other", "experiment_id": "native-other", "project_id": "a2-flow"},
+        {
+            "run_id": "wrong-project",
+            "experiment_id": "native-owned",
+            "project_id": "different",
+        },
+    ]
+    cancelled = []
+    jobs.client = cast(
+        KernelClient,
+        SimpleNamespace(
+            runs=lambda **kw: (
+                candidates if kw["status"] == "queued" and kw["offset"] == 0 else []
+            ),
+            cancel=lambda run_id: (
+                cancelled.append(run_id) or {"status": "cancel_requested"}
+            ),
+        ),
+    )
+    jobs.cancel_active()
+    assert cancelled == ["outer", "native"]
+
+
+def test_wrong_design_flow_journal_cannot_expand_cancel_scope(tmp_path):
+    from types import SimpleNamespace
+
+    jobs = object.__new__(Jobs)
+    jobs.design_id, jobs.campaign, jobs.experiment = "jpeg", "jpeg-owned", tmp_path
+    jobs.deployment = cast(
+        professional.Deployment,
+        SimpleNamespace(design=lambda _: {"platform": "asap7", "nickname": "jpeg"}),
+    )
+    write(
+        tmp_path / "platform-state/campaign.json",
+        {"design": "aes", "platform": "asap7", "campaign_id": "native-aes"},
+    )
+    with pytest.raises(RuntimeError, match="Flow campaign"):
+        jobs.cancel_active()

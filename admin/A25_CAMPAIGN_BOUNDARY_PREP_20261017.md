@@ -21,3 +21,5 @@ A24 JPEG完整证明与新完整Flow尚未通过，本记录只交付正式协�
 本接点不重新解释旧失败/成本，不改变已结束实验的预算，不证明JPEG本轮优化已经成功。完整JPEG PDR正在独立EF任务中运行；下一次完整Flow只有在原参考全输出证明通过后才启动，保持2轮×50候选、完整参数域和原规则，工程校准总上限72000秒。
 
 真实公开EF收尾核验通过：本实验两项排队任务被取消，同design另一个排队实验仍保留、正在运行的完整证明未被影响；随后单独取消测试遗留任务并确认三项终态。全过程1.344秒、没有新EDA，回执为`runtime/experiments/jpeg/a25-cancel-scope-live/live-acceptance.json`。
+
+Flow收尾范围补核：原生Flow在EF使用自己的`campaign_id`，不同于根业务实验号。`Jobs.cancel_active`现从本实验`platform-state/campaign.json`核对platform/design，纳入该原生编号且限定`a2-flow`项目；无关实验与同名不同项目仍排除。新两项测试修复前失败，修复后12项相关检查、根388项及静态/格式/类型通过。真实公开EF用本实验外层/原生两个排队任务验证二者均取消，另一个原生实验及完整证明不受影响，随后三项测试任务均终态，1.752秒、无EDA；回执`runtime/experiments/jpeg/a25-flow-cancel-scope-live/live-acceptance.json`。
