@@ -1,5 +1,7 @@
 # 架构与源码边界
 
+正式对照的单次原生启动/事件记录位于`admin/run_native_codex_episode.py`，不承担推理或业务判分。真实检查发现workspace-write无法挂载现有EDA镜像；显式共同账号权限配置下两条版本命令与普通账号运行一致，正式两侧须匹配，完整设计资格仍待验证。累计token实测而非硬限额，所有失败/未知成本保留；无公共接口或服务变化，见[入口记录与权限核查](admin/A25_NATIVE_EPISODE_RUNNER_PREPARATION_20261017.md)。
+
 Query-Agent已有`--model host`入口可由当前Codex直接使用调查上下文、动作和证据，再导出专业上下文；不要求另起模型。A25准备已用真实JPEG事实核对该路径及既有专业上下文加载器，未新增Query源码或后台。hosted Codex子任务是另一种可选使用方式，其额外调用纳入成本；两者不混称零模型成本。实际边界见[原生入口准备](admin/A25_NATIVE_CODEX_ENTRY_PREPARATION_20261017.md)。
 
 ## A24进行中：批量事实与所选设计对象（2026-10-16）

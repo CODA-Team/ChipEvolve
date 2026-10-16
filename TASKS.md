@@ -1,3 +1,5 @@
+2026-10-17 A25准备：单次原生Codex启动与事件/用量记录脚本及12项针对检查通过。真实workspace-write容器版本启动失败完整保留；显式共同账号权限下两条版本命令成功且与普通账号输出一致，无sudo/系统或全局配置修改。完整设计权限仍未验收，A25未冻结。JPEG原参考时序上下文缺失已确认，GCD/AES PDR及补充STA检查按完整证明→Flow启动顺序等待，未新增搜索。见[入口记录与权限核查](admin/A25_NATIVE_EPISODE_RUNNER_PREPARATION_20261017.md)。
+
 2026-10-17 A25入口准备：本机原生Codex 0.159.3文件/loopback检查完成；首个后处理日志名错误保留，只读补核通过且没有重调模型。现有Query host模式在真实JPEG三scope完成七PPA取证、回答、上下文导出及专业加载校验，0新增EF run/Query内部模型调用；不作总token为零或效率优势结论。预算/权限完整资格和矩阵仍待冻结，见[原生入口准备](admin/A25_NATIVE_CODEX_ENTRY_PREPARATION_20261017.md)。JPEG 7082分区已生成，正在PDR求解。
 
 2026-10-17 A24时序验证：声明层次配对的JPEG证明因重复近全模型分区的成本预演经EF停止，保留约2005秒/22.18GB观察记录，不作功能判定。实际固定Liberty两反馈寄存器探针发现旧EQY/SAT误通过错误电路；同一正反例在PDR正确PASS/FAIL。新EQY入口拒绝旧SAT新签发，400项根回归及完整静态检查通过。显式模型状态切分的JPEG新独立复验已运行，识别4384状态点；GCD/AES拟交付功能证明也须PDR复核，其中GCD旧Yosys路线不作同错推断。完整Flow、A25冻结及正式对照未完成，见[时序证明核查](admin/A24_SEQUENTIAL_PROOF_REVIEW_20261017.md)。
