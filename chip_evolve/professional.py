@@ -22,7 +22,13 @@ from .jobs import Jobs, digest
 from .physical import measure, publish
 
 
-def freeze(source: Path, destination: Path, *, paths: list[str] | None = None) -> None:
+def freeze(
+    source: Path,
+    destination: Path,
+    *,
+    paths: list[str] | None = None,
+    git_metadata: bool = False,
+) -> None:
     destination.mkdir(parents=True)
     archive = destination.parent / (destination.name + "-source.tar")
     roots = (
@@ -66,6 +72,24 @@ def freeze(source: Path, destination: Path, *, paths: list[str] | None = None) -
             target = destination / name
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(original, target)
+    if git_metadata:
+        subprocess.run(["git", "init", "--quiet"], cwd=destination, check=True)
+        subprocess.run(["git", "add", "-A"], cwd=destination, check=True)
+        subprocess.run(
+            [
+                "git",
+                "-c",
+                "user.name=ChipEvolve",
+                "-c",
+                "user.email=local@chipevolve.invalid",
+                "commit",
+                "--quiet",
+                "-m",
+                "Freeze explicit Code source snapshot",
+            ],
+            cwd=destination,
+            check=True,
+        )
 
 
 def inventory(source: Path) -> dict[str, str]:
@@ -795,7 +819,7 @@ def run_dpl(
         )
     if args.operation == "replay" and args.code_source:
         variant = Path(profile["state_root"]) / "replayed-code"
-        freeze(args.code_source.resolve(), variant / "dpl_evolve")
+        freeze(args.code_source.resolve(), variant / "dpl_evolve", git_metadata=True)
         folder = experiment / "code-build"
         folder.mkdir()
         invoke(
