@@ -259,8 +259,12 @@ def leaf(request_path: Path) -> int:
             print(line, end="", flush=True)
         code = process.wait()
     files = {}
+    missing = []
     for number, name in enumerate(request["capture"]):
         source = Path(name)
+        if code and not source.exists():
+            missing.append(name)
+            continue
         target = output / str(number) / source.name
         target.parent.mkdir()
         shutil.copyfile(source, target)
@@ -272,6 +276,7 @@ def leaf(request_path: Path) -> int:
             "request": request,
             "returncode": code,
             "output_files": files,
+            **({"missing_output_files": missing} if missing else {}),
         },
     )
     return code
