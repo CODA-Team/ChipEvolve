@@ -1,5 +1,7 @@
 # A24：JPEG完整专业预演与预算校准
 
+2026-10-17本机收尾补充：完整JPEG布线已测到单任务最高5718.66 CPU秒、7,658,938,368 bytes峰值。根`professional.py::run_flow`原先硬编码线程/内存且无法传递原生阶段时限；本片仅通过私有部署`professional.flow.execution`暴露`threads`、`memory_gib`和`stage_timeout_seconds`，默认8/24/7200保持。原搜索、CP0、轮次、模型、总体监督和公共接口不改，运行副本不动；配置正整数在准备前核验。`admin/test_flow_execution_budget.py`核验原生命令、EF预约、默认与显式预算及无效配置，已有`test_flow_recipe.py`补齐其最小Flow绑定。根358项回归、针对24项、静态/格式/类型通过；第一次回归的本机短读时限失败及缺失测试绑定记录保留，未修改数据交付逻辑。实际新配置的完整JPEG运行仍待验证。
+
 承接老板批准的A23–A28连续验收计划，根基线 `f27311c`、EF `6ace0e2`。A23原目录并发及原位更新/在线复测均通过。运行资产放 `var/business/a24-jpeg-pilot-20261016/`；26份用户工作继续按hash保护，专业源码及公共契约不预先修改。
 
 ## 业务验收

@@ -250,6 +250,17 @@ def run_flow(
     context: Path,
 ) -> dict[str, Any]:
     design = deployment.design(args.design)
+    execution = deployment.value["professional"]["flow"].get("execution", {})
+    threads = execution.get("threads", 8)
+    memory_gib = execution.get("memory_gib", 24)
+    stage_seconds = execution.get("stage_timeout_seconds", 7200)
+    for field, value in (
+        ("threads", threads),
+        ("memory_gib", memory_gib),
+        ("stage_timeout_seconds", stage_seconds),
+    ):
+        if type(value) is not int or value <= 0:
+            raise ValueError("Flow execution " + field + " must be a positive integer")
     source_mode = getattr(args, "flow_recipe", "legacy") == "source"
     if source_mode:
         from .flow_recipe import prepare_native_source
@@ -296,10 +307,11 @@ def run_flow(
             "data_url": deployment.value["data_url"],
             "state_root": str(experiment / "platform-state"),
             "profile_path": str(profile),
-            "threads": 8,
+            "threads": threads,
             "timeout_seconds": args.seconds,
+            "stage_timeout_seconds": stage_seconds,
             "deadline_epoch": time.time() + args.seconds,
-            "resources": {"memory_bytes": 24 << 30, "processes": 2048},
+            "resources": {"memory_bytes": memory_gib << 30, "processes": 2048},
         },
     )
     env = environment(objective, context)
@@ -340,7 +352,9 @@ def run_flow(
         "--seed",
         "42",
         "--cpus",
-        "8",
+        str(threads),
+        "--timeout",
+        str(stage_seconds) + "s",
     ]
     invoke(command, source, env, experiment, args.seconds)
     return collect_flow(deployment, args.design, experiment, objective)

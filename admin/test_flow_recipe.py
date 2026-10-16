@@ -119,6 +119,7 @@ def test_native_clock_binding_uses_registered_input_not_a_later_measurement(
         "nickname": "test",
         "clock_period_ns": 0.31,
     }
+    d.value["professional"] = {"flow": {}}
     exp = d.experiment("gcd", "clock-binding")
     prepared = exp / "source"
     design = prepared / "flow/designs/pdk/test"

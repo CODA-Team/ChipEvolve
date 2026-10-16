@@ -1,5 +1,9 @@
 # A24进行中：跨设计交接和异步队列修复
 
+2026-10-17本机最新核查：旧两轮50候选Flow在原route批次结束后以原生exit1失败，completed_iterations=0，不能视作完成第一轮。确认精确timeout/owner均退出及terminal summary后，经公开EF取消该闭合阶段35项，15项成功保留、50份原leaf字节不变；回执`flow-route-close-manual-receipt.json`，根人工恢复/清理累计4次。原驱动丢弃的批次退出码保持null，不伪造124。另发现DPL Student3自行通过EF内部构造器直接领取已提交任务；这是统一入口和封装缺口，单独记录，不能计无干预稳定。未据worker名称推断其他历史进程的来源，未中断其健康计算。
+
+Flow运行资源与批次时限现在由根私有`professional.flow.execution`显式提供，缺省仍为8线程/24GiB/7200秒，原生参数域、阶段继承和总体监督保持。新七项配置边界/实际命令测试及全根358项通过；额外改动仅为`professional.py`、新预算测试、既有SDC测试的最小绑定及本片文档。不宣称当前旧Flow已用新设置恢复成功，也不改写原失败。实测JPEG资源汇总在`partial-resource-calibration-summary.json`，后续按其校准大设计预算，正式实验尚未开始。
+
 最新完成候选接点：历史AES的三个DPL候选原生产物检查均通过、原HPWL晋升均未接受，常规入口只复测fallback；这确认了局部与最终收益之间的可观测性缺口。DPL/Goal新增只读导出器，各自项目进程运行；根新增`code_evidence`复用原共同交付，按真实EF生产者及注册bytes核验其他完成候选，保留原完整性/收益判定、不改原生parent或自动采用。Code evolve和已有Goal续作的CLI直接返回私有索引与计数；额外候选只先导入指标/时序，所选对象仍按需补齐。恢复重接，失败逐项保留，旧成功结果不自动升级，历史验证另设输出目录。DPL完整30项、Goal完整411项/24子测试及真实只读AES三/四候选导出通过；根回归/静态结果见发布回执，实际共同PPA验证未完成，不记新收益。
 
 该接点最终根351项回归、F/格式/类型/差异门禁通过，15项针对检查覆盖原生来源、注册EF快照、重接、失败透明、CLI索引、旧结果字节与独立历史输出；回执`code-candidate-delivery-source-proof.json`。DPL模块cb48484、Goal模块6d0f19b已推送ChipEvolve；根随后固定gitlink。26份用户工作hash保持。真实公共PPA校准准备在两个已排队104GiB构建之后执行；只读导出不当作PPA测量或新协同优势。
