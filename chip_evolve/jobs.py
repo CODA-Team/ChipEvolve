@@ -7,7 +7,6 @@ import json
 import os
 import shutil
 import subprocess
-import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -16,9 +15,9 @@ from typing import Any
 from openroad_platform_client import KernelClient
 
 from .config import Deployment, read, write
+from .lifecycle import pending, transient, wait_run
 
 ROOT = Path(__file__).resolve().parents[1]
-TERMINAL = {"succeeded", "failed", "cancelled", "timed_out", "lost"}
 
 
 def digest(path: Path) -> str:
@@ -26,17 +25,18 @@ def digest(path: Path) -> str:
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
-def http(url: str, value: dict[str, Any]) -> dict[str, Any]:
+def http(
+    url: str, value: dict[str, Any] | None = None, *, timeout: float = 60
+) -> dict[str, Any]:
     request = urllib.request.Request(
-        url, json.dumps(value).encode(), {"Content-Type": "application/json"}
+        url,
+        json.dumps(value).encode() if value is not None else None,
+        {"Content-Type": "application/json"},
     )
-    try:
-        with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(
-            request, timeout=60
-        ) as response:
-            return json.load(response)
-    except urllib.error.HTTPError as error:
-        raise RuntimeError(f"HTTP {error.code}: {error.read().decode()}") from error
+    with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(
+        request, timeout=timeout
+    ) as response:
+        return json.load(response)
 
 
 class Jobs:
@@ -120,25 +120,32 @@ class Jobs:
             raise ValueError("A saved business job cannot change staged content")
         write(hashes, identity)
         write(saved, task)
-        submitted = self.client.submit(
-            task, idempotent=True, idempotency_key=self.campaign + ":" + key
-        )
-        write(folder / "submission.json", submitted)
+        submission = folder / "submission.json"
+        if submission.exists():
+            submitted = read(submission)
+        else:
+            try:
+                submitted = self.client.submit(
+                    task, idempotent=True, idempotency_key=self.campaign + ":" + key
+                )
+            except Exception as error:
+                if not transient(error):
+                    raise
+                raise pending(
+                    folder / "lifecycle.json",
+                    phase="submission",
+                    reason="submission_response_unknown",
+                    task_id=task["task_id"],
+                    idempotency_key=self.campaign + ":" + key,
+                    detail=str(error),
+                ) from error
+            write(submission, submitted)
         run_id = submitted["run"]["run_id"]
-        started = time.monotonic()
-        while True:
-            run = self.client.run(run_id)
-            if run["status"] in TERMINAL:
-                break
-            time.sleep(1)
-        result = {
-            "run": run,
-            "artifacts": self.client.artifacts(run_id),
-            "resources": self.client.resources(run_id),
-            "wait_seconds": time.monotonic() - started,
-        }
+        result = wait_run(
+            self.client, run_id, folder, self.deployment.value.get("lifecycle", {})
+        )
         write(folder / "execution.json", result)
-        if run["status"] != "succeeded":
+        if result["run"]["status"] != "succeeded":
             raise RuntimeError("EDA job failed; evidence retained: " + run_id)
         return result
 

@@ -87,19 +87,21 @@ def test_changed_staged_bytes_cannot_reuse_a_saved_job(tmp_path, monkeypatch):
     staged = [{"source": str(path), "destination": "inputs/design"}]
     jobs.submit("route", {"adapter": "command"}, staged)
     jobs.submit("route", {"adapter": "command"}, staged)
-    assert len(calls) == 2 and all(row["idempotent"] for row in calls)
-    assert calls[0]["idempotency_key"] == calls[1]["idempotency_key"]
+    assert len(calls) == 1 and calls[0]["idempotent"]
+    assert calls[0]["idempotency_key"] == "aes-experiment:route"
     path.write_bytes(b"changed")
     with pytest.raises(ValueError, match="staged content"):
         jobs.submit("route", {"adapter": "command"}, staged)
-    assert len(calls) == 2
+    assert len(calls) == 1
 
 
 def test_active_business_driver_cannot_be_recovered_concurrently(tmp_path):
-    with business_lock(tmp_path):
-        with pytest.raises(RuntimeError, match="active business driver"):
-            with business_lock(tmp_path):
-                pytest.fail("overlapping recovery")
+    with (
+        business_lock(tmp_path),
+        pytest.raises(RuntimeError, match="active business driver"),
+        business_lock(tmp_path),
+    ):
+        pytest.fail("overlapping recovery")
     with business_lock(tmp_path):
         pass
 

@@ -2,11 +2,177 @@
 
 from __future__ import annotations
 
+import time
+import urllib.error
+import urllib.parse
+from http.client import HTTPException
 from pathlib import Path
 from typing import Any
 
 from .config import Deployment, read, write
-from .jobs import Jobs, digest
+from .jobs import Jobs, digest, http
+from .lifecycle import pending
+
+
+def import_snapshot(
+    jobs: Jobs, producer: str, artifact: str, snapshot: str, subject: str
+) -> dict[str, Any]:
+    """Resolve one durable DF receipt after an uncertain response; no EDA retry."""
+    base = jobs.deployment.value["data_url"]
+    policy = jobs.deployment.value.get("lifecycle", {})
+    path = jobs.experiment / "imports" / (artifact + ".json")
+    identity = {
+        "producer_run_id": producer,
+        "artifact_id": artifact,
+        "snapshot_id": snapshot,
+        "subject_run_id": subject,
+        "design_id": jobs.design_id,
+    }
+    if path.exists() and read(path)["identity"] != identity:
+        raise ValueError("Saved import identity changed")
+    read_timeout = float(policy.get("data_read_seconds", 15))
+
+    def payload(value):
+        return value.get("data", value)
+
+    def receipt():
+        try:
+            value = payload(
+                http(
+                    base + "/imports/" + urllib.parse.quote(artifact, safe=""),
+                    timeout=read_timeout,
+                )
+            )["import_receipt"]
+        except urllib.error.HTTPError as error:
+            if error.code == 404:
+                return None
+            raise
+        if value["artifact_id"] != artifact or value["run_id"] != producer:
+            raise ValueError("DF import receipt belongs to another producer/artifact")
+        if value["status"] == "failed":
+            write(
+                path,
+                {
+                    "phase": "delivery",
+                    "status": "failed",
+                    "identity": identity,
+                    "import_receipt": value,
+                },
+            )
+            raise RuntimeError(
+                "DF import failed; evidence retained: " + str(value.get("error"))
+            )
+        if value["status"] != "imported" or value["snapshot_id"] != snapshot:
+            raise ValueError("DF import receipt has an unexpected outcome/snapshot")
+        return value
+
+    def complete(value):
+        data = payload(
+            http(
+                base + "/snapshots/" + urllib.parse.quote(snapshot, safe=""),
+                timeout=read_timeout,
+            )
+        )
+        actual = data["snapshot"]
+        if (
+            actual["snapshot_id"] != snapshot
+            or actual["run_id"] != subject
+            or actual["design_id"] != jobs.design_id
+        ):
+            raise ValueError("Imported snapshot differs from the measured design/run")
+        result = {
+            "snapshot": actual,
+            "record_counts": actual.get("record_counts", {}),
+            "import_receipt": value,
+        }
+        write(
+            path,
+            {
+                "phase": "delivery",
+                "status": "completed",
+                "identity": identity,
+                "import_receipt": value,
+            },
+        )
+        return result
+
+    def temporary(error):
+        if isinstance(error, urllib.error.HTTPError):
+            return error.code >= 500
+        return isinstance(error, (OSError, HTTPException))
+
+    detail = ""
+    try:
+        prior = receipt()
+        if prior is not None:
+            return complete(prior)
+        write(
+            path, {"phase": "delivery", "status": "request_sent", "identity": identity}
+        )
+        http(
+            base + "/snapshots/from-run",
+            {"run_id": producer, "artifact_id": artifact},
+            timeout=float(policy.get("import_request_seconds", 900)),
+        )
+        value = receipt()
+        if value is not None:
+            return complete(value)
+        detail = "Import response returned without a durable receipt"
+    except Exception as error:
+        if not temporary(error):
+            write(
+                path,
+                {
+                    "phase": "delivery",
+                    "status": "failed",
+                    "identity": identity,
+                    "error_type": type(error).__name__,
+                    "detail": str(error),
+                },
+            )
+            raise
+        detail = str(error)
+    deadline = time.monotonic() + float(policy.get("import_reconcile_seconds", 120))
+    while True:
+        write(
+            path,
+            {
+                "phase": "delivery",
+                "status": "reconciling",
+                "identity": identity,
+                "detail": detail,
+            },
+        )
+        try:
+            value = receipt()
+            if value is not None:
+                return complete(value)
+        except Exception as error:
+            if not temporary(error):
+                write(
+                    path,
+                    {
+                        "phase": "delivery",
+                        "status": "failed",
+                        "identity": identity,
+                        "error_type": type(error).__name__,
+                        "detail": str(error),
+                    },
+                )
+                raise
+            detail = str(error)
+        if time.monotonic() >= deadline:
+            raise pending(
+                path,
+                phase="delivery",
+                reason="import_outcome_unknown",
+                experiment=str(jobs.experiment),
+                identity=identity,
+                run_id=producer,
+                artifact_id=artifact,
+                detail=detail,
+            )
+        time.sleep(float(policy.get("poll_seconds", 1)))
 
 
 def checkpoint(

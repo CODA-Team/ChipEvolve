@@ -15,8 +15,8 @@
     },
     {
       "path": "data-foundation",
-      "source_commit": "b29e5a90b1819f63f62e2f02fc43aaa8f2596b42",
-      "source_tree": "c1992d8fa9a9f26b4becd1fcd0e6682bf27a4e62",
+      "source_commit": "259d777ec0a422f9fa3c63a137b38767c5c55c7f",
+      "source_tree": "1aa547167dcd43febd44d2c067e2eb897e0e68b5",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/data-foundation"
     },

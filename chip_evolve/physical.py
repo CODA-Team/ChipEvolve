@@ -18,7 +18,7 @@ from eda_toolkits.objectives import (
 )
 
 from .config import Deployment, read, write
-from .jobs import Jobs, digest, http
+from .jobs import Jobs, digest
 
 
 def now() -> str:
@@ -398,6 +398,8 @@ def measure(
 def publish(
     jobs: Jobs, measured: dict[str, Any], *, result_path: Path | None = None
 ) -> dict[str, Any]:
+    from .delivery import import_snapshot
+
     snapshot_ids, exports = {}, {}
     deployment = jobs.deployment
     for mode, field, source in (
@@ -457,9 +459,12 @@ def publish(
             objective=Path(measured["objective"]),
         )
         artifact = next(a for a in record["artifacts"] if a["kind"] == "data_snapshot")
-        imported = http(
-            deployment.value["data_url"] + "/snapshots/from-run",
-            {"run_id": record["run"]["run_id"], "artifact_id": artifact["artifact_id"]},
+        imported = import_snapshot(
+            jobs,
+            record["run"]["run_id"],
+            artifact["artifact_id"],
+            snapshot,
+            measured["run_id"],
         )
         snapshot_ids[mode], exports[mode] = (
             snapshot,

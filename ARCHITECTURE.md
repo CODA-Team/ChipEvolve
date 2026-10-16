@@ -1,12 +1,41 @@
 # 架构与源码边界
 
+## A16/A17：环境资格与可靠交付（2026-10-16）
+
+`environment.py`冻结已登记来源、同值控制、镜像、实际工具能力、专业控制代码与私有研究二进制、库/SDC及部署绑定。`run --environment E`或部署`qualified_environments[design]`在任务启动前核对；新Flow默认source，旧legacy必须明确选择。Code保留共同基础上的专业增量。GCD/AES已通过；picorv32完整流程可跑，但复制结果与来源不同，环境资格拒绝，不能用于正式优化对照。
+
+`lifecycle.py`只监督客户端等待：读取EF公开health/resources，区分无人消费、资源等待、worker忙碌、运行和终态。健康运行不增加客户端截止时间，不按日志静默杀任务。无法消费或服务持续不可达时抛出`WorkPending`，保留原run或幂等提交key，不取消任务；CLI退出3并保存pending状态。`watch --design D --run-id R`读取实时状态，`status`显示待处理生命周期引用。
+
+`Jobs.submit`先校验原任务和输入内容，已有submission直接重接原run；首次提交响应未知时，恢复沿用原幂等key。`delivery.import_snapshot(jobs, producer, artifact, snapshot, subject)`先核对DF原artifact回执，导入响应丢失后有限查回执，成功后校验快照设计/subject身份。交付超时不重新发EDA；确定失败仍失败。`resume`继续原确定性交付，未完成的专业模型搜索仍保留其原会话，不承诺通用重启。
+
+DF复现的大导入锁问题只修复`connections.py`：服务启动时初始化原有大小的只读连接池，并给读连接与既有写入相同的锁等待预算，避免在写事务中首次初始化reader；容量、数据库结构、公共API均不变。客户端自身仍有有限的请求和对账预算。EF/DF生产服务不重启；补丁从干净检出构建并在独立服务验证，用户26份文件不混入构建或提交。
+
+```mermaid
+sequenceDiagram
+  participant C as Codex
+  participant B as 业务入口
+  participant E as EF
+  participant D as DF
+  C->>B: 明确候选、环境与目标
+  B->>B: 核对冻结环境与输入
+  B->>E: 幂等提交或重接原run
+  E-->>B: 运行状态与注册产物
+  B->>D: 导入指定artifact
+  Note over B,D: 客户端超时不表示导入失败
+  B->>D: 查同一artifact回执
+  D-->>B: 原snapshot及设计身份
+  B-->>C: 最终事实，或pending引用
+```
+
+对应接口、故障实验、限制和改动清单见`admin/A14_A17_PREFORMAL_FIX_REPORT_20261016.md`。A18未启动；工程通过与老板业务验收分开。
+
 ## A14/A15：采用一致性与显式候选交付（2026-10-16）
 
 `select --result R --validation V --reason ...` 必须绑定原结果hash、原目标、完整输出证明、独立同值重放及SDK回执。短暂的设计采用锁内重读当前结果并原子发布；按参考网表内容身份、目标和条件隔离scope，决定写入本轮`designs/<design>/decisions`，不修改历史实验的`adoption.json`。Codex继续决定取舍，探索不要求先通过最终采用验证。
 
 Flow顶层`result.json`现在是`candidate-delivery.v1`集合，包含全候选引用／hash／事实／可行性，`selected_source=null`，不再按TNS同分选择第一项。专业执行和验证要求明确的单候选路径；`candidates`能展开冻结集合，通过SDK查回全部事实。单个候选入库不再覆盖campaign的顶层结果。
 
-`handoff.input_contract`记录真实源字节、阶段转换及方法身份；Query导出保留原包并绑定确定性的source/reference/retained身份，新包重新计算内容ID，派发核对实际source。原专业算法和公共EF/DF/SDK不变。A14采用复现和真实GCD回执核查通过，A15真实AES六候选及三条既有实际接点复核通过；A16/A17仍继续施工，A18未启动。
+`handoff.input_contract`记录真实源字节、阶段转换及方法身份；Query导出保留原包并绑定确定性的source/reference/retained身份，新包重新计算内容ID，派发核对实际source。原专业算法和公共EF/DF/SDK不变。A14采用复现和真实GCD回执核查通过，A15真实AES六候选及三条既有实际接点复核通过；A16/A17状态见上节，A18未启动。
 
 ## A11/A12/A13：现代完整来源与实测接力（2026-10-16）
 

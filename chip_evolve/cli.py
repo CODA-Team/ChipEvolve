@@ -10,6 +10,21 @@ from .config import Deployment, business_lock, read, write
 
 
 def main() -> int:
+    try:
+        return _main()
+    except Exception as error:
+        from .lifecycle import WorkPending
+
+        if not isinstance(error, WorkPending):
+            raise
+        receipt = error.receipt
+        if receipt.get("experiment"):
+            write(Path(receipt["experiment"]) / "status.json", receipt)
+        print(json.dumps(receipt, ensure_ascii=False))
+        return 3
+
+
+def _main() -> int:
     parser = argparse.ArgumentParser(prog="chip-evolve")
     parser.add_argument("--config", type=Path)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -50,6 +65,9 @@ def main() -> int:
             sub.add_argument("--validation", type=Path, required=True)
     status = commands.add_parser("status")
     status.add_argument("--design", required=True)
+    watch = commands.add_parser("watch")
+    watch.add_argument("--design", required=True)
+    watch.add_argument("--run-id", required=True)
     collect = commands.add_parser("collect-flow")
     collect.add_argument("--design", required=True)
     collect.add_argument("--key", required=True)
@@ -80,6 +98,8 @@ def main() -> int:
     if not args.config:
         parser.error("--config identifies the local deployment")
     deployment = Deployment(args.config)
+    from .lifecycle import WorkPending
+
     if args.command == "candidates":
         from .candidate_facts import build_candidate_facts
 
@@ -102,6 +122,8 @@ def main() -> int:
                     [p.resolve() for p in args.result],
                     experiment,
                 )
+            except WorkPending:
+                raise
             except Exception as error:
                 write(
                     experiment / "status.json",
@@ -146,6 +168,8 @@ def main() -> int:
                 args.key,
                 args.seconds,
             )
+        except WorkPending:
+            raise
         except Exception as error:
             if experiment.exists():
                 write(
@@ -196,6 +220,15 @@ def main() -> int:
                 }
             )
         )
+    elif args.command == "watch":
+        from .jobs import Jobs
+        from .lifecycle import observe
+
+        client = Jobs(deployment, args.design, deployment.state).client
+        run = client.run(args.run_id)
+        if run["design_id"] != args.design:
+            raise ValueError("Run belongs to another design")
+        print(json.dumps(observe(client, run, worker_stale=120), ensure_ascii=False))
     elif args.command == "status":
         from .jobs import Jobs
 
@@ -210,7 +243,9 @@ def main() -> int:
             current = (
                 read(status_file) if status_file.exists() else {"status": "in_progress"}
             )
-            if (path.parent / "delivery-recovery.json").exists():
+            if (path.parent / "delivery-recovery.json").exists() and current.get(
+                "status"
+            ) != "pending":
                 current = {
                     "status": "succeeded",
                     "delivery_recovered": True,
@@ -222,6 +257,28 @@ def main() -> int:
                     "capability": read(path).get("capability", "validation"),
                     "status": current,
                     "result": str(result) if result.exists() else None,
+                    "lifecycle": [
+                        {
+                            "receipt": str(p),
+                            **{
+                                key: state[key]
+                                for key in (
+                                    "phase",
+                                    "status",
+                                    "state",
+                                    "run_id",
+                                    "reason",
+                                    "waiting_for",
+                                    "identity",
+                                )
+                                if key in state
+                            },
+                        }
+                        for pattern in ("jobs/*/lifecycle.json", "imports/*.json")
+                        for p in sorted(path.parent.glob(pattern))
+                        for state in [read(p)]
+                        if state.get("status") not in {"succeeded", "completed"}
+                    ],
                 }
             )
         client = Jobs(deployment, args.design, deployment.state).client
@@ -308,6 +365,8 @@ def main() -> int:
 
                     result = execute(deployment, args, experiment)
                 write(experiment / "status.json", {"status": "succeeded"})
+            except WorkPending:
+                raise
             except Exception as error:
                 write(
                     experiment / "status.json",

@@ -1,5 +1,15 @@
 # 单机业务入口
 
+A17将等待与失败分开：CLI退出3表示`pending`，原任务没有被取消；JSON给出阶段、原因、run/artifact及回执位置。先查看状态，再用原key恢复确定性交付，不新建实验去重跑已完成EDA。
+
+```bash
+./chip-evolve.py --config /absolute/path/local.json status --design aes
+./chip-evolve.py --config /absolute/path/local.json watch --design aes --run-id original-run-id
+./chip-evolve.py --config /absolute/path/local.json resume --design aes --key original-experiment
+```
+
+部署可选`lifecycle`：`unconsumed_seconds=300`、`unavailable_seconds=120`、`worker_stale_seconds=120`、`diagnostic_seconds=15`、`poll_seconds=1`；健康排队默认无额外时限（`queue_seconds=0`），健康运行仍用EF原任务预算。导入默认请求预算900秒、回执对账120秒、单次数据读取15秒；这些是客户端等待预算，不取消服务端计算。按本机实际调整，不能把pending当作已完成。`resume`仅覆盖原ORFS、已结束Flow及专业成功检查点后的交付，未完成模型搜索保留原专业会话。
+
 候选事实交付（A12）：
 
 ```bash
@@ -41,6 +51,8 @@ A16：`python -m admin.freeze_formal_environment --config C --source R --qualifi
 |---|---|
 | config.py / cli.py | 部署绑定、业务请求、状态及结果入口 |
 | jobs.py | 公共 EF 提交、任务回执、产物取回与受监管命令 |
+| lifecycle.py / delivery.py | 解释任务等待、保留原身份并恢复确定性交付及DF导入 |
+| environment.py | 冻结实际工具/来源/专业增量，启动前核对资格 |
 | physical.py | 原 ORFS 基线、完整路由校准、共同测量及 DF 入库 |
 | clock.py | 将 OpenSTA 的明确 ps 约束绑定到原 Flow 时钟变量；保留匹配虚拟时钟和其他约束 |
 | professional.py | 原 Flow / DPL 控制器、真实 placement→CTS 交接及候选配置恢复 |
