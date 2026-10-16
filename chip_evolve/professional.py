@@ -364,6 +364,23 @@ def collect_flow(
         "early_stop",
     }:
         raise ValueError("Collection requires a completed native Flow campaign")
+    return _collect_flow_candidates(deployment, design_id, experiment, objective)
+
+
+def _collect_flow_candidates(
+    deployment: Deployment,
+    design_id: str,
+    experiment: Path,
+    objective: Path,
+    *,
+    output: Path | None = None,
+    native_campaign: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Deliver actual finished physical branches; the caller checks campaign state."""
+    design = deployment.design(design_id)
+    source = experiment / "source"
+    output = output or experiment
+    output.mkdir(exist_ok=True)
     jobs = Jobs(deployment, design_id, experiment)
     candidates = []
     for path in sorted(
@@ -373,7 +390,7 @@ def collect_flow(
         if native["status"] != "succeeded":
             continue
         record = {"run": native["terminal_run"], "artifacts": native["artifacts"]}
-        folder = experiment / (path.parent.name + "-" + str(native["candidate_slot"]))
+        folder = output / (path.parent.name + "-" + str(native["candidate_slot"]))
         folder.mkdir(exist_ok=True)
         files = {}
         for suffix, kind in {
@@ -415,6 +432,13 @@ def collect_flow(
         )
         if (experiment / "recipe.json").is_file():
             measured["flow_recipe"] = str(experiment / "recipe.json")
+        if native_campaign is not None:
+            measured["native_campaign"] = native_campaign
+            measured["native_method"] = {
+                "kind": "completed-physical-evidence-of-failed-flow-search",
+                "native_campaign": native_campaign,
+                "native_search_completed": False,
+            }
         candidate_frame = publish(
             jobs,
             measured,
@@ -425,12 +449,13 @@ def collect_flow(
         candidates.append(candidate_frame)
     if not candidates:
         raise RuntimeError("No completed native Flow candidate")
-    write(experiment / "candidates.json", candidates)
+    write(output / "candidates.json", candidates)
     from .candidates import deliver_candidates
 
     return deliver_candidates(
-        experiment,
+        output,
         [Path(row["native_config"]).parent / "result.json" for row in candidates],
+        native_campaign=native_campaign,
     )
 
 

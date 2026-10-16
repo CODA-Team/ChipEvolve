@@ -8,6 +8,8 @@ Flow原生搜索、阶段继承、全部候选和最终共同测量保持。批�
 
 Flow所选候选的验证补入根私有 `flow_replay.replay(deployment, result_path, experiment)`：从保存的原archive取真实pre-CTS placement，冻结原result/archive/config/recipe/objective内容，复用 `delivery.checkpoint→finish→professional.resume_layout` 和统一EF重跑CTS、完整DRT/RCX及测量/事实交付。原生stage SDC和参数保留，已有Code检查点优先；不声称从RTL或模型搜索重演。五项针对/根328项通过，真实GCD验证回执 `flow-replay-live-process.json`；完整A24仍未通过。DPL后续平台模式的原生prompt补充执行助手拥有等待/监控的说明（61c5897、24项回归），仅影响新冻结副本，未改活跃控制器或通用Codex harness。
 
+失败批次中已完成物理分支的事实可经根内部 `flow_evidence.collect` 交付：先核实原生owner退出、terminal failed和journal/summary身份，复用原收集/测量/DF链路，另存`completed-evidence`。原根失败与原生晋升不动，集合execution failed、delivery completed，候选`native_method`明确原搜索未完成并沿现有Query/handoff传递；默认成功收集门禁不改。11项针对/根332项通过，三份JPEG真实完成分支正在交付核验。部分物理结果可观测，不等于完整原生搜索验收通过。
+
 ```mermaid
 flowchart LR
   F[原Flow搜索与全部产物] --> E[EF共同测量及证据]

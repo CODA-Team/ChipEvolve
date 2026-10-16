@@ -35,6 +35,8 @@ Flow第二轮三候选批次因一项密度非法而不满足原clean identity q
 
 ## 初始预演预算与验证
 
+真实失败批次又暴露事实交付缺口：整轮失败时，第一轮已完成的三份布线候选也被`collect_flow`的完整成功门禁拦住。保留该门禁及CLI原行为；`professional.py`提取原候选收集为根内部helper，新增 `flow_evidence.collect` 只允许实际owner已退出、summary/journal身份一致的terminal failed批次，复用同一EF共同测量和原DF交付，把完成候选另存 `completed-evidence`。`candidates.deliver_candidates`的私有可选原生campaign元数据使集合明确显示execution failed、证据交付完成且原搜索未完成；每候选`native_method`携带同样失败来源，能沿现有handoff/Query传递。原根status/result、原失败/模型成本及原晋升不改，无自动采用；跳过未完成物理候选，不新增CLI/API/服务或重启搜索。针对门禁/全部候选/原约束/失败不覆盖/活跃owner拒绝等11项通过（新增4项修复前失败），根332项、改动文件Ruff/格式及实际wheel测试环境Pyright通过。实际旧JPEG失败批次的三个完成候选随后经原入口交付核验；不得替代仍在跑的两轮50候选验收。
+
 原生DPL事件又确认队列等待造成多次模型/工具状态轮询。仅给后续平台模式的原生Codex请求补入模板 `prompt_templates/teacher_loop/shared/platform_execution.md`：生成的构建/评价助手本身等待终态，保留同一命令会话，由EF监控；真正基础设施失败交给父级处理，不在Student里反复改资源profile。`scripts/codex_exec/runner.py`在现有目标/上下文追加之后保存该说明，原生非平台模式保持；`validation/test_shared_objective.py`在实际原生调用边界核查平台/非平台prompt及原目标/诊断仍保留。仅改说明和请求准备，不做新harness、不改模型/算法/评分/晋升或活跃私有副本；原轮询及失败成本保留，后续实测前不声称token节约。
 
 候选验收接点审计确认 `validation.replay` 只能识别Code交付检查点或ORFS根请求，不能直接重放Flow候选。新增根私有 `flow_replay.py`，从原候选archive提取真实`3_place.odb`，绑定原result/config/recipe/objective及archive内容hash，复用已有`checkpoint→finish→resume_layout`完成CTS、完整route/RCX及共同测量；保留原生stage SDC和实际参数，明确重放范围从pre-CTS开始，不声称重新搜索或从RTL重演。`validation.py`仅在无既有Code检查点且有原生candidate/recipe时选择此分支。五项回归验证实际placement、重接身份/改源拒绝和Code优先级，先4失败/1通过、后5通过；根328项通过，改动文件Ruff/格式和实际wheel测试环境Pyright通过，26用户文件hash不变。复用历史GCD真实候选在线核对七项PPA，JPEG业务验收仍待原生搜索完成。公共API、专业算法、DF/DI和活跃控制器不改。

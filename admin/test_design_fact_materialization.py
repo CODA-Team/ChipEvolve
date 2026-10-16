@@ -6,6 +6,8 @@ from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from admin.test_query_objective_handoff import backend, inputs
 from chip_evolve.config import read, write
 from chip_evolve.jobs import Jobs, digest
@@ -210,8 +212,9 @@ def test_validation_requires_selected_object_scope_without_changing_result(
     assert digest(source) == sha
 
 
+@pytest.mark.parametrize("terminal_evidence", [False, True])
 def test_flow_delivers_every_finished_candidate_and_original_constraints(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, terminal_evidence
 ):
     from chip_evolve import professional
 
@@ -224,6 +227,22 @@ def test_flow_delivers_every_finished_candidate_and_original_constraints(
         experiment / "source/flow/backup_dir/asap7/gcd/llm_usage_summary.json",
         {"exit_code": 0, "status": "completed"},
     )
+    failed_identity: str | None = None
+    if terminal_evidence:
+        write(
+            experiment / "source/flow/backup_dir/asap7/gcd/llm_usage_summary.json",
+            {"exit_code": 1, "status": "failed", "campaign_id": "actual-campaign"},
+        )
+        write(
+            experiment / "platform-state/campaign.json",
+            {
+                "campaign_id": "actual-campaign",
+                "owner": {"pid": 999999999, "start_ticks": "not-live"},
+            },
+        )
+        write(experiment / "status.json", {"status": "failed", "detail": "native"})
+        write(experiment / "result.json", {"original": "untouched"})
+        failed_identity = digest(experiment / "status.json")
     for slot in (1, 2):
         write(
             experiment / f"platform-state/iteration-1/slot-{slot}-route_finish.json",
@@ -266,12 +285,64 @@ def test_flow_delivers_every_finished_candidate_and_original_constraints(
         "recover_config",
         lambda a, b, c, p: p.write_text("evaluated config"),
     )
-    actual = professional.collect_flow(
-        d, "gcd", experiment, Path(read(source)["objective"])
-    )
+    if terminal_evidence:
+        from chip_evolve.flow_evidence import collect
+
+        actual = collect(d, "gcd", experiment, Path(read(source)["objective"]))
+        assert digest(experiment / "status.json") == failed_identity
+        assert read(experiment / "result.json") == {"original": "untouched"}
+        assert actual["evidence_only"] and not actual["native_search_completed"]
+        assert actual["native_campaign"]["status"] == "failed"
+        assert (experiment / "completed-evidence/result.json").is_file()
+        for row in actual["candidate_results"]:
+            candidate = read(Path(row["result"]))
+            assert candidate["native_campaign"]["status"] == "failed"
+            assert not candidate["native_method"]["native_search_completed"]
+            assert "completed-evidence" in row["result"]
+    else:
+        actual = professional.collect_flow(
+            d, "gcd", experiment, Path(read(source)["objective"])
+        )
     assert modes == [("orfs", "opensta"), ("orfs", "opensta")]
     assert len(actual["candidate_results"]) == 2
     assert actual["candidate_results"][1]["constraint_violations"] == [
         "power_total_w_max"
     ]
     assert actual["selected_source"] is None and not actual["adopted"]
+
+
+@pytest.mark.parametrize("state", ["running", "wrong-campaign", "live-owner"])
+def test_partial_flow_evidence_does_not_collect_unfinished_or_mixed_campaigns(
+    tmp_path, state
+):
+    import os
+
+    from chip_evolve.flow_evidence import collect
+
+    d, source, _ = inputs(tmp_path)
+    d.value["designs"]["gcd"].update(platform="asap7", nickname="gcd")
+    experiment = d.experiment("gcd", "partial")
+    native = {"exit_code": 1, "status": "failed", "campaign_id": "actual"}
+    owner = {"pid": 999999999, "start_ticks": "not-live"}
+    if state == "running":
+        native.update(status="running", exit_code=None)
+    if state == "wrong-campaign":
+        native["campaign_id"] = "different"
+    if state == "live-owner":
+        owner = {
+            "pid": os.getpid(),
+            "start_ticks": Path(f"/proc/{os.getpid()}/stat")
+            .read_text()
+            .rsplit(")", 1)[1]
+            .split()[19],
+        }
+    write(
+        experiment / "source/flow/backup_dir/asap7/gcd/llm_usage_summary.json", native
+    )
+    write(
+        experiment / "platform-state/campaign.json",
+        {"campaign_id": "actual", "owner": owner},
+    )
+    with pytest.raises(ValueError):
+        collect(d, "gcd", experiment, Path(read(source)["objective"]))
+    assert not (experiment / "completed-evidence").exists()

@@ -38,7 +38,12 @@ def expand_results(paths: list[Path]) -> list[Path]:
     return list(dict.fromkeys(expanded))
 
 
-def deliver_candidates(experiment: Path, paths: list[Path]) -> dict[str, Any]:
+def deliver_candidates(
+    experiment: Path,
+    paths: list[Path],
+    *,
+    native_campaign: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     rows = []
     for path in paths:
         frame = result_frame(path)
@@ -77,5 +82,12 @@ def deliver_candidates(experiment: Path, paths: list[Path]) -> dict[str, Any]:
         "adopted": False,
         "interpretation": "Codex selects an explicit branch; native promotion is unchanged. Final feasibility does not establish logical validation or adoption.",
     }
+    if native_campaign is not None:
+        delivery.update(
+            execution_state=native_campaign["status"],
+            native_campaign=native_campaign,
+            native_search_completed=False,
+            evidence_only=True,
+        )
     write(experiment / "result.json", delivery)
     return delivery
