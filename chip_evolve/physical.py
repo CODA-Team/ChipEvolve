@@ -437,6 +437,11 @@ def publish(
         }
         if mode == "opensta":
             inputs.update(
+                analysis="post_route",
+                corner=measured.get("conditions", {}).get("corner"),
+                # OpenSTA report_checks JSON emits SI values, independently
+                # of the Tcl display/metric time unit selected by the caller.
+                unit="s",
                 sdc_path="inputs/final.sdc",
                 spef_path="inputs/" + files["spef"].name,
                 liberty_paths=[
@@ -459,7 +464,14 @@ def publish(
         key = "publish-v3-" + measured["run_id"][-8:] + "-" + mode
         saved = jobs.experiment / "jobs" / key / "task.json"
         if saved.exists():
-            inputs["created_at"] = read(saved)["inputs"]["created_at"]
+            prior = read(saved)["inputs"]
+            inputs["created_at"] = prior["created_at"]
+            if mode == "opensta":
+                # Resume the original immutable export. Legacy context remains
+                # unknown; a supplemental export needs its own task/snapshot.
+                for name in ("analysis", "corner", "unit"):
+                    if name not in prior:
+                        inputs.pop(name, None)
         record = jobs.submit(
             key,
             inputs,

@@ -2,6 +2,8 @@
 
 ## A24进行中：批量事实与所选设计对象（2026-10-16）
 
+最终时序导出沿既有adapter字段携带post_route、实际measurement corner及原生JSON的秒单位；共同PPA仍用ns。旧任务恢复保留其原未知字段并复用submission，补充索引须新任务/快照，禁止回写历史。
+
 正式协议所需的根私有接点：Flow绑定可设`seed`（缺省42）；DPL绑定可传原CLI已有模型/推理参数。DPL/Goal准备及原生基线/搜索使用同一个绝对期限，前端真正超时后公开EF仅取消本实验活跃任务，任务终态仍由EF确认。没有新增服务或评测底座；正式整体预算/协议尚未冻结，见[A25接点准备](admin/A25_CAMPAIGN_BOUNDARY_PREP_20261017.md)。
 
 既有EQY完整输出验证可由私有`validation.equivalence_strategy`选择原SAT缺省或原生SBY/ABC PDR；PDR使用固定私有Z3 manifest、校验镜像/二进制/库身份，并把启动脚本和solver记录交给同一EF。Liberty模型、完整端口、匹配规则及每分区PASS门禁不变，不新增服务/评测底座或公共SDK接口。真实正反例和16项针对检查通过，JPEG全量仍待验证；见[A24运行验收](admin/A24_RUNTIME_ACCEPTANCE_20261017.md)。
