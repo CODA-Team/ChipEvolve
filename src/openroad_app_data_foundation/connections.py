@@ -50,6 +50,18 @@ class ReadPool:
         self._free: list[DataStore] = []
         self._lock = threading.Lock()
         self._opened = 0
+        # Initialise the bounded pool before serving requests. Creating a new
+        # reader runs schema PRAGMAs, which can themselves hit the five-second
+        # SQLite timeout if they first run during a large import's commit.
+        try:
+            for _ in range(size):
+                store = DataStore(self._path, read_only=True, archives=self._archives)
+                self._free.append(store)
+                store.connection.execute("PRAGMA busy_timeout = 600000")
+                self._opened += 1
+        except BaseException:
+            self.close()
+            raise
 
     @contextmanager
     def connection(self) -> Iterator[DataStore]:
@@ -58,11 +70,7 @@ class ReadPool:
         store: DataStore | None = None
         try:
             with self._lock:
-                if self._free:
-                    store = self._free.pop()
-                else:
-                    store = DataStore(self._path, read_only=True, archives=self._archives)
-                    self._opened += 1
+                store = self._free.pop()
             yield store
         finally:
             if store is not None:
