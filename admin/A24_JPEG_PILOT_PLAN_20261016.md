@@ -54,3 +54,7 @@ Goal真实日志解析/合法性检查也被统一预约成8核/24GiB，原JPEG�
 `test_platform_stage_finalize.py`覆盖跨范围拒绝、全量校验后才取消、部分取消中断重接、原证据不改、重复调用和native/platform shell分支；平台requirements补登记已有目标/上下文调用所需的`eda-toolkits`。首次回归76通过/1失败定位为Flow开发环境的旧Toolkit缺少已有context模块；仅从干净917c6b9源码构建wheel更新该开发环境后，完整80项通过，Ruff/格式/Pyright/bash语法与差异检查通过。原slot17在验证前已自行failed，记录`flow-abandoned-stage-observation.json`，本次未人工取消或编造旧timeout退出码。新helper尚未被活跃旧源码执行，实际新批次的自动收尾仍需核验。
 
 DPL真实链接命令同时包含`-flto=auto`和`-flto=1`。仅在平台重链接且两者并存时移除auto，保留显式单worker及全部其他参数，原生模式/无显式1保持；不改专业源码。四组合回归修复前1失败/3通过、后完整28项通过；新源码3abdd48已发布。保留Student2原未测源码另开104GiB真实build-only证明，原活跃Student/控制器及失败不改；在其真实终态和资源记录出来前不把LTO冲突认定为唯一内存根因，不记候选评价或PPA收益。
+
+阶段收尾已另用一项隔离真实GCD进行公开EF验证：`flow-stage-finalize-live/receipt.json`，run2ba15a…实际running→cancel_requested→cancelled，17.376秒，资源释放、原记录/leaf字节保持、重复回执复用均通过。此项显式模拟批次返回124后调用新helper，未注入真实maindriver timeout，不能声称新版整轮自动超时已经实测。核查还发现根`professional.flow_source`旧来源入口只复制Python和CP0脚本，未复制正式maindriver；补一项文件复制，防止旧模板绕过新收尾，原modern `prepare_native_source`已自动复制无需改。对应迁移测试修复前失败、修复后通过。
+
+JPEG全输出证明解析、匹配与6331分区准备已消耗接近原3600秒预算，不能将未完成写成不等价。根`eqy.verify`及`logic._yosys_proof`沿用已有EF任务，仅从私有部署`validation.equivalence_seconds`读取显式时限，缺省3600秒不变；函数签名、完整输出/Liberty模型、SAT深度10、判定与4核/32GiB不变。`test_local_eqy.py`核验两backend的新旧期限、原资源/来源/目标/策略；修复前2失败/6通过，修复后8通过，连同旧来源控制器复制后根336项及Ruff/格式/Pyright/差异检查通过。只准备新`local-validation4h-prepared.json`，未修改原配置或活动任务；只有旧证明真实终态和原因核验后才决定新独立尝试，原失败和成本保持。

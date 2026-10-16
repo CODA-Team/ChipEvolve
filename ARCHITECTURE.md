@@ -4,6 +4,8 @@
 
 Flow原批次明确返回后由`maindriver.sh→platform_stage_finalize.py→EF.cancel`收尾本批次残留任务，所有权以campaign/iteration/stage/slot/design双重核验；独立回执保留原返回码/取消确认/待终态列表，原leaf证据不改。普通前端中断继续使用原恢复语义，不自动取消EDA。阶段时限和原算法不变，新源码不编辑活跃副本；80项回归通过，新批次实际自动收尾待核验。DPL平台重链接仅在auto与显式单LTO worker并存时去除auto，原生/其他参数保持；真实独立build-only验证待完成，不据源码检查宣称内存根因或PPA改善。
 
+根`professional.flow_source`旧来源准备也复制正式maindriver；现代来源原本复制全量脚本，原模板仅提供物理流程/设计材料。隔离running GCD经新helper取消/释放/幂等验证通过，完整新批次自动超时仍待核验。完整功能证明预算由根私有`validation.equivalence_seconds`显式提供给现有EF任务，缺省3600秒；模型/输出范围/SAT策略/结果判定和公共契约不变，不借加时修改已提交作业。相关根336项回归通过。
+
 Flow原生搜索、阶段继承、全部候选和最终共同测量保持。批量候选先交付原ORFS完整最终指标/十项约束及OpenSTA时序事实，EF保留原ODB/SPEF/网表/阶段产物；未解析的对象索引以可选 `deferred_facts.opendb.publication_root` 明示，不生成假快照或空对象。实际Query诊断、专业接力、最终验证在入口调用根私有 `design_facts.ensure(deployment, source, frame)`，复用同一 `physical.publish(..., modes=("opendb",))`、EF导出和DF导入补齐；同一测量run/条件，原结果字节不改，扩展视图另存 `materialized-result.json`。旧调用默认三类事实，DF/SDK/公共HTTP接口不改；此策略由根交付层选择，不在Query或专业模块复制解析器。单位/条件和最终PPA不随对象索引时机改变。
 
 七项针对测试、根323项回归及静态检查已通过；真实GCD“同状态七指标→轻交付→补齐→温态不增EDA”已通过，原结果字节和同run三视图/SDK事实一致；含争用排队的耗时不作端到端节约证据。当前JPEG旧根进程的原生搜索保持，只有正常收尾后才可恢复确定性交付。EF异步队列修复942e0ef也仍待任务排空后原位部署，三次临时恢复干预单列；详见 [A24检查点](admin/A24_QUEUE_PROGRESS_REPORT_20261016.md)。

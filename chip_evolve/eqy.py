@@ -118,7 +118,7 @@ def verify(
             work / "matched.ids",
             work / "logfile.txt",
         ],
-        seconds=3600,
+        seconds=deployment.value.get("validation", {}).get("equivalence_seconds", 3600),
         cpu=4,
         memory_gib=32,
         parent=candidate["run_id"],

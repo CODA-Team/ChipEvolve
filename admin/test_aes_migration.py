@@ -21,6 +21,10 @@ def test_formal_cp0_evaluator_and_profile_identity_replace_the_old_template(tmp_
     for name in ("eval_tns.sh", "eval_tns.tcl"):
         (template / "flow" / name).write_text("old evaluator")
         (formal / "flow" / name).write_text("current formal evaluator")
+    (template / "flow/maindriver.sh").write_text("stale batch controller")
+    (formal / "flow/maindriver.sh").write_text(
+        "current controller with explicit stage closure"
+    )
     (formal / "run.sh").write_text("native controller")
     (template / "flow/Makefile").write_text("original Makefile")
     library = tmp_path / "fixed.lib"
@@ -47,5 +51,8 @@ def test_formal_cp0_evaluator_and_profile_identity_replace_the_old_template(tmp_
     source = flow_source(d, experiment, design_id="another")
     frozen = tool_profile(d, source, experiment)
     assert (source / "flow/eval_tns.sh").read_text() == "current formal evaluator"
+    assert (
+        source / "flow/maindriver.sh"
+    ).read_text() == "current controller with explicit stage closure"
     assert read(frozen)["eval_tns_sha256"] == digest(formal / "flow/eval_tns.tcl")
     assert read(frozen)["eval_tns_sha256"] != digest(template / "flow/eval_tns.tcl")

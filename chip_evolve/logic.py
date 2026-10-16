@@ -149,7 +149,9 @@ def _yosys_proof(
             Path(reference["files"]["v"]),
             Path(candidate["files"]["v"]),
         ],
-        seconds=3600,
+        seconds=jobs.deployment.value.get("validation", {}).get(
+            "equivalence_seconds", 3600
+        ),
         cpu=4,
         memory_gib=32,
         parent=candidate["run_id"],
