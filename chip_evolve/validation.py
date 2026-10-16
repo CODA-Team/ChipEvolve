@@ -163,6 +163,9 @@ def _validate(
     request: dict[str, Any],
 ) -> dict[str, Any]:
     write(experiment / "comparison.json", compare(read(reference_path), frame))
+    from .design_facts import ensure
+
+    frame = ensure(deployment, result_path, frame)
     sdk = query_facts(deployment, frame)
     write(experiment / "sdk-query.json", sdk)
     proof = verify_outputs(

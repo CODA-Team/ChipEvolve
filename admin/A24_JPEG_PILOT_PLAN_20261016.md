@@ -31,6 +31,8 @@ ORFS对照入口审计发现 `run --capability orfs --objective` 只记录参数
 
 Flow第二轮三候选批次因一项密度非法而不满足原clean identity quota，原失败保留。按原项目建议的50候选、两轮新建完整批次，保留原10份身份保障、完整参数域、阶段淘汰及模型行为；这是预演预算校准，不放宽算法或将失败批次改记成功。
 
+批量交付审计发现 `collect_flow` 为每份完成的候选都调用完整 `publish`，而A23已测到单JPEG OpenDB大写入692秒。改根 `physical.publish` 的私有可选模式选择，默认三类交付保持；仅Flow批量候选先导入全部最终PPA/硬约束和原OpenSTA时序事实，保留所有原生/物理产物，缺少的OpenDB索引以显式 `deferred_facts` 元数据登记原发布目录。新增根 `design_facts.ensure` 复用原EF导出/DF导入按需补齐，保留同一测量run及原不可变result字节；`professional.execute`、`diagnosis.diagnose`、`validation._validate` 在实际消费所选结果前调用。新增测试验证默认完整交付、轻交付不伪造对象快照、补齐不重新计算PPA且幂等复用导出、Query/Code/验证均消费补齐后的真实scope。此可选结果元数据不增加公共模块API/服务或专业算法，不编辑活跃副本。当前旧根进程在原生搜索正常结束后才能交付接管，以已有 `collect-flow` 恢复确定性交付，保留所有尝试及人工交付恢复成本。
+
 ## 初始预演预算与验证
 
 这些是预演上界，不是正式实验预算，也不是给团队每项分配一份正式总预算：Flow两轮、每轮三候选，原生执行最多14400秒；DPL一轮三Student最多21600秒；Goal一轮四Student最多28800秒；ECO适用时原生两轮最多7200秒。先运行Query与Flow，Code可从同一合法来源分别运行，再按瓶颈选择真实接力。保留原源代码最低轮次，不以缩减Student或参数域通过。

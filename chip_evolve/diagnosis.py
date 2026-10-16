@@ -113,6 +113,18 @@ def diagnose(
         raise ValueError(
             "Query objective does not match the measured design/conditions"
         )
+    from .design_facts import ensure
+
+    baseline = None
+    if against:
+        from eda_toolkits.objectives import require_same_conditions
+
+        baseline = read(against)
+        require_same_conditions(baseline, frame)
+        if baseline["design_id"] != frame["design_id"]:
+            raise ValueError("Diagnosis comparison needs the same design")
+        baseline = ensure(deployment, against, baseline)
+    frame = ensure(deployment, result_path, frame)
     question += (
         "\nAuthoritative business requirements supplied by the caller, not measured "
         "design facts. The frozen objective content and measurement binding were "
@@ -137,14 +149,8 @@ def diagnose(
     )
     snapshots = list(frame["snapshot_ids"].values())
     frames = [frame]
-    if against:
-        from eda_toolkits.objectives import require_same_conditions
-
-        baseline = read(against)
+    if baseline is not None:
         frames.append(baseline)
-        require_same_conditions(baseline, frame)
-        if baseline["design_id"] != frame["design_id"]:
-            raise ValueError("Diagnosis comparison needs the same design")
         question += "\nPrepared reference facts: " + json.dumps(
             professional_facts(baseline), ensure_ascii=False
         )

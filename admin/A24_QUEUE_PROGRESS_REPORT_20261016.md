@@ -32,3 +32,9 @@ Flow原三候选批次第一轮完成；第二轮一项参数组合（utilizatio
 Goal原Teacher/四Student已完成编辑，编译与原生EDA评价仍在运行。ORFS默认内置综合因SYN-0027缺少物理master而失败，原失败保留；另开显式Yosys/共同库集来源对照，不称未修改默认配置，也不把来源变化算作专业或协同收益。
 
 接下来完成原生轮次、共同最终约束复测、实际有用交接及全输出证明/独立重放，再校准同总预算并冻结正式实验。所有模型、编译、等待、失败、数据导入和验证成本纳入账本；单项/团队的正式预算仍未冻结。此前的窄只读查证节约不代表完整workflow效率。
+
+## 批量对象索引的限定调整，业务验证待完成
+
+原收集器会对每个完成候选完整导入OpenDB对象/关系，A23单JPEG写入已测到692秒。本片新增根私有 `design_facts.py`，`physical.publish`默认完整交付保持；Flow批量只先导入全部最终指标、原硬约束和OpenSTA时序，明确登记待生成对象索引，所有原始产物和候选保留。Query、Code dispatch、最终验证选择该结果时，复用同一EF导出/DF导入补齐对象；原run/目标/条件及不可变result字节保持，扩展视图单存。没有DF/SDK/API/专业算法变动，没有修改活跃控制器。旧根进程的交付须在原生搜索正常结束后沿 `collect-flow`接管，不能中断或重复搜索。
+
+改动文件为 `physical.py`（已有发布器的私有模式选择）、`professional.py`（批量交付及所选输入）、`diagnosis.py`（比较身份检查后准备真实scope）、`validation.py`（最终验证前补齐）、新增 `design_facts.py`（复用已有导出）、`admin/test_design_fact_materialization.py`（七项边界/消费回归），以及计划/架构说明。修复前4项失败、默认原行为1项通过；新增完整收集和验证消费检查后七项通过、根323项通过，Ruff/格式/Pyright通过。真实GCD验证已排队，回执 `deferred-facts-live-process.json`；在其完成及JPEG实际交付前不声称业务验收通过或给出节约比例。

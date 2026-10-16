@@ -1,5 +1,21 @@
 # 架构与源码边界
 
+## A24进行中：批量事实与所选设计对象（2026-10-16）
+
+Flow原生搜索、阶段继承、全部候选和最终共同测量保持。批量候选先交付原ORFS完整最终指标/十项约束及OpenSTA时序事实，EF保留原ODB/SPEF/网表/阶段产物；未解析的对象索引以可选 `deferred_facts.opendb.publication_root` 明示，不生成假快照或空对象。实际Query诊断、专业接力、最终验证在入口调用根私有 `design_facts.ensure(deployment, source, frame)`，复用同一 `physical.publish(..., modes=("opendb",))`、EF导出和DF导入补齐；同一测量run/条件，原结果字节不改，扩展视图另存 `materialized-result.json`。旧调用默认三类事实，DF/SDK/公共HTTP接口不改；此策略由根交付层选择，不在Query或专业模块复制解析器。单位/条件和最终PPA不随对象索引时机改变。
+
+七项针对测试、根323项回归及静态检查已通过；真实GCD“同状态七指标→轻交付→补齐→温态不增EDA”正在统一EF/DF排队验证，尚不据此声称端到端节约。当前JPEG旧根进程的原生搜索保持，只有正常收尾后才可恢复确定性交付。EF异步队列修复942e0ef也仍待任务排空后原位部署，详见 [A24检查点](admin/A24_QUEUE_PROGRESS_REPORT_20261016.md)。
+
+```mermaid
+flowchart LR
+  F[原Flow搜索与全部产物] --> E[EF共同测量及证据]
+  E --> M[DF指标与时序]
+  M --> C[Codex选择候选]
+  C --> Q[Query / Code / 验证]
+  Q --> O[按需经EF与DF补齐对象]
+  O --> Q
+```
+
 ## A23：已提交观察与原子续租（2026-10-16）
 
 EF写连接继续独占事务来核验资源、领取、状态和失联；独立只读连接/读锁承载公开状态、证据索引及SDK所需EF读取，只能看到已提交WAL状态。heartbeat同一事务更新lease和worker presence，SQLite事务上下文负责提交/回滚；相同监控状态五秒合并、变化立即写入，原30秒lease/stale、EDA期限和派发/取消/回收不变。没有新服务、数据库、公共契约或模型循环。原目录三AES/JPEG与1725次查询验证、两个短health超时和10.7秒续租限制见 [A23报告](admin/A23_METADATA_STABILITY_REPORT_20261016.md)。原位更新后权威PID/命令在A23 `production-update.json`，DF保持原进程/路径/配置，旧回执不改写。

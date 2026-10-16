@@ -396,17 +396,24 @@ def measure(
 
 
 def publish(
-    jobs: Jobs, measured: dict[str, Any], *, result_path: Path | None = None
+    jobs: Jobs,
+    measured: dict[str, Any],
+    *,
+    result_path: Path | None = None,
+    modes: tuple[str, ...] = ("opendb", "orfs", "opensta"),
 ) -> dict[str, Any]:
     from .delivery import import_snapshot
 
-    snapshot_ids, exports = {}, {}
+    snapshot_ids = dict(measured.get("snapshot_ids", {}))
+    exports = dict(measured.get("exports", {}))
     deployment = jobs.deployment
     for mode, field, source in (
         ("opendb", "odb_path", measured["files"]["odb"]),
         ("orfs", "metadata_path", measured["files"]["metrics"]),
         ("opensta", "odb_path", measured["files"]["odb"]),
     ):
+        if mode not in modes:
+            continue
         snapshot = "local-" + measured["run_id"] + "-" + mode
         files = {name: Path(value) for name, value in measured["files"].items()}
         inputs = {
@@ -484,6 +491,12 @@ def publish(
         if (jobs.experiment / "native-inputs.json").exists()
         else None,
     }
+    if "opendb" not in snapshot_ids:
+        frame["deferred_facts"] = {
+            "opendb": {"publication_root": str(jobs.experiment.resolve())}
+        }
+    else:
+        frame.pop("deferred_facts", None)
     destination = result_path or jobs.experiment / "result.json"
     write(destination, frame)
     write(destination.parent / "queried-facts.json", facts)

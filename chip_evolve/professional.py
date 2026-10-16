@@ -199,6 +199,9 @@ def execute(
         and packet["identity_bindings"]["source"]["run_id"] != frame["run_id"]
     ):
         raise ValueError("Structured Query source identity differs from the task")
+    from .design_facts import ensure
+
+    frame = ensure(deployment, args.source, frame)
     from .handoff import input_contract
 
     handoff = input_contract(frame, args.capability)
@@ -412,7 +415,12 @@ def collect_flow(
         )
         if (experiment / "recipe.json").is_file():
             measured["flow_recipe"] = str(experiment / "recipe.json")
-        candidate_frame = publish(jobs, measured, result_path=folder / "result.json")
+        candidate_frame = publish(
+            jobs,
+            measured,
+            result_path=folder / "result.json",
+            modes=("orfs", "opensta"),
+        )
         write(folder / "result.json", candidate_frame)
         candidates.append(candidate_frame)
     if not candidates:
