@@ -4,6 +4,8 @@ ChipEvolve 为成熟 Agent（当前以 Codex 为入口）提供芯片物理设�
 
 当前优先在本机跑通实验和协同 PPA 优化。产品目标见 [PROJECT.md](PROJECT.md)，模块职责见 [ARCHITECTURE.md](ARCHITECTURE.md)，实际完成状态见 [TASKS.md](TASKS.md) 和 [admin/STATUS.md](admin/STATUS.md)。
 
+2026-10-16 A18：GCD/AES 固定方法接力预检与候选查证对照见 [本轮报告](admin/A18_PREFLIGHT_REPORT_20261016.md)；[正式双核心实验协议](admin/FORMAL_EXPERIMENT_PROTOCOL_20261016.md)仍是待冻结草案。以下模块状态描述本机已验证能力，不代表新机器交付或正式同预算团队优势已通过。
+
 ## 模块
 
 各模块保持独立 Git 边界，由根仓库的 Git 子模块固定具体提交。跨项目依赖使用已安装 wheel 或 HTTP，不通过源码路径注入。
@@ -16,24 +18,25 @@ ChipEvolve 为成熟 Agent（当前以 Codex 为入口）提供芯片物理设�
 | Query Agent | `query-agent/` | 用统一事实、领域工具与调查技能增强 Codex；已有查询/比较/来源，完整归因与专业接收仍待验收。 |
 | Toolkits | `toolkits/` | OpenROAD/ORFS 命令、原生输入、工具解析与数据导出。 |
 | Flow Agent / A2-ORFO | `flow-agent/` | 参数优化；完整真实调参、统一执行/回流与中断恢复已有工程验收。 |
-| DPLEvolve / ReviewDSE | `dplevolve/` | 同一个源码级布局优化项目；原生真实候选及独立重放通过，统一接入待完成。 |
-| GoalEvolve | `goalevolve/` | 独立的源码级时序/功耗优化项目；环境及已发布源码/p0 重放通过，新 AE-3 与全部门禁尚未完成。 |
+| DPLEvolve / ReviewDSE | `dplevolve/` | 同一个源码级布局优化项目；共同基础、统一 EF、新源码轮次及真实阶段交接已验证；局部 HPWL 与最终 PPA 分开判断。 |
+| GoalEvolve | `goalevolve/` | 独立源码级时序/功耗优化；共同基础加原研究增量、统一 EF、GCD/AES 原生候选和物理交接已运行；原 U4 AES 历史轮次未正常收尾，不能改写为通过。 |
+| TimingECOAgent | `timing-eco-agent/` | 第三方时序 ECO，保留来源；统一 EF 及本机 Codex 已接入，GCD 有效修复与 AES 无适用动作分别记录。 |
 
-平台不重造通用 Agent harness 或独立评测底座。ECO 暂缓，教程、新用户产品化及论文交付也暂缓。版本发布不等于三项目协同已完成。
+平台不重造通用 Agent harness 或独立评测底座。教程、新用户产品化及论文交付暂缓。版本发布和工程接力可运行不等于同预算协同 PPA 优势已完成。
 
 ```mermaid
 flowchart LR
     C[Codex] --> Q[Query Agent]
     Q --> I[Data Interface SDK]
     I --> D[Data Foundation]
-    C --> A[Flow / DPLEvolve / GoalEvolve]
+    C --> A[Flow / DPLEvolve / GoalEvolve / ECO]
     A --> E[Execution Foundation]
     E --> T[Toolkits / OpenROAD]
     T --> D
     D --> C
 ```
 
-上图为目标调用关系；两个 Code 的统一执行/数据入口及完整接力还在施工，实际状态以 TASKS.md 为准。
+上图为本机业务调用关系。专业保留原控制器和研究算法，平台通过统一执行与数据交付封装它们；全部内部原生调试数据自动进入 Query、跨设计资格和严格归因仍有边界，实际状态以 TASKS.md 为准。
 
 ## 取得源码与本机开发
 
@@ -57,7 +60,7 @@ python3 dev.py flow-agent check
 
 虚拟环境、安装 wheel、EDA 镜像、实验数据库、候选构建和运行产物属于本机配置/`var/`，不包含在本次源码发布中。此处不承诺新机器直接 clone 即可完成 EDA 实验；当前施工目标仍是本机完整运行。
 
-共同工具链已选定 10 月 ORFS 镜像，对应 ORFS `5105b0a77` / OpenROAD `27288f5c90`；来源审计已完成，运行切换和两个 Code 的专业改动移植尚未完成。详见[审计报告](admin/COMMON_TOOLCHAIN_AUDIT_20261012.md)及[施工计划](admin/COMMON_TOOLCHAIN_PLAN_20261012.md)。
+共同工具链固定 10 月 ORFS 镜像，对应 ORFS `5105b0a77` / OpenROAD `27288f5c90`；两个 Code 保留研究增量及明确私有二进制，不跟随移动的 latest。来源见[审计报告](admin/COMMON_TOOLCHAIN_AUDIT_20261012.md)，后续实际资格与运行状态见 TASKS.md。
 
 ## 旧项目归档
 

@@ -379,7 +379,8 @@ def test_layout_resume_uses_explicit_source_and_keeps_legacy_default(
     if explicit_recipe:
         frame["flow_recipe"] = str(recipe)
 
-    def legacy(_, folder):
+    def legacy(_, folder, *, design_id):
+        assert design_id == "gcd"
         source = folder / "source"
         (source / "flow").mkdir(parents=True)
         (source / "flow/Makefile").write_text("legacy-template")

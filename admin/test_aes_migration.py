@@ -36,10 +36,15 @@ def test_formal_cp0_evaluator_and_profile_identity_replace_the_old_template(tmp_
                 "platform": "asap7",
                 "libraries": [{"path": str(library)}],
                 "orfs_config": "designs/asap7/another/config.mk",
-            }
+            },
+            "unqualified": {
+                "platform": "asap7",
+                "libraries": [{"path": str(tmp_path / "unavailable.lib")}],
+                "orfs_config": "designs/asap7/not-in-template/config.mk",
+            },
         },
     )
-    source = flow_source(d, experiment)
+    source = flow_source(d, experiment, design_id="another")
     frozen = tool_profile(d, source, experiment)
     assert (source / "flow/eval_tns.sh").read_text() == "current formal evaluator"
     assert read(frozen)["eval_tns_sha256"] == digest(formal / "flow/eval_tns.tcl")

@@ -1,5 +1,28 @@
 # 架构与源码边界
 
+## A18：固定方法预检与本轮数据服务（2026-10-16）
+
+本轮配置 `var/business/a18-preflight-20261016/runtime/local.json` 复用 EF `41151`，使用 A17 干净 wheel 的新 DF `43789`。DF 的新主库保存新快照，显式只读 archive 读取原历史库；旧 DF `53305` 保持运行，不重启也不静默切换其消费者。未构建或部署用户脏 DF/DI 代码。服务回执与 wheel 身份见本轮 `data-service.json`。
+
+根内部 `flow_source(deployment: Deployment, experiment: Path, *, design_id: str) -> Path` 只准备当前设计；原实现遍历所有已登记设计，导致 AES 被无关缺失 picorv32 模板阻断。Flow 运行和旧来源布局续作两处传入当前 design；公共 API、专业算法和物理目标不变。已完成的 AES 专业操作沿原 key 恢复交付，没有改运行 controller 或重启搜索。
+
+预检驱动只冻结输入和调用既有 CLI，报告全尝试与原约束事实；Codex 显式选源、判断是否接力及采用。GCD/AES 的 DPL framework、固定源码与 Goal p0 固定方法用于接点检查，不能代表新专业搜索；Goal p0 的时序修复不等于原 Goal 演化所得功耗优化能力。查证脚本调用原生 `codex exec`，没有自建模型/工具循环；修订题集显式列目标 run IDs，参考基线只作上下文。
+
+```mermaid
+flowchart LR
+  C[Codex选择来源与专业] --> B[既有业务CLI]
+  B --> P[原专业控制器]
+  P --> E[EF统一执行与产物]
+  E --> N[新DF主库]
+  H[只读历史库] --> N
+  N --> I[SDK和Query]
+  I --> C
+  C --> V[完整证明和独立重放]
+  V --> S[显式保留分支]
+```
+
+当前 Query 能查回同条件差值、约束和来源身份；本次查询未覆盖全部内部阶段因果证据，不能仅凭功耗差值归因于某个 Goal 动作。预实验实际结果与剩余门槛见 `admin/A18_PREFLIGHT_REPORT_20261016.md`，正式双核心实验仍待单独冻结和批准。以下“A18未启动”等表述是各历史切片收尾时状态。
+
 ## A16/A17：环境资格与可靠交付（2026-10-16）
 
 `environment.py`冻结已登记来源、同值控制、镜像、实际工具能力、专业控制代码与私有研究二进制、库/SDC及部署绑定。`run --environment E`或部署`qualified_environments[design]`在任务启动前核对；新Flow默认source，旧legacy必须明确选择。Code保留共同基础上的专业增量。GCD/AES已通过；picorv32完整流程可跑，但复制结果与来源不同，环境资格拒绝，不能用于正式优化对照。

@@ -106,7 +106,7 @@ def invoke(
         )
 
 
-def flow_source(deployment: Deployment, experiment: Path) -> Path:
+def flow_source(deployment: Deployment, experiment: Path, *, design_id: str) -> Path:
     source = experiment / "source"
     shutil.copytree(
         deployment.value["flow_template"],
@@ -129,19 +129,19 @@ def flow_source(deployment: Deployment, experiment: Path) -> Path:
     for name in ("eval_tns.sh", "eval_tns.tcl"):
         shutil.copyfile(formal / "flow" / name, source / "flow" / name)
     shutil.copyfile(formal / "run.sh", source / "run.sh")
-    for design in deployment.value["designs"].values():
-        for library in design["libraries"]:
-            target = (
-                source
-                / "flow/platforms"
-                / design["platform"]
-                / "lib/NLDM"
-                / Path(library["path"]).name
-            )
-            shutil.copyfile(library["path"], target)
-        config = source / "flow" / design["orfs_config"]
-        with config.open("a") as stream:
-            stream.write("\n" + design.get("baseline_overrides", ""))
+    design = deployment.design(design_id)
+    for library in design["libraries"]:
+        target = (
+            source
+            / "flow/platforms"
+            / design["platform"]
+            / "lib/NLDM"
+            / Path(library["path"]).name
+        )
+        shutil.copyfile(library["path"], target)
+    config = source / "flow" / design["orfs_config"]
+    with config.open("a") as stream:
+        stream.write("\n" + design.get("baseline_overrides", ""))
     return source
 
 
@@ -253,7 +253,7 @@ def run_flow(
 
         source = prepare_native_source(deployment, args.source, experiment)
     else:
-        source = flow_source(deployment, experiment)
+        source = flow_source(deployment, experiment, design_id=args.design)
     config_dir = source / "flow/designs" / design["platform"] / design["nickname"]
     # Use OpenSTA's unit-explicit serialization and expose the same clock as
     # the native tuner's variable. All remaining constraints stay verbatim.
@@ -465,7 +465,7 @@ def resume_layout(
 
             source = inherit_prepared_source(frame, jobs.experiment)
         else:
-            source = flow_source(deployment, jobs.experiment)
+            source = flow_source(deployment, jobs.experiment, design_id=jobs.design_id)
     profile = tool_profile(deployment, source, jobs.experiment)
     config = jobs.experiment / "resume.mk"
     if frame.get("native_config"):
