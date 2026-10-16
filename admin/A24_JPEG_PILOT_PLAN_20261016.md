@@ -25,6 +25,8 @@
 
 JPEG首次DPL发现声明profile为JPEG、原生case仍指GCD：真实任务执行GCD，并在根收集JPEG报告时失败，未发布/采用。新增根 `dpl_case.py` 根据登记design生成私有原生problem的四项身份头，完整保留原目标/guardrail/patch_surface；`professional.py`仅DPL分支准备/传递实际case ID，原GCD/AES配置保持同名；DPL `scripts/platform/execution.py`在提交前调用已有原生case解析CLI，拒绝case与profile的design/platform错绑，防止错误实验被标记成另一设计。对应根/模块测试验证未知设计、原生CLI解析、原算法字段保留和错误绑定的提交前拒绝。原失败副本不改，模块检查点发布并重新冻结同物理来源资格后，新建DPL实验重试；不修改正在运行的Flow/Goal私有副本或配置。
 
+ORFS对照入口审计发现 `run --capability orfs --objective` 只记录参数、未传给已有 `physical.baseline(..., objective=...)`。仅修改根 `cli.py` 这一调用，沿用已有关键词参数；新增 `admin/test_orfs_objective_handoff.py`，验证相对目标路径传入物理边界、未指定时保留原基线派生行为。该CLI由全部能力共用，但改动局限ORFS分支，不改公共签名、目标内容或专业算法。JPEG默认内置综合实际因缺少目标单元的物理master失败，保留失败；另设明确Yosys来源对照，不能将其称为未修改的默认配置。
+
 ## 初始预演预算与验证
 
 这些是预演上界，不是正式实验预算，也不是给团队每项分配一份正式总预算：Flow两轮、每轮三候选，原生执行最多14400秒；DPL一轮三Student最多21600秒；Goal一轮四Student最多28800秒；ECO适用时原生两轮最多7200秒。先运行Query与Flow，Code可从同一合法来源分别运行，再按瓶颈选择真实接力。保留原源代码最低轮次，不以缩减Student或参数域通过。

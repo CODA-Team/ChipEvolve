@@ -359,7 +359,13 @@ def _main() -> int:
                 if args.capability == "orfs":
                     from .physical import baseline
 
-                    result = baseline(deployment, args.design, experiment, args.seconds)
+                    result = baseline(
+                        deployment,
+                        args.design,
+                        experiment,
+                        args.seconds,
+                        objective=args.objective.resolve() if args.objective else None,
+                    )
                 else:
                     from .professional import execute
 
