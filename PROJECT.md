@@ -1,5 +1,9 @@
 # Agentic EDA 产品目标
 
+2026-10-17 A25平台完整操作：真实原生Codex通过现有业务CLI完成完整GCD、三快照/SDK、全部18输出PDR、独立完整物理重放七PPA同值及Query证据回答；独立核验通过。ORFS可按部署声明内存，旧默认24GiB保持，本轮实测GCD4GiB；根423项与产品/新增文件静态检查通过。该任务未做专业接力/恢复，且与直接侧工作量不同，不是正式效率结果。见[操作核查](admin/A25_NATIVE_FULL_DESIGN_AND_CLOCK_REPORT_20261017.md)。
+
+2026-10-17 A25完整工具操作：真实原生Codex完整GCD暴露旧ns输入在ORFS中间丢单位；保留失败后，复用现有通用测量的显式ps约束，原生直接及EF两次完整流程通过，ODB同字节/SPEF仅日期不同。EF→DF→SDK→Query host交付、原参考同约束重测七PPA同值、新控制18输出PDR通过。新ORFS控制为1.373553765mW/42.6757µm²，正式须用新基线重算改善；原结果/活跃JPEG不改，A25未冻结。见[完整操作与单位核查](admin/A25_NATIVE_FULL_DESIGN_AND_CLOCK_REPORT_20261017.md)。
+
 2026-10-17最新补核：JPEG全27输出/7082分区、GCD全18输出整体1分区、AES全129输出/695分区PDR均已通过；GCD/AES新证明与原物理重放、当前SDK核对已关联，旧SAT不能授权新采用。JPEG完整调参仍运行，两个Code健康轮次/接力及正式PPA/效率对照尚未完成，不能宣称公平团队优势。见[完整证明](admin/A24_FULL_PROOF_AND_REQUALIFICATION_REPORT_20261017.md)与[采用补核](admin/A24_QUALIFIED_ADOPTION_REPORT_20261017.md)。
 
 2026-10-17 A24验证补核：真实固定Liberty时序负例暴露旧SAT误通过；PDR正反例通过。JPEG声明层次证明因重复大分区成本主动停止，模型状态切分待新JPEG复验；正式交付的GCD/AES功能证明也须重新核验。当前没有JPEG完整等价或正式协同优势结论，专业算法、物理PPA及旧记录保持，见[时序证明核查](admin/A24_SEQUENTIAL_PROOF_REVIEW_20261017.md)。

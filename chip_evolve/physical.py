@@ -155,7 +155,13 @@ def baseline(
         destination = "inputs/libraries/" + str(i) + "-" + Path(lib["path"]).name
         staged.append({"source": lib["path"], "destination": destination})
         inputs["liberty_paths"].append(destination)
-    result = jobs.submit("orfs", inputs, staged, seconds=seconds)
+    result = jobs.submit(
+        "orfs",
+        inputs,
+        staged,
+        seconds=seconds,
+        memory_gib=design.get("orfs_execution", {}).get("memory_gib", 24),
+    )
     archive = experiment / "orfs.zip"
     jobs.materialize(result, "flow_archive", archive)
     files: dict[str, Path] = {}

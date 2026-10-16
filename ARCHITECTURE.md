@@ -1,5 +1,9 @@
 # 架构与源码边界
 
+现有ORFS业务入口可用私有`designs.<id>.orfs_execution.memory_gib`声明EF预约，缺省24GiB与原任务字节保持，八线程/算法不变。此声明进入既有设计环境身份；本轮GCD按实测设置4GiB，其他阶段/大构建不跟随。静态及423项根回归通过；完整原生平台操作的独立验收见[操作与单位核查](admin/A25_NATIVE_FULL_DESIGN_AND_CLOCK_REPORT_20261017.md)。
+
+2026-10-17 A25完整工具操作：真实原生Codex完整GCD暴露旧ns输入在ORFS中间丢单位；保留失败后，复用现有通用测量的显式ps约束，原生直接及EF两次完整流程通过，ODB同字节/SPEF仅日期不同。EF→DF→SDK→Query host交付、原参考同约束重测七PPA同值、新控制18输出PDR通过。新ORFS控制为1.373553765mW/42.6757µm²，正式须用新基线重算改善；原结果/活跃JPEG不改，A25未冻结。见[完整操作与单位核查](admin/A25_NATIVE_FULL_DESIGN_AND_CLOCK_REPORT_20261017.md)。
+
 新采用对EQY回执复用既有策略资格检查，旧SAT/缺策略/未知策略不能授权新决定；历史读取及原Yosys路线保持。GCD/AES用新关联验证明确复用原同值物理重放并引用新完整PDR，原实验字节不变；无公共签名、模块或服务变化。见[采用补核](admin/A24_QUALIFIED_ADOPTION_REPORT_20261017.md)。
 
 根私有`validation.equivalence_merge_partitions`可显式选择原生EQY整体合并，缺省false，不改模型/端口/策略。它处理状态编码不同且输出之间有切分依赖的情况，回执披露模式，仍要求全部输出/实际分区通过；无设计网名特判。真实GCD整体通过及固定FF正反例已核验，JPEG27输出/7082分区、AES129输出/695分区也已完整通过；实际边界见[完整证明与复核](admin/A24_FULL_PROOF_AND_REQUALIFICATION_REPORT_20261017.md)。
