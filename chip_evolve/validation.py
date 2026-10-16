@@ -91,6 +91,12 @@ def replay(
             read(request)["seconds"],
             objective=Path(frame["objective"]),
         )
+    if not (result_path.parent / "delivery-checkpoint.json").exists():
+        frame = read(result_path)
+        if frame.get("candidate_id") and frame.get("flow_recipe"):
+            from .flow_replay import replay as replay_flow
+
+            return replay_flow(deployment, result_path, experiment)
     saved = replay_checkpoint(result_path)
     inputs = experiment / "inputs"
     inputs.mkdir(parents=True, exist_ok=True)

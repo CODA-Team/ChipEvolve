@@ -38,3 +38,9 @@ Goal原Teacher/四Student已完成编辑，编译与原生EDA评价仍在运行�
 原收集器会对每个完成候选完整导入OpenDB对象/关系，A23单JPEG写入已测到692秒。本片新增根私有 `design_facts.py`，`physical.publish`默认完整交付保持；Flow批量只先导入全部最终指标、原硬约束和OpenSTA时序，明确登记待生成对象索引，所有原始产物和候选保留。Query、Code dispatch、最终验证选择该结果时，复用同一EF导出/DF导入补齐对象；原run/目标/条件及不可变result字节保持，扩展视图单存。没有DF/SDK/API/专业算法变动，没有修改活跃控制器。旧根进程的交付须在原生搜索正常结束后沿 `collect-flow`接管，不能中断或重复搜索。
 
 改动文件为 `physical.py`（已有发布器的私有模式选择）、`professional.py`（批量交付及所选输入）、`diagnosis.py`（比较身份检查后准备真实scope）、`validation.py`（最终验证前补齐）、新增 `design_facts.py`（复用已有导出）、`admin/test_design_fact_materialization.py`（七项边界/消费回归），以及计划/架构说明。修复前4项失败、默认原行为1项通过；新增完整收集和验证消费检查后七项通过、根323项通过，Ruff/格式/Pyright通过。真实GCD验证已排队，回执 `deferred-facts-live-process.json`；在其完成及JPEG实际交付前不声称业务验收通过或给出节约比例。
+
+## Flow候选的独立物理重放接点
+
+通用验证器此前仅能重放Code检查点或ORFS根实验；原生Flow候选虽已保存全部阶段，调用仍会报缺少professional checkpoint。新增 `chip_evolve/flow_replay.py` 从原archive提取实际pre-CTS placement，冻结原result、archive、参数、来源recipe和目标hash，沿已有交付/阶段入口独立重跑CTS、route/RCX及共同测量。`validation.py`保留现有Code检查点优先级；新增 `admin/test_flow_candidate_replay.py` 覆盖真实输入选择、原结果字节不变、幂等重接、变更拒绝和Code原行为。没有重启搜索或增设执行/数据通道，重放范围明确不包含前置RTL综合/布局。
+
+五项回归修复前4失败/1通过、修复后5通过；根现行`admin/test_*.py`328项通过；新增/改动文件Ruff、格式及使用实际wheel测试环境的Pyright通过，26用户文件hash不变。全目录递归收集会误收`legacy-integration`归档并失败，实际回归使用与前轮相同的现行测试集。根源码F检查通过；扩大到当前全默认Ruff规则会报此前`dpl_case.py`同步re.sub替换闭包的B023告警，本片未顺手修改。GCD真实在线重放待完成，不以单元检查冒充物理复现；JPEG搜索/后续交接及完整A24仍进行中。

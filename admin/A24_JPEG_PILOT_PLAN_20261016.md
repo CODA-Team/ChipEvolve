@@ -35,6 +35,8 @@ Flow第二轮三候选批次因一项密度非法而不满足原clean identity q
 
 ## 初始预演预算与验证
 
+候选验收接点审计确认 `validation.replay` 只能识别Code交付检查点或ORFS根请求，不能直接重放Flow候选。新增根私有 `flow_replay.py`，从原候选archive提取真实`3_place.odb`，绑定原result/config/recipe/objective及archive内容hash，复用已有`checkpoint→finish→resume_layout`完成CTS、完整route/RCX及共同测量；保留原生stage SDC和实际参数，明确重放范围从pre-CTS开始，不声称重新搜索或从RTL重演。`validation.py`仅在无既有Code检查点且有原生candidate/recipe时选择此分支。五项回归验证实际placement、重接身份/改源拒绝和Code优先级，先4失败/1通过、后5通过；根328项通过，改动文件Ruff/格式和实际wheel测试环境Pyright通过，26用户文件hash不变。复用历史GCD真实候选在线核对七项PPA，JPEG业务验收仍待原生搜索完成。公共API、专业算法、DF/DI和活跃控制器不改。
+
 这些是预演上界，不是正式实验预算，也不是给团队每项分配一份正式总预算：Flow两轮、每轮三候选，原生执行最多14400秒；DPL一轮三Student最多21600秒；Goal一轮四Student最多28800秒；ECO适用时原生两轮最多7200秒。先运行Query与Flow，Code可从同一合法来源分别运行，再按瓶颈选择真实接力。保留原源代码最低轮次，不以缩减Student或参数域通过。
 
 每个阶段通过公开状态观察任务是否消费、健康运行、资源等待和终态。先检查输入/环境身份，再运行真实阶段，逐项核对原约束/原生筛选、最后证明/独立重放。已有接口不改时不重复无关全仓测试；有实际修复时执行对应静态/单元/差异/边界/回归。预算不足保留未完成，不重启整个实验抹去成本。
