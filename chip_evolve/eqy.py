@@ -68,6 +68,7 @@ def configuration(
     *,
     strategy: str = "sat",
     state_points: set[str] | None = None,
+    merge_partitions: bool = False,
 ) -> str:
     if strategy not in {"sat", "abc-pdr"}:
         raise ValueError("Unknown EQY strategy: " + strategy)
@@ -108,6 +109,8 @@ def configuration(
         r"gate-nomatch /n[0-9]+|_[0-9]+_/",
         "",
     ]
+    if merge_partitions:
+        lines += ["[partition *]", "merge *", ""]
     if strategy == "sat":
         lines += ["[strategy simple]", "use sat", "depth 10"]
     else:
@@ -168,6 +171,7 @@ def verify(
             declared,
             strategy=strategy,
             state_points=states,
+            merge_partitions=policy.get("equivalence_merge_partitions", False),
         )
     )
     # Suppress only the native partitioner's very large dependency matrix log.
@@ -255,4 +259,10 @@ def verify(
         objective=Path(candidate["objective"]),
     )
     jobs.log(record, folder / "proof.log")
-    return record, {**proof_receipt(work, checks), **details}
+    return record, {
+        **proof_receipt(work, checks),
+        **details,
+        "partition_mode": "whole_design"
+        if policy.get("equivalence_merge_partitions", False)
+        else "matched",
+    }

@@ -1,5 +1,7 @@
 # 架构与源码边界
 
+根私有`validation.equivalence_merge_partitions`可显式选择原生EQY整体合并，缺省false，不改模型/端口/策略。它处理状态编码不同且输出之间有切分依赖的情况，回执披露模式，仍要求全部输出/实际分区通过；无设计网名特判。真实GCD整体通过及固定FF正反例已核验，JPEG27输出/7082分区、AES129输出/695分区也已完整通过；实际边界见[完整证明与复核](admin/A24_FULL_PROOF_AND_REQUALIFICATION_REPORT_20261017.md)。
+
 Query现有动作格式可经只读`decision-schema`发现，结构/校验保持原样；新专业上下文导出去重，并按原kind/certainty将事实、未确认假设及带引用限制分别交付。真实原生Codex比较/回答/导出及只读重导出已核对，原证据和历史包不变；实际开销包含43命令/13失败，未宣称效率收益。见[原生host核查](admin/A25_NATIVE_HOST_QUERY_REVIEW_20261017.md)。
 
 正式对照的单次原生启动/事件记录位于`admin/run_native_codex_episode.py`，不承担推理或业务判分。真实检查发现workspace-write无法挂载现有EDA镜像；显式共同账号权限配置下两条版本命令与普通账号运行一致，正式两侧须匹配，完整设计资格仍待验证。累计token实测而非硬限额，所有失败/未知成本保留；无公共接口或服务变化，见[入口记录与权限核查](admin/A25_NATIVE_EPISODE_RUNNER_PREPARATION_20261017.md)。
