@@ -6,11 +6,13 @@ JPEG第一、第二轮各50份CTS均已成功，第二轮布局→CTS的全部�
 
 第二轮50项原生CTS评价全部成功，分别导入50份快照。逐份从公开EF读取评价JSON，校验原始字节哈希，再对照当前公共DF/SDK的摘要、指标与证据：全部150个数值、原单位、TT/CP0、profile及观测上下文一致，设计、实际物理CTS父run、snapshot和stage均匹配。没有写数据、改原结果或新增EDA/模型调用。
 
-原生评价和数据导出共100项任务均只有一次成功attempt。50个成功评价均没有再次归档`flow-artifacts.zip`，物理证据继续通过CTS父产物追溯；原生评价CPU子集合计775.64秒，公开EF记录的导出CPU子集合计0.01秒。后者按已记录用量报告，不代表前端、服务、存储I/O或模型成本为零。所有数值都是原campaign的非加和子集，不叠加到整场成本之上。
+原生评价和数据导出共100项任务均只有一次成功attempt。50个成功评价均没有再次归档`flow-artifacts.zip`，物理证据继续通过CTS父产物追溯；原生评价CPU采样子集合计775.64秒，公开EF记录的导出CPU采样子集合计0.01秒。周期采样可能漏掉短任务，不能将后者当成完整导出CPU；前端、服务、存储I/O及模型成本也不在该数值内。所有数值都是原campaign的非加和观测子集，不叠加到整场成本之上；正式计数范围见`A25_CPU_ACCOUNTING_SCOPE_REPORT_20261017.md`。
 
 证据在`var/business/a25-gcd-canonical-source-20261017/jpeg-iteration2-cts-feedback-sdk-acceptance/`：`acceptance.json`固定50份原评价与SDK一致性，`managed-evaluation-scope.json`记录实际评价attempt和无重复物理归档，`managed-export-scope.json`保存公开EF的50个导出attempt与资源用量。只读核查墙钟7.554秒只属于该次审计，不作为平台正式效率比。成本与续接点已更新至`preparation-costs-r25.json`。
 
 原控制器已完成该阶段门槛并提交phase3，随后按原DRP进入phase4和第二轮布线，50个布线槽位已接单。接单、实际输入消费、物理成功及最终FF/545ps PPA仍分别核验，不以这批数据回流代替最终协同收益。
+
+布线开始后的预核查已确认全部50份预期输入与39个选中CTS父产物的检查点、ODB/SDC、artifact ID/hash一致；当时4项已实际消费、2项完成，其他仍排队/运行，状态明确为`intended_passed_actual_pending`。部分消费不计为50份全部实际消费。原回执为`jpeg-iteration2-route-handoff-audits/1792247999487412399/acceptance.json`；全部结束后沿同一核查再次确认实际消费。公开日志显示原首批两项完成、后续任务继续优化，不重开搜索。
 
 ## 第二轮CTS完成与生产恢复后的实际交接
 
