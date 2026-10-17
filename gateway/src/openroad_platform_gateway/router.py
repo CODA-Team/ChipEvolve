@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import socket
 import urllib.parse
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
@@ -26,6 +27,12 @@ _SEGMENT = r"(?P<{name}>[^/]+)"
 #: owns everything below its own prefix -- and where the app, not the kernel,
 #: decides what its sub-paths mean.
 _TAIL = r"(?P<{name}>.*)"
+
+
+class LocalHTTPServer(ThreadingHTTPServer):
+    """Accept native batch bursts using the host's supported listen backlog."""
+
+    request_queue_size = socket.SOMAXCONN
 
 
 @dataclass(frozen=True)
@@ -99,8 +106,9 @@ class Router:
     def __init__(self) -> None:
         self._routes: list[_Route] = []
 
-    def add(self, method: str, template: str,
-            handler: Callable[[Request], Response]) -> None:
+    def add(
+        self, method: str, template: str, handler: Callable[[Request], Response]
+    ) -> None:
         def expand(match: re.Match[str]) -> str:
             name, tail = match.group(1), match.group(2)
             return (_TAIL if tail else _SEGMENT).format(name=name)
@@ -117,8 +125,9 @@ class Router:
     def match(self, method: str, path: str) -> tuple[_Route, dict[str, str]] | None:
         # Longest pattern first, so a tail route does not shadow a more
         # specific one that happens to be registered later.
-        for route in sorted(self._routes,
-                            key=lambda r: len(r.regex.pattern), reverse=True):
+        for route in sorted(
+            self._routes, key=lambda r: len(r.regex.pattern), reverse=True
+        ):
             if route.method != method.upper():
                 continue
             found = route.regex.match(path)
@@ -131,9 +140,7 @@ class Router:
         return None
 
     def allowed_methods(self, path: str) -> set[str]:
-        return {
-            route.method for route in self._routes if route.regex.match(path)
-        }
+        return {route.method for route in self._routes if route.regex.match(path)}
 
     def routes(self) -> Iterable[tuple[str, str]]:
         return ((r.method, r.regex.pattern) for r in self._routes)
@@ -160,17 +167,18 @@ def make_handler(router: Router):
                 if matched is None:
                     allowed = router.allowed_methods(parsed.path)
                     if allowed:
-                        self._send(Response.error(
-                            405, f"{method} is not allowed here"
-                        ))
+                        self._send(Response.error(405, f"{method} is not allowed here"))
                     else:
                         self._send(Response.error(404, "not found"))
                     return
                 route, params = matched
                 request = Request(
-                    method=method, path=parsed.path, params=params,
+                    method=method,
+                    path=parsed.path,
+                    params=params,
                     query=urllib.parse.parse_qs(parsed.query),
-                    headers=dict(self.headers.items()), body=body,
+                    headers=dict(self.headers.items()),
+                    body=body,
                 )
                 response = route.handler(request)
                 if not isinstance(response, Response):  # pragma: no cover
@@ -183,9 +191,7 @@ def make_handler(router: Router):
                 # type.  It is never dressed up as a 200, because a client that
                 # cannot distinguish "failed" from "succeeded" will store the
                 # wrong thing.
-                self._send(Response.error(
-                    500, f"{type(exc).__name__}: {exc}"
-                ))
+                self._send(Response.error(500, f"{type(exc).__name__}: {exc}"))
 
         def _read_body(self) -> Any:
             length = self.headers.get("Content-Length")
@@ -197,8 +203,9 @@ def make_handler(router: Router):
                 raise HttpError(400, "Content-Length must be an integer") from exc
             if size < 0 or size > MAX_BODY_BYTES:
                 raise HttpError(413, f"request body exceeds {MAX_BODY_BYTES} bytes")
-            content_type = (self.headers.get("Content-Type", "")
-                            .split(";", 1)[0].strip().lower())
+            content_type = (
+                self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
+            )
             if size == 0 and content_type == "application/octet-stream":
                 return b""
             if size == 0:
@@ -241,4 +248,4 @@ def make_handler(router: Router):
 
 
 def serve(router: Router, *, host: str, port: int) -> None:
-    ThreadingHTTPServer((host, port), make_handler(router)).serve_forever()
+    LocalHTTPServer((host, port), make_handler(router)).serve_forever()

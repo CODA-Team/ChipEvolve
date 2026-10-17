@@ -547,3 +547,21 @@ public interface, source algorithm or authoritative reservation change. The
 owner authorised the A23-A28 gap-closing goal and necessary evidence-backed
 compatibility/stability repairs; this exact allowance grants no future headroom.
 Deploy only after isolation/regression gates and safe task drain.
+# A25 batch input intake, 2026-10-17
+
+The authorized long-running acceptance work includes fixing observed execution
+foundation defects without changing research algorithms or public task contracts.
+The exact approved total for this correction is **9090 lines**, up from 9082
+(**8 additional lines**, including formatting in the two affected gateway files).
+
+Evidence: nine of fifty real native CTS candidates failed input upload with a
+connection reset before an EF run existed. An isolated real gateway/store on the
+same filesystem reproduced eleven failed clients out of fifty. Both production
+entry points used the Python 3.12 default listen backlog of five. A shared local
+HTTP server using `socket.SOMAXCONN` accepts the same fifty-client burst with all
+150 exact-hash uploads complete, without client retries. A deterministic pending
+connection test also fails with the old capacity and passes with the correction.
+
+Only `gateway/src/openroad_platform_gateway/router.py` and `__main__.py` change
+production behavior. Worker scheduling, task schemas, algorithms, resource policy,
+durability and errors remain intact. This amount does not authorize future growth.

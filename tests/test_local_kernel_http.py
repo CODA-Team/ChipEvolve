@@ -1,18 +1,21 @@
 """Single-machine HTTP surface preserves lifecycle and evidence, without accounts."""
 
+import hashlib
+import http.client
 import json
 import os
 import subprocess
 import sys
 import threading
 import time
-from http.server import ThreadingHTTPServer
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
 from openroad_platform_client import KernelClient, KernelError
-from openroad_platform_gateway import build_router, make_handler
+from openroad_platform_gateway import Response, Router, build_router, make_handler
 from openroad_platform_gateway.bootstrap import KernelPaths, build_kernel
+from openroad_platform_gateway.router import LocalHTTPServer
 from openroad_platform_runtime import RuntimeWorker
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,7 +26,7 @@ def local(tmp_path, request):
     kernel = build_kernel(
         KernelPaths.of(tmp_path / "state", ROOT / "plugins", ROOT / "admissions")
     )
-    server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(build_router(kernel)))
+    server = LocalHTTPServer(("127.0.0.1", 0), make_handler(build_router(kernel)))
     http_thread = threading.Thread(target=server.serve_forever)
     http_thread.start()
     stop = threading.Event()
@@ -63,6 +66,57 @@ def terminal(client, run_id):
             return run
         time.sleep(0.03)
     raise AssertionError("run never reached a terminal state")
+
+
+def test_full_batch_connections_survive_until_dispatch_starts():
+    router = Router()
+    router.get("/check", lambda request: Response.json({"ok": True}))
+    connections = []
+    with LocalHTTPServer(("127.0.0.1", 0), make_handler(router)) as server:
+        thread = threading.Thread(target=server.serve_forever)
+        try:
+            # A brief dispatch delay must not discard the native 50-leaf burst.
+            for _ in range(50):
+                connection = http.client.HTTPConnection(
+                    "127.0.0.1", server.server_port, timeout=2
+                )
+                connections.append(connection)
+                connection.connect()
+            thread.start()
+            for connection in connections:
+                connection.request("GET", "/check", headers={"Connection": "close"})
+                response = connection.getresponse()
+                assert response.status == 200
+                assert json.loads(response.read()) == {"ok": True}
+        finally:
+            for connection in connections:
+                connection.close()
+            if thread.ident is not None:
+                server.shutdown()
+                thread.join(timeout=10)
+                assert not thread.is_alive()
+
+
+@pytest.mark.parametrize("local", [False], indirect=True)
+def test_fifty_clients_upload_all_stage_inputs_with_exact_hashes(local):
+    client, _ = local
+    barrier = threading.Barrier(50)
+
+    def upload(slot):
+        own = KernelClient(client.base_url)
+        barrier.wait(timeout=10)
+        results = []
+        for name, size in (("profile", 7500), ("config", 1400), ("sdc", 500)):
+            body = f"{slot}:{name}".encode().ljust(size, b" ")
+            uploaded = own.upload_input(body)
+            assert uploaded["sha256"] == hashlib.sha256(body).hexdigest()
+            results.append(uploaded["input_id"])
+        return results
+
+    with ThreadPoolExecutor(max_workers=50) as pool:
+        bundles = list(pool.map(upload, range(50)))
+    assert len(bundles) == 50
+    assert len({input_id for bundle in bundles for input_id in bundle}) == 150
 
 
 def test_http_runs_progress_resources_artifacts_and_durable_store(local, tmp_path):

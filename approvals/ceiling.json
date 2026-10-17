@@ -6,7 +6,7 @@
     "past what was approved. Raising a number here without a reason beside it is",
     "the thing the ratchet exists to make impossible."
   ],
-  "core_total_loc": 9082,
+  "core_total_loc": 9090,
   "core/registry/src/openroad_platform_registry/registry.py": 430,
   "core/registry/src/openroad_platform_registry/validate.py": 237,
   "core/runtime/src/openroad_platform_runtime/adapter.py": 398,

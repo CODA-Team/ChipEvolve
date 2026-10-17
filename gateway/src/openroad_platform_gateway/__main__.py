@@ -9,11 +9,12 @@ import argparse
 import signal
 import sys
 import threading
+
 from openroad_platform_runtime import RuntimeWorker
 
 from .app import build_router
 from .bootstrap import KernelPaths, build_kernel
-from .router import make_handler
+from .router import LocalHTTPServer, make_handler
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -65,11 +66,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     router = build_router(kernel)
 
-    from http.server import ThreadingHTTPServer
-
-    server = ThreadingHTTPServer((args.host, args.port), make_handler(router))
+    server = LocalHTTPServer((args.host, args.port), make_handler(router))
     stop = threading.Event()
-    worker = RuntimeWorker(kernel.store, kernel.runtime, idle_seconds=0.1, batch=args.worker_concurrency)
+    worker = RuntimeWorker(
+        kernel.store, kernel.runtime, idle_seconds=0.1, batch=args.worker_concurrency
+    )
     thread = (
         None
         if args.api_only
