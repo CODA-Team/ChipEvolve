@@ -63,7 +63,7 @@
 | 切片 | 当前真实状态 |
 |---|---|
 | A23 | 工程并发/监管验证通过，待老板业务验收；EF392/根306回归、mypy42/实际环境Pyright通过。三AES七PPA同值、JPEG事实、持续1725/1725，lost/续租错误0；最长续租10.7秒、两秒health短超时2次，保留I/O限制。原位更新EF，DF不动，在线回执见运行资产；[报告](admin/A23_METADATA_STABILITY_REPORT_20261016.md) |
-| A24 | 进行中：JPEG首轮50/50布线成功、各一次attempt，全部CTS→route真实消费/目标/产物哈希一致，42个不同父run被继承；首轮最终评价已自动开始，原2×50尚未完成。全部50份原生报告保留，4份有fanout违例；原27输出/7082分区PDR及GCD/AES18/129输出复核保持。健康Code轮次、完整接力/重放与预算校准仍待完成，旧失败和6次人工恢复保留。资源池32GiB，未改原算法或活动副本；见[完整首轮交接](admin/A25_STAGE_HANDOFF_AND_NATIVE_CPU_REPORT_20261017.md) |
+| A24 | 进行中：JPEG首轮50/50布线及50项原生最终评价完成，各一次attempt；全部CTS→route实际输入一致，42个不同父run被继承。EF原始metadata→DF/SDK的50快照/150数值/TT-CP0-SPEF上下文及主体证据逐份一致，首轮排序/备份已写出；原2×50及最终共同交付尚未完成。4份原生fanout违例、原27输出/7082分区PDR及GCD/AES18/129输出复核保持。健康Code轮次、完整接力/重放和预算校准仍待完成，旧失败及6次人工恢复保留；见[首轮交接与数据回流](admin/A25_STAGE_HANDOFF_AND_NATIVE_CPU_REPORT_20261017.md) |
 | A25 | 待A24完整校准后冻结：Toolkits a7fec1b 精简成功只读评价归档，同输入真实EF三指标/上下文一致，68.40→29.31秒为单项工程资格；15针对/66模块/23Flow消费/470根回归和静态通过，生产未启用。空闲双环境Toolkit更新和实际插件→DF/SDK核验已加入r4串行队列，54指纹/dry-run及活动期拒绝门禁通过，仍零派发等待完整JPEG。已知fanout违例拦截、恢复身份、AES固定动作保真及原生汇总保持，原十项目标/ID不变。正式来源/模型/总预算/重复与顺序/题集/停止规则未冻结；见[只读归档资格](admin/A25_READ_ONLY_EVALUATION_EXPORT_REPORT_20261017.md)、[实际违例修正](admin/A25_OBSERVED_FANOUT_ACCEPTANCE_REPORT_20261017.md)、[电气覆盖](admin/A25_ELECTRICAL_FACT_COVERAGE_REPORT_20261017.md)、[保真核查](admin/A25_FIXED_PROFESSIONAL_FIDELITY_REPORT_20261017.md) |
 | A26 | 待A25：正式同预算PPA、最强单项与团队、来源路线及接力消融；未启动，不预设正收益 |
 | A27 | 待A25：同Codex完整端到端直接/平台对照，全部正确性、冷/热成本和失败；查询小试不代替本项 |
