@@ -63,7 +63,7 @@
 | 切片 | 当前真实状态 |
 |---|---|
 | A23 | 工程并发/监管验证通过，待老板业务验收；EF392/根306回归、mypy42/实际环境Pyright通过。三AES七PPA同值、JPEG事实、持续1725/1725，lost/续租错误0；最长续租10.7秒、两秒health短超时2次，保留I/O限制。原位更新EF，DF不动，在线回执见运行资产；[报告](admin/A23_METADATA_STABILITY_REPORT_20261016.md) |
-| A24 | 进行中：JPEG完整27输出/7082分区PDR通过，r4原2×50完整Flow已由EF实际消费；参考STA新上下文/15条路径同值。当前GCD/AES分别18/129输出的新PDR及旧物理/SDK核对通过，GCD输出切分失败与通用整体修正有完整证据。JPEG两个Code旧轮次失败、时序未闭合接力和6次旧人工恢复保留；健康Code轮次、完整接力/重放与预算校准仍待完成。资源池32GiB，未改专业算法或旧结果 |
+| A24 | 进行中：JPEG首轮50/50布线成功、各一次attempt，全部CTS→route真实消费/目标/产物哈希一致，42个不同父run被继承；首轮最终评价已自动开始，原2×50尚未完成。全部50份原生报告保留，4份有fanout违例；原27输出/7082分区PDR及GCD/AES18/129输出复核保持。健康Code轮次、完整接力/重放与预算校准仍待完成，旧失败和6次人工恢复保留。资源池32GiB，未改原算法或活动副本；见[完整首轮交接](admin/A25_STAGE_HANDOFF_AND_NATIVE_CPU_REPORT_20261017.md) |
 | A25 | 待A24完整校准后冻结：真实JPEG候选20的原生/共同测量/SDK均确认4项fanout违例，既有检查现拒绝已知违例，12针对/470根回归和静态通过；原十项目标/ID、旧缺失字段保持。零派发队列换为r3-fanout-acceptance、47指纹通过，仍等完整JPEG。恢复身份、AES固定动作保真、原生汇总及此前三设计电气覆盖保持。正式来源/模型/总预算/重复与顺序/题集/停止规则未冻结；见[实际违例修正](admin/A25_OBSERVED_FANOUT_ACCEPTANCE_REPORT_20261017.md)、[电气覆盖](admin/A25_ELECTRICAL_FACT_COVERAGE_REPORT_20261017.md)、[保真核查](admin/A25_FIXED_PROFESSIONAL_FIDELITY_REPORT_20261017.md)、[汇总工具](admin/A25_NATIVE_OPERATION_REPORTING_20261017.md) |
 | A26 | 待A25：正式同预算PPA、最强单项与团队、来源路线及接力消融；未启动，不预设正收益 |
 | A27 | 待A25：同Codex完整端到端直接/平台对照，全部正确性、冷/热成本和失败；查询小试不代替本项 |
