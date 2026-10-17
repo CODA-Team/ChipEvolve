@@ -294,7 +294,7 @@ def measure(
         for path, row in zip(libraries, design["libraries"], strict=True)
     ):
         raise ValueError("Frozen design libraries changed")
-    script.write_text(
+    generated = (
         "\n".join(
             [
                 *[f"read_liberty {{{p}}}" for p in libraries],
@@ -313,6 +313,9 @@ def measure(
                 "utl::metric_float finish__timing__hold__ws [worst_slack -min]",
                 "utl::metric_integer finish__timing__drv__max_slew [sta::max_slew_violation_count]",
                 "utl::metric_integer finish__timing__drv__max_cap [sta::max_capacitance_violation_count]",
+                # The native report initializes CheckFanouts before its count API.
+                "report_check_types -max_fanout -violators",
+                "utl::metric_integer finish__timing__drv__max_fanout [sta::max_fanout_violation_count]",
                 "utl::metric_float finish__design__instance__area [expr {[rsz::design_area] * 1e12}]",
                 "set block [ord::get_db_block]",
                 "set scale [$block getDbUnitsPerMicron]",
@@ -332,6 +335,12 @@ def measure(
         )
         + "\n"
     )
+    if not (
+        script.exists() and (jobs.experiment / "jobs" / key / "task.json").exists()
+    ):
+        # Keep the original Tcl for dispatched/cached measurements. A legacy
+        # result's missing fanout fact remains unknown; do not invent zero.
+        script.write_text(generated)
     result = jobs.command(
         key,
         container(
