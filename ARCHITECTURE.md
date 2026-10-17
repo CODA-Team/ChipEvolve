@@ -1,5 +1,7 @@
 # 架构与源码边界
 
+2026-10-17 A25规范保留：复用原validate→EF全输出PDR/独立完整物理重放→DF/SDK→Codex/select链路，既有GCD分支在正确310ps目标下完整通过并保留。无源码、模块契约、专业算法或服务变化；历史结果不改。正式同预算单项/团队比较仍待冻结和执行，见[规范保留验证](admin/A25_CANONICAL_RETAINED_VALIDATION_REPORT_20261017.md)。
+
 2026-10-17 A25批量入口：真实GCD九个CTS候选在上传时连接重置、未进入EF；旧容量5在独立服务复现11/50失败，新Gateway及wheel均150/150上传通过，源码f54e9d6已发布，生产尚待空闲原位启用。status现跨迭代显示缺失run回执；50份实际布线输入、50份时钟绑定及EF→DF→SDK的50快照/150数值核验通过。根441回归及静态门禁通过；完整专业接力和正式对照未完成。见[批量入口与数据验收](admin/A25_BATCH_INTAKE_AND_STAGE_DELIVERY_REPORT_20261017.md)。
 
 2026-10-17 A25进度入口：status可显示原生Flow每阶段真实任务计数和嵌套验证等待原因，不把上次屏障phase0误作未执行，不把任务成功当最终PPA采用；两个真实目录读取及10项针对检查、435项根回归/静态门禁通过。双真实搜索20分钟180/180状态/七PPA读取通过，采样未见lost；完整搜索和正式对照仍未结束。见[进度与并发读取](admin/A25_NATIVE_PROGRESS_AND_CONCURRENT_READS_REPORT_20261017.md)。
