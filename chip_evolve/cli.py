@@ -237,7 +237,9 @@ def _main() -> int:
         print(json.dumps(observe(client, run, worker_stale=120), ensure_ascii=False))
     elif args.command == "status":
         from .jobs import Jobs
+        from .progress import flow_progress
 
+        client = Jobs(deployment, args.design, deployment.state).client
         rows = []
         design_root = deployment.state / "experiments" / args.design
         paths = set(design_root.glob("*/request.json")) | set(
@@ -280,14 +282,22 @@ def _main() -> int:
                                 if key in state
                             },
                         }
-                        for pattern in ("jobs/*/lifecycle.json", "imports/*.json")
+                        for pattern in (
+                            "jobs/*/lifecycle.json",
+                            "imports/*.json",
+                            "logic/jobs/*/lifecycle.json",
+                            "replay/jobs/*/lifecycle.json",
+                            "replay/imports/*.json",
+                        )
                         for p in sorted(path.parent.glob(pattern))
                         for state in [read(p)]
                         if state.get("status") not in {"succeeded", "completed"}
                     ],
                 }
             )
-        client = Jobs(deployment, args.design, deployment.state).client
+            progress = flow_progress(client, path.parent)
+            if progress is not None:
+                rows[-1]["native_progress"] = progress
         active = [
             {
                 "run_id": row["run_id"],
