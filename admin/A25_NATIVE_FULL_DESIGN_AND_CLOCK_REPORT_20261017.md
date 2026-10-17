@@ -8,6 +8,10 @@
 
 修正复用平台**现有通用共同测量入口**已经生成的显式ps序列化SDC：`reference-r3/common/final.sdc`，周期310ps、原IO约束随同序列化。它不是GCD网名/数值补丁，也不修改RTL、库、专业算法或ORFS源码。新部署`local-r6-canonical-gcd.json`仅将GCD原生输入绑定到该既有规范输出；旧配置、旧约束、旧结果和活跃JPEG r4保持。AES/JPEG现有输入已经显式ps，此次没有证明它们存在同一单位问题。
 
+AES原生链补核：从公开EF重新读取原完整ORFS运行`run-991197d4b6a44fb78760a497cfc1d42e`、实际输入manifest和原始artifact bytes，确认输入明确810ps，原生单位指标为`1ps`，综合至最终物理收尾的九份阶段SDC均保留810。原archive与这九份公开artifact逐字节一致；当前SDK的基线七PPA也与原结果一致，35.107899457mW/1255.75µm²。这为AES原比较基线提供了实际时钟链证据，没有发现GCD那类单位交接问题。
+
+另存的`updated_clks.sdc`为563.8857ps；实际固定镜像的`write_ref_sdc.tcl`及`global_route.tcl`确认，这是全局布线时依据slack和5%余量生成的参考文件，脚本写出后恢复原时钟。它与实际阶段SDC、共同FF/810ps验收分别标注，不能按文件名把参考时钟当成真实任务输入。主要证据在`var/business/a25-formal-preparation-20261017/aes-original-clock-audit-r1/acceptance.json`，含原始单位JSON、十份SDC、实际镜像脚本及SDK响应。本补核只读取既有实验和源码文本，没有新EDA、模型调用、约束改动或收益声明；A25仍未冻结。
+
 该新部署仍是准备配置。GCD来源复制、环境与目标必须按新SDC字节重新冻结；不能拿它直接套用旧GCD环境、旧目标ID或未经本轮功能验证的历史候选。
 
 ## 实际复验
