@@ -365,6 +365,8 @@ def _main() -> int:
             else {"flow": 12, "dpl": 3, "goal": 4}.get(args.capability)
         )
         experiment = deployment.experiment(args.design, args.key)
+        if args.objective:
+            args.objective = args.objective.resolve()
         request = {
             key: str(value) if isinstance(value, Path) else value
             for key, value in vars(args).items()

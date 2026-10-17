@@ -7,7 +7,7 @@ import pytest
 from admin.test_local_business import deployment
 from chip_evolve.config import business_lock, read, write
 from chip_evolve.delivery import checkpoint, finish, recover
-from chip_evolve.jobs import Jobs
+from chip_evolve.jobs import Jobs, digest
 from chip_evolve.logic import interface_and_physical
 
 
@@ -51,7 +51,7 @@ def test_recovery_keeps_native_verdict_and_failure_history(tmp_path, monkeypatch
 
     def qualify(jobs, selected, producer, goal, model):
         seen.append((selected.read_bytes(), producer))
-        return {"run_id": "same-measurement"}
+        return {"run_id": "same-measurement", "design_id": "aes"}
 
     monkeypatch.setattr("chip_evolve.physical.qualify", qualify)
     first = recover(d, "aes", "completed")
@@ -60,10 +60,64 @@ def test_recovery_keeps_native_verdict_and_failure_history(tmp_path, monkeypatch
         read(folder / "status-before-recovery.json")["detail"] == "delivery interrupted"
     )
     assert not read(folder / "delivery-recovery.json")["native_search_restarted"]
+    assert recover(d, "aes", "completed") == first
     odb.write_bytes(b"changed")
+    with pytest.raises(ValueError, match="Delivery input changed"):
+        recover(d, "aes", "completed")
     with pytest.raises(ValueError, match="Delivery input changed"):
         finish(d, folder)
     assert len(seen) == 1
+
+
+@pytest.mark.parametrize("capability", ["orfs", "flow", "dpl", "goal", "eco"])
+def test_completed_recovery_preserves_handoff_and_validation_hash(
+    tmp_path, monkeypatch, capability
+):
+    d = deployment(tmp_path)
+    folder = d.experiment("gcd", "finished")
+    write(folder / "request.json", {"design": "gcd", "capability": capability})
+    write(folder / "status.json", {"status": "succeeded"})
+    frame = {
+        "design_id": "gcd",
+        "run_id": "immutable-run",
+        "exports": {
+            "orfs": {"execution": {"wait_seconds": 4.25}},
+        },
+    }
+    if capability == "flow":
+        frame = {"design_id": "gcd", "candidate_results": [{"run_id": "candidate"}]}
+    path = folder / "result.json"
+    write(path, frame)
+    validated = digest(path)
+    stamp = path.stat().st_mtime_ns
+    monkeypatch.setattr(
+        "chip_evolve.physical.baseline",
+        lambda *a, **k: pytest.fail("repeated physical delivery"),
+    )
+    monkeypatch.setattr(
+        "chip_evolve.professional.collect_flow",
+        lambda *a, **k: pytest.fail("repeated collection"),
+    )
+    assert recover(d, "gcd", "finished") == frame
+    assert digest(path) == validated
+    assert path.stat().st_mtime_ns == stamp
+
+
+def test_completed_recovery_rejects_a_different_requested_goal(tmp_path):
+    d = deployment(tmp_path)
+    folder = d.experiment("gcd", "wrong-goal")
+    goal = tmp_path / "original.json"
+    write(goal, {"objective_id": "requested"})
+    write(
+        folder / "request.json",
+        {"design": "gcd", "capability": "orfs", "objective": str(goal)},
+    )
+    write(folder / "status.json", {"status": "succeeded"})
+    write(folder / "result.json", {"design_id": "gcd", "objective_id": "regenerated"})
+    before = digest(folder / "result.json")
+    with pytest.raises(ValueError, match="original requested objective"):
+        recover(d, "gcd", "wrong-goal")
+    assert digest(folder / "result.json") == before
 
 
 def test_changed_staged_bytes_cannot_reuse_a_saved_job(tmp_path, monkeypatch):

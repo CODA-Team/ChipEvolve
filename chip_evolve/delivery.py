@@ -269,13 +269,38 @@ def recover(deployment: Deployment, design_id: str, key: str) -> dict[str, Any]:
     status = experiment / "status.json"
     if status.exists():
         prior = read(status)
+        completed = experiment / "result.json"
+        if prior.get("status") == "succeeded" and completed.is_file():
+            checkpoint_path = experiment / "delivery-checkpoint.json"
+            if checkpoint_path.is_file():
+                for name, sha in read(checkpoint_path)["input_hashes"].items():
+                    if digest(Path(name)) != sha:
+                        raise ValueError("Delivery input changed: " + name)
+            result = read(completed)
+            if result.get("design_id") != design_id:
+                raise ValueError("Completed result belongs to another design")
+            if (
+                request.get("objective")
+                and result.get("objective_id")
+                != read(request["objective"])["objective_id"]
+            ):
+                raise ValueError(
+                    "Completed result differs from original requested objective"
+                )
+            return result
         history = experiment / "status-before-recovery.json"
         if not history.exists():
             write(history, prior)
     if (experiment / "delivery-checkpoint.json").exists():
         result = finish(deployment, experiment)
     elif request["capability"] == "orfs":
-        result = baseline(deployment, design_id, experiment, request["seconds"])
+        result = baseline(
+            deployment,
+            design_id,
+            experiment,
+            request["seconds"],
+            objective=Path(request["objective"]) if request.get("objective") else None,
+        )
     elif request["capability"] == "flow":
         objective = Path(read(experiment / "input-receipt.json")["objective"])
         result = collect_flow(deployment, design_id, experiment, objective)

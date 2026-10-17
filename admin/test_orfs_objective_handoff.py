@@ -4,7 +4,8 @@ import pytest
 
 from admin.test_local_business import deployment
 from chip_evolve.cli import main
-from chip_evolve.config import read
+from chip_evolve.config import read, write
+from chip_evolve.delivery import recover
 
 
 @pytest.mark.parametrize("explicit", [False, True])
@@ -42,4 +43,34 @@ def test_orfs_cli_passes_original_objective_to_physical_boundary(
     assert main() == 0
     assert seen == [("gcd", 123, objective if explicit else None)]
     saved = read(tmp_path / "experiments/gcd/control/request.json")
-    assert saved["objective"] == ("original-objective.json" if explicit else None)
+    assert saved["objective"] == (str(objective) if explicit else None)
+
+
+@pytest.mark.parametrize("explicit", [False, True])
+def test_orfs_recovery_preserves_the_requested_goal(tmp_path, monkeypatch, explicit):
+    d = deployment(tmp_path)
+    folder = d.experiment("gcd", "interrupted")
+    objective = tmp_path / "strict-goal.json"
+    write(objective, {"objective_id": "strict-original", "power_max": 0.001})
+    write(
+        folder / "request.json",
+        {
+            "design": "gcd",
+            "capability": "orfs",
+            "seconds": 600,
+            "objective": str(objective) if explicit else None,
+        },
+    )
+    seen = []
+
+    def baseline(deployment, design, experiment, seconds, *, objective=None):
+        seen.append(objective)
+        return {"design_id": design, "run_id": "same-physical-run"}
+
+    monkeypatch.setattr("chip_evolve.physical.baseline", baseline)
+    elsewhere = tmp_path / "other-directory"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+    recover(d, "gcd", "interrupted")
+    assert seen == [objective if explicit else None]
+    assert read(objective)["power_max"] == 0.001
