@@ -1,7 +1,9 @@
 """Native episode receipts preserve real failure, usage and input identity."""
 
 import json
+import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -139,6 +141,29 @@ def test_mutated_pinned_input_rejected_before_native_invocation(tmp_path):
     assert not output.exists()
 
 
+def test_episode_timestamp_includes_input_hash_preparation(tmp_path, monkeypatch):
+    from admin import run_native_codex_episode as recorder
+
+    spec, output = episode(tmp_path)
+    original = recorder.changed
+    calls = 0
+
+    def delayed_check(files):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            time.sleep(0.15)
+        return original(files)
+
+    monkeypatch.setattr(recorder, "changed", delayed_check)
+    result = run(spec, output)
+    assert result["status"] == "native_completed"
+    assert result["wall_seconds"] >= 0.15
+    assert result["ended_at"] - result["started_at"] == pytest.approx(
+        result["wall_seconds"], abs=0.05
+    )
+
+
 def test_explicit_common_account_profile_is_recorded_without_fallback(tmp_path):
     spec, output = episode(tmp_path)
     value = read(spec)
@@ -175,6 +200,48 @@ def test_timeout_retains_trace_and_does_not_invent_missing_usage(tmp_path):
     assert result["usage"] is None and not result["usage_complete"]
     assert result["exit_code"] != 0
     assert (output / "events.jsonl").read_text()
+    assert "unreaped/detached" in result["cpu_usage"]["scope"]
+
+
+def test_cpu_accumulates_serial_waited_grandchildren_and_excludes_prior_work(
+    tmp_path,
+):
+    leaf = (
+        "import time\nend=time.process_time()+0.15\n"
+        "while time.process_time()<end: pass\n"
+    )
+    # Previous recorder children must not be charged to this episode.
+    subprocess.run([sys.executable, "-c", leaf], check=True)
+    parent = (
+        "import subprocess,sys\n"
+        f"subprocess.run([sys.executable,'-c',{leaf!r}],check=True)\n"
+    )
+    body = (
+        "import subprocess\nfor _ in range(2):\n"
+        f" subprocess.run([sys.executable,'-c',{parent!r}],check=True)\n"
+        "import resource\nchildren=resource.getrusage(resource.RUSAGE_CHILDREN)\n"
+        "print(json.dumps({'type':'cpu_probe','seconds':time.process_time()"
+        "+children.ru_utime+children.ru_stime}),flush=True)\n"
+    )
+    spec, output = episode(tmp_path, body)
+    result = run(spec, output)
+    assert result["status"] == "native_completed"
+    cpu = result["cpu_usage"]
+    descendants = (
+        cpu["native_and_waited_descendants_user_seconds"]
+        + cpu["native_and_waited_descendants_system_seconds"]
+    )
+    probe = next(
+        json.loads(line)
+        for line in (output / "events.jsonl").read_text().splitlines()
+        if json.loads(line)["type"] == "cpu_probe"
+    )
+    assert descendants >= 0.28
+    assert descendants == pytest.approx(probe["seconds"], abs=0.05)
+    assert cpu["runner_user_seconds"] >= 0
+    assert cpu["runner_system_seconds"] >= 0
+    assert "Independent EF/DF" in cpu["scope"]
+    assert read(output / "receipt.json")["cpu_usage"] == cpu
 
 
 def test_cli_prints_compact_receipt_without_repeating_native_command_output(

@@ -76,6 +76,8 @@ def changed(files: dict[str, str]) -> list[str]:
 
 def run(spec_path: Path, output: Path) -> dict[str, Any]:
     started = time.monotonic()
+    started_at = time.time()
+    cpu_before = os.times()
     spec = read(spec_path)
     if spec["schema"] != "chip-evolve.native-codex-episode.v1":
         raise ValueError("Unknown native episode specification")
@@ -126,7 +128,7 @@ def run(spec_path: Path, output: Path) -> dict[str, Any]:
     write(output / "invocation.json", command)
     record: dict[str, Any] = {
         "status": "running",
-        "started_at": time.time(),
+        "started_at": started_at,
         "specification_sha256": digest(spec_path),
         "requested_model": spec["model"],
         "reasoning_effort": spec["reasoning_effort"],
@@ -199,6 +201,23 @@ def run(spec_path: Path, output: Path) -> dict[str, Any]:
         raise
     finally:
         record.update(ended_at=time.time(), wall_seconds=time.monotonic() - started)
+        cpu_after = os.times()
+        record["cpu_usage"] = {
+            "runner_user_seconds": cpu_after.user - cpu_before.user,
+            "runner_system_seconds": cpu_after.system - cpu_before.system,
+            "native_and_waited_descendants_user_seconds": (
+                cpu_after.children_user - cpu_before.children_user
+            ),
+            "native_and_waited_descendants_system_seconds": (
+                cpu_after.children_system - cpu_before.children_system
+            ),
+            "scope": (
+                "os.times deltas for this recorder and its reaped native tree; "
+                "one episode per recorder process. Independent EF/DF services, "
+                "remote model compute and unreaped/detached descendants are "
+                "outside this observed scope, not zero-cost work."
+            ),
+        }
         write(output / "receipt.json", record)
     if interrupted:
         raise KeyboardInterrupt
@@ -220,6 +239,7 @@ def main() -> None:
                 "usage_complete": result["usage_complete"],
                 "usage": result["usage"],
                 "wall_seconds": result["wall_seconds"],
+                "cpu_usage": result["cpu_usage"],
             },
             ensure_ascii=False,
         )

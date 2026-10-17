@@ -1,5 +1,7 @@
 # 架构与源码边界
 
+2026-10-17 A25调用记录：现有单次原生调用器新增私有cpu_usage，按os.times差值记录自身及已回收原生后代的user/system CPU；独立EF/DF、远端模型和未回收进程用量另列，不填零。started_at与既有墙钟统一包含输入检查；未新增Agent循环、服务、公共契约或CPU硬配额。JPEG50份实际CTS继承、GCD第二轮50份布线继承通过，15项针对/443项根回归与静态检查通过；正式对照仍待冻结，见[阶段与成本记录](admin/A25_STAGE_HANDOFF_AND_NATIVE_CPU_REPORT_20261017.md)。
+
 2026-10-17 A25规范保留：复用原validate→EF全输出PDR/独立完整物理重放→DF/SDK→Codex/select链路，既有GCD分支在正确310ps目标下完整通过并保留。无源码、模块契约、专业算法或服务变化；历史结果不改。正式同预算单项/团队比较仍待冻结和执行，见[规范保留验证](admin/A25_CANONICAL_RETAINED_VALIDATION_REPORT_20261017.md)。
 
 2026-10-17 A25批量入口：真实GCD九个CTS候选在上传时连接重置、未进入EF；旧容量5在独立服务复现11/50失败，新Gateway及wheel均150/150上传通过，源码f54e9d6已发布，生产尚待空闲原位启用。status现跨迭代显示缺失run回执；50份实际布线输入、50份时钟绑定及EF→DF→SDK的50快照/150数值核验通过。根441回归及静态门禁通过；完整专业接力和正式对照未完成。见[批量入口与数据验收](admin/A25_BATCH_INTAKE_AND_STAGE_DELIVERY_REPORT_20261017.md)。
