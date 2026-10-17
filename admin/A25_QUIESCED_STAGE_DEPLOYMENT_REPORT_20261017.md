@@ -1,6 +1,28 @@
 # A25：在原生阶段间隙部署已验证修复
 
-当前是部署准备与真实排空验证通过，**生产更新尚未执行**。JPEG原完整搜索未结束，A25未冻结，A26–A28未启动。
+生产更新、实际接单及数据回流验收已通过，同一 JPEG 控制器已经恢复。原完整搜索未结束，A25 未冻结，A26–A28 未启动。下文准备阶段记录保留原时点含义，最新结果见本节。
+
+## 实际部署、启动探针失败与恢复
+
+旧 Gateway 在所有公开 EF 队列和活动 attempt 排空后停止，新 wheel 安装并启动 PID3936549。原部署器第一次健康查询立即遇到连接拒绝；客户端抛出的 `KernelUnavailable` 没有被脚本只捕获 `OSError` 的分支接住，部署器退出。原失败回执 `native-stage-deployment-r1/receipt.json` 保留，不改写为成功。现场随后确认新进程仍存活健康，沿用该进程完成恢复，没有第二次重启或安装 Gateway。
+
+恢复时再次核对新进程命令、wheel 逐文件内容及六份依赖包文件清单，原服务命令、32核/32GiB池、4个worker保持。真实监听容量为本机 `socket.SOMAXCONN=128`；50个并发客户端完成150次精确哈希上传，零失败、零重试，GCD两份历史结果、JPEG和AES结果的公共SDK事实核验通过。
+
+实际外部插件位于a4环境，业务客户端位于a7环境，两处均已安装资格通过的Toolkit wheel并逐文件核对。通过真实插件提交原JPEG首轮同输入评价，新的评价run `run-aec35980b1184f639d82ad26d6b07c2e` 与反馈run `run-4ae5b3bf811744068e08f9ae92b9c36d` 各一次attempt成功，已知托管CPU合计27.93秒。三项原生指标、TT/CP0、SPEF、profile、观测上下文与原件逐值一致，公共DF/SDK中的三数值、设计/父run/阶段和证据也一致；成功只读评价没有再次导出完整物理zip。此项验证不冒充FF/545ps最终PPA或正式效率比。
+
+全部验收通过、公开EF再次空闲后，于13:26 UTC左右向原PID380965发送SIGCONT；启动标识仍为836069812，父业务379322及原监督205922保持。放行前原15份文件哈希、campaign、阶段、目标和原20小时期限均核对不变。恢复后已经实际处理第二轮评价任务，未重启搜索。
+
+恢复主回执为 `var/business/a25-formal-preparation-20261017/native-stage-deployment-recovery-r2/receipt.json`，引用原失败回执和全部实际验收哈希。Gateway实际接单回执由其中 `actual_gateway_acceptance` 指定；Toolkit实际插件验收为 `a2-evaluation-retention-r1/production-plugin-acceptance/acceptance.json`。
+
+## 原第二轮布局与人工干预
+
+最后slot46在约100分钟内，53条迭代观察的合法性违例计数仍在37885–38486，已明确作为校准期人工提前终止，经公开EF取消 `run-e72e03f6ecde4bb7917d04143796c7aa`。终态为cancelled，原attempt为failed，托管CPU6054.27秒，峰值内存1146847232bytes；原日志、终态、资源及产物清单均保留在 `explicit-last-place-stagnation-stop-r1/`。不是原算法自然完成、资源终止或正式对照成绩。
+
+原第二轮布局共41份EF任务：30成功、10物理失败、1人工取消；另9槽位14/20/33/39/41/42/44/45/49在旧Gateway上传时失败，没有EF任务。原六次恢复、一次阶段维护、此次额外候选人工停止分别保留。部署回执的 `existing_eda_cancelled=0` 只表示部署器没有取消工作，不能扩写成整场没有人工干预。该预演不充当完整无故障总体或公平算法收益。
+
+原r5等待器1151184经核对仍为零派发后停止，新的r6等待器绑定真实恢复验收。原58份指纹保留，并额外固定恢复证据；JPEG DPL一轮三Student、Goal一轮四Student、完整原域GCD两轮各50候选的三条命令、模型、预算、相对顺序不变。新目录为 `serial-calibration-continuation-r6-recovered-production/`。成本与续接点更新至 `preparation-costs-r19.json`；原取消CPU是同一campaign子集，不与整场或旧部分采样重复相加。
+
+本次没有改产品/研究源码、公共接口或用户未提交文件。剩余验收是原后续批量真实CTS/布线、健康Code轮次、实际接力、最终约束与完整证明/独立重放，以及校准后的正式双核心对照。
 
 ## 为什么提前调整部署时点
 
