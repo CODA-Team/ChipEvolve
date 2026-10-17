@@ -52,6 +52,7 @@ def native(root, statuses):
         state / "campaign.json",
         {
             "campaign_id": "current",
+            "platform": "pdk",
             "design": "native-design",
             "iteration": 1,
             "phase": 0,
@@ -61,6 +62,7 @@ def native(root, statuses):
     for slot, status in enumerate(statuses, 1):
         value = {
             "campaign_id": "current",
+            "platform": "pdk",
             "design": "native-design",
             "iteration": 1,
             "stage": "place",
@@ -159,6 +161,73 @@ def test_uncommitted_campaign_has_no_invented_iteration_or_tasks(tmp_path):
     assert result is not None and result["progress_available"] is False
     assert result["iteration"] is None and result["stages"] == {}
     assert not client.lists and not client.reads
+
+
+def close_batch(root, *, status="completed"):
+    write(
+        root / "platform-state/iteration-1/finalize-place.json",
+        {
+            "campaign_id": "current",
+            "platform": "pdk",
+            "design": "native-design",
+            "iteration": 1,
+            "stage": "place",
+            "native_exit_code": 0,
+            "status": status,
+        },
+    )
+
+
+def test_native_zero_exit_exposes_candidates_without_ef_receipts(tmp_path):
+    native(tmp_path, ["succeeded", "prepared", "succeeded"])
+    close_batch(tmp_path)
+    client = Client([])
+    result = flow_progress(client, tmp_path)
+    assert result is not None
+    assert result["closed_batches"][0] == {
+        "iteration": 1,
+        "stage": "place",
+        "native_exit_code": 0,
+        "expected_candidates": 3,
+        "recorded_run_receipts": 2,
+        "missing_run_receipt_slots": [2],
+        "closure_receipt": str(
+            tmp_path / "platform-state/iteration-1/finalize-place.json"
+        ),
+    }
+    assert not client.lists and not client.reads
+
+
+def test_old_dispatch_gaps_remain_visible_after_the_next_iteration_starts(tmp_path):
+    state = native(tmp_path, ["succeeded", "succeeded", "prepared"])
+    (state / "iteration-1/slot-2-place.json").unlink()
+    close_batch(tmp_path)
+    journal = read(state / "campaign.json")
+    write(state / "campaign.json", {**journal, "iteration": 2})
+    before = {str(p): p.read_bytes() for p in tmp_path.rglob("*.json")}
+    client = Client([])
+    result = flow_progress(client, tmp_path)
+    assert result is not None and result["iteration"] == 2 and not result["stages"]
+    assert result["closed_batches"][0]["missing_run_receipt_slots"] == [2, 3]
+    assert all(p.read_bytes() == before[str(p)] for p in tmp_path.rglob("*.json"))
+    assert not client.lists and not client.reads
+
+
+def test_unfinished_dispatch_closure_does_not_invent_a_completed_gap(tmp_path):
+    native(tmp_path, ["prepared"])
+    close_batch(tmp_path, status="closing")
+    result = flow_progress(Client([]), tmp_path)
+    assert result is not None and result["closed_batches"] == []
+
+
+@pytest.mark.parametrize("field", ["campaign_id", "iteration", "stage"])
+def test_foreign_closure_cannot_describe_the_current_batch(tmp_path, field):
+    native(tmp_path, ["succeeded"])
+    close_batch(tmp_path)
+    path = tmp_path / "platform-state/iteration-1/finalize-place.json"
+    write(path, {**read(path), field: "foreign"})
+    with pytest.raises(ValueError, match="different scope"):
+        flow_progress(Client([]), tmp_path)
 
 
 def test_business_status_keeps_existing_fields_and_reports_native_stage(

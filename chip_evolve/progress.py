@@ -14,6 +14,48 @@ from .config import read
 from .lifecycle import TERMINAL
 
 
+def _closed_batches(state: Path, journal: dict[str, Any]) -> list[dict[str, Any]]:
+    batches = []
+    for path in sorted(state.glob("iteration-*/finalize-*.json")):
+        closure = read(path)
+        scope = {
+            "campaign_id": journal["campaign_id"],
+            "platform": journal["platform"],
+            "design": journal["design"],
+            "iteration": int(path.parent.name.removeprefix("iteration-")),
+            "stage": path.stem.removeprefix("finalize-"),
+        }
+        if any(closure[key] != value for key, value in scope.items()):
+            raise ValueError("Closed native batch belongs to a different scope")
+        if closure["status"] != "completed":
+            continue
+        missing = []
+        for slot in range(1, journal["runs"] + 1):
+            leaf = path.parent / f"slot-{slot}-{scope['stage']}.json"
+            if not leaf.exists():
+                missing.append(slot)
+                continue
+            record = read(leaf)
+            if any(record[key] != value for key, value in scope.items()) or (
+                record["candidate_slot"] != slot
+            ):
+                raise ValueError("Native batch receipt belongs to another slot/scope")
+            if not record.get("run_id"):
+                missing.append(slot)
+        batches.append(
+            {
+                "iteration": scope["iteration"],
+                "stage": scope["stage"],
+                "native_exit_code": closure["native_exit_code"],
+                "expected_candidates": journal["runs"],
+                "recorded_run_receipts": journal["runs"] - len(missing),
+                "missing_run_receipt_slots": missing,
+                "closure_receipt": str(path),
+            }
+        )
+    return batches
+
+
 def flow_progress(client: KernelClient, experiment: Path) -> dict[str, Any] | None:
     journal_path = experiment / "platform-state/campaign.json"
     if not journal_path.exists():
@@ -108,6 +150,7 @@ def flow_progress(client: KernelClient, experiment: Path) -> dict[str, Any] | No
             }
             for stage, counts in sorted(stages.items())
         },
+        "closed_batches": _closed_batches(journal_path.parent, journal),
         "observed_at": time.time(),
-        "semantics": "EF task states for the current native iteration; the phase is the last completed barrier, and task success is not PPA acceptance or delivered experiment success",
+        "semantics": "EF task states for the current native iteration; closed batches cover all recorded iterations. Missing slots have no local EF run receipt and may need reconciliation. A native zero exit is not full-population success. The phase is the last completed barrier, and task success is not PPA acceptance or delivered experiment success",
     }
