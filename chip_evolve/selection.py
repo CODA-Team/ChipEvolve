@@ -43,6 +43,11 @@ def violations(frame: dict[str, Any]) -> list[str]:
     ]
     if frame.get("route_drc") is None or frame["route_drc"] > limits["route_drc"]:
         failed.append("route_drc")
+    # Native counts already apply this design's SDC/library limits. Missing
+    # historical facts stay unknown; do not invent a universal fanout limit.
+    fanout = metrics.get("finish__timing__drv__max_fanout")
+    if fanout is not None and fanout > 0:
+        failed.append("max_fanout_violations")
     return failed
 
 
