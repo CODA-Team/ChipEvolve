@@ -14,6 +14,8 @@ JPEG第一、第二轮各50份CTS均已成功，第二轮布局→CTS的全部�
 
 布线开始后的预核查已确认全部50份预期输入与39个选中CTS父产物的检查点、ODB/SDC、artifact ID/hash一致；当时4项已实际消费、2项完成，其他仍排队/运行，状态明确为`intended_passed_actual_pending`。部分消费不计为50份全部实际消费。原回执为`jpeg-iteration2-route-handoff-audits/1792247999487412399/acceptance.json`；全部结束后沿同一核查再次确认实际消费。公开日志显示原首批两项完成、后续任务继续优化，不重开搜索。
 
+第二轮slot39布线首次失败为原生`GRT-0116`：30轮额外迭代后仍报告总拥塞1251，工具建议将layer adjustment从69.68%降至58%。原日志、公开EF单次attempt、实际CTS父run和资源回执保存在`native-stage-deployment-recovery-r2/second-route-physical-failures/run-5cd980823d72467d892aa3f6c57cc5da/diagnosis.json`及同目录原件。CPU采样1108.49秒、内存峰值1315835904bytes、9个进程，均未触发该任务资源/墙钟限额；原参数不改、不重跑。工具建议没有作为已验证的单参数因果结论。它与旧slot39布局上传丢失属于不同阶段，当前布线消费的是原DRP实际选中的CTS父产物。
+
 ## 第二轮CTS完成与生产恢复后的实际交接
 
 新Gateway原位启用并验收后，原campaign `20261016_225329_199041_seed42` 第二轮的50项CTS全部接单并成功。复用原交接核查，逐份比对原DRP阶段检查点、选中布局父产物的ODB/SDC、提交的artifact ID，以及公开EF中实际消费的输入哈希，全部50份一致。30份成功布局中有28个父run被原DRP选中，复制与筛选记录保持原意；新核查没有重跑EDA或改参数。
