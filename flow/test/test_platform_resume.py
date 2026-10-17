@@ -2,12 +2,15 @@
 
 import json
 import os
+import subprocess
 import tempfile
 import unittest
+from contextlib import ExitStack
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
+import platform_campaign as campaign
 import test_platform_execution as boundary
 from llm_usage import load_events
 from platform_campaign import commit, restore
@@ -216,6 +219,124 @@ class CampaignCheckpointTests(unittest.TestCase):
         Path(saved["checkpoint"], "receipt.json").write_text("{}")
         with self.assertRaisesRegex(RuntimeError, "receipt changed"):
             restore(self.flow, self.state, saved)
+
+
+class CopiedSourceResumeTests(unittest.TestCase):
+    """Exercise the real preflight on an untracked prepared runtime copy."""
+
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        subprocess.run(["git", "init", "--quiet"], cwd=self.root, check=True)
+        self.source = self.root / "runtime/source"
+        self.flow = self.source / "flow"
+        self.flow.mkdir(parents=True)
+        (self.source / "config").mkdir()
+        (self.source / "config/env.local.sh").write_text("export FIXED_TOOLS=1\n")
+        self.controller = self.flow / "native_controller.py"
+        self.controller.write_text("print('original controller')\n")
+        self.index = self.source / "prepared-files.json"
+        write_record(
+            self.index, {"flow/native_controller.py": campaign.digest(self.controller)}
+        )
+        self.profile = self.root / "profile.json"
+        self.profile.write_text("{}\n")
+        self.state = self.root / "state"
+        self.state.mkdir()
+        backup = self.flow / "backup_dir/example/example"
+        backup.mkdir(parents=True)
+        self.manifest = backup / "campaign_manifest.json"
+        self.manifest.write_text('{"campaign_id":"copied-source"}\n')
+        (backup / "llm_usage_events.jsonl").touch()
+        stack = ExitStack()
+        self.addCleanup(stack.close)
+        stack.enter_context(
+            patch.object(
+                campaign,
+                "settings",
+                return_value={
+                    "profile_path": str(self.profile),
+                    "state_root": str(self.state),
+                },
+            )
+        )
+        stack.enter_context(
+            patch.object(campaign, "tool_fingerprint", return_value={"tools": "fixed"})
+        )
+        stack.enter_context(
+            patch.object(campaign.importlib.metadata, "distributions", return_value=[])
+        )
+        stack.enter_context(patch.object(campaign, "assert_old_group_stopped"))
+        stack.enter_context(
+            patch.dict(os.environ, {"DRP_CAMPAIGN_OPTIONS": "fixed-options"})
+        )
+        stack.enter_context(
+            patch.object(campaign, "__file__", str(self.flow / "platform_campaign.py"))
+        )
+
+    def save_campaign(self):
+        write_record(
+            self.state / "campaign.json",
+            {
+                "platform": "example",
+                "design": "example",
+                "campaign_id": "copied-source",
+                "manifest_sha256": campaign.digest(self.manifest),
+                "fingerprint": campaign.fingerprint(self.flow),
+                "owner": None,
+            },
+        )
+
+    def preflight(self):
+        with patch("sys.argv", ["platform_campaign.py", "preflight"]):
+            campaign.main()
+
+    def test_changed_copied_controller_is_rejected_before_resume(self):
+        self.save_campaign()
+        self.controller.write_text("print('different controller')\n")
+        with self.assertRaisesRegex(
+            RuntimeError, "source, tools or installed environment changed"
+        ):
+            self.preflight()
+
+    def test_missing_declared_controller_is_rejected_before_resume(self):
+        self.save_campaign()
+        self.controller.unlink()
+        with self.assertRaisesRegex(
+            RuntimeError, "source, tools or installed environment changed"
+        ):
+            self.preflight()
+
+    def test_changed_preparation_index_is_rejected_before_resume(self):
+        self.save_campaign()
+        write_record(self.index, {"flow/native_controller.py": "0" * 64})
+        with self.assertRaisesRegex(
+            RuntimeError, "source, tools or installed environment changed"
+        ):
+            self.preflight()
+
+    def test_unchanged_copy_accepts_new_generated_candidate_data(self):
+        self.save_campaign()
+        generated = self.flow / "designs/example/example/config_2.mk"
+        generated.parent.mkdir(parents=True)
+        generated.write_text("export CLOCK_PERIOD=123\n")
+        self.preflight()
+
+    def test_git_only_source_keeps_existing_resume_checks(self):
+        self.index.unlink()
+        subprocess.run(
+            ["git", "add", str(self.controller.relative_to(self.root))],
+            cwd=self.root,
+            check=True,
+        )
+        self.save_campaign()
+        self.preflight()
+        self.controller.write_text("print('changed tracked controller')\n")
+        with self.assertRaisesRegex(
+            RuntimeError, "source, tools or installed environment changed"
+        ):
+            self.preflight()
 
 
 if __name__ == "__main__":

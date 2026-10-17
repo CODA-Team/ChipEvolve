@@ -33,6 +33,10 @@ def fingerprint(flow):
         .decode()
         .split("\0")
     )
+    # Bind copied runtime sources through their existing preparation index.
+    prepared = source / "prepared-files.json"
+    if prepared.is_file():
+        names += [*json.loads(prepared.read_text()), prepared.name]
     files = {
         name: digest(source / name)
         for name in names
