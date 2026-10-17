@@ -3,6 +3,7 @@ import hashlib
 import json
 import stat
 import zipfile
+from typing import Any
 
 import pytest
 
@@ -26,7 +27,7 @@ $(RESULTS_DIR)/3_place.odb: $(RESULTS_DIR)/missing_synth.v
 $(RESULTS_DIR)/3_place.sdc: $(RESULTS_DIR)/missing_floorplan.sdc
 \t$(error upstream SDC must not be rebuilt)
 ''')
-    profile = {'flow_dir': str(source), 'makefile_sha256': hashlib.sha256(makefile.read_bytes()).hexdigest(),
+    profile: dict[str, Any] = {'flow_dir': str(source), 'makefile_sha256': hashlib.sha256(makefile.read_bytes()).hexdigest(),
                'source_commit': 'a' * 40, 'openroad_bin': '/usr/bin/true',
                'yosys_bin': '/usr/bin/true', 'python_bin': '/usr/bin/python3'}
     if container:
@@ -164,6 +165,7 @@ def test_native_evaluation_preserves_fixed_context_and_rejects_incomplete_succes
         assert 'flow_archive' in {artifact['kind'] for artifact in payload['artifacts']}
         assert not (tmp_path / 'a2-evaluation.json').exists()
     else:
+        assert not (tmp_path / 'flow-artifacts.zip').exists()
         feedback = json.loads((tmp_path / 'a2-evaluation.json').read_text())
         assert feedback['evaluation']['cp0_ns'] == .792
         assert feedback['parasitic_mode'] == 'spef'
