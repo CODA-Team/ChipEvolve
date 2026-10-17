@@ -408,22 +408,6 @@
         "wl_base": 772,
         "reference": "ORFS 5105b0a77 / OpenROAD 27288f5c90, GCD ASAP7 BC, real post-route 2026-10-14"
       },
-      "placement_range_override": {
-        "CORE_UTILIZATION": [20, 35],
-        "CELL_PAD_IN_SITES_GLOBAL_PLACEMENT": [0, 1],
-        "CELL_PAD_IN_SITES_DETAIL_PLACEMENT": [0, 0],
-        "PLACE_DENSITY_LB_ADDON": [0.0, 0.20]
-      },
-      "cts_range_override": {
-        "CTS_CLUSTER_SIZE": [
-          10,
-          40
-        ],
-        "CTS_CLUSTER_DIAMETER": [
-          80,
-          120
-        ]
-      },
       "routing_range_override": {}
     }
   ]
