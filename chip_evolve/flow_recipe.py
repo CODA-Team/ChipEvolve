@@ -359,7 +359,15 @@ def qualify_prepared_recipe(
                 {"source": str(checkpoint), "destination": "inputs/checkpoint.zip"}
             )
         record = jobs.submit(
-            stage, inputs, staged, parent=parent, objective=objective, seconds=seconds
+            stage,
+            inputs,
+            staged,
+            parent=parent,
+            objective=objective,
+            seconds=seconds,
+            memory_gib=deployment.design(recipe["design_id"])
+            .get("orfs_execution", {})
+            .get("memory_gib", 24),
         )
         checkpoint = experiment / (stage + ".zip")
         jobs.materialize(record, "flow_archive", checkpoint)

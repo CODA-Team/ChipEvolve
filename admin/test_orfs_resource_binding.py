@@ -4,7 +4,7 @@ import pytest
 
 from admin.test_local_business import deployment
 from chip_evolve.config import write
-from chip_evolve.jobs import Jobs
+from chip_evolve.jobs import Jobs, digest
 from chip_evolve.physical import baseline
 
 
@@ -52,3 +52,52 @@ def test_native_flow_uses_deployment_memory_and_preserves_inputs(
     with pytest.raises(Submitted):
         baseline(d, "gcd", experiment, 900)
     assert sdc.read_bytes() == original
+
+
+@pytest.mark.parametrize("declared,expected", [(None, 24), (8, 8)])
+def test_source_copy_uses_same_declared_reservation(
+    tmp_path, monkeypatch, declared, expected
+):
+    from chip_evolve import professional
+    from chip_evolve.flow_recipe import qualify_prepared_recipe
+
+    d = deployment(tmp_path)
+    if declared is not None:
+        d.value["designs"]["gcd"]["orfs_execution"] = {"memory_gib": declared}
+    exp = d.experiment("gcd", "source-copy")
+    source = exp / "source"
+    source.mkdir()
+    config = source / "config.mk"
+    config.write_text("export SYNTH_USE_SYN = 0\n")
+    reference = exp / "original-result.json"
+    objective = exp / "objective.json"
+    write(reference, {"objective": str(objective)})
+    write(
+        exp / "recipe.json",
+        {
+            "source_result": str(reference),
+            "source": str(source),
+            "config_path": str(config),
+            "resolved_config_sha256": digest(config),
+            "design_id": "gcd",
+            "physical_run_id": "original-native-flow",
+        },
+    )
+    monkeypatch.setattr(professional, "tool_profile", lambda *a: exp / "profile.json")
+
+    class Submitted(Exception):
+        pass
+
+    def submit(self, key, inputs, staged, **options):
+        assert options.get("memory_gib", 24) == expected
+        assert key == inputs["stage"] == "place"
+        assert inputs["adapter"] == "a2_stage" and inputs["threads"] == 8
+        assert options["parent"] == "original-native-flow"
+        assert options["objective"] == objective
+        assert options["seconds"] == 1800
+        raise Submitted
+
+    monkeypatch.setattr(Jobs, "submit", submit)
+    with pytest.raises(Submitted):
+        qualify_prepared_recipe(d, exp, seconds=1800)
+    assert config.read_text() == "export SYNTH_USE_SYN = 0\n"

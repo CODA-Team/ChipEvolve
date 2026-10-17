@@ -1,5 +1,7 @@
 # 架构与源码边界
 
+2026-10-17 A25 GCD规范来源：完整Yosys来源、复制三阶段七PPA同值、18输出PDR及新环境通过。来源0.892263mW/44.8918µm²，面积超新ORFS上限42.6757，未采用；历史A7重测1.177533mW/40.27µm²可行且新PDR通过，A21低功耗分支新面积超限。当前Query包已明确该冲突，完整调参预演另行记录；425项根回归与静态门禁通过，正式实验未冻结。见[规范来源与分支核查](admin/A25_CANONICAL_GCD_SOURCE_REPORT_20261017.md)。
+
 现有ORFS业务入口可用私有`designs.<id>.orfs_execution.memory_gib`声明EF预约，缺省24GiB与原任务字节保持，八线程/算法不变。此声明进入既有设计环境身份；本轮GCD按实测设置4GiB，其他阶段/大构建不跟随。静态及423项根回归通过；完整原生平台操作的独立验收见[操作与单位核查](admin/A25_NATIVE_FULL_DESIGN_AND_CLOCK_REPORT_20261017.md)。
 
 2026-10-17 A25完整工具操作：真实原生Codex完整GCD暴露旧ns输入在ORFS中间丢单位；保留失败后，复用现有通用测量的显式ps约束，原生直接及EF两次完整流程通过，ODB同字节/SPEF仅日期不同。EF→DF→SDK→Query host交付、原参考同约束重测七PPA同值、新控制18输出PDR通过。新ORFS控制为1.373553765mW/42.6757µm²，正式须用新基线重算改善；原结果/活跃JPEG不改，A25未冻结。见[完整操作与单位核查](admin/A25_NATIVE_FULL_DESIGN_AND_CLOCK_REPORT_20261017.md)。
