@@ -1,6 +1,16 @@
 # A25：真实阶段交接与原生调用成本记录
 
-JPEG第一、第二轮各50份CTS均已成功，第二轮布局→CTS的全部实际消费、一次attempt及28个选中父run已核对；原实验继续CTS后评价。JPEG完整两轮交付、健康Code接力和正式对照仍未完成，A25尚未冻结。此前GCD两轮是受限参数域预演，原0/100可行和九项上传失败保留；恢复完整原域的新轮次由既定队列安排，不能将旧轮次计为完整原能力资格，范围纠正见`A25_GCD_DOMAIN_CORRECTION_REPORT_20261017.md`。
+JPEG第一、第二轮各50份CTS均已成功，第二轮布局→CTS的全部实际消费、一次attempt及28个选中父run已核对；第二轮50项CTS评价和50项数据导出各一次成功，50快照/150数值的原件→DF/SDK核验通过，原实验已进入布线。JPEG完整两轮交付、健康Code接力和正式对照仍未完成，A25尚未冻结。此前GCD两轮是受限参数域预演，原0/100可行和九项上传失败保留；恢复完整原域的新轮次由既定队列安排，不能将旧轮次计为完整原能力资格，范围纠正见`A25_GCD_DOMAIN_CORRECTION_REPORT_20261017.md`。
+
+## 第二轮CTS评价与数据回流完成
+
+第二轮50项原生CTS评价全部成功，分别导入50份快照。逐份从公开EF读取评价JSON，校验原始字节哈希，再对照当前公共DF/SDK的摘要、指标与证据：全部150个数值、原单位、TT/CP0、profile及观测上下文一致，设计、实际物理CTS父run、snapshot和stage均匹配。没有写数据、改原结果或新增EDA/模型调用。
+
+原生评价和数据导出共100项任务均只有一次成功attempt。50个成功评价均没有再次归档`flow-artifacts.zip`，物理证据继续通过CTS父产物追溯；原生评价CPU子集合计775.64秒，公开EF记录的导出CPU子集合计0.01秒。后者按已记录用量报告，不代表前端、服务、存储I/O或模型成本为零。所有数值都是原campaign的非加和子集，不叠加到整场成本之上。
+
+证据在`var/business/a25-gcd-canonical-source-20261017/jpeg-iteration2-cts-feedback-sdk-acceptance/`：`acceptance.json`固定50份原评价与SDK一致性，`managed-evaluation-scope.json`记录实际评价attempt和无重复物理归档，`managed-export-scope.json`保存公开EF的50个导出attempt与资源用量。只读核查墙钟7.554秒只属于该次审计，不作为平台正式效率比。成本与续接点已更新至`preparation-costs-r25.json`。
+
+原控制器已完成该阶段门槛并提交phase3，随后按原DRP进入phase4和第二轮布线，50个布线槽位已接单。接单、实际输入消费、物理成功及最终FF/545ps PPA仍分别核验，不以这批数据回流代替最终协同收益。
 
 ## 第二轮CTS完成与生产恢复后的实际交接
 
