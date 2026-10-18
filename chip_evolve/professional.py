@@ -178,8 +178,14 @@ def flow_source(deployment: Deployment, experiment: Path, *, design_id: str) -> 
         )
         shutil.copyfile(library["path"], target)
     config = source / "flow" / design["orfs_config"]
+    overrides = design.get("baseline_overrides", "")
+    for dependency in design.get("flow_dependencies", []):
+        target = source / "flow/source-bindings" / dependency["destination"]
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(dependency["source"], target)
+        overrides = overrides.replace("/work/" + dependency["destination"], str(target))
     with config.open("a") as stream:
-        stream.write("\n" + design.get("baseline_overrides", ""))
+        stream.write("\n" + overrides)
     return source
 
 
