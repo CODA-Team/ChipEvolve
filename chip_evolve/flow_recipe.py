@@ -420,7 +420,16 @@ def inherit_prepared_source(frame: dict[str, Any], experiment: Path) -> Path:
     if digest(Path(recipe["config_path"])) != recipe["resolved_config_sha256"]:
         raise ValueError("Prepared source configuration changed")
     target = experiment / "source"
-    shutil.copytree(source, target)
+    if identity.exists():
+        # The registered preparation owns the recipe. Later search outputs
+        # belong to checkpoints, not to every downstream source copy.
+        target.mkdir()
+        for name in [*read(identity), "prepared-files.json"]:
+            destination = target / name
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source / name, destination)
+    else:
+        shutil.copytree(source, target)
     relocated = {}
     for name in ("source-config.mk", recipe.get("design_config")):
         if not name:
