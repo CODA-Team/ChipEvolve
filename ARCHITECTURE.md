@@ -6,6 +6,8 @@
 
 # 架构与源码边界
 
+2026-10-18 A25待启用候选：Flow终态证据入口可按原summary/status/cleanup三件证据识别外层超时，保留原摘要、轮次、失败和期限；真实入口通过，完整候选交付尚未执行。私有execution.stage_memory_gib经根启动接点验证为platform.json.stage_resources，Flow叶接点按阶段传入原PlatformExecution/EF，未配置回退全局预约。原settings指纹和任务资源身份校验保持，无EF/DF公共契约或专业算法变化。根2d6fbb5/Flow7b1003b均在隔离分支，活动r7的68输入未切换；根489/模块95回归通过，运行提速与真实恢复待安全启用后验证。见[超时与资源报告](admin/A25_TIMEOUT_AND_STAGE_RESOURCE_REPORT_20261018.md)。
+
 2026-10-17 A25只读评价产物：Toolkits源码a7fec1b已通过隔离真实资格，生产待空闲启用。成功A2评价导出原日志、收据和评价JSON，物理状态复用EF输入及父run；物理/失败归档、原算法和CP0条件保持。Flow评价消费者本来不依赖物理整包，插件也未要求该可选产物，公共签名/API不变。新wheel同输入三指标/上下文一致，66模块/23Flow消费/470根回归通过；实际插件位于a4独立Python环境，a7客户端为另一环境，正式身份须按环境绑定wheel内容而非仅版本号。见[只读归档资格](admin/A25_READ_ONLY_EVALUATION_EXPORT_REPORT_20261017.md)。
 
 2026-10-17 A25调用记录：现有单次原生调用器新增私有cpu_usage，按os.times差值记录自身及已回收原生后代的user/system CPU；独立EF/DF、远端模型和未回收进程用量另列，不填零。started_at与既有墙钟统一包含输入检查；未新增Agent循环、服务、公共契约或CPU硬配额。JPEG50份实际CTS继承、GCD第二轮50份布线继承通过，15项针对/443项根回归与静态检查通过；正式对照仍待冻结，见[阶段与成本记录](admin/A25_STAGE_HANDOFF_AND_NATIVE_CPU_REPORT_20261017.md)。
