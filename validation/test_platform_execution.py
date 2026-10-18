@@ -234,6 +234,54 @@ def test_task_registers_original_metrics_and_odb(tmp_path):
     assert task["max_attempts"] == 1
 
 
+@pytest.mark.parametrize(
+    "operation", ["baseline", "variant_build", "core_build", "placement"]
+)
+@pytest.mark.parametrize("threads", [4, 10, 16])
+def test_task_reserves_explicit_native_threads_without_rewriting_them(
+    tmp_path, operation, threads
+):
+    resources = {"cpu_cores": 8, "memory_bytes": 32 << 30, "processes": 2048}
+    profile = {
+        "experiment_id": "thread-audit",
+        "design": "jpeg",
+        "client_python": "/python",
+        "agent_root": "/control",
+        "profile_path": "/profile",
+        "resources": {"physical": dict(resources), "build": dict(resources)},
+    }
+    flag = "-threads" if operation == "placement" else "--threads"
+    request = {"operation": operation, "outputs": [], "argv": [flag, str(threads)]}
+    original = json.loads(json.dumps(request))
+    task = pe.task_for(profile, request, tmp_path / "request", "key")
+    assert task["resources"] == {**resources, "cpu_cores": max(8, threads)}
+    assert profile["resources"] == {"physical": resources, "build": resources}
+    assert request == original
+    assert task["max_attempts"] == 1
+
+
+def test_repeated_thread_flags_follow_native_last_value(tmp_path):
+    profile = {
+        "experiment_id": "thread-audit",
+        "design": "jpeg",
+        "client_python": "/python",
+        "agent_root": "/control",
+        "profile_path": "/profile",
+        "resources": {"physical": {"cpu_cores": 8}},
+    }
+    for argv, expected in [
+        (["--threads", "10", "--threads", "16"], 16),
+        (["--threads", "16", "--threads", "10"], 10),
+    ]:
+        task = pe.task_for(
+            profile,
+            {"operation": "baseline", "outputs": [], "argv": argv},
+            tmp_path / "request",
+            "key",
+        )
+        assert task["resources"]["cpu_cores"] == expected
+
+
 @pytest.mark.parametrize("common", [False, True])
 @pytest.mark.parametrize(
     "name", ["detail_place_openroad.tcl", "detail_place_openroad_negotiation.tcl"]

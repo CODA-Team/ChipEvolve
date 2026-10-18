@@ -240,6 +240,18 @@ def task_for(
     profile: dict[str, Any], request: dict[str, Any], request_path: Path, key: str
 ) -> dict[str, Any]:
     operation = request["operation"]
+    resources = dict(
+        profile["resources"]["build" if operation.endswith("build") else "physical"]
+    )
+    argv = request.get("argv", [])
+    thread_flag = "-threads" if operation == "placement" else "--threads"
+    requested_threads = [
+        int(value) for flag, value in zip(argv, argv[1:]) if flag == thread_flag
+    ]
+    if requested_threads:
+        resources["cpu_cores"] = max(
+            resources.get("cpu_cores", 1), requested_threads[-1]
+        )
     extras = (
         [
             "outputs/0/metrics.json",
@@ -291,9 +303,7 @@ def task_for(
             {"source": str(request_path), "destination": "inputs/request.json"}
         ],
         "timeout_seconds": 5400 if operation.endswith("build") else 900,
-        "resources": profile["resources"][
-            "build" if operation.endswith("build") else "physical"
-        ],
+        "resources": resources,
         "max_attempts": 1,
         "expected_artifacts": ["data_snapshot"],
     }
