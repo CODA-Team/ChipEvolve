@@ -33,3 +33,11 @@ PID4045467当前只等待既有r7及JPEG超时证据交付成功；随后还须�
 本候选不在先前已固定的自动启用清单内；原衔接程序仍只启用8940667，没有热改其方案。实际并发资格通过后，才将97466b0合入主DPL、更新根来源清单，并为未来实验选择和冻结资源策略。失败则基于原回执修正这一接点，不能用测试通过或理论并发数代替实测。
 
 验收和续接：var/business/a25-dpl-operation-resources-20261018/acceptance.json、resource-calibration.json、request-preview-acceptance.json、qualification-specification.json、qualification-receipt.json。当前26份用户文件、r7的68份输入及前序衔接器输入全部保持。原DPL轮次继续：截至19:41，12项EF任务中11成功/1候选源码编译失败，第二次修正构建和两份后续布局评价已成功；Teacher计划完成，两个Student仍在原生收尾，第三Student/review和整轮交付未完成。
+
+## 19:52：第一份稳定源码已实际核验
+
+Student01已正常结束，Student03已启动。对Student01的实际Git候选ref bbc7f5c、已注册构建及评价逐项复核：84份源码哈希完全相同，评价使用的binary SHA与构建产物一致，注册原生指标HPWL为127898.1µm。它比框架127973.5µm少75.4µm（约0.0589%），是可交接的局部结果，尚无最终PPA/功能证明/采用结论。
+
+另核查了“检查报告JSON缺失”：原检查器零失败时不创建DPL marker category，JSON仅在category存在时写出；注册的3_5_place_dp.json已经明确记录详细布局违例0，检查器源码与该Student源基线相同。因此无需制造一个空报告，也不将可选marker报告缺失误报为兼容性故障。最后的共同约束检查仍按原流程独立完成。
+
+费用方面，当前完成的Teacher和Student01已记录至少31,113,396输入加输出token，cached input是其中的子集。Student01正常退出，但原生事件包含重连异常，按既有记录器规则用量完整性仍为未知；未结束Student的费用也保持未知，不能补零或直接做公平效率比。源代码/binary/指标身份及费用原件哈希分别记录在student01-source-binary-metric-acceptance.json和partial-native-model-costs.json。
