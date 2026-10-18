@@ -11,7 +11,7 @@ from http.client import HTTPException
 from pathlib import Path
 from typing import Any
 
-from eda_ai_client import EdaAiClient
+from eda_ai_client import EdaAiClient, EdaAiError
 from eda_toolkits.objectives import (
     SCHEMA,
     condition_id,
@@ -525,7 +525,13 @@ def publish(
     )
     try:
         facts = data.get_metrics(snapshot_id=snapshot_ids["orfs"])
-    except (OSError, HTTPException) as error:
+    except (EdaAiError, OSError, HTTPException) as error:
+        if isinstance(error, EdaAiError):
+            if error.status is not None:
+                if error.status < 500:
+                    raise
+            elif not isinstance(error.__cause__, (OSError, HTTPException)):
+                raise
         if isinstance(error, urllib.error.HTTPError) and error.code < 500:
             raise
         raise pending(
