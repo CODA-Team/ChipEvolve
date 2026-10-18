@@ -47,3 +47,24 @@
 - `var/business/a25-dpl-operation-resources-20261018/goal-complete-native-input-audit-r1/acceptance.json`
 - `var/business/a25-dpl-operation-resources-20261018/goal-power-only-control-prepared-r2/specification.json`及`acceptance.json`
 - 资源候选及原等待区间见[A25资源链报告](A25_CODE_RESOURCE_CHAIN_REPORT_20261018.md)。
+
+## 同轮续查：首份最终结果、真实同模式控制和Query交付
+
+Student01已实际完成共同DRT/RCX和FF545ps测量：156.0088098mW、6385.85µm²，相对来源功耗−12.52034382%、单元面积−5.17256741%，DRC0、电气/布局计数0；setup TNS−0.277865ns、slack−13.1307ps，违反原setup约束，**不能采用**。公开EF父子run、原功耗日志和共同条件已独立核对；全部候选交付仍在进行。
+
+在确认EF空闲、主控制器进行数据入库且后三候选尚未派发最终物理时，利用该空档执行了独立同模式控制r3，替代原准备方案的保守等待时机。原R9/后续三个监督、77输入和26用户文件不变。控制只跑原生物理/官方解析/4of4，三项各一次EF成功，无模型、编译、新搜索或追加最终布线；采样CPU1563.87秒。后续物理仍按同一资源池排队，新增控制的等待与计算都属于本次校准成本，不用于正式提速比较。原生控制总功耗162.304893136mW、abs TNS6.617959023ns。与它比较：
+
+| 候选 | 原生总功耗变化 | 原生abs TNS变化ns | 补核结论 |
+|---|---:|---:|---|
+| Student01 | +0.598076% | −1.639711 | 时序改善伴随功耗增加，非补丁功耗收益 |
+| Student02 | 0 | 0 | 五阶段网表和post_route ODB均与控制逐字节相同 |
+| Student03 | −2.558020% | −2.774317 | 总功耗/时序改善，但漏电+13.902360% |
+| Student04 | −0.198024% | +0.188642 | 小幅功耗改善伴随时序退化 |
+
+控制与Student02的相同ODB分别经各自公开EF注册归档核对，SHA为a8381305…；不能把Student02的新二进制或激活信号当作本例有物理收益。后续可在核对Student02实际最终输入/条件/结果/SDK后引用其对这一相同checkpoint的共同测量；保留真实父run，不把一次测量改名为两次实验或独立重放。原Teacher晋升仍保留，不用这次准备测量回写原判定。
+
+当前Codex已通过Query的host接口完成7次有作用域读取、98,920bytes，交付4组事实/1组假设及明确限制，没有额外模型或EDA；公共SDK独立核对全部共同指标及六个快照作用域通过。15份已存setup报告中，五个负slack路径均为从ddin[7]出发的reg2reg，最差−13.13ps；已存in2reg/ reg2out最小余量分别32.88/389.3ps，五份hold最小21.07ps。最差路径48个数据点的相邻增量中，cell分类474.3ps、wire分类36.2ps；这不是单编辑因果证明。
+
+该事实支持检查原生TimingECOAgent的reg2reg动作适用性；等全部候选比较后再选择接力，不能预先保证ECO闭合或任意动作获准。该时序视图有24个net关联未解决，已在上下文保留，未伪造完整对象排名；已存20条setup/hold样本也不等于全设计所有路径。宿主当前推理与服务费用未计入“额外模型0”的计数，不把它说成总成本0或A27效率收益。
+
+新增证据：`goal-selected-common-measurement-r1.json`、`goal-power-only-native-control-r3/independent-acceptance.json`、该目录`native-byte-comparison.json`/`registered-checkpoint-equivalence.json`及`goal-selected-query-host-r1/independent-acceptance.json`，均位于上述A25运行目录。下一步继续后三候选共同测量/SDK与原GCD队列；实际资源资格、注册来源控制、专业接力、完整证明/重放及正式冻结仍待完成。
