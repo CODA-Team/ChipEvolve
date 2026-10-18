@@ -46,3 +46,9 @@
 两份夹具 EF 任务均最终 cancelled，started_at 为空且没有工具 attempt；真实模型调用和 EDA 命令数为零，宿主/服务/测试成本未知而非零。夹具记录器的预期返回码 1 和不完整模型 usage 原样保留，未将夹具称为原生 Codex 正式试次。该次实际验证覆盖排队任务取消；运行中 EDA 的终止不由这个夹具证明，仍结合既有 EF 真实取消资格与后续正式试次核查。
 
 证据：`var/business/a25-native-episode-ef-timeout-20261019/acceptance.json`、`public-ef-qualification-r1/acceptance.json`、`teardown-acceptance.json`、原/候选检查日志及 XML。当前 JPEG 完整证明已从匹配推进到 partition，原串行交付及 GCD 待命仍继续。A25 未冻结，完整专业接力及 A26–A28 仍待完成。
+
+## 实际长证明期间的公开查询窗口
+
+后续 366.49 秒、37 组/148 次公开 EF/DF 读取全部成功。EF 任务状态最大约 0.0106 秒、health 最大约 0.0239 秒、资源最大约 0.0104 秒；DF 已有 JPEG 指标中位约 0.0276 秒，但一次达到 3.828 秒，保留此长尾，不宣称数据访问延迟全部消除。所有观察指向同一实际 PDR attempt，分区文件从 2159 增至 3288；另一次独立 SDK 核对全部原数值。原先冷对象列表超过10秒的诊断也仍保留。
+
+进程侧只读诊断同时看到原生 EQY 匹配阶段已经消耗约 786 秒 CPU，当前 Yosys 分区子进程约 1366 秒 CPU并写出约31GB内容；这是仍在进行的原生证明工作，不能误判为执行底座不消费任务，也不能由此单独归因所有等待为磁盘故障。选中 Flow 网表 SHA 与已证明来源网表 SHA 不同，原来源证书不能授权这个新分支，完整证明继续。窗口记录为 `proof-io-public-observer-acceptance.json` 和 `actual-proof-compute-io-r1.json`；没有发起新 EDA/模型任务，观察/宿主/服务成本未知，非正式效率数据。
