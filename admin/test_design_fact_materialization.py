@@ -212,7 +212,7 @@ def test_validation_requires_selected_object_scope_without_changing_result(
     assert digest(source) == sha
 
 
-@pytest.mark.parametrize("terminal_evidence", [False, True])
+@pytest.mark.parametrize("terminal_evidence", [False, True, "timeout"])
 def test_flow_delivers_every_finished_candidate_and_original_constraints(
     tmp_path, monkeypatch, terminal_evidence
 ):
@@ -242,6 +242,28 @@ def test_flow_delivers_every_finished_candidate_and_original_constraints(
         )
         write(experiment / "status.json", {"status": "failed", "detail": "native"})
         write(experiment / "result.json", {"original": "untouched"})
+        if terminal_evidence == "timeout":
+            write(
+                experiment / "source/flow/backup_dir/asap7/gcd/llm_usage_summary.json",
+                {
+                    "exit_code": None,
+                    "status": "running",
+                    "campaign_id": "actual-campaign",
+                    "completed_iterations": 1,
+                },
+            )
+            write(
+                experiment / "status.json",
+                {"status": "failed", "error_type": "TimeoutExpired"},
+            )
+            write(
+                experiment / "native-frontend-cleanup.json",
+                {
+                    "status": "completed",
+                    "reason": "TimeoutExpired",
+                    "owner_pid": 999999999,
+                },
+            )
         failed_identity = digest(experiment / "status.json")
     for slot in (1, 2):
         write(
@@ -292,11 +314,25 @@ def test_flow_delivers_every_finished_candidate_and_original_constraints(
         assert digest(experiment / "status.json") == failed_identity
         assert read(experiment / "result.json") == {"original": "untouched"}
         assert actual["evidence_only"] and not actual["native_search_completed"]
-        assert actual["native_campaign"]["status"] == "failed"
+        expected = "timed_out" if terminal_evidence == "timeout" else "failed"
+        assert actual["native_campaign"]["status"] == expected
+        if terminal_evidence == "timeout":
+            witness = actual["native_campaign"]["terminal_evidence"]
+            assert witness["reported_native_status"] == "running"
+            for name, sha in witness["files"].items():
+                assert digest(Path(name)) == sha
+            assert actual["native_campaign"]["exit_code"] is None
+            assert (
+                read(
+                    experiment
+                    / "source/flow/backup_dir/asap7/gcd/llm_usage_summary.json"
+                )["status"]
+                == "running"
+            )
         assert (experiment / "completed-evidence/result.json").is_file()
         for row in actual["candidate_results"]:
             candidate = read(Path(row["result"]))
-            assert candidate["native_campaign"]["status"] == "failed"
+            assert candidate["native_campaign"]["status"] == expected
             assert not candidate["native_method"]["native_search_completed"]
             assert "completed-evidence" in row["result"]
     else:
@@ -346,3 +382,78 @@ def test_partial_flow_evidence_does_not_collect_unfinished_or_mixed_campaigns(
     with pytest.raises(ValueError):
         collect(d, "gcd", experiment, Path(read(source)["objective"]))
     assert not (experiment / "completed-evidence").exists()
+
+
+@pytest.mark.parametrize(
+    "invalid",
+    [
+        "missing-cleanup",
+        "unfinished-cleanup",
+        "different-owner",
+        "different-reason",
+        "successful-business",
+        "different-business-error",
+        "live-owner",
+        "different-campaign",
+    ],
+)
+def test_timeout_evidence_requires_matching_terminal_witness(
+    tmp_path, monkeypatch, invalid
+):
+    import os
+
+    from chip_evolve.flow_evidence import collect
+
+    d, source, _ = inputs(tmp_path)
+    d.value["designs"]["gcd"].update(platform="asap7", nickname="gcd")
+    experiment = d.experiment("gcd", "timeout")
+    native = {"exit_code": None, "status": "running", "campaign_id": "actual"}
+    owner = {"pid": 999999999, "start_ticks": "not-live"}
+    status = {"status": "failed", "error_type": "TimeoutExpired"}
+    cleanup = {
+        "status": "completed",
+        "reason": "TimeoutExpired",
+        "owner_pid": owner["pid"],
+    }
+    if invalid == "unfinished-cleanup":
+        cleanup["status"] = "running"
+    elif invalid == "different-owner":
+        cleanup["owner_pid"] = 999999998
+    elif invalid == "different-reason":
+        cleanup["reason"] = "KeyboardInterrupt"
+    elif invalid == "successful-business":
+        status["status"] = "succeeded"
+    elif invalid == "different-business-error":
+        status["error_type"] = "RuntimeError"
+    elif invalid == "live-owner":
+        owner = {
+            "pid": os.getpid(),
+            "start_ticks": Path(f"/proc/{os.getpid()}/stat")
+            .read_text()
+            .rsplit(")", 1)[1]
+            .split()[19],
+        }
+        cleanup["owner_pid"] = owner["pid"]
+    elif invalid == "different-campaign":
+        native["campaign_id"] = "other"
+    summary_path = (
+        experiment / "source/flow/backup_dir/asap7/gcd/llm_usage_summary.json"
+    )
+    write(summary_path, native)
+    write(
+        experiment / "platform-state/campaign.json",
+        {"campaign_id": "actual", "owner": owner},
+    )
+    write(experiment / "status.json", status)
+    if invalid != "missing-cleanup":
+        write(experiment / "native-frontend-cleanup.json", cleanup)
+    originals = {str(path): digest(path) for path in experiment.rglob("*.json")}
+    calls = []
+    monkeypatch.setattr(
+        "chip_evolve.professional._collect_flow_candidates",
+        lambda *a, **k: calls.append(k),
+    )
+    with pytest.raises(ValueError):
+        collect(d, "gcd", experiment, Path(read(source)["objective"]))
+    assert calls == [] and not (experiment / "completed-evidence").exists()
+    assert all(digest(Path(name)) == sha for name, sha in originals.items())

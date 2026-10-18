@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from .config import Deployment, business_lock, read
+from .jobs import digest
 
 
 def collect(
@@ -15,15 +16,14 @@ def collect(
 
     with business_lock(experiment):
         design = deployment.design(design_id)
-        summary = read(
+        summary_path = (
             experiment
             / "source/flow/backup_dir"
             / design["platform"]
             / design["nickname"]
             / "llm_usage_summary.json"
         )
-        if summary["status"] != "failed" or summary["exit_code"] in (None, 0):
-            raise ValueError("Completed evidence needs a terminal failed Flow campaign")
+        summary = read(summary_path)
         campaign = read(experiment / "platform-state/campaign.json")
         if campaign["campaign_id"] != summary["campaign_id"]:
             raise ValueError("Flow campaign identity differs from its terminal summary")
@@ -40,6 +40,40 @@ def collect(
             key: summary.get(key)
             for key in ("campaign_id", "status", "exit_code", "completed_iterations")
         }
+        if summary["status"] != "failed" or summary["exit_code"] in (None, 0):
+            status_path = experiment / "status.json"
+            cleanup_path = experiment / "native-frontend-cleanup.json"
+            if (
+                summary["status"] != "running"
+                or summary["exit_code"] is not None
+                or not status_path.is_file()
+                or not cleanup_path.is_file()
+            ):
+                raise ValueError(
+                    "Completed evidence needs a terminal failed Flow campaign"
+                )
+            status, cleanup = read(status_path), read(cleanup_path)
+            if (
+                status.get("status") != "failed"
+                or status.get("error_type") != "TimeoutExpired"
+                or cleanup.get("status") != "completed"
+                or cleanup.get("reason") != "TimeoutExpired"
+                or cleanup.get("owner_pid") != owner["pid"]
+            ):
+                raise ValueError(
+                    "Flow timeout lacks matching completed cleanup evidence"
+                )
+            native.update(
+                status="timed_out",
+                terminal_evidence={
+                    "reported_native_status": summary["status"],
+                    "source": "business-supervisor",
+                    "files": {
+                        str(path.resolve()): digest(path)
+                        for path in (summary_path, status_path, cleanup_path)
+                    },
+                },
+            )
         return _collect_flow_candidates(
             deployment,
             design_id,
