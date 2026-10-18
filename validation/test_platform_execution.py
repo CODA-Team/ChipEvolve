@@ -282,6 +282,41 @@ def test_repeated_thread_flags_follow_native_last_value(tmp_path):
         assert task["resources"]["cpu_cores"] == expected
 
 
+@pytest.mark.parametrize(
+    "operation", ["core_build", "variant_build", "baseline", "placement"]
+)
+def test_explicit_operation_reservation_keeps_full_build_and_other_operations(
+    tmp_path, operation
+):
+    build = {"cpu_cores": 8, "memory_bytes": 64 << 30, "processes": 2048}
+    physical = {"cpu_cores": 8, "memory_bytes": 24 << 30, "processes": 2048}
+    variant = {"cpu_cores": 8, "memory_bytes": 16 << 30, "processes": 2048}
+    profile = {
+        "experiment_id": "operation-resources",
+        "design": "jpeg",
+        "client_python": "/python",
+        "agent_root": "/control",
+        "profile_path": "/profile",
+        "resources": {"physical": physical, "build": build, "variant_build": variant},
+    }
+    original = json.loads(json.dumps(profile))
+    request = {
+        "operation": operation,
+        "outputs": [],
+        "argv": ["-threads" if operation == "placement" else "--threads", "10"],
+    }
+    task = pe.task_for(profile, request, tmp_path / "request", "key")
+    expected = (
+        variant
+        if operation == "variant_build"
+        else build
+        if operation == "core_build"
+        else physical
+    )
+    assert task["resources"] == {**expected, "cpu_cores": 10}
+    assert profile == original
+
+
 @pytest.mark.parametrize("common", [False, True])
 @pytest.mark.parametrize(
     "name", ["detail_place_openroad.tcl", "detail_place_openroad_negotiation.tcl"]

@@ -240,9 +240,14 @@ def task_for(
     profile: dict[str, Any], request: dict[str, Any], request_path: Path, key: str
 ) -> dict[str, Any]:
     operation = request["operation"]
-    resources = dict(
-        profile["resources"]["build" if operation.endswith("build") else "physical"]
+    resource_key = (
+        operation
+        if operation in profile["resources"]
+        else "build"
+        if operation.endswith("build")
+        else "physical"
     )
+    resources = dict(profile["resources"][resource_key])
     argv = request.get("argv", [])
     thread_flag = "-threads" if operation == "placement" else "--threads"
     requested_threads = [
