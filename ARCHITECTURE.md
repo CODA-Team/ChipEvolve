@@ -460,3 +460,5 @@ A7收尾发现产物登记仍在共享连接锁内进行耗时文件托管。A6�
 2026-10-17 A25原生入口核查：原项目内`-m/-c`可加载冻结模块并把DF上下文、父run和目标写入EF；外部绝对脚本可能选择旧editable副本。私有Jobs组合器在正常设计/key布局外使用basename，不同workspace有命名冲突，EF已在执行前拒绝覆盖。停止手动低层接力检查，正式原生操作使用现有业务CLI；冻结清单须含实际模块路径/SHA。没有为检查器改产品契约或原算法，见[核查报告](admin/A25_NATIVE_PROFESSIONAL_ENTRY_REVIEW_20261017.md)。
 
 2026-10-19 A25交付恢复：原GCD完整参数域2×50原生完成，22模型调用/640347token逐字节事件保持；共同事实仍在续交。physical.publish的末次已发布metrics临时读故障现在进入既有WorkPending，同key复用原EF与DF身份，HTTP4xx/错误设计继续硬失败；9针对/488隔离根回归和静态通过，主线6b2df72。Toolkit224a7ad按EF声明内存等待，75模块检查及原GCD隔离实际同值/等待超时通过（内存读数注入，不是生产性能证明），生产待单一串行队列空闲启用。旧等待者已失败停止，新队列先核验GCD交付/全成本，再依次来源/资源/五控制/CodeECO/健康JPEG；A25仍未冻结。见[本轮恢复报告](admin/A25_GCD_MEMORY_AND_DELIVERY_RECOVERY_REPORT_20261019.md)。
+
+2026-10-19 A25实际续查：GCD99完成分支/198快照/1683数值独立通过，0原约束可行；原共同测量缺分析类型标签，现只对冻结99任务用EF注册请求/原始输入胶囊独立验证，不改旧回执。新测量增加既有analysis_parent声明，3针对/491隔离回归及真实1测量3导出同值/SDK/新标签通过；7行修复保持旧任务契约。来源/资源/辅助观察/Toolkit现安全启用，根516/Flow95/DPL43回归通过，实际两env wheelSHA同值。唯一主管after-wheel-bootstrap-r3已续交原JPEG94，旧超时仍为部分搜索；详见[恢复报告更新](admin/A25_GCD_MEMORY_AND_DELIVERY_RECOVERY_REPORT_20261019.md)。
