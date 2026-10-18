@@ -1,3 +1,5 @@
+2026-10-18待运行资格的来源候选：delivery.layout_source对新ORFS布局交付复用flow_recipe.prepare_flow_recipe→EF，保留实际ORFS镜像/脚本/原配置；已有旧源/旧作业继续原绑定，准备pending重接同任务。不改公共签名、模块服务或研究算法。注册日志实证原64/旧5，SDC规范化仅时间注释不同；候选dfa4f78隔离61针对/482回归通过，尚未合入主树。真实新旧来源及三Student完整重放将在既定校准/资源资格后执行，见[来源与验证边界](admin/A25_REGISTERED_PHYSICAL_SOURCE_REPORT_20261018.md)。
+
 2026-10-18辅助物理依赖：根professional.flow_source复制design.flow_dependencies并将配置内/work/<destination>映射到新来源目录，保留脚本字节、目录关系、参数、算法和EF/DF契约。修复真实DPL CTS→route旧临时路径丢失；24针对/475根回归及类型/静态通过。独立恢复仅借用注册CTS，新布线及事实交付仍待验收；没有新服务或通用harness，原失败保留，见[恢复报告](admin/A25_AUXILIARY_HANDOFF_RECOVERY_20261018.md)。
 
 2026-10-17 A25恢复实测：显式目标继承与完成结果哈希修复已通过19项针对/451根回归、静态及新r2实际验证。中断后同一EF run/attempt完成，5项任务各执行一次，原目标保留、成功resume不改结果SHA/mtime，三快照与七PPA通过；直接侧同一原生工具恢复也独立通过。原r1缺陷/题意/TLS与成本保留，不作正式效率比，见[恢复身份核查](admin/A25_RECOVERY_IDENTITY_REPORT_20261017.md)。
