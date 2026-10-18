@@ -19,3 +19,21 @@ ORFS来源已通过`design.flow_dependencies`声明两份真实脚本，`baselin
 证据在`var/business/a25-dpl-operation-resources-20261018/selected-route-failure-r1/`和`selected-route-recovery-r1/`。固定旧失败、原CTS、布局/源结果/目标、辅助脚本、业务实现和26份用户文件的SHA；不回写原68项队列清单。后续Goal/GCD必须用包含本次修复和恢复验收的新续接清单，保持原命令和失败账本。旧失败衔接器不再是等待中。
 
 A25尚未冻结，A26–A28未开始。
+
+## 21:35：所选分支已完整交付，PPA不合格
+
+新布线一次attempt成功，实际CTS输入归档与原注册CTS逐SHA一致，输出消费日志确认继续读取4_cts.odb，原cf499ad5…布局未被上游重跑覆盖。随后共同测量run-da5fa8ff2b0f49c5bc9355cbc851d47b完成，OpenDB/ORFS/OpenSTA三视图各一次导入成功；公开SDK的设计/run/snapshot及全部数值与实际结果一致。所选分支的路径交接、完整DRT/RCX和EF→DF→SDK恢复已通过，其他两候选仍在交付。
+
+| FF/545ps共同事实 | 本候选 | 原上限/要求 |
+|---|---:|---:|
+| 总功耗 | 180.38398027mW | ≤178.33724618mW |
+| 单元面积 | 6750.60µm² | ≤6734.18µm² |
+| setup slack | 0.53868ps | setup TNS≥0，当前为0 |
+| hold TNS | 0 | ≥0 |
+| 布局/电气/布线DRC | 均0 | 均0 |
+
+父级Codex基于原约束决定不采用当前分支，保留已有合法来源；没有因原生HPWL更优而替换结果。本次证明局部目标与最终目标有冲突，尚不能把退化唯一归因给算法或交接。后续须保留同流程的原布局/框架匹配控制，区分阶段转换、布线策略与Student变化，再选择真正的接力来源。完整功能证明及独立重放未在本次新分支上完成，也没有采用。
+
+独立证据：selected-route-recovery-r1/selected-delivery-acceptance.json、selected-sdk-metrics.json及selected-sdk-stage-summaries.json；业务决定在selected-student02-preliminary-business-decision.json。原失败/CTS/模型搜索保持原字节。
+
+新r8监督PID1370641已等待全部恢复交付，随后自动独立审计，再执行原Goal一轮四Student与GCD完整参数域2×50原命令；绑定73份输入。替代来源启用监督PID1370818等待r8，新资源资格PID1370959等待此前交付。三者均已启动等待，尚未通过；旧三个失败监督不重启。全原生五次调用均正常返回，已知输入加输出87,589,800 token，其中86,076,544为输入内缓存子集；原事件用量完整性限制和数据/恢复费用继续单列。
