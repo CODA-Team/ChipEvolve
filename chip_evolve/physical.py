@@ -374,6 +374,13 @@ def measure(
         memory_gib=8,
         seconds=300,
         objective=objective,
+        analysis_parent=(
+            read(jobs.experiment / "jobs" / key / "task.json")
+            .get("labels", {})
+            .get("analysis_of_run_id")
+            if (jobs.experiment / "jobs" / key / "task.json").exists()
+            else parent
+        ),
     )
     log = jobs.log(result, folder / "execution.log")
     totals = re.findall(
