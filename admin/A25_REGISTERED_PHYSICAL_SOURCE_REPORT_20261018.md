@@ -51,3 +51,17 @@
 `var/business/a25-jpeg-matched-control-20261018/`：registered-route-policy-difference.json、sdc-probe-receipt.json、sdc-canonical-interpretation.json、registered-source-acceptance.json、matched-routing-specification-r2.json和matched-routing-receipt-r2.json。
 
 原三候选数据验收在`var/business/a25-dpl-operation-resources-20261018/selected-route-recovery-r1/independent-acceptance.json`；当前续接见该目录上层CURRENT.json。本报告只涉及上述两个候选源码文件、私有实验脚本和文档，不部署用户DF/DI/evaluation修改或触碰其他会话。
+
+## 22:57续查：实际Goal输入与等待程序启动修正
+
+对当前Goal的Teacher两次调用及四Student逐份核查：六份实际prompt中的完整Query包与本轮输入完全一致，绑定原JPEG来源、目标和条件；四份候选的六项已提交构建请求，各自701份声明源码均与工作区实际SHA一致。每份候选相对原共同源码的变化仅在其原生计划指定的RepairPowerPolicy.cc。公开EF的实际请求同时保留同父run、目标、条件及上下文身份。该检查证明输入确实送达、提交的源码对应实际文件；不把prompt送达等同于模型正确理解或最终PPA成功。
+
+上述六次已完成模型调用的原始事件与收据用量一致，均无观察到的追踪错误：已知输入3,645,808、输出75,724，合计3,721,532 token；缓存输入3,202,048属于输入子集。Teacher最终评审、后续强化、物理执行、数据服务和主宿主推理尚不在这份模型子账本中，整轮尚未完成。
+
+新复现的后续启动错误发生在私有验收程序，尚未发生于真实94分支恢复：post-r3原计划直接执行var目录下的audit_timeout_flow_delivery.py，连`--help`也会报ModuleNotFoundError: chip_evolve。修正为从项目根cwd用runpy执行原核查脚本；从新程序AST提取的实际参数列表已通过真实导入和参数解析。没有增加PYTHONPATH、软链接或跨项目源码导入。
+
+确认原三个监督程序均仍处于等待、没有子进程和任何派发后，仅停止并替换这三个本轮程序：post-r4 PID3684493、qualification-r4 PID3684494、五组固定布局控制r3 PID3684495。旧脚本、清单和回执原件保持，另存停止身份/原回执SHA/替换差异。新旧逐字段比较确认：R9命令、候选提交、算法、业务key、两份构建和五个控制、各自预算及原等待截止时间全部保持；仅核查调用方式和监督引用路径改变。三份新准备干运行、Ruff格式/F检查、实际子命令启动及启动后等待状态通过。
+
+当前R9 PID2656200及Goal业务PID2656225均继续原计算，未被暂停或重启；活动77份输入及26份用户文件哈希保持。Student04正在真实LTO链接，其余三个构建因32GiB预约占满本池而等待，链接进程仍有进展；不是已发现的任务丢失。整轮构建资源峰值及队列成本仍须在终态后核验，不能现在降低预约或报告并发提速。
+
+本次未修改产品/专业源码或服务，因此不重复全仓回归争用正在运行的链接任务；既有482项根回归与来源候选静态门禁的适用范围保持。新增证据为`var/business/a25-dpl-operation-resources-20261018/goal-live-input-audit-r1/acceptance.json`和`var/business/a25-jpeg-matched-control-20261018/waiter-launch-correction-r1/`。真实来源控制、完整专业接力、证明/重放和正式预算冻结仍未完成，A25–A28继续。
