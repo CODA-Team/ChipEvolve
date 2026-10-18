@@ -55,7 +55,8 @@ def main():
     client = KernelClient(settings['kernel_url'], timeout=60)
     executor = PlatformExecution(client, flow, settings['state_root'], settings['profile_path'],
                                  campaign, settings['threads'], settings['timeout_seconds'],
-                                 resources=settings.get('resources'))
+                                 resources=settings.get('stage_resources', {}).get(
+                                     args.stage, settings.get('resources')))
     evaluation = None
     sdc = None
     if args.stage.startswith('eval_'):
