@@ -6,6 +6,8 @@
 
 # 架构与源码边界
 
+2026-10-18 A25待资格候选：DPL97466b0只让既有profile.resources可按variant_build等操作选择，缺省仍按build/physical；原显式线程预约、EF契约和算法保持。47模块回归、真实89文件请求及只读挂载组装通过；10线程/16GiB双构建和完整业务重放尚在前序之后等待，没有启用主模块或改当前32GiB预算。资格通过后才能固定未来策略，不用私有链接峰值推断完整构建限额。见[资源资格报告](admin/A25_DPL_OPERATION_RESOURCE_REPORT_20261018.md)。
+
 2026-10-18 A25待启用候选：Flow终态证据入口可按原summary/status/cleanup三件证据识别外层超时，保留原摘要、轮次、失败和期限；真实入口通过，完整候选交付尚未执行。私有execution.stage_memory_gib经根启动接点验证为platform.json.stage_resources，Flow叶接点按阶段传入原PlatformExecution/EF，未配置回退全局预约。原settings指纹和任务资源身份校验保持，无EF/DF公共契约或专业算法变化。根2d6fbb5/Flow7b1003b均在隔离分支，活动r7的68输入未切换；根489/模块95回归通过，运行提速与真实恢复待安全启用后验证。见[超时与资源报告](admin/A25_TIMEOUT_AND_STAGE_RESOURCE_REPORT_20261018.md)。
 
 2026-10-17 A25只读评价产物：Toolkits源码a7fec1b已通过隔离真实资格，生产待空闲启用。成功A2评价导出原日志、收据和评价JSON，物理状态复用EF输入及父run；物理/失败归档、原算法和CP0条件保持。Flow评价消费者本来不依赖物理整包，插件也未要求该可选产物，公共签名/API不变。新wheel同输入三指标/上下文一致，66模块/23Flow消费/470根回归通过；实际插件位于a4独立Python环境，a7客户端为另一环境，正式身份须按环境绑定wheel内容而非仅版本号。见[只读归档资格](admin/A25_READ_ONLY_EVALUATION_EXPORT_REPORT_20261017.md)。
