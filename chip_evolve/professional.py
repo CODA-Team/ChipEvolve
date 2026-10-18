@@ -101,6 +101,14 @@ def inventory(source: Path) -> dict[str, str]:
     }
 
 
+def physical_resources(binding: dict[str, Any]) -> dict[str, int]:
+    """Keep native parallelism while honoring an explicit physical memory budget."""
+    memory_gib = binding.get("physical_memory_gib", 24)
+    if type(memory_gib) is not int or memory_gib <= 0:
+        raise ValueError("physical_memory_gib must be a positive integer")
+    return {"cpu_cores": 8, "memory_bytes": memory_gib << 30, "processes": 2048}
+
+
 def environment(objective: Path, context: Path) -> dict[str, str]:
     return dict(
         os.environ,
@@ -792,6 +800,7 @@ def run_dpl(
     deadline = time.time() + args.seconds
     design = deployment.design(args.design)
     binding = deployment.value["professional"]["dpl"]
+    physical_profile = physical_resources(binding)
     template = read(binding["profile_template"])
     source = experiment / "controller"
     freeze(Path(binding["source"]), source)
@@ -871,11 +880,7 @@ def run_dpl(
             "parent_run_id": frame["run_id"],
         },
     }
-    profile["resources"]["physical"] = {
-        "cpu_cores": 8,
-        "memory_bytes": 24 << 30,
-        "processes": 2048,
-    }
+    profile["resources"]["physical"] = physical_profile
     profile["container_environment"].update(
         DPL_EVOLVE_AGENT_ROOT=str(source),
         DPL_EVOLVE_STATE_ROOT=profile["state_root"],
