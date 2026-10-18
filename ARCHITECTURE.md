@@ -1,3 +1,5 @@
+2026-10-19 A25待现场资格：Goal新实测baseline的evaluation_mode/timing_recipe_id经原CLI传给未知、未晋升seed，原stage matching/context重算负责后续决策；历史未知/已知模式/晋升结果保持。ECO私有professional.eco.pdk_template经现有输入复制边界选择共同PDK和原生NLDM目录，默认仍原项目PDK。两项候选隔离通过门禁，均未热切当前固定实验；实际专业接力和最终PPA待验证，见[本轮报告](admin/A25_GOAL_MODE_AND_ECO_PDK_REPORT_20261019.md)。
+
 2026-10-18待运行资格的来源候选：delivery.layout_source对新ORFS布局交付复用flow_recipe.prepare_flow_recipe→EF，保留实际ORFS镜像/脚本/原配置；已有旧源/旧作业继续原绑定，准备pending重接同任务。不改公共签名、模块服务或研究算法。注册日志实证原64/旧5，SDC规范化仅时间注释不同；候选dfa4f78隔离61针对/482回归通过，尚未合入主树。真实新旧来源及三Student完整重放将在既定校准/资源资格后执行，见[来源与验证边界](admin/A25_REGISTERED_PHYSICAL_SOURCE_REPORT_20261018.md)。
 
 2026-10-18辅助物理依赖：根professional.flow_source复制design.flow_dependencies并将配置内/work/<destination>映射到新来源目录，保留脚本字节、目录关系、参数、算法和EF/DF契约。修复真实DPL CTS→route旧临时路径丢失；24针对/475根回归及类型/静态通过。独立恢复仅借用注册CTS，新布线及事实交付仍待验收；没有新服务或通用harness，原失败保留，见[恢复报告](admin/A25_AUXILIARY_HANDOFF_RECOVERY_20261018.md)。
