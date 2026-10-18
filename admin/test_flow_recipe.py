@@ -267,6 +267,11 @@ def test_handoff_inherits_pinned_physical_tree_and_rejects_changed_scripts(
     base = flow / "designs/pdk/test/config.mk"
     base.parent.mkdir(parents=True)
     base.write_text("include " + str(config) + "\n")
+    if native_overlay:
+        write(
+            original / "prepared-files.json",
+            {str(p.relative_to(original)): digest(p) for p in [makefile, config, base]},
+        )
     recipe = tmp_path / "recipe.json"
     write(
         recipe,
