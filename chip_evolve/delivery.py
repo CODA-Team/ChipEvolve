@@ -218,6 +218,38 @@ def checkpoint(
     write(path, value)
 
 
+def layout_source(
+    deployment: Deployment, experiment: Path, source_path: Path
+) -> dict[str, Any]:
+    """New ORFS handoffs retain submitted scripts and defaults; old jobs stay bound."""
+    frame = read(source_path)
+    if frame.get("flow_recipe") or not frame.get("native_inputs"):
+        return frame
+    recipe_path = experiment / "recipe.json"
+    preparing = experiment / "jobs/prepare-recipe/task.json"
+    if (experiment / "source").exists() and not (
+        recipe_path.exists() or preparing.exists()
+    ):
+        return frame
+    if not recipe_path.exists():
+        from .flow_recipe import prepare_flow_recipe
+
+        prepare_flow_recipe(deployment, source_path, experiment)
+    recipe = read(recipe_path)
+    if (
+        recipe["source_run_id"] != frame["run_id"]
+        or recipe["result_sha256"] != digest(source_path)
+        or recipe["design_id"] != frame["design_id"]
+    ):
+        raise ValueError("Prepared physical recipe belongs to another source")
+    frame.update(
+        flow_recipe=str(recipe_path),
+        native_config=recipe["config_path"],
+        native_flow_dir=str(Path(recipe["source"]) / "flow"),
+    )
+    return frame
+
+
 def finish(deployment: Deployment, experiment: Path) -> dict[str, Any]:
     from .physical import qualify
     from .professional import resume_layout
@@ -242,7 +274,12 @@ def finish(deployment: Deployment, experiment: Path) -> dict[str, Any]:
     )
     if saved["kind"] == "layout":
         result = resume_layout(
-            jobs, odb, read(saved["source"]), objective, saved["producer"], **modes
+            jobs,
+            odb,
+            layout_source(deployment, experiment, Path(saved["source"])),
+            objective,
+            saved["producer"],
+            **modes,
         )
     else:
         result = qualify(
