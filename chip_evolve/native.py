@@ -12,7 +12,7 @@ from typing import Any
 from .config import Deployment, read, write
 from .jobs import Jobs, digest
 from .physical import container
-from .professional import environment, freeze, inventory, invoke
+from .professional import environment, freeze, inventory, invoke, physical_resources
 
 
 def run_goal(
@@ -34,6 +34,7 @@ def run_goal(
         write(experiment / "fixed-source.json", fixed)
     design = deployment.design(args.design)
     binding = deployment.value["professional"]["goal"]
+    physical_profile = physical_resources(binding)
     source = experiment / "controller"
     freeze(
         Path(binding["source"]),
@@ -136,11 +137,7 @@ def run_goal(
             "parent_run_id": frame["run_id"],
         },
     )
-    profile["resources"]["physical"] = {
-        "cpu_cores": 8,
-        "memory_bytes": 24 << 30,
-        "processes": 2048,
-    }
+    profile["resources"]["physical"] = physical_profile
     if fixed:
         profile["read_roots"].append(fixed["source_root"])
     write(profile_path, profile)
