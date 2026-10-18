@@ -188,10 +188,38 @@ def validate_request(profile: dict[str, Any], request: dict[str, Any]) -> None:
             raise ValueError("Frozen input changed: " + path)
 
 
+def _is_variant_build(request: dict[str, Any]) -> bool:
+    """Recognize the existing explicit component rebuild and relink commands."""
+    command = request.get("command", [])
+    if command[:3] == ["cmake", "-E", "cmake_link_script"]:
+        return True
+    if (
+        not command
+        or Path(command[0]).name not in {"make", "gmake"}
+        or "-B" not in command
+        or "-C" not in command
+        or not request.get("build")
+    ):
+        return False
+    target = (
+        Path(request.get("cwd", ".")) / command[command.index("-C") + 1]
+    ).resolve()
+    root = Path(request["build"]).resolve() / "src"
+    return any(
+        target.is_relative_to(root / name) for name in ("rsz", "rmp", "grt", "cut")
+    )
+
+
 def task_for(
     profile: dict[str, Any], request: dict[str, Any], path: Path, key: str
 ) -> dict[str, Any]:
     resource_kind = "build" if request["operation"] == "build" else "physical"
+    if (
+        resource_kind == "build"
+        and "variant_build" in profile["resources"]
+        and _is_variant_build(request)
+    ):
+        resource_kind = "variant_build"
     if request["operation"] == "analysis" and "analysis" in profile["resources"]:
         resource_kind = "analysis"
     spec = {
