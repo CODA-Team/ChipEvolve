@@ -319,6 +319,15 @@ def run_flow(
     ):
         if type(value) is not int or value <= 0:
             raise ValueError("Flow execution " + field + " must be a positive integer")
+    stage_memory = execution.get("stage_memory_gib", {})
+    stages = {"place", "cts", "route_finish", "eval_place", "eval_cts", "eval_final"}
+    if not isinstance(stage_memory, dict) or any(
+        stage not in stages or type(memory) is not int or memory <= 0
+        for stage, memory in stage_memory.items()
+    ):
+        raise ValueError(
+            "Flow execution stage_memory_gib needs valid stages and positive integers"
+        )
     source_mode = getattr(args, "flow_recipe", "legacy") == "source"
     if source_mode:
         from .flow_recipe import prepare_native_source
@@ -370,6 +379,16 @@ def run_flow(
             "stage_timeout_seconds": stage_seconds,
             "deadline_epoch": time.time() + args.seconds,
             "resources": {"memory_bytes": memory_gib << 30, "processes": 2048},
+            **(
+                {
+                    "stage_resources": {
+                        stage: {"memory_bytes": memory << 30, "processes": 2048}
+                        for stage, memory in stage_memory.items()
+                    }
+                }
+                if stage_memory
+                else {}
+            ),
         },
     )
     env = environment(objective, context)
