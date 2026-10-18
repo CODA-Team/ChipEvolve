@@ -51,3 +51,19 @@ Student02已正常结束。独立读取其稳定ref 8eb7067和公开EF实际构�
 前两个Student及Teacher的已知模型用量下界现为72,477,808输入加输出token，完整性与未知费用分列，原较早快照保留在原文件。另对Student01两次评价的实际提交/开始时间核查，提交至执行合计2436.96秒，包含接单/准备等待；同时的资源快照显示私有构建占用全部32GiB预约。它说明需要核验新的资源策略，不能直接写成理论提速或正式前后效率比。
 
 新证据为student02-source-binary-metric-acceptance.json、partial-native-export-observation-r1/acceptance.json及producer-acceptance.json、注册日志registered-source02-exact-audit.log、partial-native-model-costs-r2.json和student01-evaluation-dispatch-delay.json。前序源码及资源资格仍在既定等待队列，当前没有热切换。
+
+## 21:02：三份稳定源码均核验，原生评审进行中
+
+Student03正常结束，稳定ref为230a8d97e5e53461d7fd4c8048535a509e168a19。89份Git源码与实际构建/评价请求逐SHA一致，二进制e6f78282…与评价实际输入及构建回执一致；公开EF注册的原生指标为127573.8µm，布局违例0。相对框架线长减少399.7µm（0.31233%），原生运行32.319秒；最大位移22.5729µm的回退也保留，不能只报道正面线长。构建和评价各一次attempt成功，构建峰值4,921,757,696 bytes、采样CPU1546.78秒。
+
+| 稳定候选 | 源码简称 | 原生HPWLµm | 比同一框架降低 | 注册布局违例 |
+|---|---|---:|---:|---:|
+| Student01 | bbc7f5c | 127898.1 | 0.05892% | 0 |
+| Student02 | 8eb7067 | 127077.1 | 0.70046% | 0 |
+| Student03 | 230a8d9 | 127573.8 | 0.31233% | 0 |
+
+三份Student均正常返回，原Teacher review已启动。再次调用既有只读候选导出入口，三份输出都指向对应稳定ref；第三份ODB哈希0d72d1e7…与公开EF原生产者run-dcad4de7995247bea209b652d49d587f的注册产物一致。没有冻结正式交付清单、改变原生筛选或发起额外EDA/DF写入。当前仍待原生评审结束及完整共同PPA交付，不能将表中线长当作最终PPA或采用依据。
+
+Teacher计划和三份Student的已知输入加输出token下界为85,417,787；review与整个交付的费用尚未完整。缓存输入是输入子集，Student01原事件完整性未知的限制继续保留。原32GiB预约未现场修改，两个既定衔接器继续等待r7及原JPEG事实交付，不将准备或排队写成真实并发资格通过。
+
+新增原件位于同一证据目录：student03-source-binary-metric-acceptance.json、partial-native-export-observation-r2/acceptance.json和partial-native-model-costs-r3.json。根文档检查点e68f6f4另记录JPEG全部100槽位/376份关键小产物核验，66份成功输出超共同面积上限及44种原生时钟的对照限制。原68份活动输入和26份用户文件已逐SHA复核保持，产品/研究源码和服务未改。
