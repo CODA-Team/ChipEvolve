@@ -317,7 +317,9 @@ def run_eco(
             "requirements.txt",
         ],
     )
-    shutil.copytree(Path(binding["source"]) / "asap7", source / "asap7")
+    pdk = Path(binding.get("pdk_template", Path(binding["source"]) / "asap7"))
+    shutil.copytree(pdk, source / "asap7")
+    (source / "asap7/lib/NLDM").mkdir(parents=True, exist_ok=True)
     for row in design["libraries"]:
         shutil.copyfile(row["path"], source / "asap7/lib/NLDM" / Path(row["path"]).name)
     wrapper = experiment / "openroad"
