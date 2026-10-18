@@ -36,3 +36,13 @@ JPEG r4已经在原72000秒预算截止，外层状态为TimeoutExpired、清理
 待r7释放绑定后，再启用这些候选、更新gitlink/SOURCE_MANIFEST、重新核验环境并进行真实超时证据交付与资源资格验证。旧运行不注入新源码，不修改旧指纹，不将新规则补记为已生效。完整Flow收尾、真正专业接力、候选PDR/独立重放和预算校准仍是A25冻结的前置工作。
 
 验收记录分别在var/business/a25-flow-timeout-evidence-20261018/acceptance.json和var/business/a25-flow-stage-resources-20261018/acceptance.json；现场续接点继续使用var/business/a24-jpeg-pilot-20261016/continuation-checkpoint-20261017.json。
+
+## 18:57补核：Student真实进度和线程预约
+
+读取原生controller/operation日志后确认：Teacher计划于18:08完成，前两个Student随后启动；两份候选均已实际构建及布局评价成功，Student01正在原允许范围内做强化修正。之前只按EF operation类型描述“基线/构建”，没有说明这些已经是Student动作；目前仍未完成第三Student、review和整轮交付。
+
+现场另证实两份候选build和baseline的显式--threads为10，旧EF任务却统一预约8核。隔离DPL候选8940667修正task_for：保留原CLI线程选择，预约取原配置与明确线程数中的较大值；placement读取原-threads，重复参数按原CLI末项，未显式传参的行为保持。内存、进程、期限、算法、任务其他字段不变，也不修改共享profile。
+
+新增13个场景中9项修复前失败，修复后完整validation 43项通过；Ruff F/格式/差异检查、生产文件类型检查均通过。原7份真实请求的只读影子组装中，4份10线程请求从8核改为10核，其余任务字段逐值相同，没有实际提交。首次开发venv缺新版wheel的目标模块，失败保留；更换为已验证wheel测试环境后通过，未改测试消除依赖失败。
+
+该候选已推送ChipEvolve的modules/dplevolve-a25-thread-reservation，尚未合入主DPL或启用。当前实验的既有8核预约记录不回写；其成本仍按实际记录核算，正式环境必须在队列释放绑定后启用并重新验证。证据在var/business/a25-dpl-thread-reservation-20261018/acceptance.json及actual-shadow-acceptance.json。26用户文件和68活动输入继续保持。
