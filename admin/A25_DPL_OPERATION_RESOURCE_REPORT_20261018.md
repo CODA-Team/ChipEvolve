@@ -41,3 +41,13 @@ Student01已正常结束，Student03已启动。对Student01的实际Git候选re
 另核查了“检查报告JSON缺失”：原检查器零失败时不创建DPL marker category，JSON仅在category存在时写出；注册的3_5_place_dp.json已经明确记录详细布局违例0，检查器源码与该Student源基线相同。因此无需制造一个空报告，也不将可选marker报告缺失误报为兼容性故障。最后的共同约束检查仍按原流程独立完成。
 
 费用方面，当前完成的Teacher和Student01已记录至少31,113,396输入加输出token，cached input是其中的子集。Student01正常退出，但原生事件包含重连异常，按既有记录器规则用量完整性仍为未知；未结束Student的费用也保持未知，不能补零或直接做公平效率比。源代码/binary/指标身份及费用原件哈希分别记录在student01-source-binary-metric-acceptance.json和partial-native-model-costs.json。
+
+## 20:34：第二份源码与实际交付入口核验
+
+Student02已正常结束。独立读取其稳定ref 8eb7067和公开EF实际构建/评价：90份源码逐SHA相同，binary与评价实际输入一致，原生HPWL为127077.1µm，比框架低约0.70046%，注册详细布局违例0。它发现了强化版本的镜像朝向回滚问题，保留75d808d为拒绝版本，修正后的注册日志中两条通路的replay rejects、exact/reorder audit gap均为0。上述是原生方法和源码身份验收，尚无最终PPA、功能证明或采用结论。
+
+实际调用既有Code候选导出入口，在本轮单独观察目录取得两份已完成候选；分别引用正确的bbc7f5c/8eb7067稳定版本，导出的两份ODB哈希与实际EF生产者注册产物完全相同。被拒绝的75d808d未进入输出。没有冻结正式交付清单、启动新EDA或写入DF，第三Student仍按原流程执行。原生收尾后仍须走完整共同测量和数据交付。
+
+前两个Student及Teacher的已知模型用量下界现为72,477,808输入加输出token，完整性与未知费用分列，原较早快照保留在原文件。另对Student01两次评价的实际提交/开始时间核查，提交至执行合计2436.96秒，包含接单/准备等待；同时的资源快照显示私有构建占用全部32GiB预约。它说明需要核验新的资源策略，不能直接写成理论提速或正式前后效率比。
+
+新证据为student02-source-binary-metric-acceptance.json、partial-native-export-observation-r1/acceptance.json及producer-acceptance.json、注册日志registered-source02-exact-audit.log、partial-native-model-costs-r2.json和student01-evaluation-dispatch-delay.json。前序源码及资源资格仍在既定等待队列，当前没有热切换。
