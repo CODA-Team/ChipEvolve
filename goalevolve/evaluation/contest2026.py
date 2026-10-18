@@ -715,7 +715,12 @@ class Contest2026OpenROADEvaluator:
                 build_log=build_log,
             )
             tcl = output / "evaluate.tcl"
-            self._write_tcl(tcl=tcl, output=output)
+            self._write_tcl(
+                tcl=tcl,
+                output=output,
+                optimization_mode="timing_only",
+                timing_recipe_id="legacy_setup",
+            )
         except Exception as exc:
             return {
                 "schema_version": "goalevolve.v2.baseline.v1",
@@ -757,6 +762,8 @@ class Contest2026OpenROADEvaluator:
         return {
             "schema_version": "goalevolve.v2.baseline.v1",
             "ok": all(bool(check["passed"]) for check in checks),
+            "evaluation_mode": "timing_only",
+            "timing_recipe_id": "legacy_setup",
             "metrics": metrics,
             "checks": checks,
             "artifacts": {
@@ -1547,7 +1554,7 @@ class Contest2026OpenROADEvaluator:
             if not (seed / "CMakeCache.txt").is_file():
                 continue
             seed_source = self._cache_path(seed / "CMakeCache.txt", "CMAKE_HOME_DIRECTORY")
-            if seed_source != build_seed_root.resolve():
+            if seed_source is None or seed_source != build_seed_root.resolve():
                 continue
             copied = subprocess.run(["cp", "-a", "--reflink=always", str(seed), str(build)], text=True, capture_output=True, check=False)
             if copied.returncode == 0:

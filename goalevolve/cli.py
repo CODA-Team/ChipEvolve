@@ -3,9 +3,11 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+from dataclasses import replace
 from pathlib import Path
+from typing import Any, cast
 
-from .config import build_runtime, load_config
+from .config import ExperimentConfig, build_runtime, load_config
 from .execution.engine import GoalEvolveEngine
 from .core.io import atomic_json, load_json
 from .core.models import Parent
@@ -14,7 +16,6 @@ from .core.provenance import toolchain_fingerprint
 from .evaluation.contest2026 import official_four_check
 from .evaluation.sfinal import observe_sfinal
 from .execution.execution import ExecutionPolicy
-from .planning.epd import EvolutionProgramDatabase
 from .runtime_preflight import require_ast_graph_runtime
 from .evaluation.leaderboard import update_unified_leaderboard
 from .dashboard import main as dashboard_main
@@ -33,7 +34,7 @@ def _engine(
     config_path: Path,
     *,
     repository_graph_override: str | None = None,
-) -> tuple[GoalEvolveEngine, object]:
+) -> tuple[GoalEvolveEngine, ExperimentConfig]:
     config = load_config(config_path)
     planning_mode = (
         ("ast_graph" if repository_graph_override == "on" else "openroad_cards")
@@ -79,7 +80,7 @@ def _verify_execution_profile(*, config, evaluator, state_root: Path) -> dict[st
     if not callable(profile_method):
         raise RuntimeError("evaluator does not expose effective power-reclaim profile")
     declared = dict(declared_profile.to_dict())
-    effective = dict(profile_method())
+    effective = dict(cast(dict[str, object], profile_method()))
     if effective != declared:
         raise RuntimeError("effective power-reclaim profile differs from declared profile")
     payload: dict[str, object] = {
@@ -118,6 +119,16 @@ def _attach_configured_baseline(*, engine: GoalEvolveEngine, config) -> None:
         if actual is None or abs(actual - expected) > max(1e-9, abs(expected) * 1e-9):
             raise RuntimeError(f"configured baseline metric differs from frozen contract: {name}={actual}, expected={expected}")
     parent = engine._load_parent()
+    # Newly measured seeds carry the sequence that produced their metrics.
+    # Preserve historical unknown seeds and any already staged/promoted parent.
+    mode = result.get("evaluation_mode")
+    if parent.parent_id == "baseline" and parent.evaluation_mode in {"", "unknown"} and mode:
+        parent = replace(
+            parent,
+            evaluation_mode=str(mode),
+            timing_recipe_id=str(result.get("timing_recipe_id") or "legacy_setup"),
+        )
+        atomic_json(engine.state_root / "parent.json", parent.to_dict())
     distance, _, _ = engine.contract.evaluate(metrics)
     engine._epd().attach_baseline_evaluation(
         parent=parent,
@@ -282,7 +293,7 @@ def command_baseline(args: argparse.Namespace) -> int:
     # Baseline profiles reserve state_root for the measurement itself, so the
     # persisted record is always <state_root>/baseline.json by default.
     output = Path(args.output).resolve() if args.output else config.state_root
-    result = measure(contract=contract, output=output)
+    result = cast(dict[str, Any], measure(contract=contract, output=output))
     atomic_json(output / "baseline.json", result)
     measured_metrics = {str(name): float(value) for name, value in dict(result.get("metrics") or {}).items() if isinstance(value, (int, float))}
     distance, _, _ = contract.evaluate(measured_metrics)
@@ -304,7 +315,7 @@ def command_sfinal_observe(args: argparse.Namespace) -> int:
         candidate_dir=Path(args.post_opt).resolve(),
         output=Path(args.output).resolve() if args.output else None,
     )
-    score = dict(report["score"])
+    score = dict(cast(dict[str, Any], report["score"]))
     print(f"[GoalEvolve][observer][Sfinal] design={args.design} Sfinal={float(score['Sfinal']):.12g}", flush=True)
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0
