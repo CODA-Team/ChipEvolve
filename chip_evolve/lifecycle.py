@@ -119,14 +119,29 @@ def wait_run(
             if now - last_diagnostic >= interval or run["status"] != view.get(
                 "run_status"
             ):
-                view = observe(
-                    client,
-                    run,
-                    worker_stale=float(policy.get("worker_stale_seconds", 120)),
-                )
+                last_diagnostic = now
+                try:
+                    view = observe(
+                        client,
+                        run,
+                        worker_stale=float(policy.get("worker_stale_seconds", 120)),
+                    )
+                except Exception as error:
+                    if not transient(error):
+                        raise
+                    # A successful run read remains authoritative. Missing
+                    # diagnostics cannot establish worker loss or starvation.
+                    view = {
+                        "state": "running"
+                        if run["status"] == "running"
+                        else "diagnostics_unavailable",
+                        "run_id": run_id,
+                        "run_status": run["status"],
+                        "diagnostics_status": "unavailable",
+                        "diagnostic_error": str(error),
+                    }
                 if view["state"] != previous:
                     previous, since = view["state"], now
-                last_diagnostic = now
                 write(
                     path,
                     {
