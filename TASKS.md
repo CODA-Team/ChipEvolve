@@ -249,6 +249,8 @@ O2独立ORFS/ECO/功耗回收/Query修复分支的指标、重放与等价验证
 
 ## 当前证据与限制
 
+2026-10-19 A25续接：四Goal候选完整共同物理/SDK全部交付，均setup失败；Student03为150.8680135mW/6243.33µm²/setup−12.5853ps，对同模式控制功耗−2.68545%，未采用。原R9因CLI3待续接误停，R10同run/attempt恢复且原GCD完整域2×50已启动；后续由单一master串行post-r5→资格r5→五控制r4。监控修复608a53f+fe61dd0通过29针对/481根回归及实际GCD同attempt故障注入，已排安全启用但主版本未切。Student03独立Query上下文/8scope核查通过，未复用Student01；实测baseline mode丢失的初始化缺口已确认待修。A25未冻结/A26–A28未执行，见[本轮完整报告](admin/A25_PENDING_RECOVERY_AND_GOAL_COHORT_REPORT_20261019.md)。
+
 2026-10-19 A25同轮补核：Student01完整共同测量功耗−12.52%/cell−5.17%，但setup−13.1307ps不可采用。实际无改源码power_only控制三项EF单次成功，证实Student02五阶段网表及ODB零变化；Student03原生总功耗−2.558%且TNS改善，但漏电+13.902%，原晋升不回写。当前Codex经Query7读取/98,920bytes交付4事实/1假设，SDK六scope/全指标核对通过，已存失败路径为reg2reg；20条已存样本/24个net关联缺失限制保留。后三候选最终物理仍在进行，不能记最终可行或正式冻结，见[完整轮次及同模式控制](admin/A25_GOAL_NATIVE_ROUND_REPORT_20261019.md)。
 
 2026-10-19凌晨 A25续接：JPEG Goal原Teacher/四Student/反思/评审一轮正常结束，30项原生工具任务各一次EF成功；原官方检查全部通过但非完整PDR，原规则晋升Student01。11份prompt同Query包、模型事件/收据/round总量7,003,865token核对通过，原生EF采样CPU11,527.67秒。原timing_only基线与power_only候选存在模式混杂；无改源码/同Tcl的控制请求经实际桥接验证通过但未派发。统一最终布线/其余候选事实仍在运行，77固定输入/26用户文件保持；A25未冻结/A26–A28未执行，见[完整原生轮次报告](admin/A25_GOAL_NATIVE_ROUND_REPORT_20261019.md)。
