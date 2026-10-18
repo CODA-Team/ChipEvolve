@@ -5,7 +5,7 @@ from openroad_platform_client import KernelUnavailable
 
 from admin.test_delivery_lifecycle import Clock
 from chip_evolve.config import read
-from chip_evolve.lifecycle import wait_run
+from chip_evolve.lifecycle import WorkPending, wait_run
 
 
 class DiagnosticFaultKernel:
@@ -44,21 +44,24 @@ def test_live_status_survives_auxiliary_diagnostic_outage(
     clock = Clock()
     clock.install(monkeypatch)
     client = DiagnosticFaultKernel(clock, endpoint, state)
-    result = wait_run(
-        client,
-        "same-registered-run",
-        tmp_path,
-        {
-            "unavailable_seconds": 2,
-            "unconsumed_seconds": 2,
-            "diagnostic_seconds": 1,
-        },
-    )
-    assert result["run"]["status"] == "succeeded"
-    assert result["artifacts"] == [{"artifact_id": "original-evidence"}]
+    policy = {
+        "unavailable_seconds": 2,
+        "unconsumed_seconds": 2,
+        "diagnostic_seconds": 1,
+    }
+    if state == "queued":
+        # A visible queue alone does not establish a healthy worker. Retain
+        # bounded reconnection when diagnostics cannot establish consumption.
+        with pytest.raises(WorkPending, match="execution_service_unavailable"):
+            wait_run(client, "same-registered-run", tmp_path, policy)
+        assert clock.now == 2
+    else:
+        result = wait_run(client, "same-registered-run", tmp_path, policy)
+        assert result["run"]["status"] == "succeeded"
+        assert result["artifacts"] == [{"artifact_id": "original-evidence"}]
+        assert clock.now == 5
+        assert read(tmp_path / "lifecycle.json")["status"] == "succeeded"
     assert set(client.run_ids) == {"same-registered-run"}
-    assert clock.now == 5
-    assert read(tmp_path / "lifecycle.json")["status"] == "succeeded"
 
 
 def test_failed_diagnostic_keeps_the_original_observation_interval(

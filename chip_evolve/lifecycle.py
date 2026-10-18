@@ -127,14 +127,12 @@ def wait_run(
                         worker_stale=float(policy.get("worker_stale_seconds", 120)),
                     )
                 except Exception as error:
-                    if not transient(error):
+                    if not transient(error) or run["status"] != "running":
                         raise
-                    # A successful run read remains authoritative. Missing
+                    # A successful running read remains authoritative. Missing
                     # diagnostics cannot establish worker loss or starvation.
                     view = {
-                        "state": "running"
-                        if run["status"] == "running"
-                        else "diagnostics_unavailable",
+                        "state": "running",
                         "run_id": run_id,
                         "run_status": run["status"],
                         "diagnostics_status": "unavailable",
