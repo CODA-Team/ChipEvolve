@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import json
 import re
+import urllib.error
 import zipfile
 from datetime import UTC, datetime
+from http.client import HTTPException
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +21,7 @@ from eda_toolkits.objectives import (
 
 from .config import Deployment, read, write
 from .jobs import Jobs, digest
+from .lifecycle import pending
 
 
 def now() -> str:
@@ -513,7 +516,20 @@ def publish(
     data = EdaAiClient(
         data_url=deployment.value["data_url"], kernel_url=deployment.value["kernel_url"]
     )
-    facts = data.get_metrics(snapshot_id=snapshot_ids["orfs"])
+    try:
+        facts = data.get_metrics(snapshot_id=snapshot_ids["orfs"])
+    except (OSError, HTTPException) as error:
+        if isinstance(error, urllib.error.HTTPError) and error.code < 500:
+            raise
+        raise pending(
+            jobs.experiment / "published-facts-lifecycle.json",
+            phase="delivery",
+            reason="published_facts_read_unavailable",
+            experiment=str(jobs.experiment),
+            run_id=measured["run_id"],
+            snapshot_ids=snapshot_ids,
+            detail=str(error),
+        ) from error
     if facts["scope"]["design_id"] != jobs.design_id:
         raise ValueError("Returned facts belong to another design")
     frame = {
@@ -533,4 +549,15 @@ def publish(
     destination = result_path or jobs.experiment / "result.json"
     write(destination, frame)
     write(destination.parent / "queried-facts.json", facts)
+    lifecycle = jobs.experiment / "published-facts-lifecycle.json"
+    if lifecycle.exists():
+        write(
+            lifecycle,
+            {
+                "phase": "delivery",
+                "status": "completed",
+                "run_id": measured["run_id"],
+                "snapshot_ids": snapshot_ids,
+            },
+        )
     return frame
