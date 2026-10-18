@@ -464,3 +464,5 @@ A7收尾发现产物登记仍在共享连接锁内进行耗时文件托管。A6�
 2026-10-19 A25实际续查：GCD99完成分支/198快照/1683数值独立通过，0原约束可行；原共同测量缺分析类型标签，现只对冻结99任务用EF注册请求/原始输入胶囊独立验证，不改旧回执。新测量增加既有analysis_parent声明，3针对/491隔离回归及真实1测量3导出同值/SDK/新标签通过；7行修复保持旧任务契约。来源/资源/辅助观察/Toolkit现安全启用，根516/Flow95/DPL43回归通过，实际两env wheelSHA同值。唯一主管after-wheel-bootstrap-r3已续交原JPEG94，旧超时仍为部分搜索；详见[恢复报告更新](admin/A25_GCD_MEMORY_AND_DELIVERY_RECOVERY_REPORT_20261019.md)。
 
 2026-10-19 A25实际Flow→Query准备：原GCD2-37仅增加一次EF对象导出，同一测量/原SHA/PPA保持；现有Query宿主12读取/230492字节形成5事实1假设的Code交接包，四角色/11SDKscope及冻结目标独立通过。面积超限在原现代来源已存在，需缩减当前面积4.9365%；不把来源功耗差计为Flow独立收益。真实Goal接收/最终证明重放尚未执行，JPEG串行队列继续。专业算法及公共接口无改动，见[实际面积Query交接](admin/A25_FLOW_AREA_QUERY_HANDOFF_REPORT_20261019.md)。
+
+2026-10-19 A25续查：真实SDK将HTTP503/连接拒绝包装为EdaAiError，主交付尚漏识别；隔离907b882补现有识别，20针对/499隔离回归及实际调用者SDK、注册DF事实受控503恢复通过，待源码安全释放启用（主516检查点不变）。25JPEG交付片段中位58.99秒、队列0.224秒，记录区间外19.83秒开销未唯一归因，计入预算。Query已沿共同测量→物理父run→EF原始routeJSON读到DRC0，原件/归档成员SHA及12scope通过；15读交接包不混nativeTT与最终FF。无新增服务、API或算法，见[本轮恢复和交付成本](admin/A25_SDK_READ_RECOVERY_AND_DELIVERY_COST_REPORT_20261019.md)。
