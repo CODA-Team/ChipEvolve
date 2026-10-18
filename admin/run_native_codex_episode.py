@@ -90,6 +90,9 @@ def run(spec_path: Path, output: Path) -> dict[str, Any]:
             raise ValueError("Native tool and prompt/schema must be pinned: " + name)
     if spec["wall_seconds"] <= 0:
         raise ValueError("Wall deadline must be positive")
+    from admin.native_episode_cleanup import prepare, retire
+
+    cleanup_plan = prepare(spec)
     sandbox = spec.get("sandbox", "workspace-write")
     if sandbox not in {"workspace-write", "danger-full-access"}:
         raise ValueError("Unqualified native sandbox profile: " + str(sandbox))
@@ -174,6 +177,8 @@ def run(spec_path: Path, output: Path) -> dict[str, Any]:
                 interrupted = isinstance(error, KeyboardInterrupt)
                 record["cleanup"] = stop(process)
                 record["status"] = "interrupted" if interrupted else "timed_out"
+                if cleanup_plan is not None:
+                    record["platform_timeout_cleanup"] = retire(cleanup_plan)
             finally:
                 if process.stdin is not None:
                     process.stdin.close()
