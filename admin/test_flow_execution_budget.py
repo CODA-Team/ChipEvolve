@@ -142,3 +142,59 @@ def test_explicit_campaign_seed_reaches_native_search(tmp_path):
         )
     command = invoke.call_args.args[0]
     assert command[command.index("--seed") + 1] == "29"
+
+
+def test_stage_memory_is_explicit_without_changing_search_or_default(tmp_path):
+    d, args, experiment, source, sdc, profile = fixture(
+        tmp_path,
+        {"memory_gib": 12, "stage_memory_gib": {"place": 8, "cts": 8}},
+    )
+    with (
+        patch("chip_evolve.professional.flow_source", return_value=source),
+        patch("chip_evolve.professional.tool_profile", return_value=profile),
+        patch("chip_evolve.professional.invoke") as invoke,
+        patch("chip_evolve.professional.collect_flow", return_value={}),
+    ):
+        run_flow(
+            d,
+            args,
+            experiment,
+            {"files": {"sdc": str(sdc)}},
+            tmp_path / "objective.json",
+            tmp_path / "context.json",
+        )
+    settings = read(experiment / "platform.json")
+    assert settings["resources"] == {"memory_bytes": 12 << 30, "processes": 2048}
+    assert settings["stage_resources"] == {
+        stage: {"memory_bytes": 8 << 30, "processes": 2048}
+        for stage in ("place", "cts")
+    }
+    command = invoke.call_args.args[0]
+    for option, value in (
+        ("--cpus", "8"),
+        ("--timeout", "7200s"),
+        ("-i", "2"),
+        ("-r", "50"),
+        ("--seed", "42"),
+    ):
+        assert command[command.index(option) + 1] == value
+
+
+@pytest.mark.parametrize(
+    "stages", [None, [], {"route": 8}, {"place": 0}, {"cts": True}, {"eval_final": "8"}]
+)
+def test_invalid_stage_memory_fails_before_preparing_files(tmp_path, stages):
+    d, args, experiment, *_ = fixture(tmp_path, {"stage_memory_gib": stages})
+    with (
+        patch("chip_evolve.professional.flow_source") as prepare,
+        pytest.raises(ValueError, match="stage_memory_gib"),
+    ):
+        run_flow(
+            d,
+            args,
+            experiment,
+            {},
+            tmp_path / "objective.json",
+            tmp_path / "context.json",
+        )
+    prepare.assert_not_called()
