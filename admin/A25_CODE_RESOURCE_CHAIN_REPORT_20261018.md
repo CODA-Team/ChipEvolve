@@ -49,3 +49,7 @@ Student04原官方结构检查随后实际完成，4/4通过，4384个FF实例�
 Student02随后已实际发起物理评价，Student01/03等待同一原生测量锁；剩余评价、同模式控制、Teacher与共同最终PPA仍未结束。源码亦确认：候选出口以原完整性检查、有效checkpoint和错误状态决定是否能做共同复测，保留原质量判定，没有把“必须先晋升”作为门槛。本轮实际全候选交付仍须终态后核验，不能用源码检查代替运行验收。
 
 新证据位于`var/business/a25-dpl-operation-resources-20261018/goal-four-original-binaries-r1/acceptance.json`及`goal-native-check-queue-coverage-r1.json`，四份单独构建核查原件均已保留。当前主版本仍未启用ba4d51a，没有新配置下的实际提速或PPA同值结论。
+
+## 10月19日凌晨：原生完整轮次已收尾
+
+四份候选原生物理/解析/4of4均成功，Teacher按原规则晋升Student01并以一轮上限正常结束。全30项原生操作各一次EF成功，11份prompt同Query包、原事件/收据/round用量一致；原生采样CPU11,527.67秒、模型输入加输出7,003,865token。实际模式审计确认原timing_only基线与power_only候选不同，已准备无改源码/同序列的控制请求，尚未派发；原结果/专业晋升保持。统一最终DRT/RCX与其余候选交付仍在运行，不能将原生成功写成最终可行或正式冻结，详见[完整原生轮次报告](A25_GOAL_NATIVE_ROUND_REPORT_20261019.md)。
