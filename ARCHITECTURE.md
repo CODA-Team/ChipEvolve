@@ -1,3 +1,5 @@
+2026-10-18辅助物理依赖：根professional.flow_source复制design.flow_dependencies并将配置内/work/<destination>映射到新来源目录，保留脚本字节、目录关系、参数、算法和EF/DF契约。修复真实DPL CTS→route旧临时路径丢失；24针对/475根回归及类型/静态通过。独立恢复仅借用注册CTS，新布线及事实交付仍待验收；没有新服务或通用harness，原失败保留，见[恢复报告](admin/A25_AUXILIARY_HANDOFF_RECOVERY_20261018.md)。
+
 2026-10-17 A25恢复实测：显式目标继承与完成结果哈希修复已通过19项针对/451根回归、静态及新r2实际验证。中断后同一EF run/attempt完成，5项任务各执行一次，原目标保留、成功resume不改结果SHA/mtime，三快照与七PPA通过；直接侧同一原生工具恢复也独立通过。原r1缺陷/题意/TLS与成本保留，不作正式效率比，见[恢复身份核查](admin/A25_RECOVERY_IDENTITY_REPORT_20261017.md)。
 
 2026-10-17 A25原生直接路径：实际Codex完成GCD共同测量、全18输出PDR、从RTL开始的独立完整ORFS及再测；原始覆盖/阶段/208产物哈希独立核验通过，七PPA与平台控制一致。输入/输出1,188,559 token、墙钟191.167秒，失败与CPU范围保留；复用第一次输出且与JPEG共享机器，不算正式效率对照。专业交接/恢复、JPEG完整接力和A25冻结/A26–A28仍待完成，见[原生完整验证](admin/A25_NATIVE_DIRECT_COMPLETION_REPORT_20261017.md)。
