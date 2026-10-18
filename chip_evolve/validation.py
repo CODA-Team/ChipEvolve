@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 import re
 import shutil
+import time
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +15,7 @@ from .comparisons import METRICS, compare
 from .config import Deployment, business_lock, read, write
 from .delivery import checkpoint, finish
 from .jobs import digest
+from .lifecycle import WorkPending
 from .logic import verify_outputs
 
 
@@ -143,10 +146,27 @@ def validate(
     elif read(experiment / "validation-request.json") != request:
         raise ValueError("Validation resume cannot change its frozen results")
     with business_lock(experiment):
+        status = experiment / "status.json"
+        if status.exists():
+            with (experiment / "validation-status-history.jsonl").open("a") as history:
+                history.write(
+                    json.dumps({"replaced_at": time.time(), "previous": read(status)})
+                    + "\n"
+                )
+        write(status, {"status": "running", "kind": "validation"})
         try:
             return _validate(
                 deployment, result_path, reference_path, experiment, frame, request
             )
+        except WorkPending as error:
+            receipt = {
+                **error.receipt,
+                "experiment": str(experiment),
+                "upstream_experiment": error.receipt.get("experiment"),
+                "kind": "validation",
+            }
+            write(status, receipt)
+            raise WorkPending(receipt) from error
         except Exception as error:
             write(
                 experiment / "status.json",
