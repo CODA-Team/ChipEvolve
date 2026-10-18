@@ -4,7 +4,6 @@ from pathlib import Path
 import subprocess
 import uuid
 
-from .environment import require_eda_memory
 from .inputs import FileChunks
 
 
@@ -14,7 +13,6 @@ class OrfsToolkit:
         self.assets_root = Path(assets_root).resolve()
 
     def submit_flow(self, design='gcd', platform='nangate45', revision=None):
-        require_eda_memory()
         if (platform, design) != ('nangate45', 'gcd'):
             raise ValueError('this release supports the verified Nangate45/GCD ORFS profile')
         revision = revision or 'flow-' + uuid.uuid4().hex[:12]
@@ -28,7 +26,6 @@ class OrfsToolkit:
         return self.client.submit(task)
 
     def export_flow(self, run_id, snapshot_id):
-        require_eda_memory()
         run = self.client.run(run_id)
         if run['status'] != 'succeeded':
             raise ValueError('only a completed successful flow can be exported')

@@ -1,13 +1,12 @@
 """Bind analyses to their fixed original snapshot inputs."""
 from collections.abc import Sequence, Mapping
-from typing import Any
+from typing import Any, cast
 from pathlib import Path
 import threading
 import time
 
 from openroad_platform_client import KernelClient, KernelError, LocalFirstKernelClient
 
-from .environment import require_eda_memory
 
 
 def snapshot_inputs(snapshot: dict[str, Any], with_timing: bool = True) -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -99,9 +98,6 @@ class SnapshotExecutionClient(LocalFirstKernelClient):
         return super()._call(*args, **kwargs)
 
     def submit(self, task: Mapping[str, Any], **kwargs: Any) -> dict[str, Any]:
-        if task.get('inputs', {}).get('adapter') in (
-                'opendb', 'openroad', 'opensta', 'report', 'orfs_flow'):
-            require_eda_memory()
         staged = []
         refs = {r['artifact_id']: r for r in task.get('inputs', {}).get('input_provenance', [])}
         for item in task.get('staged_inputs', []):
@@ -121,12 +117,14 @@ class SnapshotExecutionClient(LocalFirstKernelClient):
         return super().submit({**task, 'staged_inputs': staged}, **kwargs)
 
     def _upload_original(self, ref):
+        # submit checks source_client before reaching this archive-only path.
+        source_client = cast(KernelClient, self.source_client)
         key = (ref['artifact_id'], ref['sha256'])
         with self._input_lock:
             if key in self._inputs:
                 return self._inputs[key]
-            self.source_client.timeout = self._remaining()
-            locator = self.source_client.artifact_locator(ref['run_id'], ref['artifact_id'])
+            source_client.timeout = self._remaining()
+            locator = source_client.artifact_locator(ref["run_id"], ref["artifact_id"])
             if locator['sha256'] != ref['sha256'] or locator['size_bytes'] != ref['size_bytes']:
                 raise ValueError('archive artifact identity differs from snapshot provenance')
             uploaded = self.upload_input_chunks(FileChunks(locator['path']))

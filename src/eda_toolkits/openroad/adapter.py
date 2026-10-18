@@ -53,6 +53,9 @@ def main() -> int:
     try:
         request = json.loads(Path(args.request).read_text(encoding="utf-8"))
         task = request["task"]
+        os.environ["EDA_TASK_MEMORY_BYTES"] = str(
+            (task.get("resources") or {}).get("memory_bytes") or 16 * 1024**3
+        )
         inputs = task.get("inputs", {})
         mode = inputs.get("adapter", "command")
         if mode in {"opendb", "openroad", "opensta", "report", "orfs_flow", "a2_stage"}:

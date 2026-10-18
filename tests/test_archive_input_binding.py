@@ -63,13 +63,22 @@ def test_missing_fixed_sdc_is_rejected_before_native_task():
         snapshot_inputs(snapshot)
 
 
-def test_low_memory_does_not_stage_or_submit_new_eda_task():
+def test_low_memory_submission_defers_admission_to_execution_foundation():
     client = SnapshotExecutionClient('http://127.0.0.1:18700')
-    with patch('eda_toolkits.inputs.require_eda_memory', side_effect=RuntimeError('less than 16 GiB')), \
-         patch.object(client, '_call') as transport:
-        with pytest.raises(RuntimeError, match='16 GiB'):
-            client.submit({'inputs': {'adapter': 'opensta'}})
-        transport.assert_not_called()
+    with (
+        patch(
+            "eda_toolkits.environment.available_memory_bytes", return_value=1
+        ) as memory,
+        patch.object(
+            client, "_call", return_value={"run": {"status": "queued"}}
+        ) as transport,
+    ):
+        assert (
+            client.submit({"inputs": {"adapter": "opensta"}})["run"]["status"]
+            == "queued"
+        )
+        memory.assert_not_called()
+        transport.assert_called_once()
 
 
 def test_native_thread_limit_cannot_expand_past_server_budget():
