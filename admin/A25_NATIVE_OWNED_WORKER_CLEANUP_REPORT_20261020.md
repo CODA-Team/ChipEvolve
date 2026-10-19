@@ -48,4 +48,6 @@ r56沿r55已计费ID去重，新增3成功EF任务、采样CPU10937.94秒、未�
 
 四份活动规格的55/53/10/219固定输入与各自26用户文件SHA均通过。新`local-combined-root-qualified.json`沿用现有专业/工具/来源绑定，仅给未来实验独立state_root；状态目录未创建，未派发新EDA或模型，也未切换活动Root、等待者、包或服务。组合验证证据在`var/business/a25-future-integrated-root-20261020/engineering-acceptance.json`及`integrated-binding-acceptance.json`。
 
-本轮已发布可统一收口的候选，不能把它写成最终正式环境：Goal路径适配真实构建/回归、完整JPEG搜索与实际接力、原生完整专业参考、AES完整证明及最后的源码/AST/EPD/模型/冷热点/停止规则绑定仍待完成。成本沿r56保持；本轮没有新EF任务/EDA/模型派发，测试、读回及主Codex推理成本仍为其已声明的未知范围，不声称零总成本。主根只更新本报告、TASKS.md、ARCHITECTURE.md和正式协议，A25仍未冻结。
+本轮已发布可统一收口的候选，不能把它写成最终正式环境：Goal路径适配真实构建/回归、完整JPEG搜索与实际接力、原生完整专业参考、AES完整证明及最后的源码/AST/EPD/模型/冷热点/停止规则绑定仍待完成。成本沿r56保持；组合验证没有派发新的EF任务/EDA/模型，原主管仍会按既定步骤产生后继任务，费用需继续闭合。测试、读回及主Codex推理成本仍为其已声明的未知范围，不声称零总成本。主根只更新本报告、TASKS.md、ARCHITECTURE.md和正式协议，A25仍未冻结。
+
+最后公开构建分阶段核对：run-f63203a897834ef9b594c6c010949f0d成功只代表SetupLegacyBase.cc.o编译完成；原主管随后派发rsz_lib链接run-5be86217fcc24c7bbee31b2d3284e0d1，目前queued16GiB，不能把前一子任务成功写成整个新OpenROAD已构建、二进制身份已确定或崩溃已修复。原2674189和回放2691230仍在，继续同一流程。实际命令及公开状态见`var/business/a25-goal-path-lifetime-diagnosis-20261019/actual-build-stages-observation.json`；这些后继与已完成编译的费用不假称已包含在r56。
