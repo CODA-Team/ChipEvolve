@@ -505,3 +505,9 @@ DPL主83a77bb使用原可选按操作资源映射，ECO主228cb15将重试回复
 隔离根700f46e保持flow_sdc(serialized: str, clock_ns: float) -> str，额外接受明确ps的原生单时钟变量模板并保留动态I/O表达式；数字序列化路径保持，不解释任意Tcl。数据仍为注册源/SDC→原Flow调参→统一EF→共同最终测量→DF/SDK→Query/Codex。AES完整来源已纳入新独立配置，129输出证明和实际协同仍另行验收；该根适配尚未启用，须等固定消费者安全收尾。
 
 已知待办为Goal共享时序路径引用的真实回归、健康完整搜索/接力、候选指导与正式最终版本收口，不能把环境绑定或测试通过当成PPA采用。[本轮证据与限制](admin/A25_QUALIFIED_MODULE_MAIN_AND_AES_CLOCK_REPORT_20261019.md)。
+
+## 2026-10-20：正式直接侧显式worker归属（隔离资格）
+
+隔离7b9bdbd为实验记录器增加可选native_worker_cleanup：新实验目录内登记持久worker的PID/start ticks，核对同账号/实际cwd后捕获其后代，最终收尾并记录结果。未声明选项的原调用保持；正常答案有未结束登记工作不能算完成，原超时/中断状态保留。内部prepare(spec)→WorkerPlan或None、retire(plan)→dict不属于EF/DF/DI公共接口，不新增通用Agent循环或服务，不设置新的专业动作限额。
+
+37针对/555根回归及真实GCD floorplan中断、10进程收尾/独立进程保持已通过；后者是无模型的直接侧传输资格夹具，不是完整Codex业务或正式效率结果。本适配仍未合入活动入口，只覆盖显式登记及捕获后代；正式运行须另验证实际完整专业、可靠登记、数据与冷/热起点身份。见[实际范围与门禁](admin/A25_NATIVE_OWNED_WORKER_CLEANUP_REPORT_20261020.md)。
