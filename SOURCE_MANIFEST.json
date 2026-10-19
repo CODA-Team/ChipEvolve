@@ -36,8 +36,8 @@
     },
     {
       "path": "toolkits",
-      "source_commit": "224a7ad560d468f71e14e5567b280bda2d839ad5",
-      "source_tree": "74fd150c69db112ee5a380870dad2a7c8b5efd31",
+      "source_commit": "86673fa6850d17e893b31fadb53aff1576981a41",
+      "source_tree": "b277874aaba927e3622a28a3915d08b4d07fe24e",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/toolkits"
     },

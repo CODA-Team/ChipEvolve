@@ -468,3 +468,5 @@ A7收尾发现产物登记仍在共享连接锁内进行耗时文件托管。A6�
 2026-10-19 A25实际Flow→Query准备：原GCD2-37仅增加一次EF对象导出，同一测量/原SHA/PPA保持；现有Query宿主12读取/230492字节形成5事实1假设的Code交接包，四角色/11SDKscope及冻结目标独立通过。面积超限在原现代来源已存在，需缩减当前面积4.9365%；不把来源功耗差计为Flow独立收益。真实Goal接收/最终证明重放尚未执行，JPEG串行队列继续。专业算法及公共接口无改动，见[实际面积Query交接](admin/A25_FLOW_AREA_QUERY_HANDOFF_REPORT_20261019.md)。
 
 2026-10-19 A25续查：真实SDK将HTTP503/连接拒绝包装为EdaAiError，主交付尚漏识别；隔离907b882补现有识别，20针对/499隔离回归及实际调用者SDK、注册DF事实受控503恢复通过，待源码安全释放启用（主516检查点不变）。25JPEG交付片段中位58.99秒、队列0.224秒，记录区间外19.83秒开销未唯一归因，计入预算。Query已沿共同测量→物理父run→EF原始routeJSON读到DRC0，原件/归档成员SHA及12scope通过；15读交接包不混nativeTT与最终FF。无新增服务、API或算法，见[本轮恢复和交付成本](admin/A25_SDK_READ_RECOVERY_AND_DELIVERY_COST_REPORT_20261019.md)。
+
+2026-10-19 A25导出核查：JPEG布线成功后仍有473934条KLayout无效via警告，已定位生成技术配置残留旧绝对LEF路径。Toolkit86673fa仅失效两份生成缓存，旧wheel回归2失败/1通过、新wheel78通过及静态门禁；公开EF单独重导出警告0，独立几何核对补回1421802展开图形、边界/DBU及非GDS结果SHA不变。原坏zip/失败和成本保留；源码已发布，生产启用以独立activation回执为准。当前计算继续、后续主管暂缓派发；不是DRC/LVS签核或正式就绪，A25未冻结/A26–A28未完成。见[导出资格报告](admin/A25_RELOCATED_STREAMOUT_REPORT_20261019.md)。
