@@ -80,9 +80,9 @@ preparation-costs-r49.json扫描47份既有快照的全部run引用后，独立�
 
 ## 首个完整策略结果、AES复制验收与Teacher决策补核（2026-10-19 21:40本机）
 
-首个tns_global对照完成原生→完整DRT/RCX→三类事实交付及原约束判断，测量run-df048fa6b0764c079d5f210f0b351ca5。最终功耗155.20265698mW、单元面积6378.88µm²、setup TNS−0.57416ns、WS−30.8414ps。相对原来源功耗−12.972382%、单元面积−5.276069%，轮廓不变；但setup失败，不采用。相同来源last_gasp无CPP控制为155.25515378mW，TNS−0.573876ns、相同WS/面积；新配方功耗仅再低0.033813%，TNS略差，尚不能证明解决了JPEG的最终时序问题。
+首个tns_global对照完成原生→完整DRT/RCX→ORFS/OpenSTA两类事实交付及原约束判断，测量run-df048fa6b0764c079d5f210f0b351ca5。最终功耗155.20265698mW、单元面积6378.88µm²、setup TNS−0.57416ns、WS−30.8414ps。相对原来源功耗−12.972382%、单元面积−5.276069%，轮廓不变；但setup失败，不采用。相同来源last_gasp无CPP控制为155.25515378mW，TNS−0.573876ns、相同WS/面积；新配方功耗仅再低0.033813%，TNS略差，尚不能证明解决了JPEG的最终时序问题。
 
-独立核查已通过公开EF locator读取注册测量归档、验证其SHA，由原native-metrics和stdout功耗总值恢复七PPA，再核对结果及当前DF/SDK；三个snapshot主体身份一致。证据`var/business/a25-jpeg-strategy-calibration-20261019/tns-global-independent-delivery-audit.json`。对该不可行控制不宣称已完成全输出PDR或独立重放。原主管已自动进入第二组wns_path_deep，不因首组负结果重开旧搜索或修改原约束。
+独立核查已通过公开EF locator读取注册测量归档、验证其SHA，由原native-metrics和stdout功耗总值恢复七PPA，再核对结果及当前DF/SDK；当时ORFS/OpenSTA两个snapshot主体身份一致，OpenDB对象索引显式延后。证据`var/business/a25-jpeg-strategy-calibration-20261019/tns-global-independent-delivery-audit.json`。对该不可行控制不宣称已完成全输出PDR或独立重放。原主管已自动进入第二组wns_path_deep，不因首组负结果重开旧搜索或修改原约束。
 
 AES同一来源的复制place、CTS、route_finish均成功；原注册归档全部九个capture字节、七native值、当前DF/SDK和三scope、source/copy条件及目标均独立匹配，七PPA精确相等。证据`var/business/a25-aes-native-domain-source-20261019/copy-delivery-independent-audit.json`。功耗71.545690298mW、单元面积1498.78µm²，原功耗/单元面积/core/die四项上限失败；复制可复现不等于来源可采用。129输出ABC-PDR及环境freeze仍由原3434644继续，未冒充已通过。
 
@@ -91,3 +91,12 @@ JPEG首轮CTS现全部终态49成功/1失败，50份真实消费核查仍零差�
 实际Teacher可见18项配方目录，冻结Controller的power_then_timing模式允许17项（排除area-only配方），并非只允许last_gasp；原Teacher仍将四候选集中在last_gasp。原一轮确已结束，原生评审依据GRT局部结果晋升Student03，而完整DRT/RCX后平台拒绝采用。原生search_policy在连续两轮未晋升后才提示多样化，本场只有一轮且发生原生晋升，该自适应条件没有触发。不能把延长到三轮等同于保证触发多样化，也不能声称最终负反馈已进入下一轮。证据`actual-teacher-menu-and-native-feedback-audit.json`；后续需将最终物理负结果实际交付决策，依据四配方结果选择新的专业轮次和参数。
 
 费用r50新闭合66个唯一终态EF任务（64成功/2失败）、采样CPU12720.14秒，未知attempt用量0；包含本轮CTS、配对探针、AES复制/交付及首策略原生等明确子集，不包含尚未结束的完整搜索或全部策略。r50记录的当时pending任务run-7246e783917d4794bdee12832fc05dba现已完成但尚未在r50计费：后续必须按已计费终态行去重，不能把pending引用误当已计费而漏掉。模型费用仍只继承已闭合收据，活动Flow等未知范围不填零。A25未冻结、A26–A28未完成。
+
+
+## 实际专业Prompt交接与新最终反馈诊断（2026-10-19续查）
+
+沿原运行的六个明确模型产物路径，核对Teacher plan/review和四个主Student编辑调用的invocation及最终生效prompt（非追加平台上下文前的teacher.md草稿）。六份均包含原context_id和setup_tns_ns_min=0约束，逐文件SHA已记录于`var/business/a25-jpeg-strategy-calibration-20261019/effective-professional-context-delivery-audit.json`。这证明六个主调用收到原目标/原Query上下文，不证明模型正确使用，也不覆盖全部修复/草稿调用。原上下文属于原来源，不能冒充当前最终负反馈。最初只读递归查找会遍历Student源码/构建目录，已核实后仅终止该自有扫描进程，改为六条明确路径完成核查，没有中断EDA或专业Agent。
+
+已通过现有业务CLI启动当前tns_global最终结果的真实diagnose，PID882097/start_ticks858702436，规格/问题/启动记录在`var/business/a25-tns-final-query-feedback-20261019/`。比较原FF545ps来源，要求查明实际违例组/分布、单元与线延迟证据、可用策略及进一步降功耗是否合适，区分事实/假设/对照建议，不允许优化动作或凭空因果结论。调查允许读取已有事实，max-analyses=0；现有业务入口先通过EF导出此前延后的OpenDB对象，再由DF导入。当前数据准备/诊断未完成，不宣称已生成上下文或被专业Agent消费；原两快照结果文件保持不变，补充发布使用独立materialized-result.json。
+
+AES原129输出证明的前置步骤已成功，正式ABC-PDR任务run-ef79b04a799d4f30896f502e72deba99仍因32GiB预约等待池内资源，不将Supervisor的proving状态当作证明已运行或通过。四配方第二组/完整Flow和既有后继继续，A25未冻结、A26–A28未完成。本次只更新本报告，用户评测代码与DF/DI修改不动。
