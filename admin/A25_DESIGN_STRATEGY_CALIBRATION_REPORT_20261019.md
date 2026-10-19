@@ -100,3 +100,21 @@ JPEG首轮CTS现全部终态49成功/1失败，50份真实消费核查仍零差�
 已通过现有业务CLI启动当前tns_global最终结果的真实diagnose，PID882097/start_ticks858702436，规格/问题/启动记录在`var/business/a25-tns-final-query-feedback-20261019/`。比较原FF545ps来源，要求查明实际违例组/分布、单元与线延迟证据、可用策略及进一步降功耗是否合适，区分事实/假设/对照建议，不允许优化动作或凭空因果结论。调查允许读取已有事实，max-analyses=0；现有业务入口先通过EF导出此前延后的OpenDB对象，再由DF导入。当前数据准备/诊断未完成，不宣称已生成上下文或被专业Agent消费；原两快照结果文件保持不变，补充发布使用独立materialized-result.json。
 
 AES原129输出证明的前置步骤已成功，正式ABC-PDR任务run-ef79b04a799d4f30896f502e72deba99仍因32GiB预约等待池内资源，不将Supervisor的proving状态当作证明已运行或通过。四配方第二组/完整Flow和既有后继继续，A25未冻结、A26–A28未完成。本次只更新本报告，用户评测代码与DF/DI修改不动。
+
+## 新最终诊断完成、已驱动原生模式配对（2026-10-19）
+
+本轮真实Query inv-3f974849a7454426805279a155537d56已形成有引用的回答并导出绑定当前tns_global源的上下文2e0c76bd…。公共load_context、source/reference身份及固定输入SHA核查通过：4事实、4假设、48证据、5限制。原问题/调用/身份验收位于`var/business/a25-tns-final-query-feedback-20261019/`，完整包在原TNS实验query/professional-context.json。Query的paused是“包已准备、等待消费者”的领域状态，不表示长期线程目标暂停。
+
+观测到的五条负setup样本都从sample_cnt[0]控制信号进入不同DCT系数寄存器；其数据段单元增量约0.499–0.504ns，线增量约0.009–0.012ns。对应最差样本中一个NAND的原/当前master由NAND2x2…SL变为NAND2xp33…R，支持检验驱动/Vt/负载交互。样本不是完整失败端点统计，没有匹配端点前后时序和完整拥塞证据；“恶化在布线后显现”不能直接等同于“线延迟独占主因”，也不能据此认定某一个单元是唯一原因。
+
+根Codex读取该诊断后已实际选择现有wns_path_deep，在相同已降功耗父状态上比较timing_only与power_then_timing。独立目录`var/business/a25-query-guided-reclaim-pair-20261019/`只含私有实验脚本、声明配置与运行数据：generate_pair.py调用原冻结Goal构造器；run_pair.py通过既有EF准备父状态、原生运行、共同DRT/RCX和DF/SDK交付；decision.json记录诊断到策略选择的依据。192固定文件/26用户文件保持，Ruff/格式与各自实际解释器Pyright零错警告。去掉构造器原有early power block后两份Tcl逐字相同，时序命令、父ODB、二进制、库/SDC/RC、原内部目标均一致；不改C++、原评分或晋升，不手工删Tcl指令。
+
+主管PID1101590/start_ticks858800175已运行。共享父状态准备run-78c877c8fc294ab58b4a66a766a2d938成功；注册归档中的Query包、真实决策JSON和准备ODB均经公开locator逐SHA对应，见query-consumer-registered-evidence.json。第一项timing_only原生优化run-20557361627d4356896a653df5af52d5已被EF接受，仍等待16GiB资源；不能写成优化已完成或PPA改善。这证明根Codex已将最终诊断用于下一项实验选择，不宣称原Teacher/四Student已消费新反馈或一轮新源码演化已完成。即使最终可行，仍需全输出证明和独立重放后才能考虑采用。
+
+Query首次只交付ORFS/OpenSTA两类事实，本轮业务diagnose按现有显式延后标记补齐OpenDB；源result.json保持SHA不变，新增materialized-result.json。当前调查60次工具操作/411571读取字节、0内部分析，原生host可见1071461输入token（含932736缓存子集）、9264输出token；这是一个已完成CLI turn的可见用量，不推断内部API请求数。CLI发起到输出回执约555.32秒，调查active_seconds约240.15秒，两者范围不同，不能只用后者充当完整延迟，也不形成正式效率优势。
+
+Query使用默认stage比较模式时因revision不同拒绝；独立核实现有公开mode=experiment后，七个精确raw_key均返回可用COMPARABLE及正确原/当前值，没有更改DF/DI或构建新比较框架。记录explicit-experiment-comparison.json。原比较unit仍为null、输入库引用仍有unknown，必须结合原单位/冻结测量条件，不能把COMPARABLE当作物理等价或因果证明；后续使用指导应明确跨实验模式。最初私有检查器误把COMPARABLE当作HTTP外层状态，修正为读取data.status后通过，不是服务故障，旧Query回答不回写。
+
+r51增加6个唯一成功EF任务/采样CPU3205.29秒、未知attempt用量0，并闭合上述一个实际Query host用量。r50中当时pending、实际未计费的qualification现已计入；后续用accounted_EF_run_ids去重，不把观察到pending引用视为已计费。费用仍非全场，服务/未知模型与重叠RUSAGE不填零或盲加。最新公开首轮route为4成功/2运行/44排队；AES129输出PDR、四配方剩余三组、配对优化、完整2×50及原生参考/实际接力均未完成，A25未冻结、A26–A28未完成。
+
+本次检查点提交PROJECT.md（当前业务交付）、TASKS.md（剩余任务状态）和本报告（实际证据、费用及限制）；私有配对脚本/配置/运行产物留在var。没有修改产品源码或公共接口，没有把当前实验检查点写成整个A25切片完成。
