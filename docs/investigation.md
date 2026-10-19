@@ -44,7 +44,12 @@ may still honestly stop when a required input or permission is unavailable.
 Metric comparison uses stored observation names. For ORFS, use the `raw_key`
 returned by `metrics`, such as `finish__timing__setup__ws`; its display alias `WS`
 need not be a stored observation name. Verify units from the original source
-when the comparison returns a null unit. Evidence pagination also updates the
+when the comparison returns a null unit. For comparisons across runs or revisions,
+select `mode=experiment` on `compare/{other_snapshot}/metrics`; the default
+`stage` mode requires the same revision. Experiment mode preserves both identities
+and returns observed deltas with input-condition evidence. Check those conditions
+before interpreting a delta as physical improvement or causation.
+Evidence pagination also updates the
 investigation checkpoint, so retrieve pages for one investigation sequentially.
 
 `--jev` opts into classification, evidence ranking and support advice. It requires
