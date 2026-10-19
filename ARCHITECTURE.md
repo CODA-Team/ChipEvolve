@@ -1,3 +1,5 @@
+2026-10-19策略边界：校准既有专业配方属于独立实验配置，保留原算法、冻结运行、原业务硬约束和成本；不能把配方收益当新源码增量。JPEG新增四配方对照经原Goal自身Tcl生成器、同一已登记二进制/输入→既有EF→共同DRT/RCX→DF/SDK，不新增harness、服务或公共接口。Flow原裸detailed_placement触发新版默认negotiation，已发现真实未收敛/非法布局；独立同输入Diamond对照仍待结果，当前运行不热切。最终物理负结果应进入后续Query/专业决策；实现接通与策略适用性分开验收，见[本轮报告](admin/A25_DESIGN_STRATEGY_CALIBRATION_REPORT_20261019.md)。
+
 2026-10-19老板最新决策：PPA主实验优先检验完整专业能力的协同集成及额外PPA收益，团队不再要求与单项使用相同总预算。各单项充分运行，团队可累计各专业与协调交接投入，保留原约束、来源政策和完整成本，不声称同预算效率优势。A27仍以同一Codex、相同业务任务与能力比较操作效率；历史记录按当时口径保留。A25未冻结，A26–A28尚未完成，修订见[正式协议](admin/FORMAL_EXPERIMENT_PROTOCOL_20261016.md)。
 
 2026-10-19物理与恢复边界补核：Goal原post_route命名检查点实际为GRT/寄生估算，平台后续才做DRT/RCX，局部排名可在最终测量反转；四候选已共同交付且setup均失败。独立外部故障程序对真实OpenROAD阶段只停止观察端10秒，原始完整Make身份恢复、两次全RTL ORFS/18输出PDR/七PPA同值及收尾实际通过；普通Codex工具保持可用，不额外要求整个Agent失明。没有新公共接口或服务，见[本轮实测](admin/A25_COMPLETE_COHORT_AND_EXTERNAL_RECOVERY_REPORT_20261019.md)。
