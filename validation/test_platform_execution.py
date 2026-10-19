@@ -394,7 +394,7 @@ def test_reopening_same_request_does_not_create_another_run(tmp_path, monkeypatc
             return []
 
     module = types.ModuleType("openroad_platform_client")
-    module.KernelClient = Client
+    setattr(module, "KernelClient", Client)
     monkeypatch.setitem(sys.modules, "openroad_platform_client", module)
     monkeypatch.setattr(pe, "request_for", lambda *args: dict(request))
     monkeypatch.setattr(pe, "validate_request", lambda *args: None)
