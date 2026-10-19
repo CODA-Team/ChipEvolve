@@ -1,3 +1,5 @@
+2026-10-19最新验证：JPEG首tns_global策略完整交付，155.202657mW/6378.88µm²，但setup WS−30.8414ps，不采用；七PPA原件→DF/SDK独立通过，第二策略已接续。首轮CTS49成功/1明确合法化失败，50份输入一致，route50已入队。AES复制三阶段/七PPA同值及当前SDK通过，原四项上限失败；129输出证明仍运行。r50新增66终态EF/采样CPU12720.14秒，非全场费用。未正式冻结，详见[策略及复制验收](admin/A25_DESIGN_STRATEGY_CALIBRATION_REPORT_20261019.md)。
+
 2026-10-19 CTS交接补核：新JPEG首轮50份CTS实际消费核验零差异，来自35个成功布局父项、15个非自身donor；观察49成功/1仍计算。新版合法化默认行为也出现在CTS两次布局调用，现有DETAIL_PLACEMENT_ARGS可供后续独立完整对照，无需逐阶段源码补丁；当前搜索不改。AES复制place/CTS成功并进入详细布线，首TNS配方最终验证因明确24GiB预约等待。未宣称PPA新收益或正式就绪，见[消费与兼容核查](admin/A25_DESIGN_STRATEGY_CALIBRATION_REPORT_20261019.md)。
 
 2026-10-19当前业务进度：GCD已有合法Flow→Goal增量结果；JPEG仍在完整调参及策略校准，首轮布局50已收尾并转CTS，尚无本轮新合法协同收益。相同JPEG输入已证默认negotiation失败而Diamond合法，但后者线长变大，仍需最终PPA判断；AES完整新来源已交付、同键复制/129输出验证继续。Query真实数据路径已启用并核验。正式PPA/平台效率试次尚未开始，最新证据见[策略补核](admin/A25_DESIGN_STRATEGY_CALIBRATION_REPORT_20261019.md)和[Query反馈与启用](admin/A25_QUERY_FINAL_FEEDBACK_REPORT_20261019.md)；以下历史段落按各时点保留。

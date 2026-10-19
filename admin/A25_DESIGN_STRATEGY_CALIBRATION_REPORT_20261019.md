@@ -76,3 +76,18 @@ preparation-costs-r49.json扫描47份既有快照的全部run引用后，独立�
 同时公开确认AES原同键复制place/CTS已成功，route_finish运行且详细布线持续推进。第一组TNS配方的native已成功，但共同完整物理任务run-7246e783917d4794bdee12832fc05dba等待24GiB预约；观察时只有16GiB池内可用，属于明确资源等待，非丢任务或缺回执。本轮未增资源池、改调度顺序或重开实验。A25未冻结，A26–A28仍未完成。
 
 本次续查检查点只提交PROJECT.md（当前业务状态）、TASKS.md（未完成项及真实进度）和本报告（配对、费用与消费证据）；没有产品源码或公共接口改动。私有只读核查脚本与运行回执留在var，初始格式检查未通过后已保留原脚本、修正格式并重新执行，最终静态及真实核查通过。
+
+
+## 首个完整策略结果、AES复制验收与Teacher决策补核（2026-10-19 21:40本机）
+
+首个tns_global对照完成原生→完整DRT/RCX→三类事实交付及原约束判断，测量run-df048fa6b0764c079d5f210f0b351ca5。最终功耗155.20265698mW、单元面积6378.88µm²、setup TNS−0.57416ns、WS−30.8414ps。相对原来源功耗−12.972382%、单元面积−5.276069%，轮廓不变；但setup失败，不采用。相同来源last_gasp无CPP控制为155.25515378mW，TNS−0.573876ns、相同WS/面积；新配方功耗仅再低0.033813%，TNS略差，尚不能证明解决了JPEG的最终时序问题。
+
+独立核查已通过公开EF locator读取注册测量归档、验证其SHA，由原native-metrics和stdout功耗总值恢复七PPA，再核对结果及当前DF/SDK；三个snapshot主体身份一致。证据`var/business/a25-jpeg-strategy-calibration-20261019/tns-global-independent-delivery-audit.json`。对该不可行控制不宣称已完成全输出PDR或独立重放。原主管已自动进入第二组wns_path_deep，不因首组负结果重开旧搜索或修改原约束。
+
+AES同一来源的复制place、CTS、route_finish均成功；原注册归档全部九个capture字节、七native值、当前DF/SDK和三scope、source/copy条件及目标均独立匹配，七PPA精确相等。证据`var/business/a25-aes-native-domain-source-20261019/copy-delivery-independent-audit.json`。功耗71.545690298mW、单元面积1498.78µm²，原功耗/单元面积/core/die四项上限失败；复制可复现不等于来源可采用。129输出ABC-PDR及环境freeze仍由原3434644继续，未冒充已通过。
+
+JPEG首轮CTS现全部终态49成功/1失败，50份真实消费核查仍零差异，终态快照`cts-consumption-133115.json`。slot28注册extractor.log逐SHA核验，第一次negotiation剩231内部违例、第二次剩665，最终DPL-0033；没有OOM或未消费证据。首轮50个route_finish槽位已入队，完整2×50及最终交付仍待完成。
+
+实际Teacher可见18项配方目录，冻结Controller的power_then_timing模式允许17项（排除area-only配方），并非只允许last_gasp；原Teacher仍将四候选集中在last_gasp。原一轮确已结束，原生评审依据GRT局部结果晋升Student03，而完整DRT/RCX后平台拒绝采用。原生search_policy在连续两轮未晋升后才提示多样化，本场只有一轮且发生原生晋升，该自适应条件没有触发。不能把延长到三轮等同于保证触发多样化，也不能声称最终负反馈已进入下一轮。证据`actual-teacher-menu-and-native-feedback-audit.json`；后续需将最终物理负结果实际交付决策，依据四配方结果选择新的专业轮次和参数。
+
+费用r50新闭合66个唯一终态EF任务（64成功/2失败）、采样CPU12720.14秒，未知attempt用量0；包含本轮CTS、配对探针、AES复制/交付及首策略原生等明确子集，不包含尚未结束的完整搜索或全部策略。r50记录的当时pending任务run-7246e783917d4794bdee12832fc05dba现已完成但尚未在r50计费：后续必须按已计费终态行去重，不能把pending引用误当已计费而漏掉。模型费用仍只继承已闭合收据，活动Flow等未知范围不填零。A25未冻结、A26–A28未完成。
