@@ -1,8 +1,9 @@
 """Restore only native stage state into an isolated attempt."""
-from pathlib import Path
+
 import shutil
 import stat
 import zipfile
+from pathlib import Path
 
 
 def restore_checkpoint(archive_path, destination):
@@ -13,13 +14,23 @@ def restore_checkpoint(archive_path, destination):
             path = Path(entry.filename)
             if path.parts and path.parts[0] == 'flow':
                 path = Path(*path.parts[1:])
-            if (path.is_absolute() or '..' in path.parts or not path.parts
-                    or path.parts[0] not in {'results', 'logs', 'objects', 'reports', 'combined.log'}):
-                raise ValueError('checkpoint member is outside the native output tree: ' + entry.filename)
+            if (
+                path.is_absolute()
+                or '..' in path.parts
+                or not path.parts
+                or path.parts[0]
+                not in {'results', 'logs', 'objects', 'reports', 'combined.log'}
+            ):
+                raise ValueError(
+                    'checkpoint member is outside the native output tree: '
+                    + entry.filename
+                )
             if path.parts[0] == 'combined.log' and len(path.parts) != 1:
                 raise ValueError('combined.log must be a file')
             if stat.S_ISLNK(entry.external_attr >> 16) or path.as_posix() in names:
-                raise ValueError('checkpoint contains a link or duplicate path: ' + entry.filename)
+                raise ValueError(
+                    'checkpoint contains a link or duplicate path: ' + entry.filename
+                )
             names.add(path.as_posix())
             output = destination / path
             if entry.is_dir():
@@ -31,8 +42,13 @@ def restore_checkpoint(archive_path, destination):
 
 
 def required_checkpoint(flow, stage):
-    stems = {'cts': '3_place', 'route_finish': '4_cts', 'eval_place': '3_place',
-             'eval_cts': '4_cts', 'eval_final': '6_final'}
+    stems = {
+        'cts': '3_place',
+        'route_finish': '4_cts',
+        'eval_place': '3_place',
+        'eval_cts': '4_cts',
+        'eval_final': '6_final',
+    }
     stem = stems[stage]
     extensions = ('odb',) if stage.startswith('eval_') else ('odb', 'sdc')
     paths = [flow / 'results' / f'{stem}.{extension}' for extension in extensions]
@@ -48,3 +64,7 @@ def clear_downstream(flow, stage):
         for path in (flow / directory).glob('*'):
             if path.is_file() and path.name.startswith(prefixes):
                 path.unlink()
+    # ORFS generates these files with absolute LEF references. Regenerate them
+    # in the new attempt instead of retaining the previous WORK_HOME paths.
+    for name in ('klayout.lyt', 'klayout_wrap.lyt'):
+        (flow / 'objects' / name).unlink(missing_ok=True)
