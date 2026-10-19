@@ -1,4 +1,4 @@
-2026-10-19 A25已启用：注册来源的完整prepared-files清单限定下游配方复制范围，后续搜索产物由指定checkpoint交接，不复制其他候选的运行目录；旧image-only来源保持原行为。实际JPEG全登记文件与GCD完整物理七PPA/SDK资格、541主回归通过。SDK临时读取、整场显式自有EF范围收尾、验证重试状态修复同批启用；公共EF/DF/DI接口、专业算法和Codex决策权不变。JPEG完整证明已通过，独立物理重放与后续实际专业资格仍进行中；见[数据边界与运行入口](admin/A25_SOURCE_SNAPSHOT_AND_RECOVERY_REPORT_20261019.md)。
+2026-10-19 A25已启用：注册来源的完整prepared-files清单限定下游配方复制范围，后续搜索产物由指定checkpoint交接，不复制其他候选的运行目录；旧image-only来源保持原行为。实际JPEG全登记文件与GCD完整物理七PPA/SDK资格、541主回归通过。SDK临时读取、整场显式自有EF范围收尾、验证重试状态修复同批启用；公共EF/DF/DI接口、专业算法和Codex决策权不变。JPEG完整证明与独立物理七PPA同值/原约束/SDK均通过；专业配置更新后新建精确签名环境，不改旧签名或放宽门禁，后续实际专业资格仍进行中；见[数据边界与运行入口](admin/A25_SOURCE_SNAPSHOT_AND_RECOVERY_REPORT_20261019.md)。
 
 2026-10-19 A25待现场资格：Goal新实测baseline的evaluation_mode/timing_recipe_id经原CLI传给未知、未晋升seed，原stage matching/context重算负责后续决策；历史未知/已知模式/晋升结果保持。ECO私有professional.eco.pdk_template经现有输入复制边界选择共同PDK和原生NLDM目录，默认仍原项目PDK。两项候选隔离通过门禁，均未热切当前固定实验；实际专业接力和最终PPA待验证，见[本轮报告](admin/A25_GOAL_MODE_AND_ECO_PDK_REPORT_20261019.md)。
 
