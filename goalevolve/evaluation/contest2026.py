@@ -1516,7 +1516,11 @@ class Contest2026OpenROADEvaluator:
             words = shlex.split(first)
         except (OSError, StopIteration, ValueError):
             return
-        if len(words) < 3 or Path(words[0]).name != "ar" or "q" not in words[1]:
+        if len(words) < 3 or "q" not in words[1]:
+            return
+        # CMake selects gcc-ar-11 for the common LTO toolchain.  Its quick
+        # append mode retains old members exactly like plain GNU ar.
+        if re.fullmatch(r"(?:gcc-|llvm-)?ar(?:-\d+)?", Path(words[0]).name) is None:
             return
         archive = Path(words[2])
         if archive.is_absolute() or archive.suffix != ".a":
