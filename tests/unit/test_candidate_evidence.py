@@ -82,3 +82,23 @@ def test_active_round_is_rejected_before_any_export(tmp_path):
     profile, _ = candidate(tmp_path, complete=False)
     with pytest.raises(ValueError, match="completed native round"):
         export(profile)
+
+
+def test_epd_trace_round_zero_does_not_hide_completed_candidates(tmp_path):
+    profile, _ = candidate(tmp_path)
+    before = export(profile)
+    trace = tmp_path / "campaign/rounds/round_000/teacher_epd_retrieval_trace.jsonl"
+    trace.parent.mkdir()
+    trace.write_text('{"accepted": true}\n')
+    assert export(profile) == before
+    assert trace.read_text() == '{"accepted": true}\n'
+
+
+@pytest.mark.parametrize("name", ["round_000", "round_002"])
+def test_unfinished_student_work_is_still_rejected(tmp_path, name):
+    profile, _ = candidate(tmp_path)
+    partial = tmp_path / "campaign/rounds" / name / "students/student_1/artifacts"
+    partial.mkdir(parents=True)
+    (partial / "candidate.json").write_text("{}")
+    with pytest.raises(ValueError, match="completed native round"):
+        export(profile)

@@ -22,6 +22,10 @@ def export(profile: dict[str, Any]) -> dict[str, Any]:
     rounds = Path(profile["state_root"]) / "campaign/rounds"
     candidates = []
     for folder in sorted(rounds.glob("round_*")):
+        # epd_search uses round zero for retrieval traces, before any Student
+        # round. Preserve that evidence without treating it as unfinished work.
+        if folder.name == "round_000" and not (folder / "students").exists():
+            continue
         if not (folder / "round.json").is_file():
             raise ValueError("Candidate export requires a completed native round")
         for path in sorted(folder.glob("students/*/artifacts/candidate.json")):
