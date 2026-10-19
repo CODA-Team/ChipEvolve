@@ -93,6 +93,10 @@ def run(spec_path: Path, output: Path) -> dict[str, Any]:
     from admin.native_episode_cleanup import prepare, retire
 
     cleanup_plan = prepare(spec)
+    from admin.native_worker_cleanup import prepare as prepare_workers
+    from admin.native_worker_cleanup import retire as retire_workers
+
+    worker_plan = prepare_workers(spec)
     sandbox = spec.get("sandbox", "workspace-write")
     if sandbox not in {"workspace-write", "danger-full-access"}:
         raise ValueError("Unqualified native sandbox profile: " + str(sandbox))
@@ -205,6 +209,15 @@ def run(spec_path: Path, output: Path) -> dict[str, Any]:
         )
         raise
     finally:
+        if worker_plan is not None:
+            worker_cleanup = retire_workers(worker_plan)
+            record["native_worker_cleanup"] = worker_cleanup
+            if worker_cleanup["status"] != "completed" or (
+                record["status"] == "native_completed" and worker_cleanup["processes"]
+            ):
+                if record["status"] == "native_completed":
+                    record["status"] = "failed"
+                record["business_correctness"] = "native_workers_not_finished_cleanly"
         record.update(ended_at=time.time(), wall_seconds=time.monotonic() - started)
         cpu_after = os.times()
         record["cpu_usage"] = {
