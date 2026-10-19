@@ -27,3 +27,15 @@ r44新增原生传输预检1次模型调用：输入12711、输出54，共12765t
 证据与唯一后继入口：`var/business/a25-native-professional-control-qualification-r2-20261019/`中的availability.json、native-tools.json、native-link-environment.json、full-native-config-delta.json、full-native-specification.json、full-native-receipt.json和实际events；现有主队列仍在`a25-post-export-continuation-r2-20261019/receipt.json`。
 
 剩余：核验当前四份JPEG候选共同PPA和合法分支完整证明/重放，完成健康完整Flow及由真实Flow结果驱动的接力，安全启用ECO记录与DPL资源主版本，完成完整原生参考资格、最终正式条件冻结，执行A26/A27及A28。PPA团队与单项无同总预算门槛，原物理/功能约束及成本透明要求保持。
+
+## 后续推进：全部候选核查与新组合接力准备
+
+新增只读核查入口 `var/business/a25-complete-cohort-audit-20261019/audit_all_candidates.py`，以原生清单和注册 producer 为起点，核对候选记录/检查点哈希、共同测量身份、公开 EF 终态，以及 DF/SDK 的实际七项 PPA。已在真实 GCD 完整四候选上通过：Student02、Student01 可行，Student03/04 setup 失败；前两份对象事实已发布，后两份仍为明确的按需导出状态。不会把尚未导出的对象说成完整对象覆盖，也不会因此重跑原生实验。此核查不替代所选分支的完整功能证明和独立物理重放，不修改原 Teacher 晋升。
+
+JPEG 专属只读观察器 1874284 已启动，等待当前原四候选完成交付后核查全部分支，不新增模型或 EDA。两份私有脚本通过 Ruff F/I、格式和 Pyright 零错误/警告。核查器初版错误地假定所有候选已即时导出对象，现按已有的延迟物化语义处理，修正记录保留；原专业数据与执行代码没有改动。
+
+下一轮组合配置在 `var/business/a25-future-relay-binding-20261019/` 独立准备：Flow7b1003b、DPL97466b0、Goal7b03c33、ECO228cb15，原生配置解析及各专业仓库清洁度/版本/声明文件、源码 seed 和已有构建收据检查通过。Goal 引用的间接模型配置另以完整 SHA 固定，仍使用原路径，不复制凭据映射。新配置显式使用已在 GCD 实测的私有构建16GiB/分析4GiB预约，全量冷构建32GiB保持；JPEG 的运行资格仍须在新接力中实际验证。
+
+新消费者的唯一 EF 工具探针为 `run-815145fc7a844c4bba3f5c1893bfebe2`，负责人3179103，当前等待资源；通过后才签发新组合环境。当前 Goal 链接持续消耗 CPU，`run-c6c17a85147c49e881cac3c28ee0136c` 已于08:25:39UTC成功，下一份链接正常开始。原32GiB预约使其他任务排队，属于已知配置成本，没有任务丢失或卡死证据；本轮封存配置不热改。新环境签发不等于新专业接力成功、DPL/ECO 主仓已切换或正式就绪。
+
+本次没有产品源码变更、无新增专业模型调用；新增工具探针待终态后纳入准备期成本账本。26份用户修改文件未变，主队列/原生完整参考/后继健康Flow保持原身份。A25仍未冻结，A26–A28仍待实际执行。
