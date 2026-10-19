@@ -1,3 +1,7 @@
+2026-10-19 CTS交接补核：新JPEG首轮50份CTS实际消费核验零差异，来自35个成功布局父项、15个非自身donor；观察49成功/1仍计算。新版合法化默认行为也出现在CTS两次布局调用，现有DETAIL_PLACEMENT_ARGS可供后续独立完整对照，无需逐阶段源码补丁；当前搜索不改。AES复制place/CTS成功并进入详细布线，首TNS配方最终验证因明确24GiB预约等待。未宣称PPA新收益或正式就绪，见[消费与兼容核查](admin/A25_DESIGN_STRATEGY_CALIBRATION_REPORT_20261019.md)。
+
+2026-10-19当前业务进度：GCD已有合法Flow→Goal增量结果；JPEG仍在完整调参及策略校准，首轮布局50已收尾并转CTS，尚无本轮新合法协同收益。相同JPEG输入已证默认negotiation失败而Diamond合法，但后者线长变大，仍需最终PPA判断；AES完整新来源已交付、同键复制/129输出验证继续。Query真实数据路径已启用并核验。正式PPA/平台效率试次尚未开始，最新证据见[策略补核](admin/A25_DESIGN_STRATEGY_CALIBRATION_REPORT_20261019.md)和[Query反馈与启用](admin/A25_QUERY_FINAL_FEEDBACK_REPORT_20261019.md)；以下历史段落按各时点保留。
+
 2026-10-19老板最新决策：PPA主实验优先检验完整专业能力的协同集成及额外PPA收益，团队不再要求与单项使用相同总预算。各单项充分运行，团队可累计各专业与协调交接投入，保留原约束、来源政策和完整成本，不声称同预算效率优势。A27仍以同一Codex、相同业务任务与能力比较操作效率；历史记录按当时口径保留。A25未冻结，A26–A28尚未完成，修订见[正式协议](admin/FORMAL_EXPERIMENT_PROTOCOL_20261016.md)。
 
 2026-10-19本轮：JPEG原Goal03→ECO8已完整交付/入库，原setup仍失败，不采用；新Goal真实PID943596已用精确修复环境进入原一轮四Student，实际baseline/parent为timing_only/legacy_setup，随后健康JPEG2×50。GCD相同原Goal配方控制setup余量−85.20ps，Student02为+0.0834ps、功耗另低6.7381%；实际Tcl除输出目录一致，701声明源码仅策略文件不同，公开原件/SDK独立通过，非正式团队比较。ECO重试导致分析与动作错配、10调用少记成8已复现；隔离228cb15通过8回归/静态类型/真实10回复8轮动作同值重放，尚未启用。r43闭合12成功任务/采样CPU63704.95s及原ECO1020227token，26用户文件保持。Goal主模块已线性收口7b03c33并固定根版本，完整回归440通过/3条件跳过/24子检查、根545集成通过，活动JPEG精确环境复核通过；ECO隔离修复不热切。A25未冻结/A26–A28未完成，见[本轮机制与接力报告](admin/A25_ECO_RETRY_AND_GCD_MECHANISM_REPORT_20261019.md)。

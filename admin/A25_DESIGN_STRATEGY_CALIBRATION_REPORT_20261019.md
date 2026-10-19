@@ -1,3 +1,5 @@
+2026-10-19实际收尾补核：JPEG首轮50place全部终态，38成功/12失败，六份密度超1、六份negotiation未收敛/DPL-0033，全部注册日志已逐SHA核对；完整2×50仍运行，已有50份CTS交接。配对同输入默认negotiation失败、显式Diamond合法，成功归档五份捕获与失败单独原件均已核对，单一flag差异成立；Diamond日志HPWL却增加约205%，不能据此全局切换或宣称最终PPA改善。第一组TNS配方native已成功，正在共同DRT/RCX和数据交付；AES原ORFS及测量完成，原重复mkdir错误后3434644已沿同来源/同控制键实际进入复制验证。r49独立闭合51个新终态EF任务、采样CPU31549.38秒，无旧ID重复，不是完整搜索费用；详见文末补核。A25未冻结/A26–A28未完成。
+
 # A25：按设计校准专业策略及合法化默认行为核查
 
 本轮响应老板关于“GCD有效、JPEG效果差、专业策略能否调整”的质疑，继续已批准的正式实验前资格。工程接通和业务采用门禁已经存在，但策略覆盖与最终物理反馈尚不充分；本报告不把新配置、排队或接口检查记作PPA改善。A25未冻结，A26–A28未完成。
@@ -46,3 +48,31 @@ run-aeadbc746ab048fe9d3f277361be19ae来自首轮slot46。注册日志明确新�
 后续实际顺序：取得策略/合法化对照并独立核验→将最终阶段证据沿现有Query上下文反馈给后续专业决策→继续完整健康Flow与真实接力/AES资格→空闲窗口收口DPL/ECO主版本→冻结来源、各方法充分投入与停止规则→执行正式PPA和同Codex同业务平台效率对照→最终审计。任何负结果继续保留，校准样本不改称未见设计，团队不要求与单项同总预算。
 
 本轮根提交仅包括本报告、TASKS.md和ARCHITECTURE.md；所有实验脚本/配置/运行数据留在忽略的var目录。没有stage或运行受保护的用户评测代码，也没有部署用户DF/DI修改。
+
+## 两种合法化算法的实际配对结果
+
+paired-independent-acceptance.json核查了同一个注册pre-DPL ODB/SDC/candidate.mk、同一二进制/镜像/线程/15份库/RC和padding。Diamond成功归档中的五份捕获逐SHA对应；默认negotiation失败时保存的是独立query-data原件，manifest、输入、失败ODB及stdout也逐项对应，未用失败归档布局假设替代取证。归一化输出目录后，两份Tcl只差-use_diamond_legalizer。默认分支复现未收敛及DPL-0033，Diamond通过placement检查。
+
+这支持该预先选定JPEG配置的默认算法差异解释，不推断其他五个DPL失败全部可被同样修复。Diamond在镜像优化前的日志HPWL由127999.3升至390028.0（原日志尺度，约+205%），之后镜像为385866.4；合法布局并不保证最终线长、功耗或时序更好。两份probe的EF采样CPU分别72.39/692.69秒，不作正式运行时间优势，也不重复归入原失败任务。没有变更活动搜索、扩大资源池或放宽原约束。
+
+完整首轮布局12份失败已在initial50-final-failure-audit.json中核对：6份FLW-0024密度超1、6份negotiation未收敛后DPL-0033，其余38份成功；没有把明确算法/配置失败写成资源不足或失联。后续CTS/布线、第二轮及最终共同PPA仍需真实完成，不能由首阶段结束推定全搜索健康通过。
+
+## 费用闭合与交接边界复核
+
+preparation-costs-r49.json扫描47份既有快照的全部run引用后，独立新增这50个place和AES原ORFS共51个唯一终态任务，39成功/12失败，采样CPU31549.38秒、未知attempt usage0、最大已完成任务峰值约2.694GiB。其余CTS/布线/模型、AES复制/PDR、四策略与其他后继没有冒充已完整入账；host Query、服务及主Codex未知费用不填零，且不与重叠的原生命令CPU相加。
+
+源码复查同时确认DPL入口原生默认和平台实际传参都为3_4_place_resized，平台从真实源archive提取前置状态，再承接CTS/路由；没有发现把Goal的post_route命名输出直接当作DPL pre-DP输入的情况。Goal结果目前没有DPL所需的原ORFS archive，不能把当前已验证的Flow→DPL→Goal→ECO及Flow→Goal路径扩写成任意反向边都支持；本轮没有为未验证路径增加变通。
+
+后续冻结应明确每种专业策略实际选择的合法化器/修复recipe及其来源，而不是只写“最新版OpenROAD”。原生专业算法可以选择不同策略，统一的是工具身份、物理输入与最终验收条件。改变策略使用新实验及对应控制，不能热改旧结果或用一个阶段的成功承诺最终PPA。
+
+## 当前CTS真实消费与跨阶段合法化核查（2026-10-19 21:28本机）
+
+新搜索首轮50份CTS均已启动过真实EF attempt；公开运行与实际输入核查为49成功、1运行，0项检查失败。50个槽位来自35个成功布局父项，15个槽位使用原生选择的非自身donor；每份checkpoint的注册artifact_id/SHA、实际消费字节、配置/SDC/profile/业务目标/Query上下文字节，以及候选和最终条件身份均匹配。该核查只覆盖CTS输入交接，不代表全2轮或最终PPA通过，也不将50槽位解释成50份不同物理父状态。证据为`var/business/a25-jpeg-stage-consumption-20261019/cts-consumption-132834.json`；只读脚本经Ruff F/I、格式及实际client解释器Pyright零错警告，26份用户文件SHA保持。
+
+最后一个CTS为slot28/run-deffacf9daf9495ca1f1377e2151d80c。公开实时日志已观察到第一次negotiation在1399迭代后仍有231项内部违例，随后原脚本继续repair_timing、第二次detailed_placement；后者仍有迭代进展。该内部计数不等于最终check_placement判定，不能预先将活动任务写成失败或卡死。原件观察及SHA保存在`var/business/a25-jpeg-legalizer-compatibility-20261019/active-cts-slot28-log-observation-r1.*`。
+
+源脚本核查发现兼容选择已存在统一配置入口：cts.tcl两次调用detailed_placement_helper，util.tcl的该helper读取DETAIL_PLACEMENT_ARGS再调用detailed_placement。后续匹配完整物理对照可在独立配置中显式声明算法，而无需修改活动OpenROAD源码或逐阶段插入特殊补丁；本轮未改变此变量、活动配置或搜索预算。既有slot46探针的Diamond线长代价仍需完整验证，不能由这项配置入口检查直接决定全局切换。
+
+同时公开确认AES原同键复制place/CTS已成功，route_finish运行且详细布线持续推进。第一组TNS配方的native已成功，但共同完整物理任务run-7246e783917d4794bdee12832fc05dba等待24GiB预约；观察时只有16GiB池内可用，属于明确资源等待，非丢任务或缺回执。本轮未增资源池、改调度顺序或重开实验。A25未冻结，A26–A28仍未完成。
+
+本次续查检查点只提交PROJECT.md（当前业务状态）、TASKS.md（未完成项及真实进度）和本报告（配对、费用与消费证据）；没有产品源码或公共接口改动。私有只读核查脚本与运行回执留在var，初始格式检查未通过后已保留原脚本、修正格式并重新执行，最终静态及真实核查通过。

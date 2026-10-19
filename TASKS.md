@@ -1,3 +1,7 @@
+2026-10-19 CTS交接补核：新JPEG首轮50份CTS实际消费核验零差异，来自35个成功布局父项、15个非自身donor；观察49成功/1仍计算。新版合法化默认行为也出现在CTS两次布局调用，现有DETAIL_PLACEMENT_ARGS可供后续独立完整对照，无需逐阶段源码补丁；当前搜索不改。AES复制place/CTS成功并进入详细布线，首TNS配方最终验证因明确24GiB预约等待。未宣称PPA新收益或正式就绪，见[消费与兼容核查](admin/A25_DESIGN_STRATEGY_CALIBRATION_REPORT_20261019.md)。
+
+2026-10-19新实际结果：JPEG首轮place50全部终态38成功/12失败（6密度超1、6默认negotiation未收敛），CTS50正在推进。注册同输入配对已证默认算法失败、Diamond合法，但Diamond线长显著增大，不能直接当PPA修复。首TNS策略已进入共同最终验证；AES原完整来源交付、同键续接已进入复制验证。r49闭合51新终态EF/采样CPU31549.38s且无重复；完整2×50、全部策略、AES129输出与正式冻结仍未完成，见[配对及首阶段补核](admin/A25_DESIGN_STRATEGY_CALIBRATION_REPORT_20261019.md)。
+
 2026-10-19Query提示已安全启用：主Query48b105b及wheel554942fb…实际安装，真实JPEG host读数/比较/证据/回答通过；七活动/后继规格383份唯一固定文件、26用户文件和历史上下文SHA保持，EF/DF未重启。新增Query自身包的RECORD身份109验证/110记录，补旧SDK筛选未覆盖本包的遗漏。原专业/搜索输入不变，策略与合法化/AES资格仍等待真实结果，A25未冻结/A26–A28未完成，见[启用补核](admin/A25_QUERY_FINAL_FEEDBACK_REPORT_20261019.md)。
 
 2026-10-19最终反馈：现有Query host已通过DF/DI读真实JPEG最终比较、核对原件/条件并导出code历史上下文，4事实/5限制/15证据，公开加载器通过；下一个专业Agent消费尚未验证。展示名WS/TNS比较缺观测而raw_key四项成功，Query隔离48b105b仅修提示/文档，164全回归/全lint格式/类型/3边界通过，未启用。AES完整ORFS已成功、common测量仍排队，复制/129输出/环境待验；JPEG首轮place24成功/7失败/4运行/15排队，两项策略/合法化对照排队。原键不重开，A25未冻结/A26–A28未完成，见[本轮报告](admin/A25_QUERY_FINAL_FEEDBACK_REPORT_20261019.md)。
