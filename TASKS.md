@@ -1,5 +1,7 @@
 2026-10-19老板最新决策：PPA主实验优先检验完整专业能力的协同集成及额外PPA收益，团队不再要求与单项使用相同总预算。各单项充分运行，团队可累计各专业与协调交接投入，保留原约束、来源政策和完整成本，不声称同预算效率优势。A27仍以同一Codex、相同业务任务与能力比较操作效率；历史记录按当时口径保留。A25未冻结，A26–A28尚未完成，修订见[正式协议](admin/FORMAL_EXPERIMENT_PROTOCOL_20261016.md)。
 
+2026-10-19本轮：默认ORFS原失败、显式Yosys最小来源及完整旋钮来源已公开核对并分列；三设计×三完整业务任务具化，拟27对/54episode，尚未冻结。新组合三设计工具/注册字节/12项身份检查通过，另识别并修正复制配置继承的GCD旧ns输入，canonical ps重绑已通过，旧证据及当前运行不改；后续用local-next-relay-qualified-r2-canonical-gcd.json。r45/r46合计新增4工具探针、采样CPU1.70秒；JPEG原四Student仍评估/自修复，专业费用未提前闭合。DPL/ECO主版本安全启用、健康Flow/真实接力/原生完整参考及A25冻结/A26–A28仍待完成，见[本轮报告](admin/A25_BASELINE_FAMILY_AND_BUSINESS_TASK_REPORT_20261019.md)。
+
 2026-10-19继续：可复用只读入口已核验真实GCD全部四候选的原生记录/注册producer/共同七PPA和SDK，2可行/2setup失败，保留按需对象覆盖边界；JPEG全候选观察器1874284已启动。新组合Flow7b1003b/DPL97466b0/Goal7b03c33/ECO228cb15及间接模型哈希已独立准备，源码/seed/收据预检通过；唯一EF工具探针等待资源，未切活动消费者或主模块。当前原Goal链接继续，健康完整Flow/真实JPEG接力/原生完整参考/正式冻结仍待完成，见[本轮补充](admin/A25_NATIVE_REFERENCE_ENVIRONMENT_REPORT_20261019.md)。
 
 2026-10-19原生对照准备：共同镜像内原Goal Codex传输真实调用通过；默认镜像工具、同一LTO1函数的环境入口实测通过。完整原CLI1轮四Student/AST/EPD配置只改隔离state_root，原source_root/编译图谱/目标保留；唯一后继1705515等待主队列后才交EF32CPU/32GiB执行，尚未取得完整搜索资格或正式效率结果。r44新增预检12765token、EDA0；间接模型配置正式冻结仍需固定。原JPEG业务943596继续构建/链接；A25未冻结/A26–A28未完成，见[原生参考环境](admin/A25_NATIVE_REFERENCE_ENVIRONMENT_REPORT_20261019.md)。
