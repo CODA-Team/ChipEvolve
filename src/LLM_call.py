@@ -1265,15 +1265,23 @@ def main():
 
         # Switch transport here: call_claude (CLI) or call_claude_api (SDK).
         reply_raw, claude_meta = call_claude(system_prompt, user_prompt)
-        append_llm_session_log(iterations, system_prompt, user_prompt,
-                               reply_raw, claude_meta, label="primary")
+        model_calls = [("primary", reply_raw, claude_meta)]
+        selected_raw = reply_raw
+        append_llm_session_log(
+            iterations,
+            system_prompt,
+            user_prompt,
+            reply_raw,
+            claude_meta,
+            label="primary",
+        )
         reply = sanitize_tcl_output(reply_raw)
 
-        print(f"\n  [REPLY] LLM output:", flush=True)
-        print(f"  {'─'*50}", flush=True)
+        print("\n  [REPLY] LLM output:", flush=True)
+        print(f"  {'─' * 50}", flush=True)
         for line in reply.splitlines():
             print(f"  │ {line}", flush=True)
-        print(f"  {'─'*50}", flush=True)
+        print(f"  {'─' * 50}", flush=True)
 
         ok, reason = validate_reply(reply, recent_cmds, allow_insts, buf_inv_masters)
         if not ok:
@@ -1286,24 +1294,39 @@ def main():
                 "Do NOT buffer _eco_* nets. Use eco_remove_buffer to undo bad buffers."
             )
             retry_raw, retry_meta = call_claude(system_prompt, retry_user)
-            append_llm_session_log(iterations, system_prompt, retry_user,
-                                   retry_raw, retry_meta, label="retry")
+            model_calls.append(("retry", retry_raw, retry_meta))
+            selected_raw = retry_raw
+            append_llm_session_log(
+                iterations,
+                system_prompt,
+                retry_user,
+                retry_raw,
+                retry_meta,
+                label="retry",
+            )
             claude_meta = {"first": claude_meta, "retry": retry_meta}
             reply = sanitize_tcl_output(retry_raw)
-            print(f"\n  [RETRY REPLY]:", flush=True)
+            print("\n  [RETRY REPLY]:", flush=True)
             for line in reply.splitlines():
                 print(f"  │ {line}", flush=True)
-            ok, reason = validate_reply(reply, recent_cmds, allow_insts, buf_inv_masters)
+            ok, reason = validate_reply(
+                reply, recent_cmds, allow_insts, buf_inv_masters
+            )
             if not ok:
-                print(f"  [VALIDATE] Still failed: {reason} — passing through anyway", flush=True)
+                print(
+                    f"  [VALIDATE] Still failed: {reason} — passing through anyway",
+                    flush=True,
+                )
         else:
-            print(f"  [VALIDATE] OK — {len(parse_commands(reply))} commands", flush=True)
+            print(
+                f"  [VALIDATE] OK — {len(parse_commands(reply))} commands", flush=True
+            )
 
         filtered = reply.strip()
         hist[-1]["assistant"] = filtered
         ECO_OUT.write_text(filtered + "\n", encoding="utf-8")
         try:
-            analysis_text = extract_analysis(reply_raw or "")
+            analysis_text = extract_analysis(selected_raw or "")
             ANALYSIS_OUT.write_text(
                 (analysis_text + "\n") if analysis_text else "",
                 encoding="utf-8",
@@ -1319,20 +1342,33 @@ def main():
             ts_raw = _ts_for_path()
             reply_path = log_dir / f"reply.iter{iterations}.{ts_raw}.md"
 
-            # Gather usage (handles retry-nested shape).
-            def _usage_of(m):
-                if not isinstance(m, dict):
-                    return {}
-                if "usage_reported" in m:
-                    return m["usage_reported"] or {}
-                return (m.get("first") or {}).get("usage_reported", {}) or \
-                       (m.get("retry") or {}).get("usage_reported", {}) or {}
-            usage = _usage_of(claude_meta)
-            envelope = (claude_meta.get("claude_envelope")
-                        if isinstance(claude_meta, dict) and "claude_envelope" in claude_meta
-                        else (claude_meta.get("retry") or {}).get("claude_envelope")
-                             or (claude_meta.get("first") or {}).get("claude_envelope")
-                             or {}) if isinstance(claude_meta, dict) else {}
+            # Native usage fields retain their original cache semantics.
+            # A retried iteration has two real model invocations.
+            usage = {}
+            for key in (
+                "input_tokens",
+                "output_tokens",
+                "cache_read_input_tokens",
+                "cache_creation_input_tokens",
+            ):
+                values = [
+                    (meta.get("usage_reported") or {}).get(key)
+                    for _, _, meta in model_calls
+                ]
+                numbers = [value for value in values if isinstance(value, (int, float))]
+                usage[key] = sum(numbers) if len(numbers) == len(values) else None
+            envelope = (
+                (
+                    claude_meta.get("claude_envelope")
+                    if isinstance(claude_meta, dict)
+                    and "claude_envelope" in claude_meta
+                    else (claude_meta.get("retry") or {}).get("claude_envelope")
+                    or (claude_meta.get("first") or {}).get("claude_envelope")
+                    or {}
+                )
+                if isinstance(claude_meta, dict)
+                else {}
+            )
 
             # Full per-iteration markdown log: tokens + sanitized Tcl + full
             # raw reply (which contains any model thinking/reasoning text
@@ -1349,12 +1385,12 @@ def main():
                 f"- total_cost_usd: {claude_meta.get('total_cost_usd') if isinstance(claude_meta, dict) else None}\n"
                 f"- system_chars: {len(system_prompt)} | user_chars: {len(user_prompt)} "
                 f"(est total tokens: {estimate_tokens(system_prompt) + estimate_tokens(user_prompt)})\n"
-                f"- reply_chars: {len(reply_raw or '')}\n\n"
+                f"- reply_chars: {len(selected_raw or '')}\n\n"
                 f"## Sanitized Tcl (what was sourced into OpenROAD)\n\n"
                 f"```tcl\n{filtered}\n```\n\n"
                 f"## Full raw reply (reasoning + Tcl, as returned by Claude)\n\n"
             )
-            reply_path.write_text(header + (reply_raw or ""), encoding="utf-8")
+            reply_path.write_text(header + (selected_raw or ""), encoding="utf-8")
 
             # If the API path returned an extended-thinking trace, persist
             # it to its own file. The CLI path will never populate this —
@@ -1364,8 +1400,12 @@ def main():
                     return ""
                 if "thinking_text" in m:
                     return m.get("thinking_text") or ""
-                return ((m.get("retry") or {}).get("thinking_text") or
-                        (m.get("first") or {}).get("thinking_text") or "")
+                return (
+                    (m.get("retry") or {}).get("thinking_text")
+                    or (m.get("first") or {}).get("thinking_text")
+                    or ""
+                )
+
             thinking_text = _thinking_of(claude_meta)
             if thinking_text:
                 thinking_path = log_dir / f"thinking.iter{iterations}.{ts_raw}.md"
@@ -1382,40 +1422,45 @@ def main():
             # One-line JSONL token log for quick grepping / plotting.
             token_log = log_dir / "token_log.jsonl"
             with token_log.open("a", encoding="utf-8") as tfp:
-                tfp.write(json.dumps({
-                    "iteration": iterations,
-                    "timestamp": ts_raw,
-                    "input_tokens": usage.get("input_tokens"),
-                    "output_tokens": usage.get("output_tokens"),
-                    "cache_read_input_tokens": usage.get("cache_read_input_tokens"),
-                    "cache_creation_input_tokens": usage.get("cache_creation_input_tokens"),
-                    "num_turns": claude_meta.get("num_turns") if isinstance(claude_meta, dict) else None,
-                    "duration_ms": claude_meta.get("duration_ms") if isinstance(claude_meta, dict) else None,
-                    "total_cost_usd": claude_meta.get("total_cost_usd") if isinstance(claude_meta, dict) else None,
-                    "system_chars": len(system_prompt),
-                    "user_chars": len(user_prompt),
-                    "reply_raw_chars": len(reply_raw or ""),
-                    "reply_filtered_chars": len(filtered),
-                    "reply_path": str(reply_path),
-                    "thinking_chars": (
-                        (claude_meta.get("thinking_chars")
-                         if isinstance(claude_meta, dict) else None)
-                        or ((claude_meta.get("retry") or {}).get("thinking_chars")
-                            if isinstance(claude_meta, dict) else None)
-                        or ((claude_meta.get("first") or {}).get("thinking_chars")
-                            if isinstance(claude_meta, dict) else None)
-                    ),
-                    "thinking_blocks": (
-                        claude_meta.get("thinking_blocks")
-                        if isinstance(claude_meta, dict) else None
-                    ),
-                }) + "\n")
+                for call_phase, raw, meta in model_calls:
+                    call_usage = meta.get("usage_reported") or {}
+                    tfp.write(
+                        json.dumps(
+                            {
+                                "iteration": iterations,
+                                "call_phase": call_phase,
+                                "timestamp": ts_raw,
+                                "input_tokens": call_usage.get("input_tokens"),
+                                "output_tokens": call_usage.get("output_tokens"),
+                                "cache_read_input_tokens": call_usage.get(
+                                    "cache_read_input_tokens"
+                                ),
+                                "cache_creation_input_tokens": call_usage.get(
+                                    "cache_creation_input_tokens"
+                                ),
+                                "num_turns": meta.get("num_turns"),
+                                "duration_ms": meta.get("duration_ms"),
+                                "total_cost_usd": meta.get("total_cost_usd"),
+                                "system_chars": meta.get(
+                                    "system_chars", len(system_prompt)
+                                ),
+                                "user_chars": meta.get("user_chars", len(user_prompt)),
+                                "reply_raw_chars": len(raw or ""),
+                                "reply_filtered_chars": len(sanitize_tcl_output(raw)),
+                                "reply_path": str(reply_path),
+                                "thinking_chars": meta.get("thinking_chars"),
+                                "thinking_blocks": meta.get("thinking_blocks"),
+                            }
+                        )
+                        + "\n"
+                    )
 
             # Raw claude envelope (JSON) for deep analysis — contains any
             # per-turn breakdown and modelUsage keys.
             if envelope:
                 (log_dir / f"envelope.iter{iterations}.{ts_raw}.json").write_text(
-                    json.dumps(envelope, indent=2), encoding="utf-8",
+                    json.dumps(envelope, indent=2),
+                    encoding="utf-8",
                 )
             print(f"  [LLM] Log saved to {reply_path}", flush=True)
         except Exception as e:
