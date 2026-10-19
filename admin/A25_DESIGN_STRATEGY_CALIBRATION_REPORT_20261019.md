@@ -118,3 +118,41 @@ Query使用默认stage比较模式时因revision不同拒绝；独立核实现�
 r51增加6个唯一成功EF任务/采样CPU3205.29秒、未知attempt用量0，并闭合上述一个实际Query host用量。r50中当时pending、实际未计费的qualification现已计入；后续用accounted_EF_run_ids去重，不把观察到pending引用视为已计费。费用仍非全场，服务/未知模型与重叠RUSAGE不填零或盲加。最新公开首轮route为4成功/2运行/44排队；AES129输出PDR、四配方剩余三组、配对优化、完整2×50及原生参考/实际接力均未完成，A25未冻结、A26–A28未完成。
 
 本次检查点提交PROJECT.md（当前业务交付）、TASKS.md（剩余任务状态）和本报告（实际证据、费用及限制）；私有配对脚本/配置/运行产物留在var。没有修改产品源码或公共接口，没有把当前实验检查点写成整个A25切片完成。
+
+## 2026-10-19 23:22本机：真实原生结果、路径崩溃与隔离候选
+
+本轮继续A25，前轮取得的新证据改变了策略与诊断行动，属于实际进展；正式A26/A27及A28尚未完成。主Flow、AES、原生完整参考和真实接力主管均以当前PID实际存在核查，未将旧回执或超时观察当成存活证明，未重开旧任务。
+
+### 校准的资源替代及真实结果
+
+原两个16GiB原生校准任务run-f370b6967824436894073d68f2f12a29、run-20557361627d4356896a653df5af52d5均在started_at为空、attempts=[]时经公开EF取消；旧主管自然退出，原目录保存替代说明。唯一替代主管1459962负责五份固定原策略，复用已完成首TNS结果与准备父ODB。原生任务根据约1.37GB实测峰值预约8GiB，CPU/命令线程、算法、原参数保持；共同最终物理仍24GiB、AES证明仍32GiB，没有扩服务池或修改活动Flow。
+
+首次零派发预检发现缺少GOALEVOLVE_PLATFORM_PROFILE，生成器会输出新版默认negotiation；失败稿保留，新生成使用原冻结平台profile并恢复canonical Goal Diamond。原三配方与既有正确Tcl除输出目录相同；旧Query配对两个未执行脚本同时纠正此标记，新配对互相仍只差原生early power块。不据此全局切换Flow算法。
+
+completed-native-independent-audit-r2.json已独立通过五组公共EF状态、四组注册zip全部捕获及当前文件SHA、失败原日志SHA和26用户文件。五组当前为：wns_path_deep、reroute_mid_power、measured_critical_path_deep和同低功耗父项timing_only原生成功；同父项power_then_timing失败。四个最终完整DRT/RCX均queued，公开说明为预约24GiB而池内只有8GiB空闲；无最终新PPA或采用结论。前两配方的原生绝对TNS约6.116/6.188ns，比匹配last_gasp控制5.329ns更差，不能与更早power_only父项比较后宣称新收益。
+
+同次观察的主Flow首轮150阶段任务为101成功、13失败、2运行、34排队；这是布局/CTS/布线任务计数，不是150个最终设计或完整2轮已结束。AES129输出PDR run-ef79b04a799d4f30896f502e72deba99仍queued。r52闭合21个新终态EF任务（18成功/1失败/2零attempt取消），新增采样CPU63830.71秒，未知attempt usage0；不重复旧ID、pending不计已闭合成本，未知服务/主推理费用不填零。
+
+### GCD机制与策略选择的适用边界
+
+GCD成功Student02的保护条件为early_forced_reclaim且baseline TNS=0、WNS>=0。原GCD该阶段入口WNS约+0.0108900ns，当前JPEG约−0.00197642ns，因此当前JPEG不满足此条件。证据为GCD_guard_applicability_to_JPEG.json，这是源码条件及实际入口日志核对，不是将GCD候选二进制在JPEG上的实测移植。不能把GCD一次薄余量成功当作稳定泛化。
+
+native-strategy-knob-contract-audit.json核对实际Teacher及参数语义：当前接入版本有17种可选时序配方；max_moves=0使用原C++按规模确定的有界预算，不是关闭/无限；power_stage_tns_ceiling_ns=0会被原构造器拒绝；当前JPEG已进入timing_recovery，调功耗保护轮数不直接改变此阶段；仅一轮也不能验证跨轮学习。保留算法不意味着不调专业策略；但不盲目使用零值、改变原评分或将fork每项能力未经来源核查都称为上游功能。
+
+### 原生崩溃与隔离兼容候选
+
+故障run-1bcbb23cb3ab41baa54867449c2f309f的注册extractor.log SHA为3f202d5a836f49685ba8be01eaa4e0302c835fa59123681d674e489fc4b70b4c，已实际核对。日志Signal11发生于sta::PathExpanded→SetupLegacyBase::makePinTargetOnPath→repairPins→SetupWnsPolicy。CPU495.86秒、峰值921567232字节，不能当成8GiB超限。当前证据定位原生崩溃，不足以最终证明具体内存错误根因。
+
+源码发现repairPins在多个修复动作间重复使用同一个Path*；同版本Target注释已明确动作可使Path失效。隔离候选仅改SetupLegacyBase.cc：保留同一端点、在尝试动作后刷新其当前路径再展开下一个目标。原引脚顺序、预热、journal、动作序列、评分、预算和目标保持；刷新后的当前路径可能改变批次内目标成员，不能宣称物理行为逐字节不变。此为待真实验证的最小兼容假设，不降低修复动作预算，不改公共契约或任何活动源。
+
+私有目录var/business/a25-goal-path-lifetime-diagnosis-20261019/中，candidate-preparation.json核对701份声明源码仅上述一文件不同、原父项及编译donor一致；原Goal COW构建器已成功创建私有构建图。主管2221907/start_ticks859268729经原EF委派提交run-0b5b5d32c5784ecd826aa40e37fb881e，当前queued16GiB，未开始attempt。回放主管2246640/start_ticks859279784实际存活，核对同一构建进程及成功回执后，才用同一新二进制执行原故障和原正常配对脚本；Tcl只重定位输出目录，原上下文/输入/目标和原8线程/动作预算保持，随后仍完整24GiB DRT/RCX。两份实际回归尚未派发，不记崩溃已修复或PPA改善。
+
+镜像内无gdb，经单独公开EF小探针确认，未sudo/安装系统软件或因此反复重跑失败EDA。私有生成、构建、回放和审计脚本最终Ruff/格式及各自实际模块/SDK解释器Pyright零错警告；准备脚本初始lint失败后已修正，不当成全部工程门禁通过。C++构建、真实回归、独立最终物理及未来精确环境/AST重建仍待完成，因此候选未发布或启用。
+
+### Query候选与剩余顺序
+
+隔离Query4ee0af0仅修正跨run/revision指标比较的使用指导：使用已有mode=experiment和raw_key，不改DF/DI或数据语义。40针对、164全回归、3项依赖约束、静态/类型和真实原生Codex查询均通过；实际12次操作、111059字节，正确读取TNS及原单位功耗变化。wheel SHA138048010d11544f37a3fc4e827ab229753596c7aa6c5fe4968ca94e6e264fe6仅装隔离env，主Query48b105b和活动wheel未切换。这个小查询与此前完整诊断工作量不同，不能计算正式token/时间节省率；unit=null及派生/实际加载SDC差异仍保留限制。
+
+下一步为原五组最终结果→真实路径故障回归及必要最小修复→将最终Query证据交专业策略决策→健康完整Flow/真实接力与AES资格→安全模块收口、精确环境及正式入口审计→A25冻结→A26/A27正式双核心实验→A28。当前主要等待是真实资源排队，同时可推进源码诊断；不因等待伪造完成，也不另造通用harness或评测底座。
+
+本轮根文件仅PROJECT.md、TASKS.md及本报告；所有诊断/候选源码/配置/运行证据在忽略的var目录。用户评测脚本、DF/DI工作树及全部26受保护文件保留；没有stage、执行或部署其未提交修改。

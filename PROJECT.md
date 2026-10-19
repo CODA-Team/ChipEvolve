@@ -90,3 +90,5 @@ A6/A7最终工程交付：长任务续租与共享文件托管锁问题经复现
 2026-10-12 老板确认采用本机 10 月 ORFS 镜像作为三专业项目后续共同基础版本。其官方源码为 ORFS `5105b0a77` / OpenROAD `27288f5c90`，通过 SIF 来源、官方构建日志和内容对照核实；固定 digest/commit，不自动跟随移动的 latest。两个 Code 在共同源码上保留定制能力与私有候选构建；历史原生环境留作复现证据，新版本使用新实验及本机基线。截至 2026-10-13，Flow / DPLEvolve 分别在 U2 / U3 完成工程验证，GoalEvolve 的迁移和 GCD 完整接力现已通过工程核查；原 U4 AES 历史轮次不改写，最新状态以夜间报告为准。审计与迁移切片见 admin/COMMON_TOOLCHAIN_AUDIT_20261012.md 和 admin/COMMON_TOOLCHAIN_PLAN_20261012.md。
 
 本轮最终交付与真实效果见 [admin/OVERNIGHT_GCD_REPORT_20261014.md](admin/OVERNIGHT_GCD_REPORT_20261014.md)，架构与实际接口见 [admin/OVERNIGHT_GCD_INTERFACES_20261014.md](admin/OVERNIGHT_GCD_INTERFACES_20261014.md)。所有工程通过状态仍待老板业务验收。
+
+2026-10-19 23:22本机续查：五组JPEG校准已有4原生成功/1真实崩溃，全部注册捕获或失败日志已独立核SHA；四组最终DRT/RCX仍排队，不能记收益。新增隔离单文件路径生命周期修复候选，沿原Goal构建器提交EF16GiB构建，随后仅重放原故障与正常配对模式；未启用、未改专业评分或活动搜索。首轮150个Flow阶段任务观察101成功/13失败/2运行/34排队；AES129输出PDR仍排队。Query4ee0af0候选已过164回归及真实查询，主服务未切换；正式仍未冻结。详情见[策略校准报告](admin/A25_DESIGN_STRATEGY_CALIBRATION_REPORT_20261019.md)。
