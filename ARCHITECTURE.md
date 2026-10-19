@@ -1,3 +1,7 @@
+2026-10-19老板最新决策：PPA主实验优先检验完整专业能力的协同集成及额外PPA收益，团队不再要求与单项使用相同总预算。各单项充分运行，团队可累计各专业与协调交接投入，保留原约束、来源政策和完整成本，不声称同预算效率优势。A27仍以同一Codex、相同业务任务与能力比较操作效率；历史记录按当时口径保留。A25未冻结，A26–A28尚未完成，修订见[正式协议](admin/FORMAL_EXPERIMENT_PROTOCOL_20261016.md)。
+
+2026-10-19本轮收尾：五份JPEG物理来源匹配控制已完成并独立核验34项公开EF任务、实际布局/阶段输入/原约束及三类SDK事实；原布局经注册来源复现原基准，三个DPL候选仍面积超限、不采用。四小时2790次健康/指标读取零失败，health最长5.27秒限制保留。复制续接程序读取旧base的编排错误已修正：只换两个自有监督，保留实际ECO业务1221184及原EF计算；唯一主管1557962观察同ECO，再新Goal1×4、健康JPEG2×50。r42新增35终态任务、采样CPU31832.65秒、新模型0；A25未冻结/A26–A28未完成。运行入口与边界见[本轮验收](admin/A25_MATCHED_SOURCE_AND_EXPERIMENT_SCOPE_REPORT_20261019.md)。
+
 2026-10-19 A25已启用：注册来源的完整prepared-files清单限定下游配方复制范围，后续搜索产物由指定checkpoint交接，不复制其他候选的运行目录；旧image-only来源保持原行为。实际JPEG全登记文件与GCD完整物理七PPA/SDK资格、541主回归通过。SDK临时读取、整场显式自有EF范围收尾、验证重试状态修复同批启用；公共EF/DF/DI接口、专业算法和Codex决策权不变。JPEG完整证明与独立物理七PPA同值/原约束/SDK均通过；专业配置更新后新建精确签名环境，不改旧签名或放宽门禁，后续实际专业资格仍进行中；见[数据边界与运行入口](admin/A25_SOURCE_SNAPSHOT_AND_RECOVERY_REPORT_20261019.md)。
 
 2026-10-19 A25待现场资格：Goal新实测baseline的evaluation_mode/timing_recipe_id经原CLI传给未知、未晋升seed，原stage matching/context重算负责后续决策；历史未知/已知模式/晋升结果保持。ECO私有professional.eco.pdk_template经现有输入复制边界选择共同PDK和原生NLDM目录，默认仍原项目PDK。两项候选隔离通过门禁，均未热切当前固定实验；实际专业接力和最终PPA待验证，见[本轮报告](admin/A25_GOAL_MODE_AND_ECO_PDK_REPORT_20261019.md)。
