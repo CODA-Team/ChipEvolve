@@ -90,6 +90,7 @@ def qualify(
         ],
         parent=parent,
         objective=objective,
+        memory_gib=design.get("orfs_execution", {}).get("memory_gib", 24),
     )
     metrics = read(output / "native-metrics.json")
     measured = measure(

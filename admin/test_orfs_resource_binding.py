@@ -101,3 +101,57 @@ def test_source_copy_uses_same_declared_reservation(
     with pytest.raises(Submitted):
         qualify_prepared_recipe(d, exp, seconds=1800)
     assert config.read_text() == "export SYNTH_USE_SYN = 0\n"
+
+
+@pytest.mark.parametrize("declared,expected", [(None, 24), (4, 4), (12, 12)])
+def test_common_physical_delivery_honors_same_design_reservation(
+    tmp_path, monkeypatch, declared, expected
+):
+    from chip_evolve.physical import qualify
+
+    d = deployment(tmp_path)
+    design = {
+        "libraries": [],
+        "sdc": str(tmp_path / "unchanged.sdc"),
+    }
+    if declared is not None:
+        design["orfs_execution"] = {"memory_gib": declared}
+    d.value["designs"]["gcd"] = design
+    d.value["runtime"] = {
+        "executable": "apptainer",
+        "bind_roots": [str(tmp_path)],
+        "image": "/frozen/toolchain.sif",
+    }
+    d.value["tools"] = {"openroad": "/frozen/bin/openroad"}
+    experiment = d.experiment("gcd", "common-final")
+    source = tmp_path / "source.odb"
+    objective = tmp_path / "objective.json"
+
+    class Submitted(Exception):
+        pass
+
+    def command(self, key, argv, **options):
+        assert key == "qualification"
+        assert options.get("memory_gib", 24) == expected
+        assert options["parent"] == "original-professional-producer"
+        assert options["objective"] == objective
+        assert argv[argv.index("-threads") + 1] == "8"
+        script = experiment / "qualification/route.tcl"
+        content = script.read_text()
+        assert f"read_db {{{source}}}" in content
+        assert f"read_sdc {{{design['sdc']}}}" in content
+        assert "global_route -congestion_iterations 50" in content
+        assert "detailed_route -output_drc" in content
+        assert "extract_parasitics -ext_model_file" in content
+        assert source in options["capture"]
+        raise Submitted
+
+    monkeypatch.setattr(Jobs, "command", command)
+    with pytest.raises(Submitted):
+        qualify(
+            Jobs(d, "gcd", experiment),
+            source,
+            "original-professional-producer",
+            objective,
+            tmp_path / "pdk",
+        )
