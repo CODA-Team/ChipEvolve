@@ -165,6 +165,7 @@ Optional pointer is an RFC6901 JSON pointer into the saved response, e.g.
 /data/fragments/0/fragment/source_path. It selects existing data, not new facts.
 A truncated preview is not a complete observation. Retrieve necessary omitted
 values before claiming them. Do not repeatedly fetch identical full reports.
+Evidence pagination updates the checkpoint; serialize CLI calls for one investigation.
 Original fragments project actual keys: fragments.fragment.slack or
 fragments.fragment.source_path, using fields.
 Computed increments use engineering; they are not fields of the raw fragment.
@@ -184,7 +185,13 @@ stored instance/master changes with counts, identity ambiguity and native covera
 Use timing-points filtered by instance_id (from instance engineering) to locate
 paths touching a changed cell. Project fields including path_id,pin_name,
 cell_name,arrival_ns,load_ff,slew_ns.
-Metrics comparison needs name (e.g. SETUP_WNS). Native area retains precision.
+Metrics comparison needs the stored observation name. For ORFS use the raw_key
+returned by metrics (e.g. finish__timing__setup__ws); display aliases such as WS
+or TNS need not be stored observation names. Other providers may use SETUP_WNS;
+inspect the returned metric identity before choosing name.
+Native area retains precision.
+A null comparison unit does not establish matching units; check the original
+source declarations and evaluation conditions before interpreting the delta.
 For cross-experiment timing comparison use mode=experiment and explicit to_path_id.
 Select fields=timing,input_conditions,matching,analysis_context,interpretation;
 full object matching/relations carry rich repeated provenance and are unnecessary
