@@ -1,3 +1,5 @@
+2026-10-19Query既有harness提示48b105b已按wheel554942fb…启用，比较使用返回的ORFS raw_key、原单位核对、同调查CLI分页顺序化；数据/动作契约及Codex判断权保持。真实安装包host读取/比较/回答通过，无新增模型循环或服务；七活动规格383固定文件及26用户文件原SHA保持。实际Query自身包及bundled资源新增RECORD身份，正式环境使用新记录；不能拿旧SDK过滤快照当完整Query身份。见[启用核验](admin/A25_QUERY_FINAL_FEEDBACK_REPORT_20261019.md)。
+
 2026-10-19策略边界：校准既有专业配方属于独立实验配置，保留原算法、冻结运行、原业务硬约束和成本；不能把配方收益当新源码增量。JPEG新增四配方对照经原Goal自身Tcl生成器、同一已登记二进制/输入→既有EF→共同DRT/RCX→DF/SDK，不新增harness、服务或公共接口。Flow原裸detailed_placement触发新版默认negotiation，已发现真实未收敛/非法布局；独立同输入Diamond对照仍待结果，当前运行不热切。最终物理负结果应进入后续Query/专业决策；实现接通与策略适用性分开验收，见[本轮报告](admin/A25_DESIGN_STRATEGY_CALIBRATION_REPORT_20261019.md)。
 
 2026-10-19老板最新决策：PPA主实验优先检验完整专业能力的协同集成及额外PPA收益，团队不再要求与单项使用相同总预算。各单项充分运行，团队可累计各专业与协调交接投入，保留原约束、来源政策和完整成本，不声称同预算效率优势。A27仍以同一Codex、相同业务任务与能力比较操作效率；历史记录按当时口径保留。A25未冻结，A26–A28尚未完成，修订见[正式协议](admin/FORMAL_EXPERIMENT_PROTOCOL_20261016.md)。

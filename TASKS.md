@@ -1,3 +1,5 @@
+2026-10-19Query提示已安全启用：主Query48b105b及wheel554942fb…实际安装，真实JPEG host读数/比较/证据/回答通过；七活动/后继规格383份唯一固定文件、26用户文件和历史上下文SHA保持，EF/DF未重启。新增Query自身包的RECORD身份109验证/110记录，补旧SDK筛选未覆盖本包的遗漏。原专业/搜索输入不变，策略与合法化/AES资格仍等待真实结果，A25未冻结/A26–A28未完成，见[启用补核](admin/A25_QUERY_FINAL_FEEDBACK_REPORT_20261019.md)。
+
 2026-10-19最终反馈：现有Query host已通过DF/DI读真实JPEG最终比较、核对原件/条件并导出code历史上下文，4事实/5限制/15证据，公开加载器通过；下一个专业Agent消费尚未验证。展示名WS/TNS比较缺观测而raw_key四项成功，Query隔离48b105b仅修提示/文档，164全回归/全lint格式/类型/3边界通过，未启用。AES完整ORFS已成功、common测量仍排队，复制/129输出/环境待验；JPEG首轮place24成功/7失败/4运行/15排队，两项策略/合法化对照排队。原键不重开，A25未冻结/A26–A28未完成，见[本轮报告](admin/A25_QUERY_FINAL_FEEDBACK_REPORT_20261019.md)。
 
 2026-10-19策略校准继续：已核对原Teacher/实际配方，GCD四种修复配方而JPEG四slot均LastGasp，后者局部TNS收益在最终DRT/RCX反转。独立四种既有策略对照已生成并复现注册控制，主管2829023首项run-cd7d070387024d81918c00ba3454d6bf排队，未记PPA通过。完整Flow首50place观察14成功/6失败/4运行/26排队；四份密度超1、两份DPL-0033，发现新版默认negotiation未收敛。主管2907010用同注册pre-DPL输入作Diamond/默认对照，首项run-b1ab332004364c9caf913d725885c909排队；原搜索/失败不改。AES来源与原生参考/真实接力继续，A25未冻结/A26–A28未完成，见[策略与默认行为核查](admin/A25_DESIGN_STRATEGY_CALIBRATION_REPORT_20261019.md)。

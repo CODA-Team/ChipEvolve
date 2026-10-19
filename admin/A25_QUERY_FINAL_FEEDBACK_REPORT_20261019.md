@@ -36,14 +36,26 @@
 
 Query全164项回归通过；全量Ruff通过、178文件格式通过、Pyright零错误/警告、三个依赖契约全部保持。最初新增提示一行过长，已换行修正，不改无关文件。构建wheel的实现字节与最终源码一致，SHA554942fb9ed63917044d487c322dc7b6216f4adc67c37fb2eae4a140ec9fb6ec。实际记录在`var/business/a25-query-metric-guidance-20261019/`。
 
-候选推送ChipEvolve的modules/query-agent-a25-metric-guidance分支；**未合入主Query、未安装到生产环境**。当前所有冻结搜索和后继绑定保持。仅提示/文档调整未增加模仿提示文本的测试；既有完整回归及此次真实原键比较作为验证，不宣称新提示已经通过模型效率对照。
+候选先推送ChipEvolve的modules/query-agent-a25-metric-guidance分支，随后在本轮空闲核查后合入主Query并启用，实际过程见下节。当前所有冻结搜索和后继绑定保持。仅提示/文档调整未增加模仿提示文本的测试；既有完整回归及此次真实原键比较作为验证，不宣称新提示已经通过模型效率对照。
 
 实际Query记录21项操作、203377读取字节、0次分析；application_active_seconds约4.20秒仅为被记录的应用活动时间，不包含本次host Codex推理、命令间隔或端到端墙钟，不能宣传为完整诊断速度。未额外启动内部模型不等于总推理费用为零；主Codex token、DF服务CPU仍未单独观测。错误调用、交付前一次复核和本地核验修正保留；费用观察单独存档，不与原Flow/Goal成本重复累计。
 
+## 空闲启用及实际安装包核验
+
+核对没有活动Query CLI，七份活动/后继规格没有固定本次Query源码或安装文件。保留旧包与dist-info副本及a25-before-metric-guidance-20261019回退tag后，主Query快进48b105b、推送modules/query-agent；仅在本轮专属query解释器以已核验wheel强制安装、不改依赖。实际已安装Python全部与候选源码同值，旧包与新包只有application/investigation.py一个Python文件变化，EF/DF没有重启。
+
+新安装包的真实host调查固定同一JPEG两快照，实际显示raw_key/单位/顺序分页提示，通过三次原始数据读取及顺序证据分页、带引用回答，setup差值−0.0022464ns与原始JSON一致，两份仍负余量。对照属于安装后的功能smoke，不是平台效率成绩；没有额外模型或EDA，也没有重跑旧调查。初版smoke核验器误把截断preview当完整JSON，随后读取同一已保存证据页核对，没有重复数据比较请求。原上下文SHA保持。
+
+启用后再次核对七份实际规格的383份唯一固定文件，以及26份用户文件，全部原SHA保持。activation-acceptance.json、activated-package-identity.json及installed-real-smoke/保存实际证据。新的Query包身份另由importlib.metadata/RECORD核对109份有哈希文件、记录110份文件，wheel SHA与安装来源一致；旧的通用SDK/Toolkit身份采集器按包名筛选，未包含agentic-eda-query-agent本身，这次显式补齐，没有回写旧软件记录。正式冻结应使用这份新的实际Query身份。
+
+本次主模块/根manifest只收口Query；DPL/ECO等冻结专业消费者保持原绑定。该启用完成了已验收提示候选的落地，尚不证明模型因此更省token或后续专业PPA更好。
+
 ## 当前计算和后续门槛
 
-末次公开观察：完整JPEG Flow首轮50place为24成功、7失败、4运行、15排队；这是首轮中间状态，不是两轮完整搜索完成。原主/Flow/AES/原生参考/真实接力以及两个新校准主管均核对PID/start ticks仍存活。AES完整ORFS run-35011a297b2847e0a3537d6f91eecddd已succeeded，但common测量任务尚排队，结果文件未交付；来源复制、129输出PDR及环境资格还没有通过。
+启用后公开观察快照：完整JPEG Flow首轮50place为32成功、8失败、4运行、6排队；这是首轮中间状态，不是两轮完整搜索完成。原主/Flow/AES/原生参考/真实接力以及两个新校准主管仍存活。AES完整ORFS run-35011a297b2847e0a3537d6f91eecddd已succeeded，但common测量run-beff908ce99c4ca19719fdfffacbed03尚排队，结果文件未交付；来源复制、129输出PDR及环境资格还没有通过。实际时间和状态见post-activation-live-EF-observation.json。
 
 四配方校准首项run-cd7d070387024d81918c00ba3454d6bf和合法化Diamond首项run-b1ab332004364c9caf913d725885c909仍queued。继续观察同一run，不因排队重启。原生完整专业参考与真正Flow→Query→Goal仍等待既有前置，未当作已运行完成。
+
+AES私有续接脚本另有调用错误：Deployment.experiment已经创建控制目录，后面的mkdir会再次创建并抛FileExistsError。实际API在隔离临时目录已复现；原监督仍等待原CLI的数据交付，没有修改活动脚本。已启动唯一3434644等待原监督真实终态，只在该确切错误、原来源完整交付且同一控制目录为空时，直接复用原目录继续原复制/129输出/环境验证，不重新发起ORFS。新resume_qualification.py通过Ruff/格式、Pyright与零派发预检，原脚本/错误保留；其当前状态仍是等待，不能写成AES已通过。
 
 正式前继续取得这些实际结果、核验最终反馈被真实专业决策消费、收口尚未启用的修复并重新绑定环境，再冻结各方法充分投入/来源/停止规则，实际执行两项正式实验。团队PPA投入无需与单项相同；平台效率仍用同一Codex完成同样业务。26份用户文件保持，受保护评测代码和未部署DF/DI工作没有运行、部署或提交。
