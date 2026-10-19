@@ -39,3 +39,13 @@ r56沿r55已计费ID去重，新增3成功EF任务、采样CPU10937.94秒、未�
 继续原完整JPEG2×50、四策略最终物理及20%最终复测、Goal路径隔离构建/两项原回归、AES129输出PDR，随后完成原生完整参考和实际Flow→Query→Goal接力。活动主管及公开任务必须重新核验，不因一次观察超时重启。根700f46e变量时钟、本隔离清理及后续真实合格的源码修复待固定消费者安全结束后收口，重绑最终环境/原AST与EPD/模型/来源及停止政策，才能冻结A25并执行正式双核心实验。
 
 本次主根文档改动清单：本报告、TASKS.md、ARCHITECTURE.md、正式实验协议。26份用户文件保持；私有脚本、夹具和实验数据留var，未推送运行产物。
+
+## 同日续查：两项已验证修复组合为一个未来入口
+
+独立分支`a25-future-integrated-root-20261020`、提交`09f95a551c7c78fa028dbb0e8df6e0c993bca881`组合700f46e变量时钟和7b9bdbd显式worker收尾，根基线为2b62e0c。五份涉及文件与各自原合格版本逐字节相同，没有新增专业策略或公共接口。组合46针对/564完整根回归一次通过，Ruff F/I、格式及按实际生产/验证解释器分开的Pyright零错误/警告。独立工作树补入原固定测试环境、admission、Goal CLI与DPL registry文件，未改测试断言、生产模块或服务。
+
+用现有三设计合格配置在组合根执行Flow/DPL/Goal/ECO共12项check_environment，原三个实际EF探针公开回读均成功；工具、来源和专业版本未变，不重复派发新工具探针。真实AES原始变量SDC经过组合flow_sdc后保持原字节，再提取当前原生run_sequential.sh的实际AWK改写程序，分别产生810/900ps候选；真实Tcl求值得到clock810/input162/output162及clock900/input180/output180。时钟/IO命令使用观察桩，此检查证明原生配置改写与表达式传播，不是OpenSTA物理分析或AES完整调参。
+
+四份活动规格的55/53/10/219固定输入与各自26用户文件SHA均通过。新`local-combined-root-qualified.json`沿用现有专业/工具/来源绑定，仅给未来实验独立state_root；状态目录未创建，未派发新EDA或模型，也未切换活动Root、等待者、包或服务。组合验证证据在`var/business/a25-future-integrated-root-20261020/engineering-acceptance.json`及`integrated-binding-acceptance.json`。
+
+本轮已发布可统一收口的候选，不能把它写成最终正式环境：Goal路径适配真实构建/回归、完整JPEG搜索与实际接力、原生完整专业参考、AES完整证明及最后的源码/AST/EPD/模型/冷热点/停止规则绑定仍待完成。成本沿r56保持；本轮没有新EF任务/EDA/模型派发，测试、读回及主Codex推理成本仍为其已声明的未知范围，不声称零总成本。主根只更新本报告、TASKS.md、ARCHITECTURE.md和正式协议，A25仍未冻结。
