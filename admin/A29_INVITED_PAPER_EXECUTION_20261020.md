@@ -225,3 +225,13 @@ Ariane原完整ORFS已完成详细布线，最终原生DRT计数0、布线峰值
 一次性运行脚本复用现有Jobs/container/measure/freeze_goal/annotate/publish，已提交`run-9a39f8411779473f9602ec220c7db8a5`：只对同一最终ODB提取RC并按现有共同测量/三快照发布至DF。没有重做布局/布线，没有新增服务、公共接口、数据库或产品逻辑；后续结果明确标注原LEC未建立功能证明。运行记录`ariane-saved-physical-final-launch.json`、独立case `a29-ariane-saved-orfs-physical-final-r2`；当前仍在EF资源等待，最终PPA未出。
 
 原任务资源释放后，GCD原DPL构建`run-29b1a33e5d9346bd9ccea6e2fc4ea537`与ibex原修复评价`run-c86add5b87444698b4c566157bce5b64`随即实际运行，未重启或改它们的冻结输入。JPEG新ECO继续仅准备，旧Flow不重开。Query完成调用成本单独登记：input1558866，其中cached1420416为子集，output9505、318.89秒；`jpeg-focused-query-model-cost.json`及`cost-snapshot-20261020T130734Z.json`保留范围，不能与先前确定性status读取的0内部调用混用。
+
+## Ariane共同测量完成，事实导出按设计放宽时限
+
+同一已保存最终ODB的RCX任务`run-9a39f8411779473f9602ec220c7db8a5`与共同测量`run-22470f85c938424597bb7a55bb18c881`均已成功；没有重跑布局/布线。测量原件已落盘，但三事实尚未完整入DF，因此未加入当前19节点论文表。其900ps/全布线提取下setup和slew仍失败，需完成真实Query后再选专业接力；不把参考设计自动称为全约束合格。
+
+首次OpenDB导出`run-51f78ee104704bb281b8b6af9c3db018`在原300秒限额终止，采样CPU297.0秒/峰值900083712字节，明确不是8GiB内存耗尽。只检查公开EF工作区的输出进度计数：已有约212万对象行、333万关系行及212万几何记录行，共约3GB部分输出；它们未当作完整DF事实消费。代码审查确认导出逐对象/引脚/网络流式处理，先给完整大设计足够时间，不改导出内容或搭建性能框架。
+
+本轮产品仅修改`chip_evolve/physical.py`的publish：读取现有内部设计绑定`fact_execution.timeout_seconds`，默认300保持；显式不同限额使用独立任务key后缀，旧请求/失败证据不改。Ariane新绑定1800秒，内存8GiB/线程2、数据格式/逻辑快照ID/目标/条件及物理结果均不变。新增`admin/test_fact_execution_budget.py`验证默认与显式预算、缓存重入不发新任务、保留超时任务后独立接续且原PPA/条件不变。32针对、566根回归及Ruff/格式/Pyright通过；真实大设计新导出待执行。没有修改工具包、EF/DF/DI模块或公共SDK，也没有修改运行中的专业源码。
+
+ibex Student01原修复评价成功，公开DI日志641060字节/登记SHA核对通过：原生slew/cap从首版533/23降至33/3，但post-GRT TNS为−16.1516511404ns，尚非最终共同PPA。原功耗后TNS−6.987679ns经时序修复闭合，GRT估计又出现债务；这个阶段差异需在最终事实与后续Query中解释，不能当成全部由新C++导致。原控制器正在下一次修复构建，仍由原规则决定整轮与晋升。证据在`ibex-student01-repair-native-diagnosis.json`。

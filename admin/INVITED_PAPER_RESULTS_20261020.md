@@ -82,7 +82,7 @@ flowchart LR
 |GCD|合法既有成果已固定；DPL原轮次继续；Student01→Query→Goal新增合法分支0.819291mW/39.6139um²，18输出PDR/独立重放通过；ECO侧枝仍setup拒绝，G02保持|收齐原DPL轮次；新合法分支判断是否还有必要动作，保持G02低功耗成果|
 |ibex|完整ORFS基线及三事实入库完成，原约束全通过；Query4事实/1假设完成|首power-only基线因469 slew拒绝；原adaptive功耗+时序阶段已通过Teacher规划并进入四Student，20%回收保留|
 |jpeg|旧实测可行Flow候选及真实负接力保留；余下搜索已停止；24GiB证明分区超时，未采用Flow10|保留具体证明阻断与原结果，本轮不重开搜索或重复相同证明；其他设计继续|
-|ariane|已找到原Goal ASAP7 placed基准：210295组件、136 SRAM实例、21 Liberty/11 LEF，宏模型存在|原布局已由EF成功导入并核对210295组件/136 SRAM；原映射网表+floorplan的完整ORFS已于19:19经EF实际运行，最终PPA待出；不称原样ORFS RTL基准|
+|ariane|已找到原Goal ASAP7 placed基准：210295组件、136 SRAM实例、21 Liberty/11 LEF，宏模型存在|原映射网表+floorplan已完成详细布线DRT0；内置无独立时限LEC经EF取消、未得证明，最终物理检查点由EF接续RCX/测量/DF，PPA待出；不称完整ORFS成功或原样RTL基准|
 
 ## 指标与证据口径
 

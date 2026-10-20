@@ -465,6 +465,11 @@ def publish(
     snapshot_ids = dict(measured.get("snapshot_ids", {}))
     exports = dict(measured.get("exports", {}))
     deployment = jobs.deployment
+    export_seconds = (
+        deployment.design(jobs.design_id)
+        .get("fact_execution", {})
+        .get("timeout_seconds", 300)
+    )
     for mode, field, source in (
         ("opendb", "odb_path", measured["files"]["odb"]),
         ("orfs", "metadata_path", measured["files"]["metrics"]),
@@ -514,6 +519,8 @@ def publish(
                 for i, row in enumerate(deployment.design(jobs.design_id)["libraries"])
             ]
         key = "publish-v3-" + measured["run_id"][-8:] + "-" + mode
+        if export_seconds != 300:
+            key += "-t" + str(export_seconds)
         saved = jobs.experiment / "jobs" / key / "task.json"
         if saved.exists():
             prior = read(saved)["inputs"]
@@ -528,7 +535,7 @@ def publish(
             key,
             inputs,
             staged,
-            seconds=300,
+            seconds=export_seconds,
             cpu=2,
             memory_gib=8,
             parent=measured["run_id"],

@@ -1,6 +1,6 @@
 # ChipEvolve 论文方法与图注素材
 
-状态：2026-10-20 的已完成证据；新增GCD DPL01→Goal原1×4及完整验证已完成，原DPL三Student轮次和ibex仍在运行，JPEG24GiB证明在分区阶段超时，未采用该候选；Ariane原网表/含宏floorplan完整ORFS已实际运行。本文是工程方法说明和可核查表述素材，不是四设计实验已经完成的声明。数值与来源见[实测表](INVITED_PAPER_RESULTS_20261020.md)，实际接口见[操作记录](A29_PLATFORM_OPERATION_TRACE_20261020.md)。
+状态：2026-10-20 的已完成证据；新增GCD DPL01→Goal原1×4及完整验证已完成，原DPL三Student轮次和ibex仍在运行，JPEG24GiB证明在分区阶段超时，未采用该候选。Ariane原网表/含宏floorplan已详细布线DRT0；默认无单独时限的内置LEC经EF取消、未建立证明，同一最终物理检查点接续RCX/测量/DF，PPA未出，不计完整ORFS成功。本文是工程方法说明和可核查表述素材，不是四设计实验已经完成的声明。数值与来源见[实测表](INVITED_PAPER_RESULTS_20261020.md)，实际接口见[操作记录](A29_PLATFORM_OPERATION_TRACE_20261020.md)。
 
 ## 平台方法
 
@@ -38,7 +38,7 @@ EF管理实验生命周期、线程/内存预约、实际工具进程、日志�
 
 ## 测量与结果解释
 
-共同最终指标包含功耗、cell/core/die面积、setup/hold WS与TNS、电气/布局违反和原生DRT计数，并附测量条件、run、来源SHA及父子关系。WS为原始最差余量，允许正值；规范WNS为min(0,WS)。当前GCD/JPEG/ibex分别采用ASAP7 FF、310/545/900ps。Ariane使用原研究提供的ASAP7映射网表、固定宏floorplan及SRAM模型，已完成导入，完整ORFS任务已实际运行，不能填写尚未完成的布线PPA。
+共同最终指标包含功耗、cell/core/die面积、setup/hold WS与TNS、电气/布局违反和原生DRT计数，并附测量条件、run、来源SHA及父子关系。WS为原始最差余量，允许正值；规范WNS为min(0,WS)。当前GCD/JPEG/ibex分别采用ASAP7 FF、310/545/900ps。Ariane使用原研究提供的ASAP7映射网表、固定宏floorplan及SRAM模型，实际保持900ps。已完成物理检查点与其未完成内置LEC分别追踪；同一状态正在通过EF接续提取、测量和事实发布，不重复布局布线，也不填写未出的最终PPA。标准单元为FF，原SRAM模型未统一声明角点，不称全宏FF签核。
 
 论文可报告GCD的真实增量：Flow F37的0.89091155678mW、44.8918um²，经过Query→Goal后，G02为0.71564863902mW、39.1181um²，功耗下降19.6723%、单元面积下降12.8614%，同时修复父项面积超限，最终setup WS为+0.0834055ps、TNS0。G02已有全部18数字输出PDR、独立完整DRT/RCX七指标同值和公共SDK核验；相同产物的有效证明复用。
 
