@@ -283,3 +283,7 @@ Student02共同结果27.968287468mW/2335.44µm²/setup WS−36.3866ps/TNS−4.41
 ### 01:00补核：r2初始化已实际验证
 
 ibex r2原生步骤已成功结束，公开原始日志SHA核对通过：输入TNS−1.7422088709ns/WS−26.270431ps与源测量一致，EST estimated-mode明确为1，旧EST0027 wire-load fallback警告消失。内部15ps目标下完成33次resize（4 sizeup、29 VT）、timing阶段8个新buffer，原生报告余量+15ps；这仍是原生阶段，不声明最终闭合。完整DRT/RCX任务run-9abcab90805e44aca2788c7f072315d0排队。JPEG r2及同候选保留线路诊断继续独立排队。Ariane前两份完整OpenROAD链接已结束，后两份链接继续；原模型/四Student流程没有重启。
+
+### ibex首原生收尾完整入库
+
+原生收尾r1的最终三事实已齐、12值及三身份通过：28.248446062mW /2340.73µm² /setup WS−10.3335ps /TNS−0.148885ns，slew22/cap0/fanout0/DRT0。相对实际timing-only父项，绝对TNS债务减少91.4542%，但setup/slew仍失败，不采用。CSV29个完成测量节点；新增修正协议r2实际原生通过但尚待最终DRT/RCX，不能提前填写收益。

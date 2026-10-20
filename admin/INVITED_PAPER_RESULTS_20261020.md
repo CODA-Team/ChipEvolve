@@ -1,6 +1,6 @@
 # 邀请论文实验素材：当前实测版（2026-10-20）
 
-这是持续更新的实验素材，不是声称四设计已经全部完成。当前28行数据从原结果逐SHA核对后导出；新GCD DPL原生一轮三Student/Teacher已完成、选中Student02，选中Student02共同最终测量已完成、原面积约束拒绝，兄弟交付继续；Student01→Goal原1轮4Student已完成最终测量，新增合法分支通过18输出PDR和独立重放；未完成候选不填结果。CSV包含完整PPA、电气/布局违反、DRC方法、run/条件/目标及来源SHA。
+这是持续更新的实验素材，不是声称四设计已经全部完成。当前29行数据从原结果逐SHA核对后导出；新GCD DPL原生一轮三Student/Teacher已完成、选中Student02，选中Student02共同最终测量已完成、原面积约束拒绝，兄弟交付继续；Student01→Goal原1轮4Student已完成最终测量，新增合法分支通过18输出PDR和独立重放；未完成候选不填结果。CSV包含完整PPA、电气/布局违反、DRC方法、run/条件/目标及来源SHA。
 
 ## 当前可用结论
 
@@ -40,6 +40,7 @@ JPEG保留可行Flow候选及真实负接力。DPL Student03仅原cell面积上�
 |ibex|IG3|Goal|27.995452285000|2335.22|-37.8584000|-4.26612|rejected: setup/slew/cap; originalStudent3; OpenDB deferred|
 |ibex|IG4|Goal|27.995452285000|2335.22|-37.8584000|-4.26612|rejected: setup/slew/cap; originalStudent4; OpenDB deferred|
 |ibex|IT1|Goal native timing|28.110442683000|2340.26|-26.2704000|-1.74221|rejected: finalsetup/slew; originaltiming-only, no newCPP|
+|ibex|IP1|native finishing|28.248446062000|2340.73|-10.3335000|-0.148885|rejected: setup/slew; actualfinalTNSdebt-91.45%; r2newRCprotocolpending|
 |jpeg|JP1|native finishing|151.75381303000|6243.33|-26.2502000|-0.306245|rejected: finalsetup; nativeVTrepair then fullreroute; no newCPP|
 |ariane|AB0|ORFS checkpoint|642.41528511000|43672.8|-285.396000|-155.146|reference: setup/slew fail; original inline LEC retired; not adopted|
 
