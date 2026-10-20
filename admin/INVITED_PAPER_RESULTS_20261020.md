@@ -1,6 +1,6 @@
 # 邀请论文实验素材：当前实测版（2026-10-20）
 
-这是持续更新的实验素材，不是声称四设计已经全部完成。当前21行数据从原结果逐SHA核对后导出；新GCD DPL原生一轮三Student/Teacher已完成、选中Student02，最终交付等待资源；Student01→Goal原1轮4Student已完成最终测量，新增合法分支通过18输出PDR和独立重放；未完成候选不填结果。CSV包含完整PPA、电气/布局违反、DRC方法、run/条件/目标及来源SHA。
+这是持续更新的实验素材，不是声称四设计已经全部完成。当前22行数据从原结果逐SHA核对后导出；新GCD DPL原生一轮三Student/Teacher已完成、选中Student02，最终交付等待资源；Student01→Goal原1轮4Student已完成最终测量，新增合法分支通过18输出PDR和独立重放；未完成候选不填结果。CSV包含完整PPA、电气/布局违反、DRC方法、run/条件/目标及来源SHA。
 
 ## 当前可用结论
 
@@ -34,6 +34,7 @@ JPEG保留可行Flow候选及真实负接力。DPL Student03仅原cell面积上�
 |jpeg|JG3|Goal|150.8680135000|6243.33|-12.5853000|-0.0701142|rejected: setup timing|
 |jpeg|JEold|ECO|151.72357857000|6243.36|-12.9088000|-0.170005|rejected: setup timing; legacy platform reroute|
 |ibex|IG1|Goal|28.18046324000|2339.71|-28.3996000|-1.59699|rejected: setup/slew/cap; native promotedStudent01; ORFS retained|
+|ibex|IG2|Goal|27.968287468000|2335.44|-36.3866000|-4.41515|rejected: setup/slew/cap; originalStudent02; ORFS retained; OpenDB deferred|
 |ariane|AB0|ORFS checkpoint|642.41528511000|43672.8|-285.396000|-155.146|reference: setup/slew fail; original inline LEC retired; not adopted|
 
 完整字段：[机器可读指标表](INVITED_PAPER_METRICS_20261020.csv)。GCD条件为ASAP7 FF/310ps，JPEG为ASAP7 FF/545ps，ibex为ASAP7 FF/900ps；Ariane为900ps、标准单元FF及原提供SRAM模型（宏角点未统一核实）。跨设计不直接计算改善率。ORFS对照与现代Flow综合/方法来源分列；相对ORFS的全部降幅不归为某段源码或协同的唯一贡献。
