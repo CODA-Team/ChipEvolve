@@ -1,0 +1,14 @@
+TimingECOAgent upstream provenance
+
+Upstream project: ASU-VDA-Lab/TimingECOAgent
+Upstream URL: https://github.com/ASU-VDA-Lab/TimingECOAgent
+Pinned upstream commit: 80101610d9e39563b76203ab422184ad93d52249
+
+ChipEvolve integrates this third-party research capability. The original ECO
+primitives, optimization method, author attribution, and source/PDK notices
+remain attributed to their respective authors. Platform integration does not
+constitute authorship of the upstream research algorithm.
+
+The pinned upstream snapshot does not contain a standalone LICENSE file.
+This NOTICE records provenance only; it does not supply or replace a license
+or grant rights to upstream code or PDK materials.

@@ -24,6 +24,8 @@ import shutil
 import matplotlib.pyplot as plt
 import numpy as np
 
+from platform_drc import best_drc_report_tcl
+
 # ---------------------------------------------------------------------------
 # Paths — repo-root self-locating (no hardcoded absolute paths)
 #
@@ -2429,8 +2431,8 @@ def run_loop(loop_max=48):
                     f'write_db "{BEST_ODB}"\n'
                     f'write_verilog {FINAL_VERILOG}\n'
                     f'write_def {FINAL_DEF}\n'
-                    f'set _drc_fp [open "{FINAL_DRC_RPT}" w]; close $_drc_fp\n'
-                    f'tee -file "{FINAL_DRC_RPT}" {{ check_drc }}\n'
+                    + best_drc_report_tcl(FINAL_DRC_RPT)
+                    +
                     f'puts {PARA}\n'
                 )
                 wait_for_sentinel(proc)
@@ -2789,8 +2791,8 @@ def run_loop(loop_max=48):
                     f'write_db "{BEST_ODB}"\n'
                     f'write_verilog {FINAL_VERILOG}\n'
                     f'write_def {FINAL_DEF}\n'
-                    f'set _drc_fp [open "{FINAL_DRC_RPT}" w]; close $_drc_fp\n'
-                    f'tee -file "{FINAL_DRC_RPT}" {{ check_drc }}\n'
+                    + best_drc_report_tcl(FINAL_DRC_RPT)
+                    +
                     f'puts {PARA}\n'
                 )
                 wait_for_sentinel(proc)

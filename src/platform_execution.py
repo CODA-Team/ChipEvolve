@@ -54,7 +54,8 @@ def submit(profile_path: Path) -> dict:
             "native_extra_paths": [
                 "session-output/final_eco." + ext
                 for ext in ("odb", "def", "v", "sdc", "spef")
-            ],
+            ]
+            + ["session-output/route-evidence.json"],
         },
         "staged_inputs": staged,
         "timeout_seconds": profile.get("timeout_seconds", 14400),
@@ -157,6 +158,13 @@ def leaf(profile_path: Path) -> int:
         code = subprocess.call(
             [environment["OPENROAD_BIN"], "-exit", str(script)], env=environment
         )
+        if code == 0:
+            from platform_drc import route_evidence
+
+            evidence = route_evidence(destination, profile.get("input_route_drc"))
+            (destination / "route-evidence.json").write_text(
+                json.dumps(evidence, indent=2) + "\n"
+            )
     output = Path.cwd() / "query-data"
     output.mkdir()
     for folder in ("outputs", "prompts/dynamic"):
