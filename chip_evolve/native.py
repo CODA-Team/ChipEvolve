@@ -370,6 +370,7 @@ def run_eco(
         "metrics_snapshot_id": frame["snapshot_ids"]["orfs"],
         "input_artifacts": artifacts,
         "input_route_drc": frame.get("route_drc"),
+        "memory_gib": binding.get("session_memory_gib", 24),
         "parent_run_id": frame["run_id"],
         "python": python,
         "design_id": args.design,

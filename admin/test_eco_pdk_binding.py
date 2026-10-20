@@ -86,7 +86,10 @@ def test_missing_explicit_pdk_does_not_fall_back_to_upstream(tmp_path):
         )
 
 
-def test_flat_common_pdk_prepares_native_layout_and_preserves_bound_rc(tmp_path):
+@pytest.mark.parametrize("memory_gib", [None, 16])
+def test_flat_common_pdk_prepares_native_layout_and_preserves_bound_rc(
+    tmp_path, memory_gib
+):
     pdk = tmp_path / "common-pdk"
     (pdk / "lib").mkdir(parents=True)
     (pdk / "setRC.tcl").write_text("set_layer_rc -layer M2 -resistance 0.0462311\n")
@@ -105,6 +108,8 @@ def test_flat_common_pdk_prepares_native_layout_and_preserves_bound_rc(tmp_path)
         toolchain={"test_identity": "unit"},
     )
     deployment.value["professional"]["eco"]["python"] = "unused-python"
+    if memory_gib is not None:
+        deployment.value["professional"]["eco"]["session_memory_gib"] = memory_gib
     deployment.value["designs"]["any-design"] = {
         "libraries": [{"path": str(library)}],
         "top": "unit",
@@ -149,6 +154,7 @@ def test_flat_common_pdk_prepares_native_layout_and_preserves_bound_rc(tmp_path)
     ).read_bytes() == library.read_bytes()
     profile = json.loads((experiment / "profile.json").read_text())
     assert profile["parent_run_id"] == "unit-parent"
+    assert profile["memory_gib"] == (24 if memory_gib is None else memory_gib)
     assert profile["input_artifacts"]["odb"] == "unit-odb"
     # Exercise the generated launcher: --cleanenv must not drop tool threads.
     import os

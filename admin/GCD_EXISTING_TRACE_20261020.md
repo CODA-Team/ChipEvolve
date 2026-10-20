@@ -21,7 +21,7 @@ DPL 和 ECO **未在这条最好分支中实际执行**。其他历史分支不�
 
 ## 论文主表所需的既有指标
 
-| 节点 | 功耗 mW | cell µm² | core µm² | die µm² | setup WNS ps | setup TNS ns | hold WNS ps | hold TNS ns | 决策 |
+| 节点 | 功耗 mW | cell µm² | core µm² | die µm² | setup WS ps | setup TNS ns | hold WS ps | hold TNS ns | 决策 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---|
 | B0 | 1.37355377 | 42.6757 | 58.7866 | 78.4819 | 9.34292 | 0 | 32.6035 | 0 | reference |
 | F37 | 0.890911557 | 44.8918 | 57.9701 | 75.8293 | 12.289 | 0 | 35.2101 | 0 | handoff; area exceeds limit |
@@ -56,3 +56,5 @@ Student02 相对实际 F37：功耗下降 **19.6723%**，cell 面积下降 **12.
 - G04：`/home/wjyuan/projects/eda-development/var/business/a25-integrated-qualification-20261019/gcd-runtime/experiments/gcd/a25-gcd-flow237-goal-private16-r1/native-candidates/candidates/a25-gcd-flow237-goal-private16-r1--round_001-student_4/result.json`；SHA `c7f1808c6ccb72d42a9b8388449076c8d7d03a05ce6ea62b302cf095ca6d4781`。
 
 机器可读表：[GCD_EXISTING_TRACE_20261020.csv](GCD_EXISTING_TRACE_20261020.csv)。包含 run/physical run、快照 ID、完整电气指标与来源 SHA。
+
+口径更正：表中允许正值的时序余量为原始 worst slack（WS）；规范 WNS=min(0, WS)。这是列名更正，原始结果及数值不变。

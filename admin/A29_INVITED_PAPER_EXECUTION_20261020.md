@@ -45,3 +45,10 @@
 - 四设计论文素材开始持续导出：[当前指标与接力图](INVITED_PAPER_RESULTS_20261020.md)、[11节点完整指标CSV](INVITED_PAPER_METRICS_20261020.csv)。新增DPL/ECO计算未终态前不填新PPA。
 
 运行与取消回执、原失败和全部成本记录仍在本轮var目录。用户新提供的DeepSeek独立审查文档保持原样，不提交它或其他用户修改。
+
+## 小设计资源接续与同一 Codex 的 Query 展示
+
+- 本轮根 `native.py` 只向 ECO 私有运行 profile 传递 `session_memory_gib`，模块 `platform_execution.py` 将其映射为既有 EF 内存申请；默认仍24GiB，本轮GCD显式16GiB。八线程、八轮及原生算法不变，JPEG不套用GCD设置。当前两项DPL各8GiB占用16/32GiB，旧ECO24GiB排队属于正确资源等待；配置准备期间DPL一项构建完成，原ECO已按24GiB实际开始；保留这份正在运行的原case，不取消、不重跑，新选项仅供后续实验。未修改冻结现场或杀掉DPL构建。
+- 根552项回归、ECO15项回归通过，两个接入文件和相关测试Ruff/格式/Pyright通过。首次误用旧模块venv缺Toolkit/pytest，改用本轮已安装公共wheel的独立测试环境；没有改生产环境或将测试依赖故障写成业务故障。
+- `same-codex-query-demo-r2` 已由当前Codex用现有`--model host`完成两次实际DF事实读取及证据回答：保留G02，G03作为ECO探索分支；额外Query内部模型调用0，父Codex推理token未单独计量，不声称总token为零或节约百分比。两读取及初始化墙钟约1.346秒，回答另有原回执。
+- 论文CSV把正时序余量列更正为WS，并另列规范WNS=min(0, WS)；没有修改原PPA数据。

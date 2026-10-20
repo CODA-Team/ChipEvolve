@@ -10,7 +10,7 @@ JPEG保留可行Flow候选及真实负接力。DPL Student03仅原cell面积上�
 
 ## 已有测量
 
-|设计|节点|专业|功耗mW|cell µm²|setup WNS ps|setup TNS ns|状态|
+|设计|节点|专业|功耗mW|cell µm²|setup WS ps|setup TNS ns|状态|
 |---|---|---|---:|---:|---:|---:|---|
 |gcd|B0|ORFS|1.373553765000|42.6757|9.34292000|0|reference|
 |gcd|F37|Flow|0.89091155678000|44.8918|12.289000|0|handoff; area exceeds limit|
@@ -71,7 +71,7 @@ flowchart LR
 
 ## 指标与证据口径
 
-最终采用按原setup/hold、功耗、面积、布局/电气及原布线流程DRC条件判断；缺失值写unknown。工具估计PPA不等于硅测或全工艺签核。
+表中WS是原始worst slack，可为正；CSV另列规范WNS=min(0, WS)。原始结果不改写。最终采用按原setup/hold、功耗、面积、布局/电气及原布线流程DRC条件判断；缺失值写unknown。工具估计PPA不等于硅测或全工艺签核。
 
 新增保留布线实测已确认相同线路/单元/引脚及七PPA不变。独立`drt::check_drc`返回5377 marker，而原DRT流程计数为0，两者方法不同，独立检查值另列，不偷偷替换原指标或宣称它们等价。新ECO会在原生best选择时保存当次DRT计数，并与实际交付ODB哈希绑定；完整本轮验收见A29施工记录。独立marker的物理含义尚待专项核实，本文不宣称独立检查为零。
 
