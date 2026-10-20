@@ -171,3 +171,9 @@ Ariane完整原映射网表/含固定宏floorplan的ORFS已由原准备命令提
 新增`INVITED_PAPER_GCD_CASE_TEXT_20261020.md`，提供可编辑英文案例正文、七节点指标变化表、中文业务要点及证据入口。围绕已验证F37→G02、Flow→DPL01→DG1合法分支和G03→ECO拒绝分支写出“任务—测量—诊断—继续/保留”的实际过程；未把未完成DPL整轮或四设计写成完成。引用结果SHA、七行表、两合法分支原约束/验证、链接及26受保护文件摘要核对通过。仅文档变化，不重复产品回归或EDA。
 
 补收ibex Student01/02原首物理叶日志，经公共DI取回并对EF登记SHA核对；结合已核对03/04，四个首原生GRT估计分别TNS−15.4737/−18.4791/−23.0849/−23.0849ns，slew/cap为533/23、458/22、469/22、469/22。原时序修复后的估计明显优于GRT后，说明阶段衔接值得最终测量后继续诊断；这不是最终DRT/RCX PPA或唯一原因判断。原生修复轮次不动，证据在`ibex-four-native-stage-diagnosis.json`。
+
+## ibex匹配原生基线与阶段图
+
+通过DI取回原timing_only和power_then_timing基线日志并核对EF产物SHA，分别为`run-85b23423d9724a9f94f45672d92a0184`和`run-0931489eb57841b2be0740d9d6c151b8`。原基线GRT后已有TNS−7.253585/−20.217288ns，后者469slew/22cap。首Student01/02使用相同legacy时序配方，相对匹配阶段基线降低TNS债务23.46%/8.60%；03/04使用不同深时序配方，TNS较大仅作描述，不作同配方C++增益比较；不能把完整ORFS与原生GRT阶段差异全部归为新源码或平台影响。原修复仍继续，最终物理测量后再判断。
+
+诊断表和下一步记录在`A29_IBEX_NATIVE_STAGE_DIAGNOSIS_20261020.md`；`paper-assets/ibex-native-stage-diagnosis-r2.pdf/.svg`展示六原生评价阶段曲线，并明确未计作最终PPA。六份原日志SHA、阶段值和图渲染均已核对，无新增EDA或模型调用。
