@@ -104,3 +104,12 @@ EF核数预约、工具实际线程及采样CPU分别记录。历史Goal原生�
 ## 10月21日：基线继承事实与优化目标分离
 
 Goal原生基线的DRV、运行时间属于设计观测，不能在交接时因只拷贝三个优化指标而丢弃，也不能把DRV补入目标映射来隐式新增目标。2611a2b在既有基线挂接处补齐Parent缺失观测，并保留已有目标与原晋升规则；修复提示区分继承与新增电气问题，不再无条件写成零DRV才可晋升。旧Ariane原轮因这个已复现的缺陷停止并完整留证，新轮单独冻结、重新测基线；新旧PPA及资源条件不能混算。同一Query和AB0供新轮使用，不将旧轮失败成本抹除。
+
+
+## JPEG新增物理可行接力（27输出证明进行中）
+
+同545ps/FF/原PPA约束下，Goal03最终测量为150.868013mW/6243.30µm²、setup TNS−0.0701142ns；单独ECO与前两份收尾均未形成合格采用结果。Codex依据已登记的Query/同候选交付诊断，使用原生VT/size序列、已声明的30ps内部目标，并明确完成冷GRT/DRT/RCX。新JP3最终为152.64929831mW/6244.16µm²，setup WS+10.2303ps/TNS0，hold WS+12.5118ps/TNS0，slew/cap/fanout/布局及原生DRT0；core9048/die9854.14µm²均不变。
+
+相对原ORFS参考，功耗−14.4041407%、cell面积−7.2766098%；相对实际Goal03父项功耗增加1.1806908%，以此恢复最终时序。十二指标与三快照身份通过公开DF/DI核对，全部原约束通过，但精确最终网表27输出ABC-PDR仍在进行，尚未采用。这是Goal设计状态→Codex显式原生修复的实际接力，不能称新ECO成功、新Goal四Student轮次或旧Student源码合并到共同二进制；也未隔离VT/size/余量/新线路各自的唯一因果贡献。功能证明通过后才执行已记录原交付的独立重放并调用既有采用入口；不再次运行源码演化或优化动作。
+
+English draft: Starting from the measured Goal03 checkpoint, Codex requested an explicit native VT/sizing repair after the Query investigation and retained the unsuccessful ECO branches. The resulting fully routed candidate satisfies the original 545-ps timing and physical constraints, with 152.6493 mW power, 6244.16 µm² cell area, zero setup/hold TNS and zero native routing violations. Relative to the original ORFS reference, power and cell area decrease by 14.404% and 7.277%, respectively. Relative to its actual Goal03 parent, the repair spends 1.181% more power to restore timing feasibility. This step consumes the inherited physical state and does not compose the earlier Student C++ implementation into the common tool binary. Full-output equivalence of the exact final netlist is in progress; the candidate is not yet adopted.

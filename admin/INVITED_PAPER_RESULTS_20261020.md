@@ -1,6 +1,6 @@
 # 邀请论文实验素材：当前实测版（2026-10-20）
 
-这是持续更新的实验素材，不是声称四设计已经全部完成。当前31行数据从原结果逐SHA核对后导出；新GCD DPL原生一轮三Student/Teacher已完成、选中Student02，选中Student02共同最终测量已完成、原面积约束拒绝，原轮兄弟交付已收齐；Student01→Goal原1轮4Student已完成最终测量，新增合法分支通过18输出PDR和独立重放；未完成候选不填结果。CSV包含完整PPA、电气/布局违反、DRC方法、run/条件/目标及来源SHA。
+这是持续更新的实验素材，不是声称四设计已经全部完成。当前32行数据从原结果逐SHA核对后导出；新GCD DPL原生一轮三Student/Teacher已完成、选中Student02，选中Student02共同最终测量已完成、原面积约束拒绝，原轮兄弟交付已收齐；Student01→Goal原1轮4Student已完成最终测量，新增合法分支通过18输出PDR和独立重放；未完成候选不填结果。CSV包含完整PPA、电气/布局违反、DRC方法、run/条件/目标及来源SHA。
 
 ## 当前可用结论
 
@@ -43,6 +43,7 @@ JPEG保留可行Flow候选及真实负接力。DPL Student03仅原cell面积上�
 |ibex|IP1|native finishing|28.248446062000|2340.73|-10.3335000|-0.148885|rejected: setup/slew; actualfinalTNSdebt-91.45%; separateRCprotocolr2alsocompletedandrejected|
 |jpeg|JP1|native finishing|151.75381303000|6243.33|-26.2502000|-0.306245|rejected: finalsetup; nativeVTrepair then fullreroute; no newCPP|
 |ibex|IP2|native finishing r2|28.235161677000|2341.42|-1.30401000|-0.00130401|rejected: max_slew_violations,setup_tns_ns_min|
+|jpeg|JP3|native VT/size r3|152.64929831000|6244.16|10.2303000|0|physically feasible; final functional proof pending; not yet adopted|
 |jpeg|JPD|preserved-wire diagnostic|150.82803369000|6243.33|0.26612000|0|diagnostic only: existing wires RCX; native DRC unknown; not adopted|
 |ariane|AB0|ORFS checkpoint|642.41528511000|43672.8|-285.396000|-155.146|reference: setup/slew fail; original inline LEC retired; not adopted|
 
@@ -115,13 +116,15 @@ DPL Student01原生HPWL530.9um（较Diamond536.9下降1.1175%，较framework531.
 
 [方法与英文图注](INVITED_PAPER_METHOD_NOTES_20261020.md)说明平台分工、阶段交接、专业能力、采用规则和比较范围。
 
-JPEG独立追踪图：`var/business/a29-paper-delivery-20261020/paper-assets/jpeg-measured-relay-r6.pdf`（另有SVG）。五个历史实测节点及三个真实父子交接已由input-receipt的source原件SHA核对；Goal03→ECO负接力保留，旧ECO交付重布线标明，Flow10单独列示，不推断其父边。
+JPEG独立追踪图：`var/business/a29-paper-delivery-20261020/paper-assets/jpeg-measured-relay-r7.pdf`（另有SVG）。五个历史实测节点及三个真实父子交接已由input-receipt的source原件SHA核对；Goal03→ECO负接力保留，旧ECO交付重布线标明，Flow10单独列示，不推断其父边。
 
 可编辑[GCD英文案例正文及七节点表](INVITED_PAPER_GCD_CASE_TEXT_20261020.md)已提供。另有[ibex原生阶段诊断](A29_IBEX_NATIVE_STAGE_DIAGNOSIS_20261020.md)及ibex-native-stage-diagnosis-r2.pdf，明确为原生GRT估计，尚不是最终共同PPA。
 
 
-新增ibex与Ariane独立接力图：`var/business/a29-paper-delivery-20261020/paper-assets/ibex-measured-relay-r3.pdf`、`ariane-measured-relay-r5.pdf`。它们只把已完成节点画为实线，prepared/queued/最终待测步骤单独标明，不作为新收益。
+新增ibex与Ariane独立接力图：`var/business/a29-paper-delivery-20261020/paper-assets/ibex-measured-relay-r3.pdf`、`ariane-measured-relay-r6.pdf`。它们只把已完成节点画为实线，prepared/queued/最终待测步骤单独标明，不作为新收益。
 
 已完成但未产出最终PPA的三项尝试另见 [失败过程表](INVITED_PAPER_FAILED_ATTEMPTS_20261021.csv)：Ariane Student02首次原生超时、JPEG RSZ0074与DRT1231；不把失败阶段估计填为最终PPA。Goal线程适配已由真实EF工具确认8线程/8核。旧Ariane因已验证DRV基线事实丢失而停止、完整留证；独立修复轮实际EF原生8线程/12GiB，完整DRT仍32GiB，原目标及算法不变。
 
 基线观测完整性：GCD B0及JPEG JB0原记录缺少fanout数值，CSV明确unknown，不补零、不报告其fanout改善比例。独立DRC marker与原生DRT计数分列。四设计实际status调用、字节与墙钟见business-status-demo-r3，额外模型调用0；父Codex推理未单列计量，不报告节约率。
+
+JPEG新增JP3物理可行：152.64929831mW/6244.16µm²、setupWS+10.2303ps/TNS0、holdTNS0、电气/布局/原生DRT0，12指标/三身份通过。相对原ORFS功耗−14.4041407%、cell−7.2766098%；相对Goal03父项功耗+1.1806908%，换取时序恢复。精确最终网表27输出ABC-PDR在途，尚未采用；该棒属于Codex显式原生VT/size动作，不冒称新ECO成功或Cpp合并。
