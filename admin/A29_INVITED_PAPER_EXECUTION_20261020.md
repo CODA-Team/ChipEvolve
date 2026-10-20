@@ -297,3 +297,13 @@ ibex r2原生步骤已成功结束，公开原始日志SHA核对通过：输入T
 - Ariane四个真实C++变体的**完整OpenROAD二进制链接**均已成功，峰值各约4.82GB；已逐原请求和EF run核对。原生物理评价run-43bce2b620474a9988c49b93bfaf7dc9运行；四候选最终PPA仍待交付。不能把原生计算中的PPA估计当最终结果。
 
 论文CSV已增至31个逐SHA核对的完成节点，新增IP2和JPD；JPD明确诊断/DRC未知。新十页r10 PDF按设计分四页指标表，纳入最新ibex/JPEG分支图；旧r9快照保持原字节不变。此次只修改本轮导出脚本和业务记录，产品源码、服务、算法和公共API未变。四设计整体目标仍未结束。
+
+## 2026-10-21 01:52：修复后续Goal调用的默认工具线程
+
+真实Ariane Student02进程PID3223181有129线程，原命令没有`-threads`，EF只预约8核。新版`Main.cc`未指定线程时采用硬件并发数；`OpenRoad::setThreadCount`另行设置OpenSTA线程池，故`OMP_NUM_THREADS=8`不等于OpenSTA8线程。该证据证明资源适配缺口，不证明PPA差异或全部用时由此产生。Student02源码另有逐端点/成功动作全设计功耗测量用于日志，属于专业候选开销；阶段TNS平台期也不冒称最终失败。
+
+最小修复仅在Goal EF的`request_for`复制原命令，并在未显式提供线程且非版本查询时补入预约核数，保存实际执行argv；原调用记录、显式参数、源码/二进制核验与native非平台模式保持。没有改Teacher/四Student、AST/EPD、专业配方、评分或晋升。模块仅改`goalevolve/platform/execution.py`和`tests/unit/test_platform_execution.py`，提交`a34601c`已推到`modules/goalevolve`，根manifest随后同步；本轮冻结controller/活动请求不改、不重启。
+
+针对性25项、完整模块448项/29子测试、根平台相关48项均通过；Ruff F/I、两文件格式、实际client SDK环境Pyright零错警告及逐文件差异/模块边界核对通过。首次错误地使用缺AST依赖的根测试环境，造成33个失败测试ID和子测试失败；固定安装模块声明的tree-sitter0.26.0/tree-sitter-cpp0.23.4并对本机HTTP设置代理绕过后，完整同套测试通过。失败ID保留，不删除测试或修改算法来消除失败。
+
+小型真实工具校验`run-c85495ccd7ae4058a6450e175a4f68ec`已通过EF排队，使用修复后生成的命令，等待核对`ord::thread_count`与预约8核一致。它不执行设计优化、不产生PPA结果，也未被写成实测已通过。Ariane原物理评价run-43bce2b620474a9988c49b93bfaf7dc9继续，JPEG原任务run-4023a66bc0b54c7db369bdc9d45368d0继续等待；不存在因观测超时而重复启动。

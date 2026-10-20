@@ -527,3 +527,7 @@ DPL主83a77bb使用原可选按操作资源映射，ECO主228cb15将重试回复
 2026-10-20 16:03 A29业务增量：F37布局→DPL Student01→共同CTS/route→DF/DI→Query→Goal原1×4已实际接续；DPL原生HPWL与最终PPA分开，原Teacher整轮继续，G02保留。原生candidate-brief通过已有EF analysis原件注册及公共SDK读取，不新增事实数据库或公共协议。GCD4GiB layout资源真实消费已通过；ECO原生八轮和独立完整布线分列。当前15个完成测量节点和老师审阅ZIP不代表进行中专业候选已经完成，详见A29报告。
 
 2026-10-20 A29新验证：Flow实际布局→DPL01→DF/DI/Query→Goal原1×4→共同DRT/RCX→DF/DI→Codex已形成新的合法分支，18输出PDR、独立7指标同值及4结果48值核验通过。原生GRT估计与最终DRT/RCX分阶段保存，专业晋升与Codex最终采用分开；Codex保持更低功耗G02，不为串行展示调用已无时序任务的ECO。原G03→ECO实际8轮拒绝侧枝保留。实现/公共契约未变，详见A29报告及19节点结果表。
+
+### 2026-10-21 Goal工具线程与预约一致性
+
+Goal的既有EF适配器现在为未显式指定线程的OpenROAD评价补入`-threads <profile.resources.physical.cpu_cores>`，实际argv随原请求登记。调用已有显式参数或仅查询版本时保留原命令。该内部命令绑定不增加服务、公共SDK/API或数据库，不改专业算法；原生模式保持。未来实验冻结新controller，既有实验继续使用原controller和实际线程条件，不能将适配修复追溯算入历史PPA/耗时。
