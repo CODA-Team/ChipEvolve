@@ -307,3 +307,13 @@ ibex r2原生步骤已成功结束，公开原始日志SHA核对通过：输入T
 针对性25项、完整模块448项/29子测试、根平台相关48项均通过；Ruff F/I、两文件格式、实际client SDK环境Pyright零错警告及逐文件差异/模块边界核对通过。首次错误地使用缺AST依赖的根测试环境，造成33个失败测试ID和子测试失败；固定安装模块声明的tree-sitter0.26.0/tree-sitter-cpp0.23.4并对本机HTTP设置代理绕过后，完整同套测试通过。失败ID保留，不删除测试或修改算法来消除失败。
 
 小型真实工具校验`run-c85495ccd7ae4058a6450e175a4f68ec`已通过EF排队，使用修复后生成的命令，等待核对`ord::thread_count`与预约8核一致。它不执行设计优化、不产生PPA结果，也未被写成实测已通过。Ariane原物理评价run-43bce2b620474a9988c49b93bfaf7dc9继续，JPEG原任务run-4023a66bc0b54c7db369bdc9d45368d0继续等待；不存在因观测超时而重复启动。
+
+## 2026-10-21 03:37：首个Ariane候选超时，JPEG按具体错误调整原生策略
+
+- Ariane Student02首次物理评价实际达到原7200秒限额；原leaf明确`timed_out=true`、returncode143、elapsed7211.67秒，EF终态failed，采样CPU7526.29秒、峰值1939709952字节。它未生成最终post-repair-timing/GRT检查点，不填写最终PPA。完整EF日志与原变化CPP已核SHA并保留；原框架随后执行Student01（run-cb38e788c2c64a8388e633e071b010e8），未被手动重启或宣布整个原轮失败。Student01源码没有逐端点全设计功耗调用，实际原生已推进到1520次resize；阶段TNS仍不是最终布线PPA，不能单凭不同候选吞吐量归因唯一原因。
+- JPEG既有线/guide的原生DRT任务run-4023a66bc0b54c7db369bdc9d45368d0实际运行后报DRT-1231：`_075966_/Y`无access point。原guide及signal wire已实际读入，不能解释成“未派发”“没有输入”。未建立该候选有效原生DRC计数，保留线RCX的TNS0仍为不可采用诊断。旧r2的RSZ0074路由树错误独立保留。
+- 根据原Goal03 Query与两项具体错误，只新增一份原生VT/size序列收尾：保持同源实际SPEF/增量RC初始化、原545ps/库/目标、30ps内部margin，原生`-sequence {vt_swap sizeup}`后另做完整新GRT/DRT/RCX和DF事实。源码审计确认显式sequence仅使用所选原生generators；不是修改OpenROAD或删除专业功能。新run-568a3bc8ef9b4cdcb817b2d2d4936812排队。Native8GiB相对上一匹配原生任务1.29GB峰值留足余量，共同完整布线20GiB保留；不重开Flow/ECO或模型搜索。
+- 真实线程探针run-c85495ccd7ae4058a6450e175a4f68ec成功，实际`ord::thread_count=8`与EF8核一致，二进制/规范化请求SHA再次核对。未来a34601c适配已获真实工具资格；当前旧冻结Ariane仍按原controller运行，不追溯宣称其用时/PPA受益。
+- 原Ariane ORFS的EF托管完整日志直接给出DRT峰值23487.93MB（GNU time24051636KB），约23GiB，32GiB完整布线声明有阶段实测依据。原生Goal基线峰值约4.0GB与完整DRT是不同阶段，不能以RCX低内存或native低内存直接压低整个布线额度。
+
+新增`INVITED_PAPER_FAILED_ATTEMPTS_20261021.csv`逐终态SHA列出三项失败尝试和真实成本，与31个完成测量节点分开。新r11十二页素材含更新的JPEG/Ariane接力图及失败过程表；旧r10保持不变。最新封口成本246个闭合EF、采样CPU142691.51秒，仍非完整货币成本或节约率。后续仍需原Ariane轮实际结果及新JPEG策略最终PPA/必要功能证明，四设计整体未完成。

@@ -93,8 +93,8 @@ flowchart LR
 |---|---|---|
 |GCD|合法既有成果已固定；DPL原生轮已结束、选中Student02完成共同最终测量，面积拒绝；Student01→Query→Goal新增合法分支0.819291mW/39.6139um²，18输出PDR/独立重放通过；ECO侧枝仍setup拒绝，G02保持|原轮兄弟交付已收齐；Student02原面积拒绝，保留已完整验证的G02和DG1|
 |ibex|原Goal一轮四Student及Teacher评审已结束，晋升Student01修复版；共同主分支28.180463mW/2339.71um²/TNS−1.59699ns/slew32/cap1，DF/DI十二值核对通过，暂不采用|原四Student及全部最终交付完成，四候选均setup/电气拒绝；独立timing-only最终仍拒绝；当前Codex通过Query六次有效事实读取完成新诊断；r2最终28.235162mW/2341.42um²/TNS−.00130401ns/slew23/DRT0，仍拒绝，ORFS可行基线保留|
-|jpeg|旧实测可行Flow候选及真实负接力保留；余下搜索已停止；24GiB证明分区超时，未采用Flow10|旧Flow搜索保持停止；以Goal03为父的新定向ECO原生八轮已完成（10次模型含重试），原生DRT9592→完整布线DRC0，最终151.728436mW/6243.39um²/TNS−0.238709ns，setup/fanout拒绝；Goal03独立postroute收尾r1最终setup仍失败；同候选保留线路RCX诊断已完成：TNS0/WS+0.26612ps，但原生DRC未知不可采用；冷重布线TNS−.306245ns说明交付布线选择影响收益。r2原工具RSZ0074路由树失败已保留；新一份从既有线路/guide继续原生DRT的定向收尾已派发，原约束不变|
-|ariane|原映射网表/136 SRAM来源的完整物理参考已交付：642.415285mW/43672.8um²/setup WS−285.396ps/TNS−155.146ns/slew436，原生DRT0；12指标与3快照经DF/DI核对|Query已完成并发现深逻辑reg2out时序问题，原Goal timing-only一轮四Student已派发、原生基线已完成，原生STA确认5093违例端点；四Student真实C++变体完整链接均已成功，原生物理评价继续；原LEC取消未证明|
+|jpeg|旧实测可行Flow候选及真实负接力保留；余下搜索已停止；24GiB证明分区超时，未采用Flow10|旧Flow搜索保持停止；以Goal03为父的新定向ECO原生八轮已完成（10次模型含重试），原生DRT9592→完整布线DRC0，最终151.728436mW/6243.39um²/TNS−0.238709ns，setup/fanout拒绝；Goal03独立postroute收尾r1最终setup仍失败；同候选保留线路RCX诊断已完成：TNS0/WS+0.26612ps，但原生DRC未知不可采用；冷重布线TNS−.306245ns说明交付布线选择影响收益。r2原工具RSZ0074路由树失败已保留；既有线DRT也失败（DRT1231引脚缺访问点）；新VT/size原生序列保留30ps内部目标并重新完整布线验证，已通过EF排队，原约束不变|
+|ariane|原映射网表/136 SRAM来源的完整物理参考已交付：642.415285mW/43672.8um²/setup WS−285.396ps/TNS−155.146ns/slew436，原生DRT0；12指标与3快照经DF/DI核对|Query已完成并发现深逻辑reg2out时序问题，原Goal timing-only一轮四Student已派发、原生基线已完成，原生STA确认5093违例端点；四Student真实C++变体完整链接均已成功；Student02首评价7200秒限额超时，Student01物理评价继续；原LEC取消未证明|
 
 ## 指标与证据口径
 
@@ -115,9 +115,11 @@ DPL Student01原生HPWL530.9um（较Diamond536.9下降1.1175%，较framework531.
 
 [方法与英文图注](INVITED_PAPER_METHOD_NOTES_20261020.md)说明平台分工、阶段交接、专业能力、采用规则和比较范围。
 
-JPEG独立追踪图：`var/business/a29-paper-delivery-20261020/paper-assets/jpeg-measured-relay-r4.pdf`（另有SVG）。五个历史实测节点及三个真实父子交接已由input-receipt的source原件SHA核对；Goal03→ECO负接力保留，旧ECO交付重布线标明，Flow10单独列示，不推断其父边。
+JPEG独立追踪图：`var/business/a29-paper-delivery-20261020/paper-assets/jpeg-measured-relay-r6.pdf`（另有SVG）。五个历史实测节点及三个真实父子交接已由input-receipt的source原件SHA核对；Goal03→ECO负接力保留，旧ECO交付重布线标明，Flow10单独列示，不推断其父边。
 
 可编辑[GCD英文案例正文及七节点表](INVITED_PAPER_GCD_CASE_TEXT_20261020.md)已提供。另有[ibex原生阶段诊断](A29_IBEX_NATIVE_STAGE_DIAGNOSIS_20261020.md)及ibex-native-stage-diagnosis-r2.pdf，明确为原生GRT估计，尚不是最终共同PPA。
 
 
-新增ibex与Ariane独立接力图：`var/business/a29-paper-delivery-20261020/paper-assets/ibex-measured-relay-r2.pdf`、`ariane-measured-relay-r2.pdf`。它们只把已完成节点画为实线，prepared/queued/最终待测步骤单独标明，不作为新收益。
+新增ibex与Ariane独立接力图：`var/business/a29-paper-delivery-20261020/paper-assets/ibex-measured-relay-r3.pdf`、`ariane-measured-relay-r4.pdf`。它们只把已完成节点画为实线，prepared/queued/最终待测步骤单独标明，不作为新收益。
+
+已完成但未产出最终PPA的三项尝试另见 [失败过程表](INVITED_PAPER_FAILED_ATTEMPTS_20261021.csv)：Ariane Student02首次原生超时、JPEG RSZ0074与DRT1231；不把失败阶段估计填为最终PPA。未来Goal线程适配已由真实EF工具确认8线程/8核，当前冻结Ariane实验未热切。
