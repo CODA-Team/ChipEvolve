@@ -38,9 +38,19 @@ def test_goal_closes_timing_without_replacing_declared_power_targets(
         ("detailed_route", None, False),
     ],
 )
-@pytest.mark.parametrize("design_id,memory_gib", [("gcd", 4), ("ibex", 12)])
+@pytest.mark.parametrize(
+    "design_id,memory_gib,timeout_seconds",
+    [("gcd", 4, None), ("ibex", 12, None), ("ariane", 32, 7200)],
+)
 def test_delivery_routes_only_when_the_checkpoint_requires_it(
-    tmp_path, monkeypatch, physical_stage, native_drc, preserve, design_id, memory_gib
+    tmp_path,
+    monkeypatch,
+    physical_stage,
+    native_drc,
+    preserve,
+    design_id,
+    memory_gib,
+    timeout_seconds,
 ):
     d = deployment(tmp_path)
     d.value.update(
@@ -52,6 +62,10 @@ def test_delivery_routes_only_when_the_checkpoint_requires_it(
         "sdc": str(tmp_path / "design.sdc"),
         "orfs_execution": {"memory_gib": memory_gib},
     }
+    if timeout_seconds is not None:
+        d.value["designs"][design_id]["orfs_execution"]["timeout_seconds"] = (
+            timeout_seconds
+        )
     experiment = d.experiment(design_id, "routed" if preserve else "global")
     odb = tmp_path / "parent.odb"
     odb.write_bytes(b"actual native geometry")
@@ -79,6 +93,7 @@ def test_delivery_routes_only_when_the_checkpoint_requires_it(
     def command(self, key, argv, **options):
         assert options["parent"] == "actual-native-run"
         assert options["memory_gib"] == memory_gib
+        assert options["seconds"] == (timeout_seconds or 1800)
         script = (experiment / "qualification/route.tcl").read_text()
         for operation in ["dbWire_destroy", "global_route", "detailed_route -"]:
             assert (operation in script) is not preserve
