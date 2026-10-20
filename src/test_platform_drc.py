@@ -1,6 +1,7 @@
 import hashlib
 
 import pytest
+
 from platform_drc import best_drc_report_tcl, route_evidence
 
 
@@ -28,7 +29,9 @@ def test_drc_evidence_is_paired_with_the_selected_checkpoint(
     odb.write_bytes(b"selected best routed state")
     if saved is not None:
         (tmp_path / "final_drc_report.txt.count").write_text(str(saved))
-    record = route_evidence(tmp_path, input_count)
+    baseline = tmp_path / "input.odb"
+    baseline.write_bytes(odb.read_bytes())
+    record = route_evidence(tmp_path, input_count, input_checkpoint=baseline)
     assert record["route_drc"] == expected
     assert record["checkpoint_sha256"] == hashlib.sha256(odb.read_bytes()).hexdigest()
 
@@ -36,4 +39,12 @@ def test_drc_evidence_is_paired_with_the_selected_checkpoint(
 def test_broken_native_counter_does_not_fall_back_to_input_zero(tmp_path):
     (tmp_path / "final_drc_report.txt.count").write_text("")
     with pytest.raises(ValueError):
-        route_evidence(tmp_path, 0)
+        route_evidence(tmp_path, 0, input_checkpoint=tmp_path / "input.odb")
+
+
+def test_changed_best_with_missing_counter_cannot_inherit_baseline_zero(tmp_path):
+    (tmp_path / "final_eco.odb").write_bytes(b"changed best state")
+    baseline = tmp_path / "input.odb"
+    baseline.write_bytes(b"original baseline")
+    with pytest.raises(ValueError, match="Changed ECO checkpoint"):
+        route_evidence(tmp_path, 0, input_checkpoint=baseline)

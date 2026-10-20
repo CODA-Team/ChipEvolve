@@ -6,10 +6,45 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from platform_execution import submit
+import platform_execution
+from platform_execution import leaf, submit
 
 
 class ExecutionTests(unittest.TestCase):
+    def test_native_loop_receives_its_output_directory_before_first_best(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source"
+            (source / "prompts/dynamic").mkdir(parents=True)
+            workspace = root / "workspace"
+            workspace.mkdir()
+            profile = root / "profile.json"
+            profile.write_text(
+                json.dumps(
+                    {
+                        "python": "/env/eco/python",
+                        "environment": {},
+                        "parent_run_id": "original",
+                        "snapshot_id": "original-objects",
+                    }
+                )
+            )
+
+            def native(*args, **kwargs):
+                self.assertTrue((source / "outputs").is_dir())
+                return 1
+
+            with (
+                patch.object(
+                    platform_execution,
+                    "__file__",
+                    str(source / "src/platform_execution.py"),
+                ),
+                patch("platform_execution.Path.cwd", return_value=workspace),
+                patch("platform_execution.subprocess.call", side_effect=native),
+            ):
+                self.assertEqual(leaf(profile), 1)
+
     def test_session_uses_registered_inputs_and_data_scope(self):
         with tempfile.TemporaryDirectory() as directory:
             state = Path(directory)

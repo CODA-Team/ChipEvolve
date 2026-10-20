@@ -21,12 +21,16 @@ def best_drc_report_tcl(report: str) -> str:
     )
 
 
-def route_evidence(output: Path, input_route_drc: int | None) -> dict:
+def route_evidence(
+    output: Path, input_route_drc: int | None, *, input_checkpoint: Path
+) -> dict:
     counter = output / "final_drc_report.txt.count"
     if counter.exists():
         count = int(counter.read_text().strip())
         origin = "native detailed-route counter saved at best selection"
     else:
+        if (output / "final_eco.odb").read_bytes() != input_checkpoint.read_bytes():
+            raise ValueError("Changed ECO checkpoint has no native route DRC counter")
         count = input_route_drc
         origin = "input baseline retained; no improving DRT candidate selected"
     with (output / "final_eco.odb").open("rb") as stream:

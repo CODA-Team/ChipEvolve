@@ -99,6 +99,8 @@ def submit(profile_path: Path) -> dict:
 def leaf(profile_path: Path) -> int:
     profile = json.loads(profile_path.read_text())
     source = Path(__file__).resolve().parents[1]
+    # Native best-state exports occur inside the loop, before its final mkdir.
+    (source / "outputs").mkdir(exist_ok=True)
     environment = os.environ.copy()
     environment.update(profile["environment"])
     environment.update(
@@ -165,7 +167,11 @@ def leaf(profile_path: Path) -> int:
         if code == 0:
             from platform_drc import route_evidence
 
-            evidence = route_evidence(destination, profile.get("input_route_drc"))
+            evidence = route_evidence(
+                destination,
+                profile.get("input_route_drc"),
+                input_checkpoint=Path.cwd() / "inputs/6_final.odb",
+            )
             (destination / "route-evidence.json").write_text(
                 json.dumps(evidence, indent=2) + "\n"
             )
