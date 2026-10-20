@@ -52,3 +52,13 @@
 - 根552项回归、ECO15项回归通过，两个接入文件和相关测试Ruff/格式/Pyright通过。首次误用旧模块venv缺Toolkit/pytest，改用本轮已安装公共wheel的独立测试环境；没有改生产环境或将测试依赖故障写成业务故障。
 - `same-codex-query-demo-r2` 已由当前Codex用现有`--model host`完成两次实际DF事实读取及证据回答：保留G02，G03作为ECO探索分支；额外Query内部模型调用0，父Codex推理token未单独计量，不声称总token为零或节约百分比。两读取及初始化墙钟约1.346秒，回答另有原回执。
 - 论文CSV把正时序余量列更正为WS，并另列规范WNS=min(0, WS)；没有修改原PPA数据。
+
+## GCD G03→ECO 八轮：完成执行与数据交付，按原约束拒绝
+
+实际最终共同测量：功耗0.77087164391mW，cell/core/die面积38.9432/57.9701/75.8293um²，setup WS−32.4331ps、TNS−0.264783ns，hold WS+34.9914ps、TNS0，slew/cap/fanout/布局违反均0，原生DRT计数54。相对G03，绝对setup TNS减少69.0726%，但时序仍未闭合、功耗略升、DRT违反原约束，不能采用；合法G02保持。独立checker5924另列，不与原生DRT混为一谈。
+
+七项最终原件与公开DF/DI SDK逐值核验通过；新ECO自身原生DEF与共同交付DEF的COMPONENTS、NETS、PINS逐段完全相同，交付没有偷偷重布线。原生会话8次模型调用，输入800212、输出16873token，cached64768为输入的子集；不包含先前Flow/Goal/Query，货币费用未知。
+
+本轮实测发现原控制器循环末尾才建立outputs目录，导致此前best写报告失败，但best ODB已正确保存。没有修改正在运行的源码：只创建运行输出目录，从最后一次best选择的原始控制台块恢复唯一原生计数54，并记录当时best ODB SHA；后续没有更好的best。恢复记录已实际随EF data_snapshot归档登记，重新取回核对SHA与best身份通过。不是推测零，也不是新跑一次路由。future模块67889a6在叶任务启动原循环前建立输出目录；缺原生计数且产物已变更时禁止继承baseline计数。17模块回归/静态类型通过，原研究动作与排名未改。
+
+证据：本轮`gcd-eco-final-acceptance.json`、`gcd-eco-comparison.json`、`gcd-eco-native-model-cost.json`、`eco-native-counter-recovery.json`。拒绝候选不新增昂贵功能证明。ibex已由原守候程序实际接续；DPL仍在原生Student试验中，不能把首轮编译/评价通过写成整轮完成。

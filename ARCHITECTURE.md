@@ -1,3 +1,5 @@
+2026-10-20 A29新完成：G03→ECO原生八轮、保留线路共同测量及DF/DI交付完成，绝对TNS减少69.0726%，但setup仍失败且原生DRT54，按原约束拒绝、G02保持。原ECO输出目录建立过晚已修复，当前实验原生计数从精确best日志恢复并登记到EF；不重跑模型或伪造零。模块17回归通过。ibex已实际接续；DPL仍在原生Student试验。详见[本轮执行记录](admin/A29_INVITED_PAPER_EXECUTION_20261020.md)。
+
 2026-10-20 A29邀请论文交付：EF/DF/DI/Query边界保持；新增已布线交付保留线路、原生DRT计数绑定产物、Goal保留模板功耗目标并映射业务TNS。当前Codex经既有Query host完成两次事实读取及证据回答，额外内部模型调用0，未宣称总token为零或节约率。GCD原G02合法成果保留；新DPL候选构建成功、G03→ECO实际运行中，尚无新最终采用结论。Ariane原ASAP7含宏placed基准已由EF导入成功，未完成布线PPA；ibex在ECO后继续。接口/实证见[平台操作记录](admin/A29_PLATFORM_OPERATION_TRACE_20261020.md)，当前结果见[论文实测素材](admin/INVITED_PAPER_RESULTS_20261020.md)。下方历史状态按各自时点保留。
 
 2026-10-19Query既有harness提示48b105b已按wheel554942fb…启用，比较使用返回的ORFS raw_key、原单位核对、同调查CLI分页顺序化；数据/动作契约及Codex判断权保持。真实安装包host读取/比较/回答通过，无新增模型循环或服务；七活动规格383固定文件及26用户文件原SHA保持。实际Query自身包及bundled资源新增RECORD身份，正式环境使用新记录；不能拿旧SDK过滤快照当完整Query身份。见[启用核验](admin/A25_QUERY_FINAL_FEEDBACK_REPORT_20261019.md)。
