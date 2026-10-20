@@ -1,0 +1,337 @@
+ChipEvolve 独立工程审查提示词（2026-10-20）
+可直接把本文件全文交给 DeepSeek。请同时告知它是否有本机源码/终端访问能力。
+
+你是独立的 EDA 平台架构审查员、物理设计工程师和论文实验审查员。下面是完整背景。你没有此前对话记忆，不需要假装知道历史。请从源码、实际运行证据和业务目标出发，审查我们的项目是否真的能交付，指出最小修正路线。请独立判断，不要照抄现任工程师的结论。
+
+一、时间、目标和这次审查的边界
+
+今天是 2026 年 10 月 20 日，论文 10 月 30 日截止，老板希望约提前一周、即 10 月 23 日左右交老师。现在只有两三天补实验。论文是邀请论文，核心是把平台能力和实际协同案例说明白，不追求在这几天完成大规模 benchmark、通用平台发布或全面统计竞赛。
+
+我们需要证明两件事：
+1. 专业 Agent 能在平台上真实协作，对某个设计取得满足约束的 PPA 优化，能看到每棒的动作、状态变化、收益和代价。
+2. 平台统一执行、数据和查询，减少 Agent 处理环境、进程、文件、调度、数据解析和交接的工作，让 Codex 专注推理与决策。不能为了管理反而把专业算法阉割或使操作更复杂。
+
+老板最新要求覆盖旧实验计划的过度门禁：
+- 优先 GCD，再推进 ibex、jpeg、ariane。目标是四个设计案例；后面三者的实际可运行性须核查，不能承诺都已具备输入。
+- 一个设计沿实际 Agent 接力记录即可。不要求基准和 Agent 同时开跑，不要求团队与单项相同总预算，不要求先补完每个单项/消融/重复试验才允许写案例。
+- 可以复用已有、条件和来源可核对的好结果；不能把旧结果改写成新的运行、把独立分支拼成不存在的接力。
+- 不要求每一棒都改善。没有收益的动作要记录，允许拒绝候选并保留前一个可行结果。但“保留最好结果”本身不能证明协同产生额外收益，须有实际增益交接。
+- 仍须有完整指标、原约束、真实输入输出、来源/版本、功能有效性和证据。放宽实验规模不等于放宽数据真实性。
+- 平台 token/时间节约如暂缺可靠同任务数据，不编百分比；可先展示一次任务的真实调用、交接与查证过程。不得由接口数或传输字节数直接推断总 token 优势。
+
+当前先做只读审查。不要自行启动模型、综合、布局布线、源码构建、功能证明或长实验；不要重启服务、取消已有任务、修改代码或覆盖用户修改。给出修复建议和最小验收，不在审查时替我们施工。审查完成后我们再按优先级修复和实验，避免边跑边不断扩大审计范围。
+
+二、产品背景和必须理解的分工
+
+项目名 ChipEvolve，是基于 OpenROAD/ORFS 的轻量 AI 集成平台，为 ASP-DAC tutorial 及邀请论文服务。目前只要求老板本机单服务器可用；新用户安装、教学公开演示、远程发布、多租户、分布式、商业化、安全合规体系等不在近期范围。
+
+用户从 Codex 提出目标。Codex 是总控制者和成熟通用 Agent harness：做规划、推理、工具调用、比较、决策和最终评价。我们不从裸模型 API 重新造一个与 Codex 竞争的通用大脑，也不另造“评测底座”。专业项目内部仍可使用原有模型调用和算法循环，这是其专业实现，不要求重写。
+
+平台解决三个工程问题：
+- 执行底座 EF：统一实验提交、排队、进程监督、资源预约、运行状态、失败/取消、输入和原始产物登记、执行溯源与可重放信息。
+- 数据底座 DF：把 EF 原件解析成带来源的结构化设计事实、快照、摘要、对象/关系、PPA、时序等，供统一查询。大文件和原始产物引用可由 EF 托管，DF 建索引与解释，避免两边各建一套实验真相。
+- Query-Agent + DF：让 Codex 高效理解“现在是什么、相对以前变了什么、为什么可能变化、证据是什么”，提供专业交接上下文。Query 是成熟 Codex 的 EDA 垂直工具/上下文/调查能力，不是脱离事实另造因果推理框架。观测差异和因果证明必须区分。
+
+Data Interface（DI）是契约与客户端 SDK，不是第三个后台数据库/服务。Toolkits 负责确定性 EDA/提取工具封装，不承担通用决策。
+
+四个专业能力：
+1. Flow Agent：A2-ORFO，黑盒流程配置/参数搜索；保留原研究算法及完整参数含义。
+2. DPLEvolve：ReviewDSE 的工程实现，两者是同一个研究项目，不重复计数；优化详细布局相关源码/算法。
+3. GoalEvolve：独立源码级优化项目，原 Teacher/Student、AST/EPD、配方、目标距离、评分和晋升机制须保留。
+4. TimingECOAgent：ASU-VDA-Lab 的开源时序 ECO 项目，第三方，保留许可证/署名及方法归属。不能删掉来源来声称自己发明 ECO 算法。
+
+希望所有专业的 EDA 动作都进入 EF；设计查询/交接事实经过 DF→DI→Query。原生专业在 EF 托管 session 内读取自己的实时工具报告不等于绕过底座，须区分“专业内部闭环”与“平台跨专业设计事实入口”。避免为了统一而让每条 Tcl 内部读报告都绕一遍 HTTP。
+
+预期数据流：
+用户→Codex→Query/DI/DF（理解设计）→选择专业 Agent→EF（实际 EDA/构建/提取）→原始产物→DF（解析事实与证据）→DI/Query→Codex（判断接受/拒绝、继续接力）。
+
+三、源码位置、模块地图和审查入口
+
+根仓库：https://github.com/CODA-Team/ChipEvolve
+本机根目录：/home/wjyuan/projects/eda-development
+当前分支：a24-jpeg-pilot-20261016
+本提示词编写所依据的审计基线：a24d0c6。交接文档本身会有后续提交；请先记录你实际看到的 HEAD，不要把日期当版本。
+
+根目录重要文件：
+- AGENTS.md：工作区边界、连续施工授权、保护用户修改的规则。
+- PROJECT.md：产品目标；历史进度很多，优先看最新老板要求。
+- ARCHITECTURE.md：模块职责/接口/数据流，注意历史“待部署”可能已被新证据更新。
+- TASKS.md：历史施工状态；不等于当前实际服务/当前用户优先级。
+- SOURCE_MANIFEST.json、.gitmodules：模块固定版本和上游来源。
+- chip-evolve.py、chip_evolve/cli.py：根业务入口。
+- chip_evolve/config.py、jobs.py、lifecycle.py：部署、EF 任务、状态/恢复。
+- chip_evolve/professional.py：Flow/DPL 专业接入与原生执行。
+- chip_evolve/native.py：Goal/ECO 接入，尤其 run_goal、run_eco。
+- chip_evolve/delivery.py：交付检查点、事实发布/恢复。
+- chip_evolve/physical.py：共同物理补全/复测和 PPA，尤其 qualify、measure、publish。
+- discarded/：旧 ChipEvolve 归档，不能用作当前接口或测试依据。
+- var/：本机运行产物与证据，不随 GitHub 源码自动发布。
+
+九个独立模块，进入模块前读它自己的 AGENTS.md：
+execution-foundation/：统一执行服务、客户端、任务/输入/产物契约、调度/监督。
+data-foundation/：数据解析、快照/事实服务与存储。
+data-interface/：eda_ai_client SDK 和 schemas。
+query-agent/：调查工具、证据与专业上下文。
+toolkits/：EDA 命令与解析适配。
+flow-agent/：A2-ORFO。
+dplevolve/：DPLEvolve。
+goalevolve/：GoalEvolve。
+timing-eco-agent/：ECO。
+
+关键进一步入口：
+- execution-foundation/core/runtime/src/openroad_platform_runtime/store.py
+- execution-foundation/core/client/src/openroad_platform_client/client.py
+- execution-foundation/gateway/src/openroad_platform_gateway/{app,kernel_api,router,worker}.py
+- data-interface/src/eda_ai_client/{client,schemas}.py
+- query-agent/src/query_agent/adapters/investigation/ 和 adapters/run_evidence/
+- flow-agent/flow/llm_client.py
+- dplevolve/scripts/platform/{execution,candidate_evidence,selection}.py
+- goalevolve/goalevolve/platform/{execution,profile,candidate_evidence}.py
+- goalevolve/goalevolve/evaluation/contest2026.py
+
+根 CLI 已存在 run（capability=orfs/flow/dpl/goal/eco）、diagnose、show、select、status、watch、collect-flow、resume、continue-goal 等。请检查真实 parser/实现，不假设所有恢复分支相同。
+源码中的真实内部函数示例：
+run_goal(deployment, args, experiment, frame, objective, context)
+run_eco(deployment, args, experiment, frame, objective, context)
+delivery.finish(deployment, experiment)
+delivery.recover(deployment, design_id, key)
+physical.qualify(jobs, odb, parent, objective, pdk, *, fact_modes=('opendb','orfs','opensta'))
+这些是审查定位线索，不是老板新批准的公共接口。EF/DF 实际 HTTP 路径、字段、单位和调用者请从路由/schema/SDK 核对，不要凭名称编 API。
+
+模块主版本（以实际 manifest 为准；以下为本轮审计时状态）：
+EF f54e9d6；DF 7f6e7a5；DI 4f2e195；Query 48b105b；Toolkits 86673fa；
+Flow 7b1003b；DPL 83a77bb；Goal 7b03c33；ECO 228cb15。
+平台适配发布在 ChipEvolve modules/* 分支，不向原研究上游推平台补丁。
+Goal 归档器修复 d5a3a95 在独立候选分支 modules/goalevolve-a25-gcc-ar-cow；还不是模块主版本。
+
+必须区分五个层次：工作树代码、已提交代码、已安装 wheel、实际服务进程、实验冻结源码/二进制。git HEAD 或“测试通过”不能证明活动实验用到了它。对重大结论记录 SHA、实际命令、输入产物和消费关系。
+
+四、本机运行约束与保护对象
+
+审计时 EF 地址 http://127.0.0.1:41151，DF 地址 http://127.0.0.1:43789。它们是本机 loopback 服务，不是把文件发到公网。核查大产物是路径/引用/受管物化还是反复打包传输，避免 JSON 承载巨量事实，但不凭“HTTP”推断网络慢。
+EF 当前池声明 32 核/32 GiB/4 workers，这是此服务配置，不是整机硬件总能力。CPU 预约不等于 OS 强制绑核。
+可用已安装客户端解释器：
+/home/wjyuan/projects/eda-development/var/business/a7-quality-20261014/production-runtime/envs/client/bin/python
+访问本机服务时注意 NO_PROXY/no_proxy=127.0.0.1,localhost,::1，避免代理造成假故障。
+
+无 sudo 权限，不要越权建系统 SSD 目录、改全局环境或引入新系统服务。宿主 /home 落盘延迟真实存在，应先做局部简化，不把“换 SSD”当本轮可执行答案。
+跨项目只经安装的 wheel/公开 SDK/HTTP，不修改 sys.path/PYTHONPATH、不直接打开生产数据库。可以看源码，不能让调用方绕过模块边界。
+受保护用户修改：根 admin/evaluation/generic_agent.py、DF/DI 工作树、未跟踪 ablation_*.py/adapter_ablation.py 等及对应测试。不要覆盖、提交、执行或把它们部署为生产实现。保护清单含 26 文件 SHA，见：
+var/business/a25-common-physical-memory-20261020/specification.json 的 protected_files。
+
+老板先前要求“等当前一轮结束，先不跑新实验，彻底审查”。已停止未派发后继，没有停止当前接受中的 Flow。只读监视记录：
+var/business/a25-user-hold-and-deep-audit-20261020/existing-round-monitor-latest.json
+监视器不是实验主管，不派发 EDA。不要依据旧 PID/旧计数判断现在状态，重新只读核实。不要无限等待它收尾才输出审查。
+
+五、已经取得的结果：请核查，不能重新包装
+
+GCD 是现有最好主线之一，实际链路为完整 Flow 2×50 的第 2-37 候选→Query→原 Goal 1 轮 4 Student→共同完整布线/RCX→事实/验证→Codex 选择。
+共同条件 FF、310ps，原业务约束；这不是原生每阶段都在 FF/相同 RC 下优化。最终同条件才可比较。
+
+结果（功耗 mW，单元面积 µm²，setup WNS ps）：
+原 ORFS 控制：1.373553765 / 42.6757；其他完整指标从原 result 读取。
+实际 Flow 交接源：0.89091155678 / 44.8918 / +12.289，面积超原上限，不能作为合法最终采用。
+Goal Student01：0.75559981633 / 39.2348 / +5.31003，原约束通过。
+Goal Student02：0.71564863902 / 39.1181 / +0.0834055，setup TNS=0，原约束通过，Codex 最终保留。
+Goal Student03：0.768538506 / 38.7974 / −70.4802，拒绝。
+Goal Student04：0.766251818 / 38.9869 / −92.9781，拒绝。
+
+Student01/02 已有全部 18 输出 PDR、独立 DRT/RCX 七项 PPA 同值、SDK/原件核验。Student02 相对实际 Flow 交接源功耗下降 19.6723%、单元面积下降 12.8614%；相对 ORFS 功耗下降 47.8980%，但后者包含综合/来源/方法差异，不能全归为协同或某段源码贡献。时序余量很小，不宣称鲁棒闭合、更多角、硅测结果、GDS/LVS 签核。
+原 Goal Teacher 晋升 Student01，Codex 在共同最终条件下选择 Student02，两种决策要并列保留，不能回写 Teacher。
+这条 GCD 主线不包含已经完成的 DPL→ECO 两棒。另有更早完整调用/其他分支，不得把它们伪装成此结果的直接祖先。需要决定 DPL/ECO 在这条主线上适合何阶段、是否有真实可承接动作，之后才能做新的完整链路。
+
+GCD 证据入口：
+admin/A25_GCD_FLOW_QUERY_GOAL_QUALIFICATION_REPORT_20261019.md
+var/business/a25-goal-epd-trace-export-20261019/student02-adoption.json
+同目录 business-qualification.json、all-four-candidate-PPA-SDK-independent-audit-r1.json
+原 Flow 源：var/business/a25-gcd-canonical-source-20261017/runtime/experiments/gcd/a25-gcd-full-native-domain-r2/iteration-2-37/materialized-result.json
+原 Goal：var/business/a25-integrated-qualification-20261019/gcd-runtime/experiments/gcd/a25-gcd-flow237-goal-private16-r1/
+
+JPEG 当前部分源码优化能降低功耗/面积，但最终时序不合格；所选 Student03 共同最终值约 155.27968109mW/6378.88µm²/WNS−33.0878ps/TNS−0.766489ns，不是合法收益。旧 Flow 有可行候选，不等于当前完整健康轮次完成。既有两次根 JPEG Goal 起点为 ORFS，不是已完成 Flow/DPL；不能把它称为完整协同失败的直接证据。
+AES 有此前合法接力结果，但现代完整综合来源的状态结构/功能证明另有未解问题，不作为新增 GCD 主线的前置任务。ibex/ariane 输入、工具适配、规模/内存、证明可行性尚待实际核查。
+
+六、已知问题与证据：这些是待独立审查的线索
+
+总报告：admin/A25_AUDIT_HOLD_AND_INITIAL_FINDINGS_20261020.md
+下面 JSON 均在 var/business/a25-user-hold-and-deep-audit-20261020/，除非另注。请标出已证实、部分证实、假设和错误推断，不要见到问题标题就当全部成立。
+
+1. Flow 模型调用部分失败后静默降级。
+首轮 9 次模型请求，5 成功、4 失败，涉及 ReAct、直接提案、选择与 critic；原采样/缺省路径继续。flow/llm_client.py 丢失失败 stderr，泛化为 code1。不是已证明账号额度、认证或网络问题。退出 0 不代表 AI 环节健康，不代表 PPA 可行。
+证据：first-iteration-audit-facts.json、first-iteration-evidence/。
+请找最小可诊断修复：保留脱敏错误原因/调用状态、区分降级结果与健康结果；不要加无限重试或无差别模型探针。
+
+2. Goal 原生目标被根封装覆盖，与最终业务目标错位。
+chip_evolve/native.py:run_goal 基线后按 tns_abs_ns 原值、其他指标乘 0.9 写新目标，覆盖模板。GCD 原生 TNS 目标约 0.006152884ns、JPEG 约 2.000549078ns，而最终要求 setup TNS≥0。原评分支持零 TNS 目标和 baseline 归一化，未必需要改算法。
+但 JPEG 所选原生 TNS 约 5.253526211ns，连旧目标也没达，所以改目标不是唯一答案。Teacher 确实收到了完整业务约束和对应 Query，不能简单归因上下文漏送。
+证据：platform-native-goal-target-override-audit.json、two-design-native-goals-and-convergence-audit.json。
+
+3. Teacher 有策略选择，但本轮四候选收敛到同类。
+实际输入含 17 种配方，初始四槽不同；Teacher 原文均选 last_gasp_deep/SetupLastGaspPolicy.cc，验证器保持原选择。不是平台删除其他策略。四源变体只产生两种原生物理状态；仅 1×4，尚未利用本轮最终 DRT 反馈迭代。
+证据：Teacher-strategy-input-and-output-audit.json。
+请审专业可调旋钮、策略适用前提、激活证据与反馈时点，不用“多跑几轮”代替原因。
+
+4. 局部时序修复被下游物理阶段吞掉。
+同一已有 JPEG 配方：修功耗后 TNS−0.0137008742ns/WNS−2.8825276ps；修时序后−0.0008550383/−0.8550383；再布局后−0.3216158542/−18.0477860；GRT 后−5.2550103534/−36.1087837。修复使用布局 RC，之后布局/镜像/GRT 更换 RC；该 Tcl 在 GRT 后没有 repair_timing。
+入口 20% 只选 3/15 违反端点，但后续实际换了 310 VT 单元；不能把 20% 说成总覆盖率，也没有明确证据唯一卡在迭代上限。
+证据：native-repair-coverage-and-downstream-stage-audit.json。
+请判断该选什么策略、在什么阶段接力、什么余量可调，尽量保留原专业算法。
+
+5. ECO 的局部 best 与整体收益冲突，并发生非必要重布线。
+旧 Goal03→ECO：父共同 WNS−12.5853ps/TNS−0.0701142ns；ECO 原生 best 按 WNS 取约−12.566ps，却 TNS 恶化到−0.316043ns；平台再布线最终约−12.9088ps/−0.170005ns，功耗 150.8680→151.7236mW。候选 ODB SHA 消费正确，不是拿错父。
+run_eco→delivery.finish→physical.qualify 会清掉已完成 DRT 的信号线再布线。须区分 Flow/DPL 前布线续跑、Goal GRT→DRT 补全、ECO 已完成 DRT 的测量与独立重放。
+证据：eco-best-state-and-delivery-reroute-audit.json。
+请审修复边界，不能一刀切取消所有共同测量/独立验证。
+
+6. 状态传过去不等于配置/源码组合完整。
+GCD Flow2-37 有 PIN_LAYER_ADJUST=.4201、ABOVE_LAYER_ADJUST=.5959；Goal Tcl/RC 未显式继承，重清信号线，使用自己的 seed/配方。ODB 内隐藏路由设置尚未全部检查。DPL 和 Goal 都源码优化，也不能默认二进制/补丁自动合并。
+证据：flow-goal-routing-policy-static-audit.json。
+请审阶段、ODB/SDC/netlist、参数、源码基底、专业修改和约束的交接矩阵。什么应继承、什么有意重置、什么不兼容，必须说清。
+
+7. Goal 增量构建归档器 bug 有候选修复，尚未主线收口。
+gcc-ar-11 qc 未被原清理代码识别，旧/新同名对象重复，可能链接旧实现。d5a3a95 已通过实际构建与回归，但主线仍 7b03c33。
+重要反证：清洁重建 GCD Student02 和 JPEG Student03 后，分别仍重现其原二进制，GCD 阶段文件同值。因此不能把这两项的实际结果继续归罪于“源码改动没进入二进制”；其他候选未全部同等重验。
+证据：admin/A25_GCC_AR_ARCHIVE_REPORT_20261020.md；var/business/a25-selected-source-requalification-20261020/。
+请审怎样用最小发布收口保证后续实验真正使用修复，避免只写“已测通过”。
+
+8. CPU 预约与工具实际使用不一致。
+一项 ECO 预约 8 核/24GiB，apptainer --cleanenv 丢弃宿主 OMP，wrapper 未显式 -threads。实际 59305.49 CPU秒/2746.618 墙钟秒≈平均 21.59 核。EF 是预约调度，不是强制 CPU 配额。实际峰值约14.04GiB，不能照小探针随意压到 1GiB。
+证据：native-CPU-reservation-and-tool-binding-audit.json。
+优先修工具显式线程绑定，不新建系统调度器、不用 sudo，不把大任务能力限死。
+
+9. 无关大证明占满资源，阻塞搜索关键屏障。
+AES 证明预约整池 32GiB，跑满 4h；一个 Flow eval 排队15490.4秒、实际30.79秒，证明结束8.9ms后启动，拖住阶段屏障。50个eval都预约12GiB，实测最大约.983GiB；现有阶段资源映射漏配eval。
+证据：flow-first-iteration-proof-queue-overlap-audit.json、CP0-evaluation-resource-binding-audit.json。
+这是排队策略/资源问题，不是“任务未消费”。先安排关键路径、按操作用实测资源，不要求立刻造优先级调度平台。
+
+10. DF/DI 真能查询，但执行目录慢和持久化尾延迟尚有风险。
+实际安装 SDK 读 7 类事实，run/revision/snapshot 对得上；事实读约 .006–.033s，执行目录 limit3 却约5.457s。空内存同DDL查询计划显示 JSON scan/temp sort，但不是生产根因最终证明；没有越权打开生产DB。时序分页 truncated 表示有下一页，不等于漏数。
+证据：public-data-entry-read-audit.json、run-catalog-query-plan-audit.json。
+请查索引/事务/重复导入/只读隔离与调用次数，但不要为一条目录慢引入全新数据库和搜索系统。
+
+11. 交付检查点之前的原生 frontend 恢复不足。
+ECO 直接 client.run 轮询，缺少瞬时只读故障恢复；前端退出但 EF session 活着时，根 resume 在 delivery checkpoint 之前无对应 ECO 路径。DPL 主要处理 KeyboardInterrupt；Goal 有3次 KernelUnavailable 读重试，最终观察失败会取消。
+这来自静态代码，不是已注入/实际发生本轮断网的证据。不能宣称所有任务都会丢失，也不能把存在 delivery recovery 说成全过程可恢复。
+证据：unified-entry-and-precheckpoint-recovery-static-audit.json。
+
+12. 并非所有 handoff 都坏；Flow 首轮真实输入已核对。
+50份 route 公开登记 manifest 逐SHA检查父ZIP/profile/config/SDC/objective/Query，均对上实际成功CTS；39个CTS父、11个跨候选donor是原算法阶段继承。50参数向量/ODB字节哈希各异，不等于物理语义完全各异。
+证据：first-round-route-actual-input-and-diversity-audit.json。
+请保留反证，避免一见负收益就统一归罪 handoff。
+
+13. 新版合法化默认与配置组合导致失败/低效，不能只换版本号。
+共同 OpenROAD 基础27288f5 默认 negotiation；旧 -use_negotiation 已移除。抽查第二轮10失败中9个密度超1、1个详细布局失败。密度公式 D=L+(1-L)*A+.01；addon在0–.99不保证任意util/padding组合可行。L≥1时单调addon修不回来。
+已有 detailpad3 案例剩1244 cells、padding check失败664；另三活动 legalizer 约72min内大量CPU但违反cell约42k–52k基本没降。非法site=0不代表cell合法；连续相等stall检测可能漏掉波动平台期。
+证据：second-iteration-existing-failed-placement-audit.json、negotiation-counter-semantics-and-existing-padding-failure-audit.json、same-existing-runs-convergence-observation-audit.json。
+请给出兼容策略：显式恢复原算法含义/合法组合判断/已有参数如何使用；不能直接删旋钮、偷偷换算法或大改 upstream legalizer。
+
+14. AES 证明是独立难题，不能拖住 GCD 主线。
+原gold实际530 DFF，新gate562，零同名DFF；已有9份IR保留alias但不能自动证明跨综合状态对应。129输出整体PDR超时4h，既非PASS也非反例。不能用猜测的命名映射签发证明、不能用旧SAT已发现的误通过路线替代。
+证据：AES-existing-IR-and-actual-state-structure-audit.json。
+本次四设计目标不含AES；保留技术债与失败，不再为它阻塞GCD案例。
+
+15. 通用性有边界。
+根代码未发现 gcd/jpeg/aes 字面分支补丁；设计绑定驱动。已完整验证主要为 ASAP7、单物理时钟；Goal/ECO 原生仍有 PDK 假设。不能据“无gcd分支”宣称任意PDK/多时钟通用。ibex/ariane要按实际top、RTL、SDC、库和规模核查。
+证据：design-applicability-static-audit.json。
+
+16. 一些旧“未部署”文档已过时，不能继续误报。
+EF f54e9d6 Gateway的7个已装文件与主线/先前部署记录一致，同服务listen backlog128，批量入口修复已启用。
+DF 7f6e7a5健康读取修复已启用，用户DF工作树未部署。
+Flow阶段资源7b1003b已被当前冻结controller采用。
+DPL83a77bb、ECO228cb15已并主线；旧冻结运行仍保留原版本。
+Goal d5a3a95以及根物理内存候选527489f尚未成为默认主线。
+证据：qualified-versus-main-and-live-source-audit.json。
+请按当前字节/调用证据核查，既不要说“全没修”，也不要说“候选全已上线”。
+
+七、请系统审查以下方面，不限于已知问题
+
+A. 业务目标和产品形态
+- 是否在做薄的垂直能力层，还是重复造通用 harness、评测服务、任务编排框架？
+- Agent 完成一次“查询→优化→看结果→接力”到底要知道多少目录/环境/中间JSON？哪些操作本应被平台封装？
+- 哪些代码真正服务业务，哪些是必要正确性保障，哪些只是防御性编程、重复状态机和文档门禁？
+- 不要只数代码量；指出删掉/绕开的具体流程及对业务的影响。
+
+B. 专业策略与原算法保真
+- 对四项目逐一追原入口、环境、模型、策略/搜索空间、内部评分、终止条件、输出及平台补丁。
+- 是否原先能力被替换成硬编码玩具、空跑、固定候选、代理指标或模板占位？
+- 哪些策略可配置，何时适合降功耗/补时序/优化布局？原研究实验前提是否仍成立？
+- AST/EPD、Teacher/Student、多线程候选、功耗感知时序、RMP等被迁移的原机制是否还在实际使用？不需为所有配方再跑一次。
+- 专业自己的退出0、评分变好、源码不同、二进制不同，分别能证明什么，不能证明什么？
+
+C. 任务交接与动作冲突
+- 逐边建立 Flow→DPL、DPL→Goal、Goal→ECO 的适用阶段/资产/参数/代码继承表。
+- 源码修改是否组合、覆盖或互斥？状态继承和算法继承要分开。
+- 当前动作是否会重综合、清网、重布局/重布线，从而抹掉上一棒优化？哪些必要，哪些重复？
+- 一棒按WNS选best，另一棒按TNS/功耗评价时，谁负责统一最终目标？保留专业原逻辑的同时外层如何正确选择？
+- 用具体输入/输出/日志解释1+1<2，分清专业本身负收益、交接损失、测量差异、来源差异与调度低效。
+
+D. 工具链/默认值兼容
+- 不再使用含糊latest标签，绑定实际OpenROAD/ORFS/Yosys/STA/镜像/库/脚本/编译器。
+- Code必须在共同基础上保留研究增量和私有候选，不能全换stock OpenROAD后声称保留能力。
+- 检查negotiation/Diamond、旧参数移除、单位ps/ns/s、RC阶段、角、SLVT/LVT/RVT、SDC时钟/IO、路由迭代、层设置、activity、温压及library顺序。
+- 相同条件ID是否遗漏影响PPA的配置？不同final来源是否被不正确地归并？
+
+E. EF统一入口与单机稳定性
+- 从四Agent实际调用追到run/task/attempt/artifact，区分构建、EDA、提取、分析和模型调用。
+- 提交/消费/执行/完成/交付是否分别可查？“排队”是否误报丢失，“原生结束”是否误报成功交付？
+- 幂等、租约、并发读写、取消、孤儿进程、重复任务、超时、断续读、frontend退出、检查点前后恢复是否合理？
+- 是否某个祖先进程退出就丢失EF执行关系？恢复会不会重复模型/EDA或改写历史？
+- 资源声明、实际工具线程/内存、池容量、原生超时与外层期限是否一致？
+- 是否把磁盘慢变成大量续租写与锁竞争？现有修复是否达到当前任务所需，不需证明无限压力规模。
+
+F. DF/DI/Query数据与归因
+- Design/Revision/Run/Snapshot/Artifact身份和来源是否清楚，能否从设计找到各实验、阶段、对象、约束和原始证据？
+- EF托管原件和DF索引是否出现两套“谁是最终真相”、重复全量复制、缺失引用或跨实验串数据？
+- 事实解析是否正确：单位、corner/stage、setup/hold、正负TNS、缺值/零、PPA字段、时序排序与分页。
+- Query是否支持同阶段/跨阶段/父子比较、对象/网表差异及专业上下文，并区分事实、假设、限制？
+- evidence ref能否定位artifact/source/location？路径对应哪个run/snapshot？是否过期、空证据或事后编造解释？
+- 不必为了老板参考的Knowledge Index树完整实现图数据库/向量库；指出现有查询缺口中真正阻碍四设计案例的部分。
+- 因果推断是否越界？相关性/前后差异何时足够作为工作假设，何时需控制运行？
+
+G. 最终PPA与功能可信度
+- 每一棒完整记录功耗、cell/core/die面积、setup/hold TNS/WNS、电气违反、route DRC/placement状态及测量阶段。
+- 比较是否同设计修订、同SDC/corner/活动/单位？综合来源改变单独标出。
+- 有没有拿原生TT代理指标与最终FF/RCX直接算改善？有没有把面积/时序违规的低功耗记为成功？
+- 功能有效性证据是否对应实际采用网表？超时/跳过/失败是否被误写PASS？不要求每个失败中间分支都做昂贵证明。
+- 哪些结论已有足够证据不必重跑，哪些只补一次最小验证即可？
+
+H. 可维护性、部署和论文风险
+- 主线、候选、运行快照、安装环境是否过多且没有清晰默认路径？哪些成熟修复未合并/部署？
+- 项目报告是否不断追加过时状态，使新对话误判？请给单一当前状态页的最小方案，不新增另一套项目管理系统。
+- 对第三方专业算法、平台工程贡献、工具估计PPA的表述是否准确？是否有抄袭/归属/许可证风险？
+- 挑选好结果可用于案例，但论文应说明选择过程，不宣称总体最优/统计优越/公平同预算/普遍提升。
+- 哪些问题必须在交老师前修，哪些只限制论文本次主张，哪些可登记后续？
+
+八、论文实验的最小追踪记录（供审查，不是已实现新schema）
+
+每个设计至少有：真实baseline、实际采用主线、所有实际参与Agent节点及保留/拒绝理由。
+每节点建议记录：
+design_id、RTL revision/hash、step_id、parent_step_id、agent/capability、实际strategy、input_stage/output_stage、source artifact/hash、EF run/task/attempt、源码基底/patch与二进制SHA、工具/库/SDC/corner/activity、最终条件、metrics、facts/snapshots、evidence refs、模型/EDA/排队/墙钟已知用量、validity、decision及原因。
+
+metrics至少包括：
+power_mW、cell_area_um2、core_area_um2、die_area_um2、setup_WNS_ps、setup_TNS_ns、hold_WNS_ps、hold_TNS_ns、max_slew/max_cap/max_fanout violation、route_DRC、placement合法性或该项可用状态。
+缺字段填unknown并解释，不能填0；取值来自实际原件，不只抄报告。
+decision可区分 adopted / rejected / unchanged / skipped / not_run；失败或未运行没有PPA时，不复制父指标冒充Agent输出。
+图可以是分支DAG，不必伪装固定A→B→C→D每棒均改善。
+
+请审查当前哪些文件已经足够生成此记录，能否用只读导出解决；不把建新评测数据库当默认方案。
+
+九、请按此结构输出审查结果
+
+1. 先给老板看的结论：这两三天能交付什么，真正阻断论文案例的前三到五个问题是什么；不堆术语。
+2. 能力矩阵：四Agent逐一列“原生可跑/EF统一/数据统一/真实接力/合法PPA/功能验证/默认部署”，每格给证据和适用设计。
+3. 问题表：ID、严重度、事实/假设、触发条件、精确代码位置与证据、业务损害、最小修复、影响模块、验证步骤、预估工作量。
+4. 每个核心判断给至少一处源码/运行原件依据；反例和未核实部分单列。只读代码时不要宣称已证明线上故障。
+5. GCD先行方案：优先复用已验证结果；补哪些真实handoff才能讲清四专业角色，哪些无需再跑；给一张最简单Mermaid数据流/追踪图。
+6. ibex/jpeg/ariane按可运行性和收益机会排序；实际top/输入/规模不明就列缺材料，不猜已有PASS。
+7. 48–72小时最小路线：每阶段业务交付、必改文件/行为、一次性验收、停止条件、已有结果可复用范围；给可直接交给Codex的修复清单。
+8. 暂缓清单：大benchmark、公平竞赛、所有消融/三重复、API通用harness、发布部署、多用户、与主线无关AES证明等。不要把它们又变成前置门禁。
+9. 可以写入论文的主张与证据不足不能写的主张分开，特别核对协同增量、来源变化、平台效率和适用范围。
+10. 如现任工程师的已知结论不成立，请直接指出并说明反证，不以认同现有报告为目标。
+
+十、如果你拿不到本机文件
+
+只有本提示词或GitHub权限时，请明确区分“用户提供事实”与“你亲自核查事实”。GitHub不含var运行证据、镜像、凭据和大产物；不要编造已经打开它们。
+建议先索取/读取最小材料：根文档与manifest、上述核心源码、A25总审查报告、GCD资格报告/真实结果与验证摘要、相关JSON审计证据。若需附件，由老板提供；不要要求打包整个var、账号目录、token、私钥或EDA巨量产物。
+对无法看到的环节列出需要哪个文件/哪种公开只读调用来验证，仍可给出条件式源码审查和最小计划。
+
+最终要求：我们需要能指导两三天内交付的独立判断，不需要另起一个宏大的平台重构计划。既别把真实正确性问题藏起来，也别把所有可能风险都升级成必须先完成的工程。
