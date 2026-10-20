@@ -268,3 +268,18 @@ Student02共同结果27.968287468mW/2335.44µm²/setup WS−36.3866ps/TNS−4.41
 - Ariane原Goal原生基线已实际运行，STA确认5093个setup违例端点，支持全局专业接力选择。23:49核实原OpenROAD PID2498415仍运行，累计CPU约67分钟/墙钟614秒、约657%CPU、RSS约1.8GiB；不能把日志暂未更新当作卡死或重启。此为原生placement寄生/ideal-clock阶段，不是最终PPA。
 
 当前CSV增至24完成测量节点。r8九页审阅包固定21节点时点，后续统一导出再纳入新节点，不改写已发布快照。原件/SDK记录、GCD业务证据摘要、两个独立修复的真实启动/EF回执均在本轮var目录；仍未完成四设计目标。
+
+## 2026-10-21 00:55：收齐原轮次，定位新增收尾协议问题
+
+1. 原GCD DPL前端完成所选Student02及Student01兄弟的最终交付。原框架Student01重复交付的12项指标与已用于DG1的早期Student01逐项相同，不新增论文行、不改DG1父项，重复工作成本仍保留。原ibex一轮四Student/Teacher及最终交付已齐；Student03/04最终均27.995452285mW/原TNS−4.26612ns/slew421，setup/slew/cap拒绝。两份最终12指标和两快照身份独立核对，同原生物理输出一致性记录一起保留；不是新Cpp收益。
+2. ibex独立原生timing-only最终28.110442683mW/2340.26µm²/setup WS−26.2704ps/TNS−1.74221ns，hold WS+27.7896ps/TNS0，slew13/cap0/fanout0/DRT0，12指标/三身份通过。相比主Student01功耗−0.24847%、电气改善，但时序仍不合格。
+3. 当前Codex直接使用Query host完成该新状态调查，六次成功DF/DI读取共109190字节；另四次首轮请求将参数错误放进path而被拒，改为已有separate arguments后成功，保留失败。Query观察墙钟223.63秒、服务内active0.410秒，不能把后者当总回答用时；额外Query子模型调用0，父Codex token未单独计量，不报节约率。新上下文实际交给独立native postroute收尾，所有工具仍由EF启动。
+4. JPEG新增收尾r1原生用21次VT替换把报告中的19个setup违例消为0，合法化移动0，但完整新GRT/DRT/RCX后的最终为151.75381303mW/6243.33µm²/setup WS−26.2502ps/TNS−0.306245ns，原生DRT与电气/布局0，setup拒绝；12指标和三快照身份通过。它与原生估计不同，不能冒充闭合。已提交同一修复ODB、保留现有线路的RCX诊断，原生DRT状态保留unknown，现有select会拒绝，不从诊断采用。该诊断区分重布线与内部模型影响，尚未证明唯一原因。
+5. 日志EST0027与原生源码审计确认：新增SPEF-only收尾脚本没有初始化Resizer的增量估计模式。r2显式先estimate_parasitics -placement再读回源actual SPEF，核原TNS/WS与estimated-mode后才改设计；改变的网络使用已声明placement估计，不声称全程都是新提取RC。另用原工具支持的内部setup_margin（ibex15ps/JPEG30ps）应对r1完成路由后的10.33ps/26.25ps债务；900ps/545ps及最终零TNS等硬约束完全不改。两个r2为有明确新协议和策略的独立任务，均已通过EF派发；旧r1产物/失败保留，不重启Flow/ECO/Teacher/Student，不改产品API、服务或其他模块。
+6. Ariane原生基线已完成，24分16秒的实际EF执行/1093秒原生resizer计时分别记录；五项原检查通过（四项结构LEC不等于完整功能证明），原生GRT债务427.967529ns不当作最终PPA。原Teacher、AST/EPD和四Student已经生成四个真实C++变体：前两份修改SetupTnsPolicy.cc，第三份MeasuredVtSwapCandidate.cc，第四份SetupMt1Policy.cc；各701份源声明和不同请求哈希已核对。两份LTO正在实际消耗CPU并推进分区，两份归档/构建排队，不是失联，不重启。
+
+当前CSV28个完成测量节点，四设计目标仍未结束。r9 PDF/ZIP固定24节点时点；后续统一纳入新最终结果。源证据见本轮var的ibex-students03-04-final-sdk-facts.json、ibex-timing-finish-final-sdk-facts.json、ibex-postroute-source-query-r1/、jpeg-postroute-finishing-fullroute-final-sdk-facts.json、native-postroute-estimation-protocol-audit.json、两份r2启动回执及ariane-four-source-builds-status.json。
+
+### 01:00补核：r2初始化已实际验证
+
+ibex r2原生步骤已成功结束，公开原始日志SHA核对通过：输入TNS−1.7422088709ns/WS−26.270431ps与源测量一致，EST estimated-mode明确为1，旧EST0027 wire-load fallback警告消失。内部15ps目标下完成33次resize（4 sizeup、29 VT）、timing阶段8个新buffer，原生报告余量+15ps；这仍是原生阶段，不声明最终闭合。完整DRT/RCX任务run-9abcab90805e44aca2788c7f072315d0排队。JPEG r2及同候选保留线路诊断继续独立排队。Ariane前两份完整OpenROAD链接已结束，后两份链接继续；原模型/四Student流程没有重启。

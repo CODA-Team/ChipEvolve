@@ -1,6 +1,6 @@
 # ChipEvolve 论文方法与图注素材
 
-状态：2026-10-20 23:57已完成证据。GCD两条合法接力（F37→Goal G02、DPL01→Goal DG1）完整验证通过。原DPL三Student/Teacher已结束，选中Student02共同最终测量完成、原面积约束拒绝。ibex原四Student/Teacher已结束、主结果已测但setup/slew/cap拒绝，Query已完成，独立原生timing-only修复已完成原生评价、共同测量排队。Ariane参考PPA/三事实完成、Query后原Goal时序1×4已派发。JPEG旧搜索停止，新定向ECO完整测量完成、setup/fanout拒绝，另从Goal03派发明确原生post-route收尾；Flow10完整证明超时，未采用。四设计尚未收口；不将排队/运行步骤写成已成功优化。数值与来源见[实测表](INVITED_PAPER_RESULTS_20261020.md)，实际接口见[操作记录](A29_PLATFORM_OPERATION_TRACE_20261020.md)。
+状态：2026-10-21当前28个完成测量节点。GCD原DPL/Teacher及全部交付已结束，两条合法接力G02/DG1继续保留；ibex原四Student/Teacher与全部交付结束，最终均不合格，后续独立timing-only也仍失败。当前Codex通过Query host完成新事实调查并派发独立native收尾；其r1出现原生估计与最终路由测量差异，已提交明确初始化寄生模型与内部setup margin的r2及JPEG同候选保留线路RCX诊断。ibex r2实际原生EST模式1、无旧fallback警告，最终DRT/RCX仍待完成。Ariane原生基线通过，原Teacher/AST/EPD/四Student的真实C++变体已进入构建/评估；尚无新的最终PPA。四设计仍未收口。数值与来源见[实测表](INVITED_PAPER_RESULTS_20261020.md)。
 
 ## 平台方法
 
