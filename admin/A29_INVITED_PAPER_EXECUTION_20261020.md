@@ -369,3 +369,10 @@ Ariane新原生基线run-eba79e99be0b4877b9ee93214566321f真实成功，8线程/
 直接调用当前既有checked_validation业务守卫复核G02和DG1：固定目标/模型及证明输入哈希、全部18输出PDR、七项精确且可行重放条件均通过，未重跑EDA或证明。两分支引用同一规范设计修订、objective与condition；实际runtime/designs/gcd/incumbent.json仍指向G02，结果/验证SHA一致，不需要修改采用指针。该核查补足“保留现有最优分支”的真实产品状态证据，而非只看论文表格。记录在gcd-existing-two-branches-adoption-guard-rechecked.json和gcd-current-retained-scope-verified.json。
 
 JPEG新32GiB证明于05:32:59完成7082分区生成（native returncode0），随后进入原生PDR策略，日志持续推进；分区生成不是完整证明PASS。Ariane四份Student实际源码的701项声明哈希逐份核对、各自仅修改Teacher分配的单一C++文件，四个EF构建仍按既有预算等待。未发布新PPA数字或更改活动输入；后续交付重放边界已由既有replay_checkpoint实际重建核对，仍以新最终网表证明成功为执行前提。
+
+
+### A29 2026-10-21 06:31：JPEG最终网表完整证明通过
+
+JP3最终27输出、7082分区的固定Liberty ABC-PDR整体PASS，公开EF run-0c55ea8898be432e8dc75f743cac18c4终态succeeded，全部模型/网表SHA核验通过；6,168,724字节日志已用公开materialize取回并核SHA。真实物理可行结果仍为152.64929831mW/6244.16um²、setup WS+10.2303ps/TNS0、hold TNS0/电气/布局/原生DRT0。相对原ORFS参考功耗−14.4041%、cell−7.2766%；尚未采用，已复用此证明提交原记录交付的独立完整DRT/RCX重放，不重复优化或功能证明。
+
+ibex依据新的全局slack排序Query及JPEG VT/size物理证据，只尝试一次新的VT/size30ps、前后10%slew margin策略；run-ae7fbe43e69a4395b07b8c189035a248原生动作成功，完整qualification排队。原900ps及最终零违反约束不变，若仍失败则保留负结果，不自动重复。Ariane修复后原1轮四Student源码已齐并实际进入EF链接/后续评价，目标不变。四设计整体仍在进行，不以JPEG证明PASS代替全场完成。

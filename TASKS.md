@@ -442,3 +442,10 @@ Ariane Student02首评价按7200秒限额超时、无最终PPA；原框架已接
 ### A29 2026-10-21 04:55 业务核验与证明资源纠正
 
 Ariane真实新Parent已验证DRV294/runtime739；整份三目标契约与旧轮一致，Goal基线观测修复业务核验完成。原Teacher draft完成/plan进行中，后续四Student与最终PPA待交付。JPEG物理可行JP3保持，原60分钟/24GiB证明按历史成功95分钟/25.9GiB证据纠正：小预算尝试取消留证，新32GiB/4worker/14400秒证明实际运行，新旧证明配置字节相同。原四设计目标及r13不可变素材继续，未宣称功能证明/采用完成。
+
+
+### A29 2026-10-21 06:31：JPEG最终网表完整证明通过
+
+JP3最终27输出、7082分区的固定Liberty ABC-PDR整体PASS，公开EF run-0c55ea8898be432e8dc75f743cac18c4终态succeeded，全部模型/网表SHA核验通过；6,168,724字节日志已用公开materialize取回并核SHA。真实物理可行结果仍为152.64929831mW/6244.16um²、setup WS+10.2303ps/TNS0、hold TNS0/电气/布局/原生DRT0。相对原ORFS参考功耗−14.4041%、cell−7.2766%；尚未采用，已复用此证明提交原记录交付的独立完整DRT/RCX重放，不重复优化或功能证明。
+
+ibex依据新的全局slack排序Query及JPEG VT/size物理证据，只尝试一次新的VT/size30ps、前后10%slew margin策略；run-ae7fbe43e69a4395b07b8c189035a248原生动作成功，完整qualification排队。原900ps及最终零违反约束不变，若仍失败则保留负结果，不自动重复。Ariane修复后原1轮四Student源码已齐并实际进入EF链接/后续评价，目标不变。四设计整体仍在进行，不以JPEG证明PASS代替全场完成。

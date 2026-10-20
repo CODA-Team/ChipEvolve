@@ -180,3 +180,17 @@ Ariane原生7200秒超时后，EF保存完整输出、部分检查点、源码/�
 额外内部模型调用0，父Codex推理token未单独计量，未报告节约率。真实请求、输出和耗时在var/business/a29-paper-delivery-20261020/business-status-demo-r3/answer-and-evidence.json；本次是固定时点的观察，不把running当作完成。
 
 更新的成本快照cost-snapshot-20261020T202410Z.json纳入前端被停止后无法自行落终态的两份公开EF取消收据，按run去重。当前254终态EF（240成功、7失败、5取消、2超时），采样CPU161397.19秒；20份Goal调用、五份DPL调用等范围分别列示。未包括的历史、父推理和服务开销保持unknown，不作为完整成本或同预算效率对照。
+
+
+## 2026-10-21 06:22：Query诊断驱动一次新策略
+
+当前Codex通过既有DI重新查询IP2，显式按slack全局排序后取得16条已存setup路径；最差reg2out路径与−0.00130401ns聚合值一致。有限路径不是全部端点，原生修复仍处理全设计。SDK默认路径分页未按slack排序，必须明确指定`sort="slack"`；`truncated`是有数据的分页状态，不能误判为调用失败。
+
+根据JPEG新VT/size物理可行结果和IP2的23项slew违反，本次只新增一个明确的VT/size、30ps内部余量及修复前后10% slew margin策略。原900ps、最终零TNS/零电气违反要求不变，不声称源码合成。EF已接受run-ae7fbe43e69a4395b07b8c189035a248，父run/目标/条件、四原始输入SHA、完整Query上下文及实际Tcl均已核对；当前排队，尚无新PPA。只有本次原生策略或最终事实通过，才继续后续交付；没有自动重复循环。额外Query内部模型调用0，父Codex token未知。证据见ibex-ip2-query-new-strategy-r3/、ibex-ip2-vt-size-slew-r3-source-dispatch-audit.json。
+
+
+## 2026-10-21 06:31：大原件取回与真实下一棒
+
+JPEG最终网表证明run-0c55ea8898be432e8dc75f743cac18c4已由公开EF确认为succeeded。完整extractor_log为6,168,724字节，通过KernelClient.materialize_artifact取回本机并与EF登记SHA完全一致（4c36f256ccaf98c23fa35278553858b73f4508c36d3c61ffd40de727d1eac5c3）；没有把4MiB上限的内联字节接口当作大原件下载接口，也未读取私有状态库。完整证明27输出/7082分区及所有网表/Liberty哈希独立核对。
+
+Codex随后复用实际PASS证明，只派发一次已记录物理交付的独立重放run-786929353c204058a30a502368e57c78。原repair输入ODB、PDK和实际交付路径由既有replay_checkpoint恢复，EDA经EF、事实经DF/DI；七指标一致及既有功能/采用检查通过后才调用select。原生修复、功能证明、独立物理交付和采用是四种不同事实，分别记录。

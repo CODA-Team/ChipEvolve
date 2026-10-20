@@ -121,3 +121,10 @@ JPEG最终JP3证明从试探24GiB/2worker/3600秒纠正为同设计已成功资�
 
 
 共同功耗口径：最终测量脚本在同SDC/Liberty/SPEF与传播时钟条件下调用OpenSTA report_power，未载入设计级SAIF活动。表中功耗为该共同工具/活动假设下的估算，具体源条件和原始报告随产物保存；不把不同活动假设或不同测量阶段的功耗直接相减归因。
+
+
+### JPEG final-netlist proof milestone (2026-10-21 06:31)
+
+The explicit native VT/size finishing step starts from the measured Goal03 physical checkpoint. Under the unchanged 545 ps / ASAP7 FF condition, final routed/RCX JP3 measures 152.64929831 mW, 6244.16 µm², setup WS +10.2303 ps/TNS 0 and hold WS +12.5118 ps/TNS 0, with zero native routing, placement, slew, cap and fanout violations. Relative to the original ORFS reference, power is 14.4041% lower and cell area is 7.2766% lower. Relative to its actual infeasible Goal03 parent, power rises by 1.18069% while setup timing is restored; this tradeoff must remain visible.
+
+The exact final netlist has now passed fixed-Liberty sequential PDR for all 27 outputs and all 7082 EQY partitions (EF run-0c55ea8898be432e8dc75f743cac18c4). Independent recorded-delivery replay remains in progress, so this milestone alone is not an adoption claim. This branch is Goal physical state followed by a Codex-directed existing OpenROAD repair action, rather than a new ECO success or composition of evolved C++ binaries. Earlier negative ECO branches remain reported. No new model call, search restart, clock relaxation or retrospective objective change is attributed to this finishing step.
