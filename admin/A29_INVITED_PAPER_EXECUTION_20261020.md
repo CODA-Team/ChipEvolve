@@ -215,3 +215,13 @@ Ariane已进入详细布线。为最终Query若判定需时序修复而准备原
 新八轮原生ECO命令仅准备，尚未派发；见`jpeg-focused-eco-prepared-decision.json`。继续原评分、估计收益门槛和回滚/最佳状态策略，实际备选单元由原生上下文重新生成，不硬编码动作；20GiB/8线程按旧JPEG实际峰值14.04GiB留余量。先完成在途ibex原轮次及共同交付。原命令校验主要检查命令种类/参数形状；`allow_insts`参数尚未被使用，Tcl是机械修改器，不将它写成完整的对象权限/功能证明。采用仍须完成最终物理与功能核验；本轮不顺手改研究算法或增加防御框架。
 
 Ariane原完整ORFS已完成详细布线，最终原生DRT计数0、布线峰值23487.93MB；继续原流程后续工作和交付。观察到新版ORFS内置`kepler-formal`检查仍在EF任务树中运行，不是另行发起新证明；最终PPA/DF事实尚未产生，不能先填结果。GCD DPL/ibex原句柄均保持，仍按EF实际资源预约等待；没有重启或修改冻结请求。
+
+## 21:16 Ariane内置证明退役，原物理检查点接续
+
+确认原新版ORFS的`LEC_CHECK`默认取1，`formal_check.tcl`直接同步执行Kepler且没有独立时限。原详细布线已经DRT0，但全局内置LEC从21:00开始、约十五分钟仍在solver，没有通过或反例；它占着整个32GiB任务预约，阻塞了原DPL和ibex。按近期计划不把Ariane证明设为本轮前置，通过公开EF cancel停止`run-c40e2257df494a38a1d941901dfc8952`。EF终态为cancelled，原任务不计完整ORFS成功，不伪造LEC结论。其闭合采样CPU29733.53秒、峰值24710152192字节，原成本和取消证据保留。
+
+取消前原最终ODB（380815639字节）、网表、DEF、完成阶段SDC、原DRT JSON及LEC配置/日志已保存；每份复制前后size/mtime稳定，记录SHA。归档在`ariane-completed-physical-checkpoint/manifest.json`，原EF公开日志及取消决定/回执另存。本次使用的Goal PDK和原ORFS RCX规则SHA完全相同（`32a117e5...252cc`），不是换模型重测。
+
+一次性运行脚本复用现有Jobs/container/measure/freeze_goal/annotate/publish，已提交`run-9a39f8411779473f9602ec220c7db8a5`：只对同一最终ODB提取RC并按现有共同测量/三快照发布至DF。没有重做布局/布线，没有新增服务、公共接口、数据库或产品逻辑；后续结果明确标注原LEC未建立功能证明。运行记录`ariane-saved-physical-final-launch.json`、独立case `a29-ariane-saved-orfs-physical-final-r2`；当前仍在EF资源等待，最终PPA未出。
+
+原任务资源释放后，GCD原DPL构建`run-29b1a33e5d9346bd9ccea6e2fc4ea537`与ibex原修复评价`run-c86add5b87444698b4c566157bce5b64`随即实际运行，未重启或改它们的冻结输入。JPEG新ECO继续仅准备，旧Flow不重开。Query完成调用成本单独登记：input1558866，其中cached1420416为子集，output9505、318.89秒；`jpeg-focused-query-model-cost.json`及`cost-snapshot-20261020T130734Z.json`保留范围，不能与先前确定性status读取的0内部调用混用。
