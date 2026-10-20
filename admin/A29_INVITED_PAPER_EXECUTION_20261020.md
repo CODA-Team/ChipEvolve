@@ -203,3 +203,15 @@ Ariane的全局布局、详细布局和CTS已实际完成，CTS后的negotiation
 Ariane已进入详细布线。为最终Query若判定需时序修复而准备原Goal已有single_stage/timing_only配置：选择原生strict_evidence插件和TNS权重，保留1轮4Student、AST/EPD、源码范围/完整性及原评分实现；平台最终功耗、面积、时序、电气/布线约束仍按源objective，不由原生局部TNS改善授权采用。此配置未派发、未被当结果；现有PowerFirst实验及运行参数不变。原native load_config解析通过，无工具/模型调用。`ariane-timing-strategy-preparation.json`记录原生策略与准备文件，实际启用取决于完成基线和DF/DI/Query。
 
 后续不在ibex原轮次/共同交付收尾前再派发32GiB物理分支，先利用小任务完成Ariane数据/Query及当前案例收尾，避免大预约再阻塞接力。没有新服务、公共API、产品源码或旧任务修改。
+
+## JPEG重新调查与Ariane详细布线收尾
+
+旧JPEG Flow搜索保持停止。对已有Goal03和旧拒绝ECO执行一次新的只读Query，调查`inv-ec2f15f9292047b5afaf133a3abc6cfb`完成8步、60次工具调用，形成4事实/3假设及专业上下文。它是实际使用Codex hosted后端的新调查，不计作零模型调用。source固定为Goal03 `run-479b9b902ff541198d0e5c51b1493215`，reference是其旧ECO后代，不是ORFS baseline或已采用incumbent。
+
+调查确认源设计有多个负reg2reg端点，重点是`_118520_`半加器及`place9038`共享缓冲驱动，而非直接复制旧ECO最佳状态中的实例名。一个匹配端点在旧ECO中略好、全局TNS却更差，说明局部收益不能代替整体目标。原Goal03仍是150.8680135mW/6243.33um²/setup WS−12.5853ps/TNS−0.0701142ns，没有因诊断产生新PPA收益。
+
+补充通过公开DI取回两份完整SDC（各2262288字节）及317193字节压缩Liberty，并逐EF登记SHA核对。两SDC去除注释/空行/行首尾空白后指令文本完全一致，原Query关于完整约束差异的未决项由独立补充记录闭合；原Query导出不改写。Liberty完整解压后提取HA原声明，避免把gzip二进制片段当作单元属性。补充原件及结果在`jpeg-focused-query-supplement.json`和`jpeg-focused-supplement/`。
+
+新八轮原生ECO命令仅准备，尚未派发；见`jpeg-focused-eco-prepared-decision.json`。继续原评分、估计收益门槛和回滚/最佳状态策略，实际备选单元由原生上下文重新生成，不硬编码动作；20GiB/8线程按旧JPEG实际峰值14.04GiB留余量。先完成在途ibex原轮次及共同交付。原命令校验主要检查命令种类/参数形状；`allow_insts`参数尚未被使用，Tcl是机械修改器，不将它写成完整的对象权限/功能证明。采用仍须完成最终物理与功能核验；本轮不顺手改研究算法或增加防御框架。
+
+Ariane原完整ORFS已完成详细布线，最终原生DRT计数0、布线峰值23487.93MB；继续原流程后续工作和交付。观察到新版ORFS内置`kepler-formal`检查仍在EF任务树中运行，不是另行发起新证明；最终PPA/DF事实尚未产生，不能先填结果。GCD DPL/ibex原句柄均保持，仍按EF实际资源预约等待；没有重启或修改冻结请求。
