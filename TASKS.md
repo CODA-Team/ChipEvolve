@@ -420,3 +420,7 @@ O2独立ORFS/ECO/功耗回收/Query修复分支的指标、重放与等价验证
 2026-10-20 16:03 A29续作：已完成DPL Student01最终PPA/DF七值核验、Query4事实/3假设、原生门禁brief注册并SDK核验；原HPWL改善但最终面积拒绝，G02保持。DPL其余两Student/Teacher、DPL01→Goal原1×4、ibex adaptive原1×4仍进行中；Ariane完整基线与JPEG24GiB证明仅准备，JPEG旧搜索不重启。论文素材15完成节点及53文件老师审阅快照已导出并核SHA；完整四设计交付继续，不标完成。
 
 2026-10-20 A29增量：DPL01→Goal原1×4及全部交付完成，DG1最终0.81929122098mW/39.6139um²/setup WS+1.31586ps/TNS0，原约束、18输出PDR、独立完整DRT/RCX7值同值与4结果48值SDK核验通过；3兄弟候选setup拒绝。旧G02更低功耗继续保留。19节点表、GCD实线接力图/PPA图及5页阅读版已更新。原DPL完整3Student轮次和ibex修复/评价仍进行；JPEG24GiB只补证明已进EF排队；Ariane完整基线待派发。四设计目标未完成，不将本次GCD验证当作全场验收。
+
+### A29 2026-10-21 01:24 当前检查点
+
+GCD四专业真实参与及两条完整验证的合法接力已齐；ibex原四Student和timing-only/两轮postroute最终事实全部交付，新r2 TNS−0.00130401ns/slew23仍拒绝，保留IB0。JPEG同VT候选保留线RCX为TNS0、冷重布线为−0.306245ns，原生DRC未知不采用；r2原工具RSZ0074失败留证，只新增一份直接消费既有线/guide的原生DRT收尾。Ariane四真实Cpp完整二进制链接均成功，原生物理评价继续。当前31测量节点及r10十页PDF可审阅，四设计未全部收口，不标记A29完成。

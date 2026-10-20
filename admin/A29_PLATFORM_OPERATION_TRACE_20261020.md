@@ -152,3 +152,9 @@ JPEG定向ECO原生八轮完成、10次模型调用（两次重试），原生DR
 新ibex最终状态已由当前Codex通过Query host读取：两份完整metric包、setup/hold样本、所有已存setup组与最差路径engineering，共六次成功读取109190字节；四次path参数格式错误也保留为失败。Query保存了新调查、原件引用与professional-context后，原生收尾脚本消费该新上下文，通过现有Jobs/KernelClient提交实际SPEF/传播时钟下的native EDA动作和后续DRT/RCX/事实发布。没有额外Query子模型调用；223.63秒调查墙钟包含宿主步骤等待，服务内0.410秒不能替代总用时，父模型token未知。
 
 调查确认setup同时涉及reg2reg和reg2out；所选路径cell/wire原增量仅支持机制，不是完整归因。新收尾r1的“原生报告闭合、最终仍失败”按真实结果保留，随后只针对明确发现的Resizer增量寄生初始化问题与路由后slack余量启动r2；原生算法及正式验收约束不改。JPEG同候选保留线路的RCX作为诊断，native DRT计数unknown，禁止采用。全部是已存在EF/DF/DI/Query能力的消费，没有新服务、数据库或API，也不把试验性native原语封装说成新的专业研究Agent。
+
+## 10月21日01:24：新完成的实际闭环
+
+1. 当前Codex基于先前Query的ibex诊断，显式派发带增量RC初始化协议的原生收尾；EF完整DRT/RCX后将最终设计登记到DF，DI复核十二原始指标及三快照身份。Codex因setup/slew失败拒绝采用，保留IB0。这一闭环并非“工具成功所以优化成功”。
+2. JPEG同候选保留线诊断也经EF执行新RCX/测量，并通过DF/DI的十二值/两身份核对。Codex比较同原始ODB与同condition/objective后识别布线交付差异，派发一份直接读取既有线/guide的原生DRT任务。旧Flow搜索始终停止；没有重跑模型搜索，也未把未知DRC当零。
+3. 当前成本快照`cost-snapshot-20261020T172412Z.json`包含242个闭合EF任务及采样CPU134263.69秒；专业Goal20份用量回执、DPL5次模型和既有Query范围分别保留。未闭合任务不填完整成本；缓存输入是输入子集，没有同任务对照或父Codex独立token计量时不计算节约比例。

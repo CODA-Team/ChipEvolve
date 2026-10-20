@@ -287,3 +287,13 @@ ibex r2原生步骤已成功结束，公开原始日志SHA核对通过：输入T
 ### ibex首原生收尾完整入库
 
 原生收尾r1的最终三事实已齐、12值及三身份通过：28.248446062mW /2340.73µm² /setup WS−10.3335ps /TNS−0.148885ns，slew22/cap0/fanout0/DRT0。相对实际timing-only父项，绝对TNS债务减少91.4542%，但setup/slew仍失败，不采用。CSV29个完成测量节点；新增修正协议r2实际原生通过但尚待最终DRT/RCX，不能提前填写收益。
+
+## 2026-10-21 01:24：收齐Ibex新收尾与JPEG同候选路由诊断
+
+- ibex修正RC初始化协议的r2已完成完整DRT/RCX、共同测量、三事实及十二指标/三身份核对：28.235161677mW /2341.42µm² /setup WS−1.30401ps /TNS−0.00130401ns、hold TNS0、slew23/cap0/fanout0/布局0/DRT0。相对实际timing-only父项，绝对TNS债务减少99.92515%；相对IB0功耗−3.44889%、cell面积−2.59303%，但原setup/slew仍失败，不采用。原四Student/Teacher及全部最终交付已齐，保留合法IB0；不为拒绝的中间候选反复追加昂贵功能证明，不重复相同策略。
+- JPEG**同一个**VT修复ODB的两种交付已核对输入SHA和condition/objective一致：清线新GRT/DRT/RCX为TNS−0.306245ns；保留线新RCX为150.82803369mW /6243.33µm² /setup WS+0.26612ps /TNS0，电气/布局0。后者十二指标和ORFS/OpenSTA两身份通过，但原生DRC未知，不可采用。对照支持“布线交付选择损失时序收益”，不声称唯一具体网线或内部模型已完全归因。
+- JPEG另一个r2实际核原源时序、EST mode1通过，随后原生`repair_timing`在RSZ-0074路由树构建报错退出，完整EF终态日志/原件SHA保留；它没有最终PPA，不能填成改善。没有修改OpenROAD源码兜底或反复补丁。
+- 针对新诊断，只新增**一份明确的原生布线收尾**：从上述已有VT候选的原线路和guide直接调用最新版`detailed_route`，不先删线、不重跑global_route，后续新RCX/共同测量/DF。原生源码证实会读取既有ROUTED线且需要guide；DRT仍可能修改线路，最终指标和真实DRT计数才决定可行性。任务run-4023a66bc0b54c7db369bdc9d45368d0已通过EF排队，不是重开Flow/ECO/模型搜索、不放宽545ps或原面积上限。
+- Ariane四个真实C++变体的**完整OpenROAD二进制链接**均已成功，峰值各约4.82GB；已逐原请求和EF run核对。原生物理评价run-43bce2b620474a9988c49b93bfaf7dc9运行；四候选最终PPA仍待交付。不能把原生计算中的PPA估计当最终结果。
+
+论文CSV已增至31个逐SHA核对的完成节点，新增IP2和JPD；JPD明确诊断/DRC未知。新十页r10 PDF按设计分四页指标表，纳入最新ibex/JPEG分支图；旧r9快照保持原字节不变。此次只修改本轮导出脚本和业务记录，产品源码、服务、算法和公共API未变。四设计整体目标仍未结束。

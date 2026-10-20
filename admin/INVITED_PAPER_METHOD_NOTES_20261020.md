@@ -87,3 +87,9 @@ JPEG定向ECO完成八轮、10模型调用，原生DRT9592经完整布线变为0
 新的JPEG收尾单独取更好的Goal03为父，按已完成Query选择原生OpenROAD电气/setup修复，读取该状态实际SPEF及传播时钟；先核原时序再修复、合法化，之后单独完成DRT/RCX及DF。这个步骤是Codex下发的原生EDA动作，**不归为新Goal Teacher/Student或源码演化，也不声称合并了Goal03 C++**；默认测量继续只给事实，不暗中优化。候选未完成/证明前不采用。
 
 Ariane原生完整STA已确认5093个setup违例端点，支持Query此前的全局专业选择；它是原生placement寄生/理想时钟域，不能与最终DRT/RCX的TNS直接相减算收益。
+
+## 10月21日：同候选布线交付对照与收尾边界
+
+JPEG的一个21次VT替换候选在两种交付中使用同一原始ODB、条件及目标：清线重跑GRT/DRT/RCX后setup TNS−0.306245ns；保留现有线路重新RCX后TNS0、WS+0.26612ps。后者原生DRC计数未建立，因此是诊断证据而非可采用PPA改进。该对照支持路由交付会影响优化收益，不识别唯一导致回归的网线。后续单独从既有线路/guide运行native detailed_route，以取得实际最终DRT和新RCX事实；不把布线修复隐藏在测量步骤中。
+
+ibex的独立原生收尾r2相对实际timing-only父项减少99.92515%的绝对TNS债务，但最终仍有1.30401ps负setup余量和23项slew违反；原生DRT0不等于全约束通过，仍保留可行ORFS参考。其内部15ps repair目标没有改变900ps设计时钟或最终零TNS/零电气违反要求。原生动作与专业C++演化分别归属，不能称旧Student源码已自动合并到共同工具。

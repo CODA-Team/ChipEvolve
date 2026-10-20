@@ -1,6 +1,6 @@
 # 邀请论文实验素材：当前实测版（2026-10-20）
 
-这是持续更新的实验素材，不是声称四设计已经全部完成。当前29行数据从原结果逐SHA核对后导出；新GCD DPL原生一轮三Student/Teacher已完成、选中Student02，选中Student02共同最终测量已完成、原面积约束拒绝，兄弟交付继续；Student01→Goal原1轮4Student已完成最终测量，新增合法分支通过18输出PDR和独立重放；未完成候选不填结果。CSV包含完整PPA、电气/布局违反、DRC方法、run/条件/目标及来源SHA。
+这是持续更新的实验素材，不是声称四设计已经全部完成。当前31行数据从原结果逐SHA核对后导出；新GCD DPL原生一轮三Student/Teacher已完成、选中Student02，选中Student02共同最终测量已完成、原面积约束拒绝，原轮兄弟交付已收齐；Student01→Goal原1轮4Student已完成最终测量，新增合法分支通过18输出PDR和独立重放；未完成候选不填结果。CSV包含完整PPA、电气/布局违反、DRC方法、run/条件/目标及来源SHA。
 
 ## 当前可用结论
 
@@ -42,6 +42,8 @@ JPEG保留可行Flow候选及真实负接力。DPL Student03仅原cell面积上�
 |ibex|IT1|Goal native timing|28.110442683000|2340.26|-26.2704000|-1.74221|rejected: finalsetup/slew; originaltiming-only, no newCPP|
 |ibex|IP1|native finishing|28.248446062000|2340.73|-10.3335000|-0.148885|rejected: setup/slew; actualfinalTNSdebt-91.45%; r2newRCprotocolpending|
 |jpeg|JP1|native finishing|151.75381303000|6243.33|-26.2502000|-0.306245|rejected: finalsetup; nativeVTrepair then fullreroute; no newCPP|
+|ibex|IP2|native finishing r2|28.235161677000|2341.42|-1.30401000|-0.00130401|rejected: max_slew_violations,setup_tns_ns_min|
+|jpeg|JPD|preserved-wire diagnostic|150.82803369000|6243.33|0.26612000|0|diagnostic only: existing wires RCX; native DRC unknown; not adopted|
 |ariane|AB0|ORFS checkpoint|642.41528511000|43672.8|-285.396000|-155.146|reference: setup/slew fail; original inline LEC retired; not adopted|
 
 完整字段：[机器可读指标表](INVITED_PAPER_METRICS_20261020.csv)。GCD条件为ASAP7 FF/310ps，JPEG为ASAP7 FF/545ps，ibex为ASAP7 FF/900ps；Ariane为900ps、标准单元FF及原提供SRAM模型（宏角点未统一核实）。跨设计不直接计算改善率。ORFS对照与现代Flow综合/方法来源分列；相对ORFS的全部降幅不归为某段源码或协同的唯一贡献。
@@ -89,10 +91,10 @@ flowchart LR
 
 |设计|当前交付|下一步|
 |---|---|---|
-|GCD|合法既有成果已固定；DPL原生轮已结束、选中Student02完成共同最终测量，面积拒绝；Student01→Query→Goal新增合法分支0.819291mW/39.6139um²，18输出PDR/独立重放通过；ECO侧枝仍setup拒绝，G02保持|收齐原轮兄弟交付；Student02原面积拒绝，保留已完整验证的G02和DG1|
-|ibex|原Goal一轮四Student及Teacher评审已结束，晋升Student01修复版；共同主分支28.180463mW/2339.71um²/TNS−1.59699ns/slew32/cap1，DF/DI十二值核对通过，暂不采用|其余候选交付继续；原四Student及全部最终交付完成，四候选均setup/电气拒绝；独立timing-only最终仍拒绝；当前Codex通过Query六次有效事实读取完成新诊断，明确native postroute收尾与RC模型初始化/15ps内部margin的r2已派发，ORFS可行基线保留|
-|jpeg|旧实测可行Flow候选及真实负接力保留；余下搜索已停止；24GiB证明分区超时，未采用Flow10|旧Flow搜索保持停止；以Goal03为父的新定向ECO原生八轮已完成（10次模型含重试），原生DRT9592→完整布线DRC0，最终151.728436mW/6243.39um²/TNS−0.238709ns，setup/fanout拒绝；Goal03独立postroute收尾r1最终setup仍失败；同候选保留线路RCX对照与初始化增量RC/30ps内部margin的r2均已派发，原约束不变|
-|ariane|原映射网表/136 SRAM来源的完整物理参考已交付：642.415285mW/43672.8um²/setup WS−285.396ps/TNS−155.146ns/slew436，原生DRT0；12指标与3快照经DF/DI核对|Query已完成并发现深逻辑reg2out时序问题，原Goal timing-only一轮四Student已派发、原生基线已完成，原生STA确认5093违例端点；四Student已提交真实C++变体，两链接两排队；原LEC取消未证明|
+|GCD|合法既有成果已固定；DPL原生轮已结束、选中Student02完成共同最终测量，面积拒绝；Student01→Query→Goal新增合法分支0.819291mW/39.6139um²，18输出PDR/独立重放通过；ECO侧枝仍setup拒绝，G02保持|原轮兄弟交付已收齐；Student02原面积拒绝，保留已完整验证的G02和DG1|
+|ibex|原Goal一轮四Student及Teacher评审已结束，晋升Student01修复版；共同主分支28.180463mW/2339.71um²/TNS−1.59699ns/slew32/cap1，DF/DI十二值核对通过，暂不采用|原四Student及全部最终交付完成，四候选均setup/电气拒绝；独立timing-only最终仍拒绝；当前Codex通过Query六次有效事实读取完成新诊断；r2最终28.235162mW/2341.42um²/TNS−.00130401ns/slew23/DRT0，仍拒绝，ORFS可行基线保留|
+|jpeg|旧实测可行Flow候选及真实负接力保留；余下搜索已停止；24GiB证明分区超时，未采用Flow10|旧Flow搜索保持停止；以Goal03为父的新定向ECO原生八轮已完成（10次模型含重试），原生DRT9592→完整布线DRC0，最终151.728436mW/6243.39um²/TNS−0.238709ns，setup/fanout拒绝；Goal03独立postroute收尾r1最终setup仍失败；同候选保留线路RCX诊断已完成：TNS0/WS+0.26612ps，但原生DRC未知不可采用；冷重布线TNS−.306245ns说明交付布线选择影响收益。r2原工具RSZ0074路由树失败已保留；新一份从既有线路/guide继续原生DRT的定向收尾已派发，原约束不变|
+|ariane|原映射网表/136 SRAM来源的完整物理参考已交付：642.415285mW/43672.8um²/setup WS−285.396ps/TNS−155.146ns/slew436，原生DRT0；12指标与3快照经DF/DI核对|Query已完成并发现深逻辑reg2out时序问题，原Goal timing-only一轮四Student已派发、原生基线已完成，原生STA确认5093违例端点；四Student真实C++变体完整链接均已成功，原生物理评价继续；原LEC取消未证明|
 
 ## 指标与证据口径
 
