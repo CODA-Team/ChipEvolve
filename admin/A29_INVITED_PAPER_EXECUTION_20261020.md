@@ -155,3 +155,13 @@ Codex保持旧G02为最低功耗incumbent，新DG1作为已验证合法接力分
 JPEG只重试已保存Flow10的功能证明：24GiB新case `a29-jpeg-flow10-functional-proof-r2`、EF `run-f70ca7ca66cf44df9466283b2b045cdc`，当前按EF容量排队；8GiB失败和所有原搜索记录保留，不重开搜索。GCD原DPL另外两个Student/Teacher轮次仍未结束；ibex继续其原生修复/评价。Ariane完整基线待当前关键资源释放，不能把未启动写成完成。
 
 论文结果表增至19个SHA核对最终节点，新增GCD完成接力图r2、7节点PPA图r2及5页老师阅读版r4；已检查实际PDF渲染、中文、表格与图标注。没有新增产品代码、服务、公共API或评测数据库。
+
+## 18:49继续执行：资源队列与交接语义
+
+GCD新增DPL01→Goal分支已完整验证，保留原G02的决策不变。七份实际交接文件重新按声明SHA核对通过，Goal的profile/request确认其使用独立prepared source seed、未指定code_source；DPL专业源码保留来源身份，未自动合并进Goal。原prepare明确移除filler和信号线路，后续重新测量，不把旧寄生当新事实。说明及原引用在`gcd-dpl-goal-handoff-inheritance.json`与论文方法表。
+
+JPEG只对已有Flow10作24GiB功能证明，EF `run-f70ca7ca66cf44df9466283b2b045cdc`实际运行，18:38已进入partition。原旧搜索保持停止；证明未终态前不填写通过。原DPL第三Student后续评价`run-581315e918f74518b8354dd2104a7c0e`需要24GiB、ibex修复评价`run-c86add5b87444698b4c566157bce5b64`需要12GiB，当前剩8GiB，因此为明确资源等待，不是任务未被消费。没有改活动profile或重启控制器。
+
+Ariane完整原映射网表/含固定宏floorplan的ORFS已由原准备命令提交，EF `run-c40e2257df494a38a1d941901dfc8952`排队，预约32GiB；原网表、SRAM模型与来源保持，不换成别的设计。GCD已完成合法接力后才派发，既有任务不抢占；最终PPA尚无。启动收据`ariane-baseline-launch.json`固定PID613551及启动身份。
+
+更新`CURRENT.json`至19节点/r4材料及真实活动句柄。26个受保护用户文件SHA全部保持；本次仅报告/方法说明及var运行记录变化，产品代码、公共API、服务和研究算法未变。
