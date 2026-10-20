@@ -143,3 +143,15 @@ ibex四Student共8项已观察到的链接操作全部成功，按Student分组�
 已通过DI分别取回Student03/04已成功物理叶日志并与EF登记SHA核对。规范化输出目录后两份实际Tcl完全相同，环境变量键值相同，源文件身份字典仅`SetupLastGaspPolicy.cc`不同；两个二进制SHA和inode均不同，原日志各自有对应`last_gasp_frontier_*`及`last_gasp_single_epoch_*`正值信号。完成的本机`post_route.odb`、`post_route.v`、原生DEF及checkpoint_metrics四份产物分别逐字节同值；两者原生全局布线估计均TNS−23.0848591221ns、469 slew/22cap违反。
 
 这是两个已执行策略在本次输入上落到同一设计状态的证据，不能计作两份独立收益或用它代替最终共同测量。其余两个Student作用于功耗策略，原一轮四Student仍继续；新实验只有在有明确不同动作/诊断依据时再启动。原控制器仍负责原生晋升，最终采用另按共同PPA/功能证据判断。完整比较、源码/二进制身份和原件引用在`ibex-two-native-physical-comparison.json`，未修改任何活动源码或实验记录。
+
+## 新增Flow→DPL→Query→Goal：完整验证通过
+
+原Goal一轮四Student及所有交付完成，原控制器晋升Student01；原候选源码/检查/原生评分均保留，未改专业晋升。共同最终结果`run-13f4b205b4594b1eafb9867662fb3a9e`：0.81929122098mW、cell/core/die 39.6139/57.9701/75.8293um²，setup WS+1.31586ps/TNS0、hold WS+34.0384ps/TNS0，DRT、slew/cap/fanout及布局违反0。相对实际DPL01父项功耗−12.6104%、cell面积−11.9286%，修复父项面积超限。其他3候选最终setup拒绝，其中Student03/04最终PPA相同。
+
+新增分支已实际通过全部18输出PDR（`run-6a604e61ebf14fc7bec3031834bcfcfd`）、独立完整DRT/RCX七值同值（`run-ceda82eb8b604b98ac43ddf7c5ce8052`）和DF/DI身份/数值核验。四份共同测量共48个raw值及相应快照身份逐项通过；收据在`gcd-dpl-goal-all-final-sdk-facts.json`及`runtime/experiments/gcd/a29-gcd-dpl01-goal01-validated-r1/validation.json`。先确认原frontend已退出、结果SHA稳定后才绑定验证，避免在追加原候选库存期间冻结半成品摘要。
+
+Codex保持旧G02为最低功耗incumbent，新DG1作为已验证合法接力分支归档。本分支时序已闭合，ECO不另起无必要动作；原G03→ECO八轮及拒绝侧枝仍是实际ECO参与记录。新旧Goal阶段/策略不同，不能把分支差异当成DPL独立因果效应。决策及验证/原件引用在`gcd-dpl-goal-next-decision.json`。
+
+JPEG只重试已保存Flow10的功能证明：24GiB新case `a29-jpeg-flow10-functional-proof-r2`、EF `run-f70ca7ca66cf44df9466283b2b045cdc`，当前按EF容量排队；8GiB失败和所有原搜索记录保留，不重开搜索。GCD原DPL另外两个Student/Teacher轮次仍未结束；ibex继续其原生修复/评价。Ariane完整基线待当前关键资源释放，不能把未启动写成完成。
+
+论文结果表增至19个SHA核对最终节点，新增GCD完成接力图r2、7节点PPA图r2及5页老师阅读版r4；已检查实际PDF渲染、中文、表格与图标注。没有新增产品代码、服务、公共API或评测数据库。

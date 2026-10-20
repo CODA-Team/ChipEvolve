@@ -408,3 +408,5 @@ O2独立ORFS/ECO/功耗回收/Query修复分支的指标、重放与等价验证
 2026-10-19 23:22本机：A25仍进行中，A26–A28未完成。校准4原生成功/1在sta::PathExpanded崩溃；公共EF证据及26用户文件核验通过，最终物理均未交付。路径引用隔离候选仅修改SetupLegacyBase.cc，构建run-0b5b5d32c5784ecd826aa40e37fb881e排队，主管2221907；回放主管2246640核对同一构建PID/start ticks后才执行两份原配对脚本，尚未修复验收。主Flow/真实接力/原生完整参考/AES原主管均存活，不重开；新单文件适配必须真实故障回归及最终物理验证后才考虑启用，随后补精确环境/AST并冻结正式方案。详见[本轮证据与边界](admin/A25_DESIGN_STRATEGY_CALIBRATION_REPORT_20261019.md)。
 
 2026-10-20 16:03 A29续作：已完成DPL Student01最终PPA/DF七值核验、Query4事实/3假设、原生门禁brief注册并SDK核验；原HPWL改善但最终面积拒绝，G02保持。DPL其余两Student/Teacher、DPL01→Goal原1×4、ibex adaptive原1×4仍进行中；Ariane完整基线与JPEG24GiB证明仅准备，JPEG旧搜索不重启。论文素材15完成节点及53文件老师审阅快照已导出并核SHA；完整四设计交付继续，不标完成。
+
+2026-10-20 A29增量：DPL01→Goal原1×4及全部交付完成，DG1最终0.81929122098mW/39.6139um²/setup WS+1.31586ps/TNS0，原约束、18输出PDR、独立完整DRT/RCX7值同值与4结果48值SDK核验通过；3兄弟候选setup拒绝。旧G02更低功耗继续保留。19节点表、GCD实线接力图/PPA图及5页阅读版已更新。原DPL完整3Student轮次和ibex修复/评价仍进行；JPEG24GiB只补证明已进EF排队；Ariane完整基线待派发。四设计目标未完成，不将本次GCD验证当作全场验收。
