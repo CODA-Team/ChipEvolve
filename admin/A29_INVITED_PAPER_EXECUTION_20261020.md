@@ -195,3 +195,11 @@ EF托管超时清理后，原GCD DPL第三Student评价`run-581315e918f74518b835
 Ariane的全局布局、详细布局和CTS已实际完成，CTS后的negotiation合法化两轮达到零非法单元，保留136个63行高SRAM宏。完整ORFS仍在运行，不填最终PPA或宣布全约束通过。原SDC的900ps及全部I/O约束与本次输入一致，只增加显式ps单位前缀；实际EF登记inputs/design.sdc摘要也匹配，来源核对在`ariane-original-constraints-provenance.json`。
 
 三设计现有status及ibex watch均已真实调用，能直接区分运行、成功、历史失败及明确的资源等待；四份回复和Codex解释冻结在`business-status-demo-r1/`，补入平台操作记录。未新增EDA、模型、服务或公共接口；原DPL和ibex句柄保持。
+
+## 已完成DPL调用用量与Ariane后继策略准备
+
+读取DPL原Teacher规划、Student01/02三份已结束的codex_usage_summary，并逐行核对原codex_events.jsonl的turn.completed用量，完全一致：input58717906，其中cached input58096128为子集，二者差621778；output207606。原始摘要/事件SHA和各自elapsed保存在`dpl-completed-native-usage.json`。不把缓存量再加到输入总量，也不把并发子调用elapsed之和当整场墙钟；Student03、后续Teacher review、旧实验及宿主推理未包括，货币成本未知。已纳入`cost-snapshot-20261020T120220Z.json`，EF仍仅覆盖153闭合回执/采样CPU44348.44秒，非全场总成本或节约比。
+
+Ariane已进入详细布线。为最终Query若判定需时序修复而准备原Goal已有single_stage/timing_only配置：选择原生strict_evidence插件和TNS权重，保留1轮4Student、AST/EPD、源码范围/完整性及原评分实现；平台最终功耗、面积、时序、电气/布线约束仍按源objective，不由原生局部TNS改善授权采用。此配置未派发、未被当结果；现有PowerFirst实验及运行参数不变。原native load_config解析通过，无工具/模型调用。`ariane-timing-strategy-preparation.json`记录原生策略与准备文件，实际启用取决于完成基线和DF/DI/Query。
+
+后续不在ibex原轮次/共同交付收尾前再派发32GiB物理分支，先利用小任务完成Ariane数据/Query及当前案例收尾，避免大预约再阻塞接力。没有新服务、公共API、产品源码或旧任务修改。
