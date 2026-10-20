@@ -317,3 +317,16 @@ ibex r2原生步骤已成功结束，公开原始日志SHA核对通过：输入T
 - 原Ariane ORFS的EF托管完整日志直接给出DRT峰值23487.93MB（GNU time24051636KB），约23GiB，32GiB完整布线声明有阶段实测依据。原生Goal基线峰值约4.0GB与完整DRT是不同阶段，不能以RCX低内存或native低内存直接压低整个布线额度。
 
 新增`INVITED_PAPER_FAILED_ATTEMPTS_20261021.csv`逐终态SHA列出三项失败尝试和真实成本，与31个完成测量节点分开。新r11十二页素材含更新的JPEG/Ariane接力图及失败过程表；旧r10保持不变。最新封口成本246个闭合EF、采样CPU142691.51秒，仍非完整货币成本或节约率。后续仍需原Ariane轮实际结果及新JPEG策略最终PPA/必要功能证明，四设计整体未完成。
+
+
+## 2026-10-21 04:18：修复Goal基线事实交接，独立接续Ariane
+
+已证实的阻断不是新目标：原生baseline.json记录DRV294/runtime1093，但配置仅将三个优化指标放入Parent；原约束修复因此将继承违反误当新增，且提示错误地要求DRV为0。模块2611a2b只将缺失的辅助数值事实补入baseline Parent，并让原增量修复提示引用实际父项。三个冻结目标、contract_id、目标距离、源码身份和原晋升规则均不改变；已晋升父项和已有观测不覆盖。未新增服务/API/数据库。
+
+四文件逐项审查完成：cli.py负责事实挂接，engine.py只传父项并改上下文，两份单测覆盖三目标不变、294继承/296新增、零DRV及历史/晋升保护。452模块测试、29子检查和48根集成回归通过；完整收集后再增加的一项端到端用例连同其余基线13项通过。新增测试lint/format、diff检查通过；两个历史大文件保留基线相同的4个Ruff/161个Pyright问题，新增诊断0，不能称整个模块静态全清。
+
+原Ariane轮次因已验证的交接缺陷精确停止（非等待超时重启）：四份各701源码声明和实际差异、所有已完成EF产物保留，原121冻结controller文件未变；两个活动EF请求经公开取消入口终止。独立a29-ariane-goal-timing-corrected-r2于04:18启动，继续相同AB0、Query、原一轮四Student/Teacher/AST/EPD/策略。未来原生OpenROAD显式8线程、12GiB，依据两份约3.98GB峰值；完整DRT仍32GiB，原生/共同测量口径分别记录。当前尚无新Ariane最终PPA，不声明改善。
+
+释放资源后JPEG既有VT/size-r3完整DRT/RCX任务run-df9439ed18cf432c9b5f08c74303042c已运行，原请求未重提。旧JPEG完整搜索保持停止；GCD两条合法验证接力、ibex拒绝结论和已发布r11快照不改。待新结果后再更新论文表图和采用结论。
+
+证据：var/business/a29-paper-delivery-20261020/goal-parent-observations-verification.json、ariane-baseline-observation-handoff-diagnosis.json、ariane-goal-corrected-launch.json及原实验correction-stop.json。

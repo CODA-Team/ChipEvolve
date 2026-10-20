@@ -531,3 +531,8 @@ DPL主83a77bb使用原可选按操作资源映射，ECO主228cb15将重试回复
 ### 2026-10-21 Goal工具线程与预约一致性
 
 Goal的既有EF适配器现在为未显式指定线程的OpenROAD评价补入`-threads <profile.resources.physical.cpu_cores>`，实际argv随原请求登记。调用已有显式参数或仅查询版本时保留原命令。该内部命令绑定不增加服务、公共SDK/API或数据库，不改专业算法；原生模式保持。未来实验冻结新controller，既有实验继续使用原controller和实际线程条件，不能将适配修复追溯算入历史PPA/耗时。
+
+
+### A29补充：Goal父项承载观测，不扩张目标（2026-10-21）
+
+Goal内部已有baseline.json→Parent交接补齐原生DRV/runtime等辅助数值事实；三指标GoalContract及目标/晋升规则不变。原增量违反修复读取实际父DRV，上下文不再虚构零继承。无需公共API、评测库或服务；EF工具执行与DF/DI/Query事实边界不变。模块2611a2b适用于独立新冻结实验，活动/历史controller不热改。大文件历史静态债未清除，新增诊断0；当前Ariane修复后完整轮次仍待业务验收。
