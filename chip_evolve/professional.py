@@ -645,6 +645,7 @@ def resume_layout(
             ],
             parent=parent,
             objective=objective,
+            memory_gib=design.get("orfs_execution", {}).get("memory_gib", 24),
         )
         checkpoint = jobs.experiment / (phase + ".zip")
         jobs.materialize(record, "flow_archive", checkpoint)

@@ -92,3 +92,10 @@ ibex最初启动参数误带只适用于Flow/DPL的`--candidates`，CLI在建实
 本次文件清单：根产品`chip_evolve/{native,delivery,physical}.py`；针对回归`admin/test_{eco_pdk_binding,invited_paper_relay,orfs_resource_binding}.py`；ECO模块`src/{platform_execution,platform_drc,test_platform_execution,test_platform_drc}.py`及`PLATFORM.md`；固定版本`SOURCE_MANIFEST.json`和gitlink；项目资产`ARCHITECTURE.md`/`TASKS.md`；本轮A29执行/操作记录与GCD既有追踪、论文结果/CSV。各自职责在上文对应段落中说明。其他用户文件保持原样。
 
 可直接查看的本机图：`var/business/a29-paper-delivery-20261020/paper-assets/chipevolve-architecture.pdf`、`gcd-measured-relay.pdf`，同时保留SVG及DOT源。图中未完成DPL仍为虚线，不冒充四专业连续成功。
+
+## 本轮续作：原生策略校准、已完成候选提前交付
+
+- ibex原生初始timing-only测量/构建成功，但受保护power-only阶段的同源码基线产生469项slew及1项cap违反（原生聚合DRV469），原控制器在Teacher启动前按原规则拒绝。完整ORFS源基线仍合格。保留失败及成本，使用现有`power_stage_protected_rounds=0`进入原adaptive_tradeoff/power_then_timing，继续20%回收、一轮四Student和相同晋升类/电气门禁；新r2阶段已实际运行，不改研究源码或硬约束。
+- JPEG旧完整搜索保持停止。复用已测量可行Flow slot10（原始SHA6456bbea…），只通过既有EF/PDR接口补全部27输出的功能证明；原本未证明/未采用的口径在实际证明结束前保持。不重新搜索或优化，不声称公平预算优势。
+- GCD Student01原生门禁已完成：530.9um HPWL，较Diamond原对照536.9下降1.1175%，较framework基线531.9下降约0.188%，runtime3.191s/原2.327s，原2倍预算内、布局合法。通过原项目只读candidate_evidence导出，eligible=true、problems=[]；Student02尚未结束并被原门禁正确排除。平台单独交付已结束Student01，不改变原生Teacher选择；第三Student继续原程序。
+- 实际发现根`resume_layout`未将已有设计`orfs_execution.memory_gib`传到CTS/route_finish；本轮GCD声明4GiB却申请默认24GiB，任务真实queued且只剩4GiB可用。`professional.py`仅补传原字段，默认24保持；源阶段SDC、8线程、算法和物理步骤保持。`test_flow_recipe.py`将原时钟继承测试扩至默认/GCD4GiB/ibex12GiB，27针对及563完整回归通过，产品/涉及测试Ruff、格式、Pyright通过。三个既有SimpleNamespace测试桩增加显式cast以满足文件类型检查，不改变测试行为。

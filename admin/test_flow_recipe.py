@@ -1,12 +1,14 @@
 """Flow recipes inherit submitted inputs and retain physical source identity."""
 
+from argparse import Namespace
 from pathlib import Path
+from typing import cast
 
 import pytest
 
 from chip_evolve.config import read, write
 from chip_evolve.flow_recipe import bind_config, inherit_prepared_source, source_binding
-from chip_evolve.jobs import digest
+from chip_evolve.jobs import Jobs, digest
 
 
 def source(root):
@@ -149,7 +151,7 @@ def test_native_clock_binding_uses_registered_input_not_a_later_measurement(
     with pytest.raises(CheckedBinding):
         professional.run_flow(
             d,
-            args,
+            cast(Namespace, args),
             exp,
             {"files": {"sdc": str(measured)}},
             exp / "objective.json",
@@ -302,8 +304,11 @@ def test_handoff_inherits_pinned_physical_tree_and_rejects_changed_scripts(
 
 
 @pytest.mark.parametrize("source_mode", [False, True])
+@pytest.mark.parametrize(
+    "design_id,memory_gib", [("gcd", None), ("gcd", 4), ("ibex", 12)]
+)
 def test_layout_handoff_preserves_native_stage_sdc_only_in_source_mode(
-    tmp_path, monkeypatch, source_mode
+    tmp_path, monkeypatch, source_mode, design_id, memory_gib
 ):
     import zipfile
     from types import SimpleNamespace
@@ -317,11 +322,13 @@ def test_layout_handoff_preserves_native_stage_sdc_only_in_source_mode(
         "set_cmd_units -time ns\ncreate_clock -period 0.31 [get_ports clk]\n"
     )
     native_sdc = "set_cmd_units -time ps\ncreate_clock -period 322.58 [get_ports clk]\n"
-    d.value["designs"]["gcd"] = {
+    d.value["designs"][design_id] = {
         "sdc": str(global_sdc),
         "orfs_config": "designs/pdk/test/config.mk",
     }
-    exp = d.experiment("gcd", "stage-clock")
+    if memory_gib is not None:
+        d.value["designs"][design_id]["orfs_execution"] = {"memory_gib": memory_gib}
+    exp = d.experiment(design_id, "stage-clock")
     (exp / "source/flow").mkdir(parents=True)
     with zipfile.ZipFile(exp / "source-checkpoint.zip", "w") as archive:
         archive.writestr("flow/results/3_place.sdc", native_sdc)
@@ -335,6 +342,7 @@ def test_layout_handoff_preserves_native_stage_sdc_only_in_source_mode(
         pass
 
     def submit(phase, inputs, staged, **kwargs):
+        assert kwargs["memory_gib"] == (24 if memory_gib is None else memory_gib)
         paths = {item["destination"]: Path(item["source"]) for item in staged}
         expected = native_sdc if source_mode else global_sdc.read_text()
         assert paths["inputs/design.sdc"].read_text() == expected
@@ -342,12 +350,16 @@ def test_layout_handoff_preserves_native_stage_sdc_only_in_source_mode(
             assert archive.read("flow/results/3_place.sdc").decode() == expected
         raise CheckedStage()
 
-    jobs = SimpleNamespace(deployment=d, experiment=exp, design_id="gcd", submit=submit)
+    jobs = SimpleNamespace(
+        deployment=d, experiment=exp, design_id=design_id, submit=submit
+    )
     frame = {"flow_archive": "registered.zip"}
     if source_mode:
         frame["flow_recipe"] = "registered-recipe.json"
     with pytest.raises(CheckedStage):
-        professional.resume_layout(jobs, odb, frame, exp / "objective.json", "producer")
+        professional.resume_layout(
+            cast(Jobs, jobs), odb, frame, exp / "objective.json", "producer"
+        )
 
 
 @pytest.mark.parametrize("explicit_recipe", [False, True])
@@ -405,7 +417,10 @@ def test_layout_resume_uses_explicit_source_and_keeps_legacy_default(
     monkeypatch.setattr(professional, "tool_profile", profile)
     with pytest.raises(SelectedSource):
         professional.resume_layout(
-            SimpleNamespace(deployment=d, experiment=experiment, design_id="gcd"),
+            cast(
+                Jobs,
+                SimpleNamespace(deployment=d, experiment=experiment, design_id="gcd"),
+            ),
             tmp_path / "placement.odb",
             frame,
             tmp_path / "objective.json",
