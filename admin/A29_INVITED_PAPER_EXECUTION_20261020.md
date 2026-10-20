@@ -235,3 +235,18 @@ Ariane原完整ORFS已完成详细布线，最终原生DRT计数0、布线峰值
 本轮产品仅修改`chip_evolve/physical.py`的publish：读取现有内部设计绑定`fact_execution.timeout_seconds`，默认300保持；显式不同限额使用独立任务key后缀，旧请求/失败证据不改。Ariane新绑定1800秒，内存8GiB/线程2、数据格式/逻辑快照ID/目标/条件及物理结果均不变。新增`admin/test_fact_execution_budget.py`验证默认与显式预算、缓存重入不发新任务、保留超时任务后独立接续且原PPA/条件不变。32针对、566根回归及Ruff/格式/Pyright通过；真实大设计新导出待执行。没有修改工具包、EF/DF/DI模块或公共SDK，也没有修改运行中的专业源码。
 
 ibex Student01原修复评价成功，公开DI日志641060字节/登记SHA核对通过：原生slew/cap从首版533/23降至33/3，但post-GRT TNS为−16.1516511404ns，尚非最终共同PPA。原功耗后TNS−6.987679ns经时序修复闭合，GRT估计又出现债务；这个阶段差异需在最终事实与后续Query中解释，不能当成全部由新C++导致。原控制器正在下一次修复构建，仍由原规则决定整轮与晋升。证据在`ibex-student01-repair-native-diagnosis.json`。
+
+## 2026-10-20 23:01 本轮最新核查（覆盖上文历史进行中口径）
+
+- GCD原DPL一轮三Student与Teacher已完成，原生选中Student02；其共同CTS/布线交付仍排队。Student03合法化在原定时间内未结束（124），框架按原规则保留失败并完成轮次。已验证的DPL01→Goal DG1不改父项，保留功耗更低的G02。
+- ibex原Goal一轮四Student与Teacher已完成，晋升Student01修复版。主分支最终为28.18046324mW /2339.71µm² /setup WS−28.3996ps /TNS−1.59699ns、slew32/cap1，不采用；12原始指标和三快照身份已通过DF/DI核对。其余候选共同交付排队。
+- ibex主分支Query已完成，证据支持检查`_17624_`共享逻辑与`place4192`/`place4191`输出缓冲；故准备独立原生Goal timing-only修复。沿用已测网表/布局与900ps/库/SDC，原生prepare清除信号线和fillers、之后完成原详细布线；不把修复隐藏在测量里，不称Student01 C++源码已自动合并到新执行文件。当前只准备，尚未派发。
+- ibex后续`run-58bdc4163b2940a796f3621ca48b1108`已通过EF原请求更正为**同源码last_gasp_deep匹配基线**，不是repair2。公开原件SHA核验显示该基线与Student03/04的ODB/V/DEF逐字节一致；不能声称这两个深策略已产生原生QoR收益。
+- Ariane完整物理参考的RCX、共同测量及三类事实已经完成：642.41528511mW /43672.8µm² /setup WS−285.396ps /TNS−155.146ns /slew436，原生DRT0。1800秒事实导出成功，12值/3身份通过。原ORFS inline LEC被明确取消、功能尚未证明，不称完整原任务成功。
+- Ariane Query已完成并指出深标准单元reg2out逻辑时序问题，已派发原Goal timing-only/StrictEvidence一轮四Student；32GiB原生基线当前等待资源。该设计保留原SRAM模型，不宣称所有宏均FF或完整签核。
+- JPEG旧Flow搜索保持停止。以原Goal03为父的新定向ECO会话实际运行，最多八轮；尚无新的共同最终PPA。保留原负接力与Flow10证明超时。
+- 新源码固定00199d3：仅按实测时间配置Ariane共同物理收尾7200秒；既有默认1800秒不变。事实导出配置1800秒的修复bc89146已通过针对检查；最近根570回归和静态/格式/类型检查通过。两修改均只用现有内部设计绑定，不增服务/API/数据库。
+
+本轮实测等待为内存预约冲突：JPEG20GiB运行时，GCD与ibex的**冻结共同物理请求各24GiB**、Ariane32GiB不能进入余下12GiB。ibex原生评价12GiB不等于共同收尾24GiB，不改动冻结任务或把等待写成派发丢失。
+
+论文表已有21个SHA核对完成节点（含Ariane参考、ibex主结果），新r7审阅包将持续导出；未完成四设计收口，不声称协同全面优于最强单项或token节约比例。
