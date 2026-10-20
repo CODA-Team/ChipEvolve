@@ -127,3 +127,9 @@ ibex四Student共8项已观察到的链接操作全部成功，按Student分组�
 这定位的是原生阶段测量变化，不是对某个参数的唯一因果证明，也不是最终DRT/RCX指标；原始字段虽名为tns_abs_ns，日志值实际有符号，本次按原符号保留。证据及作用域见`ibex-student04-native-stage-diagnosis.json`和SDK取回日志。下一步仍收齐原一轮四Student，按已有门禁交付可测检查点，再通过共同测量/DF/Query决定是否将真实布线后的时序债务交给ECO；不为消除负结果改写Goal原生流程或晋升规则。
 
 同一已登记日志实际出现Student04自定义`last_gasp_single_epoch_entered/changed/refreshed/retained`信号，各两次正值1，与Teacher指定机制相符。这证明候选钩子在真实EF工具执行中触发，不能据此推断QoR改善或已获原生晋升。
+
+## PPA论文图件增量
+
+已从15节点CSV选择6个已完成GCD节点，逐原结果SHA及相同condition/objective核对后生成`paper-assets/gcd-ppa-observations-r1.pdf/.svg`。图中保留B0方法来源区别、F37→G02实际增量、DPL01面积拒绝及G03→ECO→独立布线补全的时序拒绝；横向排列不表示连续接力，完整数据仍在CSV。已检查PNG与实际PDF渲染，修正原面积上限标注与数值重叠。四页阅读版`teacher-review-overview-r3.pdf`在原架构/接力/指标阅读版上加入这张图。没有新跑EDA或将未完成候选加入指标。
+
+阅读版和原件已汇入`paper-assets/teacher-review-snapshot-r3.zip`：63文件、560392字节、15份完成节点，逐成员SHA和ZIP完整性通过；新增方法/英文图注、PPA矢量图及其源数据元数据、ibex原生阶段SDK原日志/诊断和四Student链接回执。`cost-snapshot-20261020T085245Z.json`只覆盖106份已闭合EF公开执行回执，已知采样CPU26300.96秒、7项operation尚未闭合；模型12次Goal调用范围与上次相同，不能当作全场总成本或效率节约率。
