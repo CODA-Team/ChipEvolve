@@ -158,9 +158,11 @@ def baseline(
     config = experiment / "inputs/design.mk"
     config.parent.mkdir(exist_ok=True)
     config.write_text(
-        "include /OpenROAD-flow-scripts/flow/"
-        + design["orfs_config"]
-        + "\n"
+        (
+            Path(design["orfs_config_template"]).read_text()
+            if design.get("orfs_config_template")
+            else "include /OpenROAD-flow-scripts/flow/" + design["orfs_config"] + "\n"
+        )
         + design.get("baseline_overrides", "")
     )
     inputs = {

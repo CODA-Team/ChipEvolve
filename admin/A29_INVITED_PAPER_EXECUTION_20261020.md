@@ -68,3 +68,11 @@
 进一步回到原脚本和真实日志，确认ECO每轮实际为`detailed_route -droute_end_iter 1`；注释中的FULL不能当作完整迭代收敛证据。这解释了为什么原生候选仍有54个DRT违反，不能据此宣称专业策略无效或交付完整。
 
 未来`delivery.py`只在明确详细布线且原生DRT=0时保留线路；原生DRT非零/未知的检查点继续既有完整DRT/RCX。没有改专业迭代次数、选择或重写原结果。新增针对原生0、54和unknown及两个设计的交接回归，根556项及Ruff/格式/Pyright通过。当前ECO原生实测结果保留，另开“ECO→完整布线补全”子实验；分别报告原生动作与补全影响，不把补全收益全归给ECO。
+
+## ibex基线完成与Ariane配置准备
+
+ibex完整ORFS已完成：FF/900ps下29.243746772mW，cell/core/die面积2403.75/5330.16/5961.54um²，setup/hold WS+25.478/+25.4172ps，setup/hold TNS0，slew/cap/fanout/布局/原生DRT违反均0，三事实快照已入库。它是显式多VT库配置的ORFS基线。Query实际完成4事实/1假设，支持降低早期功耗回收强度的探索；由当前Codex核实原源码已支持的20%设置后，实际派发Goal一轮四Student，保留Teacher/AST/EPD和晋升规则，未提前宣称新收益。
+
+Ariane原DEF已核实136个SRAM实例是FIXED，原顶层时钟尚未经过CTS。已核实共同ORFS支持`SYNTH_NETLIST_FILES`和`FLOORPLAN_DEF`，可从原映射网表及楼层规划继续，不替换CPU RTL。根`physical.py`允许内部设计绑定提供`orfs_config_template`，把该文件及原有overrides写入已存在的staged design.mk，现有设计保持include逻辑；不新增CLI/EF/DF接口。`test_orfs_resource_binding.py`覆盖默认/显式配置、资源、SDC和配置源不变，18针对/559根回归及静态格式类型通过。准备`local-ariane-orfs.json`和原映射配置；32GiB完整大设计任务暂不抢占GCD专业实验。
+
+ECO完整布线子实验已完成：原生DRT54→0，最终0.77061523916mW/38.9432um²，setup WS−32.4934ps、TNS−0.266838ns；时序仍不合格，继续拒绝，G02保持。原生结果与补全结果分列，不重复调用模型。
