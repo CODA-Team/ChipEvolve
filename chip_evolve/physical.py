@@ -36,8 +36,9 @@ def qualify(
     pdk: Path,
     *,
     fact_modes: tuple[str, ...] = ("opendb", "orfs", "opensta"),
+    preserve_routing: bool = False,
 ) -> dict[str, Any]:
-    """Complete a native GRT/ECO checkpoint without applying extra optimization."""
+    """Complete GRT checkpoints, or extract facts from an already routed state."""
     design = jobs.deployment.design(jobs.design_id)
     output = jobs.experiment / "qualification"
     output.mkdir(exist_ok=True)
@@ -49,14 +50,23 @@ def qualify(
                 f"read_db {{{odb}}}",
                 f"read_sdc {{{design['sdc']}}}",
                 f"source {{{pdk / 'setRC.tcl'}}}",
-                "remove_fillers",
-                "foreach net [[ord::get_db_block] getNets] { if {[$net getSigType] ni {POWER GROUND}} { set wire [$net getWire]; if {$wire ne {NULL}} { odb::dbWire_destroy $wire } } }",
-                "set_routing_layers -signal "
-                + design.get("signal_layers", "M2-M7")
-                + " -clock "
-                + design.get("clock_layers", "M2-M7"),
-                "global_route -congestion_iterations 50",
-                f"detailed_route -output_drc {{{output / 'drc.rpt'}}}",
+                *(
+                    [
+                        f"check_drc -output_file {{{output / 'drc.rpt'}}}",
+                        "utl::metric_integer route__drc_errors [[[ord::get_db_block] findMarkerCategory DRC] getMarkerCount]",
+                    ]
+                    if preserve_routing
+                    else [
+                        "remove_fillers",
+                        "foreach net [[ord::get_db_block] getNets] { if {[$net getSigType] ni {POWER GROUND}} { set wire [$net getWire]; if {$wire ne {NULL}} { odb::dbWire_destroy $wire } } }",
+                        "set_routing_layers -signal "
+                        + design.get("signal_layers", "M2-M7")
+                        + " -clock "
+                        + design.get("clock_layers", "M2-M7"),
+                        "global_route -congestion_iterations 50",
+                        f"detailed_route -output_drc {{{output / 'drc.rpt'}}}",
+                    ]
+                ),
                 "define_process_corner -ext_model_index 0 X",
                 f"extract_parasitics -ext_model_file {{{pdk / 'rcx_patterns.rules'}}}",
                 f"write_spef {{{output / 'final.spef'}}}",
@@ -90,6 +100,7 @@ def qualify(
         ],
         parent=parent,
         objective=objective,
+        memory_gib=design.get("orfs_execution", {}).get("memory_gib", 24),
     )
     metrics = read(output / "native-metrics.json")
     measured = measure(
@@ -109,6 +120,8 @@ def qualify(
             "full_drt_rcx": True,
         },
     )
+    if preserve_routing:
+        measured["qualification"]["routing_action"] = "preserved_native_detailed_route"
     return publish(jobs, measured, modes=fact_modes)
 
 

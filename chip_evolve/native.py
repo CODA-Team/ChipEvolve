@@ -15,6 +15,14 @@ from .physical import container
 from .professional import environment, freeze, inventory, invoke
 
 
+def _goal_targets(metrics: dict[str, float], objective: Path) -> dict[str, float]:
+    tns_limit = read(objective)["constraints"]["setup_tns_ns_min"]
+    return {
+        name: max(0.0, -tns_limit) if name == "tns_abs_ns" else value * 0.9
+        for name, value in metrics.items()
+    }
+
+
 def run_goal(
     deployment: Deployment,
     args: argparse.Namespace,
@@ -138,7 +146,7 @@ def run_goal(
     )
     profile["resources"]["physical"] = {
         "cpu_cores": 8,
-        "memory_bytes": 24 << 30,
+        "memory_bytes": int(binding.get("physical_memory_gib", 24)) << 30,
         "processes": 2048,
     }
     if fixed:
@@ -222,10 +230,7 @@ def run_goal(
             baseline_evaluation_root=str(experiment / "baseline"),
             campaign_ready=True,
             baseline_metrics=metrics,
-            target_metrics={
-                name: value if name == "tns_abs_ns" else value * 0.9
-                for name, value in metrics.items()
-            },
+            target_metrics=_goal_targets(metrics, objective),
         )
         campaign_path = experiment / "evolve-config.json"
         write(campaign_path, config)
@@ -328,7 +333,7 @@ def run_eco(
         "#!/usr/bin/python3\nimport os,sys\nargs="
         + repr(base + ["env"])
         + "\nfor key in ('ASAP7_PDK','DESIGN_DIR','TOP','BACKTRACE_ODB'):\n if key in os.environ: args.append(key+'='+os.environ[key])\nargs += "
-        + repr([deployment.value["tools"]["openroad"]])
+        + repr([deployment.value["tools"]["openroad"], "-threads", "8"])
         + "+sys.argv[1:]\nos.execvp(args[0],args)\n"
     )
     wrapper.chmod(0o755)
@@ -424,6 +429,7 @@ def run_eco(
     jobs.materialize(native, "raw_design_database", odb, suffix="/final_eco.odb")
     native_method = {
         "kind": "native-ECO",
+        "physical_stage": "detailed_route",
         "iterations": args.rounds,
         "execution": str(experiment / "session/execution.json"),
     }

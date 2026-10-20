@@ -7,8 +7,8 @@ from unittest.mock import patch
 
 import pytest
 
-from chip_evolve.native import run_eco
 from chip_evolve.config import Deployment
+from chip_evolve.native import run_eco
 
 
 class CopyBoundaryReached(Exception):
@@ -150,3 +150,15 @@ def test_flat_common_pdk_prepares_native_layout_and_preserves_bound_rc(tmp_path)
     profile = json.loads((experiment / "profile.json").read_text())
     assert profile["parent_run_id"] == "unit-parent"
     assert profile["input_artifacts"]["odb"] == "unit-odb"
+    # Exercise the generated launcher: --cleanenv must not drop tool threads.
+    import os
+    import runpy
+    import sys
+
+    calls = []
+    with (
+        patch.object(sys, "argv", ["openroad", "-exit", "measure.tcl"]),
+        patch.object(os, "execvp", side_effect=lambda exe, argv: calls.append(argv)),
+    ):
+        runpy.run_path(str(experiment / "openroad"))
+    assert calls[0][-5:] == ["unused-openroad", "-threads", "8", "-exit", "measure.tcl"]

@@ -267,7 +267,7 @@ def finish(deployment: Deployment, experiment: Path) -> dict[str, Any]:
             raise ValueError("Delivery input changed: " + name)
     jobs = Jobs(deployment, saved["design_id"], experiment)
     odb, objective = Path(saved["odb"]), Path(saved["objective"])
-    modes = (
+    modes: dict[str, Any] = (
         {"fact_modes": ("orfs", "opensta")}
         if saved["native_method"].get("kind") == "native-candidate"
         else {}
@@ -282,6 +282,8 @@ def finish(deployment: Deployment, experiment: Path) -> dict[str, Any]:
             **modes,
         )
     else:
+        if saved["native_method"].get("physical_stage") == "detailed_route":
+            modes["preserve_routing"] = True
         result = qualify(
             jobs, odb, saved["producer"], objective, Path(saved["pdk"]), **modes
         )
