@@ -111,3 +111,9 @@ ibex最初启动参数误带只适用于Flow/DPL的`--candidates`，CLI在建实
 - 已生成本机老师审阅快照`var/business/a29-paper-delivery-20261020/paper-assets/teacher-review-snapshot-r1.zip`：53文件/330503字节，含15原始结果JSON、完整CSV、两种GCD接力图、架构图、采用/验证与平台调用证据，逐成员SHA及ZIP完整性通过。快照明确GCD合法主线、拒绝侧枝、进行中任务和不同综合来源的比较口径，不声称四设计或四棒连续成功。
 
 本次只有论文结果MD/CSV、本文、平台操作记录和项目资产状态更新；没有新增产品代码、服务、接口或实验数据库。运行中的冻结源码、JPEG已完成结果及用户DF/DI/ablation修改保持原样。
+
+## 论文阅读版与成本范围补充
+
+三页本机阅读版`var/business/a29-paper-delivery-20261020/paper-assets/teacher-review-overview-r2.pdf`包含15节点完整数值概览、架构和GCD真实接力图；PDF实际渲染后检查中文和表格，首版字体映射失败已用Type3重导出，交付r2。ZIP r2新增该PDF，共54文件/436431字节，逐文件SHA与压缩包完整性通过；原r1快照保留。
+
+当前离线成本快照`cost-snapshot-20261020T080903Z.json`从已有EF公开执行回执去重94任务：89成功/3失败/2取消，采样CPU合计22826.46秒，8项operation提交尚无闭合执行回执；有记录的12次原生Goal调用输入7444904、输出132101token，cached是输入子集。它不含先前Flow/Goal、当前未结束调用、全部DPL模型成本、服务开销或宿主推理；不当作全场总成本、节约比例或失败均由平台导致的结论。ECO原8调用另有独立范围记录。
