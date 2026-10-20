@@ -1,3 +1,5 @@
+2026-10-20 A29邀请论文交付：EF/DF/DI/Query边界保持；新增已布线交付保留线路、原生DRT计数绑定产物、Goal保留模板功耗目标并映射业务TNS。当前Codex经既有Query host完成两次事实读取及证据回答，额外内部模型调用0，未宣称总token为零或节约率。GCD原G02合法成果保留；新DPL候选构建成功、G03→ECO实际运行中，尚无新最终采用结论。Ariane原ASAP7含宏placed基准已由EF导入成功，未完成布线PPA；ibex在ECO后继续。接口/实证见[平台操作记录](admin/A29_PLATFORM_OPERATION_TRACE_20261020.md)，当前结果见[论文实测素材](admin/INVITED_PAPER_RESULTS_20261020.md)。下方历史状态按各自时点保留。
+
 2026-10-20 A29继续：老板批准停止旧JPEG余下搜索，14个匹配前端进程已收尾、3活动EF任务请求取消，已有结果保留。GCD DPL原三基线完成并进三Student；G03 Query查明reg2reg小SLVT反相器/12负载后实际提交ECO8轮；原G02在新runtime复用验证保留。已布线交付实测七PPA及线路/组件/引脚同值；独立DRC marker与原DRT计数分开，ECO090f866新增best时刻原计数/ODB SHA证据。平台不再自动设×0.9功耗目标，读取专业模板明确目标。根551/ECO15回归通过。ibex完成真实Slang综合后修正全VT LEF配置，按GCD优先延后；Ariane原ASAP7基准及宏库已准备。11节点论文CSV/图已导出；新DPL/ECO最终结果和三个设计后续仍在推进，未宣称全部完成。见[当前施工报告](admin/A29_INVITED_PAPER_EXECUTION_20261020.md)。
 
 2026-10-20 A29开始执行老板批准的五切片论文计划。Goal归档器d5a3a95和Flow错误诊断162b80a已发布主模块；根实现业务TNS目标、ECO显式线程、已DRT产物保留布线的提取测量与现有内存配置传递，549根/97Flow回归及Goal单元XML450项零失败（3跳过）通过。当前为工程修改交付，新GCD实际验证和DPL→Goal→ECO接力待收取；旧GCD成果与26用户文件保持，EF/DF服务不动。后续按业务主线继续，不再等待所有历史审计或统计门禁。见[当前施工记录](admin/A29_INVITED_PAPER_EXECUTION_20261020.md)。

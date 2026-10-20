@@ -1,3 +1,5 @@
+2026-10-20 A29邀请论文交付：EF/DF/DI/Query边界保持；新增已布线交付保留线路、原生DRT计数绑定产物、Goal保留模板功耗目标并映射业务TNS。当前Codex经既有Query host完成两次事实读取及证据回答，额外内部模型调用0，未宣称总token为零或节约率。GCD原G02合法成果保留；新DPL候选构建成功、G03→ECO实际运行中，尚无新最终采用结论。Ariane原ASAP7含宏placed基准已由EF导入成功，未完成布线PPA；ibex在ECO后继续。接口/实证见[平台操作记录](admin/A29_PLATFORM_OPERATION_TRACE_20261020.md)，当前结果见[论文实测素材](admin/INVITED_PAPER_RESULTS_20261020.md)。下方历史状态按各自时点保留。
+
 2026-10-19Query既有harness提示48b105b已按wheel554942fb…启用，比较使用返回的ORFS raw_key、原单位核对、同调查CLI分页顺序化；数据/动作契约及Codex判断权保持。真实安装包host读取/比较/回答通过，无新增模型循环或服务；七活动规格383固定文件及26用户文件原SHA保持。实际Query自身包及bundled资源新增RECORD身份，正式环境使用新记录；不能拿旧SDK过滤快照当完整Query身份。见[启用核验](admin/A25_QUERY_FINAL_FEEDBACK_REPORT_20261019.md)。
 
 2026-10-19策略边界：校准既有专业配方属于独立实验配置，保留原算法、冻结运行、原业务硬约束和成本；不能把配方收益当新源码增量。JPEG新增四配方对照经原Goal自身Tcl生成器、同一已登记二进制/输入→既有EF→共同DRT/RCX→DF/SDK，不新增harness、服务或公共接口。Flow原裸detailed_placement触发新版默认negotiation，已发现真实未收敛/非法布局；独立同输入Diamond对照仍待结果，当前运行不热切。最终物理负结果应进入后续Query/专业决策；实现接通与策略适用性分开验收，见[本轮报告](admin/A25_DESIGN_STRATEGY_CALIBRATION_REPORT_20261019.md)。
