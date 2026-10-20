@@ -137,3 +137,9 @@ ibex四Student共8项已观察到的链接操作全部成功，按Student分组�
 ## JPEG历史接力图与父子核验
 
 已生成`paper-assets/jpeg-measured-relay-r1.pdf/.svg/.dot`：JB0→DPL Student03和JB0→Goal03→旧ECO为真实分支，Flow10为单独保存结果。5结果原件SHA及共同条件/目标通过；另外逐个读取原DPL/Goal/ECO实验input-receipt，实际source结果SHA与所画3条父边逐项一致。图已检查实际渲染，原面积上限6734.18um²保持，DPL多0.91um²仍拒绝；Goal/ECO时序负接力保留，旧ECO交付包括重布线标明。没有重开JPEG搜索，没有给Flow10补造父边或功能通过结论。原数据及父收据路径/SHA保存在该图metadata JSON，图生成脚本每次都会重核。
+
+## ibex两个原生策略的实际结果重合
+
+已通过DI分别取回Student03/04已成功物理叶日志并与EF登记SHA核对。规范化输出目录后两份实际Tcl完全相同，环境变量键值相同，源文件身份字典仅`SetupLastGaspPolicy.cc`不同；两个二进制SHA和inode均不同，原日志各自有对应`last_gasp_frontier_*`及`last_gasp_single_epoch_*`正值信号。完成的本机`post_route.odb`、`post_route.v`、原生DEF及checkpoint_metrics四份产物分别逐字节同值；两者原生全局布线估计均TNS−23.0848591221ns、469 slew/22cap违反。
+
+这是两个已执行策略在本次输入上落到同一设计状态的证据，不能计作两份独立收益或用它代替最终共同测量。其余两个Student作用于功耗策略，原一轮四Student仍继续；新实验只有在有明确不同动作/诊断依据时再启动。原控制器仍负责原生晋升，最终采用另按共同PPA/功能证据判断。完整比较、源码/二进制身份和原件引用在`ibex-two-native-physical-comparison.json`，未修改任何活动源码或实验记录。
