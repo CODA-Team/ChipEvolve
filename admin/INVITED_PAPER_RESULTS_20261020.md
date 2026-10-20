@@ -92,3 +92,5 @@ DPL Student01原生HPWL530.9um（较Diamond536.9下降1.1175%，较framework531.
 新增PPA图：`var/business/a29-paper-delivery-20261020/paper-assets/gcd-ppa-observations-r1.pdf`（另有SVG）。从CSV选择6个已完成GCD节点，逐原件SHA核对，标明原面积上限、合法采用与拒绝状态；横向排列不是连续接力。完整15节点仍以CSV为准。
 
 [方法与英文图注](INVITED_PAPER_METHOD_NOTES_20261020.md)说明平台分工、阶段交接、专业能力、采用规则和比较范围。
+
+JPEG独立追踪图：`var/business/a29-paper-delivery-20261020/paper-assets/jpeg-measured-relay-r1.pdf`（另有SVG）。五个历史实测节点及三个真实父子交接已由input-receipt的source原件SHA核对；Goal03→ECO负接力保留，旧ECO交付重布线标明，Flow10单独列示，不推断其父边。

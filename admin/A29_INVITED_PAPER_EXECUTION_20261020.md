@@ -133,3 +133,7 @@ ibex四Student共8项已观察到的链接操作全部成功，按Student分组�
 已从15节点CSV选择6个已完成GCD节点，逐原结果SHA及相同condition/objective核对后生成`paper-assets/gcd-ppa-observations-r1.pdf/.svg`。图中保留B0方法来源区别、F37→G02实际增量、DPL01面积拒绝及G03→ECO→独立布线补全的时序拒绝；横向排列不表示连续接力，完整数据仍在CSV。已检查PNG与实际PDF渲染，修正原面积上限标注与数值重叠。四页阅读版`teacher-review-overview-r3.pdf`在原架构/接力/指标阅读版上加入这张图。没有新跑EDA或将未完成候选加入指标。
 
 阅读版和原件已汇入`paper-assets/teacher-review-snapshot-r3.zip`：63文件、560392字节、15份完成节点，逐成员SHA和ZIP完整性通过；新增方法/英文图注、PPA矢量图及其源数据元数据、ibex原生阶段SDK原日志/诊断和四Student链接回执。`cost-snapshot-20261020T085245Z.json`只覆盖106份已闭合EF公开执行回执，已知采样CPU26300.96秒、7项operation尚未闭合；模型12次Goal调用范围与上次相同，不能当作全场总成本或效率节约率。
+
+## JPEG历史接力图与父子核验
+
+已生成`paper-assets/jpeg-measured-relay-r1.pdf/.svg/.dot`：JB0→DPL Student03和JB0→Goal03→旧ECO为真实分支，Flow10为单独保存结果。5结果原件SHA及共同条件/目标通过；另外逐个读取原DPL/Goal/ECO实验input-receipt，实际source结果SHA与所画3条父边逐项一致。图已检查实际渲染，原面积上限6734.18um²保持，DPL多0.91um²仍拒绝；Goal/ECO时序负接力保留，旧ECO交付包括重布线标明。没有重开JPEG搜索，没有给Flow10补造父边或功能通过结论。原数据及父收据路径/SHA保存在该图metadata JSON，图生成脚本每次都会重核。
