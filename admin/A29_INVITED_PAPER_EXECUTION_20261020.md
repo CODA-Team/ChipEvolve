@@ -189,3 +189,9 @@ EF托管超时清理后，原GCD DPL第三Student评价`run-581315e918f74518b835
 ## 六页审阅版r5
 
 `paper-assets/teacher-review-overview-r5.pdf`为六页矢量PDF，保留19个逐SHA核对完成节点，加入ibex原生阶段/参考曲线，标明深配方差别、JPEG证明终态及Ariane实际运行。GCD英文案例可单独编辑；报告/CSV/方法说明和根TASKS/ARCHITECTURE当前状态同步，不改模块边界。新增成本快照`cost-snapshot-20261020T112310Z.json`包含153份已闭合EF执行回执/采样CPU44348.44秒，13份列明Goal模型回执的用量范围保持；当前原DPL/ibex后续及Ariane活动部分不计作完整总成本，不报告节约比例。
+
+## 19:49 Ariane阶段与业务入口观察
+
+Ariane的全局布局、详细布局和CTS已实际完成，CTS后的negotiation合法化两轮达到零非法单元，保留136个63行高SRAM宏。完整ORFS仍在运行，不填最终PPA或宣布全约束通过。原SDC的900ps及全部I/O约束与本次输入一致，只增加显式ps单位前缀；实际EF登记inputs/design.sdc摘要也匹配，来源核对在`ariane-original-constraints-provenance.json`。
+
+三设计现有status及ibex watch均已真实调用，能直接区分运行、成功、历史失败及明确的资源等待；四份回复和Codex解释冻结在`business-status-demo-r1/`，补入平台操作记录。未新增EDA、模型、服务或公共接口；原DPL和ibex句柄保持。
