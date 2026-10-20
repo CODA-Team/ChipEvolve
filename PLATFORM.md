@@ -12,6 +12,8 @@ TIMINGECO_PLATFORM_PROFILE=/absolute/run/profile.json .venv/bin/python src/main_
 
 The persistent native controller and all its OpenROAD children belong to one Execution Foundation task. `src/platform_execution.py` first resolves its design snapshot through Data Interface, then submits registered inputs to EF; no unmanaged EDA fallback is provided. `src/platform_codex.py` preserves the original expert prompts and response parser, uses the existing official Codex CLI, and records reported token usage. Subscription monetary cost is not measured.
 
+The local session profile can declare `memory_gib`; it defaults to 24. This changes only the EF reservation. The native tool keeps eight threads and the configured original iteration budget. Size the reservation for the actual design; a smaller GCD reservation is not a JPEG setting.
+
 Native ECO primitives, path context, score weights, backtrace/best-state rules and detailed-route calibration remain upstream behavior. The supported upstream `DRT_EVERY_ITER=1` mode is selected for small GCD. The original one-iteration detailed-route result is separately qualified by a full common-toolchain route and RCX; it is not silently presented as full routing. Exported final artifacts and source hashes are recorded by EF and imported into DF for Query.
 
 The upstream expert guide requests `eco_net_sink_report`, but its published Tcl and command filter omit the implementation. The platform restores this read-only probe, reporting actual OpenDB terminal directions and cell masters; it does not add an optimization move or change the scoring policy. A real GCD EF probe verifies connectivity and missing-net behavior. Exported SDC handoffs explicitly declare their time unit, independently of the consuming tool's default.
