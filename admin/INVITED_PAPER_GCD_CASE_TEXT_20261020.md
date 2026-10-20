@@ -1,6 +1,6 @@
 # GCD case study: text and table for the invited paper
 
-Evidence checkpoint: 20 October 2026. This section describes completed GCD measurements and validations; the original three-Student DPL round is still finishing. The table is a set of actual branches. Each parent column specifies the physical design state used by the next professional.
+Evidence checkpoint: 21 October 2026. This section describes completed GCD measurements and validations; the original three-Student DPL/Teacher round and all reported final deliveries are complete. The table is a set of actual branches. Each parent column specifies the physical design state used by the next professional.
 
 ## English draft
 
@@ -9,6 +9,13 @@ Evidence checkpoint: 20 October 2026. This section describes completed GCD measu
 The retained branch starts from the completed Flow candidate F37. Under the final ASAP7 FF, 310 ps condition, this candidate has 0.890912 mW power and 44.8918 µm² cell area, exceeding the original 42.6757 µm² area bound. Query supplies the design facts and diagnostic context to Goal. The completed Goal round produces G02 at 0.715649 mW and 39.1181 µm²: power decreases by 19.67% and cell area by 12.86% relative to the actual Flow parent. Setup and hold timing close, electrical and placement violations are zero, and the native detailed-route count is zero. All 18 digital outputs pass sequential equivalence, and an independent complete routing/extraction replay reproduces the seven recorded PPA values exactly.
 
 **Continuing from a locally useful intermediate state.** A second branch consumes the saved F37 placement checkpoint with DPL. Its completed Student01 reduces native HPWL from the Diamond reference of 536.9 µm to 530.9 µm. Common final measurement, however, yields 0.937516 mW and 44.9793 µm², so this intermediate result is not adopted. Query records the discrepancy between the local wirelength objective and final PPA, and Codex hands the actual DPL state to Goal. The resulting DG1 branch reaches 0.819291 mW and 39.6139 µm², reducing power by 12.61% and area by 11.93% relative to its DPL parent while closing final timing. DG1 passes all-output equivalence and an exact independent routing/extraction replay. Codex archives this legal relay and keeps G02 as the lower-power incumbent. The two Goal branches use different native stage/strategy settings; the comparison is a record of actual optimization paths, rather than an isolated estimate of DPL's causal contribution.
+
+**Separating the source increment from the existing recipe.** An existing single development control uses the unmodified native `power_then_timing/wns_path_deep` recipe from the same Flow handoff. The recorded Tcl programs are identical after output-directory relocation; toolchain and CMake settings match, the actual binary hashes match their build records, and only `RepairPowerPolicy.cc` differs among 701 declared source files. The unmodified-recipe control measures 0.767354 mW and 38.9869 µm² but fails setup timing (WS −85.1976 ps; TNS −0.890416 ns). G02 measures 0.715649 mW and 39.1181 µm² with setup TNS 0: power is 6.74% lower, area is 0.34% higher, and timing feasibility is restored. The source increment protects an initially closed early-reclaim stage using the existing rollback mechanism, without GCD names or instance-specific targets. This is one already-completed development control, rather than a repeated study or a proof of generalization. The timing-failing control is rejected and does not receive a redundant full-output proof. No new model or EDA run was launched to recover this evidence.
+
+| Same-recipe development control, FF / 310 ps | Power mW | Instance area µm² | Setup WS ps | Setup TNS ns | Decision |
+|---|---:|---:|---:|---:|---|
+| Original Goal recipe, without Student edit | 0.767354 | 38.9869 | −85.1976 | −0.890416 | Rejected: setup |
+| G02, with Student02 source increment | 0.715649 | 39.1181 | +0.0834055 | 0 | Validated; retained |
 
 **A genuine ECO attempt and the acceptance decision.** The timing-failing Goal candidate G03 supplies another branch with real work for ECO. Its initial setup TNS is −0.856145 ns. The original eight-round ECO session reduces the magnitude of this violation by 69.07%, to −0.264783 ns. Native routing still has 54 violations. A separately recorded routing-completion operation brings the native route count to zero, but setup TNS remains −0.266838 ns. Codex therefore rejects the branch and retains the valid incumbent. This sequence demonstrates actual specialist participation, evidence-based continuation, and rejection of an unsuccessful final outcome. It is reported as a branch, not as a successful serial traversal of all four professionals.
 
@@ -45,6 +52,7 @@ The complete CSV also reports hold WS/TNS, core/die area, slew/capacitance/fanou
 - DG1 final facts: `var/business/a29-paper-delivery-20261020/gcd-dpl-goal-all-final-sdk-facts.json`.
 - Actual handoff: `var/business/a29-paper-delivery-20261020/gcd-dpl-goal-handoff-inheritance.json`.
 - Decision to retain G02: `var/business/a29-paper-delivery-20261020/gcd-dpl-goal-next-decision.json`.
+- Existing same-recipe control, refreshed source/binary/Tcl identities and public DF/DI facts: `var/business/a29-paper-delivery-20261020/gcd-existing-native-recipe-control-current-check.json`; original evidence remains under `var/business/a25-gcd-native-recipe-control-20261019/`.
 - Platform interfaces and operation trace: [record](A29_PLATFORM_OPERATION_TRACE_20261020.md).
 
 DPL/ReviewDSE, GoalEvolve, and TimingECOAgent retain their original research attribution; this text describes platform integration and the measured cases, not a claim to invent the integrated optimization algorithms.
