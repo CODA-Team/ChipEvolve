@@ -1,6 +1,6 @@
 # ChipEvolve 论文方法与图注素材
 
-状态：2026-10-21当前28个完成测量节点。GCD原DPL/Teacher及全部交付已结束，两条合法接力G02/DG1继续保留；ibex原四Student/Teacher与全部交付结束，最终均不合格，后续独立timing-only也仍失败。当前Codex通过Query host完成新事实调查并派发独立native收尾；其r1出现原生估计与最终路由测量差异，已提交明确初始化寄生模型与内部setup margin的r2及JPEG同候选保留线路RCX诊断。ibex r2实际原生EST模式1、无旧fallback警告，最终DRT/RCX仍待完成。Ariane原生基线通过，原Teacher/AST/EPD/四Student的真实C++变体已进入构建/评估；尚无新的最终PPA。四设计仍未收口。数值与来源见[实测表](INVITED_PAPER_RESULTS_20261020.md)。
+状态：2026-10-21当前32个完成测量节点。GCD四专业真实参与，两条合法接力G02/DG1完整验证；ibex原四Student及timing-only/r1/r2最终均拒绝，新的一次VT/size策略原生动作已成功，最终DRT/RCX排队；JPEG JP3物理可行且27输出/7082分区PDR已PASS，独立交付重放排队、尚未采用；Ariane修正Parent观测丢失后，同AB0/Query的新原生一轮四Student源码已齐并实际链接。四设计仍未全部收口。数值与来源见[实测表](INVITED_PAPER_RESULTS_20261020.md)。
 
 ## 平台方法
 
@@ -28,8 +28,8 @@ EF管理实验生命周期、线程/内存预约、实际工具进程、日志�
 |专业|保留的原研究能力|本轮真实范围|
 |---|---|---|
 |Flow / A2-ORFO|原参数域、搜索和模型决策|GCD已有完整搜索直接复用；JPEG旧搜索按老板决定停止|
-|DPL / DPLEvolve（ReviewDSE同一项目）|原Teacher/Student源码优化，Diamond/negotiation/framework三基线，原HPWL与运行预算|新增GCD原1轮3 Student/Teacher已完成，选中Student02，最终面积拒绝；兄弟交付继续；Student01已形成独立合法Goal接力|
-|Goal / GoalEvolve|原AST/EPD、Teacher/4 Student、专业机制及评分/晋升|既有GCD F37→Goal已完成；新增DPL01→Goal原1轮4 Student及完整验证已完成；ibex原1轮4 Student/Teacher已完成，主Student01测量拒绝、兄弟交付继续；Ariane原时序1×4已派发|
+|DPL / DPLEvolve（ReviewDSE同一项目）|原Teacher/Student源码优化，Diamond/negotiation/framework三基线，原HPWL与运行预算|新增GCD原1轮3 Student/Teacher已完成，选中Student02，最终面积拒绝；兄弟交付全部完成；Student01已形成独立合法Goal接力|
+|Goal / GoalEvolve|原AST/EPD、Teacher/4 Student、专业机制及评分/晋升|既有GCD F37→Goal已完成；新增DPL01→Goal原1轮4 Student及完整验证已完成；ibex原1轮4 Student/Teacher已完成，四候选最终测量均拒绝；Ariane修复后原时序1×4源码已齐、正在链接|
 |ECO / TimingECOAgent|原生会话、动作、评分、best选择及回滚|GCD G03→ECO八轮完成，随后单列完整布线补全；JPEG新Goal03定向八轮及完整布线/测量完成，setup/fanout拒绝|
 
 专业内部排序与平台最终接受分开。DPL降低HPWL，不保证最终功耗、面积和时序同步改善；Goal或ECO产生的中间态也可能仍有待修复的时序债务。允许从这种中间态继续探索，原合法incumbent保持，只有最终结果通过原约束并有相应功能证据才采用。既不重写原研究的晋升结论，也不默认采用最后一棒。
@@ -38,7 +38,7 @@ EF管理实验生命周期、线程/内存预约、实际工具进程、日志�
 
 ## 测量与结果解释
 
-共同最终指标包含功耗、cell/core/die面积、setup/hold WS与TNS、电气/布局违反和原生DRT计数，并附测量条件、run、来源SHA及父子关系。WS为原始最差余量，允许正值；规范WNS为min(0,WS)。当前GCD/JPEG/ibex分别采用ASAP7 FF、310/545/900ps。Ariane使用原研究提供的ASAP7映射网表、固定宏floorplan及SRAM模型，实际保持900ps。已完成物理检查点与其未完成内置LEC分别追踪；同一状态已通过EF完成RCX、共同测量和三类事实发布，未重复布局布线：642.41528511mW/43672.8µm²/setup WS−285.396ps/TNS−155.146ns/slew436/原生DRT0，不能采用。标准单元为FF，实际检查的原SRAM头为tt_1.0_25.0/0.7V/25℃/1ns，不称全宏FF签核；保留原模型及四个未约束latch端点的来源限制。
+共同最终指标包含功耗、cell/core/die面积、setup/hold WS与TNS、电气/布局违反和原生DRT计数，并附测量条件、run、来源SHA及父子关系。其中CSV的`cell_area_um2`沿用既有字段名，实际来自`rsz::design_area`，是所有非filler实例的面积总和；Ariane含SRAM宏，不能解释为仅标准单元面积。core/die是独立几何范围，不与实例面积混用。WS为原始最差余量，允许正值；规范WNS为min(0,WS)。当前GCD/JPEG/ibex分别采用ASAP7 FF、310/545/900ps。Ariane使用原研究提供的ASAP7映射网表、固定宏floorplan及SRAM模型，实际保持900ps。已完成物理检查点与其未完成内置LEC分别追踪；同一状态已通过EF完成RCX、共同测量和三类事实发布，未重复布局布线：642.41528511mW/43672.8µm²/setup WS−285.396ps/TNS−155.146ns/slew436/原生DRT0，不能采用。标准单元为FF，实际检查的原SRAM头为tt_1.0_25.0/0.7V/25℃/1ns，不称全宏FF签核；保留原模型及四个未约束latch端点的来源限制。
 
 论文可报告GCD的真实增量：Flow F37的0.89091155678mW、44.8918um²，经过Query→Goal后，G02为0.71564863902mW、39.1181um²，功耗下降19.6723%、单元面积下降12.8614%，同时修复父项面积超限，最终setup WS为+0.0834055ps、TNS0。G02已有全部18数字输出PDR、独立完整DRT/RCX七指标同值和公共SDK核验；相同产物的有效证明复用。
 
@@ -65,12 +65,12 @@ G02相对ORFS B0参考的功耗/单元面积降幅为47.8980%/8.3364%，但整�
 DPLEvolve/ReviewDSE与GoalEvolve分别引用CODA-Team原项目；TimingECOAgent引用ASU-VDA-Lab原项目及保留的NOTICE。模块适配提交由`SOURCE_MANIFEST.json`固定，具体实验使用各自冻结源码和二进制身份，不把最新版工程提交当成历史实验版本。专业算法本身不是平台集成工作的新增原创贡献。
 
 - 原项目：<https://github.com/CODA-Team/DPLEvolve>、<https://github.com/CODA-Team/GoalEvolve>、<https://github.com/ASU-VDA-Lab/TimingECOAgent>。
-- 本机阅读PDF：`var/business/a29-paper-delivery-20261020/paper-assets/teacher-review-overview-r9.pdf`。
-- 原始结果/验证快照：同目录`teacher-review-snapshot-r9.zip`，含逐文件SHA；本文可与该已完成结果快照共同审阅。
+- 本机阅读PDF：`var/business/a29-paper-delivery-20261020/paper-assets/teacher-review-overview-r14.pdf`。
+- 原始结果/验证快照：同目录`teacher-review-snapshot-r14.zip`，含逐文件SHA；本文可与该已完成结果快照共同审阅。
 
 ## 从较大设计得到的实际诊断
 
-ibex原功耗回收分支降低功耗/面积，却将最终setup TNS从0变为−1.59699ns，slew32/cap1；Query定位共享逻辑`_17624_`以及输出缓冲`place4192`/`place4191`被减弱。该证据支持优先修时序/电气，不支持继续同强度功耗回收。现已准备原Goal timing-only/legacy_setup的独立重放：以已测单元/连接/布局为起点，原prepare明确清除线路/fillers，再完成共同DRT/RCX和事实发布。这是原生机制的新接力分支；没有隐藏修复、放宽900ps或声称把Student01全部C++代码合并进新二进制。
+ibex原功耗回收分支降低功耗/面积，却将最终setup TNS从0变为−1.59699ns，slew32/cap1；Query定位共享逻辑`_17624_`以及输出缓冲`place4192`/`place4191`被减弱。该证据支持优先修时序/电气，不支持继续同强度功耗回收。随后完成原Goal timing-only/legacy_setup独立重放及两份原生收尾：以已测单元/连接/布局为起点，原prepare明确清除线路/fillers，再完成共同DRT/RCX和事实发布。这是原生机制的新接力分支；没有隐藏修复、放宽900ps或声称把Student01全部C++代码合并进新二进制。
 
 Ariane的Query发现最差采样路径是miss-handler寄存器至AXI输出的深标准单元逻辑，支持原Goal全局时序/源码优化，而不是为四棒展示强行用局部ECO。原timing-only/StrictEvidence一轮四Student已派发。采样路径不是完整端点分布；原生STA仍读取完整设计，不将补齐所有查询覆盖设为采取专业行动的前置。
 
@@ -106,18 +106,18 @@ EF核数预约、工具实际线程及采样CPU分别记录。历史Goal原生�
 Goal原生基线的DRV、运行时间属于设计观测，不能在交接时因只拷贝三个优化指标而丢弃，也不能把DRV补入目标映射来隐式新增目标。2611a2b在既有基线挂接处补齐Parent缺失观测，并保留已有目标与原晋升规则；修复提示区分继承与新增电气问题，不再无条件写成零DRV才可晋升。旧Ariane原轮因这个已复现的缺陷停止并完整留证，新轮单独冻结、重新测基线；新旧PPA及资源条件不能混算。同一Query和AB0供新轮使用，不将旧轮失败成本抹除。
 
 
-## JPEG新增物理可行接力（27输出证明进行中）
+## JPEG新增物理可行接力（27输出证明已通过）
 
-同545ps/FF/原PPA约束下，Goal03最终测量为150.868013mW/6243.30µm²、setup TNS−0.0701142ns；单独ECO与前两份收尾均未形成合格采用结果。Codex依据已登记的Query/同候选交付诊断，使用原生VT/size序列、已声明的30ps内部目标，并明确完成冷GRT/DRT/RCX。新JP3最终为152.64929831mW/6244.16µm²，setup WS+10.2303ps/TNS0，hold WS+12.5118ps/TNS0，slew/cap/fanout/布局及原生DRT0；core9048/die9854.14µm²均不变。
+同545ps/FF/原PPA约束下，Goal03最终测量为150.868013mW/6243.33µm²、setup TNS−0.0701142ns；单独ECO与前两份收尾均未形成合格采用结果。Codex依据已登记的Query/同候选交付诊断，使用原生VT/size序列、已声明的30ps内部目标，并明确完成冷GRT/DRT/RCX。新JP3最终为152.64929831mW/6244.16µm²，setup WS+10.2303ps/TNS0，hold WS+12.5118ps/TNS0，slew/cap/fanout/布局及原生DRT0；core9048/die9854.14µm²均不变。
 
-相对原ORFS参考，功耗−14.4041407%、cell面积−7.2766098%；相对实际Goal03父项功耗增加1.1806908%，以此恢复最终时序。十二指标与三快照身份通过公开DF/DI核对，全部原约束通过，但精确最终网表27输出ABC-PDR仍在进行，尚未采用。这是Goal设计状态→Codex显式原生修复的实际接力，不能称新ECO成功、新Goal四Student轮次或旧Student源码合并到共同二进制；也未隔离VT/size/余量/新线路各自的唯一因果贡献。功能证明通过后才执行已记录原交付的独立重放并调用既有采用入口；不再次运行源码演化或优化动作。
+相对原ORFS参考，功耗−14.4041407%、cell面积−7.2766098%；相对实际Goal03父项功耗增加1.1806908%，以此恢复最终时序。十二指标与三快照身份通过公开DF/DI核对，全部原约束通过，精确最终网表27输出/7082分区ABC-PDR已整体PASS，独立交付重放排队、尚未采用。这是Goal设计状态→Codex显式原生修复的实际接力，不能称新ECO成功、新Goal四Student轮次或旧Student源码合并到共同二进制；也未隔离VT/size/余量/新线路各自的唯一因果贡献。已复用通过的完整功能证明派发原记录交付的独立重放，通过后才调用既有采用入口；不再次运行源码演化或优化动作。
 
-English draft: Starting from the measured Goal03 checkpoint, Codex requested an explicit native VT/sizing repair after the Query investigation and retained the unsuccessful ECO branches. The resulting fully routed candidate satisfies the original 545-ps timing and physical constraints, with 152.6493 mW power, 6244.16 µm² cell area, zero setup/hold TNS and zero native routing violations. Relative to the original ORFS reference, power and cell area decrease by 14.404% and 7.277%, respectively. Relative to its actual Goal03 parent, the repair spends 1.181% more power to restore timing feasibility. This step consumes the inherited physical state and does not compose the earlier Student C++ implementation into the common tool binary. Full-output equivalence of the exact final netlist is in progress; the candidate is not yet adopted.
+English draft: Starting from the measured Goal03 checkpoint, Codex requested an explicit native VT/sizing repair after the Query investigation and retained the unsuccessful ECO branches. The resulting fully routed candidate satisfies the original 545-ps timing and physical constraints, with 152.6493 mW power, 6244.16 µm² cell area, zero setup/hold TNS and zero native routing violations. Relative to the original ORFS reference, power and cell area decrease by 14.404% and 7.277%, respectively. Relative to its actual Goal03 parent, the repair spends 1.181% more power to restore timing feasibility. This step consumes the inherited physical state and does not compose the earlier Student C++ implementation into the common tool binary. The exact final netlist has passed all 27-output / 7082-partition PDR; independent delivery replay remains pending, so the candidate is not yet adopted.
 
 
 ### 精确最终网表证明的资源口径补充
 
-JPEG最终JP3证明从试探24GiB/2worker/3600秒纠正为同设计已成功资格的32GiB/4worker/14400秒。历史成功证明实际95分28秒/约25.9GiB；不能用不够的资源预算把尚未充分验证的好候选直接判为算法失败。原小预算尝试明确取消并留存成本，新旧proof.eqy逐字节相同，全部27输出、固定模型、匹配与ABC-PDR义务不变；新证明仍在进行，不宣称PASS。该调整不改变PPA、545ps或原面积/功耗约束。
+JPEG最终JP3证明从试探24GiB/2worker/3600秒纠正为同设计已成功资格的32GiB/4worker/14400秒。历史成功证明实际95分28秒/约25.9GiB；不能用不够的资源预算把尚未充分验证的好候选直接判为算法失败。原小预算尝试明确取消并留存成本，新旧proof.eqy逐字节相同，全部27输出、固定模型、匹配与ABC-PDR义务不变；新证明已在原配置下整体PASS，实际本机墙钟约96分钟；完整输入/日志/分区及输出证据保留。该调整不改变PPA、545ps或原面积/功耗约束。
 
 
 共同功耗口径：最终测量脚本在同SDC/Liberty/SPEF与传播时钟条件下调用OpenSTA report_power，未载入设计级SAIF活动。表中功耗为该共同工具/活动假设下的估算，具体源条件和原始报告随产物保存；不把不同活动假设或不同测量阶段的功耗直接相减归因。
