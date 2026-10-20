@@ -449,3 +449,8 @@ Ariane真实新Parent已验证DRV294/runtime739；整份三目标契约与旧轮
 JP3最终27输出、7082分区的固定Liberty ABC-PDR整体PASS，公开EF run-0c55ea8898be432e8dc75f743cac18c4终态succeeded，全部模型/网表SHA核验通过；6,168,724字节日志已用公开materialize取回并核SHA。真实物理可行结果仍为152.64929831mW/6244.16um²、setup WS+10.2303ps/TNS0、hold TNS0/电气/布局/原生DRT0。相对原ORFS参考功耗−14.4041%、cell−7.2766%；尚未采用，已复用此证明提交原记录交付的独立完整DRT/RCX重放，不重复优化或功能证明。
 
 ibex依据新的全局slack排序Query及JPEG VT/size物理证据，只尝试一次新的VT/size30ps、前后10%slew margin策略；run-ae7fbe43e69a4395b07b8c189035a248原生动作成功，完整qualification排队。原900ps及最终零违反约束不变，若仍失败则保留负结果，不自动重复。Ariane修复后原1轮四Student源码已齐并实际进入EF链接/后续评价，目标不变。四设计整体仍在进行，不以JPEG证明PASS代替全场完成。
+
+
+### A29 2026-10-21 07:27 单项资源与统一查询
+
+四设计通过既有status入口实际查询，0.6–1.4秒/调用，真实区分GCD无任务、JPEG/ibex排队和Ariane运行；无新EDA/模型。JPEG既有独立物理重放已开始，仍待最终测量/采用。ibex旧24GiB交付零attempt取消，以三份历史成功峰值约3.5GiB为证，仅新私有配置改12GiB并复用同一已完成原生输出；新EF run-62c097c1b2e14b9b922f2a759500e24b，Tcl/目标/条件/线程/超时相同，不重跑优化。Ariane三份完整链接成功，Student03原生评价继续；四设计目标未完成。详情见A29平台操作记录。

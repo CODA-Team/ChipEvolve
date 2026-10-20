@@ -194,3 +194,26 @@ Ariane原生7200秒超时后，EF保存完整输出、部分检查点、源码/�
 JPEG最终网表证明run-0c55ea8898be432e8dc75f743cac18c4已由公开EF确认为succeeded。完整extractor_log为6,168,724字节，通过KernelClient.materialize_artifact取回本机并与EF登记SHA完全一致（4c36f256ccaf98c23fa35278553858b73f4508c36d3c61ffd40de727d1eac5c3）；没有把4MiB上限的内联字节接口当作大原件下载接口，也未读取私有状态库。完整证明27输出/7082分区及所有网表/Liberty哈希独立核对。
 
 Codex随后复用实际PASS证明，只派发一次已记录物理交付的独立重放run-786929353c204058a30a502368e57c78。原repair输入ODB、PDK和实际交付路径由既有replay_checkpoint恢复，EDA经EF、事实经DF/DI；七指标一致及既有功能/采用检查通过后才调用select。原生修复、功能证明、独立物理交付和采用是四种不同事实，分别记录。
+
+
+## 2026-10-21 07:09：当前四设计统一状态实测
+
+以相同冻结业务CLI和各设计实际配置并发执行四次status。GCD回复无活动EDA；ibex显示既有qualification排队；JPEG显示已复用完整证明后的独立交付重放排队；Ariane显示Student03原生物理评价、Student04链接正在运行及Student02完整链接排队。与公开EF真实句柄对应，未启动EDA或模型、未查私有库。
+
+|设计|回复字节|单条命令墙钟秒|
+|---|---:|---:|
+|gcd|2179|1.395322|
+|ibex|4163|1.157748|
+|jpeg|4911|1.361031|
+|ariane|2844|0.599333|
+
+四次为并发调用，不能将单条墙钟求和作为全场墙钟或与先前串行值计算节约率。额外内部模型调用0，宿主推理token未知；任务管理状态与PPA/采用结论分开。完整命令、回复原字节与SHA见`business-status-demo-20261020T230937Z/answer-and-evidence.json`。
+
+
+## 2026-10-21 07:27：依据实测峰值修正单项预约
+
+ibex此前三次成功完整物理任务的公开资源回执峰值为3,761,676,288 / 3,781,582,848 / 3,781,480,448字节，约3.50–3.53GiB；原生专业profile已为12GiB，但共用交付配置的`designs.ibex.orfs_execution.memory_gib`仍为24。现仅为本次已完成原生状态的新交付配置改为12GiB，8线程、1800秒原限制、工具/库、900ps、原目标和完整冷GRT/DRT/RCX均不变，保留约三倍峰值余量。没有改EF总预算、服务、cgroup或其他计算。
+
+旧run-eeead2dc91ad49e8b30cac45c5fff74c在公开EF中明确为启动前取消、started_at=null、零attempt；原等待前端自然退出，原日志保留。已完成native run-ae7fbe43e69a4395b07b8c189035a248的实际输出ODB，与公开EF归档及本机输入逐字节SHA相同后直接复用；没有重跑优化或模型。新交付run-62c097c1b2e14b9b922f2a759500e24b实际预约12GiB；新旧真实route.tcl仅输出目录不同，父run/目标/条件标签、线程、超时及其他资源相同。只是一次未执行预约的替代，不作为第二次优化策略或算法失败计算。
+
+证据：`ibex-ip3-delivery-memory12-actual-dispatch-audit.json`、`ibex-ip3-native-state-public-capture-verified.json`及`ibex-ip3-never-started-delivery-resource-cancellation.json`。下一步仍等待同一IP3状态的最终PPA，未产生新采用结论。
