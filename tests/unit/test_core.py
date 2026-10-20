@@ -7227,6 +7227,7 @@ Keep the checked parent.
 
         context = GoalEvolveEngine._constraint_failure_context(
             candidate=candidate,
+            parent=Parent("baseline", {"drv_count": 158.0}, "base", "hash", 1.0),
             workspace=Path("/tmp/rmp-workspace"),
         )
 
@@ -7235,6 +7236,9 @@ Keep the checked parent.
         self.assertIn("evaluation_recipe: rmp_area_power", context)
         self.assertIn("Restore area-mode ABC candidates", context)
         self.assertNotIn("repair_power mechanism", context)
+        self.assertIn("candidate drv_count=160.0; parent drv_count=158.0", context)
+        self.assertNotIn("requires drv_count=0", context)
+        self.assertIn("Original contract and promotion rules", context)
 
     def test_constraint_repair_skips_parent_inherited_drv(self) -> None:
         candidate = CandidateResult(

@@ -119,6 +119,17 @@ def _attach_configured_baseline(*, engine: GoalEvolveEngine, config) -> None:
         if actual is None or abs(actual - expected) > max(1e-9, abs(expected) * 1e-9):
             raise RuntimeError(f"configured baseline metric differs from frozen contract: {name}={actual}, expected={expected}")
     parent = engine._load_parent()
+    # Auxiliary observations (notably inherited DRV) are facts about this
+    # measured seed, not additional optimization objectives.  Keep the frozen
+    # objective values and every promoted parent's own measurements intact.
+    if parent.parent_id == "baseline":
+        observations = {
+            name: value for name, value in metrics.items()
+            if name not in required and name not in parent.metrics
+        }
+        if observations:
+            parent = replace(parent, metrics={**parent.metrics, **observations})
+            atomic_json(engine.state_root / "parent.json", parent.to_dict())
     # Newly measured seeds carry the sequence that produced their metrics.
     # Preserve historical unknown seeds and any already staged/promoted parent.
     mode = result.get("evaluation_mode")

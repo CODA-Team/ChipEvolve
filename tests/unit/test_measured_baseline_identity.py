@@ -12,6 +12,7 @@ from unittest.mock import Mock, patch
 from goalevolve.cli import _attach_configured_baseline
 from goalevolve.core.contracts import build_contract
 from goalevolve.core.io import atomic_json, load_json
+from goalevolve.core.models import CandidateResult, CheckResult, Hypothesis
 from goalevolve.evaluation.contest2026 import (
     Contest2026Config,
     Contest2026OpenROADEvaluator,
@@ -79,6 +80,85 @@ class MeasuredBaselineIdentityTests(unittest.TestCase):
 
     def test_historical_metadata_less_baseline_remains_unknown(self):
         self.assertEqual(self.attach(), self.parent)
+
+    def test_inherited_drv_reaches_parent_without_changing_objectives(self):
+        contract_before = self.contract.to_dict()
+        parent = self.attach(
+            metrics={
+                **self.contract.baseline_metrics,
+                "drv_count": 294,
+                "runtime_s": 1093,
+            },
+            evaluation_mode="timing_only",
+        )
+        self.assertEqual(parent.metrics["drv_count"], 294)
+        self.assertEqual(parent.metrics["runtime_s"], 1093)
+        self.assertEqual(self.contract.to_dict(), contract_before)
+        self.assertEqual(parent.goal_distance, self.parent.goal_distance)
+        self.assertEqual(parent.source_hash, self.parent.source_hash)
+        self.assertEqual(parent.source_commit, self.parent.source_commit)
+        for name, value in self.parent.metrics.items():
+            self.assertEqual(parent.metrics[name], value)
+
+    def test_zero_drv_is_retained(self):
+        parent = self.attach(metrics={**self.contract.baseline_metrics, "drv_count": 0})
+        self.assertEqual(parent.metrics["drv_count"], 0)
+
+    def test_measured_parent_distinguishes_inherited_from_added_drv(self):
+        parent = self.attach(
+            metrics={**self.contract.baseline_metrics, "drv_count": 294}
+        )
+        candidate = CandidateResult(
+            "student_1",
+            Hypothesis("unit", "timing", "repair timing", (), (), (), "unit"),
+            {"drv_count": 294},
+            {},
+            [CheckResult(name, True) for name in ("build", "flow", "metrics", "lec")],
+            "",
+            "source",
+        )
+        self.assertFalse(
+            self.engine._repairable_constraint_failure(
+                candidate=candidate, parent=parent
+            )
+        )
+        candidate = replace(candidate, metrics={"drv_count": 296})
+        self.assertTrue(
+            self.engine._repairable_constraint_failure(
+                candidate=candidate, parent=parent
+            )
+        )
+        context = self.engine._constraint_failure_context(
+            candidate=candidate, parent=parent, workspace=self.root
+        )
+        self.assertIn("candidate drv_count=296; parent drv_count=294.0", context)
+        self.assertNotIn("requires drv_count=0", context)
+
+    def test_promoted_parent_observations_are_not_replaced(self):
+        promoted = replace(
+            self.parent,
+            parent_id="student_3",
+            metrics={**self.parent.metrics, "drv_count": 2, "runtime_s": 55},
+        )
+        atomic_json(self.engine.state_root / "parent.json", promoted.to_dict())
+        self.assertEqual(
+            self.attach(
+                metrics={
+                    **self.contract.baseline_metrics,
+                    "drv_count": 294,
+                    "runtime_s": 1093,
+                }
+            ),
+            promoted,
+        )
+
+    def test_existing_parent_observations_are_not_overwritten(self):
+        existing = replace(self.parent, metrics={**self.parent.metrics, "drv_count": 7})
+        atomic_json(self.engine.state_root / "parent.json", existing.to_dict())
+        self.assertEqual(
+            self.attach(metrics={**self.contract.baseline_metrics, "drv_count": 294}),
+            existing,
+        )
 
     def test_known_staged_baseline_is_not_reset(self):
         staged = replace(

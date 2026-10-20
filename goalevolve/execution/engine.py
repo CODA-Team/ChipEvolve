@@ -2931,7 +2931,7 @@ class GoalEvolveEngine:
             not exact_seed_materialization
             and self._repairable_constraint_failure(candidate=candidate, parent=parent)
         ):
-            constraint_context = self._constraint_failure_context(candidate=candidate, workspace=workspace)
+            constraint_context = self._constraint_failure_context(candidate=candidate, parent=parent, workspace=workspace)
             repair_hypothesis = self._repair_hypothesis(
                 hypothesis=hypothesis,
                 candidate=candidate,
@@ -3477,13 +3477,14 @@ class GoalEvolveEngine:
             return True
 
     @staticmethod
-    def _constraint_failure_context(*, candidate: CandidateResult, workspace: Path) -> str:
+    def _constraint_failure_context(*, candidate: CandidateResult, parent: Parent, workspace: Path) -> str:
         drv = candidate.metrics.get("drv_count")
         hypothesis = candidate.hypothesis
         hooks = ", ".join(hypothesis.source_hooks) or "<unspecified>"
         lines = [
             "evaluation_status: build, official post-route flow, metrics, and official 4/4 LEC completed",
-            f"hard_constraint_failure: drv_count={drv}; a promotable candidate requires drv_count=0",
+            f"electrical_regression: candidate drv_count={drv}; parent drv_count={parent.metrics.get('drv_count', 0.0)}",
+            "repair_scope: remove introduced electrical regressions relative to the measured parent; inherited violations remain recorded. Original contract and promotion rules still determine eligibility.",
             f"mechanism_family: {hypothesis.mechanism_family}",
             f"source_hooks: {hooks}",
             f"evaluation_recipe: {hypothesis.timing_recipe_id}",
