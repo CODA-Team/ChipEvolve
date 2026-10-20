@@ -1,3 +1,5 @@
+2026-10-20 23:22 A29检查点：JPEG定向ECO八轮已完成（10模型含重试），原生DRT9592，独立完整布线/最终测量排队；ibex兄弟交付已恢复执行。九页r8审阅PDF含四设计接力图、21完成节点；GCD两条合法结果保留，四设计尚未收口。以下按历史时点保留。
+
 2026-10-20 23:01 A29续作：原DPL三Student/Teacher和ibex四Student/Teacher已结束；GCD选Student02、ibex选Student01修复版，共同交付仍待收齐。ibex主最终28.180463mW/2339.71µm²但setup/slew/cap拒绝，Query已完成、独立原生timing-only修复已准备。Ariane参考642.415285mW/43672.8µm²与三事实已完成，原LEC取消未证明；Query后原Goal时序1×4已派发。JPEG旧搜索停止，新定向ECO运行；论文21实测节点，四设计尚未收口。最新状态见[施工记录](admin/A29_INVITED_PAPER_EXECUTION_20261020.md)。
 
 2026-10-20 21:25 A29当前检查点：GCD既有G02保持；新增Flow→DPL01→Goal DG1合法分支已通过18输出PDR、独立完整物理重放七值同值及DF/DI核验，较DPL父项功耗−12.61%、cell面积−11.93%。ECO八轮与独立布线补全仍setup拒绝；原DPL第三Student正在构建，ibex原Goal修复已恢复计算。JPEG旧搜索停止、Flow10证明超时未采用；新只读Query完成4事实/3假设，定向ECO仅准备。Ariane含136 SRAM的完整物理流程已详细布线DRT0，默认无单独时限的内置LEC经EF取消、未建立证明；原最终物理检查点已保留，EF只接续RCX/共同测量/DF，不重跑布局布线，最终PPA待出。19节点表及六页审阅PDF r5保持历史快照，四设计整体未完成。产品源码及公共接口不变；详见[当前记录](admin/A29_INVITED_PAPER_EXECUTION_20261020.md)。

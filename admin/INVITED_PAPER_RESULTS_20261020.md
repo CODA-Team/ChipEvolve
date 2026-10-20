@@ -83,7 +83,7 @@ flowchart LR
 |---|---|---|
 |GCD|合法既有成果已固定；DPL原生轮已结束、选中Student02并等待最终交付；Student01→Query→Goal新增合法分支0.819291mW/39.6139um²，18输出PDR/独立重放通过；ECO侧枝仍setup拒绝，G02保持|收齐DPL Student02共同最终交付；保持已完整验证的G02和DG1，不重复同产物证明|
 |ibex|原Goal一轮四Student及Teacher评审已结束，晋升Student01修复版；共同主分支28.180463mW/2339.71um²/TNS−1.59699ns/slew32/cap1，DF/DI十二值核对通过，暂不采用|其余候选交付继续；主分支Query完成，定位减弱共享逻辑/输出缓冲，已准备单独原生timing-only修复，ORFS可行基线保留|
-|jpeg|旧实测可行Flow候选及真实负接力保留；余下搜索已停止；24GiB证明分区超时，未采用Flow10|旧Flow搜索保持停止；以Goal03为父的新定向ECO原生八轮已实际运行，终态后独立共同测量，不把中间值作最终PPA|
+|jpeg|旧实测可行Flow候选及真实负接力保留；余下搜索已停止；24GiB证明分区超时，未采用Flow10|旧Flow搜索保持停止；以Goal03为父的新定向ECO原生八轮已完成（10次模型含重试），原生DRT9592；已单列完整布线/共同测量，不把原生估计作最终PPA|
 |ariane|原映射网表/136 SRAM来源的完整物理参考已交付：642.415285mW/43672.8um²/setup WS−285.396ps/TNS−155.146ns/slew436，原生DRT0；12指标与3快照经DF/DI核对|Query已完成并发现深逻辑reg2out时序问题，原Goal timing-only一轮四Student已派发、原生基线等待32GiB；原LEC取消未证明|
 
 ## 指标与证据口径
@@ -101,10 +101,13 @@ DPL Student01原生HPWL530.9um（较Diamond536.9下降1.1175%，较framework531.
 
 新增PPA图：`var/business/a29-paper-delivery-20261020/paper-assets/gcd-ppa-observations-r2.pdf`（另有SVG）。从CSV选择7个已完成GCD节点，逐原件SHA核对，标明原面积上限、合法采用与拒绝状态；横向排列不是连续接力。完整节点仍以CSV为准。
 
-更新后的GCD实际接力图：`var/business/a29-paper-delivery-20261020/paper-assets/gcd-measured-relay-r2.pdf`（另有SVG）；DPL01→Goal新合法分支已由虚线待做改为实线完成，既有ECO拒绝侧枝保留。
+更新后的GCD实际接力图：`var/business/a29-paper-delivery-20261020/paper-assets/gcd-measured-relay-r3.pdf`（另有SVG）；DPL01→Goal新合法分支已由虚线待做改为实线完成，既有ECO拒绝侧枝保留。
 
 [方法与英文图注](INVITED_PAPER_METHOD_NOTES_20261020.md)说明平台分工、阶段交接、专业能力、采用规则和比较范围。
 
-JPEG独立追踪图：`var/business/a29-paper-delivery-20261020/paper-assets/jpeg-measured-relay-r1.pdf`（另有SVG）。五个历史实测节点及三个真实父子交接已由input-receipt的source原件SHA核对；Goal03→ECO负接力保留，旧ECO交付重布线标明，Flow10单独列示，不推断其父边。
+JPEG独立追踪图：`var/business/a29-paper-delivery-20261020/paper-assets/jpeg-measured-relay-r3.pdf`（另有SVG）。五个历史实测节点及三个真实父子交接已由input-receipt的source原件SHA核对；Goal03→ECO负接力保留，旧ECO交付重布线标明，Flow10单独列示，不推断其父边。
 
 可编辑[GCD英文案例正文及七节点表](INVITED_PAPER_GCD_CASE_TEXT_20261020.md)已提供。另有[ibex原生阶段诊断](A29_IBEX_NATIVE_STAGE_DIAGNOSIS_20261020.md)及ibex-native-stage-diagnosis-r2.pdf，明确为原生GRT估计，尚不是最终共同PPA。
+
+
+新增ibex与Ariane独立接力图：`var/business/a29-paper-delivery-20261020/paper-assets/ibex-measured-relay-r1.pdf`、`ariane-measured-relay-r1.pdf`。它们只把已完成节点画为实线，prepared/queued/最终待测步骤单独标明，不作为新收益。

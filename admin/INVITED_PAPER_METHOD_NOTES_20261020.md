@@ -1,6 +1,6 @@
 # ChipEvolve 论文方法与图注素材
 
-状态：2026-10-20 的已完成证据；新增GCD DPL01→Goal原1×4及完整验证已完成，原DPL三Student轮次和ibex仍在运行，JPEG24GiB证明在分区阶段超时，未采用该候选。Ariane原网表/含宏floorplan已详细布线DRT0；默认无单独时限的内置LEC经EF取消、未建立证明，同一最终物理检查点接续RCX/测量/DF，PPA未出，不计完整ORFS成功。本文是工程方法说明和可核查表述素材，不是四设计实验已经完成的声明。数值与来源见[实测表](INVITED_PAPER_RESULTS_20261020.md)，实际接口见[操作记录](A29_PLATFORM_OPERATION_TRACE_20261020.md)。
+状态：2026-10-20 23:10已完成证据。GCD两条合法接力（F37→Goal G02、DPL01→Goal DG1）完整验证通过。原DPL三Student/Teacher已结束并选中Student02，等待共同交付。ibex原四Student/Teacher已结束、主结果已测但setup/slew/cap拒绝，Query已完成并准备独立原生时序修复。Ariane参考PPA/三事实完成、Query后原Goal时序1×4已派发。JPEG旧搜索停止，新定向ECO原生八轮完成（10模型含重试），完整布线/最终测量排队；Flow10完整证明超时，未采用。四设计尚未收口；不将排队/运行步骤写成已成功优化。数值与来源见[实测表](INVITED_PAPER_RESULTS_20261020.md)，实际接口见[操作记录](A29_PLATFORM_OPERATION_TRACE_20261020.md)。
 
 ## 平台方法
 
@@ -28,9 +28,9 @@ EF管理实验生命周期、线程/内存预约、实际工具进程、日志�
 |专业|保留的原研究能力|本轮真实范围|
 |---|---|---|
 |Flow / A2-ORFO|原参数域、搜索和模型决策|GCD已有完整搜索直接复用；JPEG旧搜索按老板决定停止|
-|DPL / DPLEvolve（ReviewDSE同一项目）|原Teacher/Student源码优化，Diamond/negotiation/framework三基线，原HPWL与运行预算|新增GCD原1轮3 Student；Student01已完成，整轮Teacher尚未收尾|
-|Goal / GoalEvolve|原AST/EPD、Teacher/4 Student、专业机制及评分/晋升|既有GCD F37→Goal已完成；新增DPL01→Goal原1轮4 Student及完整验证已完成；ibex原1轮4 Student继续|
-|ECO / TimingECOAgent|原生会话、动作、评分、best选择及回滚|GCD G03→ECO八轮完成，随后单列完整布线补全|
+|DPL / DPLEvolve（ReviewDSE同一项目）|原Teacher/Student源码优化，Diamond/negotiation/framework三基线，原HPWL与运行预算|新增GCD原1轮3 Student/Teacher已完成，选中Student02，最终交付排队；Student01已形成独立合法Goal接力|
+|Goal / GoalEvolve|原AST/EPD、Teacher/4 Student、专业机制及评分/晋升|既有GCD F37→Goal已完成；新增DPL01→Goal原1轮4 Student及完整验证已完成；ibex原1轮4 Student/Teacher已完成，主Student01测量拒绝、兄弟交付继续；Ariane原时序1×4已派发|
+|ECO / TimingECOAgent|原生会话、动作、评分、best选择及回滚|GCD G03→ECO八轮完成，随后单列完整布线补全；JPEG新Goal03定向原生八轮完成，原生DRT9592，完整布线/最终测量排队|
 
 专业内部排序与平台最终接受分开。DPL降低HPWL，不保证最终功耗、面积和时序同步改善；Goal或ECO产生的中间态也可能仍有待修复的时序债务。允许从这种中间态继续探索，原合法incumbent保持，只有最终结果通过原约束并有相应功能证据才采用。既不重写原研究的晋升结论，也不默认采用最后一棒。
 
@@ -38,7 +38,7 @@ EF管理实验生命周期、线程/内存预约、实际工具进程、日志�
 
 ## 测量与结果解释
 
-共同最终指标包含功耗、cell/core/die面积、setup/hold WS与TNS、电气/布局违反和原生DRT计数，并附测量条件、run、来源SHA及父子关系。WS为原始最差余量，允许正值；规范WNS为min(0,WS)。当前GCD/JPEG/ibex分别采用ASAP7 FF、310/545/900ps。Ariane使用原研究提供的ASAP7映射网表、固定宏floorplan及SRAM模型，实际保持900ps。已完成物理检查点与其未完成内置LEC分别追踪；同一状态正在通过EF接续提取、测量和事实发布，不重复布局布线，也不填写未出的最终PPA。标准单元为FF，原SRAM模型未统一声明角点，不称全宏FF签核。
+共同最终指标包含功耗、cell/core/die面积、setup/hold WS与TNS、电气/布局违反和原生DRT计数，并附测量条件、run、来源SHA及父子关系。WS为原始最差余量，允许正值；规范WNS为min(0,WS)。当前GCD/JPEG/ibex分别采用ASAP7 FF、310/545/900ps。Ariane使用原研究提供的ASAP7映射网表、固定宏floorplan及SRAM模型，实际保持900ps。已完成物理检查点与其未完成内置LEC分别追踪；同一状态已通过EF完成RCX、共同测量和三类事实发布，未重复布局布线：642.41528511mW/43672.8µm²/setup WS−285.396ps/TNS−155.146ns/slew436/原生DRT0，不能采用。标准单元为FF，实际检查的原SRAM头为tt_1.0_25.0/0.7V/25℃/1ns，不称全宏FF签核；保留原模型及四个未约束latch端点的来源限制。
 
 论文可报告GCD的真实增量：Flow F37的0.89091155678mW、44.8918um²，经过Query→Goal后，G02为0.71564863902mW、39.1181um²，功耗下降19.6723%、单元面积下降12.8614%，同时修复父项面积超限，最终setup WS为+0.0834055ps、TNS0。G02已有全部18数字输出PDR、独立完整DRT/RCX七指标同值和公共SDK核验；相同产物的有效证明复用。
 
@@ -65,5 +65,15 @@ G02相对ORFS B0参考的功耗/单元面积降幅为47.8980%/8.3364%，但整�
 DPLEvolve/ReviewDSE与GoalEvolve分别引用CODA-Team原项目；TimingECOAgent引用ASU-VDA-Lab原项目及保留的NOTICE。模块适配提交由`SOURCE_MANIFEST.json`固定，具体实验使用各自冻结源码和二进制身份，不把最新版工程提交当成历史实验版本。专业算法本身不是平台集成工作的新增原创贡献。
 
 - 原项目：<https://github.com/CODA-Team/DPLEvolve>、<https://github.com/CODA-Team/GoalEvolve>、<https://github.com/ASU-VDA-Lab/TimingECOAgent>。
-- 本机阅读PDF：`var/business/a29-paper-delivery-20261020/paper-assets/teacher-review-overview-r5.pdf`。
-- 原始结果/验证快照：同目录`teacher-review-snapshot-r5.zip`，含逐文件SHA；本文可与该已完成结果快照共同审阅。
+- 本机阅读PDF：`var/business/a29-paper-delivery-20261020/paper-assets/teacher-review-overview-r8.pdf`。
+- 原始结果/验证快照：同目录`teacher-review-snapshot-r8.zip`，含逐文件SHA；本文可与该已完成结果快照共同审阅。
+
+## 从较大设计得到的实际诊断
+
+ibex原功耗回收分支降低功耗/面积，却将最终setup TNS从0变为−1.59699ns，slew32/cap1；Query定位共享逻辑`_17624_`以及输出缓冲`place4192`/`place4191`被减弱。该证据支持优先修时序/电气，不支持继续同强度功耗回收。现已准备原Goal timing-only/legacy_setup的独立重放：以已测单元/连接/布局为起点，原prepare明确清除线路/fillers，再完成共同DRT/RCX和事实发布。这是原生机制的新接力分支；没有隐藏修复、放宽900ps或声称把Student01全部C++代码合并进新二进制。
+
+Ariane的Query发现最差采样路径是miss-handler寄存器至AXI输出的深标准单元逻辑，支持原Goal全局时序/源码优化，而不是为四棒展示强行用局部ECO。原timing-only/StrictEvidence一轮四Student已派发。采样路径不是完整端点分布；原生STA仍读取完整设计，不将补齐所有查询覆盖设为采取专业行动的前置。
+
+时序目标也分层：ECO原生best选择看自身评分（本例记录最差slack），平台最终判断同时看TNS、功耗、面积和其他原约束。局部最差路径改善不保证整体TNS改善。原评分保留，候选的局部进展与最终采用分别记录。
+
+大设计有明确单机时间成本：Ariane原完整DRT实际3104秒；首次事实导出300秒超时，使用相同数据和8GiB、1800秒配置后约512秒完成（CPU500.38秒、峰值约1.04GiB）。新实验按原接口声明7200秒共同物理收尾和1800秒事实导出，默认值不变，不通过减少事实或关闭专业机制来适配小预算。
