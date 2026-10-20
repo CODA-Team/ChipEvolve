@@ -99,3 +99,15 @@ ibex最初启动参数误带只适用于Flow/DPL的`--candidates`，CLI在建实
 - JPEG旧完整搜索保持停止。复用已测量可行Flow slot10（原始SHA6456bbea…），只通过既有EF/PDR接口补全部27输出的功能证明；原本未证明/未采用的口径在实际证明结束前保持。不重新搜索或优化，不声称公平预算优势。
 - GCD Student01原生门禁已完成：530.9um HPWL，较Diamond原对照536.9下降1.1175%，较framework基线531.9下降约0.188%，runtime3.191s/原2.327s，原2倍预算内、布局合法。通过原项目只读candidate_evidence导出，eligible=true、problems=[]；Student02尚未结束并被原门禁正确排除。平台单独交付已结束Student01，不改变原生Teacher选择；第三Student继续原程序。
 - 实际发现根`resume_layout`未将已有设计`orfs_execution.memory_gib`传到CTS/route_finish；本轮GCD声明4GiB却申请默认24GiB，任务真实queued且只剩4GiB可用。`professional.py`仅补传原字段，默认24保持；源阶段SDC、8线程、算法和物理步骤保持。`test_flow_recipe.py`将原时钟继承测试扩至默认/GCD4GiB/ibex12GiB，27针对及563完整回归通过，产品/涉及测试Ruff、格式、Pyright通过。三个既有SimpleNamespace测试桩增加显式cast以满足文件类型检查，不改变测试行为。
+
+## 2026-10-20 16:03：DPL第一份最终测量、真实后续与审阅快照
+
+- DPL Student01已由原只读导出器确认eligible，公开EF完成CTS/route最终测量（run-ad5a14082d164feb8cb90f7b7bf0c33c）：0.93751552049mW、cell44.9793um²、setup WS+10.4943ps/TNS0，原生DRT及电气/布局违反0。它的原生HPWL530.9um优于Diamond536.9um，但最终功耗和面积比F37更大且超原面积上限，不采用。原Teacher仍在等待另外两个Student，不把提前测量称为原生获胜者。
+- 原4GiB配置已被真实CTS/route消费，峰值分别454307840/872058880字节；完成后七项PPA通过公开DI SDK逐项核验。先前仅排队的24GiB错误预约已取消并留回执，没有重算已完成物理任务。
+- DPL01的真实Query完成4事实/3假设，诊断局部HPWL与最终PPA冲突，产物/证据与上下文固定。随后新增原生1轮4Student的Goal探索，保留80% GCD回收，使用原有adaptive_tradeoff/power_then_timing模式，不改筛选或硬约束；G02始终保留。当前阶段基线和Teacher draft已完成，Teacher plan进行中，不能填未完成收益。
+- DPL原生门禁、HPWL、源码引用和最终比较已以现有candidate-brief格式注册到EF（run-251bcd0008b84ee3b5d0461593f2e3b9，art-ccc455b49114426c91279ab20e58a7ba），并实际从公开SDK取回核对SHA。它在已完成Query之后登记，不回写旧签名上下文。
+- ibex adaptive原一轮四Student已实际规划并进入源码构建/评价。阶段基线仍有原电气违反，只有最终候选通过原门禁才能成为新结果。JPEG旧搜索保持停止；新的Flow10功能证明因8GiB预约不足中止，24GiB重试配置仅准备好，未派发。
+- 论文表已增至15份SHA核对的最终测量结果。已有G02原验证、输入17项SHA、18输出PDR/1整体分区、零未证明点、独立DRT/RCX七值同值及SDK身份已重新核对；这是复用原证明，不是重跑。
+- 已生成本机老师审阅快照`var/business/a29-paper-delivery-20261020/paper-assets/teacher-review-snapshot-r1.zip`：53文件/330503字节，含15原始结果JSON、完整CSV、两种GCD接力图、架构图、采用/验证与平台调用证据，逐成员SHA及ZIP完整性通过。快照明确GCD合法主线、拒绝侧枝、进行中任务和不同综合来源的比较口径，不声称四设计或四棒连续成功。
+
+本次只有论文结果MD/CSV、本文、平台操作记录和项目资产状态更新；没有新增产品代码、服务、接口或实验数据库。运行中的冻结源码、JPEG已完成结果及用户DF/DI/ablation修改保持原样。

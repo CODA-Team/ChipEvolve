@@ -1,6 +1,6 @@
 # 邀请论文实验素材：当前实测版（2026-10-20）
 
-这是持续更新的实验素材，不是声称四设计已经全部完成。当前14行数据从原结果逐SHA核对后导出；新GCD DPL尚在执行，不提前填入结果。CSV包含完整PPA、电气/布局违反、DRC方法、run/条件/目标及来源SHA。
+这是持续更新的实验素材，不是声称四设计已经全部完成。当前15行数据从原结果逐SHA核对后导出；新GCD DPL整轮尚在执行，已完成Student01的最终测量单列；未完成候选不填结果。CSV包含完整PPA、电气/布局违反、DRC方法、run/条件/目标及来源SHA。
 
 ## 当前可用结论
 
@@ -21,6 +21,7 @@ JPEG保留可行Flow候选及真实负接力。DPL Student03仅原cell面积上�
 |gcd|GE8|ECO|0.77087164391000|38.9432|-32.4331000|-0.264783|rejected: setup timing and native route DRC 54|
 |gcd|GEC|route completion|0.77061523916000|38.9432|-32.4934000|-0.266838|rejected: setup timing; complete route DRC0|
 |ibex|IB0|ORFS|29.243746772000|2403.75|25.478000|0|reference: complete flow; explicit multi-VT libraries|
+|gcd|D01|DPL|0.93751552049000|44.9793|10.4943000|0|area rejected; exploratory Goal repair branch submitted; native Teacher pending|
 |jpeg|JB0|ORFS|178.33724618000|6734.18|19.5042000|0|reference|
 |jpeg|JD3|DPL|178.1052202000|6735.09|19.8262000|0|rejected: original area limit|
 |jpeg|JF10|Flow|176.39359832000|6712.36|6.83587000|0|measured feasible; old partial search|
@@ -40,11 +41,13 @@ flowchart LR
  G3 --> QE[Query：定位反相器与12负载]
  QE --> E[ECO八轮完成：TNS改善69.07%，未闭合且DRC54]
  E --> R[完整布线补全：DRC0，仍setup拒绝]
- F -. 真实布局检查点 .-> D[DPL一轮3候选：进行中]
- D -. 完成后诊断并接力 .-> GN[后续Goal]
+ F --> D1[DPL Student01：最终PPA已测，面积拒绝]
+ F -. 同原生三Student轮 .-> D[DPL其余候选：进行中]
+ D1 --> QD[Query：HPWL与PPA冲突诊断]
+ QD -. 已提交 .-> GN[Goal原生一轮四Student]
 ```
 
-实线表示已完成的真实步骤；虚线标明当前计算或后续步骤。DPL仍在执行；ECO是真实完成的拒绝侧枝，不画成成功采用的四棒主线。
+实线表示已完成的真实步骤；虚线标明当前计算或后续步骤。DPL整轮仍在执行，Student01已真实完成并提交Goal探索；ECO是真实完成的拒绝侧枝，不画成成功采用的四棒主线。
 
 ## 平台做什么
 
@@ -68,14 +71,16 @@ flowchart LR
 
 |设计|当前交付|下一步|
 |---|---|---|
-|GCD|合法既有成果已固定；DPL继续；G03→ECO八轮及布线补全完成，仍setup拒绝，G02保持|收取DPL结果、诊断并继续适用接力|
-|ibex|完整ORFS基线及三事实入库完成，原约束全通过；Query4事实/1假设完成|原生Goal一轮四Student已提交，现有20%回收设置用于降低时序债务的探索|
+|GCD|合法既有成果已固定；DPL整轮继续，Student01最终PPA完成且Query/Goal接力已提交；ECO补全仍setup拒绝，G02保持|收取DPL结果、诊断并继续适用接力|
+|ibex|完整ORFS基线及三事实入库完成，原约束全通过；Query4事实/1假设完成|首power-only基线因469 slew拒绝；原adaptive功耗+时序阶段已通过Teacher规划并进入四Student，20%回收保留|
 |jpeg|旧可行候选与真实负接力可复用；老板已停止低收敛第二轮余下搜索|按已有结果诊断选择有效起点，不重跑整个搜索作为前置|
 |ariane|已找到原Goal ASAP7 placed基准：210295组件、136 SRAM实例、21 Liberty/11 LEF，宏模型存在|原布局已由EF成功导入并核对210295组件/136 SRAM；原映射网表+floorplan的完整ORFS配置已准备，待GCD资源后执行；不称原样ORFS RTL基准|
 
 ## 指标与证据口径
 
-表中WS是原始worst slack，可为正；CSV另列规范WNS=min(0, WS)。原始结果不改写。最终采用按原setup/hold、功耗、面积、布局/电气及原布线流程DRC条件判断；缺失值写unknown。工具估计PPA不等于硅测或全工艺签核。
+表中WS是原始worst slack，可为正；CSV另列规范WNS=min(0, WS)。原始结果不改写。最终采用按原setup/hold、功耗、面积、布局/电气及原布线流程DRC条件判断；缺失值写unknown。工具估计PPA不等于硅测或全工艺签核。JPEG Flow10功能证明本次因8GiB预约不足而中止，未证明、未采用；24GiB重试配置准备好，按GCD优先级另行调度，不重开搜索。
+
+DPL Student01原生HPWL530.9um（较Diamond536.9下降1.1175%，较framework531.9下降约0.188%），但最终功耗0.93751552049mW、cell44.9793um²，较实际F37父项功耗/面积更大且面积超原上限。Query已以真实四事实/三假设导出交接上下文，新Goal一轮四Student从该布局分支出发，G02继续保留。
 
 新增保留布线实测已确认相同线路/单元/引脚及七PPA不变。独立`drt::check_drc`返回5377 marker，而原DRT流程计数为0，两者方法不同，独立检查值另列，不偷偷替换原指标或宣称它们等价。新ECO会在原生best选择时保存当次DRT计数，并与实际交付ODB哈希绑定；完整本轮验收见A29施工记录。独立marker的物理含义尚待专项核实，本文不宣称独立检查为零。新ECO独立checker为5924，另列；原生54从最佳选择的原始控制台记录恢复并随EF归档登记。原输出目录建立过晚的缺陷已在未来版本修复，当前实验没有重跑模型或篡改其原生动作。
 
