@@ -177,3 +177,15 @@ Ariane完整原映射网表/含固定宏floorplan的ORFS已由原准备命令提
 通过DI取回原timing_only和power_then_timing基线日志并核对EF产物SHA，分别为`run-85b23423d9724a9f94f45672d92a0184`和`run-0931489eb57841b2be0740d9d6c151b8`。原基线GRT后已有TNS−7.253585/−20.217288ns，后者469slew/22cap。首Student01/02使用相同legacy时序配方，相对匹配阶段基线降低TNS债务23.46%/8.60%；03/04使用不同深时序配方，TNS较大仅作描述，不作同配方C++增益比较；不能把完整ORFS与原生GRT阶段差异全部归为新源码或平台影响。原修复仍继续，最终物理测量后再判断。
 
 诊断表和下一步记录在`A29_IBEX_NATIVE_STAGE_DIAGNOSIS_20261020.md`；`paper-assets/ibex-native-stage-diagnosis-r2.pdf/.svg`展示六原生评价阶段曲线，并明确未计作最终PPA。六份原日志SHA、阶段值和图渲染均已核对，无新增EDA或模型调用。
+
+## 19:19 JPEG证明终态与Ariane实际启动
+
+JPEG已保存Flow10的24GiB全输出证明`run-f70ca7ca66cf44df9466283b2b045cdc`按原3600秒限额终止，EF为timed_out/timeout；原EQY停在partition，未生成PASS或logical-equivalence回执，也未给出功能反例。峰值11126919168字节，采样CPU3744.19秒、最大6进程。与8GiB旧失败不同，本次不是内存限额终止；本轮不重复同一证明或重开旧搜索，Flow10只保留为实测PPA可行但功能未验证、未采用。
+
+EF托管超时清理后，原GCD DPL第三Student评价`run-581315e918f74518b8354dd2104a7c0e`于19:19:03开始、19:19:29成功；随后Ariane完整原网表/含宏floorplan ORFS `run-c40e2257df494a38a1d941901dfc8952`于19:19:29实际开始，已进入物理优化。ibex12GiB任务仍因Ariane32GiB预约等待，不把排队当作失败或重启它。
+
+失败证据通过公共DI取回EF登记的runtime_evidence_log并逐SHA核对，gold/candidate两原结果SHA保持；原件/用量和不重复决策分别保存`jpeg-flow10-proof24-{final-ef,outcome}.json`及`jpeg-flow10-proof24-final-sdk.log`。原G02和新DG1的验证与采用决定不受影响。
+
+## 六页审阅版r5
+
+`paper-assets/teacher-review-overview-r5.pdf`为六页矢量PDF，保留19个逐SHA核对完成节点，加入ibex原生阶段/参考曲线，标明深配方差别、JPEG证明终态及Ariane实际运行。GCD英文案例可单独编辑；报告/CSV/方法说明和根TASKS/ARCHITECTURE当前状态同步，不改模块边界。新增成本快照`cost-snapshot-20261020T112310Z.json`包含153份已闭合EF执行回执/采样CPU44348.44秒，13份列明Goal模型回执的用量范围保持；当前原DPL/ibex后续及Ariane活动部分不计作完整总成本，不报告节约比例。

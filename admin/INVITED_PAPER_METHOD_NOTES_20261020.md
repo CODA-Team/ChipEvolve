@@ -1,6 +1,6 @@
 # ChipEvolve 论文方法与图注素材
 
-状态：2026-10-20 的已完成证据；新增GCD DPL01→Goal原1×4及完整验证已完成，原DPL三Student轮次和ibex仍在运行，JPEG24GiB证明正在分区阶段，Ariane原网表/含宏floorplan完整ORFS已提交EF排队。本文是工程方法说明和可核查表述素材，不是四设计实验已经完成的声明。数值与来源见[实测表](INVITED_PAPER_RESULTS_20261020.md)，实际接口见[操作记录](A29_PLATFORM_OPERATION_TRACE_20261020.md)。
+状态：2026-10-20 的已完成证据；新增GCD DPL01→Goal原1×4及完整验证已完成，原DPL三Student轮次和ibex仍在运行，JPEG24GiB证明在分区阶段超时，未采用该候选；Ariane原网表/含宏floorplan完整ORFS已实际运行。本文是工程方法说明和可核查表述素材，不是四设计实验已经完成的声明。数值与来源见[实测表](INVITED_PAPER_RESULTS_20261020.md)，实际接口见[操作记录](A29_PLATFORM_OPERATION_TRACE_20261020.md)。
 
 ## 平台方法
 
@@ -38,7 +38,7 @@ EF管理实验生命周期、线程/内存预约、实际工具进程、日志�
 
 ## 测量与结果解释
 
-共同最终指标包含功耗、cell/core/die面积、setup/hold WS与TNS、电气/布局违反和原生DRT计数，并附测量条件、run、来源SHA及父子关系。WS为原始最差余量，允许正值；规范WNS为min(0,WS)。当前GCD/JPEG/ibex分别采用ASAP7 FF、310/545/900ps。Ariane使用原研究提供的ASAP7映射网表、固定宏floorplan及SRAM模型，已完成导入，完整ORFS任务已提交EF排队，不能填写尚未完成的布线PPA。
+共同最终指标包含功耗、cell/core/die面积、setup/hold WS与TNS、电气/布局违反和原生DRT计数，并附测量条件、run、来源SHA及父子关系。WS为原始最差余量，允许正值；规范WNS为min(0,WS)。当前GCD/JPEG/ibex分别采用ASAP7 FF、310/545/900ps。Ariane使用原研究提供的ASAP7映射网表、固定宏floorplan及SRAM模型，已完成导入，完整ORFS任务已实际运行，不能填写尚未完成的布线PPA。
 
 论文可报告GCD的真实增量：Flow F37的0.89091155678mW、44.8918um²，经过Query→Goal后，G02为0.71564863902mW、39.1181um²，功耗下降19.6723%、单元面积下降12.8614%，同时修复父项面积超限，最终setup WS为+0.0834055ps、TNS0。G02已有全部18数字输出PDR、独立完整DRT/RCX七指标同值和公共SDK核验；相同产物的有效证明复用。
 
@@ -65,5 +65,5 @@ G02相对ORFS B0参考的功耗/单元面积降幅为47.8980%/8.3364%，但整�
 DPLEvolve/ReviewDSE与GoalEvolve分别引用CODA-Team原项目；TimingECOAgent引用ASU-VDA-Lab原项目及保留的NOTICE。模块适配提交由`SOURCE_MANIFEST.json`固定，具体实验使用各自冻结源码和二进制身份，不把最新版工程提交当成历史实验版本。专业算法本身不是平台集成工作的新增原创贡献。
 
 - 原项目：<https://github.com/CODA-Team/DPLEvolve>、<https://github.com/CODA-Team/GoalEvolve>、<https://github.com/ASU-VDA-Lab/TimingECOAgent>。
-- 本机阅读PDF：`var/business/a29-paper-delivery-20261020/paper-assets/teacher-review-overview-r4.pdf`。
-- 原始结果/验证快照：同目录`teacher-review-snapshot-r4.zip`，含逐文件SHA；本文可与该已完成结果快照共同审阅。
+- 本机阅读PDF：`var/business/a29-paper-delivery-20261020/paper-assets/teacher-review-overview-r5.pdf`。
+- 原始结果/验证快照：同目录`teacher-review-snapshot-r5.zip`，含逐文件SHA；本文可与该已完成结果快照共同审阅。

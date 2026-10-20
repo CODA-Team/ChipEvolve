@@ -1,4 +1,4 @@
-2026-10-20 A29当前检查点：GCD G03→ECO八轮及独立布线补全完成（DRT54→0），setup仍失败，已验证G02保持；DPL原生搜索继续。ibex完整FF900ps基线、三事实、Query完成，Goal原生一轮四Student已实际进入EF。Ariane原ASAP7布局导入通过，原网表/固定宏floorplan的完整ORFS配置已备好、32GiB大任务尚未派发以保留GCD优先级。14个实测节点/指标表和两张本机PDF图已导出；根559/ECO17回归通过。详见[本轮交付和剩余任务](admin/A29_INVITED_PAPER_EXECUTION_20261020.md)，不宣称四设计已全部完成。
+2026-10-20 19:25 A29当前检查点：GCD既有G02保持；新增Flow→DPL01→Goal DG1合法分支已通过18输出PDR、独立完整物理重放七值同值及DF/DI核验，较DPL父项功耗−12.61%、cell面积−11.93%。ECO八轮及独立布线补全仍setup拒绝；原DPL三Student轮次继续。ibex完整900ps基线已完成，原Goal修复继续；六原生阶段评价和配方差别已沿EF/DI核对。JPEG旧搜索停止，24GiB已保存Flow10证明分区一小时超时，未采用、不重复同一证明。Ariane原映射网表/含136 SRAM的完整ORFS于19:19实际启动，最终PPA待出。19节点表、可编辑GCD英文案例和六页审阅PDF r5已生成，四设计整体仍未完成。产品代码保持先前已验证版本，本轮仅运行/证据/文档更新；详见[当前记录](admin/A29_INVITED_PAPER_EXECUTION_20261020.md)。
 
 2026-10-20 A29新完成：G03→ECO原生八轮、保留线路共同测量及DF/DI交付完成，绝对TNS减少69.0726%，但setup仍失败且原生DRT54，按原约束拒绝、G02保持。原ECO输出目录建立过晚已修复，当前实验原生计数从精确best日志恢复并登记到EF；不重跑模型或伪造零。模块17回归通过。ibex已实际接续；DPL仍在原生Student试验。详见[本轮执行记录](admin/A29_INVITED_PAPER_EXECUTION_20261020.md)。
 

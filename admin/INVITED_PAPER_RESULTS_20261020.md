@@ -30,7 +30,7 @@ JPEG保留可行Flow候选及真实负接力。DPL Student03仅原cell面积上�
 |gcd|DG4|Goal|0.80402684398000|39.1473|-93.1683000|-0.98939|rejected: setup timing|
 |jpeg|JB0|ORFS|178.33724618000|6734.18|19.5042000|0|reference|
 |jpeg|JD3|DPL|178.1052202000|6735.09|19.8262000|0|rejected: original area limit|
-|jpeg|JF10|Flow|176.39359832000|6712.36|6.83587000|0|measured feasible; old partial search|
+|jpeg|JF10|Flow|176.39359832000|6712.36|6.83587000|0|measured feasible; proof timed out; not adopted|
 |jpeg|JG3|Goal|150.8680135000|6243.33|-12.5853000|-0.0701142|rejected: setup timing|
 |jpeg|JEold|ECO|151.72357857000|6243.36|-12.9088000|-0.170005|rejected: setup timing; legacy platform reroute|
 
@@ -81,12 +81,12 @@ flowchart LR
 |---|---|---|
 |GCD|合法既有成果已固定；DPL原轮次继续；Student01→Query→Goal新增合法分支0.819291mW/39.6139um²，18输出PDR/独立重放通过；ECO侧枝仍setup拒绝，G02保持|收齐原DPL轮次；新合法分支判断是否还有必要动作，保持G02低功耗成果|
 |ibex|完整ORFS基线及三事实入库完成，原约束全通过；Query4事实/1假设完成|首power-only基线因469 slew拒绝；原adaptive功耗+时序阶段已通过Teacher规划并进入四Student，20%回收保留|
-|jpeg|旧可行候选与真实负接力可复用；老板已停止低收敛第二轮余下搜索|按已有结果诊断选择有效起点，不重跑整个搜索作为前置|
-|ariane|已找到原Goal ASAP7 placed基准：210295组件、136 SRAM实例、21 Liberty/11 LEF，宏模型存在|原布局已由EF成功导入并核对210295组件/136 SRAM；原映射网表+floorplan的完整ORFS配置已准备，待GCD资源后执行；不称原样ORFS RTL基准|
+|jpeg|旧实测可行Flow候选及真实负接力保留；余下搜索已停止；24GiB证明分区超时，未采用Flow10|保留具体证明阻断与原结果，本轮不重开搜索或重复相同证明；其他设计继续|
+|ariane|已找到原Goal ASAP7 placed基准：210295组件、136 SRAM实例、21 Liberty/11 LEF，宏模型存在|原布局已由EF成功导入并核对210295组件/136 SRAM；原映射网表+floorplan的完整ORFS已于19:19经EF实际运行，最终PPA待出；不称原样ORFS RTL基准|
 
 ## 指标与证据口径
 
-表中WS是原始worst slack，可为正；CSV另列规范WNS=min(0, WS)。原始结果不改写。最终采用按原setup/hold、功耗、面积、布局/电气及原布线流程DRC条件判断；缺失值写unknown。工具估计PPA不等于硅测或全工艺签核。JPEG Flow10功能证明本次因8GiB预约不足而中止，未证明、未采用；24GiB重试已作为新case进入EF排队，不重开搜索。
+表中WS是原始worst slack，可为正；CSV另列规范WNS=min(0, WS)。原始结果不改写。最终采用按原setup/hold、功耗、面积、布局/电气及原布线流程DRC条件判断；缺失值写unknown。工具估计PPA不等于硅测或全工艺签核。JPEG Flow10原8GiB功能证明因内存不足中止；24GiB新case于19:19在分区阶段达到一小时限额，峰值11126919168字节、采样CPU3744.19秒，无完整证明或功能反例，未采用。本轮不重复相同证明，不重开旧搜索。
 
 DPL Student01原生HPWL530.9um（较Diamond536.9下降1.1175%，较framework531.9下降约0.188%），但最终功耗0.93751552049mW、cell44.9793um²，较实际F37父项功耗/面积更大且面积超原上限。Query已以真实四事实/三假设导出交接上下文，新Goal一轮四Student从该布局分支出发，Student01最终0.81929122098mW/39.6139um²，setup WS+1.31586ps/TNS0，DRT及电气/布局违反0；较DPL父项功耗−12.6104%、cell面积−11.9286%，通过全部18输出PDR、独立完整DRT/RCX七值同值和SDK核验。其他3候选setup拒绝；旧G02仍更低功耗，继续保留。新旧Goal分支的阶段/策略不同，不能把分支差异全部归因于DPL。
 
@@ -104,3 +104,5 @@ DPL Student01原生HPWL530.9um（较Diamond536.9下降1.1175%，较framework531.
 [方法与英文图注](INVITED_PAPER_METHOD_NOTES_20261020.md)说明平台分工、阶段交接、专业能力、采用规则和比较范围。
 
 JPEG独立追踪图：`var/business/a29-paper-delivery-20261020/paper-assets/jpeg-measured-relay-r1.pdf`（另有SVG）。五个历史实测节点及三个真实父子交接已由input-receipt的source原件SHA核对；Goal03→ECO负接力保留，旧ECO交付重布线标明，Flow10单独列示，不推断其父边。
+
+可编辑[GCD英文案例正文及七节点表](INVITED_PAPER_GCD_CASE_TEXT_20261020.md)已提供。另有[ibex原生阶段诊断](A29_IBEX_NATIVE_STAGE_DIAGNOSIS_20261020.md)及ibex-native-stage-diagnosis-r2.pdf，明确为原生GRT估计，尚不是最终共同PPA。
