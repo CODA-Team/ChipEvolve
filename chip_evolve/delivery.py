@@ -282,7 +282,11 @@ def finish(deployment: Deployment, experiment: Path) -> dict[str, Any]:
             **modes,
         )
     else:
-        if saved["native_method"].get("physical_stage") == "detailed_route":
+        native = saved["native_method"]
+        if (
+            native.get("physical_stage") == "detailed_route"
+            and native.get("route_drc") == 0
+        ):
             modes["preserve_routing"] = True
             modes["native_route_drc"] = saved["native_method"].get("route_drc")
         result = qualify(

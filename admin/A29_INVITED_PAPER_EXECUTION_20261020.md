@@ -62,3 +62,9 @@
 本轮实测发现原控制器循环末尾才建立outputs目录，导致此前best写报告失败，但best ODB已正确保存。没有修改正在运行的源码：只创建运行输出目录，从最后一次best选择的原始控制台块恢复唯一原生计数54，并记录当时best ODB SHA；后续没有更好的best。恢复记录已实际随EF data_snapshot归档登记，重新取回核对SHA与best身份通过。不是推测零，也不是新跑一次路由。future模块67889a6在叶任务启动原循环前建立输出目录；缺原生计数且产物已变更时禁止继承baseline计数。17模块回归/静态类型通过，原研究动作与排名未改。
 
 证据：本轮`gcd-eco-final-acceptance.json`、`gcd-eco-comparison.json`、`gcd-eco-native-model-cost.json`、`eco-native-counter-recovery.json`。拒绝候选不新增昂贵功能证明。ibex已由原守候程序实际接续；DPL仍在原生Student试验中，不能把首轮编译/评价通过写成整轮完成。
+
+## 已布线与已收敛的交接区分
+
+进一步回到原脚本和真实日志，确认ECO每轮实际为`detailed_route -droute_end_iter 1`；注释中的FULL不能当作完整迭代收敛证据。这解释了为什么原生候选仍有54个DRT违反，不能据此宣称专业策略无效或交付完整。
+
+未来`delivery.py`只在明确详细布线且原生DRT=0时保留线路；原生DRT非零/未知的检查点继续既有完整DRT/RCX。没有改专业迭代次数、选择或重写原结果。新增针对原生0、54和unknown及两个设计的交接回归，根556项及Ruff/格式/Pyright通过。当前ECO原生实测结果保留，另开“ECO→完整布线补全”子实验；分别报告原生动作与补全影响，不把补全收益全归给ECO。

@@ -29,10 +29,18 @@ def test_goal_closes_timing_without_replacing_declared_power_targets(
     assert targets["tns_abs_ns"] == baseline_tns
 
 
-@pytest.mark.parametrize("preserve", [False, True])
+@pytest.mark.parametrize(
+    "physical_stage,native_drc,preserve",
+    [
+        (None, None, False),
+        ("detailed_route", 0, True),
+        ("detailed_route", 54, False),
+        ("detailed_route", None, False),
+    ],
+)
 @pytest.mark.parametrize("design_id,memory_gib", [("gcd", 4), ("ibex", 12)])
 def test_delivery_routes_only_when_the_checkpoint_requires_it(
-    tmp_path, monkeypatch, preserve, design_id, memory_gib
+    tmp_path, monkeypatch, physical_stage, native_drc, preserve, design_id, memory_gib
 ):
     d = deployment(tmp_path)
     d.value.update(
@@ -53,10 +61,10 @@ def test_delivery_routes_only_when_the_checkpoint_requires_it(
     pdk.mkdir()
     for name in ["setRC.tcl", "rcx_patterns.rules"]:
         (pdk / name).write_text("frozen RC")
-    native = {"kind": "native-ECO" if preserve else "native-search"}
-    if preserve:
-        native["physical_stage"] = "detailed_route"
-        native["route_drc"] = 0
+    native = {"kind": "native-ECO" if physical_stage else "native-search"}
+    if physical_stage:
+        native["physical_stage"] = physical_stage
+        native["route_drc"] = native_drc
     checkpoint(
         experiment,
         design_id=design_id,
