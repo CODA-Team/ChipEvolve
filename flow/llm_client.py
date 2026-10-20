@@ -11,12 +11,35 @@ import json
 import math
 import os
 from pathlib import Path
+import re
 import shutil
 import signal
 import subprocess
 import tempfile
 from types import SimpleNamespace
 import uuid
+
+
+def _failure_detail(stdout: str, stderr: str) -> str:
+    messages = []
+    for line in stdout.splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("type") == "error":
+            messages.append(str(event.get("message", "")))
+        elif event.get("type") == "turn.failed":
+            messages.append(str(event.get("error", {}).get("message", "")))
+    messages += [line for line in stderr.splitlines() if line.startswith("Error:")]
+    detail = messages[-1] if messages else "CLI returned no structured error detail"
+    detail = re.sub(r"(?i)Bearer\s+\S+|\bsk-[\w-]+", "[redacted]", detail)
+    detail = re.sub(
+        r"(?i)(api[_-]?key|access_token|refresh_token|authorization)\s*[:=]\s*\S+",
+        r"\1=[redacted]",
+        detail,
+    )
+    return detail[:1200]
 
 
 def create_llm_client(config: dict):
@@ -207,7 +230,7 @@ class CodexClient:
                 if getattr(self, 'platform_worker_record', None):
                     from platform_model import process_identity, write_record
                     write_record(self.platform_worker_record, process_identity(process.pid))
-                stdout, _stderr = process.communicate(prompt, timeout=self.timeout)
+                stdout, stderr = process.communicate(prompt, timeout=self.timeout)
             except BaseException:
                 try:
                     os.killpg(process.pid, signal.SIGKILL)
@@ -216,9 +239,8 @@ class CodexClient:
                 process.communicate()
                 raise
             if process.returncode != 0:
-                # Do not copy authentication-related CLI stderr into campaign logs.
                 raise RuntimeError(f"Codex CLI exited with code {process.returncode}; "
-                                   "check codex login status and account/model availability")
+                                   + _failure_detail(stdout, stderr))
             thread_id, usage = _decode_events(stdout)
             message = _decode_message(json.loads(output_path.read_text()), tools)
         audit_dir = os.environ.get("DRP_CODEX_AUDIT_DIR", "")

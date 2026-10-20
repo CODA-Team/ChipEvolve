@@ -147,6 +147,29 @@ def test_failed_cli_does_not_leak_stderr(monkeypatch):
     assert "private-auth-value" not in str(exc.value)
 
 
+def test_failed_cli_preserves_model_error_without_credentials():
+    raw = json.dumps(
+        {
+            "type": "turn.failed",
+            "error": {
+                "message": "Model unavailable; api_key=private-value Bearer private-bearer sk-secret"
+            },
+        }
+    )
+    detail = lc._failure_detail(raw, "")
+    assert "Model unavailable" in detail
+    assert not any(
+        secret in detail for secret in ("private-value", "private-bearer", "sk-secret")
+    )
+
+
+def test_failed_cli_preserves_explicit_transport_error():
+    assert (
+        lc._failure_detail("", "noise\nError: connection reset")
+        == "Error: connection reset"
+    )
+
+
 def test_api_remains_default_and_requires_key(monkeypatch):
     monkeypatch.delenv("DRP_LLM_TRANSPORT", raising=False)
     monkeypatch.delenv("DRP_TEST_KEY", raising=False)
