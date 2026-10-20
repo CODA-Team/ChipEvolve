@@ -76,3 +76,19 @@ ibex完整ORFS已完成：FF/900ps下29.243746772mW，cell/core/die面积2403.75
 Ariane原DEF已核实136个SRAM实例是FIXED，原顶层时钟尚未经过CTS。已核实共同ORFS支持`SYNTH_NETLIST_FILES`和`FLOORPLAN_DEF`，可从原映射网表及楼层规划继续，不替换CPU RTL。根`physical.py`允许内部设计绑定提供`orfs_config_template`，把该文件及原有overrides写入已存在的staged design.mk，现有设计保持include逻辑；不新增CLI/EF/DF接口。`test_orfs_resource_binding.py`覆盖默认/显式配置、资源、SDC和配置源不变，18针对/559根回归及静态格式类型通过。准备`local-ariane-orfs.json`和原映射配置；32GiB完整大设计任务暂不抢占GCD专业实验。
 
 ECO完整布线子实验已完成：原生DRT54→0，最终0.77061523916mW/38.9432um²，setup WS−32.4934ps、TNS−0.266838ns；时序仍不合格，继续拒绝，G02保持。原生结果与补全结果分列，不重复调用模型。
+
+## 本次检查点：交付与剩余任务
+
+|切片|当前状态|剩余|
+|---|---|---|
+|一 固定GCD起点|既有G02及原18输出证明/重放保留；保留线路交付真实验证完成|不重复相同证明|
+|二 GCD专业协作|G03→ECO八轮、原生事实、独立布线补全与拒绝记录完成；DPL首两个Student完成首试后正作原生调整|收取一轮三Student及原Teacher结论，再从实际选中布局进行Goal接力|
+|三 扩展设计|ibex完整基线/三事实/Query完成，Goal实际进入EF；JPEG可复用记录保留；Ariane原布局导入通过、映射网表完整ORFS配置准备好|完成ibex专业结果；GCD资源后启动Ariane32GiB完整基线；不重开旧JPEG搜索|
+|四 平台帮助|同一Codex的Query事实读取/证据回答和真实专业派发链已有记录|不填写未测量的token节约率|
+|五 论文素材|14个SHA核对实测节点及CSV、Mermaid；本机生成架构/GCD接力PDF与SVG|随真实专业结果增量更新，四设计尚未全部结束|
+
+ibex最初启动参数误带只适用于Flow/DPL的`--candidates`，CLI在建实验/发EDA前拒绝；已移除该参数，按原生固定四Student重新启动。实际准备/工具身份任务`run-9375cdbcbd064101802758ff13c5e37e`已running。不把前端参数错误掩盖成一次成功实验，也没有重复物理计算。
+
+本次文件清单：根产品`chip_evolve/{native,delivery,physical}.py`；针对回归`admin/test_{eco_pdk_binding,invited_paper_relay,orfs_resource_binding}.py`；ECO模块`src/{platform_execution,platform_drc,test_platform_execution,test_platform_drc}.py`及`PLATFORM.md`；固定版本`SOURCE_MANIFEST.json`和gitlink；项目资产`ARCHITECTURE.md`/`TASKS.md`；本轮A29执行/操作记录与GCD既有追踪、论文结果/CSV。各自职责在上文对应段落中说明。其他用户文件保持原样。
+
+可直接查看的本机图：`var/business/a29-paper-delivery-20261020/paper-assets/chipevolve-architecture.pdf`、`gcd-measured-relay.pdf`，同时保留SVG及DOT源。图中未完成DPL仍为虚线，不冒充四专业连续成功。

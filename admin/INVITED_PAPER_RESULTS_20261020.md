@@ -1,6 +1,6 @@
 # 邀请论文实验素材：当前实测版（2026-10-20）
 
-这是持续更新的实验素材，不是声称四设计已经全部完成。当前12行数据从原结果逐SHA核对后导出；新GCD DPL尚在执行，不提前填入结果。CSV包含完整PPA、电气/布局违反、DRC方法、run/条件/目标及来源SHA。
+这是持续更新的实验素材，不是声称四设计已经全部完成。当前14行数据从原结果逐SHA核对后导出；新GCD DPL尚在执行，不提前填入结果。CSV包含完整PPA、电气/布局违反、DRC方法、run/条件/目标及来源SHA。
 
 ## 当前可用结论
 
@@ -19,13 +19,15 @@ JPEG保留可行Flow候选及真实负接力。DPL Student03仅原cell面积上�
 |gcd|G03|Goal|0.76853850624000|38.7974|-70.4802000|-0.856145|rejected: setup timing|
 |gcd|G04|Goal|0.76625181828000|38.9869|-92.9781000|-1.01305|rejected: setup timing|
 |gcd|GE8|ECO|0.77087164391000|38.9432|-32.4331000|-0.264783|rejected: setup timing and native route DRC 54|
+|gcd|GEC|route completion|0.77061523916000|38.9432|-32.4934000|-0.266838|rejected: setup timing; complete route DRC0|
+|ibex|IB0|ORFS|29.243746772000|2403.75|25.478000|0|reference: complete flow; explicit multi-VT libraries|
 |jpeg|JB0|ORFS|178.33724618000|6734.18|19.5042000|0|reference|
 |jpeg|JD3|DPL|178.1052202000|6735.09|19.8262000|0|rejected: original area limit|
 |jpeg|JF10|Flow|176.39359832000|6712.36|6.83587000|0|measured feasible; old partial search|
 |jpeg|JG3|Goal|150.8680135000|6243.33|-12.5853000|-0.0701142|rejected: setup timing|
 |jpeg|JEold|ECO|151.72357857000|6243.36|-12.9088000|-0.170005|rejected: setup timing; legacy platform reroute|
 
-完整字段：[机器可读指标表](INVITED_PAPER_METRICS_20261020.csv)。GCD条件为ASAP7 FF/310ps，JPEG为ASAP7 FF/545ps；跨设计不直接计算改善率。ORFS对照与现代Flow综合/方法来源分列；相对ORFS的全部降幅不归为某段源码或协同的唯一贡献。
+完整字段：[机器可读指标表](INVITED_PAPER_METRICS_20261020.csv)。GCD条件为ASAP7 FF/310ps，JPEG为ASAP7 FF/545ps，ibex为ASAP7 FF/900ps；跨设计不直接计算改善率。ORFS对照与现代Flow综合/方法来源分列；相对ORFS的全部降幅不归为某段源码或协同的唯一贡献。
 
 ## GCD实际接力与本轮动作
 
@@ -36,7 +38,8 @@ flowchart LR
  G --> G2[G02：合法并保留]
  G --> G3[G03：时序失败]
  G3 --> QE[Query：定位反相器与12负载]
- QE --> E[ECO八轮完成：TNS改善69.07%，未闭合且DRC54，不采用]
+ QE --> E[ECO八轮完成：TNS改善69.07%，未闭合且DRC54]
+ E --> R[完整布线补全：DRC0，仍setup拒绝]
  F -. 真实布局检查点 .-> D[DPL一轮3候选：进行中]
  D -. 完成后诊断并接力 .-> GN[后续Goal]
 ```
@@ -59,16 +62,16 @@ flowchart LR
  Q --> C
 ```
 
-本轮G03 Query已查询实际DF快照并导出专业上下文：4事实/4假设，定位reg2reg关键路径、共享小SLVT反相器及12负载，建议增强驱动/分裂负载；没有把建议冒充已执行或因果证明。ECO由平台派发，原专业评分与回滚保留。实际八轮最终功耗0.77087164391mW、cell面积38.9432um²、setup WS−32.4331ps、TNS−0.264783ns；相对G03绝对TNS减少69.0726%，但仍未闭合且原生DRT54，所以拒绝，合法G02不变。
+本轮G03 Query已查询实际DF快照并导出专业上下文：4事实/4假设，定位reg2reg关键路径、共享小SLVT反相器及12负载，建议增强驱动/分裂负载；没有把建议冒充已执行或因果证明。ECO由平台派发，原专业评分与回滚保留。实际八轮最终功耗0.77087164391mW、cell面积38.9432um²、setup WS−32.4331ps、TNS−0.264783ns；相对G03绝对TNS减少69.0726%，但仍未闭合且原生DRT54，所以原生分支拒绝，合法G02不变。随后单独完成原方法仅一轮DRT所留下的布线违反，DRC54→0、功耗0.77061523916mW、setup WS−32.4934ps/TNS−0.266838ns，仍时序拒绝；不重跑模型，补全前后分列。
 
 ## 当前四设计交付状态
 
 |设计|当前交付|下一步|
 |---|---|---|
-|GCD|合法既有成果已固定；DPL继续；G03→ECO完成并按setup/DRC拒绝，G02保持|收取DPL结果、诊断并继续适用接力|
-|ibex|官方镜像Slang综合实际通过；发现多VT库/LEF配置不一致并已修正|为优先GCD，基准计算已暂缓；ECO已结束，已自动继续相同配置|
+|GCD|合法既有成果已固定；DPL继续；G03→ECO八轮及布线补全完成，仍setup拒绝，G02保持|收取DPL结果、诊断并继续适用接力|
+|ibex|完整ORFS基线及三事实入库完成，原约束全通过；Query4事实/1假设完成|原生Goal一轮四Student已提交，现有20%回收设置用于降低时序债务的探索|
 |jpeg|旧可行候选与真实负接力可复用；老板已停止低收敛第二轮余下搜索|按已有结果诊断选择有效起点，不重跑整个搜索作为前置|
-|ariane|已找到原Goal ASAP7 placed基准：210295组件、136 SRAM实例、21 Liberty/11 LEF，宏模型存在|原布局已由EF成功导入并核对210295组件/136 SRAM；完整物理基准待做，不称原样ORFS RTL基准|
+|ariane|已找到原Goal ASAP7 placed基准：210295组件、136 SRAM实例、21 Liberty/11 LEF，宏模型存在|原布局已由EF成功导入并核对210295组件/136 SRAM；原映射网表+floorplan的完整ORFS配置已准备，待GCD资源后执行；不称原样ORFS RTL基准|
 
 ## 指标与证据口径
 
