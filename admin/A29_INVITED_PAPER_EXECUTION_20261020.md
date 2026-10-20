@@ -362,3 +362,10 @@ Ariane新原生基线run-eba79e99be0b4877b9ee93214566321f真实成功，8线程/
 释放旧证明预约后，Ariane身份查询c72...完成，真实campaign/parent.json已捕获DRV294/runtime739，三个优化指标与原生baseline逐值相同；整份GoalContract（包括contract_id、目标、权重及baseline三指标）与旧轮语义完全相同，goal_distance仍1.0。现已完成基线观测补齐的真实业务核验，不再只有单测证据。原Teacher draft真实完成，plan语言推理进行中，四Student原轮次接续；新源码/最终PPA尚未交付。新版父快照及契约副本存ariane-corrected-parent-observations-verified.json，未来晋升改变活动Parent不改此历史捕获。
 
 最新所列成本264终态EF、采样CPU170234.05秒；21份Goal调用input12097910/output211308，活动证明/后续轮次及缺测开销不填零。论文素材32节点/r13保持不可变，不为单次资源调整再造新快照。当前无新功能证明PASS或采用结论，四设计目标继续。
+
+
+### 05:45已有GCD采用状态复核与JPEG求解进展
+
+直接调用当前既有checked_validation业务守卫复核G02和DG1：固定目标/模型及证明输入哈希、全部18输出PDR、七项精确且可行重放条件均通过，未重跑EDA或证明。两分支引用同一规范设计修订、objective与condition；实际runtime/designs/gcd/incumbent.json仍指向G02，结果/验证SHA一致，不需要修改采用指针。该核查补足“保留现有最优分支”的真实产品状态证据，而非只看论文表格。记录在gcd-existing-two-branches-adoption-guard-rechecked.json和gcd-current-retained-scope-verified.json。
+
+JPEG新32GiB证明于05:32:59完成7082分区生成（native returncode0），随后进入原生PDR策略，日志持续推进；分区生成不是完整证明PASS。Ariane四份Student实际源码的701项声明哈希逐份核对、各自仅修改Teacher分配的单一C++文件，四个EF构建仍按既有预算等待。未发布新PPA数字或更改活动输入；后续交付重放边界已由既有replay_checkpoint实际重建核对，仍以新最终网表证明成功为执行前提。
