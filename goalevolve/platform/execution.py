@@ -69,7 +69,7 @@ def build_root(command: list[str], cwd: Path) -> Path | None:
 def request_for(
     profile: dict[str, Any], call: dict[str, Any], attempt: int
 ) -> dict[str, Any]:
-    command, cwd = call["command"], Path(call["cwd"])
+    command, cwd = list(call["command"]), Path(call["cwd"])
     build = build_root(command, cwd)
     source = None
     if "-S" in command:
@@ -85,6 +85,14 @@ def request_for(
         if Path(command[0]).name == "openroad"
         else "analysis"
     )
+    if (
+        operation == "physical"
+        and "-threads" not in command
+        and "-version" not in command
+    ):
+        # OpenROAD defaults to every host CPU, independently of OMP_NUM_THREADS.
+        # Bind implicit native evaluations to the same cores reserved by EF.
+        command[1:1] = ["-threads", str(profile["resources"]["physical"]["cpu_cores"])]
     inputs = dict(profile["input_files"])
     if command[:3] == ["cmake", "-E", "cmake_link_script"]:
         inputs[command[3]] = digest(Path(command[3]))
@@ -122,6 +130,7 @@ def request_for(
         inputs[str(context)] = digest(context)
     return {
         **call,
+        "command": command,
         "design_context": design_context(profile) if operation == "physical" else None,
         "operation": operation,
         "attempt": attempt,

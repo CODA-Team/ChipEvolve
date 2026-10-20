@@ -378,7 +378,23 @@ def test_repeated_metrics_parser_can_append_output_but_not_modify_log(tmp_path):
         validate_request(profile, request)
 
 
-def test_physical_evaluation_rejects_stale_binary(tmp_path):
+@pytest.mark.parametrize(
+    "arguments, expected_arguments, cores",
+    [
+        (["-exit", "flow.tcl"], ["-threads", "2", "-exit", "flow.tcl"], 2),
+        (["-exit", "flow.tcl"], ["-threads", "8", "-exit", "flow.tcl"], 8),
+        (["-exit", "flow.tcl"], ["-threads", "16", "-exit", "flow.tcl"], 16),
+        (
+            ["-threads", "8", "-exit", "flow.tcl"],
+            ["-threads", "8", "-exit", "flow.tcl"],
+            8,
+        ),
+        (["-version"], ["-version"], 8),
+    ],
+)
+def test_physical_evaluation_rejects_stale_binary(
+    tmp_path, arguments, expected_arguments, cores
+):
     from goalevolve.platform.execution import digest, record_build
 
     source = tmp_path / "source"
@@ -394,13 +410,17 @@ def test_physical_evaluation_rejects_stale_binary(tmp_path):
         "input_files": {},
         "toolchain": {"image_sha256": digest(image)},
         "cmake_args": [],
+        "resources": {"physical": {"cpu_cores": cores}},
     }
     with patch(
         "goalevolve.platform.profile.load_platform_profile", return_value=profile
     ):
         record_build(source, binary)
-    call = {"command": [str(binary), "-exit", "flow.tcl"], "cwd": str(tmp_path)}
-    assert request_for(profile, call, 1)["source"] == str(source)
+    call = {"command": [str(binary), *arguments], "cwd": str(tmp_path)}
+    request = request_for(profile, call, 1)
+    assert request["source"] == str(source)
+    assert request["command"] == [str(binary), *expected_arguments]
+    assert call["command"] == [str(binary), *arguments]
     source_file.write_text("int student;\n")
     with pytest.raises(ValueError, match="source/build"):
         request_for(profile, call, 1)
