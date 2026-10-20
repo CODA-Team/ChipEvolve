@@ -48,3 +48,17 @@ r66 按 r65 已计费 ID 去重，新闭合 7 终态（6 成功、1 超时），
 后续继续：同一 AES 案例诊断；收取剩余 JPEG 最终读数及选中源码复测；完成原完整 Flow、原生专业参考和实际反馈接力；在消费者安全收尾后收口合格修复、验证精确环境/恢复与两侧完整业务入口，再冻结 A25 并执行 A26/A27/A28。当前结果既不等于正式准备就绪，也不构成新的团队 PPA 优势。
 
 本轮根改动仅本报告和 TASKS.md；私有脚本/配置/原件均在忽略的 var。
+
+## 后续实测：Query 引导的 timing-only 交付与 AES 名称诊断
+
+原 `run-db84d26aceb84024a12e9d4a3e5e0e6f` 已正常完成完整详细布线，测量 `run-ccbc265712384d8582f5d481971388e8` 也已交付。注册归档及捕获 SHA、多重集、父子关系、七 PPA 和当前公共 SDK 独立核验通过：功耗 156.02518618 mW、单元面积 6378.88 µm²、setup TNS −0.172008 ns、最差余量 −18.7305 ps，原 setup 条件仍失败，不采用。该配方是原 c2 二进制上的 timing_only / wns_path_deep，没有新的源码优化。
+
+这次输入是原 Query 诊断后的低功耗父状态，不能与前面的独立 wns_path_deep 控制直接作单变量模式归因。真正同父状态、同二进制的 power_then_timing 配对结果尚未交付；保持原 decision.json 和先前生成的模式配对，不用其他二进制/父状态的结果替代它。证据为 `independent-query-timing-only-acceptance.json`。JPEG 选中源码最终物理 `run-d48e2fa8…` 已在该任务释放资源后实际开始，主 Flow、原生参考和真实反馈接力仍沿原监督进行。
+
+AES 旧解析模型的 75 个同名网络中，7 个是外部端口，内部 68 个精确分为 26 个时钟树名和 42 个自动生成名，没有额外稳定语义状态名。旧注册综合归档未发现 .map/.blif/yosys.json，1_synth.v 与 1_synth_lec.v 逐字节相同；后者不是额外的寄存器映射。原来源与新来源的状态对应不能仅靠这些名称猜测。该只读模型/归档核查保存在 `AES-semantic-state-name-and-archive-audit.json`，不作完整源内容不存在的普遍断言。
+
+进一步通过 EF `run-95add7c296ed43ddb8406c6ac32a6dd7` 在同一实际 SIF 中读取 synthesize、syn::dump 和 syn::dump_fanin_cone 定义，没有加载 RTL、运行综合或证明。实际请求、analysis_of_run_id、两捕获及注册归档 SHA 独立通过。它确认 `-reduce_name_loss` 会跳过两次 ABC roundtrip，不能把它当只保留名称的快速适配；同时确认原工具已有图导出诊断命令。探针采样 CPU 1.02 秒、峰值内存 87490560 字节，未扩大资源池。
+
+后续同案例诊断应先检查能否用已有只读图导出追溯状态，要求原综合流程、产物身份及全部输出验证保持；不能用跳过优化、按自动名称配对或增加假设来换取 PASS。本轮未运行第三种证明、未重开原四小时计算，AES 资格缺口仍未关闭。实际镜像命令证据为 `independent-actual-synthesis-introspection-acceptance.json`。
+
+r67 从 r66 已计费 ID 去重，新闭合 3 个成功终态（timing-only 物理、共同测量、实际工具命令探针），采样 CPU 3979.62 秒、未知 attempt 用量 0，另有 1 项观察未终态；原件、公开终态/用量、ID 集合和 SHA 再核对通过。没有新模型收据，原主 Flow/专业轮次成本仍未完整闭合。A25 未冻结，A26–A28 仍未完成；产品代码、公共契约、活动版本及用户修改保持。
