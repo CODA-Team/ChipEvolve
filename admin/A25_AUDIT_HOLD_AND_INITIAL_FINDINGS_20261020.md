@@ -163,3 +163,46 @@ AES整体证明实际运行于UTC 2026-10-19 21:06:00.947654至2026-10-20 01:06:
 应把后续时序余量、既有setup_margin能力、配方覆盖及物理边界一起列入整改，不能靠换一个配方名或重复一轮原设置解决。原生pass/iteration限制来自研究项目，本轮没有删限额或修改算法。取证：`native-repair-coverage-and-downstream-stage-audit.json`，注册日志/归档SHA、Tcl、命令顺序和逐阶段值均核对；无新EDA、模型或产品改动。
 
 阶段计数暂未变化时，进一步核实四个已登记的实际OpenROAD进程：PID/start ticks保持，约103秒观察区间各新增约103秒CPU，四份原生extractor日志均有增长，正确偏移读取公开adapter日志也能看到工具迭代。它们仍在真实计算，不把计数不变或一次日志观察超时当成卡死，不重启同一任务。`current-active-tool-progress-sample1/2/3.json`保留原始记录；早期摘录使用extractor大小选取公开adapter日志偏移，并不保证是末尾，sample3已按实际adapter大小纠正。CPU增量与原生日志增长不受此偏移问题影响。当前搜索完整性、最终PPA和完整审查仍待终态收口。
+
+## 结果审查：22份既有最终结果与实际接力来源
+
+本次仅重新读取既有结果、请求和已完成的独立验收记录，核对结果SHA、design、condition、objective及原约束。`existing-final-PPA-and-lineage-audit.json`记录22项，`audit_existing_lineage.py`为只读取证脚本；没有调用EDA、模型、补证明或重新发布事实。共同测量条件一致允许比较最终指标，但**不能将不同综合来源、物理配方和专业轮次的差异全归因于协同算法**。
+
+| 实际JPEG结果 | 功耗mW | cell面积µm² | setup WNS ps | 业务判断 |
+| --- | ---: | ---: | ---: | --- |
+| ORFS共同基线/registered64控制 | 178.33724618 | 6734.18 | +19.5042 | 原约束内 |
+| 同来源DPL Student03共同控制 | 178.10522020 | 6735.09 | +19.8262 | 面积较上限增加0.91，不能采用；不是物理不合法 |
+| 旧部分Flow首轮slot10 | 176.39359832 | 6712.36 | +6.83587 | 最终PPA可行，非当前完整搜索、非新增证明或采用 |
+| 当前measured-mode Goal Student03 | 155.27968109 | 6378.88 | −33.0878 | setup失败，不能将低功耗记成合格优化收益 |
+| 旧Goal Student03，ECO的实际父项 | 150.86801350 | 6243.33 | −12.5853 | setup失败；不是上行当前Student03 |
+| 该父项→ECO→平台再次布线 | 151.72357857 | 6243.36 | −12.9088 | 功耗、面积、WNS、TNS均较实际父项退步 |
+
+完整矩阵含5份DPL物理控制、9份旧部分Flow可行分支、4份当前Goal候选、旧Goal/ECO两项、一个既有WNS校准及ORFS。DPL五份中通过的是原始输入registered64控制，不能说有一个DPL Student已通过。旧Flow9项是已选出的可行子集，不能用9/9代替整个人口成功率。旧legacy5与registered64控制改变了整套物理来源，不能将其全部差异计为一个布线迭代参数的效果。
+
+两份根Goal请求及handoff再次核对：`a24-jpeg-goal-healthy-r2`与`a25-jpeg-goal-measured-mode-r1`实际均从ORFS `run-e185106…`开始，没有消费已完成Flow或DPL输出。本矩阵中实际完成的JPEG专业接力是**旧Goal Student03→ECO**。因此已有证据支持“部分策略和实际接力存在负收益”，仍不足以声称“修正后Flow→Query→Goal完整团队已充分运行而失败”。
+
+## 入口审查：统一执行已接入，完整业务恢复尚有缺口
+
+静态追踪根入口及专业桥接，14份源码SHA封存于`unified-entry-and-precheckpoint-recovery-static-audit.json`；其中ECO提交/leaf文件与该实际历史session的冻结副本逐字节相同。
+
+| 专业 | 平台模式的EDA路径 | 数据/上下文路径 |
+| --- | --- | --- |
+| Flow | 原阶段控制器→platform leaf/feedback→公开EF | 根入口验证Query来源；提示追加结构化Query；原生评价经公开路径发布 |
+| DPLEvolve | 专业执行桥接→公开EF→容器leaf | Query提示；桥接通过已安装DI读取父snapshot/summary/metrics |
+| GoalEvolve | 集中runner委派→公开EF→容器leaf；身份查询也委派 | Query提示；physical请求通过已安装DI读取父项事实 |
+| TimingECOAgent | 公开EF托管整个持续session，原OpenROAD及子进程在leaf内 | 提交前通过DI取父项事实，模型追加共同目标及Query上下文 |
+
+这里的“统一”是平台启用路径的实际接点，不是禁止专业内部读取当前OpenROAD的live报告，亦不是对任意新生成源码的通用沙箱证明。专业原生模式仍保留；在EF leaf中启动EDA子进程本来就是执行底座的职责，不能将其误判为绕过EF。DF负责可查询的设计事实，EF负责运行、原件及实际生产者，DI联查，Codex/Query做判断与解释。
+
+新发现一项**有源码依据、尚未注入故障复现的稳定性风险**：ECO提交后直接轮询`client.run`，没有暂态读取失败后的重接处理；如前端在session仍运行时退出，EF任务可以继续，但根`resume`在尚未生成delivery checkpoint时没有ECO重接分支。它会明确拒绝，而不是自动重启专业搜索。DPL轮询也只有KeyboardInterrupt取消处理；Goal已有三次KernelUnavailable读取重试，最终观察失败则走取消，不能一概写成均无容错。根Jobs的pending/reconcile及已完成交付恢复比这些专业等待器更完整。
+
+该发现不等于当前已发生失联、丢任务或重复实验。幂等提交已存在，恢复用户体验却没有因此自动完成。建议以后利用**已有session/run收据**补专业等待器的读取重接与同键交付，保留原预算、原模型决策和计算，不新增通用重试框架。本轮不修改或故障注入。
+
+## 审查后的最小整改顺序建议（尚未实施）
+
+1. **先保证任务含义一致。** 将原生目标/模式与最终闭合任务显式对应；使模型失败及回退可诊断；每项建议能追到实际参数或专业动作。验收不能只看进程exit0。
+2. **再保证收益交接。** 区分pre-CTS、GRT和已DRT状态的补全/测量/独立重放；列明保留的布局、路由、配置和源码机制。原生best与Codex完整目标下的选择分别记录，不默认采用最后一棒。
+3. **收口既有工程接点。** 显式工具线程与预约一致；按设计/操作实测内存，避免独立大证明占满优化关键路径；补同一session重接。保留大任务可申请更多资源的能力，不加全局小额度。
+4. **修复后才讨论验证。** 先用少量明确的机制验证确认目标生效、原状态未被交付改写、暂态读故障不重复计算；通过后再评估完整专业搜索与真实接力。当前不派发这些验证或正式实验。
+
+截至本次观察，当前搜索仍在第二轮place，9成功/8失败/4运行/29排队，尚无根result。四个实际OpenROAD PID/start ticks仍匹配，公开EF也均为running；忙碌与有日志不保证最终收敛。后继等待器仍停止，原deadline不变。完整审查尚须本轮终态、全部模型/失败/继承与交付/成本核对后收口，**不能提前标为审查完成或正式就绪**。最新只读观察为`primary-flow-progress-r6.json`及`current-active-existing-tasks-read-r7.json`。
