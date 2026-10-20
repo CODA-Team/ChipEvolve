@@ -351,3 +351,14 @@ Ariane新原生基线run-eba79e99be0b4877b9ee93214566321f真实成功，8线程/
 ### r13审阅快照（04:43）
 
 32个完成测量节点、JPEG新增物理可行JP3与最新真实接力图已纳入十二页PDF和163成员ZIP；全部成员SHA/32结果及两份GCD完整证明引用核对，实际查看JPEG页，布局可读。PDF SHA50bca3635f5eb12a458a0f12a968ce73ac40b3e29087173fc7bd50076d5cd94e；ZIP SHA2efde98ddce7724c356c706571cfb04007cd0ec79a5368c7f6ffe521fc7783a6。新包不嵌宿主CURRENT，避免包指针自引用；旧包保持不可变。最新成本262终态EF/采样CPU169364.73秒为所列范围快照，活动证明及未记录部分不算零。JPEG27输出证明和Ariane演化接续尚待完成，A29和长期目标仍未完成。
+
+
+## 04:55：按真实资格证据纠正JPEG证明预算，完成Ariane父事实业务核验
+
+审计回到同设计成功资格原件run-d74de735331e4b6c9ddb64a79d392bc2：实际95分28秒、峰值27827154944字节、32GiB预约、4worker/14400秒。新JP3证明误沿用试探24GiB/2worker/3600秒；当前规模同样2684个层次匹配声明，不能用过小预算反复得到伪阻断。停止原run-3aba...的依据是已验证的资源配置不足，不是日志静默/等待超时；它记录cancelled而非逻辑反例或证明FAIL，部分模型、全部日志与成本保留。
+
+独立新证明a29-jpeg-vt-size-r3-final-logic32-r2经现有EF运行run-0c55ea8898be432e8dc75f743cac18c4：实际32GiB、4worker、14400秒与历史成功配置相同。完整部署除这三个资源字段外逐值相同，新旧proof.eqy逐字节SHA相同；同一精确最终网表/参考、固定Liberty、所有27输出、匹配/分区义务和ABC-PDR/Z3均不改变。不是放宽验证或重跑优化/布线。未来独立交付重放脚本只准备，改绑定新证明；必须新证明成功后才运行。
+
+释放旧证明预约后，Ariane身份查询c72...完成，真实campaign/parent.json已捕获DRV294/runtime739，三个优化指标与原生baseline逐值相同；整份GoalContract（包括contract_id、目标、权重及baseline三指标）与旧轮语义完全相同，goal_distance仍1.0。现已完成基线观测补齐的真实业务核验，不再只有单测证据。原Teacher draft真实完成，plan语言推理进行中，四Student原轮次接续；新源码/最终PPA尚未交付。新版父快照及契约副本存ariane-corrected-parent-observations-verified.json，未来晋升改变活动Parent不改此历史捕获。
+
+最新所列成本264终态EF、采样CPU170234.05秒；21份Goal调用input12097910/output211308，活动证明/后续轮次及缺测开销不填零。论文素材32节点/r13保持不可变，不为单次资源调整再造新快照。当前无新功能证明PASS或采用结论，四设计目标继续。

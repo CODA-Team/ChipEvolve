@@ -113,3 +113,11 @@ Goal原生基线的DRV、运行时间属于设计观测，不能在交接时因�
 相对原ORFS参考，功耗−14.4041407%、cell面积−7.2766098%；相对实际Goal03父项功耗增加1.1806908%，以此恢复最终时序。十二指标与三快照身份通过公开DF/DI核对，全部原约束通过，但精确最终网表27输出ABC-PDR仍在进行，尚未采用。这是Goal设计状态→Codex显式原生修复的实际接力，不能称新ECO成功、新Goal四Student轮次或旧Student源码合并到共同二进制；也未隔离VT/size/余量/新线路各自的唯一因果贡献。功能证明通过后才执行已记录原交付的独立重放并调用既有采用入口；不再次运行源码演化或优化动作。
 
 English draft: Starting from the measured Goal03 checkpoint, Codex requested an explicit native VT/sizing repair after the Query investigation and retained the unsuccessful ECO branches. The resulting fully routed candidate satisfies the original 545-ps timing and physical constraints, with 152.6493 mW power, 6244.16 µm² cell area, zero setup/hold TNS and zero native routing violations. Relative to the original ORFS reference, power and cell area decrease by 14.404% and 7.277%, respectively. Relative to its actual Goal03 parent, the repair spends 1.181% more power to restore timing feasibility. This step consumes the inherited physical state and does not compose the earlier Student C++ implementation into the common tool binary. Full-output equivalence of the exact final netlist is in progress; the candidate is not yet adopted.
+
+
+### 精确最终网表证明的资源口径补充
+
+JPEG最终JP3证明从试探24GiB/2worker/3600秒纠正为同设计已成功资格的32GiB/4worker/14400秒。历史成功证明实际95分28秒/约25.9GiB；不能用不够的资源预算把尚未充分验证的好候选直接判为算法失败。原小预算尝试明确取消并留存成本，新旧proof.eqy逐字节相同，全部27输出、固定模型、匹配与ABC-PDR义务不变；新证明仍在进行，不宣称PASS。该调整不改变PPA、545ps或原面积/功耗约束。
+
+
+共同功耗口径：最终测量脚本在同SDC/Liberty/SPEF与传播时钟条件下调用OpenSTA report_power，未载入设计级SAIF活动。表中功耗为该共同工具/活动假设下的估算，具体源条件和原始报告随产物保存；不把不同活动假设或不同测量阶段的功耗直接相减归因。
