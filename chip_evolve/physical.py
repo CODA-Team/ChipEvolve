@@ -37,6 +37,7 @@ def qualify(
     *,
     fact_modes: tuple[str, ...] = ("opendb", "orfs", "opensta"),
     preserve_routing: bool = False,
+    native_route_drc: int | None = None,
 ) -> dict[str, Any]:
     """Complete GRT checkpoints, or extract facts from an already routed state."""
     design = jobs.deployment.design(jobs.design_id)
@@ -52,7 +53,10 @@ def qualify(
                 f"source {{{pdk / 'setRC.tcl'}}}",
                 *(
                     [
-                        f"check_drc -output_file {{{output / 'drc.rpt'}}}",
+                        "set signal_wire_count 0; foreach net [[ord::get_db_block] getNets] { if {[$net getSigType] ni {POWER GROUND} && [$net getWire] ne {NULL}} { incr signal_wire_count } }",
+                        'if {$signal_wire_count == 0} { error "Routed delivery requires existing signal wires" }',
+                        "utl::metric_integer platform__signal_wire_count $signal_wire_count",
+                        f"drt::check_drc -output_file {{{output / 'drc.rpt'}}}",
                         "utl::metric_integer route__drc_errors [[[ord::get_db_block] findMarkerCategory DRC] getMarkerCount]",
                     ]
                     if preserve_routing
@@ -113,7 +117,9 @@ def qualify(
         objective,
     )
     measured.update(
-        route_drc=metrics["route__drc_errors"],
+        route_drc=native_route_drc
+        if preserve_routing
+        else metrics["route__drc_errors"],
         qualification={
             "input_odb_sha256": digest(odb),
             "producer_run_id": parent,
@@ -122,6 +128,12 @@ def qualify(
     )
     if preserve_routing:
         measured["qualification"]["routing_action"] = "preserved_native_detailed_route"
+        measured["qualification"]["standalone_drc_markers"] = metrics[
+            "route__drc_errors"
+        ]
+        measured["qualification"]["route_drc_method"] = (
+            "original native detailed-route counter"
+        )
     return publish(jobs, measured, modes=fact_modes)
 
 

@@ -15,11 +15,11 @@ from .physical import container
 from .professional import environment, freeze, inventory, invoke
 
 
-def _goal_targets(metrics: dict[str, float], objective: Path) -> dict[str, float]:
+def _goal_targets(targets: dict[str, float], objective: Path) -> dict[str, float]:
     tns_limit = read(objective)["constraints"]["setup_tns_ns_min"]
     return {
-        name: max(0.0, -tns_limit) if name == "tns_abs_ns" else value * 0.9
-        for name, value in metrics.items()
+        name: max(0.0, -tns_limit) if name == "tns_abs_ns" else value
+        for name, value in targets.items()
     }
 
 
@@ -153,6 +153,7 @@ def run_goal(
         profile["read_roots"].append(fixed["source_root"])
     write(profile_path, profile)
     config = read(binding["campaign_template"])
+    native_targets = dict(config["target_metrics"])
     config.update(
         design=design["top"],
         benchmark_root=str(bench_root),
@@ -230,7 +231,7 @@ def run_goal(
             baseline_evaluation_root=str(experiment / "baseline"),
             campaign_ready=True,
             baseline_metrics=metrics,
-            target_metrics=_goal_targets(metrics, objective),
+            target_metrics=_goal_targets(native_targets, objective),
         )
         campaign_path = experiment / "evolve-config.json"
         write(campaign_path, config)
@@ -319,6 +320,8 @@ def run_eco(
             "README.md",
             "AGENTS.md",
             "LICENSE",
+            "NOTICE",
+            "PLATFORM.md",
             "requirements.txt",
         ],
     )
@@ -366,6 +369,7 @@ def run_eco(
         "snapshot_id": frame["snapshot_ids"]["opendb"],
         "metrics_snapshot_id": frame["snapshot_ids"]["orfs"],
         "input_artifacts": artifacts,
+        "input_route_drc": frame.get("route_drc"),
         "parent_run_id": frame["run_id"],
         "python": python,
         "design_id": args.design,
@@ -427,9 +431,18 @@ def run_eco(
     native = read(experiment / "session/execution.json")
     odb = experiment / "native.odb"
     jobs.materialize(native, "raw_design_database", odb, suffix="/final_eco.odb")
+    evidence_path = experiment / "native-route-evidence.json"
+    evidence_artifact = jobs.materialize(
+        native, "raw_flow_metadata", evidence_path, suffix="/route-evidence.json"
+    )
+    route_evidence = read(evidence_path)
+    if route_evidence["checkpoint_sha256"] != digest(odb):
+        raise ValueError("Native route DRC evidence belongs to another checkpoint")
     native_method = {
         "kind": "native-ECO",
         "physical_stage": "detailed_route",
+        "route_drc": route_evidence["route_drc"],
+        "route_drc_evidence": evidence_artifact,
         "iterations": args.rounds,
         "execution": str(experiment / "session/execution.json"),
     }

@@ -284,6 +284,7 @@ def finish(deployment: Deployment, experiment: Path) -> dict[str, Any]:
     else:
         if saved["native_method"].get("physical_stage") == "detailed_route":
             modes["preserve_routing"] = True
+            modes["native_route_drc"] = saved["native_method"].get("route_drc")
         result = qualify(
             jobs, odb, saved["producer"], objective, Path(saved["pdk"]), **modes
         )
