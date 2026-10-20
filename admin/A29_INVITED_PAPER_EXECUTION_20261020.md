@@ -117,3 +117,11 @@ ibex最初启动参数误带只适用于Flow/DPL的`--candidates`，CLI在建实
 三页本机阅读版`var/business/a29-paper-delivery-20261020/paper-assets/teacher-review-overview-r2.pdf`包含15节点完整数值概览、架构和GCD真实接力图；PDF实际渲染后检查中文和表格，首版字体映射失败已用Type3重导出，交付r2。ZIP r2新增该PDF，共54文件/436431字节，逐文件SHA与压缩包完整性通过；原r1快照保留。
 
 当前离线成本快照`cost-snapshot-20261020T080903Z.json`从已有EF公开执行回执去重94任务：89成功/3失败/2取消，采样CPU合计22826.46秒，8项operation提交尚无闭合执行回执；有记录的12次原生Goal调用输入7444904、输出132101token，cached是输入子集。它不含先前Flow/Goal、当前未结束调用、全部DPL模型成本、服务开销或宿主推理；不当作全场总成本、节约比例或失败均由平台导致的结论。ECO原8调用另有独立范围记录。
+
+## 16:46 原生构建收尾与ibex阶段诊断
+
+ibex四Student共8项已观察到的链接操作全部成功，按Student分组及最新回执保存在`ibex-four-native-links-verified.json`；没有将“4 Student”误算成“只有4次链接”，也没有据此宣称完整功能验证或最终PPA已通过。当前GCD两项链接实际运行，DPL两项24GiB评价仍等资源；原前端身份均保持。
+
+通过公共`EdaAiClient.artifact_bytes`取回已成功Student04原生物理叶任务`run-b621057ae0654e97910f9ad081aeb6de`的311877字节日志，与EF登记SHA逐字节一致。实际TNS序列：源0 → 功耗回收−6.97113764223ns → timing修复−0.015354828954ns → 布局−0.103289768551ns → 全局布线/寄生估计−23.0848591221ns；原报告最终表中469条slew、22条cap违反。源码和实际执行Tcl都表明该原生配方最后一次repair_timing发生在详细布局/global_route之前，后面只估寄生并测量。
+
+这定位的是原生阶段测量变化，不是对某个参数的唯一因果证明，也不是最终DRT/RCX指标；原始字段虽名为tns_abs_ns，日志值实际有符号，本次按原符号保留。证据及作用域见`ibex-student04-native-stage-diagnosis.json`和SDK取回日志。下一步仍收齐原一轮四Student，按已有门禁交付可测检查点，再通过共同测量/DF/Query决定是否将真实布线后的时序债务交给ECO；不为消除负结果改写Goal原生流程或晋升规则。
