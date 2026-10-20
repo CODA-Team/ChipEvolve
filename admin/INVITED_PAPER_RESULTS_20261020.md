@@ -40,7 +40,7 @@ JPEG保留可行Flow候选及真实负接力。DPL Student03仅原cell面积上�
 |ibex|IG3|Goal|27.995452285000|2335.22|-37.8584000|-4.26612|rejected: setup/slew/cap; originalStudent3; OpenDB deferred|
 |ibex|IG4|Goal|27.995452285000|2335.22|-37.8584000|-4.26612|rejected: setup/slew/cap; originalStudent4; OpenDB deferred|
 |ibex|IT1|Goal native timing|28.110442683000|2340.26|-26.2704000|-1.74221|rejected: finalsetup/slew; originaltiming-only, no newCPP|
-|ibex|IP1|native finishing|28.248446062000|2340.73|-10.3335000|-0.148885|rejected: setup/slew; actualfinalTNSdebt-91.45%; r2newRCprotocolpending|
+|ibex|IP1|native finishing|28.248446062000|2340.73|-10.3335000|-0.148885|rejected: setup/slew; actualfinalTNSdebt-91.45%; separateRCprotocolr2alsocompletedandrejected|
 |jpeg|JP1|native finishing|151.75381303000|6243.33|-26.2502000|-0.306245|rejected: finalsetup; nativeVTrepair then fullreroute; no newCPP|
 |ibex|IP2|native finishing r2|28.235161677000|2341.42|-1.30401000|-0.00130401|rejected: max_slew_violations,setup_tns_ns_min|
 |jpeg|JPD|preserved-wire diagnostic|150.82803369000|6243.33|0.26612000|0|diagnostic only: existing wires RCX; native DRC unknown; not adopted|
@@ -120,6 +120,8 @@ JPEG独立追踪图：`var/business/a29-paper-delivery-20261020/paper-assets/jpe
 可编辑[GCD英文案例正文及七节点表](INVITED_PAPER_GCD_CASE_TEXT_20261020.md)已提供。另有[ibex原生阶段诊断](A29_IBEX_NATIVE_STAGE_DIAGNOSIS_20261020.md)及ibex-native-stage-diagnosis-r2.pdf，明确为原生GRT估计，尚不是最终共同PPA。
 
 
-新增ibex与Ariane独立接力图：`var/business/a29-paper-delivery-20261020/paper-assets/ibex-measured-relay-r3.pdf`、`ariane-measured-relay-r4.pdf`。它们只把已完成节点画为实线，prepared/queued/最终待测步骤单独标明，不作为新收益。
+新增ibex与Ariane独立接力图：`var/business/a29-paper-delivery-20261020/paper-assets/ibex-measured-relay-r3.pdf`、`ariane-measured-relay-r5.pdf`。它们只把已完成节点画为实线，prepared/queued/最终待测步骤单独标明，不作为新收益。
 
-已完成但未产出最终PPA的三项尝试另见 [失败过程表](INVITED_PAPER_FAILED_ATTEMPTS_20261021.csv)：Ariane Student02首次原生超时、JPEG RSZ0074与DRT1231；不把失败阶段估计填为最终PPA。未来Goal线程适配已由真实EF工具确认8线程/8核，当前冻结Ariane实验未热切。
+已完成但未产出最终PPA的三项尝试另见 [失败过程表](INVITED_PAPER_FAILED_ATTEMPTS_20261021.csv)：Ariane Student02首次原生超时、JPEG RSZ0074与DRT1231；不把失败阶段估计填为最终PPA。Goal线程适配已由真实EF工具确认8线程/8核。旧Ariane因已验证DRV基线事实丢失而停止、完整留证；独立修复轮实际EF原生8线程/12GiB，完整DRT仍32GiB，原目标及算法不变。
+
+基线观测完整性：GCD B0及JPEG JB0原记录缺少fanout数值，CSV明确unknown，不补零、不报告其fanout改善比例。独立DRC marker与原生DRT计数分列。四设计实际status调用、字节与墙钟见business-status-demo-r3，额外模型调用0；父Codex推理未单列计量，不报告节约率。

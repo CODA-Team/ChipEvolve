@@ -330,3 +330,10 @@ ibex r2原生步骤已成功结束，公开原始日志SHA核对通过：输入T
 释放资源后JPEG既有VT/size-r3完整DRT/RCX任务run-df9439ed18cf432c9b5f08c74303042c已运行，原请求未重提。旧JPEG完整搜索保持停止；GCD两条合法验证接力、ibex拒绝结论和已发布r11快照不改。待新结果后再更新论文表图和采用结论。
 
 证据：var/business/a29-paper-delivery-20261020/goal-parent-observations-verification.json、ariane-baseline-observation-handoff-diagnosis.json、ariane-goal-corrected-launch.json及原实验correction-stop.json。
+
+
+### 04:28材料检查点：四设计状态记录与r12审阅包
+
+完成四设计现有status入口的实际读取，明确旧Ariane缺陷退役/新轮运行与JPEG布线，不新增产品接口。当前成本254终态EF/采样CPU161397.19秒，取消成本保留，不能当全场费用或节约率。导出31个逐原件SHA核对的完成节点；GCD/JPEG旧参考缺失的fanout仍unknown。Ariane接力图r5区分旧专业轮及独立修复轮，虚线进行中不伪造新PPA。
+
+生成r12十二页PDF与153成员ZIP（约1.46MB），31结果SHA、两份GCD全18输出证明/重放引用、成员清单SHA全部核对；实际查看Ariane和失败页，图表可读。PDF为87d545558209eec2452d3e8d4fa1cd35b87c3ee2846a6012f94139c8a5cdd7c4，ZIP为0a23ad8b70a0ae012aae5c29770624054112a2981a6be5f375388d942802445b。包内CURRENT是封包前管理快照，包自身身份以README/manifest/PDF和宿主对应receipt为准；旧快照均不覆写。Ariane新baseline与JPEG最终布线仍在原EF句柄运行，整体目标尚未完成。
