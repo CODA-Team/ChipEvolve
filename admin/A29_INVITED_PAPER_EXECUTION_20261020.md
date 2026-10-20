@@ -258,3 +258,13 @@ ibex Student01原修复评价成功，公开DI日志641060字节/登记SHA核对
 ### 23:30 ibex第二候选最终交付
 
 Student02共同结果27.968287468mW/2335.44µm²/setup WS−36.3866ps/TNS−4.41515ns，slew408/cap18、原生DRT0；12项原始指标与公开DF/DI逐值核对、ORFS/OpenSTA两个快照身份通过。拒绝候选OpenDB按既有机制延后，不冒称三类事实齐全。其电气/时序比主Student01更差，仍保留合法IB0，prepared timing-only继续以Student01为源。CSV增至22完成测量节点；r8审阅包固定21节点时点，不改写已发布快照，下一次统一导出再纳入新结果。
+
+## 23:50 收取真实交付并继续按诊断修复
+
+- GCD选中DPL Student02最终为0.89124625083mW /44.6148µm² /setup WS+14.3074ps /TNS0，hold WS+33.8957ps、hold TNS0，电气/布局/原生DRT均0。12原始指标、三DF/DI快照身份与实际F37父项一致；功耗+0.03757%、cell面积−0.61704%，仍超过原面积上限42.6757，拒绝。未改DG1的DPL01父项，G02和DG1原18输出证明/独立重放再次核SHA后复用。GCD四专业真实参与、两条合法接力和拒绝分支的业务证据已齐；原DPL框架仍收取兄弟候选交付，不冒称整个前端已退出。
+- ibex基于主Student01的独立timing-only/legacy_setup已经派发并完成原生评价，实际只执行repair_design和repair_timing -setup，没有再次功耗回收；原生GRT估计TNS−11.090138ns/DRV26。该阶段是理想时钟/估计寄生，不能与主候选最终TNS−1.59699ns直接算收益；共同DRT/RCX任务仍排队。使用12GiB的实测短原生任务与JPEG20GiB共存，未改冻结请求或抢占。
+- JPEG定向ECO的完整布线/共同测量/三事实已经结束，12值及三身份一致：151.72843635mW /6243.39µm² /setup WS−15.6584ps /TNS−0.238709ns，slew0/cap0/**fanout1**，原生DRT9592→完整DRT0。最终setup和fanout均失败；功耗较实际Goal03增0.570315%，拒绝。全字段核对捕获了扇出违反，不能只看PPA主表就宣称电气通过。
+- 根据已完成Goal03 Query，另从更好的Goal03发起一次明确的native OpenROAD post-route finishing：加载原实际SPEF/传播时钟并先核原TNS/WS，执行原生repair_design和repair_timing -setup -repair_tns 100、合法化，再另行完整DRT/RCX/DF。是Codex下发的原生收尾动作，不是新增Goal Teacher/Student或合并其C++源码，也不是隐藏在共同测量里的优化；原目标/时钟/库不变。所有工具由EF启动，目前run-a1e12cc7f8ac46548e81ddfbed3b1052排队；没有重启旧Flow搜索、复跑八轮ECO或重复相同策略。
+- Ariane原Goal原生基线已实际运行，STA确认5093个setup违例端点，支持全局专业接力选择。23:49核实原OpenROAD PID2498415仍运行，累计CPU约67分钟/墙钟614秒、约657%CPU、RSS约1.8GiB；不能把日志暂未更新当作卡死或重启。此为原生placement寄生/ideal-clock阶段，不是最终PPA。
+
+当前CSV增至24完成测量节点。r8九页审阅包固定21节点时点，后续统一导出再纳入新节点，不改写已发布快照。原件/SDK记录、GCD业务证据摘要、两个独立修复的真实启动/EF回执均在本轮var目录；仍未完成四设计目标。

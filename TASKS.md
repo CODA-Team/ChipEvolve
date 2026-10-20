@@ -1,3 +1,5 @@
+2026-10-20 23:50 A29：GCD选中DPL02完整最终测量和三事实完成，原面积拒绝；GCD四专业真实参与、两合法接力证据齐全（原框架兄弟交付继续）。JPEG新ECO完整交付setup/fanout拒绝，另从Goal03派发明确native post-route收尾；ibex独立timing-only原生评价完成、共同收尾排队；Ariane原生基线正实际处理5093违例端点。CSV24完成节点，四设计目标仍进行中。
+
 2026-10-20 23:22 A29检查点：JPEG定向ECO八轮已完成（10模型含重试），原生DRT9592，独立完整布线/最终测量排队；ibex兄弟交付已恢复执行。九页r8审阅PDF含四设计接力图、21完成节点；GCD两条合法结果保留，四设计尚未收口。以下按历史时点保留。
 
 2026-10-20 23:01 A29续作：原DPL三Student/Teacher和ibex四Student/Teacher已结束；GCD选Student02、ibex选Student01修复版，共同交付仍待收齐。ibex主最终28.180463mW/2339.71µm²但setup/slew/cap拒绝，Query已完成、独立原生timing-only修复已准备。Ariane参考642.415285mW/43672.8µm²与三事实已完成，原LEC取消未证明；Query后原Goal时序1×4已派发。JPEG旧搜索停止，新定向ECO运行；论文21实测节点，四设计尚未收口。最新状态见[施工记录](admin/A29_INVITED_PAPER_EXECUTION_20261020.md)。

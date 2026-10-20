@@ -1,6 +1,6 @@
 # 邀请论文实验素材：当前实测版（2026-10-20）
 
-这是持续更新的实验素材，不是声称四设计已经全部完成。当前22行数据从原结果逐SHA核对后导出；新GCD DPL原生一轮三Student/Teacher已完成、选中Student02，最终交付等待资源；Student01→Goal原1轮4Student已完成最终测量，新增合法分支通过18输出PDR和独立重放；未完成候选不填结果。CSV包含完整PPA、电气/布局违反、DRC方法、run/条件/目标及来源SHA。
+这是持续更新的实验素材，不是声称四设计已经全部完成。当前24行数据从原结果逐SHA核对后导出；新GCD DPL原生一轮三Student/Teacher已完成、选中Student02，选中Student02共同最终测量已完成、原面积约束拒绝，兄弟交付继续；Student01→Goal原1轮4Student已完成最终测量，新增合法分支通过18输出PDR和独立重放；未完成候选不填结果。CSV包含完整PPA、电气/布局违反、DRC方法、run/条件/目标及来源SHA。
 
 ## 当前可用结论
 
@@ -24,6 +24,7 @@ JPEG保留可行Flow候选及真实负接力。DPL Student03仅原cell面积上�
 |gcd|GEC|route completion|0.77061523916000|38.9432|-32.4934000|-0.266838|rejected: setup timing; complete route DRC0|
 |ibex|IB0|ORFS|29.243746772000|2403.75|25.478000|0|reference: complete flow; explicit multi-VT libraries|
 |gcd|D01|DPL|0.93751552049000|44.9793|10.4943000|0|area rejected; validated Goal repair branch; native round completed, Teacher selected Student02|
+|gcd|D02|DPL|0.89124625083000|44.6148|14.3074000|0|native Teacher selected; final area rejected; G02/DG1 retained|
 |gcd|DG1|Goal|0.81929122098000|39.6139|1.31586000|0|validated feasible alternative; G02 retained|
 |gcd|DG2|Goal|0.8015136118000|39.1473|-85.4511000|-0.867528|rejected: setup timing|
 |gcd|DG3|Goal|0.80402684398000|39.1473|-93.1683000|-0.98939|rejected: setup timing|
@@ -33,6 +34,7 @@ JPEG保留可行Flow候选及真实负接力。DPL Student03仅原cell面积上�
 |jpeg|JF10|Flow|176.39359832000|6712.36|6.83587000|0|measured feasible; proof timed out; not adopted|
 |jpeg|JG3|Goal|150.8680135000|6243.33|-12.5853000|-0.0701142|rejected: setup timing|
 |jpeg|JEold|ECO|151.72357857000|6243.36|-12.9088000|-0.170005|rejected: setup timing; legacy platform reroute|
+|jpeg|JEnew|ECO+route finish|151.72843635000|6243.39|-15.6584000|-0.238709|rejected: setup/fanout; native8rounds,10modelcalls; fullrouteDRC0|
 |ibex|IG1|Goal|28.18046324000|2339.71|-28.3996000|-1.59699|rejected: setup/slew/cap; native promotedStudent01; ORFS retained|
 |ibex|IG2|Goal|27.968287468000|2335.44|-36.3866000|-4.41515|rejected: setup/slew/cap; originalStudent02; ORFS retained; OpenDB deferred|
 |ariane|AB0|ORFS checkpoint|642.41528511000|43672.8|-285.396000|-155.146|reference: setup/slew fail; original inline LEC retired; not adopted|
@@ -51,14 +53,14 @@ flowchart LR
  QE --> E[ECO八轮完成：TNS改善69.07%，未闭合且DRC54]
  E --> R[完整布线补全：DRC0，仍setup拒绝]
  F --> D1[DPL Student01：最终PPA已测，面积拒绝]
- F -. 原生整轮已完成 .-> D[DPL Teacher选中Student02：最终交付排队]
+ F --> D[DPL Student02：最终测量完成、面积拒绝]
  D1 --> QD[Query：HPWL与PPA冲突诊断]
  QD --> GN[Goal一轮四Student：完成]
  GN --> DG1[Student01：合法且完整验证通过]
  GN --> DGX[Student02/03/04：setup拒绝]
 ```
 
-实线表示已完成的真实步骤；虚线标明当前计算或后续步骤。DPL原生整轮已完成，Student02待共同最终交付；Student01经Query→Goal已形成新的合法验证分支；ECO是真实完成的拒绝侧枝，不画成成功采用的四棒主线。
+实线表示已完成的真实步骤；虚线标明当前计算或后续步骤。DPL原生整轮已完成，Student02共同最终PPA已测、面积拒绝；Student01经Query→Goal已形成新的合法验证分支；ECO是真实完成的拒绝侧枝，不画成成功采用的四棒主线。
 
 ## 平台做什么
 
@@ -82,10 +84,10 @@ flowchart LR
 
 |设计|当前交付|下一步|
 |---|---|---|
-|GCD|合法既有成果已固定；DPL原生轮已结束、选中Student02并等待最终交付；Student01→Query→Goal新增合法分支0.819291mW/39.6139um²，18输出PDR/独立重放通过；ECO侧枝仍setup拒绝，G02保持|收齐DPL Student02共同最终交付；保持已完整验证的G02和DG1，不重复同产物证明|
-|ibex|原Goal一轮四Student及Teacher评审已结束，晋升Student01修复版；共同主分支28.180463mW/2339.71um²/TNS−1.59699ns/slew32/cap1，DF/DI十二值核对通过，暂不采用|其余候选交付继续；主分支Query完成，定位减弱共享逻辑/输出缓冲，已准备单独原生timing-only修复，ORFS可行基线保留|
-|jpeg|旧实测可行Flow候选及真实负接力保留；余下搜索已停止；24GiB证明分区超时，未采用Flow10|旧Flow搜索保持停止；以Goal03为父的新定向ECO原生八轮已完成（10次模型含重试），原生DRT9592；已单列完整布线/共同测量，不把原生估计作最终PPA|
-|ariane|原映射网表/136 SRAM来源的完整物理参考已交付：642.415285mW/43672.8um²/setup WS−285.396ps/TNS−155.146ns/slew436，原生DRT0；12指标与3快照经DF/DI核对|Query已完成并发现深逻辑reg2out时序问题，原Goal timing-only一轮四Student已派发、原生基线等待32GiB；原LEC取消未证明|
+|GCD|合法既有成果已固定；DPL原生轮已结束、选中Student02完成共同最终测量，面积拒绝；Student01→Query→Goal新增合法分支0.819291mW/39.6139um²，18输出PDR/独立重放通过；ECO侧枝仍setup拒绝，G02保持|收齐原轮兄弟交付；Student02原面积拒绝，保留已完整验证的G02和DG1|
+|ibex|原Goal一轮四Student及Teacher评审已结束，晋升Student01修复版；共同主分支28.180463mW/2339.71um²/TNS−1.59699ns/slew32/cap1，DF/DI十二值核对通过，暂不采用|其余候选交付继续；主分支Query完成，定位减弱共享逻辑/输出缓冲；独立原生timing-only修复已完成原生评价、共同收尾排队，ORFS可行基线保留|
+|jpeg|旧实测可行Flow候选及真实负接力保留；余下搜索已停止；24GiB证明分区超时，未采用Flow10|旧Flow搜索保持停止；以Goal03为父的新定向ECO原生八轮已完成（10次模型含重试），原生DRT9592→完整布线DRC0，最终151.728436mW/6243.39um²/TNS−0.238709ns，setup/fanout拒绝；另从更好的Goal03派发独立原生postroute时序收尾|
+|ariane|原映射网表/136 SRAM来源的完整物理参考已交付：642.415285mW/43672.8um²/setup WS−285.396ps/TNS−155.146ns/slew436，原生DRT0；12指标与3快照经DF/DI核对|Query已完成并发现深逻辑reg2out时序问题，原Goal timing-only一轮四Student已派发、原生基线正在32GiB预约中执行，原生STA已确认5093个违例端点；原LEC取消未证明|
 
 ## 指标与证据口径
 
@@ -102,13 +104,13 @@ DPL Student01原生HPWL530.9um（较Diamond536.9下降1.1175%，较framework531.
 
 新增PPA图：`var/business/a29-paper-delivery-20261020/paper-assets/gcd-ppa-observations-r2.pdf`（另有SVG）。从CSV选择7个已完成GCD节点，逐原件SHA核对，标明原面积上限、合法采用与拒绝状态；横向排列不是连续接力。完整节点仍以CSV为准。
 
-更新后的GCD实际接力图：`var/business/a29-paper-delivery-20261020/paper-assets/gcd-measured-relay-r3.pdf`（另有SVG）；DPL01→Goal新合法分支已由虚线待做改为实线完成，既有ECO拒绝侧枝保留。
+更新后的GCD实际接力图：`var/business/a29-paper-delivery-20261020/paper-assets/gcd-measured-relay-r4.pdf`（另有SVG）；DPL01→Goal新合法分支已由虚线待做改为实线完成，既有ECO拒绝侧枝保留。
 
 [方法与英文图注](INVITED_PAPER_METHOD_NOTES_20261020.md)说明平台分工、阶段交接、专业能力、采用规则和比较范围。
 
-JPEG独立追踪图：`var/business/a29-paper-delivery-20261020/paper-assets/jpeg-measured-relay-r3.pdf`（另有SVG）。五个历史实测节点及三个真实父子交接已由input-receipt的source原件SHA核对；Goal03→ECO负接力保留，旧ECO交付重布线标明，Flow10单独列示，不推断其父边。
+JPEG独立追踪图：`var/business/a29-paper-delivery-20261020/paper-assets/jpeg-measured-relay-r4.pdf`（另有SVG）。五个历史实测节点及三个真实父子交接已由input-receipt的source原件SHA核对；Goal03→ECO负接力保留，旧ECO交付重布线标明，Flow10单独列示，不推断其父边。
 
 可编辑[GCD英文案例正文及七节点表](INVITED_PAPER_GCD_CASE_TEXT_20261020.md)已提供。另有[ibex原生阶段诊断](A29_IBEX_NATIVE_STAGE_DIAGNOSIS_20261020.md)及ibex-native-stage-diagnosis-r2.pdf，明确为原生GRT估计，尚不是最终共同PPA。
 
 
-新增ibex与Ariane独立接力图：`var/business/a29-paper-delivery-20261020/paper-assets/ibex-measured-relay-r1.pdf`、`ariane-measured-relay-r1.pdf`。它们只把已完成节点画为实线，prepared/queued/最终待测步骤单独标明，不作为新收益。
+新增ibex与Ariane独立接力图：`var/business/a29-paper-delivery-20261020/paper-assets/ibex-measured-relay-r2.pdf`、`ariane-measured-relay-r2.pdf`。它们只把已完成节点画为实线，prepared/queued/最终待测步骤单独标明，不作为新收益。
