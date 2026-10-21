@@ -189,3 +189,133 @@ def test_driver_calls_native_parent_evaluator_with_private_source_and_original_m
     runpy.run_path(str(script))
     assert len(calls) == 1
     assert read(output / "baseline.json")["metrics"] == {"dynamic_power_pw": 123}
+
+
+def measured_candidate_result(tmp_path):
+    from chip_evolve.jobs import digest
+
+    promoted = source_result(tmp_path)
+    origin = promoted.parent
+    source = origin / "campaign/parents/cpp-hash/source"
+    artifact = origin / "campaign/rounds/round_001/students/student_2/artifacts"
+    record = artifact / "candidate.json"
+    write(
+        record,
+        {
+            "source_commit": "measured-student2-commit",
+            "metrics": {
+                "dynamic_power_pw": 123,
+                "leakage_power_pw": 4,
+                "tns_abs_ns": 0.2,
+            },
+            "implementation_diff": "actual tested CPP change",
+            "evaluation_error": None,
+            "artifacts": {"candidate_source": str(source)},
+            "checks": [
+                {"name": name, "passed": True}
+                for name in ["build", "flow", "metrics", "placement", "lec"]
+            ],
+            "hypothesis": {
+                "evaluation_mode": "power_then_timing",
+                "timing_recipe_id": "wns_path_deep",
+            },
+        },
+    )
+    verdict = artifact / "evidence.json"
+    write(verdict, {"state": "validated", "goal_distance": 0.25})
+    write(
+        artifact.parent / "workspace_manifest.json",
+        {"parent_source_hash": "original-parent"},
+    )
+    candidate = origin / "native-candidates/candidates/student2/result.json"
+    write(
+        candidate,
+        {
+            "design_id": "aes",
+            "conditions": {"toolchain": {"image": "fixed"}},
+            "native_method": {
+                "kind": "native-candidate",
+                "capability": "goal",
+                "origin_experiment": str(origin),
+                "candidate": {
+                    "candidate_id": "round_001-student_2",
+                    "source_ref": "measured-student2-commit",
+                    "native_record": {"path": str(record), "sha256": digest(record)},
+                    "native_verdict_record": {
+                        "path": str(verdict),
+                        "sha256": digest(verdict),
+                    },
+                },
+            },
+        },
+    )
+    write(
+        candidate.parent / "delivery-checkpoint.json", {"producer": "measured-producer"}
+    )
+    request = origin / "operations/physical/request.json"
+    settings = read(request)
+    settings["source"] = str(source)
+    write(request, settings)
+    return candidate, promoted, record
+
+
+def test_measured_student_candidate_reuses_its_own_source_and_recipe_without_promotion(
+    tmp_path,
+):
+    d = deployment(tmp_path)
+    d.value["toolchain"] = {"image": "fixed"}
+    result, promoted, _ = measured_candidate_result(tmp_path)
+    original_parent_bytes = promoted.read_bytes()
+    method = descriptor(d, result)
+    assert method["evaluation_mode"] == "power_then_timing"
+    assert method["timing_recipe_id"] == "wns_path_deep"
+    assert method["parent"]["source_commit"] == "measured-student2-commit"
+    assert method["parent"]["metrics"]["dynamic_power_pw"] == 123
+    assert method["source_identity"]["checked_files"] == 1
+    assert (
+        method["source_identity"]["candidate_evidence"]["native_promotion_changed"]
+        is False
+    )
+    assert promoted.read_bytes() == original_parent_bytes
+
+
+@pytest.mark.parametrize(
+    "problem",
+    [
+        "record_changed",
+        "wrong_source_commit",
+        "failed_native_check",
+        "changed_cpp",
+        "wrong_producer_source",
+    ],
+)
+def test_candidate_replay_rejects_wrong_or_failed_native_evidence(tmp_path, problem):
+    from chip_evolve.jobs import digest
+
+    d = deployment(tmp_path)
+    d.value["toolchain"] = {"image": "fixed"}
+    result, promoted, record = measured_candidate_result(tmp_path)
+    frame = read(result)
+    if problem in ["record_changed", "wrong_source_commit", "failed_native_check"]:
+        value = read(record)
+        if problem == "failed_native_check":
+            value["checks"][0]["passed"] = False
+        else:
+            value["source_commit"] = "different"
+        write(record, value)
+        if problem != "record_changed":
+            frame["native_method"]["candidate"]["native_record"]["sha256"] = digest(
+                record
+            )
+    elif problem == "changed_cpp":
+        (
+            promoted.parent / "campaign/parents/cpp-hash/source/src/rsz/Example.cc"
+        ).write_text("changed")
+    else:
+        request = promoted.parent / "operations/physical/request.json"
+        value = read(request)
+        value["source"] = "/different/candidate/source"
+        write(request, value)
+    write(result, frame)
+    with pytest.raises(ValueError):
+        descriptor(d, result)

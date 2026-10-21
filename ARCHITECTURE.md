@@ -1,3 +1,5 @@
+2026-10-21 晚间 A30：既有Goal固定方法入口扩展为接受已测量的`native-candidate`，区分物理`--source`与源码`--code-source`。候选分支核对原candidate/evidence字节、五项原生检查、701声明源码与唯一成功EF生产者，保留原evaluation_mode/recipe；它只为原evaluate_parent恢复方法身份，不改变原Teacher/EPD/晋升指针。公共CLI/EF/DF/DI协议与原生优化算法保持；真实G02的701文件/原power_then_timing/wns_path_deep身份已核对，新增实际跨设计执行仍待结果。两次实验汇总区分固定策略动作、实际多棒路径、源码搜索与纯路由重测，不能互相替代。
+
 2026-10-21 夜间路径交付：每个专业节点保留实际父项、冻结条件和产物SHA；已有 CLI 的源码复用与新 Student 搜索分支分别记录。ECO 内部可选 TIMINGECO_LIB_FILES 贯通容器、原生加载、回退重载与最佳状态导出，保证 SRAM 模型与共同测量一致；公共 API 与原专业动作/评分不变。只读图表导出见 [夜间交付](admin/A30_OVERNIGHT_RELAY_DELIVERY_20261021.md)。
 
 2026-10-21 A30 接入增量：Goal 的既有内部执行 profile 新增可选 `pdk_root`、`equivalent_cells`；根业务接入按 design.platform 冻结 PDK 输入，原生求值器先加载技术 LEF，原检查器补 CK/扫描 DFF 识别，RMP 排除 fakeram。未提供显式 PDK 时保持 ASAP7 默认。公共 CLI/EF/DF/DI 接口、Teacher/Student 算法及晋升规则不变；实际双 PDK 结果待运行。数据流见 [A30 计划](admin/A30_FOUR_DESIGN_TWO_PDK_PLAN_20261021.md)。
