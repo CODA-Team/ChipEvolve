@@ -548,3 +548,7 @@ Goal内部已有baseline.json→Parent交接补齐原生DRV/runtime等辅助数�
 JPEG已由Goal03物理状态→有证据的Query/Codex选择→显式原生VT/size修复→EF完整物理交付→DF/DI→完整证明/独立同值重放→既有select实际保留。ibex使用相同已有原生策略类型，从其自己的IP2状态和有序Query出发，原900ps及最终约束不变，已物理可行，完整106输出证明在途。没有新服务、公共API、通用harness或评测库；Codex负责选策略和接受，EF负责确定性执行，DF/DI/Query负责事实与上下文。物理状态继承与C++二进制合并继续分开，未将旧Student源码自动合并进共同工具。
 
 内存是既有任务资源声明，单项按实际规模配置：ibex未启动的24GiB预约基于三份成功峰值约3.5GiB，替代为12GiB且输入/线程/超时相同；其完整功能证明按1936实际状态配置20GiB，不减少106输出或任一分区义务。EF总预算、服务与其他活动计算未改。Ariane四个真实Cpp二进制已核对，原生轮次仍待终态；不称全目标完成或通用最优保证。
+
+### A29：派生时钟功能证明的私有配置（2026-10-21）
+
+原 EQY 内部配置可显式启用 `validation.equivalence_multiclock`：两侧模型先经原生 clk2fflogic，再用原 ABC-PDR 和 SBY multiclock。默认单时钟路径不变；工具身份、全部输出/分区验收与 EF 入口不变，无公共 API/数据库变更。正例 PASS、负例实际反例、原 Ibex 失败分区 PASS 均经 EF 资格；完整106输出证明、独立重放及采用仍单独验收。见 `admin/A29_IBEX_DERIVED_CLOCK_QUALIFICATION_20261021.md`。

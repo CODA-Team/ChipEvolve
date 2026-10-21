@@ -69,6 +69,7 @@ def configuration(
     strategy: str = "sat",
     state_points: set[str] | None = None,
     merge_partitions: bool = False,
+    multiclock: bool = False,
 ) -> str:
     if strategy not in {"sat", "abc-pdr"}:
         raise ValueError("Unknown EQY strategy: " + strategy)
@@ -82,7 +83,12 @@ def configuration(
         ]
         lines += [f'read_verilog "{source}"']
         lines += ["delete t:" + kind for kind in checked["zero_port_types"]]
-        lines += ["prep -top " + top + " -flatten", "delete t:$scopeinfo", ""]
+        lines += ["prep -top " + top + " -flatten", "delete t:$scopeinfo"]
+        if multiclock:
+            # Convert both sides before EQY applies its single-clock candidate
+            # abstraction; enabling only SBY multiclock is too late for gates.
+            lines.append("clk2fflogic")
+        lines.append("")
     lines += ["[match *]", "nodefault"]
     # Keep every actual port and the netlist's declared hierarchical wires.
     # Routed flat names (netNNN, clknet_leaf_N_clk, etc.) are not semantic
@@ -122,6 +128,8 @@ def configuration(
             "xprop on",
             "option aigsmt z3",
         ]
+        if multiclock:
+            lines.append("option multiclock on")
     return "\n".join(lines) + "\n"
 
 
@@ -172,6 +180,7 @@ def verify(
             strategy=strategy,
             state_points=states,
             merge_partitions=policy.get("equivalence_merge_partitions", False),
+            multiclock=policy.get("equivalence_multiclock", False),
         )
     )
     # Suppress only the native partitioner's very large dependency matrix log.
@@ -196,7 +205,14 @@ def verify(
         str(script),
     ]
     extra: list[Path] = []
-    details: dict[str, Any] = {"matching_policy": "ports-and-common-declared-hierarchy"}
+    details: dict[str, Any] = {
+        "matching_policy": "ports-and-common-declared-hierarchy",
+        "clock_model": (
+            "clk2fflogic"
+            if policy.get("equivalence_multiclock", False)
+            else "single_clock"
+        ),
+    }
     if policy.get("equivalence_match_flops", False):
         from .config import write
 
