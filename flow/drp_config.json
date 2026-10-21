@@ -409,6 +409,22 @@
         "reference": "ORFS 5105b0a77 / OpenROAD 27288f5c90, GCD ASAP7 BC, real post-route 2026-10-14"
       },
       "routing_range_override": {}
+    },
+    {
+      "platform": "nangate45",
+      "design": "gcd",
+      "clock_period_range": [
+        0.1,
+        1.0
+      ],
+      "clock_period_unit": "ns",
+      "default_clock_period": 0.25,
+      "baseline": {
+        "ecp_base": 0.41875799999999996,
+        "wl_base": 4531,
+        "reference": "ORFS 5105b0a77 / OpenROAD 27288f5c90, Nangate45 typical GCD full Yosys, 250ps constraint, EF run-a35c8eb1c64a46e38c33a7385e1995a1; final 6_report.json and 5_2_route.json, 2026-10-21"
+      },
+      "routing_range_override": {}
     }
   ]
 }
