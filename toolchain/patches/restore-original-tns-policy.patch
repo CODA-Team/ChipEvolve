@@ -1,0 +1,187 @@
+--- a/src/rsz/src/policy/SetupTnsPolicy.cc
++++ b/src/rsz/src/policy/SetupTnsPolicy.cc
+@@ -4,12 +4,15 @@
+ #include "SetupTnsPolicy.hh"
+
+ #include <algorithm>
++#include <charconv>
+ #include <cmath>
+ #include <cstddef>
++#include <cstdlib>
+ #include <limits>
+ #include <map>
+ #include <queue>
+ #include <set>
++#include <string>
+ #include <unordered_map>
+ #include <unordered_set>
+ #include <utility>
+@@ -42,6 +45,38 @@
+
+ namespace {
+ static constexpr int kDelayDigits = 3;
++static constexpr float kTnsWnsDamageCap = 6.0e-12f;
++static constexpr float kTnsExpansionCapRatio = 0.035f;
++static constexpr float kEndpointImproveTnsExpansionCapRatio = 0.012f;
++static constexpr float kTnsRatioFloor = 1.0e-12f;
++
++bool acceptEndpointImprovements()
++{
++  const char* value = std::getenv("RSZ_TNS_ACCEPT_ENDPOINT_IMPROVE");
++  return value != nullptr && std::string(value) != "0";
++}
++
++int readEnvInt(const char* name, const int default_value)
++{
++  const char* value = std::getenv(name);
++  if (value == nullptr) {
++    return default_value;
++  }
++  int parsed = default_value;
++  const std::string text(value);
++  const auto* begin = text.data();
++  const auto* end = begin + text.size();
++  const auto result = std::from_chars(begin, end, parsed);
++  if (result.ec != std::errc() || result.ptr != end) {
++    return default_value;
++  }
++  return parsed;
++}
++
++int tnsPathsPerEndpoint()
++{
++  return std::clamp(readEnvInt("RSZ_TNS_PATHS_PER_ENDPOINT", 1), 1, 6);
++}
+
+ }  // namespace
+
+@@ -75,6 +110,7 @@
+   committer_.capturePrePhaseSlack();
+   setup_context_.overall_no_progress_count = 0;
+   target_collector_->resetEndpointPasses();
++  target_collector_->clearWnsVisitedEndpoints();
+   debugPrint(logger_,
+              RSZ,
+              "repair_setup",
+@@ -103,13 +139,17 @@
+              RSZ,
+              "repair_setup",
+              1,
+-             "TNS{} Phase: Processing {} violating endpoints (skipping worst "
+-             "endpoint)",
++             "TNS{} Phase: Processing {} violating endpoints",
+              phase_marker,
+              max_endpoint_count);
+
++  const int paths_per_endpoint = tnsPathsPerEndpoint();
+   std::map<const sta::Pin*, int> endpoint_pass_limits;
+-  for (int endpoint_index = 1; endpoint_index < max_endpoint_count;
++  int suffix_exit_examined = 0;
++  int suffix_dirty_exits = 0;
++  int suffix_restored = 0;
++  int suffix_preserved_commits = 0;
++  for (int endpoint_index = 0; endpoint_index < max_endpoint_count;
+        endpoint_index++) {
+     if (endpoint_index >= setup_context_.max_end_repairs) {
+       debugPrint(logger_,
+@@ -129,7 +169,7 @@
+     }
+
+     const sta::Pin* endpoint_pin = endpoint->pin();
+-    sta::Slack endpoint_slack = target_collector_->getCurrentEndpointSlack();
++    sta::Slack endpoint_slack = sta_->slack(endpoint, max_);
+     if (sta::fuzzyGreaterEqual(endpoint_slack, setup_slack_margin)) {
+       continue;
+     }
+@@ -160,11 +200,14 @@
+
+     committer_.beginJournal();
+     bool journal_open = true;
++    bool journal_dirty = false;
+     while (pass <= max_passes_per_endpoint) {
+       std::vector<const sta::Pin*> viol_pins
+-          = target_collector_->collectViolators(1, -1, sort_type);
++          = target_collector_->collectViolators(
++              paths_per_endpoint, -1, sort_type);
+       sta::Path* focus_path = sta_->vertexWorstSlackPath(endpoint, max_);
+       std::vector<std::pair<const sta::Pin*, MoveType>> chosen_moves;
++      const float prev_tns_local = sta_->totalNegativeSlack(max_);
+       bool changed;
+       {
+         utl::SetAndRestore<int> override_max_repairs(
+@@ -177,14 +220,9 @@
+       }
+
+       if (!changed) {
+-        if (decreasing_slack_passes > current_limit) {
+-          committer_.restoreJournal();
+-        } else {
+-          committer_.commitJournal();
+-        }
+-        journal_open = false;
+         break;
+       }
++      journal_dirty = true;
+
+       estimate_parasitics_->updateParasitics();
+       sta_->findRequireds();
+@@ -194,10 +232,25 @@
+       sta::Vertex* global_wns_vertex = nullptr;
+       sta_->worstSlack(max_, global_wns, global_wns_vertex);
+       const bool wns_improved = sta::fuzzyGreater(global_wns, prev_global_wns);
+-      const bool wns_same = sta::fuzzyEqual(global_wns, prev_global_wns);
+       const bool endpoint_improved
+           = sta::fuzzyGreater(endpoint_slack, prev_endpoint_slack);
+-      const bool better = wns_improved || (wns_same && endpoint_improved);
++      const float new_tns = sta_->totalNegativeSlack(max_);
++      const bool tns_improved = sta::fuzzyGreater(new_tns, prev_tns_local);
++      const float wns_damage
++          = std::max(0.0f, static_cast<float>(prev_global_wns - global_wns));
++      const float tns_expand_ratio
++          = std::max(0.0f, std::abs(new_tns) - std::abs(prev_tns_local))
++            / std::max(kTnsRatioFloor, std::abs(prev_tns_local));
++      const bool within_collateral_guard
++          = wns_damage <= kTnsWnsDamageCap
++            && tns_expand_ratio <= kTnsExpansionCapRatio;
++      const bool endpoint_progress_ok
++          = acceptEndpointImprovements() && endpoint_improved
++            && wns_damage <= kTnsWnsDamageCap
++            && tns_expand_ratio <= kEndpointImproveTnsExpansionCapRatio;
++      const bool better = (tns_improved && within_collateral_guard)
++                          || (wns_improved && endpoint_improved)
++                          || endpoint_progress_ok;
+
+       if (better) {
+         prev_global_wns = global_wns;
+@@ -218,6 +271,7 @@
+         }
+         committer_.commitJournal();
+         committer_.beginJournal();
++        journal_dirty = false;
+       } else {
+         force_single_repair = true;
+         decreasing_slack_passes++;
+@@ -240,7 +294,22 @@
+       pass++;
+     }
+     if (journal_open) {
+-      committer_.commitJournal();
++      // No-change and pass-limit exits may leave an unaccepted suffix.
++      ++suffix_exit_examined;
++      if (journal_dirty) {
++        ++suffix_dirty_exits;
++        committer_.restoreJournal();
++        ++suffix_restored;
++        suffix_preserved_commits += successful_passes;
++      } else {
++        committer_.commitJournal();
++      }
++      logger_->report("METRIC|tns_suffix_exit_examined|{}",
++                      suffix_exit_examined);
++      logger_->report("METRIC|tns_suffix_dirty_exits|{}", suffix_dirty_exits);
++      logger_->report("METRIC|tns_suffix_restored|{}", suffix_restored);
++      logger_->report("METRIC|tns_suffix_preserved_commits|{}",
++                      suffix_preserved_commits);
+     }
+
+     opto_iteration++;
