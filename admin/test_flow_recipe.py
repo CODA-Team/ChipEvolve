@@ -97,6 +97,7 @@ def test_native_source_does_not_silently_convert_ns_to_ps(tmp_path, monkeypatch)
     hashes = frame.parent / "jobs/orfs/staged-hashes.json"
     write(hashes, {**read(hashes), str(sdc): digest(sdc)})
     d = deployment(tmp_path)
+    d.value["designs"]["design"] = {"platform": "asap7"}
     exp = d.experiment("gcd", "units")
     monkeypatch.setattr(
         flow_recipe,
@@ -107,8 +108,50 @@ def test_native_source_does_not_silently_convert_ns_to_ps(tmp_path, monkeypatch)
         flow_recipe.prepare_native_source(d, frame, exp)
 
 
-def test_native_clock_binding_uses_registered_input_not_a_later_measurement(
+def test_nangate_source_requires_native_ns_and_separate_abc_binding(
     tmp_path, monkeypatch
+):
+    from admin.test_local_business import deployment
+    from chip_evolve import flow_recipe
+
+    frame = source(tmp_path)
+    sdc = frame.parent / "design.sdc"
+    sdc.write_text(
+        "set_cmd_units -time ns\ncreate_clock -period 0.25 [get_ports clk]\n"
+    )
+    hashes = frame.parent / "jobs/orfs/staged-hashes.json"
+    write(hashes, {**read(hashes), str(sdc): digest(sdc)})
+    d = deployment(tmp_path)
+    d.value["designs"]["design"] = {"platform": "nangate45"}
+    exp = d.experiment("gcd", "nangate-units")
+    with pytest.raises(ValueError, match="explicit ABC_CLOCK_PERIOD_IN_PS"):
+        flow_recipe.prepare_native_source(d, frame, exp)
+    config = frame.parent / "design.mk"
+    config.write_text(config.read_text() + "export ABC_CLOCK_PERIOD_IN_PS = 250\n")
+    write(hashes, {**read(hashes), str(config): digest(config)})
+
+    class CheckedBeforeExecution(Exception):
+        pass
+
+    def checked(*args):
+        assert sdc.read_text().startswith("set_cmd_units -time ns\n")
+        raise CheckedBeforeExecution()
+
+    monkeypatch.setattr(flow_recipe, "prepare_flow_recipe", checked)
+    with pytest.raises(CheckedBeforeExecution):
+        flow_recipe.prepare_native_source(d, frame, exp)
+    sdc.write_text(sdc.read_text().replace("-time ns", "-time ps"))
+    write(hashes, {**read(hashes), str(sdc): digest(sdc)})
+    with pytest.raises(ValueError, match="ns-serialized"):
+        flow_recipe.prepare_native_source(d, frame, exp)
+
+
+@pytest.mark.parametrize(
+    "platform,unit,period,delay",
+    [("asap7", "ps", 310, 62), ("nangate45", "ns", 0.31, 0.062)],
+)
+def test_native_clock_binding_uses_registered_input_not_a_later_measurement(
+    tmp_path, monkeypatch, platform, unit, period, delay
 ):
     from types import SimpleNamespace
 
@@ -117,21 +160,21 @@ def test_native_clock_binding_uses_registered_input_not_a_later_measurement(
 
     d = deployment(tmp_path)
     d.value["designs"]["gcd"] = {
-        "platform": "pdk",
+        "platform": platform,
         "nickname": "test",
         "clock_period_ns": 0.31,
     }
     d.value["professional"] = {"flow": {}}
     exp = d.experiment("gcd", "clock-binding")
     prepared = exp / "source"
-    design = prepared / "flow/designs/pdk/test"
+    design = prepared / "flow/designs" / platform / "test"
     design.mkdir(parents=True)
     registered = exp / "actual-source.sdc"
     registered.write_text(
-        "set_cmd_units -time ps\ncreate_clock -period 310 [get_ports clk]\nset_input_delay 62 -clock clk [get_ports d]\n"
+        f"set_cmd_units -time {unit}\ncreate_clock -period {period} [get_ports clk]\nset_input_delay {delay} -clock clk [get_ports d]\n"
     )
     measured = exp / "later-measurement.sdc"
-    measured.write_text(registered.read_text().replace("delay 62", "delay 22"))
+    measured.write_text(registered.read_text().replace(f"delay {delay}", "delay 22"))
     write(exp / "recipe.json", {"sdc": str(registered)})
     monkeypatch.setattr(flow_recipe, "prepare_native_source", lambda *a: prepared)
 
@@ -140,7 +183,9 @@ def test_native_clock_binding_uses_registered_input_not_a_later_measurement(
 
     def check(*args):
         actual = (design / "constraint.sdc").read_text()
-        assert "set_input_delay 62" in actual and "set_input_delay 22" not in actual
+        assert (
+            f"set_input_delay {delay}" in actual and "set_input_delay 22" not in actual
+        )
         assert "-period $clk_period" in actual
         raise CheckedBinding()
 

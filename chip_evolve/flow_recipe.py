@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import shutil
 from pathlib import Path
 from typing import Any
@@ -269,11 +270,23 @@ def prepare_native_source(
     from .professional import freeze, inventory
 
     binding = source_binding(source_result)
-    if not Path(binding["sdc"]).read_text().startswith("set_cmd_units -time ps\n"):
+    design = deployment.design(binding["design_id"])
+    unit = "ps" if design.get("platform", "asap7") == "asap7" else "ns"
+    if (
+        not Path(binding["sdc"])
+        .read_text()
+        .startswith("set_cmd_units -time " + unit + "\n")
+    ):
         raise ValueError(
-            "Register a ps-serialized source before native Flow search: modern "
-            "Yosys extracts numeric clock periods without converting SDC units; "
-            "silently serializing an ns source would change the physical starting point"
+            "Register a " + unit + "-serialized source before native Flow search; "
+            "ORFS stage SDCs must use the platform's native time unit"
+        )
+    if unit == "ns" and not re.search(
+        r"(?m)^\s*(?:override\s+)?export\s+ABC_CLOCK_PERIOD_IN_PS\s*[:?+]?=",
+        Path(binding["config"]).read_text(),
+    ):
+        raise ValueError(
+            "Native ns Flow needs an explicit ABC_CLOCK_PERIOD_IN_PS binding"
         )
     source = prepare_flow_recipe(deployment, source_result, experiment)
     recipe_path = experiment / "recipe.json"

@@ -344,7 +344,13 @@ def run_flow(
         else Path(frame["files"]["sdc"])
     )
     sdc = sdc_path.read_text()
-    (config_dir / "constraint.sdc").write_text(flow_sdc(sdc, design["clock_period_ns"]))
+    (config_dir / "constraint.sdc").write_text(
+        flow_sdc(
+            sdc,
+            design["clock_period_ns"],
+            time_unit="ps" if design["platform"] == "asap7" else "ns",
+        )
+    )
     profile = tool_profile(deployment, source, experiment)
     wrappers = experiment / "identity-tools"
     wrappers.mkdir()

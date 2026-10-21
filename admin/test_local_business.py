@@ -40,6 +40,17 @@ def test_flow_clock_binding_preserves_delays_and_matching_virtual_clocks():
         flow_sdc(sdc.replace("virtual -period 310", "virtual -period 400"), 0.31)
 
 
+def test_nangate_flow_clock_and_io_remain_in_native_ns():
+    sdc = "set_cmd_units -time ns\ncreate_clock -name core -period 0.25 [get_ports clk]\ncreate_clock -name virtual -period 0.25\nset_clock_latency 0.07 [get_clocks virtual]\nset_input_delay 0.05 -clock virtual [get_ports d]\n"
+    actual = flow_sdc(sdc, 0.25, time_unit="ns")
+    assert actual.startswith("set clk_period 0.25\nset clk_port_name clk\n")
+    assert actual.count("-period $clk_period") == 2
+    assert "set_input_delay 0.05" in actual
+    assert "set_clock_latency 0.07" in actual
+    with pytest.raises(ValueError, match="native ns serialization"):
+        flow_sdc(sdc.replace("-time ns", "-time ps"), 0.25, time_unit="ns")
+
+
 def test_business_help_needs_no_tool_environment():
     process = subprocess.run(
         ["/usr/bin/python3.12", "chip-evolve.py", "--help"],
