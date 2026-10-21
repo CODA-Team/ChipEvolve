@@ -385,3 +385,11 @@ JPEG JP3完整27输出/7082分区PDR、独立完整冷交付七值同值及当�
 ibex同一新VT/size策略完整交付28.254939243mW/2342.58um²、setup WS+10.1494ps/TNS0、hold WS+27.7278ps/TNS0、电气/布局/DRT0，较ORFS功耗−3.3813%、面积−2.5448%；12值/3scope核验通过。106输出完整PDR实际EF run-b916a1f70b984d4fadba2b6d37bd05ae，20GiB/4worker/14400秒，与Ariane12GiB并行；1936实际模型触发器状态，两项原解析job复用无重复执行。首次宿主启动因已有目录退出，发生在提交证明前，记录保留；已接续原目录，当前证明未因观察重启。尚未采用，待完整证明与原交付独立重放。
 
 Ariane修复后四份不同完整二进制与701文件构建清单的实际SHA均核对通过，原生评价继续。33完成测量节点及r15十二页审阅版已导出；四设计整体仍未全部收口，不将JPEG完成代替全目标完成。
+
+## 2026-10-21 09:27：时钟资格与原轮次实际推进
+
+Ibex旧完整证明`run-b916a1f70b984d4fadba2b6d37bd05ae`因派生时钟预处理ERROR终止，没有功能反例。私有opt-in双侧clk2fflogic经EF正例PASS、负例实际反例、原失败分区PASS；573项根回归及静态检查通过，源码fb5b54a已发布。新冻结r10下`run-cd3c7459e46f4507bee2f4c4c537798e`复用原网表/模型，全部106输出和2044分区未缩减；正在原ABC-PDR逐分区求解。独立重放r2只准备、未启动，IP3尚未采用，IB0保留。
+
+Ariane原修正一轮四Student继续：Student03原生7200秒超时，实际内存峰值约1.86GiB，完整失败与中间检查点已在公开EF留存；Student01原生1000.34秒/退出0，post_route两份输出SHA已核对；Student04正在原生mt1_deep收尾，阶段局部TNS与WS取舍保留。其余候选/Teacher和共同DRT/RCX/DF仍待完成，不将阶段报告写成最终PPA。
+
+已导出r17不可变审阅PDF/ZIP：33个逐原件核对的完成测量节点、4次单列失败尝试、12页PDF及263个成员SHA校验。PDF为`var/business/a29-paper-delivery-20261020/paper-assets/teacher-review-overview-r17.pdf`，SHA5239c4fbceb37d3126fee63947029e9a0059c99dec63f1ab2455d615e427ee9f；ZIP为同目录`teacher-review-snapshot-r17.zip`，SHAab8d4179c67e7b2d3ecc0f0b24dd670fe928b7d09ce5c92617211210fd30d7db。当前是部分完成快照，不能标四设计目标结束；GCD/JPEG已验收产物未重跑。实际运行句柄与后续步骤在本轮CURRENT.json中更新。
