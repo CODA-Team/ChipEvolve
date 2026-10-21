@@ -1,3 +1,5 @@
+2026-10-21 A30 最新授权：四设计 GCD/Ibex/JPEG/Ariane × ASAP7/Nangate45 八组实验；已有 ASAP7 GCD/JPEG 成果保留，原 Ibex 证明继续。Nangate45 四个 ORFS baseline 已进入 EF，Goal PDK 接入与原生优化待完成；以八组结果表及一个详细接力案例交付，不再强求四专业串行。见 [A30 计划](admin/A30_FOUR_DESIGN_TWO_PDK_PLAN_20261021.md)。当前未完成，旧 A29 四设计交付不等于新八组完成。
+
 2026-10-21 00:55 A29：原GCD DPL及ibex四Student的全部最终交付已齐；GCD两合法分支保留，ibex四候选均拒绝。Ariane原生基线通过、四真实CPP变体已提交，两LTO运行两构建排队。新增ibex/JPEG收尾r1最终仍有债务；已定位试验性调用缺少增量寄生初始化，两个明确修正协议/内部margin的r2和JPEG同候选保留线路诊断均经EF派发。CSV28完成节点；四设计整体仍进行中。
 
 2026-10-20 23:50 A29：GCD选中DPL02完整最终测量和三事实完成，原面积拒绝；GCD四专业真实参与、两合法接力证据齐全（原框架兄弟交付继续）。JPEG新ECO完整交付setup/fanout拒绝，另从Goal03派发明确native post-route收尾；ibex独立timing-only原生评价完成、共同收尾排队；Ariane原生基线正实际处理5093违例端点。CSV24完成节点，四设计目标仍进行中。

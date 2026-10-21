@@ -64,7 +64,7 @@ def run_goal(
     bench.mkdir(parents=True)
     for ext in ("def", "v", "sdc", "odb"):
         shutil.copyfile(frame["files"][ext], bench / (design["top"] + "." + ext))
-    pdk = experiment / "inputs/asap7"
+    pdk = experiment / "inputs" / design["platform"]
     shutil.copytree(binding["pdk_template"], pdk)
     for row in design["libraries"]:
         path = Path(row["path"])
@@ -144,6 +144,9 @@ def run_goal(
             "parent_run_id": frame["run_id"],
         },
     )
+    profile["pdk_root"] = str(pdk)
+    if (pdk / "equivalent_cells.csv").exists():
+        profile["equivalent_cells"] = str(pdk / "equivalent_cells.csv")
     profile["resources"]["physical"] = {
         "cpu_cores": 8,
         "memory_bytes": int(binding.get("physical_memory_gib", 24)) << 30,

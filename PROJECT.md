@@ -1,3 +1,5 @@
+2026-10-21 A30 最新交付范围：四设计 GCD/Ibex/JPEG/Ariane × ASAP7/Nangate45 八组 PPA 实验，复用已有合格成果，选 GCD 详细展示真实专业接力路径。新增实验沿用 EF 执行、DF/DI/Query 事实链及 Goal 原生专业能力；不要求每组四专业串行。见 [A30 计划](admin/A30_FOUR_DESIGN_TWO_PDK_PLAN_20261021.md)。
+
 2026-10-20近期产品交付：按老板最新邀请论文要求，先交付GCD真实协同优化的完整指标、状态变化、来源与产物追踪，再扩ibex/jpeg/ariane。已有可核查结果复用，不要求同步baseline、同总预算或先完成大规模配对统计；不降低原约束、数据真实性和采用产物的功能有效性。平台主张保持“Codex推理决策，EF统一执行，DF/DI/Query提供事实与诊断”。[近期计划](admin/INVITED_PAPER_DELIVERY_PLAN_20261020.md)覆盖下方历史近期门禁，[GCD原件追踪](admin/GCD_EXISTING_TRACE_20261020.md)列明真实主线与尚缺的DPL/ECO环节；不把它写成四专业连续成功。
 
 2026-10-19 23:54本机：DPL/ECO已验证修复已收口到主版本83a77bb/228cb15，42/8模块回归及545根回归通过。独立700f46e补齐AES原生变量时钟，22针对/554全回归和三设计12项真实环境检查通过；未热切活动入口，不代表新PPA收益。Goal诊断挂载错误已通过真实写探针纠正，新编译/故障回归仍等待；完整Flow、AES129证明和真实接力未完成，A25未冻结。见[本轮实际交付](admin/A25_QUALIFIED_MODULE_MAIN_AND_AES_CLOCK_REPORT_20261019.md)。
