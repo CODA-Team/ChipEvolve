@@ -257,3 +257,16 @@ Student04 telemetry 修复后的原生物理任务 `run-f625f87b613b406b8581eeb6
 原1轮4 Student及Teacher已完成：01 refuted、02 validated、03 timeout/invalid、04 verified_qor_unattributed。原确定性晋升控制器选择Student04，机制未证激活的标记保留，未由平台改写原选择。该候选准确归档ODB已进入 `run-963b87a6b37e465596e84f0b50d387ee`，实际32GiB/8线程/7200秒进行共同完整DRT/RCX；最终指标、兄弟交付、DF事实和Codex业务采用仍待完成。Ibex已保存的同模型证明继续等待资源，不重复派发。
 
 证据：本轮 `ariane-student04-telemetry-repair-native-verification.json`、`ariane-student04-telemetry-same-physical-state-comparison.json`、`ariane-corrected-native-candidates-before-teacher.json`、`ariane-native-selected04-actual-full-qualification-dispatch.json`，及原 `teacher_review.json`。所有记录均为真实原生过程或共同交付的阶段证据，不作为新增最终PPA行。
+
+
+## 2026-10-21 13:50–14:00：Ariane主候选最终事实、拒绝与实际查询
+
+原主候选AG4的完整DRT/RCX及测量已成功，最终651.96436644mW/43970.9µm²，setup WS−391.727ps/TNS−310.3ns，hold WS−72.8162ps/TNS−24.7916ns，slew913、cap/fanout/布局0、原生DRT0。相对AB0功耗+1.4864%、实例面积+0.6826%，原功耗/面积/setup/hold/slew五项约束失败，Codex拒绝。12个值与3个事实范围经公开DI核验；主结果准确字节冻存，后续兄弟元数据扩展不计新实验。DF公开导入提交前404是收据尚未可见，实际约10分钟后完成，不据此重跑。
+
+随后Codex通过已有DI读取AB0/AG4各setup、hold最差三条已存路径，共4次、25444字节、串行读取约0.812秒。setup最差起点由miss_handler状态寄存器变为amo_fifo数据寄存器；同一reset→RESETN路径hold要求时间增加约83ps而到达时间仅变化约−2ps。该观察可定位后续调查方向，不能证明唯一原因；每类仅10条已存路径，不冒充全设计路径枚举。原r1宿主辅助脚本误将正常分页truncated判断为失败，原回复保留，r2按原契约读取成功；没有新EDA/模型。父Codex推理token未知，不报告节约率。
+
+34个论文节点重新经过公开EF/DI核验：34/34生产任务成功、406个已有数值和89项实际快照归属相同，用时5.186秒。最新范围成本349闭合EF、采样CPU290700.55秒，44份Goal调用输入29580582/输出470208；未闭合与父Codex/服务开销未计入。所有原始失败、取消和费用范围保留。
+
+Ibex一次性续算驱动已升级为r2，仅在整个Ariane case实际终态、原前端退出且无Ariane EF任务后才放行，防止观察窗口结束时提前预约证明内存。旧空闲等待者在没有派发证明时退出；未取消任何Ariane计算、未改变证明模型或剩余预算。实际前端PID184765与新等待者PID2936091身份已核对，Student01完整交付仍在运行。
+
+证据：本轮ariane-goal04-main-early-final-sdk-facts.json、ariane-selected-final-public-query-r2/、paper-public-facts-audit-20261021T055715Z/summary.json、ibex-native-continuation-case-terminal-guard-verification.json和cost-snapshot-20261021T055649Z.json。四设计整体未完成。
