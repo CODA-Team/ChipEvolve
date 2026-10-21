@@ -297,3 +297,14 @@ Student01完整DRT/RCX任务run-dc4b649f886b4b3d9ed56f2a088c8748成功，common�
 F37→Goal、F37→DPL、DPL01→Goal三次实际handoff的source_run、目标/条件、Query上下文及所有源文件SHA重新核对一致。F37归档中的3_4_place_resized.odb与DPL实际消费的同阶段文件逐字节相同，明确接的是布局检查点。原DPL后续完成清单确认为原3 Student及全部eligible交付；ECO原8轮外层EF会话成功、负结果继续保留；当前incumbent仍为原已验证G02，没有改指针。
 
 14份历史证据引用均保持原SHA。原acceptance写“兄弟交付仍在进行”属于当时状态，已用其后真实完成清单核对，不改写历史。证据为gcd-completed-paper-claims-readonly-20261021/summary.json及两份登记归档；最终材料将纳入。该检查支持当前GCD论文主张，不推断四专业串行全改善、最佳单Agent优势或token/时间节约。Ariane及Ibex仍须完成各自原工作。
+
+
+## 2026-10-21 15:45–15:55：原交付恢复、Ariane最终拒绝与Ibex统一接续
+
+Student02的qualification/common/ORFS发布/OpenSTA发布分别为原run-fda868da258b4392ac46b7bc3b6d2c05、run-1e35a8c726b04ac3a10541ac2971a459、run-aa40eff4d56c4ad399ae017533ea1426、run-d7bd5e7b94ba4f088a851873f42be108，均成功。随后读取事实短时超时，原前端按已有lifecycle返回pending；两个快照summary已available，按snapshot读取指标约0.04秒。原冻结r9 CLI resume复用这四份原任务及既有快照完成交付，零新EDA/模型；首次宿主相对路径错误未启动任务，独立原日志保留。未改服务、数据库、公共API或专业配置。
+
+Ariane原1×4及Teacher/全部eligible交付已完成，AG1/AG2/AG4最终36数值/7实际范围核验通过；三者原功耗/面积/setup/hold/slew均不合格，Codex全部拒绝，Student03原超时保留。AG2=645.35105228mW/43675.6µm²/setupTNS−498.558ns/holdTNS−16.0177ns/slew823/nativeDRT0。原native排序04、02验证及04未归因保持；AB0本身不合格，不伪造采用。主04最终元数据只附兄弟清单，run/输入/12值/快照与早冻版相同，不增计实验。
+
+Ibex等待者在整个Ariane实际结束后校验原输入和594PASS，于15:53:26通过同一EF实际派发run-05fea209b52e4860b4ec41495f5bbcd4，原生-c、4worker、20GiB、原剩余10243秒，模型/106输出/2046义务不变。输入核对在原/home目录有I/O等待，不据此重启。完整证明尚未结束，IP3不采用；之后才进入已准备的独立重放。
+
+证据：ariane-corrected-all-final-sdk-facts.json、ariane-final-business-decision.json、原delivery-recovery.json、两次宿主恢复日志、ibex-native-continuation-dispatch.json与ibex-native-continuation-actual-public-EF-start.json。当前36测量节点，下一材料版纳入Ariane最终闭环与Ibex真实运行状态，旧审阅包保持不可变。

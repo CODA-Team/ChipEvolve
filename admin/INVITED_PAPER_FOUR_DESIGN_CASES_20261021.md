@@ -1,6 +1,6 @@
 # Four-design results: editable English paper text
 
-Evidence cut: 2026-10-21T06:51:55.048529+00:00. This is a current review draft. Ibex validation and the remaining Ariane candidate deliveries are pending; AG4 is a completed, rejected physical measurement.
+Evidence cut: 2026-10-21T08:06:14.604493+00:00. This is a current review draft. Ariane has completed without a feasible candidate; Ibex final validation remains pending.
 
 ## Experiment scope and method
 
@@ -15,10 +15,10 @@ Final PPA comes from routed and extracted design states under recorded constrain
 | GCD | B0 → G02 | 1.373554 → 0.715649 | 47.898% | 42.6757 → 39.1181 | 8.336% | +0.083406 | 0 | Validated, retained |
 | JPEG | JB0 → JP3 | 178.337246 → 152.649298 | 14.404% | 6734.1800 → 6244.1600 | 7.277% | +10.230300 | 0 | Validated, retained |
 | IBEX | IB0 → IP3 | 29.243747 → 28.254939 | 3.381% | 2403.7500 → 2342.5800 | 2.545% | +10.149400 | 0 | Measured candidate; validation pending |
-| ARIANE | AB0 → AG4 | 642.415285 → 651.964366 | -1.486% | 43672.8 → 43970.9 | -0.683% | -391.727000 | -310.3 | Measured, rejected; sibling deliveries pending |
+| ARIANE | AB0 → AG4 | 642.415285 → 651.964366 | -1.486% | 43672.8 → 43970.9 | -0.683% | -391.727000 | -310.3 | Measured, rejected; original case complete |
 
 GCD reference-to-final changes include the Flow synthesis/method lineage and the subsequent optimization relay. The within-relay gains below use the actual physical parent. Reference-to-final reductions and within-parent improvements answer different questions; neither comparison isolates every component of the complete platform.
-Negative reductions in the table denote increases. AG4 is a rejected candidate, and its infeasible reference does not establish timing closure. Remaining Ariane deliveries and Ibex validation are still incomplete.
+Negative reductions in the table denote increases. AG4 is a rejected candidate, and its infeasible reference does not establish timing closure. All eligible Ariane deliveries are complete; Ibex validation remains incomplete.
 
 ## GCD: two positive professional relays
 
@@ -36,13 +36,13 @@ This result is a physical-state relay from Goal to a Codex-directed native repai
 
 The original Goal round and its four Students complete, but the common final measurements violate setup or electrical limits. Subsequent timing-only and post-route attempts are recorded separately. Query on the actual IP2 state motivates a VT/sizing action with a 30 ps internal margin and slew repair before and after timing repair. IP3 is physically feasible at 28.254939243 mW and 2342.58 µm², with setup WS +10.1494 ps, hold WS +27.7278 ps and zero setup/hold TNS, electrical, placement and native routing violations. Its measured power and area are 3.381% and 2.545% below the ORFS reference. The design retains its original 900 ps clock and final constraints.
 
-The exact final 106-output functional proof and independent delivery replay are not yet complete, so IP3 is reported as a physically feasible candidate, not a validated retained result. IB0 remains the incumbent. Qualified native EQY continuation preserves the same model and all 2046 obligations while allowing the original Ariane work to use the shared machine.
+The exact final 106-output functional proof and independent delivery replay are not yet complete, so IP3 is reported as a physically feasible candidate, not a validated retained result. IB0 remains the incumbent. The qualified native EQY continuation has now resumed through EF with the same model,106 outputs and2046 obligations, reusing594 completed partitions and the original remaining10243 seconds after the actual Ariane delivery completed.
 
 ## Ariane: native selection does not guarantee final physical improvement
 
 The mapped Ariane reference completes physical routing and final fact publication at 642.41528511 mW and 43672.8 µm², with setup WS −285.396 ps, setup TNS −155.146 ns and 436 slew violations. It is an infeasible physical reference, not a validated final solution. Query identifies a deep register-to-output logic path and supplies that context to the original Goal timing-focused round. A verified handoff defect that dropped inherited baseline DRV observations was corrected before the independent current round. Its actual Parent receives DRV 294 and runtime 739, with the original three-objective contract unchanged.
 
-The original one-round/four-Student process and Teacher review complete. The original deterministic controller selects Student04, whose native QoR remains unattributed because mechanism activation is unproven. The exact archived state completes common full detailed routing, extraction and public fact delivery. AG4 measures 651.96436644 mW and 43970.9 µm², with setup WS −391.727 ps / TNS −310.3 ns, hold WS −72.8162 ps / TNS −24.7916 ns and 913 slew violations; native route count is zero. Relative to AB0, power increases by 1.486% and area by 0.683%. The original power, area, setup, hold and slew constraints reject this candidate. Twelve final numeric facts and three scope identities are verified through public DI. Native GRT objective estimates and final DRT/RCX results are separate measurement boundaries; the present evidence does not isolate the cause of the regression. Sibling Student01 also completes common full physical delivery and public checks for twelve numeric facts and its two actual published scopes: 645.26546001 mW / 43675.6 µm², setup TNS -537.744 ns, hold TNS -16.0177 ns and 824 slew violations. Its original native verdict is refuted, and the five original final limits also reject it. Student02 continues the remaining original delivery; no new campaign is launched to overwrite either negative outcome. A telemetry re-evaluation with byte-identical saved ODB/netlist is not counted as another physical gain.
+The original one-round/four-Student process and Teacher review complete. The original deterministic controller selects Student04, whose native QoR remains unattributed because mechanism activation is unproven. The exact archived state completes common full detailed routing, extraction and public fact delivery. AG4 measures 651.96436644 mW and 43970.9 µm², with setup WS −391.727 ps / TNS −310.3 ns, hold WS −72.8162 ps / TNS −24.7916 ns and 913 slew violations; native route count is zero. Relative to AB0, power increases by 1.486% and area by 0.683%. The original power, area, setup, hold and slew constraints reject this candidate. Twelve final numeric facts and three scope identities are verified through public DI. Native GRT objective estimates and final DRT/RCX results are separate measurement boundaries; the present evidence does not isolate the cause of the regression. Sibling Student01 also completes common full physical delivery and public checks for twelve numeric facts and its two actual published scopes: 645.26546001 mW / 43675.6 µm², setup TNS -537.744 ns, hold TNS -16.0177 ns and 824 slew violations. Its original native verdict is refuted, and the five original final limits also reject it. Student02 also completes final delivery: 645.35105228 mW /43675.6 µm², setup WS −351 ps/TNS −498.558 ns, hold TNS −16.0177 ns and823 slew violations. Its original native verdict is validated, but all five original final limits reject it. Student03 retains its original native timeout without invented final PPA. All eligible deliveries are complete, and Codex adopts none of the three measured candidates. A telemetry re-evaluation with byte-identical saved ODB/netlist is not counted as another physical gain.
 
 ## Platform execution and evidence
 
@@ -56,7 +56,7 @@ Costs are reported with their measured scope. Saved EF sampled CPU and native mo
 
 - GCD: `gcd-measured-relay-r4.pdf` and `gcd-ppa-observations-r2.pdf`.
 - JPEG: `jpeg-measured-relay-r9.pdf`.
-- Ibex: `ibex-measured-relay-r7.pdf`; Ariane: `ariane-measured-relay-r14.pdf` (pending steps explicitly labelled).
+- Ibex: `ibex-measured-relay-r7.pdf`; Ariane: `ariane-measured-relay-r16.pdf` (pending steps explicitly labelled).
 - Complete measurements: [CSV](INVITED_PAPER_METRICS_20261020.csv).
 - Full GCD narrative and the existing same-recipe development control: [GCD case](INVITED_PAPER_GCD_CASE_TEXT_20261020.md).
 - Shared execution and fact interfaces: [platform operation trace](A29_PLATFORM_OPERATION_TRACE_20261020.md).

@@ -1,6 +1,6 @@
 # 邀请论文实验素材：当前实测版
 
-更新于2026-10-21 14:49。当前35个完成测量节点逐原件SHA核对。进行中任务不填收益，失败中间态不充当最终采用结果。
+更新于2026-10-21 15:58。当前36个完成测量节点逐原件SHA核对。进行中任务不填收益，失败中间态不充当最终采用结果。
 
 ## 老板可直接使用的结论
 
@@ -9,7 +9,7 @@
 - JPEG JP3为152.64929831 mW / 6244.16 µm²，setup WS +10.2303 ps / TNS 0，hold TNS、电气、布局和原生DRT违反均为0；相对原ORFS参考功耗−14.4041%、面积−7.2766%。完整27输出PDR、独立交付重放七指标同值和DF/DI核对通过，已保留。
 - JP3是Goal03物理状态经过Codex显式VT/size原生修复及完整布线的结果；不能表述成新ECO成功或多个源码变体合并。ECO的真实负接力完整保留。
 - ibex原Goal一轮四Student及失败收尾完整保留；新Query驱动的一次VT/size策略IP3已完整测量：28.254939243 mW / 2342.58 µm²，setup WS +10.1494 ps / TNS 0、hold TNS 0、电气/布局/原生DRT 0。较ORFS参考功耗−3.3813%、面积−2.5448%；派生时钟及尺寸/VT状态匹配已通过真实资格，完整106输出证明与重放尚未完成；尚未采用，IB0保留。
-- Ariane原一轮四Student及Teacher已完成；原控制器选中Student04。主候选AG4完整DRT/RCX及DF/DI已核对：651.96436644 mW / 43970.9 µm²，setup TNS -310.3 ns、hold TNS -24.7916 ns，slew 913。功耗、面积、setup/hold及slew均不合格，拒绝。原生收益仍未归因；其他候选交付尚待收齐。 Student01也已完成共同最终测量：645.26546001000 mW / 43675.6 µm²，setup TNS -537.744 ns、hold TNS -16.0177 ns，原五项约束拒绝；Student02仍在原流程交付。
+- Ariane原1×4及Teacher与全部eligible最终交付已完成：AG1、AG2、AG4均违反原功耗/面积/setup/hold/slew五项约束，全部拒绝；Student03原生超时保留。本轮没有合法采用结果，AB0也只是原不合格物理参考。原生晋升04与平台最终采用分别记录。
 四设计整体尚未全部收口。
 
 ## 完成测量节点
@@ -49,8 +49,9 @@
 |jpeg|JP3|JG3|native VT/size r3|152.64929831000|6244.16|10.2303000|0|validated feasible; exact27outputPDR and independent7metric delivery replay; retained|
 |jpeg|JPD|JG3|preserved-wire diagnostic|150.82803369000|6243.33|0.26612000|0|diagnostic only: existing wires RCX; native DRC unknown; not adopted|
 |ariane|AB0||ORFS checkpoint|642.41528511000|43672.8|-285.396000|-155.146|reference: setup/slew fail; original inline LEC retired; not adopted|
+|ariane|AG1|AB0|Goal + common final delivery|645.26546001000|43675.6|-366.492000|-537.744|rejected: max_slew_violations,power_total_w_max,cell_area_um2_max,setup_tns_ns_min,hold_tns_ns_min|
+|ariane|AG2|AB0|Goal + common final delivery|645.35105228000|43675.6|-351.000|-498.558|rejected: max_slew_violations,power_total_w_max,cell_area_um2_max,setup_tns_ns_min,hold_tns_ns_min|
 |ariane|AG4|AB0|Goal + common final delivery|651.96436644000|43970.9|-391.727000|-310.3|rejected: max_slew_violations,power_total_w_max,cell_area_um2_max,setup_tns_ns_min,hold_tns_ns_min; original native controller selected; native gain unattributed|
-|ariane|AG1|AB0|Goal + common final delivery|645.26546001000|43675.6|-366.492000|-537.744|rejected: max_slew_violations,power_total_w_max,cell_area_um2_max,setup_tns_ns_min,hold_tns_ns_min; original native verdict refuted|
 
 完整指标、core/die面积、setup/hold、电气/布局、DRC方法、run/condition/objective及原件SHA见[指标CSV](INVITED_PAPER_METRICS_20261020.csv)。无最终PPA的已终止尝试见[失败过程表](INVITED_PAPER_FAILED_ATTEMPTS_20261021.csv)。
 
@@ -104,7 +105,7 @@ EF管理任务、资源、状态和产物；DF管理可查询事实及原件引�
 ## 当前资源交接（2026-10-21 11:45）
 
 Ibex同模型完整证明已保存594个PASS/2046个义务，公开EF取消仅为释放20GiB预约，让原Ariane16GiB构建和后续32GiB完整交付先完成。原生EQY-c已由正例与错误时钟反例验证；后续保持原输入、配置、分区和106输出，按原14400秒扣除已用时间续算；不是功能反例或重新优化。
-Ariane原生轮次已完成，主候选与兄弟候选最终交付分别记录。新的r2续算驱动要求整个原case实际终态，防止仅前端观察退出就提前占用证明资源。
+Ariane原生轮次及主/兄弟候选最终交付均已完成，三份最终候选全部拒绝。新的r2续算驱动要求整个原case实际终态，防止仅前端观察退出就提前占用证明资源。
 
 
 [四设计英文实验段落与总表](INVITED_PAPER_FOUR_DESIGN_CASES_20261021.md)可直接编辑；其中Ibex/Ariane保留实际待验证状态，最终终态后再更新。
@@ -112,4 +113,9 @@ Ariane原生轮次已完成，主候选与兄弟候选最终交付分别记录�
 
 ## Ariane 原生轮次已完成（2026-10-21 12:29）
 
-原一轮四Student及Teacher已完成，确定性控制器选择Student04；其原生收益仍被标记为尚未归因，机制未证明激活。源ODB已按公开EF归档SHA核对；主候选完成32GiB/8线程的共同DRT/RCX，结果见AG4行。其他候选仍按原流程交付。补观测后的ODB/网表与前次修复逐字节相同，不计作新的物理收益。
+原一轮四Student及Teacher已完成，确定性控制器选择Student04；其原生收益仍被标记为尚未归因，机制未证明激活。源ODB已按公开EF归档SHA核对；主候选完成32GiB/8线程的共同DRT/RCX，结果见AG4行。AG1/AG2与主AG4的最终交付均已完成，全部拒绝。补观测后的ODB/网表与前次修复逐字节相同，不计作新的物理收益。
+
+
+## Ariane已完成，Ibex同模型续算实际运行
+
+事实读取短暂超时后，原冻结r9 CLI resume复用原四份Student02 EF任务与已发布数据完成整轮交付，没有重跑专业搜索、EDA或模型。原宿主首次相对路径启动错误在提交任务前退出，日志保留。Ibex已通过EF run-05fea209b52e4860b4ec41495f5bbcd4接续相同106输出/2046义务，复用594PASS、原剩余10243秒；完整验证及重放尚未完成，IB0仍保留。

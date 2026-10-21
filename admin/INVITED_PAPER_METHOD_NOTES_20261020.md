@@ -1,6 +1,6 @@
 # ChipEvolve 论文方法与图注素材
 
-状态：2026-10-21 14:50，当前35个完成测量节点。GCD两条合法接力G02/DG1完整验证；JPEG JP3完整证明/独立重放/DF事实通过并实际采用。Ibex IP3物理可行、完整验证未结束，同模型106输出/2046义务已存594PASS，原生续算等待整个Ariane case完成。Ariane原1×4及Teacher已完成，原控制器选中Student04，原生收益尚未归因；主AG4共同完整DRT/RCX及DF/DI已完成，功耗、面积、setup/hold及slew五项原约束失败，拒绝。AG1也已完成最终交付、原五项约束拒绝；Student02继续原交付。详见[实测表](INVITED_PAPER_RESULTS_20261020.md)及[四设计英文段落](INVITED_PAPER_FOUR_DESIGN_CASES_20261021.md)。
+状态：2026-10-21 15:55，当前36个完成测量节点。GCD两条合法接力G02/DG1完整验证；JPEG JP3完整证明/独立重放/DF事实通过并实际采用。Ariane原1×4/Teacher与全部eligible最终交付已收齐，AG1/AG2/AG4均违反原五项约束，全部拒绝，Student03原生超时保留，本轮无合法采用结果。Ibex原同模型106输出/2046义务已通过EF实际原生-c续算，复用594PASS和原剩余10243秒；完整证明及独立重放未结束，IP3未采用。详见[实测表](INVITED_PAPER_RESULTS_20261020.md)及[四设计英文段落](INVITED_PAPER_FOUR_DESIGN_CASES_20261021.md)。
 
 ## 平台方法
 
@@ -158,3 +158,12 @@ Ariane AG4 completes common full DRT/RCX at 651.96436644mW/43970.9µm², setup W
 ### Ariane original Student01 final delivery (2026-10-21 14:47)
 
 AG1 completes full DRT/RCX and the existing common measurement at 645.26546001mW /43675.6µm², setup WS−366.492ps/TNS−537.744ns, hold WS−63.8118ps/TNS−16.0177ns, slew824, zero cap/fanout/placement/native route violations. Relative to AB0, power increases0.443665% and instance area0.006411%; the original power, area, setup, hold and slew limits reject this candidate. The original native verdict remains refuted with mechanism_fired=true; no native or final gain is claimed. Twelve numeric facts and two actually published scopes are verified through public DI; no deferred OpenDB scope is fabricated. Student02 remains in the same original final-delivery workflow.
+
+
+### Ariane整轮已完成与Ibex实际续算（2026-10-21 15:55）
+
+原Student02最终为645.35105228mW/43675.6µm²、setup WS−351ps/TNS−498.558ns、hold WS−63.8118ps/TNS−16.0177ns、slew823，cap/fanout/布局和原生DRT0。AG1、AG2及原控制器选中的AG4均违反原功耗、面积、setup/hold和slew五项约束，全部拒绝。三候选36个数值与7个实际范围已核对；Student03原生超时无最终PPA。原生AG2 validated、AG4 unattributed的结论与最终业务拒绝分别记录，不将原估计收益当作最终收益。
+
+Student02事实发布后的短时读取超时令原前端返回pending。通过原冻结r9的现有resume入口，复用原四个成功EF任务及已发布快照完成交付，未重跑EDA/模型；宿主第一次相对路径启动错误在提交前退出，原日志保留。主AG4原早期冻结结果与最终元数据版具有同一run、输入、快照及12个数值，更新SHA不计为新实验。
+
+整轮真实终态后，Ibex同模型续算run-05fea209b52e4860b4ec41495f5bbcd4于15:53:26实际运行，原-c/4worker/20GiB/10243秒。只有完整106输出/2046义务通过后才执行已有独立重放和采用。Ariane案例已闭环为负结果，四设计整体仍待Ibex与最终素材收口。
