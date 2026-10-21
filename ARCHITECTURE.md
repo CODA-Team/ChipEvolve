@@ -1,3 +1,5 @@
+2026-10-21 夜间路径交付：每个专业节点保留实际父项、冻结条件和产物SHA；已有 CLI 的源码复用与新 Student 搜索分支分别记录。ECO 内部可选 TIMINGECO_LIB_FILES 贯通容器、原生加载、回退重载与最佳状态导出，保证 SRAM 模型与共同测量一致；公共 API 与原专业动作/评分不变。只读图表导出见 [夜间交付](admin/A30_OVERNIGHT_RELAY_DELIVERY_20261021.md)。
+
 2026-10-21 A30 接入增量：Goal 的既有内部执行 profile 新增可选 `pdk_root`、`equivalent_cells`；根业务接入按 design.platform 冻结 PDK 输入，原生求值器先加载技术 LEF，原检查器补 CK/扫描 DFF 识别，RMP 排除 fakeram。未提供显式 PDK 时保持 ASAP7 默认。公共 CLI/EF/DF/DI 接口、Teacher/Student 算法及晋升规则不变；实际双 PDK 结果待运行。数据流见 [A30 计划](admin/A30_FOUR_DESIGN_TWO_PDK_PLAN_20261021.md)。
 
 2026-10-20 23:01 A29续作：原DPL三Student/Teacher和ibex四Student/Teacher已结束；GCD选Student02、ibex选Student01修复版，共同交付仍待收齐。ibex主最终28.180463mW/2339.71µm²但setup/slew/cap拒绝，Query已完成、独立原生timing-only修复已准备。Ariane参考642.415285mW/43672.8µm²与三事实已完成，原LEC取消未证明；Query后原Goal时序1×4已派发。JPEG旧搜索停止，新定向ECO运行；论文21实测节点，四设计尚未收口。最新状态见[施工记录](admin/A29_INVITED_PAPER_EXECUTION_20261020.md)。

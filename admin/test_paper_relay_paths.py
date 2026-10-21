@@ -65,12 +65,63 @@ def test_deltas_require_actual_parent_and_same_measurement_conditions(tmp_path):
     attach_deltas([parent, child])
     assert child["parent_power_change_pct"] == pytest.approx(-20)
     assert child["parent_area_change_pct"] == pytest.approx(-10)
-    child.update(
-        condition_id="different", parent_power_change_pct="", parent_area_change_pct=""
-    )
+    child.update(condition_id="different")
     attach_deltas([parent, child])
     assert child["same_condition_parent"] is False
     assert child["parent_power_change_pct"] == ""
     child["parent"] = "nonexistent"
     with pytest.raises(ValueError, match="actual exported measurement"):
         attach_deltas([parent, child])
+
+
+def test_ibex_terminal_proof_error_does_not_remain_pending_or_become_adoption(tmp_path):
+    from admin.paper_relay_paths import ibex_validation_state
+
+    assert ibex_validation_state(tmp_path, "candidate") is None
+    (tmp_path / "ibex-native-continuation-terminal-error.json").write_text(
+        json.dumps(
+            {"type": "RuntimeError", "detail": "Original proof budget exhausted"}
+        )
+    )
+    state = ibex_validation_state(tmp_path, "candidate")
+    assert "not adopted" in state and "did not pass/finish" in state
+
+
+def test_ibex_full_proof_alone_cannot_be_reported_as_adopted(tmp_path):
+    from admin.paper_relay_paths import ibex_validation_state
+
+    case = tmp_path / "runtime/experiments/ibex"
+    proof = (
+        case / "a29-ibex-ip3-final-cell-variant-proof-r1/final-functional-proof.json"
+    )
+    proof.parent.mkdir(parents=True)
+    value = {
+        "passed": True,
+        "candidate_sha256": "candidate",
+        "proof": {
+            "proven_points": 106,
+            "proven_partitions": 2046,
+            "unproven_points": 0,
+        },
+    }
+    proof.write_text(json.dumps(value))
+    assert "not yet established" in ibex_validation_state(tmp_path, "candidate")
+    validation = case / "a29-ibex-ip3-final-delivery-replay-r3/validation.json"
+    validation.parent.mkdir()
+    validation.write_text(
+        json.dumps(
+            {
+                "result_sha256": "candidate",
+                "passed": True,
+                "replay_exact": True,
+                "sdk_identity_passed": True,
+            }
+        )
+    )
+    pointer = tmp_path / "runtime/designs/ibex/incumbent.json"
+    pointer.parent.mkdir(parents=True)
+    pointer.write_text(json.dumps({"result_sha256": "candidate"}))
+    assert "validated and adopted" in ibex_validation_state(tmp_path, "candidate")
+    value["proof"]["proven_points"] = 105
+    proof.write_text(json.dumps(value))
+    assert "not adopted" in ibex_validation_state(tmp_path, "candidate")

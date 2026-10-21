@@ -26,6 +26,51 @@ FIELDS = {
 }
 
 
+def ibex_validation_state(old: Path, result_sha256: str) -> str | None:
+    """Distinguish the original proof's terminal outcome from physical QoR."""
+    case = old / "runtime/experiments/ibex"
+    proof = (
+        case / "a29-ibex-ip3-final-cell-variant-proof-r1/final-functional-proof.json"
+    )
+    if proof.exists():
+        record = json.loads(proof.read_text())
+        evidence = record.get("proof", {})
+        complete = (
+            record.get("passed") is True
+            and record.get("candidate_sha256") == result_sha256
+            and evidence.get("proven_points") == 106
+            and evidence.get("proven_partitions") == 2046
+            and evidence.get("unproven_points") == 0
+        )
+        if not complete:
+            return "physically measured; matching complete 106-output proof not established; not adopted"
+        validation = case / "a29-ibex-ip3-final-delivery-replay-r3/validation.json"
+        pointer = old / "runtime/designs/ibex/incumbent.json"
+        if validation.exists() and pointer.exists():
+            checked, selected = (
+                json.loads(validation.read_text()),
+                json.loads(pointer.read_text()),
+            )
+            if (
+                checked.get("result_sha256") == result_sha256
+                and all(
+                    checked.get(key) is True
+                    for key in ("passed", "replay_exact", "sdk_identity_passed")
+                )
+                and selected.get("result_sha256") == result_sha256
+            ):
+                return "validated and adopted: exact 106-output/2046-partition proof and independent replay"
+        return "complete 106-output proof passed; independent replay/adoption not yet established"
+    error = old / "ibex-native-continuation-terminal-error.json"
+    if error.exists():
+        record = json.loads(error.read_text())
+        return (
+            "physically measured; complete proof did not pass/finish; not adopted: "
+            + record["type"]
+        )
+    return None
+
+
 def measured_node(
     path: Path,
     *,
@@ -74,6 +119,9 @@ def attach_deltas(rows: list[dict[str, Any]]) -> None:
     if len(lookup) != len(rows):
         raise ValueError("Node identities must be unique within each case")
     for row in rows:
+        row["same_condition_parent"] = ""
+        row["parent_power_change_pct"] = ""
+        row["parent_area_change_pct"] = ""
         if not row["parent"]:
             continue
         parent = lookup.get((row["design"], row["pdk"], row["parent"]))
@@ -105,6 +153,13 @@ def collect(root: Path, work: Path) -> tuple[list[dict[str, Any]], dict[str, byt
                 decision=item["decision"],
                 expected_sha256=item["result_sha256"],
             )
+            if (item["design"], item["node"]) == ("ibex", "IP3"):
+                state = ibex_validation_state(
+                    root / "var/business/a29-paper-delivery-20261020",
+                    row["result_sha256"],
+                )
+                if state:
+                    row["decision"] = state
             rows.append(row)
             originals[row["result_sha256"]] = path.read_bytes()
     aliases = {str(Path(x["result_path"]).resolve()): x for x in rows}
