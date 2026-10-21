@@ -393,3 +393,11 @@ Ibex旧完整证明`run-b916a1f70b984d4fadba2b6d37bd05ae`因派生时钟预处�
 Ariane原修正一轮四Student继续：Student03原生7200秒超时，实际内存峰值约1.86GiB，完整失败与中间检查点已在公开EF留存；Student01原生1000.34秒/退出0，post_route两份输出SHA已核对；Student04正在原生mt1_deep收尾，阶段局部TNS与WS取舍保留。其余候选/Teacher和共同DRT/RCX/DF仍待完成，不将阶段报告写成最终PPA。
 
 已导出r17不可变审阅PDF/ZIP：33个逐原件核对的完成测量节点、4次单列失败尝试、12页PDF及263个成员SHA校验。PDF为`var/business/a29-paper-delivery-20261020/paper-assets/teacher-review-overview-r17.pdf`，SHA5239c4fbceb37d3126fee63947029e9a0059c99dec63f1ab2455d615e427ee9f；ZIP为同目录`teacher-review-snapshot-r17.zip`，SHAab8d4179c67e7b2d3ecc0f0b24dd670fe928b7d09ce5c92617211210fd30d7db。当前是部分完成快照，不能标四设计目标结束；GCD/JPEG已验收产物未重跑。实际运行句柄与后续步骤在本轮CURRENT.json中更新。
+
+## 2026-10-21 10:38：新版完整证明已实际派发
+
+Ariane初次四Student为01/02/04原生成功、03原7200秒超时，三份成功post_route产物均从不可变公开EF归档核对。原专业流程对新增电气违反启动constraint repair，两份完整链接`run-cbe3f03dc7ae4abd859ee6e72754a116`/`run-d288ddf1029b4c7d97e9b5fb46bb4d6e`已成功，当前Student01修复后原生评价`run-cd69562805db4b309481d2c940b4da04`实际运行。没有人工修改专业策略或增加campaign轮次。
+
+旧Ibex完整证明明确以“已资格的两处状态对应修复及资源让渡”为原因取消，586个部分PASS、原模型/脚本/日志/实际CPU完整保留；不算功能反例，也不作为完整验证。待原两份16GiB链接完成、无构建排队后，已从697a9b8冻结r11派发新完整证明`run-ba39aa9497494e2ea045fa5b385b1649`。实际配置20GiB/4worker/14400秒，全部106输出和1938个状态对应；默认旧1936点逐项保留，新增两点也必须证明。实际与Ariane12GiB原生评价并行，符合公开EF32GiB预算。完整PASS后才运行预备r3独立交付重放/SDK/采用，IP3尚未采用。
+
+成本范围补齐12份反思/修复回执，当前38份唯一campaign/operation/attempt，旧26份SHA不变；326项闭合EF/采样CPU237276.65秒，仍为范围明确的已知成本。2份历史取消虽缺前端execution.json，公开EF终态成本已记，实际活动是两个新运行任务，不把本地缺文件当失控计算。详见本轮CURRENT、公开状态回执和最新成本快照。四设计与最终材料仍待完整收口，r17保持不可变。

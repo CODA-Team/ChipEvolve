@@ -224,3 +224,13 @@ ibex此前三次成功完整物理任务的公开资源回执峰值为3,761,676,
 JPEG的完整证明结果复用后，原交付独立GRT/DRT/RCX、共同测量和三类事实均已完成。Codex从DF/DI再次核对候选与重放共24个原始指标、6个snapshot/run/design范围，七个比较量逐值完全一致，原约束通过；既有checked_validation/select实际成功。当前JPEG incumbent/result SHA/validation SHA与原件一致，新增jpeg-final-adopted-business-verification.json保存独立回查。没有为了采用重复模型、优化或完整证明。
 
 新ibex状态也经过同样EF→DF/DI闭环达到物理可行。Codex据真实模型解析结果（1936公共触发器状态、106输出）将现有全输出PDR配置为20GiB/4worker/14400秒，与Ariane原生12GiB并行。既有两个parse job原ID保持，首个宿主启动目录错误没有提交证明任务；修正只接续已有目录，不改变公共API或证明义务。实际证明run-b916a1f70b984d4fadba2b6d37bd05ae仍在计算，不将物理可行代替采用。
+
+## 10月21日：实际资源调度、归档交接与完整成本范围
+
+公开`KernelClient.resources(run_id)`实测有效内存预算32GiB；部署记录`services.command`中的128GiB参数不能替代实时资源状态。旧Ibex证明20GiB与Ariane原生12GiB占满预算时，两个原生约束修复构建各16GiB明确返回resource wait。原生结束后2GiB资格任务正常调度；在两个尺寸/VT寄存器额外状态已真实资格后，Codex明确保留旧586个已证分区、原件和成本，停止旧配置，新配置完整106输出证明只准备，先让两份原生修复链接继续。没有修改服务、cgroup或预算；资源等待、专业计算失败与功能反例分开记录。
+
+Ariane初次Student01/02/04均原生成功，Student03原7200秒超时。三份成功任务均通过公共`materialize_artifact`取回约145MB的`data_snapshot`归档，核对post_route ODB及网表的成员SHA；成功任务打包归档，失败任务的保全产物可以是独立原件，不能按一种形态猜测所有任务。专业约束修复会更新原工作目录，但公开EF归档仍固定初次字节，后续交接可按producer与SHA追溯。这是实际传输/归档能力，不是新增EDA重放或4MiB内嵌读取。
+
+本轮成本导出补入原先26份初始Goal回执之外的12份回执（8份反思、4份电气约束修复），按campaign/operation/attempt核对38个唯一调用尝试，旧26份原件SHA不变。当前已知Goal输入26139849、输出413321 token；DPL另列5份回执及cached-input子集。326个已闭合EF任务的已知采样CPU237276.65秒，仍不含正在计算的链接和未单列的父Codex推理/服务开销，不报告货币总成本或节约率。4份缺本地execution.json的记录已沿公开EF复核：2份历史取消已在终态成本记录中、2份仍链接，不能把4份都说成活动任务。
+
+原件为本轮`ef-actual-capacity-and-original-reinforcement-queue-20261021.json`、三份`ariane-corrected-student0{1,2,4}-native-completed-verification.json`、`unclosed-operation-journals-public-status-20261021.json`及`cost-snapshot-20261021T022828Z.json`。这些是带时点的操作/成本证据；最终采用仍等待Ibex完整证明/重放与Ariane原轮次/共同PPA，未把原生成功作为最终PPA通过。
