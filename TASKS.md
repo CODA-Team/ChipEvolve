@@ -1,3 +1,5 @@
+2026-10-21 深夜A30：修复新RMP的原生controller启动身份、已布线ODB时序修复的路由初始化、Nangate45/GCD缺失Flow配置。Flow配置99007aa及97模块回归通过；新完整1×50搜索已派发。两条Goal新动作可执行但共同测量仍时序拒绝、等待DF完整交付，不把环境修复当PPA合格。八组双次整链仍进行，见[本轮接力修正](admin/A30_NANGATE_TIMING_RELAY_CORRECTIONS_20261021.md)。
+
 2026-10-21 19:45 A30：补齐已验证Goal Student候选的固定源码复用入口，14针对/604根回归及静态/类型通过，真实G02的701文件身份已验证；跨设计效果尚未证明。GCD/JPEG/Ibex ASAP7第二次完整ORFS reference已派发；Ariane同映射输入完整物理reference第二次派发，仅关闭已证实长期阻塞的内置LEC/SEC，最终采用证明另做。Nangate45 GCD另已派发两次原Flow1×50完整搜索及baseline/Query，固定250ps，新完整Yosys/psfamily单列；所有原任务继续，不把新分支当通过。
 
 2026-10-21 晚间最新验收：A30目标模式进行中，8组×两次独立完整实验并报告均值；恶化/违反约束不算合格，核对原因后纠正。已有GCD/JPEG保留，新增GCD两条策略各两次完整动作已派发；逐棒重复不能当全链两次。Ibex旧106输出证明已在原预算内超时，未采用，需分析困难分区；其他既有计算继续。详见admin/A30_OVERNIGHT_RELAY_DELIVERY_20261021.md。
