@@ -270,3 +270,12 @@ Student04 telemetry 修复后的原生物理任务 `run-f625f87b613b406b8581eeb6
 Ibex一次性续算驱动已升级为r2，仅在整个Ariane case实际终态、原前端退出且无Ariane EF任务后才放行，防止观察窗口结束时提前预约证明内存。旧空闲等待者在没有派发证明时退出；未取消任何Ariane计算、未改变证明模型或剩余预算。实际前端PID184765与新等待者PID2936091身份已核对，Student01完整交付仍在运行。
 
 证据：本轮ariane-goal04-main-early-final-sdk-facts.json、ariane-selected-final-public-query-r2/、paper-public-facts-audit-20261021T055715Z/summary.json、ibex-native-continuation-case-terminal-guard-verification.json和cost-snapshot-20261021T055649Z.json。四设计整体未完成。
+
+
+## 2026-10-21 14:18：同一最终路径的实际Query诊断
+
+补充路径上下文与完整点读取，DI默认分页明确标truncated，按已有get_timing_points(path_id,limit=100)取回两侧各44个完整已存点，未将最初10点当全路径。对应reset→RESETN捕获时钟沿途引脚/单元类型相同，时钟到达+82.6ps（连线+62.375ps、单元+20.225ps），数据到达−2ps、margin+0.51ps，解释该路径保持余量的大部分变化；不能推广成全设计的唯一原因。
+
+实际native/qualification/common Tcl与SDC逐字节身份保存。native显式请求ideal-network处理及placement/GRT估计，最终采用完整DRT/RCX及显式传播时钟；setRC已令两侧实际路由层均M2-M7。两SDC有效命令只差native保存的传播时钟行，共同测量本身也显式设置传播时钟。未重跑任何EDA/模型、未改专业策略或目标。原Student01继续详细布线第1轮，Ibex续算仍等待整个Ariane case终态。
+
+原件在本轮ariane-selected-final-public-query-r2/，分别保留默认分页、完整44点、路径延迟分解与脚本边界，后续包包含准确源文件及SHA。该记录说明通过统一数据接口可以开展具体诊断，不计算查询节约率，也不以调查替代原case收尾。

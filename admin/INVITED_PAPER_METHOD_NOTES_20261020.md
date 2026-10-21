@@ -144,3 +144,12 @@ The exact final netlist has now passed fixed-Liberty sequential PDR for all 27 o
 Ariane AG4 completes common full DRT/RCX at 651.96436644mW/43970.9µm², setup WS−391.727ps/TNS−310.3ns, hold WS−72.8162ps/TNS−24.7916ns and913 slew violations, with native route count0. Public DI verifies all12 raw values and3 scope identities. The original five violated limits reject the candidate; native selection and native gain attribution remain separate from final business acceptance. Four public path-summary reads locate changed setup paths and a reset-hold required-time shift, but do not isolate a unique causal mechanism or enumerate unsampled paths. Other eligible original candidates continue their actual final delivery; no new campaign is inserted to hide this result.
 
 最新成本范围扩展纳入29份兄弟候选共同交付回执，原349份用量不变，新增29份均经公开EF核对；共378闭合EF/296422.49采样CPU秒。扩展的是已知记录范围，不是新执行或全场货币成本；旧349份快照保持原字节。证据为cost-scope-native-candidate-deliveries-extension.json，后续最终包纳入。
+
+
+### Ariane：Query定位到的路径级退化项
+
+通过公开DI读取同一reset→RESETN路径的完整44个已存点，确认AB0与AG4的捕获时钟沿途引脚及单元类型逐项相同；最终捕获时钟到达从277.3ps增至359.9ps（+82.6ps）。按相邻点分解，连线延迟增加62.375ps，单元延迟增加20.225ps；数据到达减少2ps、hold margin增加0.51ps，对应报告中hold余量从+12.27ps变为−72.82ps。路径报告有舍入误差，此处是已观测路径的时序分解，不是全设计唯一根因或反事实实验。
+
+核对实际执行脚本还确认：native Tcl请求set_ideal_network并使用placement/GRT寄生估计；共同最终测量在完整DRT/RCX后显式传播时钟。两侧实际路由层均由setRC绑定M2-M7，900ps和其他SDC有效约束行相同，native写出SDC额外包含set_propagated_clock，最终测量脚本也显式设置该项。因此不把默认M2-M9分支误写为实际版本/路由层冲突，也不把native目标距离改善直接当成最终PPA改善。原算法及活动配置保持不变。
+
+该诊断展示平台提供有范围的路径/引脚/单元/时序事实及原件引用，Codex进行解释和最终取舍；没有为此建立新的API Agent或归因框架。证据：ariane-selected-final-public-query-r2/hold-clock-delay-accounting.json、hold-44-points-execution-summary.json及native-versus-common-measurement-source-boundary.json。
