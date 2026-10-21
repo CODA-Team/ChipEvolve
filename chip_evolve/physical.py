@@ -305,6 +305,9 @@ def measure(
 ) -> dict[str, Any]:
     deployment = jobs.deployment
     design = deployment.design(jobs.design_id)
+    memory_gib = design.get("fact_execution", {}).get("memory_gib", 8)
+    if memory_gib != 8:
+        key += "-m" + str(memory_gib)
     if objective:
         verify_conditions(read(objective), sdc=sdc)
     folder = jobs.experiment / key
@@ -399,7 +402,7 @@ def measure(
         ],
         parent=parent,
         cpu=2,
-        memory_gib=8,
+        memory_gib=memory_gib,
         seconds=300,
         objective=objective,
         analysis_parent=(
@@ -471,6 +474,9 @@ def publish(
         .get("fact_execution", {})
         .get("timeout_seconds", 300)
     )
+    memory_gib = (
+        deployment.design(jobs.design_id).get("fact_execution", {}).get("memory_gib", 8)
+    )
     for mode, field, source in (
         ("opendb", "odb_path", measured["files"]["odb"]),
         ("orfs", "metadata_path", measured["files"]["metrics"]),
@@ -522,6 +528,8 @@ def publish(
         key = "publish-v3-" + measured["run_id"][-8:] + "-" + mode
         if export_seconds != 300:
             key += "-t" + str(export_seconds)
+        if memory_gib != 8:
+            key += "-m" + str(memory_gib)
         saved = jobs.experiment / "jobs" / key / "task.json"
         if saved.exists():
             prior = read(saved)["inputs"]
@@ -538,7 +546,7 @@ def publish(
             staged,
             seconds=export_seconds,
             cpu=2,
-            memory_gib=8,
+            memory_gib=memory_gib,
             parent=measured["run_id"],
             analysis_parent=measured["run_id"],
             objective=Path(measured["objective"]),

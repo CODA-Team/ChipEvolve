@@ -1,3 +1,5 @@
+2026-10-22 A30：共同测量/三类事实导出支持既有 fact_execution 私有 memory_gib 绑定，默认 8 GiB 保持；非默认新任务独立 -m4 标识，按 JPEG/Ariane 实测校准后可利用 4 GiB 窗口。原优化、完整数据与公共接口不变，613 根回归通过，业务双次仍待收齐。[实测与边界](admin/A30_FACT_RESOURCE_CALIBRATION_20261022.md)。
+
 2026-10-22 A30：DPL 物理内存预约支持与 Goal 一致的内部实验绑定，默认 24 GiB 保持；GCD 按三个原生评估峰值约 0.3 GiB 校准新实验为 8 GiB，构建与专业算法不变。611 根回归及静态检查通过，新完整接力仍待真实结果。[实测与范围](admin/A30_DPL_RESOURCE_CALIBRATION_20261022.md)。
 
 2026-10-22 A30：Ariane ASAP7 原供电断连已用原生 floorplan 对照定位并验证单一 M5 条带相位修复；新完整来源经 EF 排队，正常最终检查保留，原未启动且输入不合格的 ECO 会话取消，新来源交付后重新 Query→原生 ECO8。诊断测量可经 DF/DI 查询，论文导出明确保留失败状态；609 根回归通过，八组双次优化仍未齐。详见 [供电修复与导出记录](admin/A30_PDN_COMPATIBILITY_AND_DIAGNOSTIC_EXPORT_20261022.md)。
