@@ -376,3 +376,12 @@ JPEG新32GiB证明于05:32:59完成7082分区生成（native returncode0），�
 JP3最终27输出、7082分区的固定Liberty ABC-PDR整体PASS，公开EF run-0c55ea8898be432e8dc75f743cac18c4终态succeeded，全部模型/网表SHA核验通过；6,168,724字节日志已用公开materialize取回并核SHA。真实物理可行结果仍为152.64929831mW/6244.16um²、setup WS+10.2303ps/TNS0、hold TNS0/电气/布局/原生DRT0。相对原ORFS参考功耗−14.4041%、cell−7.2766%；尚未采用，已复用此证明提交原记录交付的独立完整DRT/RCX重放，不重复优化或功能证明。
 
 ibex依据新的全局slack排序Query及JPEG VT/size物理证据，只尝试一次新的VT/size30ps、前后10%slew margin策略；run-ae7fbe43e69a4395b07b8c189035a248原生动作成功，完整qualification排队。原900ps及最终零违反约束不变，若仍失败则保留负结果，不自动重复。Ariane修复后原1轮四Student源码已齐并实际进入EF链接/后续评价，目标不变。四设计整体仍在进行，不以JPEG证明PASS代替全场完成。
+
+
+### A29 2026-10-21 08:03 JPEG实际采用与ibex跨设计策略
+
+JPEG JP3完整27输出/7082分区PDR、独立完整冷交付七值同值及当前两结果24值/6scope核验通过，实际incumbent指针/result SHA/validation SHA均已独立检查，Codex已采用；152.64929831mW/6244.16um²、setup WS+10.2303ps/TNS0、hold TNS0/电气/布局/原生DRT0，较ORFS参考功耗−14.4041%、面积−7.2766%。这是Goal物理状态→Codex原生VT/size修复，负ECO分支保留，不冒充新ECO或C++合并。
+
+ibex同一新VT/size策略完整交付28.254939243mW/2342.58um²、setup WS+10.1494ps/TNS0、hold WS+27.7278ps/TNS0、电气/布局/DRT0，较ORFS功耗−3.3813%、面积−2.5448%；12值/3scope核验通过。106输出完整PDR实际EF run-b916a1f70b984d4fadba2b6d37bd05ae，20GiB/4worker/14400秒，与Ariane12GiB并行；1936实际模型触发器状态，两项原解析job复用无重复执行。首次宿主启动因已有目录退出，发生在提交证明前，记录保留；已接续原目录，当前证明未因观察重启。尚未采用，待完整证明与原交付独立重放。
+
+Ariane修复后四份不同完整二进制与701文件构建清单的实际SHA均核对通过，原生评价继续。33完成测量节点及r15十二页审阅版已导出；四设计整体仍未全部收口，不将JPEG完成代替全目标完成。

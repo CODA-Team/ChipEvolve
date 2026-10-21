@@ -1,6 +1,6 @@
 # ChipEvolve 论文方法与图注素材
 
-状态：2026-10-21当前32个完成测量节点。GCD四专业真实参与，两条合法接力G02/DG1完整验证；ibex原四Student及timing-only/r1/r2最终均拒绝，新的一次VT/size策略原生动作已成功，最终DRT/RCX排队；JPEG JP3物理可行且27输出/7082分区PDR已PASS，独立交付重放排队、尚未采用；Ariane修正Parent观测丢失后，同AB0/Query的新原生一轮四Student源码已齐并实际链接。四设计仍未全部收口。数值与来源见[实测表](INVITED_PAPER_RESULTS_20261020.md)。
+状态：2026-10-21当前33个完成测量节点。GCD两条合法接力G02/DG1完整验证；JPEG JP3已通过27输出/7082分区PDR、独立冷交付七指标同值及当前DF/DI核对，实际采用指针已核实；ibex新VT/size策略IP3最终28.254939243mW/2342.58µm²，原约束全部满足、106输出功能证明进行中，尚未采用；Ariane修复后四份不同完整二进制与构建清单SHA均已核实，原生评价继续。四设计仍未全部收口。数值与来源见[实测表](INVITED_PAPER_RESULTS_20261020.md)。
 
 ## 平台方法
 
@@ -65,8 +65,8 @@ G02相对ORFS B0参考的功耗/单元面积降幅为47.8980%/8.3364%，但整�
 DPLEvolve/ReviewDSE与GoalEvolve分别引用CODA-Team原项目；TimingECOAgent引用ASU-VDA-Lab原项目及保留的NOTICE。模块适配提交由`SOURCE_MANIFEST.json`固定，具体实验使用各自冻结源码和二进制身份，不把最新版工程提交当成历史实验版本。专业算法本身不是平台集成工作的新增原创贡献。
 
 - 原项目：<https://github.com/CODA-Team/DPLEvolve>、<https://github.com/CODA-Team/GoalEvolve>、<https://github.com/ASU-VDA-Lab/TimingECOAgent>。
-- 本机阅读PDF：`var/business/a29-paper-delivery-20261020/paper-assets/teacher-review-overview-r14.pdf`。
-- 原始结果/验证快照：同目录`teacher-review-snapshot-r14.zip`，含逐文件SHA；本文可与该已完成结果快照共同审阅。
+- 本机阅读PDF：`var/business/a29-paper-delivery-20261020/paper-assets/teacher-review-overview-r16.pdf`。
+- 原始结果/验证快照：同目录`teacher-review-snapshot-r16.zip`，含逐文件SHA；本文可与该已完成结果快照共同审阅。
 
 ## 从较大设计得到的实际诊断
 
@@ -106,13 +106,13 @@ EF核数预约、工具实际线程及采样CPU分别记录。历史Goal原生�
 Goal原生基线的DRV、运行时间属于设计观测，不能在交接时因只拷贝三个优化指标而丢弃，也不能把DRV补入目标映射来隐式新增目标。2611a2b在既有基线挂接处补齐Parent缺失观测，并保留已有目标与原晋升规则；修复提示区分继承与新增电气问题，不再无条件写成零DRV才可晋升。旧Ariane原轮因这个已复现的缺陷停止并完整留证，新轮单独冻结、重新测基线；新旧PPA及资源条件不能混算。同一Query和AB0供新轮使用，不将旧轮失败成本抹除。
 
 
-## JPEG新增物理可行接力（27输出证明已通过）
+## JPEG已采用的合法接力（完整功能与物理交付验证通过）
 
 同545ps/FF/原PPA约束下，Goal03最终测量为150.868013mW/6243.33µm²、setup TNS−0.0701142ns；单独ECO与前两份收尾均未形成合格采用结果。Codex依据已登记的Query/同候选交付诊断，使用原生VT/size序列、已声明的30ps内部目标，并明确完成冷GRT/DRT/RCX。新JP3最终为152.64929831mW/6244.16µm²，setup WS+10.2303ps/TNS0，hold WS+12.5118ps/TNS0，slew/cap/fanout/布局及原生DRT0；core9048/die9854.14µm²均不变。
 
-相对原ORFS参考，功耗−14.4041407%、cell面积−7.2766098%；相对实际Goal03父项功耗增加1.1806908%，以此恢复最终时序。十二指标与三快照身份通过公开DF/DI核对，全部原约束通过，精确最终网表27输出/7082分区ABC-PDR已整体PASS，独立交付重放排队、尚未采用。这是Goal设计状态→Codex显式原生修复的实际接力，不能称新ECO成功、新Goal四Student轮次或旧Student源码合并到共同二进制；也未隔离VT/size/余量/新线路各自的唯一因果贡献。已复用通过的完整功能证明派发原记录交付的独立重放，通过后才调用既有采用入口；不再次运行源码演化或优化动作。
+相对原ORFS参考，功耗−14.4041407%、cell面积−7.2766098%；相对实际Goal03父项功耗增加1.1806908%，以此恢复最终时序。十二指标与三快照身份通过公开DF/DI核对，全部原约束通过，精确最终网表27输出/7082分区ABC-PDR、独立交付重放七指标同值和当前两结果共24值/6scope核验均已通过，实际已采用。这是Goal设计状态→Codex显式原生修复的实际接力，不能称新ECO成功、新Goal四Student轮次或旧Student源码合并到共同二进制；也未隔离VT/size/余量/新线路各自的唯一因果贡献。已复用通过的完整功能证明完成原记录交付的独立重放，并通过既有采用入口保留；不再次运行源码演化或优化动作。
 
-English draft: Starting from the measured Goal03 checkpoint, Codex requested an explicit native VT/sizing repair after the Query investigation and retained the unsuccessful ECO branches. The resulting fully routed candidate satisfies the original 545-ps timing and physical constraints, with 152.6493 mW power, 6244.16 µm² cell area, zero setup/hold TNS and zero native routing violations. Relative to the original ORFS reference, power and cell area decrease by 14.404% and 7.277%, respectively. Relative to its actual Goal03 parent, the repair spends 1.181% more power to restore timing feasibility. This step consumes the inherited physical state and does not compose the earlier Student C++ implementation into the common tool binary. The exact final netlist has passed all 27-output / 7082-partition PDR; independent delivery replay remains pending, so the candidate is not yet adopted.
+English draft: Starting from the measured Goal03 checkpoint, Codex requested an explicit native VT/sizing repair after the Query investigation and retained the unsuccessful ECO branches. The resulting fully routed candidate satisfies the original 545-ps timing and physical constraints, with 152.6493 mW power, 6244.16 µm² cell area, zero setup/hold TNS and zero native routing violations. Relative to the original ORFS reference, power and cell area decrease by 14.404% and 7.277%, respectively. Relative to its actual Goal03 parent, the repair spends 1.181% more power to restore timing feasibility. This step consumes the inherited physical state and does not compose the earlier Student C++ implementation into the common tool binary. The exact final netlist has passed all 27-output / 7082-partition PDR, an independent full delivery replay reproduces all seven recorded values exactly, and both final states pass the public DF/DI fact checks. Codex has retained the validated candidate through the existing adoption interface.
 
 
 ### 精确最终网表证明的资源口径补充
@@ -123,8 +123,15 @@ JPEG最终JP3证明从试探24GiB/2worker/3600秒纠正为同设计已成功资�
 共同功耗口径：最终测量脚本在同SDC/Liberty/SPEF与传播时钟条件下调用OpenSTA report_power，未载入设计级SAIF活动。表中功耗为该共同工具/活动假设下的估算，具体源条件和原始报告随产物保存；不把不同活动假设或不同测量阶段的功耗直接相减归因。
 
 
-### JPEG final-netlist proof milestone (2026-10-21 06:31)
+### JPEG completed qualification and actual adoption (2026-10-21 07:47)
 
 The explicit native VT/size finishing step starts from the measured Goal03 physical checkpoint. Under the unchanged 545 ps / ASAP7 FF condition, final routed/RCX JP3 measures 152.64929831 mW, 6244.16 µm², setup WS +10.2303 ps/TNS 0 and hold WS +12.5118 ps/TNS 0, with zero native routing, placement, slew, cap and fanout violations. Relative to the original ORFS reference, power is 14.4041% lower and cell area is 7.2766% lower. Relative to its actual infeasible Goal03 parent, power rises by 1.18069% while setup timing is restored; this tradeoff must remain visible.
 
-The exact final netlist has now passed fixed-Liberty sequential PDR for all 27 outputs and all 7082 EQY partitions (EF run-0c55ea8898be432e8dc75f743cac18c4). Independent recorded-delivery replay remains in progress, so this milestone alone is not an adoption claim. This branch is Goal physical state followed by a Codex-directed existing OpenROAD repair action, rather than a new ECO success or composition of evolved C++ binaries. Earlier negative ECO branches remain reported. No new model call, search restart, clock relaxation or retrospective objective change is attributed to this finishing step.
+The exact final netlist has now passed fixed-Liberty sequential PDR for all 27 outputs and all 7082 EQY partitions (EF run-0c55ea8898be432e8dc75f743cac18c4). Independent recorded-delivery replay now reproduces the seven values exactly; all original constraints and current public SDK checks pass, and the actual retained pointer matches the proven candidate and validation hashes. This branch is Goal physical state followed by a Codex-directed existing OpenROAD repair action, rather than a new ECO success or composition of evolved C++ binaries. Earlier negative ECO branches remain reported. No new model call, search restart, clock relaxation or retrospective objective change is attributed to this finishing step.
+
+
+### Ibex：同一策略跨设计迁移的物理结果（功能证明待完成）
+
+原Goal一轮四Student及后续timing-only/r1/r2全部保留。当前Codex依据IP2的有序Query路径与23项slew违反，并参考JPEG成功的VT/size策略，只新增一次VT/size30ps、修复前后10% slew margin的显式原生动作。完整冷GRT/DRT/RCX后，IP3为28.254939243mW/2342.58µm²，setup WS+10.1494ps/TNS0、hold WS+27.7278ps/TNS0，电气/布局及原生DRT0，core5330.16/die5961.54µm²不变；较原ORFS参考功耗−3.3812614%、实例面积−2.5447738%。十二指标及三快照经公共DF/DI核对，原900ps及所有最终约束不变。106输出完整功能证明正在进行，尚未采用；原IB0继续保留。
+
+24→12GiB仅替换从未开始的交付预约，并复用同一已完成native输出的公开EF归档SHA。新旧实际Tcl仅输出目录不同，线程/超时/目标/条件相同，不计为另一轮优化，也不声称旧Student C++源码合并到共同工具。该案例说明Query与原生修复策略可迁移到另一实际设计，不是GCD专用实例补丁；仍不建立普遍因果或最强单项优越性结论。

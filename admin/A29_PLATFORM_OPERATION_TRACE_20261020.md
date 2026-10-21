@@ -217,3 +217,10 @@ ibex此前三次成功完整物理任务的公开资源回执峰值为3,761,676,
 旧run-eeead2dc91ad49e8b30cac45c5fff74c在公开EF中明确为启动前取消、started_at=null、零attempt；原等待前端自然退出，原日志保留。已完成native run-ae7fbe43e69a4395b07b8c189035a248的实际输出ODB，与公开EF归档及本机输入逐字节SHA相同后直接复用；没有重跑优化或模型。新交付run-62c097c1b2e14b9b922f2a759500e24b实际预约12GiB；新旧真实route.tcl仅输出目录不同，父run/目标/条件标签、线程、超时及其他资源相同。只是一次未执行预约的替代，不作为第二次优化策略或算法失败计算。
 
 证据：`ibex-ip3-delivery-memory12-actual-dispatch-audit.json`、`ibex-ip3-native-state-public-capture-verified.json`及`ibex-ip3-never-started-delivery-resource-cancellation.json`。下一步仍等待同一IP3状态的最终PPA，未产生新采用结论。
+
+
+## 2026-10-21 07:47–08:03：真实采用与跨设计验证
+
+JPEG的完整证明结果复用后，原交付独立GRT/DRT/RCX、共同测量和三类事实均已完成。Codex从DF/DI再次核对候选与重放共24个原始指标、6个snapshot/run/design范围，七个比较量逐值完全一致，原约束通过；既有checked_validation/select实际成功。当前JPEG incumbent/result SHA/validation SHA与原件一致，新增jpeg-final-adopted-business-verification.json保存独立回查。没有为了采用重复模型、优化或完整证明。
+
+新ibex状态也经过同样EF→DF/DI闭环达到物理可行。Codex据真实模型解析结果（1936公共触发器状态、106输出）将现有全输出PDR配置为20GiB/4worker/14400秒，与Ariane原生12GiB并行。既有两个parse job原ID保持，首个宿主启动目录错误没有提交证明任务；修正只接续已有目录，不改变公共API或证明义务。实际证明run-b916a1f70b984d4fadba2b6d37bd05ae仍在计算，不将物理可行代替采用。

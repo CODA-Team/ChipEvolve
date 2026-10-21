@@ -1,14 +1,14 @@
 # 邀请论文实验素材：当前实测版
 
-更新于2026-10-21 06:33。当前32个完成测量节点逐原件SHA核对。进行中任务不填收益，失败中间态不充当最终采用结果。
+更新于2026-10-21 07:57。当前33个完成测量节点逐原件SHA核对。进行中任务不填收益，失败中间态不充当最终采用结果。
 
 ## 老板可直接使用的结论
 
 - GCD四专业均真实参与；Flow→Goal和Flow→DPL→Goal形成两条完整验证的合法接力。最低功耗G02保留：0.71564863902 mW / 39.1181 µm²，setup WS +0.0834055 ps / TNS 0；较实际F37父项功耗−19.6723%、面积−12.8614%。
 - 第二条GCD分支DG1为0.81929122098 mW / 39.6139 µm²，setup WS +1.31586 ps / TNS 0；较实际DPL01父项功耗−12.6104%、面积−11.9286%。两条均有18输出PDR和独立完整DRT/RCX七指标同值。
-- JPEG JP3为152.64929831 mW / 6244.16 µm²，setup WS +10.2303 ps / TNS 0，hold TNS、电气、布局和原生DRT违反均为0；相对原ORFS参考功耗−14.4041%、面积−7.2766%。完整27输出PDR已通过；独立物理交付重放及最终采用待完成。
+- JPEG JP3为152.64929831 mW / 6244.16 µm²，setup WS +10.2303 ps / TNS 0，hold TNS、电气、布局和原生DRT违反均为0；相对原ORFS参考功耗−14.4041%、面积−7.2766%。完整27输出PDR、独立交付重放七指标同值和DF/DI核对通过，已保留。
 - JP3是Goal03物理状态经过Codex显式VT/size原生修复及完整布线的结果；不能表述成新ECO成功或多个源码变体合并。ECO的真实负接力完整保留。
-- ibex原Goal一轮四Student及后续收尾均保留。IP2还差1.30401 ps且有23项slew违反，原约束下拒绝，保留可行IB0。一次基于新Query的VT/size新策略状态：queued。
+- ibex原Goal一轮四Student及失败收尾完整保留；新Query驱动的一次VT/size策略IP3已完整测量：28.254939243 mW / 2342.58 µm²，setup WS +10.1494 ps / TNS 0、hold TNS 0、电气/布局/原生DRT 0。较ORFS参考功耗−3.3813%、面积−2.5448%；106输出完整功能证明进行中，尚未采用，IB0仍保留。
 - Ariane完整物理参考和DF事实已交付，参考本身时序/电气不合格。修正原Parent丢失DRV观测后，同输入独立原生一轮四Student状态：in_progress。未完成候选不声称收益，四设计整体尚未全部收口。
 
 ## 完成测量节点
@@ -44,7 +44,8 @@
 |ibex|IP1|IT1|native finishing|28.248446062000|2340.73|-10.3335000|-0.148885|rejected: setup/slew; actualfinalTNSdebt-91.45%; separateRCprotocolr2alsocompletedandrejected|
 |jpeg|JP1|JG3|native finishing|151.75381303000|6243.33|-26.2502000|-0.306245|rejected: finalsetup; nativeVTrepair then fullreroute; no newCPP|
 |ibex|IP2|IT1|native finishing r2|28.235161677000|2341.42|-1.30401000|-0.00130401|rejected: max_slew_violations,setup_tns_ns_min|
-|jpeg|JP3|JG3|native VT/size r3|152.64929831000|6244.16|10.2303000|0|physically feasible; exact27outputPDR passed; independent delivery replay pending; not adopted|
+|ibex|IP3|IP2|native VT/size r3|28.254939243000|2342.58|10.1494000|0|physically feasible; final functional proof pending; not yet adopted|
+|jpeg|JP3|JG3|native VT/size r3|152.64929831000|6244.16|10.2303000|0|validated feasible; exact27outputPDR and independent7metric delivery replay; retained|
 |jpeg|JPD|JG3|preserved-wire diagnostic|150.82803369000|6243.33|0.26612000|0|diagnostic only: existing wires RCX; native DRC unknown; not adopted|
 |ariane|AB0||ORFS checkpoint|642.41528511000|43672.8|-285.396000|-155.146|reference: setup/slew fail; original inline LEC retired; not adopted|
 
