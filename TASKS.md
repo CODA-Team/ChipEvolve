@@ -1,3 +1,5 @@
+2026-10-21 23:40 A30：原TNS机制已在隔离源码补回，保留S3回滚；701声明源只变1份，新AST160文件/1989符号，实际EF构建与同条件完整修复待结果。重复实验入口补既有交付检查点，28针对/608根回归及静态类型通过。已接续Ibex真实双次三动作链、ArianeNg原交付/Query/原四Student；八组双次质量仍未齐，见[修复与续作](admin/A30_TNS_RESTORATION_AND_RELAY_RECOVERY_20261021.md)。
+
 2026-10-21 深夜A30：修复新RMP的原生controller启动身份、已布线ODB时序修复的路由初始化、Nangate45/GCD缺失Flow配置。Flow配置99007aa及97模块回归通过；新完整1×50搜索已派发。两条Goal新动作可执行但共同测量仍时序拒绝、等待DF完整交付，不把环境修复当PPA合格。八组双次整链仍进行，见[本轮接力修正](admin/A30_NANGATE_TIMING_RELAY_CORRECTIONS_20261021.md)。
 
 2026-10-21 19:45 A30：补齐已验证Goal Student候选的固定源码复用入口，14针对/604根回归及静态/类型通过，真实G02的701文件身份已验证；跨设计效果尚未证明。GCD/JPEG/Ibex ASAP7第二次完整ORFS reference已派发；Ariane同映射输入完整物理reference第二次派发，仅关闭已证实长期阻塞的内置LEC/SEC，最终采用证明另做。Nangate45 GCD另已派发两次原Flow1×50完整搜索及baseline/Query，固定250ps，新完整Yosys/psfamily单列；所有原任务继续，不把新分支当通过。

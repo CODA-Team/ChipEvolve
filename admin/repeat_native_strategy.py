@@ -12,8 +12,9 @@ from typing import Any
 
 from chip_evolve.comparisons import compare
 from chip_evolve.config import Deployment, read, write
+from chip_evolve.delivery import checkpoint, finish
 from chip_evolve.jobs import Jobs, digest
-from chip_evolve.physical import container, qualify
+from chip_evolve.physical import container
 
 
 def recorded_action(result: Path) -> tuple[Path, dict[str, Any], dict[str, Any]]:
@@ -121,18 +122,21 @@ def repeat(deployment: Deployment, result: Path, key: str) -> dict[str, Any]:
         memory_gib=8 if design == "gcd" else 16,
     )
     jobs.log(record, native / "optimization.log")
-    repeated = qualify(
-        jobs,
-        native / "post_route.odb",
-        record["run"]["run_id"],
-        Path(frame["objective"]),
-        Path(saved["pdk"]),
-    )
-    repeated["native_method"] = {
+    method = {
         "kind": identity["kind"],
         "repetition_method": str(experiment / "repetition-method.json"),
         "optimization_run_id": record["run"]["run_id"],
     }
+    checkpoint(
+        experiment,
+        design_id=design,
+        odb=native / "post_route.odb",
+        producer=record["run"]["run_id"],
+        objective=Path(frame["objective"]),
+        native_method=method,
+        pdk=Path(saved["pdk"]),
+    )
+    repeated = finish(deployment, experiment)
     write(experiment / "result.json", repeated)
     delta = compare(frame, repeated)
     write(experiment / "comparison-to-original.json", delta)

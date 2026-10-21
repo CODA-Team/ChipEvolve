@@ -124,3 +124,78 @@ def test_repetition_binds_actual_input_parent_and_separates_code_source(
     )
     with pytest.raises(Dispatched):
         module.repeat(deployment, result, "trial2")
+
+
+def test_fact_delivery_interruption_preserves_completed_optimization(
+    tmp_path, monkeypatch
+):
+    from types import SimpleNamespace
+
+    import admin.repeat_native_strategy as module
+    from chip_evolve.config import read
+    from chip_evolve.lifecycle import WorkPending
+
+    result, benchmark, _ = fixture(tmp_path)
+    origin = result.parents[2]
+    write(
+        origin / "input-receipt.json",
+        {"source": str(benchmark), "source_run_id": "original-input"},
+    )
+    binary = tmp_path / "openroad"
+    binary.write_text("original binary")
+    operation = origin / "operations/physical/request.json"
+    action = read(operation)
+    action["command"][0] = str(binary)
+    write(operation, action)
+    objective = tmp_path / "objective.json"
+    write(objective, {})
+    pdk = tmp_path / "pdk"
+    pdk.mkdir()
+    (pdk / "setRC.tcl").write_text("original RC")
+    (pdk / "rcx_patterns.rules").write_text("original extraction rules")
+    write(
+        result.parent / "delivery-checkpoint.json",
+        {"producer": "producer", "pdk": str(pdk)},
+    )
+    frame = read(result)
+    frame.update(
+        design_id="gcd",
+        conditions={"toolchain": "fixed"},
+        objective=str(objective),
+        condition_id="condition",
+        objective_id="goal",
+    )
+    write(result, frame)
+    output = tmp_path / "repeat"
+    output.mkdir()
+    dispatched = []
+
+    class Jobs:
+        def __init__(self, *args):
+            pass
+
+        def command(self, *args, **kwargs):
+            dispatched.append("unique-optimization")
+            (output / "native/post_route.odb").write_text("completed optimized ODB")
+            return {"run": {"run_id": "unique-optimization"}}
+
+        def log(self, *args):
+            pass
+
+    def interrupted_delivery(deployment, experiment):
+        saved = read(experiment / "delivery-checkpoint.json")
+        assert saved["producer"] == "unique-optimization"
+        assert saved["native_method"]["optimization_run_id"] == "unique-optimization"
+        assert Path(saved["odb"]).read_text() == "completed optimized ODB"
+        assert saved["pdk"] == str(pdk.resolve())
+        raise WorkPending({"reason": "import_outcome_unknown"})
+
+    monkeypatch.setattr(module, "Jobs", Jobs)
+    monkeypatch.setattr(module, "container", lambda d, command: command)
+    monkeypatch.setattr(module, "finish", interrupted_delivery)
+    deployment = SimpleNamespace(
+        value={"toolchain": "fixed"}, experiment=lambda *args: output
+    )
+    with pytest.raises(WorkPending, match="import_outcome_unknown"):
+        module.repeat(deployment, result, "trial2")
+    assert dispatched == ["unique-optimization"]
