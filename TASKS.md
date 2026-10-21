@@ -490,3 +490,4 @@ Ariane主AG4完整DRT/RCX/DF/DI已完成，651.96436644mW/43970.9µm²/setupTNS�
 2026-10-21 14:50 A29：Ariane AG1完整DRT/RCX及12值/2scope核验完成，645.26546001mW/43675.6µm²/TNS−537.744ns/holdTNS−16.0177ns，原五约束拒绝。原Student02 fullqualification实际运行，不另开campaign；35节点418值91范围公开核验通过。表图/方法/成本持续更新，Ibex原证明等待续算；四设计整体未完成。
 
 2026-10-21 15:55 A29：Ariane原1×4/Teacher/全部eligible交付已完成，AG1/AG2/AG4最终原五约束全部拒绝、03原超时保留，36值/7范围核验通过，本轮无采用。事实读取pending由原r9 CLI resume复用四原任务恢复，0新EDA/模型。Ibex同模型106输出/2046义务/594PASS已于15:53:26原生-c实际续算，剩10243秒，完整证明/重放尚未结束。当前36测量节点，最终素材未收口，全目标仍进行中。
+2026-10-21 20:43 A30：跨 PDK Flow 单位修复经真实完整 ORFS 核验通过（EF `run-a35c8eb1c64a46e38c33a7385e1995a1`），没有放宽 250 ps 时钟。最终 PPA/DF、原生 Flow 两次完整搜索、八组两次合格协作仍进行中。GCD 两 PDK 的独立基准原值与均值已核对公开 EF producer 并导出；ASAP7 闭合、Nangate45 有违例。两对 G02/DG1 仅代表固定 Goal 动作重复，不能替代完整接力重复。607 根回归通过；[时序核查](admin/A30_TIMING_PROGRESS_20261021.md)、A30 最新 PDF/CSV 持续保留全部真实分支。
