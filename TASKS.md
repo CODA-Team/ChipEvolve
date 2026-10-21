@@ -1,3 +1,5 @@
+2026-10-21 晚间最新验收：A30目标模式进行中，8组×两次独立完整实验并报告均值；恶化/违反约束不算合格，核对原因后纠正。已有GCD/JPEG保留，新增GCD两条策略各两次完整动作已派发；逐棒重复不能当全链两次。Ibex旧106输出证明已在原预算内超时，未采用，需分析困难分区；其他既有计算继续。详见admin/A30_OVERNIGHT_RELAY_DELIVERY_20261021.md。
+
 2026-10-21 夜间补充：八组都保留实际专业接力路径、逐棒完整指标及拒绝分支，GCD另给源码/动作/诊断/生效机制详解。已启动专业源码复用接力工作清单，原四Student搜索保持独立分支；见 [夜间交付](admin/A30_OVERNIGHT_RELAY_DELIVERY_20261021.md)。
 
 2026-10-21 A30 最新授权：四设计 GCD/Ibex/JPEG/Ariane × ASAP7/Nangate45 八组实验；已有 ASAP7 GCD/JPEG 成果保留，原 Ibex 证明继续。Nangate45 四个 ORFS baseline 已进入 EF，Goal PDK 接入与原生优化待完成；以八组结果表及一个详细接力案例交付，不再强求四专业串行。见 [A30 计划](admin/A30_FOUR_DESIGN_TWO_PDK_PLAN_20261021.md)。当前未完成，旧 A29 四设计交付不等于新八组完成。
