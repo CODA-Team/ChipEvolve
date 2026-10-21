@@ -1,6 +1,6 @@
 # ChipEvolve 论文方法与图注素材
 
-状态：2026-10-21 12:35，当前33个完成测量节点。GCD两条合法接力G02/DG1完整验证；JPEG JP3完整证明/独立重放/DF事实通过并实际采用。Ibex IP3物理可行、完整验证未结束，同模型106输出/2046义务已存594PASS，原生续算等待Ariane。Ariane原1×4及Teacher已完成，原确定性控制器选择Student04，其收益仍标尚未归因、机制未证激活；准确归档ODB已进入32GiB/8线程/7200秒共同完整DRT/RCX。最终PPA与采用待完成。详见[实测表](INVITED_PAPER_RESULTS_20261020.md)及[四设计英文段落](INVITED_PAPER_FOUR_DESIGN_CASES_20261021.md)。
+状态：2026-10-21 14:06，当前34个完成测量节点。GCD两条合法接力G02/DG1完整验证；JPEG JP3完整证明/独立重放/DF事实通过并实际采用。Ibex IP3物理可行、完整验证未结束，同模型106输出/2046义务已存594PASS，原生续算等待整个Ariane case完成。Ariane原1×4及Teacher已完成，原控制器选中Student04，原生收益尚未归因；主AG4共同完整DRT/RCX及DF/DI已完成，功耗、面积、setup/hold及slew五项原约束失败，拒绝。原其他候选仍在交付。详见[实测表](INVITED_PAPER_RESULTS_20261020.md)及[四设计英文段落](INVITED_PAPER_FOUR_DESIGN_CASES_20261021.md)。
 
 ## 平台方法
 
@@ -29,7 +29,7 @@ EF管理实验生命周期、线程/内存预约、实际工具进程、日志�
 |---|---|---|
 |Flow / A2-ORFO|原参数域、搜索和模型决策|GCD已有完整搜索直接复用；JPEG旧搜索按老板决定停止|
 |DPL / DPLEvolve（ReviewDSE同一项目）|原Teacher/Student源码优化，Diamond/negotiation/framework三基线，原HPWL与运行预算|新增GCD原1轮3 Student/Teacher已完成，选中Student02，最终面积拒绝；兄弟交付全部完成；Student01已形成独立合法Goal接力|
-|Goal / GoalEvolve|原AST/EPD、Teacher/4 Student、专业机制及评分/晋升|既有GCD F37→Goal已完成；新增DPL01→Goal原1轮4 Student及完整验证已完成；ibex原1轮4 Student/Teacher已完成，四候选最终测量均拒绝；Ariane修复后原时序1×4初评已齐，原生约束/telemetry修复继续，最终交付待完成|
+|Goal / GoalEvolve|原AST/EPD、Teacher/4 Student、专业机制及评分/晋升|既有GCD F37→Goal已完成；新增DPL01→Goal原1轮4 Student及完整验证已完成；ibex原1轮4 Student/Teacher已完成，四候选最终测量均拒绝；Ariane修复后原时序1×4及Teacher已完成；主AG4最终测量拒绝，其他原候选交付继续|
 |ECO / TimingECOAgent|原生会话、动作、评分、best选择及回滚|GCD G03→ECO八轮完成，随后单列完整布线补全；JPEG新Goal03定向八轮及完整布线/测量完成，setup/fanout拒绝|
 
 专业内部排序与平台最终接受分开。DPL降低HPWL，不保证最终功耗、面积和时序同步改善；Goal或ECO产生的中间态也可能仍有待修复的时序债务。允许从这种中间态继续探索，原合法incumbent保持，只有最终结果通过原约束并有相应功能证据才采用。既不重写原研究的晋升结论，也不默认采用最后一棒。
@@ -135,3 +135,12 @@ The exact final netlist has now passed fixed-Liberty sequential PDR for all 27 o
 原Goal一轮四Student及后续timing-only/r1/r2全部保留。当前Codex依据IP2的有序Query路径与23项slew违反，并参考JPEG成功的VT/size策略，只新增一次VT/size30ps、修复前后10% slew margin的显式原生动作。完整冷GRT/DRT/RCX后，IP3为28.254939243mW/2342.58µm²，setup WS+10.1494ps/TNS0、hold WS+27.7278ps/TNS0，电气/布局及原生DRT0，core5330.16/die5961.54µm²不变；较原ORFS参考功耗−3.3812614%、实例面积−2.5447738%。十二指标及三快照经公共DF/DI核对，原900ps及所有最终约束不变。106输出完整功能证明正在进行，尚未采用；原IB0继续保留。
 
 24→12GiB仅替换从未开始的交付预约，并复用同一已完成native输出的公开EF归档SHA。新旧实际Tcl仅输出目录不同，线程/超时/目标/条件相同，不计为另一轮优化，也不声称旧Student C++源码合并到共同工具。该案例说明Query与原生修复策略可迁移到另一实际设计，不是GCD专用实例补丁；仍不建立普遍因果或最强单项优越性结论。
+
+
+### Four-design PPA overview and current negative Ariane result
+
+`four-design-ppa-summary-r2.pdf/.svg` uses each design's recorded reference as 100%. Green bars are validated retained GCD G02 and JPEG JP3; the hatched Ibex IP3 bar is a physically feasible candidate awaiting complete proof and replay; red Ariane AG4 is measured and rejected. Lower power or area alone does not establish feasibility. Exact values, conditions and result hashes accompany the figure. GCD reference-to-final changes include Flow synthesis/method lineage; Ariane uses an already infeasible mapped-source reference with fixed SRAMs. Cross-design ratios are never interpreted as a shared absolute benchmark.
+
+Ariane AG4 completes common full DRT/RCX at 651.96436644mW/43970.9µm², setup WS−391.727ps/TNS−310.3ns, hold WS−72.8162ps/TNS−24.7916ns and913 slew violations, with native route count0. Public DI verifies all12 raw values and3 scope identities. The original five violated limits reject the candidate; native selection and native gain attribution remain separate from final business acceptance. Four public path-summary reads locate changed setup paths and a reset-hold required-time shift, but do not isolate a unique causal mechanism or enumerate unsampled paths. Other eligible original candidates continue their actual final delivery; no new campaign is inserted to hide this result.
+
+最新成本范围扩展纳入29份兄弟候选共同交付回执，原349份用量不变，新增29份均经公开EF核对；共378闭合EF/296422.49采样CPU秒。扩展的是已知记录范围，不是新执行或全场货币成本；旧349份快照保持原字节。证据为cost-scope-native-candidate-deliveries-extension.json，后续最终包纳入。
