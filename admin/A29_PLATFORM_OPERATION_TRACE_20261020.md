@@ -243,3 +243,9 @@ Ibex 同模型完整证明已完成 594 个分区，但其 20 GiB 预约阻塞�
 Ariane 原修正轮的 Student01、04 首次 constraint repair 均原生成功，实际分别约 2102.39 和 978.56 秒。两份不可变 EF ZIP 中的 post_route ODB/网表成员已核 SHA；原生成功仍不是共同最终 PPA 结论。Student04 下一项原生修复继续，Teacher、完整 DRT/RCX、DF/DI 和最终判断尚待完成。GCD/JPEG 已验收结果不重跑，旧 JPEG 搜索继续保持停止。
 
 证据：本轮 `ibex-native-continuation-scheduling-decision.json`、`eqy-native-continue-qualification-result-r2.json`、`ibex-native-continue-after-ariane-launch.json`、`ariane-student0{1,4}-constraint-repair01-native-verification.json`。没有修改服务、资源总额、公共接口或数据库。
+
+## 2026-10-21 12:02：论文全表公开事实复核
+
+通过现有 EF 和 DI 公共客户端只读核对33个已完成测量节点：全部生产任务为 succeeded，394个已有原始数值与当前 DF/DI 返回相同，86项实际快照归属与设计/run/snapshot 身份相同，耗时7.15秒。GCD B0、JPEG JB0历史缺失fanout保持缺失；部分兄弟候选原本只交付两个事实范围，本次按实际范围核对，不写成全部三范围已齐。没有新EDA或模型调用，也不把这一读取耗时当成相对原生Codex的节约率。
+
+原件：`var/business/a29-paper-delivery-20261020/paper-public-facts-audit-20261021T040207Z/summary.json`及同目录逐节点收据。该检查证明当前论文数字能通过统一入口取得，不替代功能证明、最终可行性、独立签核或协同因果判断；Ibex/Ariane仍按实际未完成状态推进。
