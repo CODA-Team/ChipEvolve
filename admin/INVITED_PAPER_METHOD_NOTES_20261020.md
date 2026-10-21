@@ -1,6 +1,6 @@
 # ChipEvolve 论文方法与图注素材
 
-状态：2026-10-21 11:58，当前33个完成测量节点。GCD两条合法接力G02/DG1完整验证；JPEG JP3已通过27输出/7082分区PDR、独立交付重放及DF/DI，实际采用。Ibex IP3物理可行但未采用，同模型全106输出/2046义务证明已保留594PASS，为原Ariane16GiB构建及32GiB最终交付先行而经EF释放预约；原生-c正负例资格通过，将按原剩余计算预算续算。Ariane原01/02/04首评价成功、03超时；01/04首次constraint repair成功，04当前telemetry repair构建/原生评估待完成，Teacher/共同最终PPA未结束。数值与来源见[实测表](INVITED_PAPER_RESULTS_20261020.md)，可编辑[四设计英文段落](INVITED_PAPER_FOUR_DESIGN_CASES_20261021.md)。
+状态：2026-10-21 12:35，当前33个完成测量节点。GCD两条合法接力G02/DG1完整验证；JPEG JP3完整证明/独立重放/DF事实通过并实际采用。Ibex IP3物理可行、完整验证未结束，同模型106输出/2046义务已存594PASS，原生续算等待Ariane。Ariane原1×4及Teacher已完成，原确定性控制器选择Student04，其收益仍标尚未归因、机制未证激活；准确归档ODB已进入32GiB/8线程/7200秒共同完整DRT/RCX。最终PPA与采用待完成。详见[实测表](INVITED_PAPER_RESULTS_20261020.md)及[四设计英文段落](INVITED_PAPER_FOUR_DESIGN_CASES_20261021.md)。
 
 ## 平台方法
 

@@ -1,6 +1,6 @@
 # Four-design results: editable English paper text
 
-Evidence cut: 2026-10-21T03:53:39.644911+00:00. This is a current review draft; Ibex and Ariane must retain their stated pending status until their actual terminal evidence is available.
+Evidence cut: 2026-10-21T04:35:04.220769+00:00. This is a current review draft; Ibex and Ariane must retain their stated pending status until their actual terminal evidence is available.
 
 ## Experiment scope and method
 
@@ -15,7 +15,7 @@ Final PPA comes from routed and extracted design states under recorded constrain
 | GCD | B0 → G02 | 1.373554 → 0.715649 | 47.898% | 42.6757 → 39.1181 | 8.336% | +0.083406 | 0 | Validated, retained |
 | JPEG | JB0 → JP3 | 178.337246 → 152.649298 | 14.404% | 6734.1800 → 6244.1600 | 7.277% | +10.230300 | 0 | Validated, retained |
 | IBEX | IB0 → IP3 | 29.243747 → 28.254939 | 3.381% | 2403.7500 → 2342.5800 | 2.545% | +10.149400 | 0 | Measured candidate; validation pending |
-| ARIANE | AB0 → original Goal round | 642.415285 → pending | pending | 43672.8 → pending | pending | -285.396000 (reference) | -155.146 (reference) | Original professional round / final delivery pending |
+| ARIANE | AB0 → original Goal round | 642.415285 → pending | pending | 43672.8 → pending | pending | -285.396000 (reference) | -155.146 (reference) | Native round complete; final delivery pending |
 
 GCD reference-to-final changes include the Flow synthesis/method lineage and the subsequent optimization relay. The within-relay gains below use the actual physical parent. Reference-to-final reductions and within-parent improvements answer different questions; neither comparison isolates every component of the complete platform.
 
@@ -37,11 +37,11 @@ The original Goal round and its four Students complete, but the common final mea
 
 The exact final 106-output functional proof and independent delivery replay are not yet complete, so IP3 is reported as a physically feasible candidate, not a validated retained result. IB0 remains the incumbent. Qualified native EQY continuation preserves the same model and all 2046 obligations while allowing the original Ariane work to use the shared machine.
 
-## Ariane: current professional run, pending final outcome
+## Ariane: completed native round, final physical delivery pending
 
 The mapped Ariane reference completes physical routing and final fact publication at 642.41528511 mW and 43672.8 µm², with setup WS −285.396 ps, setup TNS −155.146 ns and 436 slew violations. It is an infeasible physical reference, not a validated final solution. Query identifies a deep register-to-output logic path and supplies that context to the original Goal timing-focused round. A verified handoff defect that dropped inherited baseline DRV observations was corrected before the independent current round. Its actual Parent receives DRV 294 and runtime 739, with the original three-objective contract unchanged.
 
-The current one-round/four-Student process has three successful initial native evaluations and one native timeout. The first native constraint-repair evaluations for Student01 and Student04 also complete successfully; immutable public EF archives preserve their post-route database and netlist hashes. These are native-stage outcomes. Teacher selection, common final physical delivery and the final business decision remain pending. No final PPA gain is assigned to this ongoing round.
+The current one-round/four-Student process has three successful initial native evaluations and one native timeout. The first native constraint-repair evaluations for Student01 and Student04 also complete successfully; immutable public EF archives preserve their post-route database and netlist hashes. These are native-stage outcomes. The original deterministic promotion controller has now selected Student04. Its native QoR is explicitly marked unattributed because mechanism activation is unproven. The selected public-EF checkpoint has entered the full common physical delivery at 32 GiB / 8 threads / 7200 seconds; final PPA and acceptance remain pending. A telemetry-only source change produces byte-identical saved ODB/netlist outputs, so that re-evaluation is not counted as another physical optimization result. No final PPA gain is assigned to this ongoing round.
 
 ## Platform execution and evidence
 
@@ -55,7 +55,7 @@ Costs are reported with their measured scope. Saved EF sampled CPU and native mo
 
 - GCD: `gcd-measured-relay-r4.pdf` and `gcd-ppa-observations-r2.pdf`.
 - JPEG: `jpeg-measured-relay-r9.pdf`.
-- Ibex: `ibex-measured-relay-r7.pdf`; Ariane: `ariane-measured-relay-r10.pdf` (pending steps explicitly labelled).
+- Ibex: `ibex-measured-relay-r7.pdf`; Ariane: `ariane-measured-relay-r11.pdf` (pending steps explicitly labelled).
 - Complete measurements: [CSV](INVITED_PAPER_METRICS_20261020.csv).
 - Full GCD narrative and the existing same-recipe development control: [GCD case](INVITED_PAPER_GCD_CASE_TEXT_20261020.md).
 - Shared execution and fact interfaces: [platform operation trace](A29_PLATFORM_OPERATION_TRACE_20261020.md).

@@ -249,3 +249,11 @@ Ariane 原修正轮的 Student01、04 首次 constraint repair 均原生成功�
 通过现有 EF 和 DI 公共客户端只读核对33个已完成测量节点：全部生产任务为 succeeded，394个已有原始数值与当前 DF/DI 返回相同，86项实际快照归属与设计/run/snapshot 身份相同，耗时7.15秒。GCD B0、JPEG JB0历史缺失fanout保持缺失；部分兄弟候选原本只交付两个事实范围，本次按实际范围核对，不写成全部三范围已齐。没有新EDA或模型调用，也不把这一读取耗时当成相对原生Codex的节约率。
 
 原件：`var/business/a29-paper-delivery-20261020/paper-public-facts-audit-20261021T040207Z/summary.json`及同目录逐节点收据。该检查证明当前论文数字能通过统一入口取得，不替代功能证明、最终可行性、独立签核或协同因果判断；Ibex/Ariane仍按实际未完成状态推进。
+
+## 2026-10-21 12:29：Ariane 原生轮次完成，进入共同物理交付
+
+Student04 telemetry 修复后的原生物理任务 `run-f625f87b613b406b8581eeb6a6654606` 成功，实际原生命令约893.16秒，公开EF归档中的ODB/网表成员SHA核验通过。与前次constraint repair相比，保存的ODB/网表逐字节相同，评估Tcl和固定设计输入相同，变化仅为SizeUpGenerator.cc及相应工具/构建收据；两次原生内存时序估计有差别，不能为其指定唯一原因或增计一次物理优化收益。
+
+原1轮4 Student及Teacher已完成：01 refuted、02 validated、03 timeout/invalid、04 verified_qor_unattributed。原确定性晋升控制器选择Student04，机制未证激活的标记保留，未由平台改写原选择。该候选准确归档ODB已进入 `run-963b87a6b37e465596e84f0b50d387ee`，实际32GiB/8线程/7200秒进行共同完整DRT/RCX；最终指标、兄弟交付、DF事实和Codex业务采用仍待完成。Ibex已保存的同模型证明继续等待资源，不重复派发。
+
+证据：本轮 `ariane-student04-telemetry-repair-native-verification.json`、`ariane-student04-telemetry-same-physical-state-comparison.json`、`ariane-corrected-native-candidates-before-teacher.json`、`ariane-native-selected04-actual-full-qualification-dispatch.json`，及原 `teacher_review.json`。所有记录均为真实原生过程或共同交付的阶段证据，不作为新增最终PPA行。

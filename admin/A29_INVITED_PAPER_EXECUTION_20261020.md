@@ -408,3 +408,10 @@ GCD/JPEG 已验收成果保持；Ibex IP3 物理可行但未采用。原生 EQY 
 Ariane 原01/04首次 constraint repair 成功、不可变归档 ODB/网表核验完成，后续原生修复/Teacher/共同最终 PPA 待完成。当前仍是33完成测量节点；原生修复未生成新的最终指标行，不把调度或证明进度当作 PPA 收益。最终四设计材料继续收口，不缩减设计范围，不把阶段快照标为目标完成。
 
 11:49 已导出不可变 r18 审阅快照：12页 PDF（SHA `c5f11d5ece6b1b8d450384895b6bc88f352a1b35b772739aa3b073ee7bd6aa64`）和295成员 ZIP（SHA `406bb6c9eb151d5aeb1a17681e52057b07b79dc4eef3ad2143759facd541061d`），位于本轮 `paper-assets/teacher-review-overview-r18.pdf`、`teacher-review-snapshot-r18.zip`。33结果逐SHA及ZIP成员核验通过，包含新的Ibex/Ariane实际状态图、续算资格与调度证据；仍为部分完成快照。最新范围明确成本为339个闭合EF、采样CPU262797.52秒、39份Goal调用回执；不是全场费用或节约率。
+## 2026-10-21 12:35：Ariane 原轮次完成，最终测量在途
+
+原修正1轮4Student及Teacher已完成。确定性控制器选择Student04，同时保留“原生收益尚未归因、机制未证激活”的原结论；Student02有已激活的内部目标改善，Student01 refuted，Student03原超时。Student04补观测后的ODB/网表与前一修复逐字节相同，不新增收益行。准确公开归档检查点已按32GiB/8线程/7200秒进入实际完整DRT/RCX任务 `run-963b87a6b37e465596e84f0b50d387ee`；后续最终事实/兄弟交付/采用未完成。
+
+当前仍33完成测量节点。英文四设计段落已更新，新的Ariane主线图 `ariane-measured-relay-r11.pdf`将已完成原生轮次与当前共同最终测量分开；历史调试图和快照保留。最新范围明确成本为344闭合EF、采样CPU266978.02秒、44份Goal调用回执，不含当前完整交付和父Codex/服务全成本。
+
+12:38 已导出不可变r19审阅快照：12页PDF/33测量节点，SHA `0c1e14af49381b0d8e51a10a197602320833cecadfa7e2727724798e1e024862`；367成员ZIP/2111863字节，SHA `49b88bcb246ba126e97ae9575d34a65dc28fccfaaaa496f0ab1a0732982fcff2`。包内新增四设计英文稿、全表公开事实复核、Ariane原生候选/选择与确切交付记录，旧快照不覆盖。最终Ariane指标及Ibex完整验证仍待完成，r19不作为全目标完成标记。
