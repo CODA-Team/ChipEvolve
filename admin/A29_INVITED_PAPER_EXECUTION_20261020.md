@@ -422,3 +422,10 @@ Ariane 原01/04首次 constraint repair 成功、不可变归档 ODB/网表核�
 AG4完整最终PPA已核公开DF/DI：651.96436644mW/43970.9µm²、setupTNS−310.3ns/holdTNS−24.7916ns/slew913，原五项约束失败，拒绝。它是完整DRT/RCX的真实负结果，不再标“主测量待完成”；原生选中04且收益unattributed的结论保留。原Student01完整qualification自13:47实际运行，02随后交付；没有新campaign。Ibex同模型594/2046PASS保留，r2等待者确保整个Ariane case结束后才续算。
 
 论文CSV/中文现状/英文段落及Ariane真实接力图r12已更新；34节点/406值/89范围的公开EF/DI核验通过，新增4次DI路径查询与宿主诊断。r20十二页PDF已生成，SHA68f58fe3c20c44b04f973b11aec39581aa008601ba5ee110ab38c06baf8b9687；随后封装同revision不可变ZIP。保留历史快照，未把主候选完成当作全case终态，也未把查询观察当唯一因果证明。最新成本349闭合EF/290700.55采样CPU秒。当前修改仅属于已有论文素材与连续施工记录，不动产品接口、服务或活动实验。
+
+
+## 2026-10-21 14:50：AG1已核拒绝，Student02原任务实际运行
+
+AG1完整交付645.26546001mW/43675.6µm²/setupWS−366.492ps/TNS−537.744ns/holdTNS−16.0177ns/slew824/原生DRT0；功耗/面积/setup/hold/slew五项原约束失败，Codex拒绝。准确结果SHA fd39b0e713f028745d01a66526ae6b6e0110573384490ccbbc8f08db214f0260；12值/两个真实快照范围公共SDK核验通过。原native refuted/机制激活记录保留，不把阶段信号当成最终收益。
+
+原同轮自动启动Student02 fullqualification run-fda868da258b4392ac46b7bc3b6d2c05；主AG4和AG1两份负结果进入35节点表图/英文稿，全部35节点418值91范围公开核验通过。最新所列成本382闭合EF/319336.26采样CPU秒，新的r21阅读包将纳入总图、AG1和已核实路径诊断。Ibex未采用、原594/2046义务证明仍由r2驱动等待整个Ariane结束；A29与全目标保持未完成。

@@ -1,6 +1,6 @@
 # ChipEvolve 论文方法与图注素材
 
-状态：2026-10-21 14:06，当前34个完成测量节点。GCD两条合法接力G02/DG1完整验证；JPEG JP3完整证明/独立重放/DF事实通过并实际采用。Ibex IP3物理可行、完整验证未结束，同模型106输出/2046义务已存594PASS，原生续算等待整个Ariane case完成。Ariane原1×4及Teacher已完成，原控制器选中Student04，原生收益尚未归因；主AG4共同完整DRT/RCX及DF/DI已完成，功耗、面积、setup/hold及slew五项原约束失败，拒绝。原其他候选仍在交付。详见[实测表](INVITED_PAPER_RESULTS_20261020.md)及[四设计英文段落](INVITED_PAPER_FOUR_DESIGN_CASES_20261021.md)。
+状态：2026-10-21 14:50，当前35个完成测量节点。GCD两条合法接力G02/DG1完整验证；JPEG JP3完整证明/独立重放/DF事实通过并实际采用。Ibex IP3物理可行、完整验证未结束，同模型106输出/2046义务已存594PASS，原生续算等待整个Ariane case完成。Ariane原1×4及Teacher已完成，原控制器选中Student04，原生收益尚未归因；主AG4共同完整DRT/RCX及DF/DI已完成，功耗、面积、setup/hold及slew五项原约束失败，拒绝。AG1也已完成最终交付、原五项约束拒绝；Student02继续原交付。详见[实测表](INVITED_PAPER_RESULTS_20261020.md)及[四设计英文段落](INVITED_PAPER_FOUR_DESIGN_CASES_20261021.md)。
 
 ## 平台方法
 
@@ -153,3 +153,8 @@ Ariane AG4 completes common full DRT/RCX at 651.96436644mW/43970.9µm², setup W
 核对实际执行脚本还确认：native Tcl请求set_ideal_network并使用placement/GRT寄生估计；共同最终测量在完整DRT/RCX后显式传播时钟。两侧实际路由层均由setRC绑定M2-M7，900ps和其他SDC有效约束行相同，native写出SDC额外包含set_propagated_clock，最终测量脚本也显式设置该项。因此不把默认M2-M9分支误写为实际版本/路由层冲突，也不把native目标距离改善直接当成最终PPA改善。原算法及活动配置保持不变。
 
 该诊断展示平台提供有范围的路径/引脚/单元/时序事实及原件引用，Codex进行解释和最终取舍；没有为此建立新的API Agent或归因框架。证据：ariane-selected-final-public-query-r2/hold-clock-delay-accounting.json、hold-44-points-execution-summary.json及native-versus-common-measurement-source-boundary.json。
+
+
+### Ariane original Student01 final delivery (2026-10-21 14:47)
+
+AG1 completes full DRT/RCX and the existing common measurement at 645.26546001mW /43675.6µm², setup WS−366.492ps/TNS−537.744ns, hold WS−63.8118ps/TNS−16.0177ns, slew824, zero cap/fanout/placement/native route violations. Relative to AB0, power increases0.443665% and instance area0.006411%; the original power, area, setup, hold and slew limits reject this candidate. The original native verdict remains refuted with mechanism_fired=true; no native or final gain is claimed. Twelve numeric facts and two actually published scopes are verified through public DI; no deferred OpenDB scope is fabricated. Student02 remains in the same original final-delivery workflow.

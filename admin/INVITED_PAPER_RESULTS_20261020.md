@@ -1,6 +1,6 @@
 # 邀请论文实验素材：当前实测版
 
-更新于2026-10-21 13:56。当前34个完成测量节点逐原件SHA核对。进行中任务不填收益，失败中间态不充当最终采用结果。
+更新于2026-10-21 14:49。当前35个完成测量节点逐原件SHA核对。进行中任务不填收益，失败中间态不充当最终采用结果。
 
 ## 老板可直接使用的结论
 
@@ -9,7 +9,7 @@
 - JPEG JP3为152.64929831 mW / 6244.16 µm²，setup WS +10.2303 ps / TNS 0，hold TNS、电气、布局和原生DRT违反均为0；相对原ORFS参考功耗−14.4041%、面积−7.2766%。完整27输出PDR、独立交付重放七指标同值和DF/DI核对通过，已保留。
 - JP3是Goal03物理状态经过Codex显式VT/size原生修复及完整布线的结果；不能表述成新ECO成功或多个源码变体合并。ECO的真实负接力完整保留。
 - ibex原Goal一轮四Student及失败收尾完整保留；新Query驱动的一次VT/size策略IP3已完整测量：28.254939243 mW / 2342.58 µm²，setup WS +10.1494 ps / TNS 0、hold TNS 0、电气/布局/原生DRT 0。较ORFS参考功耗−3.3813%、面积−2.5448%；派生时钟及尺寸/VT状态匹配已通过真实资格，完整106输出证明与重放尚未完成；尚未采用，IB0保留。
-- Ariane原一轮四Student及Teacher已完成；原控制器选中Student04。主候选AG4完整DRT/RCX及DF/DI已核对：651.96436644 mW / 43970.9 µm²，setup TNS -310.3 ns、hold TNS -24.7916 ns，slew 913。功耗、面积、setup/hold及slew均不合格，拒绝。原生收益仍未归因；其他候选交付尚待收齐。
+- Ariane原一轮四Student及Teacher已完成；原控制器选中Student04。主候选AG4完整DRT/RCX及DF/DI已核对：651.96436644 mW / 43970.9 µm²，setup TNS -310.3 ns、hold TNS -24.7916 ns，slew 913。功耗、面积、setup/hold及slew均不合格，拒绝。原生收益仍未归因；其他候选交付尚待收齐。 Student01也已完成共同最终测量：645.26546001000 mW / 43675.6 µm²，setup TNS -537.744 ns、hold TNS -16.0177 ns，原五项约束拒绝；Student02仍在原流程交付。
 四设计整体尚未全部收口。
 
 ## 完成测量节点
@@ -50,6 +50,7 @@
 |jpeg|JPD|JG3|preserved-wire diagnostic|150.82803369000|6243.33|0.26612000|0|diagnostic only: existing wires RCX; native DRC unknown; not adopted|
 |ariane|AB0||ORFS checkpoint|642.41528511000|43672.8|-285.396000|-155.146|reference: setup/slew fail; original inline LEC retired; not adopted|
 |ariane|AG4|AB0|Goal + common final delivery|651.96436644000|43970.9|-391.727000|-310.3|rejected: max_slew_violations,power_total_w_max,cell_area_um2_max,setup_tns_ns_min,hold_tns_ns_min; original native controller selected; native gain unattributed|
+|ariane|AG1|AB0|Goal + common final delivery|645.26546001000|43675.6|-366.492000|-537.744|rejected: max_slew_violations,power_total_w_max,cell_area_um2_max,setup_tns_ns_min,hold_tns_ns_min; original native verdict refuted|
 
 完整指标、core/die面积、setup/hold、电气/布局、DRC方法、run/condition/objective及原件SHA见[指标CSV](INVITED_PAPER_METRICS_20261020.csv)。无最终PPA的已终止尝试见[失败过程表](INVITED_PAPER_FAILED_ATTEMPTS_20261021.csv)。
 

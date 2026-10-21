@@ -279,3 +279,12 @@ Ibex一次性续算驱动已升级为r2，仅在整个Ariane case实际终态、
 实际native/qualification/common Tcl与SDC逐字节身份保存。native显式请求ideal-network处理及placement/GRT估计，最终采用完整DRT/RCX及显式传播时钟；setRC已令两侧实际路由层均M2-M7。两SDC有效命令只差native保存的传播时钟行，共同测量本身也显式设置传播时钟。未重跑任何EDA/模型、未改专业策略或目标。原Student01继续详细布线第1轮，Ibex续算仍等待整个Ariane case终态。
 
 原件在本轮ariane-selected-final-public-query-r2/，分别保留默认分页、完整44点、路径延迟分解与脚本边界，后续包包含准确源文件及SHA。该记录说明通过统一数据接口可以开展具体诊断，不计算查询节约率，也不以调查替代原case收尾。
+
+
+## 2026-10-21 14:47–14:50：AG1真实最终交付与同轮自动接续
+
+Student01完整DRT/RCX任务run-dc4b649f886b4b3d9ed56f2a088c8748成功，common生产任务run-e0f54ba558f34d2ca6b480382c060e95也成功，ORFS/OpenSTA事实经原EF/DF入口发布。AG1最终645.26546001mW/43675.6µm²/setupTNS−537.744ns/holdTNS−16.0177ns/slew824/原生DRT0，原五项约束拒绝。十二数值与实际两个范围通过公开DI核验，负分支不补昂贵功能证明或未交付对象快照。检查点SHA与原native candidate、producer/measurement身份一致。
+
+原前端自动派发Student02完整qualification run-fda868da258b4392ac46b7bc3b6d2c05，不是新campaign。主AG4及AG1分别保留实际负结果，Ibex仍等待整个Ariane case终态才续算。原live inventory截面冻结在ariane-completed-sibling-inventory-cut-r1.json，后续变更不影响已核查记录。
+
+当前35节点的publicEF/DI复核全部通过，418已有数值/91真实范围相同，用时2.574秒。所列成本382闭合EF/319336.26采样CPU秒，44份Goal调用输入29580582/输出470208保持；新增四份是实际Student01交付任务，之前扩展的29份兄弟回执另有范围说明。没有新模型/重复优化或节约率主张。

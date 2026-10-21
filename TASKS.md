@@ -478,3 +478,5 @@ Ariane修复后四份不同完整二进制与701文件构建清单的实际SHA�
 ### A29 2026-10-21 14:00 主AG4负结果已核验
 
 Ariane主AG4完整DRT/RCX/DF/DI已完成，651.96436644mW/43970.9µm²/setupTNS−310.3ns/holdTNS−24.7916ns/slew913，原五项约束拒绝；原其他eligible候选仍交付。论文34节点/406值/89范围公开核验通过，表图/英文/r20十二页PDF更新。Ibex594/2046PASS同模型证明保留，r2驱动等待整个Ariane case实际结束才接续；A29及整体目标未完成。
+
+2026-10-21 14:50 A29：Ariane AG1完整DRT/RCX及12值/2scope核验完成，645.26546001mW/43675.6µm²/TNS−537.744ns/holdTNS−16.0177ns，原五约束拒绝。原Student02 fullqualification实际运行，不另开campaign；35节点418值91范围公开核验通过。表图/方法/成本持续更新，Ibex原证明等待续算；四设计整体未完成。
