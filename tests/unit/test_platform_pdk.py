@@ -131,3 +131,20 @@ def test_rmp_standard_cell_lib_does_not_include_nangate_sram(tmp_path):
     merged = _write_rmp_combined_liberty([standard, macro], tmp_path / "output")
     assert "INV_X1" in merged.read_text()
     assert "fakeram45_256x16" not in merged.read_text()
+
+
+@pytest.mark.parametrize(
+    "unit,scale",
+    [("pw", 1), ("nw", 1000), ("uw", 1e6), ("mw", 1e9), ("w", 1e12), ("fw", 0.001)],
+)
+def test_native_power_metrics_normalize_the_reported_pdk_unit(tmp_path, unit, scale):
+    from goalevolve.evaluation.contest2026 import _read_metrics
+
+    metrics = tmp_path / "metrics.csv"
+    metrics.write_text(
+        f"design,tns,total_power,leakage_power,power_unit\nunit,-1,100,10,{unit}\n"
+    )
+    value = _read_metrics(metrics)
+    assert value["dynamic_power_pw"] == pytest.approx(90 * scale)
+    assert value["leakage_power_pw"] == pytest.approx(10 * scale)
+    assert value["tns_abs_ns"] == 1

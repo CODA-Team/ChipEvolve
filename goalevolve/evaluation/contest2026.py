@@ -376,13 +376,19 @@ def _read_metrics(path: Path) -> dict[str, float]:
         raw = row.get(source)
         if raw not in (None, ""):
             metrics[target] = abs(float(raw)) if target == "tns_abs_ns" else float(raw)
-    # QoR-gap power terms deliberately exclude wall-clock runtime.  Dynamic
-    # power is the official parser's total power minus leakage power, in the
-    # same pW unit as ``leakage_power_pw``.
+    # The official parser preserves the Liberty banner unit (ASAP7 pW,
+    # Nangate45 nW). Normalize both fields to the declared native pW metric.
+    power_unit = (row.get("power_unit") or "pw").strip().lower()
+    power_to_pw = {
+        "w": 1e12, "mw": 1e9, "uw": 1e6, "nw": 1e3, "pw": 1.0, "fw": 1e-3
+    }[power_unit]
+    if "leakage_power_pw" in metrics:
+        metrics["leakage_power_pw"] *= power_to_pw
+    # QoR-gap power terms deliberately exclude wall-clock runtime.
     total_power = row.get("total_power")
     leakage_power = row.get("leakage_power")
     if total_power not in (None, "") and leakage_power not in (None, ""):
-        metrics["dynamic_power_pw"] = float(total_power) - float(leakage_power)
+        metrics["dynamic_power_pw"] = (float(total_power) - float(leakage_power)) * power_to_pw
     # The official parser reports a tool-only runtime when OpenROAD exposes
     # one; a valid completed flow may instead provide only flow_runtime.
     # Treat the latter as the same campaign metric rather than asking a
