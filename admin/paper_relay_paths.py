@@ -260,12 +260,35 @@ def export(root: Path, work: Path, output: Path) -> dict[str, Any]:
                 for x in found
                 if x["parent"]
             ]
+            runtime = (
+                "runtime-nangate45" if pdk == "nangate45" else "runtime-asap7-relays"
+            )
+            tasks = []
+            for request in sorted(
+                (work / runtime / "experiments" / design).glob("a30-*/request.json")
+            ):
+                task = json.loads(request.read_text())
+                status = request.parent / "status.json"
+                state = (
+                    json.loads(status.read_text())
+                    if status.exists()
+                    else {"status": "no terminal receipt yet"}
+                )
+                tasks.append(
+                    {
+                        "experiment": request.parent.name,
+                        "capability": task["capability"],
+                        "operation": task.get("operation"),
+                        "state": state,
+                    }
+                )
             cases.append(
                 {
                     "design": design,
                     "pdk": pdk,
                     "measured_nodes": len(found),
                     "actual_edges": edges,
+                    "workflow_tasks": tasks,
                     "status": "has measured records"
                     if found
                     else "waiting for first measurement",
