@@ -38,6 +38,33 @@ def test_negative_result_and_unknown_facts_are_not_replaced_with_passes(tmp_path
     assert row["decision"] == "rejected"
 
 
+def test_successful_diagnostic_does_not_promote_its_failed_original_flow(tmp_path):
+    from admin.paper_relay_paths import collect
+
+    root, work = tmp_path / "root", tmp_path / "work"
+    (root / "admin").mkdir(parents=True)
+    (root / "admin/INVITED_PAPER_METRICS_20261020.csv").write_text("design\n")
+    case = (
+        work / "runtime-asap7-relays/experiments/gcd/a30-gcd-asap7-failed-diagnostic-r1"
+    )
+    case.mkdir(parents=True)
+    frame(
+        case / "result.json",
+        snapshot_ids={"orfs": "actual-diagnostic-metrics"},
+        original_flow_status="failed",
+        reference_repeat_qualified=False,
+    )
+    (case / "request.json").write_text(json.dumps({"capability": "diagnostic"}))
+    (case / "status.json").write_text(json.dumps({"status": "succeeded"}))
+    rows, originals = collect(root, work)
+    assert len(rows) == len(originals) == 1
+    assert rows[0]["agent"] == "diagnostic"
+    assert "failed flow" in rows[0]["decision"]
+    assert "not a qualified repeat" in rows[0]["decision"]
+    assert "not adopted" in rows[0]["decision"]
+    assert rows[0]["setup_ws_ps"] == -50
+
+
 def test_changed_curated_result_cannot_be_silently_exported(tmp_path):
     path = tmp_path / "result.json"
     frame(path)
@@ -84,6 +111,7 @@ def test_ibex_terminal_proof_error_does_not_remain_pending_or_become_adoption(tm
         )
     )
     state = ibex_validation_state(tmp_path, "candidate")
+    assert state is not None
     assert "not adopted" in state and "did not pass/finish" in state
 
 
@@ -105,7 +133,8 @@ def test_ibex_full_proof_alone_cannot_be_reported_as_adopted(tmp_path):
         },
     }
     proof.write_text(json.dumps(value))
-    assert "not yet established" in ibex_validation_state(tmp_path, "candidate")
+    state = ibex_validation_state(tmp_path, "candidate")
+    assert state is not None and "not yet established" in state
     validation = case / "a29-ibex-ip3-final-delivery-replay-r3/validation.json"
     validation.parent.mkdir()
     validation.write_text(
@@ -121,10 +150,12 @@ def test_ibex_full_proof_alone_cannot_be_reported_as_adopted(tmp_path):
     pointer = tmp_path / "runtime/designs/ibex/incumbent.json"
     pointer.parent.mkdir(parents=True)
     pointer.write_text(json.dumps({"result_sha256": "candidate"}))
-    assert "validated and adopted" in ibex_validation_state(tmp_path, "candidate")
+    state = ibex_validation_state(tmp_path, "candidate")
+    assert state is not None and "validated and adopted" in state
     value["proof"]["proven_points"] = 105
     proof.write_text(json.dumps(value))
-    assert "not adopted" in ibex_validation_state(tmp_path, "candidate")
+    state = ibex_validation_state(tmp_path, "candidate")
+    assert state is not None and "not adopted" in state
 
 
 def test_explicit_finishing_request_retains_the_actual_physical_parent(tmp_path):

@@ -1,3 +1,5 @@
+2026-10-22 A30：Ariane ASAP7 原供电断连已用原生 floorplan 对照定位并验证单一 M5 条带相位修复；新完整来源经 EF 排队，正常最终检查保留，原未启动且输入不合格的 ECO 会话取消，新来源交付后重新 Query→原生 ECO8。诊断测量可经 DF/DI 查询，论文导出明确保留失败状态；609 根回归通过，八组双次优化仍未齐。详见 [供电修复与导出记录](admin/A30_PDN_COMPATIBILITY_AND_DIAGNOSTIC_EXPORT_20261022.md)。
+
 2026-10-21 23:40 A30：固定专业动作重复现在在原EF优化成功后写既有delivery.checkpoint，原delivery.finish/resume复用确定性任务完成DRT/RCX和三事实；没有新增服务、接口或恢复框架。原Goal TNS研究机制以独立common源码补丁补回，保留现代接口与S3尾部回滚，新源码与原生AST/二进制各自绑定；旧运行冻结不变。源码/AST检查通过，真实构建/PPA待结果，见[边界与续作](admin/A30_TNS_RESTORATION_AND_RELAY_RECOVERY_20261021.md)。
 
 2026-10-21 晚间 A30：既有Goal固定方法入口扩展为接受已测量的`native-candidate`，区分物理`--source`与源码`--code-source`。候选分支核对原candidate/evidence字节、五项原生检查、701声明源码与唯一成功EF生产者，保留原evaluation_mode/recipe；它只为原evaluate_parent恢复方法身份，不改变原Teacher/EPD/晋升指针。公共CLI/EF/DF/DI协议与原生优化算法保持；真实G02的701文件/原power_then_timing/wns_path_deep身份已核对，新增实际跨设计执行仍待结果。两次实验汇总区分固定策略动作、实际多棒路径、源码搜索与纯路由重测，不能互相替代。

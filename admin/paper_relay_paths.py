@@ -89,6 +89,10 @@ def measured_node(
     frame = json.loads(raw)
     if frame["design_id"] != design:
         raise ValueError("Result belongs to a different design")
+    if frame.get("original_flow_status") == "failed":
+        decision = (
+            "diagnostic measurement of failed flow; not a qualified repeat; not adopted"
+        )
     result = {
         "design": design,
         "pdk": pdk,
