@@ -1,3 +1,7 @@
+2026-10-21 20:05 实测/纠正：GCD DG1两次完整Goal动作与DF事实已收齐，均值0.81929122098mW/39.6139um2/setup及holdTNS0，输出V均与已有证明逐字节一致；只读收集器分开处理两分支，避免待G02阻塞已完成DG1，20:00版PDF已有原值/均值。新的实际DPL→Goal两次整链仍未完成。JPEG基准复跑的旧全专业环境冻结阻断已按单独ORFS执行配置纠正，原镜像/库/SDC/目标身份实核后派发。
+
+Ariane确认AG4最终五项指标均劣于AB0，因此取消尚未启动的AG4→ECO2排队任务（已核对cancelled、无EDA执行），保留原Goal负结果，改由更好AB0经独立Query发起原生ECO8。源选择理由来自实际同条件比较；原最终约束、21STD/SRAM模型、原动作/评分/最佳回退不改，私有PDK只绑定与共同测量一致M2-M7路由范围。首session合格后再做相同协议第二次，不将失败或取消算作合格数据。
+
 2026-10-21 晚间策略补充：实际Query确认Nangate45 GCD250ps关键路径受单元逻辑延迟主导，DPL线距优化不足以解释修复。另已实际派发原Flow两次各1×50完整搜索及其独立baseline/Query，使用明确完整Yosys旋钮来源和公开EF已发布的同250ps约束ps序列；新reference/objective family单列、不跨条件算收益，原Goal/DPL任务和旧ns family保留。详情与PID在A30续作入口和gcd-nangate-flow-strategy-decision.json。尚无通过结果，不将候选跑完等同业务验收。
 
 # 10月21日18:55 验收更新
