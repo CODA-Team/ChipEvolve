@@ -552,3 +552,7 @@ JPEG已由Goal03物理状态→有证据的Query/Codex选择→显式原生VT/si
 ### A29：派生时钟功能证明的私有配置（2026-10-21）
 
 原 EQY 内部配置可显式启用 `validation.equivalence_multiclock`：两侧模型先经原生 clk2fflogic，再用原 ABC-PDR 和 SBY multiclock。默认单时钟路径不变；工具身份、全部输出/分区验收与 EF 入口不变，无公共 API/数据库变更。正例 PASS、负例实际反例、原 Ibex 失败分区 PASS 均经 EF 资格；完整106输出证明、独立重放及采用仍单独验收。见 `admin/A29_IBEX_DERIVED_CLOCK_QUALIFICATION_20261021.md`。
+
+### A29：可选的跨单元型号状态匹配（2026-10-21）
+
+内部证明选项`validation.equivalence_match_cell_variants`默认关闭。启用时，同实例在尺寸/VT变化后仍可提出公共DFF状态别名的对应，但每个新增对应均由原EQY/ABC-PDR证明，不改变Liberty模型或添加假设。Ibex实际仅增加两个已资格状态，所有原1936状态/106输出保留；默认路径相同。正例/错误D/错误时钟/真实慢RF分区及579项根回归通过。EF实时资源接口为准，旧部署services字段不代表当前预算。见`admin/A29_IBEX_CELL_VARIANT_PROOF_20261021.md`；完整证明/采用仍单独验收。

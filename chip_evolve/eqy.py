@@ -25,37 +25,50 @@ def qualified_strategy(policy: dict[str, Any]) -> str:
 
 
 def common_flop_states(
-    gold: dict[str, Any], gate: dict[str, Any], top: str
+    gold: dict[str, Any],
+    gate: dict[str, Any],
+    top: str,
+    *,
+    match_cell_variants: bool = False,
 ) -> set[str]:
     """Proposed cut points; EQY must still prove every corresponding state."""
     left, right = gold["modules"], gate["modules"]
     common = {
-        name: cell["type"]
+        name: (cell["type"], other["type"])
         for name, cell in left[top]["cells"].items()
-        if right[top]["cells"].get(name, {}).get("type") == cell["type"]
+        if (other := right[top]["cells"].get(name)) is not None
+        and (match_cell_variants or other["type"] == cell["type"])
     }
-    by_master: dict[str, set[str]] = {}
-    for master in set(common.values()):
-        model = left.get(master)
-        if model is None or model != right.get(master):
+    by_pair: dict[tuple[str, str], set[str]] = {}
+    for pair in set(common.values()):
+        models = [left.get(pair[0]), right.get(pair[1])]
+        if any(model is None for model in models) or (
+            not match_cell_variants and models[0] != models[1]
+        ):
             continue
-        states = set()
-        for cell in model.get("cells", {}).values():
-            if not cell["type"].startswith("$_DFF"):
-                continue
-            bits = cell["connections"]["Q"]
-            aliases = [
-                name
-                for name, wire in model["netnames"].items()
-                if wire["bits"] == bits and not wire.get("hide_name")
-            ]
-            if aliases:
-                states.add(min(aliases))
-        by_master[master] = states
+        aliases_by_side = []
+        for model in models:
+            assert model is not None
+            states = set()
+            for cell in model.get("cells", {}).values():
+                if not cell["type"].startswith("$_DFF"):
+                    continue
+                bits = cell["connections"]["Q"]
+                aliases = [
+                    name
+                    for name, wire in model["netnames"].items()
+                    if wire["bits"] == bits and not wire.get("hide_name")
+                ]
+                if aliases:
+                    states.add(min(aliases))
+            aliases_by_side.append(states)
+        # Resizing/VT may change the master without changing state identity.
+        # A proposed correspondence is an extra proof obligation, not an axiom.
+        by_pair[pair] = aliases_by_side[0] & aliases_by_side[1]
     return {
         name + "." + state
-        for name, master in common.items()
-        for state in by_master.get(master, set())
+        for name, pair in common.items()
+        for state in by_pair.get(pair, set())
     }
 
 
@@ -165,7 +178,12 @@ def verify(
     models = [read(folder / (side + ".json")) for side in ("gold", "gate")]
     declared = [set(model["modules"][top]["netnames"]) for model in models]
     states = (
-        common_flop_states(models[0], models[1], top)
+        common_flop_states(
+            models[0],
+            models[1],
+            top,
+            match_cell_variants=policy.get("equivalence_match_cell_variants", False),
+        )
         if policy.get("equivalence_match_flops", False)
         else set()
     )
@@ -216,6 +234,8 @@ def verify(
     if policy.get("equivalence_match_flops", False):
         from .config import write
 
+        if policy.get("equivalence_match_cell_variants", False):
+            details["cell_variant_state_matching"] = True
         matched_states = folder / "proof-state-matches.json"
         write(matched_states, {"count": len(states), "points": sorted(states)})
         extra.append(matched_states)
