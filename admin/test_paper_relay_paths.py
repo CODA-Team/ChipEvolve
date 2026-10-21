@@ -125,3 +125,27 @@ def test_ibex_full_proof_alone_cannot_be_reported_as_adopted(tmp_path):
     value["proof"]["proven_points"] = 105
     proof.write_text(json.dumps(value))
     assert "not adopted" in ibex_validation_state(tmp_path, "candidate")
+
+
+def test_explicit_finishing_request_retains_the_actual_physical_parent(tmp_path):
+    import hashlib
+    import json
+
+    from admin.paper_relay_paths import recorded_finishing_parent
+
+    source = tmp_path / "actual-source.json"
+    source.write_text(json.dumps({"run_id": "actual-input"}))
+    request = {
+        "source": str(source),
+        "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+        "parent_run_id": "actual-input",
+    }
+    assert recorded_finishing_parent(request) == str(source)
+    request["parent_run_id"] = "method-producer"
+    with pytest.raises(ValueError, match="actual input"):
+        recorded_finishing_parent(request)
+    request["parent_run_id"] = "actual-input"
+    source.write_text(json.dumps({"run_id": "changed"}))
+    with pytest.raises(ValueError, match="input changed"):
+        recorded_finishing_parent(request)
+    assert recorded_finishing_parent({"source": str(source)}) is None

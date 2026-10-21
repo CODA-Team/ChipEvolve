@@ -138,6 +138,19 @@ def attach_deltas(rows: list[dict[str, Any]]) -> None:
                     row[column] = 100 * (row[metric] / parent[metric] - 1)
 
 
+def recorded_finishing_parent(request: dict[str, Any]) -> str | None:
+    """Use the explicit native action receipt, with its actual input identity."""
+    source = request.get("source")
+    if not (source and request.get("source_sha256") and request.get("parent_run_id")):
+        return None
+    path = Path(source)
+    if hashlib.sha256(path.read_bytes()).hexdigest() != request["source_sha256"]:
+        raise ValueError("Recorded finishing input changed")
+    if json.loads(path.read_text())["run_id"] != request["parent_run_id"]:
+        raise ValueError("Recorded finishing parent does not match its actual input")
+    return source
+
+
 def collect(root: Path, work: Path) -> tuple[list[dict[str, Any]], dict[str, bytes]]:
     rows, originals = [], {}
     with (root / "admin/INVITED_PAPER_METRICS_20261020.csv").open() as stream:
@@ -211,7 +224,7 @@ def collect(root: Path, work: Path) -> tuple[list[dict[str, Any]], dict[str, byt
             source = (
                 json.loads(receipt.read_text()).get("source")
                 if receipt.exists()
-                else None
+                else recorded_finishing_parent(request)
             )
             new.append((row, str(Path(source).resolve()) if source else None))
             aliases[str(path.resolve())] = row

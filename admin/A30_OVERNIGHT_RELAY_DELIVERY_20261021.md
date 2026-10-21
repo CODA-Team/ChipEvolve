@@ -8,6 +8,12 @@
 
 本次仅增加admin/repeat_native_strategy.py（原输入完整专业动作重复）及admin/relay_repeat_summary.py（两次数据和资格的论文汇总）与针对性回归；不改服务、公共接口、专业算法。
 
+已实际派发的重复批次（运行数据和PID见A30目录对应launch.json）：GCD G02/DG1各两次完整Goal动作；GCD从固定F37检查点两次实际DPLStudent01→Query→GoalDG1；JPEG两次完整Goal03→Query→原生VT/size修复；Ibex两次固定timing-Goal→Query→15ps原生修复→Query→30ps VT/size与slew修复。Nangate45四组第二次baseline重做全RTL ORFS；原native搜索结束后，仅对实际合格且功耗面积不恶化的专业策略执行两次完整动作，其他情况交回Codex查因纠正。Ariane ASAP7仍在原AG4→ECO试验队列，尚无合格结果。各流程与源码生成搜索分开统计，不将固定策略执行重复写成搜索重复。
+
+GCD四次新增完整Goal动作的DRT/RCX测量已返回：G02两次均0.71564863902mW/39.1181um2/setupTNS0，DG1两次均0.81929122098mW/39.6139um2/setupTNS0；部分DF登记仍等待资源，成对最终汇总尚未完成。现有成功结果不被新失败覆盖。当前根598项回归、17项相关针对检查及静态/类型/格式通过，26保护文件未改；这只证明修改可用，不代表八组业务验收通过。
+
+素材观察器更新为r4，7:45生成晨间包，包含实际完成的两次原值/均值章；失败与不足两次如实保留。它只导出，不停止计算。
+
 ---
 
 # A30 夜间交付：八组路径与 GCD 机制案例
