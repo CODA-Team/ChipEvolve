@@ -338,7 +338,7 @@ def run_eco(
     wrapper.write_text(
         "#!/usr/bin/python3\nimport os,sys\nargs="
         + repr(base + ["env"])
-        + "\nfor key in ('ASAP7_PDK','DESIGN_DIR','TOP','BACKTRACE_ODB'):\n if key in os.environ: args.append(key+'='+os.environ[key])\nargs += "
+        + "\nfor key in ('ASAP7_PDK','DESIGN_DIR','TOP','BACKTRACE_ODB','TIMINGECO_LIB_FILES'):\n if key in os.environ: args.append(key+'='+os.environ[key])\nargs += "
         + repr([deployment.value["tools"]["openroad"], "-threads", "8"])
         + "+sys.argv[1:]\nos.execvp(args[0],args)\n"
     )
@@ -357,6 +357,10 @@ def run_eco(
         ASAP7_PDK=str(source / "asap7"),
         ASAP7_PDK_LIB=str(source / "asap7/lib/NLDM"),
         TIMINGECO_LIB_CORNER="FF",
+        TIMINGECO_LIB_FILES="\n".join(
+            str(source / "asap7/lib/NLDM" / Path(row["path"]).name)
+            for row in design["libraries"]
+        ),
         TIMINGECO_MODEL_BACKEND="codex",
         TIMINGECO_CODEX_BIN=shutil.which("codex") or "codex",
         DRT_EVERY_ITER="1",

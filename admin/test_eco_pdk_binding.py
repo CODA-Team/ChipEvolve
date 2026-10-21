@@ -156,6 +156,9 @@ def test_flat_common_pdk_prepares_native_layout_and_preserves_bound_rc(
     assert profile["parent_run_id"] == "unit-parent"
     assert profile["memory_gib"] == (24 if memory_gib is None else memory_gib)
     assert profile["input_artifacts"]["odb"] == "unit-odb"
+    assert profile["environment"]["TIMINGECO_LIB_FILES"].splitlines() == [
+        str(experiment / "source/asap7/lib/NLDM" / library.name)
+    ]
     # Exercise the generated launcher: --cleanenv must not drop tool threads.
     import os
     import runpy
@@ -163,8 +166,12 @@ def test_flat_common_pdk_prepares_native_layout_and_preserves_bound_rc(
 
     calls = []
     with (
+        patch.dict(
+            os.environ, TIMINGECO_LIB_FILES="/frozen/cells.lib\n/frozen/sram.lib"
+        ),
         patch.object(sys, "argv", ["openroad", "-exit", "measure.tcl"]),
         patch.object(os, "execvp", side_effect=lambda exe, argv: calls.append(argv)),
     ):
         runpy.run_path(str(experiment / "openroad"))
     assert calls[0][-5:] == ["unused-openroad", "-threads", "8", "-exit", "measure.tcl"]
+    assert "TIMINGECO_LIB_FILES=/frozen/cells.lib\n/frozen/sram.lib" in calls[0]
