@@ -1,3 +1,5 @@
+2026-10-22 A30：DPL 物理内存预约支持与 Goal 一致的内部实验绑定，默认 24 GiB 保持；GCD 按三个原生评估峰值约 0.3 GiB 校准新实验为 8 GiB，构建与专业算法不变。611 根回归及静态检查通过，新完整接力仍待真实结果。[实测与范围](admin/A30_DPL_RESOURCE_CALIBRATION_20261022.md)。
+
 2026-10-22 A30：Ariane ASAP7 原供电断连已用原生 floorplan 对照定位并验证单一 M5 条带相位修复；新完整来源经 EF 排队，正常最终检查保留，原未启动且输入不合格的 ECO 会话取消，新来源交付后重新 Query→原生 ECO8。诊断测量可经 DF/DI 查询，论文导出明确保留失败状态；609 根回归通过，八组双次优化仍未齐。详见 [供电修复与导出记录](admin/A30_PDN_COMPATIBILITY_AND_DIAGNOSTIC_EXPORT_20261022.md)。
 
 2026-10-21 23:40 A30：固定专业动作重复现在在原EF优化成功后写既有delivery.checkpoint，原delivery.finish/resume复用确定性任务完成DRT/RCX和三事实；没有新增服务、接口或恢复框架。原Goal TNS研究机制以独立common源码补丁补回，保留现代接口与S3尾部回滚，新源码与原生AST/二进制各自绑定；旧运行冻结不变。源码/AST检查通过，真实构建/PPA待结果，见[边界与续作](admin/A30_TNS_RESTORATION_AND_RELAY_RECOVERY_20261021.md)。

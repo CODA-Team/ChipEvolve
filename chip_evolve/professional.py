@@ -880,7 +880,7 @@ def run_dpl(
     }
     profile["resources"]["physical"] = {
         "cpu_cores": 8,
-        "memory_bytes": 24 << 30,
+        "memory_bytes": int(binding.get("physical_memory_gib", 24)) << 30,
         "processes": 2048,
     }
     profile["container_environment"].update(
