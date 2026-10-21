@@ -234,3 +234,12 @@ Ariane初次Student01/02/04均原生成功，Student03原7200秒超时。三份�
 本轮成本导出补入原先26份初始Goal回执之外的12份回执（8份反思、4份电气约束修复），按campaign/operation/attempt核对38个唯一调用尝试，旧26份原件SHA不变。当前已知Goal输入26139849、输出413321 token；DPL另列5份回执及cached-input子集。326个已闭合EF任务的已知采样CPU237276.65秒，仍不含正在计算的链接和未单列的父Codex推理/服务开销，不报告货币总成本或节约率。4份缺本地execution.json的记录已沿公开EF复核：2份历史取消已在终态成本记录中、2份仍链接，不能把4份都说成活动任务。
 
 原件为本轮`ef-actual-capacity-and-original-reinforcement-queue-20261021.json`、三份`ariane-corrected-student0{1,2,4}-native-completed-verification.json`、`unclosed-operation-journals-public-status-20261021.json`及`cost-snapshot-20261021T022828Z.json`。这些是带时点的操作/成本证据；最终采用仍等待Ibex完整证明/重放与Ariane原轮次/共同PPA，未把原生成功作为最终PPA通过。
+## 2026-10-21 11:45：保留原证明后按业务顺序调度
+
+Ibex 同模型完整证明已完成 594 个分区，但其 20 GiB 预约阻塞原 Ariane 后续 16 GiB 构建；公开 EF 实时总预算是 32 GiB。先通过 EF 验证原生 EQY `-c`：保留分区的状态字节和 mtime 不变，缺失分区重新完成，错误时钟样例仍 FAIL 并产生反例。首次资格脚本误把四个实际分区断言为两个，修正仅针对运行脚本，原始失败与成本保留。
+
+验证通过后，已保存原输入/配置/分区、594 个 PASS、日志和运行成本，公开 EF 取消 `run-ba39aa9497494e2ea045fa5b385b1649` 让渡资源；原 Ariane 排队构建 `run-4459c0ffe7b64377856a810056311d89` 随即实际启动。不是静默超时重启、功能反例或修改专业算法。一次性接续脚本等待同一 Ariane 前端和任务完成，再用原生 `-c` 继续相同 106 输出/2046 义务、相同模型和配置；保留原总 14400 秒扣除已执行约 4156 秒后的剩余预算。只有完整 PASS 后才执行已有 r3 独立交付重放/SDK/采用。
+
+Ariane 原修正轮的 Student01、04 首次 constraint repair 均原生成功，实际分别约 2102.39 和 978.56 秒。两份不可变 EF ZIP 中的 post_route ODB/网表成员已核 SHA；原生成功仍不是共同最终 PPA 结论。Student04 下一项原生修复继续，Teacher、完整 DRT/RCX、DF/DI 和最终判断尚待完成。GCD/JPEG 已验收结果不重跑，旧 JPEG 搜索继续保持停止。
+
+证据：本轮 `ibex-native-continuation-scheduling-decision.json`、`eqy-native-continue-qualification-result-r2.json`、`ibex-native-continue-after-ariane-launch.json`、`ariane-student0{1,4}-constraint-repair01-native-verification.json`。没有修改服务、资源总额、公共接口或数据库。
