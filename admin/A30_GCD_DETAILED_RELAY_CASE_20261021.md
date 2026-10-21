@@ -59,6 +59,20 @@ ECO 实际消费存在时序问题的 G03，而不是在已闭合的 G02 上做�
 
 G02 和 DG1 都已有全 18 输出 ABC-PDR 与独立 DRT/RCX 七值同值证明。这里能够支持“平台真实集成不同专业，并形成合法接力收益”，但不能声称所有专业每棒都改善、四专业串行联合最优或已超过最佳单专业的普遍上界。
 
+## 7. 两次重复结果与时序边界
+
+以下各格依次为第 1 次、第 2 次、均值；两次使用不同的实际 EF 优化/测量运行。B0 的两次是完整基准物理执行，G02/DG1 的两次是从各自同一原输入出发重新执行固定 Goal 源码与配方、再完成 DRT/RCX/DF。它们不代表前序 Flow 搜索、DPL 动作或 Teacher/Student 源码生成都重复了两次。
+
+| 对象与重复范围 | 功耗 1 / 2 / 均值 mW | 面积 1 / 2 / 均值 µm² | setup WS 1 / 2 / 均值 ps | setup / hold TNS |
+|---|---|---|---|---|
+| B0：完整基准物理流程 | 1.373553765 / 1.373553765 / 1.373553765 | 42.6757 / 42.6757 / 42.6757 | 9.34292 / 9.34292 / 9.34292 | 两次均 0 / 0 ns |
+| G02：固定 Goal 动作 | 0.71564863902 / 0.71564863902 / 0.71564863902 | 39.1181 / 39.1181 / 39.1181 | 0.0834055 / 0.0834055 / 0.0834055 | 两次均 0 / 0 ns |
+| DG1：固定 Goal 动作 | 0.81929122098 / 0.81929122098 / 0.81929122098 | 39.6139 / 39.6139 / 39.6139 | 1.31586 / 1.31586 / 1.31586 | 两次均 0 / 0 ns |
+
+这两对 Goal 新网表分别与已有全输出证明的 G02/DG1 原件逐字节相同，可以复用相同产物的有效证明；没有把证明重放计为优化重复。新的两次完整 DPL→Goal 物理接力另行执行和汇总，尚未完成，不用上述单棒数据填充其均值。
+
+G02、DG1 的 setup 裕量都小于 B0；G02 仅剩 0.0834055 ps。当前结果支持固定 FF/310 ps 条件下保持时序闭合并降低功耗、面积，不能写为提高频率或增加时序余量。ECO 负分支的时序债务确实减少，但没有闭合。WS 是最差 slack，WNS=min(0, WS)，不把正 WS 称作正 WNS，也不从这些混合路径组 slack 推算 Fmax。
+
 ## 证据入口
 
 全部节点、父项和产物 SHA：[完整旧节点表](INVITED_PAPER_METRICS_20261020.csv)；八组长表导出器：[paper_relay_paths.py](paper_relay_paths.py)。运行原件位于：
@@ -69,5 +83,8 @@ G02 和 DG1 都已有全 18 输出 ABC-PDR 与独立 DRT/RCX 七值同值证明�
 - `var/business/a29-paper-delivery-20261020/gcd-completed-native-round-summary.json`
 - `var/business/a29-paper-delivery-20261020/gcd-dpl-goal-next-decision.json`
 - `var/business/a29-paper-delivery-20261020/gcd-eco-final-acceptance.json`
+- `var/business/a30-four-design-two-pdk-20261021/baseline-pairs/reference-pairs.json`
+- `var/business/a30-four-design-two-pdk-20261021/paired-summary-gcd-asap7-g02/two-trial-summary.json`
+- `var/business/a30-four-design-two-pdk-20261021/paired-summary-gcd-asap7-dg1/two-trial-summary.json`
 
 这些是已完成证据的解释与整理，本案例文档本身不新增 EDA 实验。
