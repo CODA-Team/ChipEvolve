@@ -65,6 +65,58 @@ def test_successful_diagnostic_does_not_promote_its_failed_original_flow(tmp_pat
     assert rows[0]["setup_ws_ps"] == -50
 
 
+def test_untyped_native_records_and_pending_tasks_remain_exportable(tmp_path):
+    import hashlib
+
+    from admin.paper_relay_paths import export
+
+    root, work = tmp_path / "root", tmp_path / "work"
+    (root / "admin").mkdir(parents=True)
+    (root / "admin/INVITED_PAPER_METRICS_20261020.csv").write_text("design\n")
+    cases = work / "runtime-asap7-relays/experiments/gcd"
+    parent = cases / "a30-gcd-asap7-native-source"
+    parent.mkdir(parents=True)
+    source = parent / "result.json"
+    frame(source, snapshot_ids={"orfs": "actual-source-metrics"})
+    (parent / "request.json").write_text(json.dumps({"operation": "native-source"}))
+    native = cases / "a30-gcd-asap7-native-finishing-r1"
+    native.mkdir(parents=True)
+    result = native / "result.json"
+    frame(result, run_id="run-two", snapshot_ids={"orfs": "actual-native-metrics"})
+    original = result.read_bytes()
+    request = {
+        "operation": "native-two-cell-electrical",
+        "source_result": str(source),
+        "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+        "source_run_id": "run-one",
+    }
+    (native / "request.json").write_text(json.dumps(request))
+    (native / "input-receipt.json").write_text(json.dumps(request))
+    (native / "status.json").write_text(json.dumps({"status": "succeeded"}))
+    pending = cases / "a30-gcd-asap7-proof-pending"
+    pending.mkdir()
+    (pending / "request.json").write_text(json.dumps({"operation": "proof"}))
+    (pending / "status.json").write_text(json.dumps({"status": "queued"}))
+
+    output = tmp_path / "export"
+    summary = export(root, work, output)
+    rows = json.loads((output / "relay-nodes.json").read_text())
+    assert len(rows) == 2 and all(row["agent"] == "unspecified" for row in rows)
+    child = next(row for row in rows if row["run_id"] == "run-two")
+    assert child["parent"] == "native-source"
+    assert child["same_condition_parent"] is True
+    assert child["setup_ws_ps"] == -50 and child["route_drc"] == 3
+    assert "adoption not asserted" in child["decision"]
+    case = next(c for c in summary["cases"] if c["measured_nodes"])
+    assert {t["operation"] for t in case["workflow_tasks"]} == {
+        "native-two-cell-electrical",
+        "native-source",
+        "proof",
+    }
+    assert all(t["capability"] == "unspecified" for t in case["workflow_tasks"])
+    assert result.read_bytes() == original
+
+
 def test_changed_curated_result_cannot_be_silently_exported(tmp_path):
     path = tmp_path / "result.json"
     frame(path)

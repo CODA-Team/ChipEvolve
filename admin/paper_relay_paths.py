@@ -144,13 +144,14 @@ def attach_deltas(rows: list[dict[str, Any]]) -> None:
 
 def recorded_finishing_parent(request: dict[str, Any]) -> str | None:
     """Use the explicit native action receipt, with its actual input identity."""
-    source = request.get("source")
-    if not (source and request.get("source_sha256") and request.get("parent_run_id")):
+    source = request.get("source") or request.get("source_result")
+    parent_run = request.get("parent_run_id") or request.get("source_run_id")
+    if not (source and request.get("source_sha256") and parent_run):
         return None
     path = Path(source)
     if hashlib.sha256(path.read_bytes()).hexdigest() != request["source_sha256"]:
         raise ValueError("Recorded finishing input changed")
-    if json.loads(path.read_text())["run_id"] != request["parent_run_id"]:
+    if json.loads(path.read_text())["run_id"] != parent_run:
         raise ValueError("Recorded finishing parent does not match its actual input")
     return source
 
@@ -203,7 +204,7 @@ def collect(root: Path, work: Path) -> tuple[list[dict[str, Any]], dict[str, byt
             node = experiment.name.removeprefix("a30-" + design + "-" + pdk + "-")
             if suffix != "selected":
                 node += "/" + path.parent.name
-            agent = request["capability"]
+            agent = request.get("capability", "unspecified")
             mode = request.get("operation", "")
             if agent in {"dpl", "goal"} and mode == "replay":
                 agent += " (qualified source replay)"
@@ -228,8 +229,10 @@ def collect(root: Path, work: Path) -> tuple[list[dict[str, Any]], dict[str, byt
             source = (
                 json.loads(receipt.read_text()).get("source")
                 if receipt.exists()
-                else recorded_finishing_parent(request)
+                else None
             )
+            if not source:
+                source = recorded_finishing_parent(request)
             new.append((row, str(Path(source).resolve()) if source else None))
             aliases[str(path.resolve())] = row
             originals[row["result_sha256"]] = path.read_bytes()
@@ -294,7 +297,7 @@ def export(root: Path, work: Path, output: Path) -> dict[str, Any]:
                 tasks.append(
                     {
                         "experiment": request.parent.name,
-                        "capability": task["capability"],
+                        "capability": task.get("capability", "unspecified"),
                         "operation": task.get("operation"),
                         "state": state,
                     }
