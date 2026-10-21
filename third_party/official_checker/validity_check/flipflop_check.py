@@ -28,7 +28,7 @@ def parse_dffs(netlist_path):
     # leading backslash, so the backslash is optional. Anchor to line start so
     # the non-greedy name group can't latch onto a substring mid-line.
     pattern = re.compile(
-        r'^\s*(DFF\S+)\s+\\?(\S+?)\s*\(([^;]+)\);',
+        r'^\s*((?:DFF|SDFF)\S+)\s+\\?(\S+?)\s*\(([^;]+)\);',
         re.DOTALL | re.MULTILINE
     )
 
@@ -50,7 +50,7 @@ def parse_dffs(netlist_path):
         q_match = re.search(r'\.QN\s*\(' + _net, pin_block)
         if q_match is None:
             q_match = re.search(r'\.Q\s*\(' + _net, pin_block)
-        clk_match = re.search(r'\.CLK\s*\(' + _net, pin_block)
+        clk_match = re.search(r'\.(?:CLK|CK)\s*\(' + _net, pin_block)
 
         if d_match:
             d_net = d_match.group(1)

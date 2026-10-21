@@ -224,7 +224,7 @@ def _write_rmp_combined_liberty(lib_files: Iterable[Path], output: Path) -> Path
     standard = [path for path in files if path.name.startswith("asap7sc7p5t_")]
     # Unit tests and non-ASAP7 integrations can still use the helper, while
     # production ASAP7 selection remains exact and excludes sram_*.lib.
-    selected = standard or [path for path in files if not path.name.lower().startswith("sram")]
+    selected = standard or [path for path in files if not path.name.lower().startswith(("sram", "fakeram"))]
     if not selected:
         raise ValueError("no standard-cell Liberty files available for RMP")
     texts = [(path, path.read_text(encoding="utf-8")) for path in selected]
@@ -568,6 +568,12 @@ def official_four_check(
     policy: ExecutionPolicy,
     environment: dict[str, str] | None = None,
 ) -> tuple[bool, str]:
+    profile = load_platform_profile()
+    equivalent_cells = (
+        Path(profile["equivalent_cells"])
+        if profile and profile.get("equivalent_cells")
+        else OFFICIAL_EQUIV_CELLS
+    )
     runner = ResilientCommandRunner(policy)
     report = runner.run(
         command=[
@@ -578,7 +584,7 @@ def official_four_check(
             "--post_opt",
             str(post_opt),
             "--equiv_cells",
-            str(OFFICIAL_EQUIV_CELLS),
+            str(equivalent_cells),
         ],
         cwd=post_opt,
         environment=environment,
@@ -1709,13 +1715,22 @@ class Contest2026OpenROADEvaluator:
         def_file = _single(benchmark, ("*.def", "*.def.gz"))
         verilog = _single(benchmark, ("*.v",))
         sdc = _single(benchmark, ("*.sdc",))
-        lef_files = sorted((self.config.benchmark_root.parent / "asap7" / "lef").glob("*.lef"))
-        lib_files = sorted((self.config.benchmark_root.parent / "asap7" / "lib").glob("*.lib"))
+        profile = load_platform_profile()
+        pdk_root = (
+            Path(profile["pdk_root"])
+            if profile and profile.get("pdk_root")
+            else self.config.benchmark_root.parent / "asap7"
+        )
+        lef_files = sorted(
+            (pdk_root / "lef").glob("*.lef"),
+            key=lambda path: ("tech" not in path.name.lower(), path.name),
+        )
+        lib_files = sorted((pdk_root / "lib").glob("*.lib"))
         if not lef_files or not lib_files:
-            raise FileNotFoundError("contest ASAP7 LEF/lib assets are missing")
-        rc_file = self.config.benchmark_root.parent / "asap7" / "setRC.tcl"
+            raise FileNotFoundError(f"contest PDK LEF/lib assets are missing: {pdk_root}")
+        rc_file = pdk_root / "setRC.tcl"
         if not rc_file.is_file():
-            raise FileNotFoundError("contest ASAP7 RC setup is missing")
+            raise FileNotFoundError(f"contest PDK RC setup is missing: {pdk_root}")
         def checkpoint(stage: str) -> list[str]:
             return [
                 f"puts \"GOALEVOLVE_CHECKPOINT_BEGIN {stage}\"",
@@ -1958,7 +1973,13 @@ class Contest2026OpenROADEvaluator:
 def _observe_sfinal(*, design: str, benchmark_dir: Path, output: Path) -> dict[str, str]:
     """Persist Sfinal only as a post-evaluation comparison observer."""
     try:
-        observe_sfinal(design=design, benchmark_dir=benchmark_dir, candidate_dir=output)
+        profile = load_platform_profile()
+        settings = (
+            {"equivalent_cells": Path(profile["equivalent_cells"])}
+            if profile and profile.get("equivalent_cells")
+            else {}
+        )
+        observe_sfinal(design=design, benchmark_dir=benchmark_dir, candidate_dir=output, **settings)
         return {"sfinal_observation": str(output / "sfinal_observation.json")}
     except Exception as exc:
         detail = f"{type(exc).__name__}:{exc}"
