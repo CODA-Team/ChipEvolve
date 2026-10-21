@@ -288,3 +288,12 @@ Student01完整DRT/RCX任务run-dc4b649f886b4b3d9ed56f2a088c8748成功，common�
 原前端自动派发Student02完整qualification run-fda868da258b4392ac46b7bc3b6d2c05，不是新campaign。主AG4及AG1分别保留实际负结果，Ibex仍等待整个Ariane case终态才续算。原live inventory截面冻结在ariane-completed-sibling-inventory-cut-r1.json，后续变更不影响已核查记录。
 
 当前35节点的publicEF/DI复核全部通过，418已有数值/91真实范围相同，用时2.574秒。所列成本382闭合EF/319336.26采样CPU秒，44份Goal调用输入29580582/输出470208保持；新增四份是实际Student01交付任务，之前扩展的29份兄弟回执另有范围说明。没有新模型/重复优化或节约率主张。
+
+
+## 2026-10-21 15:10：已完成GCD论文主张的原件核对
+
+等待Ariane原Student02期间，仅复查现有GCD证据，没有重跑EDA/证明或增加工程门禁。通过公开EF取回G02/DG1各约19KiB的登记证明归档，核SHA并实际读取PASS、原EQY配置、partition.list、gold/gate网表和模型解析记录：两者均为ABC-PDR、whole-design单分区，真实覆盖resp_msg[15:0]、resp_val及req_rdy共18输出，日志均为整体等价PASS。两条原独立重放的七项指标逐值相同，相关proof/measurement生产任务当前公开状态成功；固定Liberty与网表输入SHA均未变。
+
+F37→Goal、F37→DPL、DPL01→Goal三次实际handoff的source_run、目标/条件、Query上下文及所有源文件SHA重新核对一致。F37归档中的3_4_place_resized.odb与DPL实际消费的同阶段文件逐字节相同，明确接的是布局检查点。原DPL后续完成清单确认为原3 Student及全部eligible交付；ECO原8轮外层EF会话成功、负结果继续保留；当前incumbent仍为原已验证G02，没有改指针。
+
+14份历史证据引用均保持原SHA。原acceptance写“兄弟交付仍在进行”属于当时状态，已用其后真实完成清单核对，不改写历史。证据为gcd-completed-paper-claims-readonly-20261021/summary.json及两份登记归档；最终材料将纳入。该检查支持当前GCD论文主张，不推断四专业串行全改善、最佳单Agent优势或token/时间节约。Ariane及Ibex仍须完成各自原工作。
