@@ -53,6 +53,10 @@ def repeat(deployment: Deployment, result: Path, key: str) -> dict[str, Any]:
     request, action, saved = recorded_action(result)
     if frame["conditions"]["toolchain"] != deployment.value["toolchain"]:
         raise ValueError("Repetition must use the original common toolchain")
+    origin = Path(
+        frame.get("native_method", {}).get("origin_experiment", result.parent)
+    )
+    handoff = read(origin / "input-receipt.json")
     design = frame["design_id"]
     experiment = deployment.experiment(design, key)
     native = experiment / "native"
@@ -72,6 +76,8 @@ def repeat(deployment: Deployment, result: Path, key: str) -> dict[str, Any]:
         "binary_sha256": digest(binary),
         "original_script_sha256": digest(Path(action["command"][-1])),
         "input_hashes": action["inputs"],
+        "physical_input_run_id": handoff["source_run_id"],
+        "recorded_method_producer_run_id": saved["producer"],
         "condition_id": frame["condition_id"],
         "objective_id": frame["objective_id"],
         "scope": "Full saved optimization action from original inputs plus common DRT/RCX/facts. Does not repeat source generation or earlier relay stages.",
@@ -83,8 +89,17 @@ def repeat(deployment: Deployment, result: Path, key: str) -> dict[str, Any]:
             "design": design,
             "capability": "goal",
             "operation": "fixed-strategy-repeat",
-            "source": str(result.resolve()),
+            "source": handoff["source"],
+            "code_source": str(result.resolve()),
             "key": key,
+        },
+    )
+    write(
+        experiment / "input-receipt.json",
+        {
+            **handoff,
+            "operation": "fixed-strategy-repeat",
+            "code_source": str(result.resolve()),
         },
     )
     jobs = Jobs(deployment, design, experiment)
@@ -99,7 +114,7 @@ def repeat(deployment: Deployment, result: Path, key: str) -> dict[str, Any]:
             native / "post_route.odb",
             native / "post_route.v",
         ],
-        parent=saved["producer"],
+        parent=handoff["source_run_id"],
         objective=Path(frame["objective"]),
         seconds=7200,
         cpu=8,

@@ -65,3 +65,62 @@ def test_routing_only_job_is_not_an_optimization_repeat(tmp_path):
     script.write_text("detailed_route\n")
     with pytest.raises(ValueError, match="optimization Tcl"):
         recorded_action(result)
+
+
+def test_repetition_binds_actual_input_parent_and_separates_code_source(
+    tmp_path, monkeypatch
+):
+    from types import SimpleNamespace
+
+    import admin.repeat_native_strategy as module
+    from chip_evolve.config import read
+
+    result, benchmark, _ = fixture(tmp_path)
+    origin = result.parents[2]
+    write(
+        origin / "input-receipt.json",
+        {
+            "source": str(benchmark),
+            "source_run_id": "actual-input",
+            "context": "original-context",
+        },
+    )
+    binary = tmp_path / "openroad"
+    binary.write_text("fixed native binary")
+    request = origin / "operations/physical/request.json"
+    action = read(request)
+    action["command"][0] = str(binary)
+    write(request, action)
+    frame = read(result)
+    frame.update(
+        design_id="gcd",
+        conditions={"toolchain": "fixed"},
+        objective="/objective.json",
+        condition_id="condition",
+        objective_id="goal",
+    )
+    write(result, frame)
+    output = tmp_path / "repeat"
+    output.mkdir()
+
+    class Dispatched(Exception):
+        pass
+
+    class Jobs:
+        def __init__(self, *args):
+            pass
+
+        def command(self, *args, **kwargs):
+            assert kwargs["parent"] == "actual-input"
+            assert read(output / "input-receipt.json")["source"] == str(benchmark)
+            assert read(output / "request.json")["code_source"] == str(result.resolve())
+            assert read(output / "request.json")["source"] == str(benchmark)
+            raise Dispatched()
+
+    monkeypatch.setattr(module, "Jobs", Jobs)
+    monkeypatch.setattr(module, "container", lambda d, command: command)
+    deployment = SimpleNamespace(
+        value={"toolchain": "fixed"}, experiment=lambda *args: output
+    )
+    with pytest.raises(Dispatched):
+        module.repeat(deployment, result, "trial2")
