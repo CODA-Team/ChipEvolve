@@ -1,6 +1,6 @@
 # ChipEvolve 论文方法与图注素材
 
-状态：2026-10-21当前33个完成测量节点。GCD两条合法接力G02/DG1完整验证；JPEG JP3已通过27输出/7082分区PDR、独立冷交付七指标同值及当前DF/DI核对，实际采用指针已核实；ibex新VT/size策略IP3最终28.254939243mW/2342.58µm²，原约束全部满足、106输出功能证明进行中，尚未采用；Ariane修复后四份不同完整二进制与构建清单SHA均已核实，原生评价继续。四设计仍未全部收口。数值与来源见[实测表](INVITED_PAPER_RESULTS_20261020.md)。
+状态：2026-10-21 11:58，当前33个完成测量节点。GCD两条合法接力G02/DG1完整验证；JPEG JP3已通过27输出/7082分区PDR、独立交付重放及DF/DI，实际采用。Ibex IP3物理可行但未采用，同模型全106输出/2046义务证明已保留594PASS，为原Ariane16GiB构建及32GiB最终交付先行而经EF释放预约；原生-c正负例资格通过，将按原剩余计算预算续算。Ariane原01/02/04首评价成功、03超时；01/04首次constraint repair成功，04当前telemetry repair构建/原生评估待完成，Teacher/共同最终PPA未结束。数值与来源见[实测表](INVITED_PAPER_RESULTS_20261020.md)，可编辑[四设计英文段落](INVITED_PAPER_FOUR_DESIGN_CASES_20261021.md)。
 
 ## 平台方法
 
@@ -29,7 +29,7 @@ EF管理实验生命周期、线程/内存预约、实际工具进程、日志�
 |---|---|---|
 |Flow / A2-ORFO|原参数域、搜索和模型决策|GCD已有完整搜索直接复用；JPEG旧搜索按老板决定停止|
 |DPL / DPLEvolve（ReviewDSE同一项目）|原Teacher/Student源码优化，Diamond/negotiation/framework三基线，原HPWL与运行预算|新增GCD原1轮3 Student/Teacher已完成，选中Student02，最终面积拒绝；兄弟交付全部完成；Student01已形成独立合法Goal接力|
-|Goal / GoalEvolve|原AST/EPD、Teacher/4 Student、专业机制及评分/晋升|既有GCD F37→Goal已完成；新增DPL01→Goal原1轮4 Student及完整验证已完成；ibex原1轮4 Student/Teacher已完成，四候选最终测量均拒绝；Ariane修复后原时序1×4源码已齐、正在链接|
+|Goal / GoalEvolve|原AST/EPD、Teacher/4 Student、专业机制及评分/晋升|既有GCD F37→Goal已完成；新增DPL01→Goal原1轮4 Student及完整验证已完成；ibex原1轮4 Student/Teacher已完成，四候选最终测量均拒绝；Ariane修复后原时序1×4初评已齐，原生约束/telemetry修复继续，最终交付待完成|
 |ECO / TimingECOAgent|原生会话、动作、评分、best选择及回滚|GCD G03→ECO八轮完成，随后单列完整布线补全；JPEG新Goal03定向八轮及完整布线/测量完成，setup/fanout拒绝|
 
 专业内部排序与平台最终接受分开。DPL降低HPWL，不保证最终功耗、面积和时序同步改善；Goal或ECO产生的中间态也可能仍有待修复的时序债务。允许从这种中间态继续探索，原合法incumbent保持，只有最终结果通过原约束并有相应功能证据才采用。既不重写原研究的晋升结论，也不默认采用最后一棒。
