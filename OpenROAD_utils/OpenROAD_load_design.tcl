@@ -82,6 +82,12 @@ set lib_files [list \
   [file join $pdk_root lib NLDM asap7sc7p5t_SIMPLE_RVT_FF_nldm_211120.lib.gz] \
   [file join $pdk_root lib NLDM asap7sc7p5t_SIMPLE_SLVT_FF_nldm_211120.lib.gz]]
 
+# The platform supplies the exact frozen libraries, including SRAM models.
+# Standalone upstream sessions retain the original standard-cell defaults.
+if {[info exists ::env(TIMINGECO_LIB_FILES)] && $::env(TIMINGECO_LIB_FILES) ne ""} {
+  set lib_files [split $::env(TIMINGECO_LIB_FILES) "\n"]
+}
+
 # ---- Read the design checkpoint ----
 # BACKTRACE_ODB (set by crash/stagnation recovery) wins over the default
 # <design_dir>/<top>.odb so a restart resumes from the best-ever snapshot.

@@ -11,6 +11,25 @@ import time
 from pathlib import Path
 
 
+def session_libraries(environment: dict[str, str]) -> list[Path]:
+    """Use the design's exact models for loading and exporting the best state."""
+    explicit = environment.get("TIMINGECO_LIB_FILES")
+    if explicit:
+        return [Path(name) for name in explicit.splitlines()]
+    pdk = Path(environment["ASAP7_PDK"])
+    return [
+        pdk / "lib/NLDM" / ("asap7sc7p5t_" + group + "_" + vt + "_FF_nldm_" + version)
+        for vt in ("RVT", "LVT", "SLVT")
+        for group, version in (
+            ("AO", "211120.lib.gz"),
+            ("INVBUF", "220122.lib.gz"),
+            ("OA", "211120.lib.gz"),
+            ("SIMPLE", "211120.lib.gz"),
+            ("SEQ", "220123.lib"),
+        )
+    ]
+
+
 def submit(profile_path: Path) -> dict:
     from eda_ai_client import EdaAiClient
     from openroad_platform_client import KernelClient
@@ -132,20 +151,7 @@ def leaf(profile_path: Path) -> int:
         best = source / "prompts/dynamic/snapshots/best_drt.odb"
         destination = source / "outputs"
         script = Path.cwd() / "export_best.tcl"
-        pdk = Path(environment["ASAP7_PDK"])
-        libraries = [
-            pdk
-            / "lib/NLDM"
-            / ("asap7sc7p5t_" + group + "_" + vt + "_FF_nldm_" + version)
-            for vt in ("RVT", "LVT", "SLVT")
-            for group, version in (
-                ("AO", "211120.lib.gz"),
-                ("INVBUF", "220122.lib.gz"),
-                ("OA", "211120.lib.gz"),
-                ("SIMPLE", "211120.lib.gz"),
-                ("SEQ", "220123.lib"),
-            )
-        ]
+        libraries = session_libraries(environment)
         script.write_text(
             "\n".join(
                 [
