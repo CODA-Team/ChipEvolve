@@ -87,8 +87,9 @@ def test_missing_explicit_pdk_does_not_fall_back_to_upstream(tmp_path):
 
 
 @pytest.mark.parametrize("memory_gib", [None, 16])
+@pytest.mark.parametrize("drt_every_iter", [None, False, True])
 def test_flat_common_pdk_prepares_native_layout_and_preserves_bound_rc(
-    tmp_path, memory_gib
+    tmp_path, memory_gib, drt_every_iter
 ):
     pdk = tmp_path / "common-pdk"
     (pdk / "lib").mkdir(parents=True)
@@ -110,6 +111,8 @@ def test_flat_common_pdk_prepares_native_layout_and_preserves_bound_rc(
     deployment.value["professional"]["eco"]["python"] = "unused-python"
     if memory_gib is not None:
         deployment.value["professional"]["eco"]["session_memory_gib"] = memory_gib
+    if drt_every_iter is not None:
+        deployment.value["professional"]["eco"]["drt_every_iter"] = drt_every_iter
     deployment.value["designs"]["any-design"] = {
         "libraries": [{"path": str(library)}],
         "top": "unit",
@@ -155,6 +158,9 @@ def test_flat_common_pdk_prepares_native_layout_and_preserves_bound_rc(
     profile = json.loads((experiment / "profile.json").read_text())
     assert profile["parent_run_id"] == "unit-parent"
     assert profile["memory_gib"] == (24 if memory_gib is None else memory_gib)
+    assert profile["environment"]["DRT_EVERY_ITER"] == (
+        "0" if drt_every_iter is False else "1"
+    )
     assert profile["input_artifacts"]["odb"] == "unit-odb"
     assert profile["environment"]["TIMINGECO_LIB_FILES"].splitlines() == [
         str(experiment / "source/asap7/lib/NLDM" / library.name)

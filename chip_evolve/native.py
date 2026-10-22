@@ -363,7 +363,7 @@ def run_eco(
         ),
         TIMINGECO_MODEL_BACKEND="codex",
         TIMINGECO_CODEX_BIN=shutil.which("codex") or "codex",
-        DRT_EVERY_ITER="1",
+        DRT_EVERY_ITER="1" if binding.get("drt_every_iter", True) else "0",
         TIMINGECO_MAX_ITERATIONS=str(args.rounds),
         OMP_NUM_THREADS="8",
         OPENBLAS_NUM_THREADS="8",
