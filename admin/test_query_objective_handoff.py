@@ -92,3 +92,30 @@ def test_mismatched_goal_binding_is_rejected_before_model(tmp_path, monkeypatch,
     with pytest.raises(ValueError, match="objective"):
         diagnose(d, source, "Explain this design", 60, 4)
     assert not questions
+
+
+def test_query_failure_includes_native_reason_and_trace(tmp_path, monkeypatch):
+    d, source, _ = inputs(tmp_path)
+    monkeypatch.setattr("chip_evolve.stage_facts.ensure_stage_facts", lambda *a: None)
+    monkeypatch.setattr(
+        "chip_evolve.diagnosis.scoped_analysis_references", lambda *a: []
+    )
+    reason = (
+        "Selected model is at capacity; exit_code=1; trace=/runtime/host-traces/abc"
+    )
+    state = {
+        "scopes": [{"design_id": "gcd", "run_id": "reference"}],
+        "answer": None,
+        "evidence": [],
+        "stop_reason": reason,
+    }
+    monkeypatch.setattr(
+        "chip_evolve.diagnosis.subprocess.run",
+        lambda *a, **k: SimpleNamespace(
+            returncode=2, stdout=json.dumps(state), stderr=""
+        ),
+    )
+    with pytest.raises(RuntimeError, match="Selected model is at capacity") as caught:
+        diagnose(d, source, "Explain this design", 60, 4)
+    assert reason in str(caught.value)
+    assert "inspect" in str(caught.value)

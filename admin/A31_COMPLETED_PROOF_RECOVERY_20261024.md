@@ -17,3 +17,7 @@
 运行目录：`var/business/a31-result-recovery-20261024`。`ibex-completed-proof-audit.json`记录完整核验，`runtime/experiments/ibex/a31-ibex-asap7-recovered-proof-validation-r1/logic/logical-equivalence.json`关联新EF证据生产者与原失败句柄。
 
 完整平台validation已接续物理重放和DF/DI核对；本提交是实现与证明恢复检查点，不把待完成重放或最终采用写成通过。没有重启原搜索、重新计算PDR或覆盖历史失败状态。
+
+## 本轮收口补记
+
+2026-10-24 20:04 本机时间，正常 validation 已返回 passed=true、replay_exact=true、sdk_identity_passed=true。独立重放 `run-3e3c9993332448aea2d68554d343ea5f` 与候选 `run-82db4fc077bd445ca6ad73e6f931af26` 七值相同；之后经 checked_validation 与 select 在本轮工作区登记 adopted=true。无新增 PDR，原失败历史保持。最终结果及其时序余量代价见 [A31 交付报告](A31_THREE_HOUR_DELIVERY_20261024.md)。

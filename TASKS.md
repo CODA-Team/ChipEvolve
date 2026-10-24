@@ -1,3 +1,5 @@
+2026-10-24 A31：三个批准修复切片已实现并验证：完成证明复用、当前业务失败保持、Query 原生错误透传。Ibex/ASAP7 已复用 18737 分区 PASS，独立物理重放七项同值、DF/DI 核验与本轮采用通过；未新跑 PDR。GCD/JPEG 三类事实七值通过，GCD 真实 Query 回答通过，simple ask 仍有匹配/证据缺口。636 根业务/170 Query 回归及静态门禁通过；17 用户文件哈希与 DF/DI 在途状态保持。八组双次、其余 PDK 证明/兼容与调度对照尚未完成。详见 [A31 本轮交付与缺口](admin/A31_THREE_HOUR_DELIVERY_20261024.md)。
+
 2026-10-22 A30：共同测量/三类事实导出支持既有 fact_execution 私有 memory_gib 绑定，默认 8 GiB 保持；非默认新任务独立 -m4 标识，按 JPEG/Ariane 实测校准后可利用 4 GiB 窗口。原优化、完整数据与公共接口不变，613 根回归通过，业务双次仍待收齐。[实测与边界](admin/A30_FACT_RESOURCE_CALIBRATION_20261022.md)。
 
 2026-10-22 A30：DPL 物理内存预约支持与 Goal 一致的内部实验绑定，默认 24 GiB 保持；GCD 按三个原生评估峰值约 0.3 GiB 校准新实验为 8 GiB，构建与专业算法不变。611 根回归及静态检查通过，新完整接力仍待真实结果。[实测与范围](admin/A30_DPL_RESOURCE_CALIBRATION_20261022.md)。

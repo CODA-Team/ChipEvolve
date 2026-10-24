@@ -269,7 +269,10 @@ def diagnose(
         raise ValueError("Diagnosis belongs to another design")
     if state["answer"] is None or not state["evidence"]:
         raise RuntimeError(
-            "Query has no supported final diagnosis; inspect " + str(folder)
+            "Query has no supported final diagnosis: "
+            + (state.get("stop_reason") or "no final answer with evidence")
+            + "; inspect "
+            + str(folder)
         )
     context = folder / "professional-context.json"
     export = [

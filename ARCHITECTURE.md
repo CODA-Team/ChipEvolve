@@ -1,3 +1,5 @@
+2026-10-24 A31：已有验证链先核对完成证明的结果对、冻结网表/Liberty、完整输出与成功 EF 证据生产者，再接续物理重放及 DF/DI；最终采用仍由 Codex 经既有 selection 决定。业务 status 独立保留当前终态与旧 delivery_recovered 历史。Query adapter 将原生错误/退出码/trace 经内部 finish_host_session 可选 failure_reason 传至业务诊断；不新增公共协议、模型循环或服务。170 Query/636 根回归及依赖约束通过。Ibex 真恢复、数据与 Query 实测、simple ask/效率等剩余债务见 [A31 交付](admin/A31_THREE_HOUR_DELIVERY_20261024.md)。
+
 2026-10-22 A30：共同测量/三类事实导出支持既有 fact_execution 私有 memory_gib 绑定，默认 8 GiB 保持；非默认新任务独立 -m4 标识，按 JPEG/Ariane 实测校准后可利用 4 GiB 窗口。原优化、完整数据与公共接口不变，613 根回归通过，业务双次仍待收齐。[实测与边界](admin/A30_FACT_RESOURCE_CALIBRATION_20261022.md)。
 
 2026-10-22 A30：DPL 物理内存预约支持与 Goal 一致的内部实验绑定，默认 24 GiB 保持；GCD 按三个原生评估峰值约 0.3 GiB 校准新实验为 8 GiB，构建与专业算法不变。611 根回归及静态检查通过，新完整接力仍待真实结果。[实测与范围](admin/A30_DPL_RESOURCE_CALIBRATION_20261022.md)。
