@@ -14,7 +14,7 @@ from eda_ai_client import EdaAiClient
 from .comparisons import METRICS, compare
 from .config import Deployment, business_lock, read, write
 from .delivery import checkpoint, finish
-from .jobs import digest
+from .jobs import Jobs, digest
 from .lifecycle import WorkPending
 from .logic import verify_outputs
 
@@ -76,6 +76,46 @@ def replay_checkpoint(result_path: Path) -> dict[str, Any]:
         "producer": frame["qualification"]["producer_run_id"],
         "native_method": frame.get("native_method", {}),
     }
+
+
+def completed_proof(
+    deployment: Deployment, reference: Path, candidate: Path, folder: Path
+) -> dict[str, Any]:
+    """Resume delivery after a completed proof, keeping its producer and inputs."""
+    saved = folder / "logical-equivalence.json"
+    if not saved.exists():
+        return verify_outputs(deployment, reference, candidate, folder)
+    proof = read(saved)
+    if (proof["reference_result"], proof["candidate_result"]) != (
+        str(reference),
+        str(candidate),
+    ):
+        raise ValueError("Completed proof belongs to a different result pair")
+    libraries = deployment.design(read(candidate)["design_id"])["libraries"]
+    sources = {
+        str(Path(read(path)["files"]["v"])) for path in (reference, candidate)
+    } | {row["path"] for row in libraries}
+    if not sources <= proof["input_hashes"].keys():
+        raise ValueError("Completed proof lacks frozen netlist or Liberty inputs")
+    if any(proof["input_hashes"][row["path"]] != row["sha256"] for row in libraries):
+        raise ValueError("Completed proof used different declared Liberty models")
+    for name, sha in proof["input_hashes"].items():
+        if digest(Path(name)) != sha:
+            raise ValueError("Completed proof input changed: " + name)
+    if (
+        proof["proven_points"] <= 0
+        or proof["unproven_points"] != 0
+        or proof["proven_points"] != proof["top_output_bits"]
+    ):
+        raise ValueError("Completed proof does not cover all output obligations")
+    if proof["engine"] == "eqy":
+        from .eqy import qualified_strategy
+
+        qualified_strategy({"equivalence_strategy": proof.get("strategy", "sat")})
+    jobs = Jobs(deployment, read(candidate)["design_id"], folder)
+    if jobs.client.run(proof["run_id"])["status"] != "succeeded":
+        raise ValueError("Completed proof has no successful EF evidence producer")
+    return proof
 
 
 def replay(
@@ -194,7 +234,7 @@ def _validate(
     frame = ensure(deployment, result_path, frame)
     sdk = query_facts(deployment, frame)
     write(experiment / "sdk-query.json", sdk)
-    proof = verify_outputs(
+    proof = completed_proof(
         deployment, reference_path, result_path, experiment / "logic"
     )
     repeated = replay(deployment, result_path, experiment / "replay")
