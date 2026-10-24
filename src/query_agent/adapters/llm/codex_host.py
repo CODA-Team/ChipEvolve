@@ -188,16 +188,29 @@ class CodexInvestigationHost:
                     process.wait()
         usage: dict[str, Any] = {}
         actions: list[dict[str, Any]] = []
+        model_error: str | None = None
         for line in (folder / "events.jsonl").read_text().splitlines():
             event = cast(dict[str, Any], json.loads(line))
             if event.get("type") == "turn.completed":
                 usage = event.get("usage", {})
+                model_error = None
+            elif event.get("type") == "error":
+                model_error = event.get("message") or model_error
+            elif event.get("type") == "turn.failed":
+                model_error = event.get("error", {}).get("message") or model_error
             if (
                 event.get("type") == "item.completed"
                 and event.get("item", {}).get("type") == "command_execution"
             ):
                 actions.append(event["item"])
         elapsed = time.monotonic() - started
+        failed = timed_out or process.returncode != 0 or model_error is not None
+        failure_reason = None
+        if failed:
+            detail = model_error or (
+                "host timed out" if timed_out else "host exited before an answer"
+            )
+            failure_reason = f"{detail}; exit_code={process.returncode}; trace={folder}"
         receipt = {
             "model": "gpt-6.1-sol",
             "reasoning_effort": "medium",
@@ -206,6 +219,8 @@ class CodexInvestigationHost:
             "seconds": elapsed,
             "timed_out": timed_out,
             "exit_code": process.returncode,
+            "model_error": model_error,
+            "failure_reason": failure_reason,
             "command_actions": actions,
             "cash_cost_usd": None,
             "billing": "Codex subscription",
@@ -216,5 +231,6 @@ class CodexInvestigationHost:
             state.investigation_id,
             initial_active_seconds=initial_active,
             wall_seconds=elapsed,
-            failed=timed_out or process.returncode != 0,
+            failed=failed,
+            failure_reason=failure_reason,
         )

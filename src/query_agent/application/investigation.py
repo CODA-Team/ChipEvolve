@@ -538,6 +538,7 @@ If fewer than 30 seconds remain, deliver the supported partial answer and gaps."
         initial_active_seconds: float,
         wall_seconds: float,
         failed: bool,
+        failure_reason: str | None = None,
     ) -> InvestigationState:
         state = self.store.load(investigation_id)
         state.active_seconds = max(
@@ -555,7 +556,7 @@ If fewer than 30 seconds remain, deliver the supported partial answer and gaps."
                 self._cancel_outstanding(state)
             elif failed or state.status == InvestigationStatus.ACTIVE:
                 state.status = InvestigationStatus.PAUSED
-                state.stop_reason = (
+                state.stop_reason = failure_reason or (
                     "host exited before an answer; raw model trace retained"
                 )
         self._save(state)
