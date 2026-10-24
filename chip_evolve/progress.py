@@ -14,6 +14,25 @@ from .config import read
 from .lifecycle import TERMINAL
 
 
+def experiment_status(experiment: Path) -> dict[str, Any]:
+    """An earlier delivery recovery never overrides the current business state."""
+    status = experiment / "status.json"
+    recovery = experiment / "delivery-recovery.json"
+    result = experiment / "result.json"
+    current = read(status) if status.exists() else {"status": "in_progress"}
+    if not recovery.exists() or not result.is_file():
+        return current
+    recovered = read(recovery)
+    if recovered.get("status") != "succeeded" or recovered.get("result") != str(result):
+        return current
+    # Keep execution and successful delivery separate, including an explicit
+    # current failure/pending state written after the recovery.
+    return {
+        **(current if status.exists() else {"status": "succeeded"}),
+        "delivery_recovered": True,
+    }
+
+
 def _closed_batches(state: Path, journal: dict[str, Any]) -> list[dict[str, Any]]:
     batches = []
     for path in sorted(state.glob("iteration-*/finalize-*.json")):

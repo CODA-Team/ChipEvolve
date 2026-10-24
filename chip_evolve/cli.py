@@ -237,7 +237,7 @@ def _main() -> int:
         print(json.dumps(observe(client, run, worker_stale=120), ensure_ascii=False))
     elif args.command == "status":
         from .jobs import Jobs
-        from .progress import flow_progress
+        from .progress import experiment_status, flow_progress
 
         client = Jobs(deployment, args.design, deployment.state).client
         rows = []
@@ -246,19 +246,8 @@ def _main() -> int:
             design_root.glob("*/validation-request.json")
         )
         for path in sorted(paths):
-            status_file = path.parent / "status.json"
             result = path.parent / "result.json"
-            current = (
-                read(status_file) if status_file.exists() else {"status": "in_progress"}
-            )
-            if (path.parent / "delivery-recovery.json").exists() and current.get(
-                "status"
-            ) != "pending":
-                current = {
-                    "status": "succeeded",
-                    "delivery_recovered": True,
-                    "prior_failure": current,
-                }
+            current = experiment_status(path.parent)
             rows.append(
                 {
                     "experiment": path.parent.name,
