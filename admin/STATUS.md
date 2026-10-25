@@ -1,3 +1,9 @@
+# 当前状态：A77确认通用电气/功耗动作冲突，组合分支拒绝，2026-10-26
+
+2026-10-26 A77：同源原生cap20/recover20配方完成。仅恢复guides的r1触发RSZ树缺1负载；试验副本重建working GRT后r2完整成功。电气阶段cap64→13，通用回收397实例仅少0.012159mW，却使hold/电气恶化；末GRT hold TNS−0.372938ns、slew102/cap305、面积/阶段功耗超限，拒绝且不跑DRT。四节点/四EF原件、DF/DI及两Query核验通过，产品/26用户文件保持，740同源回归复用。下一项审原Goal专业功耗机制，不重复通用回收。见 [A77](A77_NATIVE_REPAIR_POWER_CONFLICT_20261026.md)。
+
+当前无本轮活动EF任务。恢复资料：`var/business/a77-native-postroute-strategy-20261026/continuation.json`。原A74保持，不替换；下一项核查Goal原生功耗策略及其约束，再做针对性动作。正式长搜索仍暂停。
+
 # 当前状态：A74/A76完整物理与事实核验完成，剩余电气/功耗及数据导入性能，2026-10-26
 
 2026-10-26 A74/A76最终收口：DRT/RCX、共同测量、三事实scope/12数值/4 Query及原件核验通过；64驱动均经DF/DI按native ID/master/ODB SHA核对，原session82815 exit0、导入1次。setup/hold闭合、DRC0，但cap64和power超限0.0261084%仍拒绝、未采用。数据交付实际约20分钟，登记为大设计性能瓶颈。下一项审原生电气修复/功耗回收与具体导入耗时；见 [A74](A74_ARIANE_NANGATE45_FINAL_QUALIFICATION_20261026.md)、[A76](A76_POSTROUTE_CAP_DIAGNOSIS_20261026.md)。

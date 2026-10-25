@@ -675,3 +675,8 @@ RMP通过原cut实现替换单元放置。宏将同高度row切成多个片段�
 ### A75：独立验证以保存检查点为物理边界（2026-10-26）
 
 ORFS结果存在既有`delivery-checkpoint.json`时，独立验证先核查并复制该检查点，按其中GRT/已布线阶段重放；描述性`native_method.kind`不能把它分流到RTL baseline。没有检查点的历史baseline保留原行为。复用validation.replay→checkpoint→finish/qualify→EF/DF链，无公共接口或专业算法变化；52针对/740根回归和边界检查通过，真实A74最终物理资格仍进行中。见[A75](admin/A75_VALIDATION_CHECKPOINT_PRIORITY_20261026.md)。
+
+
+### A77：资格布线与再优化工作状态分开（2026-10-26）
+
+A73/A74验证保存guides可直接供资格DRT使用；A77私有RSZ再优化配方则需当前网表的工作GRT，原guides恢复树缺1负载，重建后通过。没有更改公共资格/原生ORFS路径。阶段记录区分完整SPEF、修改网增量GRT与全GRT，不能混算最终PPA；通用recover_power保住setup仍可破坏hold/电气，Codex应据统一事实拒绝该组合并选择原专业策略。四阶段及DF/DI/Query证据见[A77](admin/A77_NATIVE_REPAIR_POWER_CONFLICT_20261026.md)，没有新服务或公共契约。
