@@ -1,3 +1,5 @@
+2026-10-26 A68：物理交接保留完整供电事实；专业信号依赖判断须区分POWER/GROUND与信号，不在DF全局删PG关系。原RMP仅在触发器邻接判断中排除供电，其余策略/STA/回滚不变。源码修复在新私有副本、原生AST与EF构建核验后供未来任务使用，需测新baseline，旧固化重放不热补丁。EF→DF→DI/Query及公共接口保持。见 [A68](admin/A68_RMP_SUPPLY_ADMISSION_FIX_20261026.md)。
+
 2026-10-26 A67：Goal原生recipe决定实际动作，timing_only须执行所选RMP重构，只有power_then_timing添加功耗步骤；保留原有顺序、限额和筛选。既有EF→DF→DI/Query边界不变，成功执行/空候选/未采用分别记录，不能把方法名字当动作证据。无新服务/API/数据库。见 [A67](admin/A67_GOAL_TIMING_ONLY_RESTRUCTURE_20261026.md)。
 
 2026-10-26 A66：显式物理接力由既有orfs/replay/source选择，内部native_physical适配原Make/GRT，恢复实际脚本引用变量及信号/clock层；普通baseline与专业默认不变。已登记的阶段checkpoint可作为输入，先经DF/DI事实与EF字节核查；专业源、GRT后继、阶段snapshot和最终测量分开。qualify仅新增消费保存guides的路径，不暗加修复；独立验证不重复优化。Jobs仍检查live状态后保留首次成功回执，避免客户端等待改写实验身份；无新服务/数据库/HTTP API。见 [A66](admin/A66_EXPLICIT_NATIVE_PHYSICAL_RELAY_20261026.md)。

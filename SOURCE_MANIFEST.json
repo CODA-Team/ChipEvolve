@@ -62,8 +62,8 @@
     },
     {
       "path": "goalevolve",
-      "source_commit": "0c723271e14a2119e93a92d0eda1878b998a3011",
-      "source_tree": "53f75230d44a5ce1d438a27fbf49d447bf166c58",
+      "source_commit": "3f53d2e776b5d344fd52171ba3bc2519496d4cef",
+      "source_tree": "45e256e2841f42c4bb81a4797c8aadedae8cc76c",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/goalevolve",
       "upstream_url": "https://github.com/CODA-Team/GoalEvolve.git",
