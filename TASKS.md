@@ -541,3 +541,5 @@ Ariane主AG4完整DRT/RCX/DF/DI已完成，651.96436644mW/43970.9µm²/setupTNS�
 2026-10-25 A49：修Query指标原件引用，未指定stage也读取DF登记source，回答经snapshot/source端点实际取回并核SHA；subject/snapshot/revision不变。2失败复现后28针对/182Query/712根回归及全静态/依赖检查通过，真实4例正反验证通过；A48不足主因更正为私有摘要漏单位/corner，错误引用独立修复。独立wheel与八份未来配置已绑定，旧环境不热切，长搜索暂停。见 [A49报告](admin/A49_QUERY_METRIC_SOURCE_CITATION_20261025.md)。
 
 2026-10-25 A50：Query内部保留缺原件/单位/corner的具体原因，普通/当前/比较路径不再一律误报原件缺失；186Query/712根回归及全静态/依赖检查通过，独立包5项真实只读正反验证通过，EDA/模型0。下一发现：无显式stage的两run比较排除了已有finish事实，待A51定点修复。见 [A50报告](admin/A50_QUERY_INCOMPLETE_METRIC_REASON_20261025.md)。
+
+2026-10-25 A51：无显式stage的两run比较不再过滤真实finish事实，单阶段自动对齐、多阶段明确要求指定；缺项首条不再排斥完整指标。6失败复现后192Query/712根回归及全静态/依赖通过，真实GCD同值重放和原1.373553765→0.715648639mW功耗比较成功，源链接取回核SHA，EDA/模型0。见 [A51报告](admin/A51_QUERY_COMPARISON_STAGE_20261025.md)。
