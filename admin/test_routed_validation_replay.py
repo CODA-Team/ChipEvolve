@@ -17,8 +17,9 @@ from chip_evolve.jobs import Jobs, digest
     [("detailed_route", 0, True), ("detailed_route", 54, False), (None, None, False)],
 )
 @pytest.mark.parametrize("platform", ["asap7", "nangate45"])
+@pytest.mark.parametrize("orfs_request", [False, True])
 def test_replay_uses_the_original_routed_boundary(
-    tmp_path, monkeypatch, stage, drc, preserve, platform
+    tmp_path, monkeypatch, stage, drc, preserve, platform, orfs_request
 ):
     d = deployment(tmp_path)
     d.value.update(
@@ -63,7 +64,15 @@ def test_replay_uses_the_original_routed_boundary(
         native_method=method,
     )
     result = original / "result.json"
-    write(result, {"design_id": "gcd", "native_method": method})
+    write(
+        result,
+        {"design_id": "gcd", "native_method": method, "objective": str(objective)},
+    )
+    if orfs_request:
+        write(
+            original / "request.json",
+            {"design": "gcd", "capability": "orfs", "seconds": 900},
+        )
     frozen = {
         str(p): digest(p) for p in [odb, result, original / "delivery-checkpoint.json"]
     }
@@ -83,6 +92,11 @@ def test_replay_uses_the_original_routed_boundary(
         return {"run": {"run_id": "independent-extraction"}}
 
     monkeypatch.setattr(Jobs, "command", command)
+    monkeypatch.setattr(
+        physical,
+        "baseline",
+        lambda *a, **kw: pytest.fail("A saved checkpoint must not restart synthesis"),
+    )
     monkeypatch.setattr(physical, "measure", lambda *a: {"run_id": "measured"})
     monkeypatch.setattr(physical, "publish", lambda _jobs, frame, **kw: frame)
     monkeypatch.setattr("chip_evolve.code_evidence.maybe_collect", lambda *a: None)

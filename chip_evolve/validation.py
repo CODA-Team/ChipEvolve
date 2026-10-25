@@ -125,6 +125,9 @@ def replay(
     if (
         request.exists()
         and read(request)["capability"] == "orfs"
+        # A registered delivery checkpoint defines the physical boundary,
+        # independently of the professional's descriptive method label.
+        and not (result_path.parent / "delivery-checkpoint.json").is_file()
         and read(result_path).get("native_method", {}).get("kind")
         != "native-ORFS-physical-repair"
     ):

@@ -670,3 +670,8 @@ EF成功仅说明命令执行完成，原生check_power_grid的逐net失败另�
 RMP通过原cut实现替换单元放置。宏将同高度row切成多个片段时，按x/y投影距离选择能容纳master的片段；保留原floor-to-grid、方向、同距离顺序、映射、STA、评分和回滚。只改新私有原生源中的cut投影函数，源码/二进制/归档成员和AST分别核验，再更新现有八份source_seed绑定。新seed须测新baseline，旧固化重放与已采用结果保持原源码。无服务、数据库、公开接口或模块依赖图变化。
 
 真实原位置投影核对属于函数验证；临时候选STA/HPWL属于placement估算；最终DRT/RCX及功能资格另行验证。前后阶段沿原EF→DF→DI/Query交付，Codex据原规则决定保留来源。四内部ABC模式不算四Student或双次独立优化。原ABC默认unit-delay模型是已记录的专业策略限制，本轮未全局更改；行投影修复不保证每个候选或设计产生PPA收益。
+
+
+### A75：独立验证以保存检查点为物理边界（2026-10-26）
+
+ORFS结果存在既有`delivery-checkpoint.json`时，独立验证先核查并复制该检查点，按其中GRT/已布线阶段重放；描述性`native_method.kind`不能把它分流到RTL baseline。没有检查点的历史baseline保留原行为。复用validation.replay→checkpoint→finish/qualify→EF/DF链，无公共接口或专业算法变化；52针对/740根回归和边界检查通过，真实A74最终物理资格仍进行中。见[A75](admin/A75_VALIDATION_CHECKPOINT_PRIORITY_20261026.md)。

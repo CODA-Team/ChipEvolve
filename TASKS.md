@@ -607,3 +607,8 @@ Ariane主AG4完整DRT/RCX/DF/DI已完成，651.96436644mW/43970.9µm²/setupTNS�
 ### A74：Ariane/Nangate45最终物理资格（进行中，2026-10-26）
 
 2026-10-26 A74：Ariane/Nangate45最终收尾前置核查及19项物理接力回归通过；原6ns/输入/镜像/目标保持，8CPU与8工具线程一致、16GiB资源核实。公共resume已实际启动EF `run-376fac03616245beb2e94e60b82c442e`，当前详细布线运行；没有新专业搜索、最终PPA或采用结论。沿同一run观察，不能因观察超时重跑。见 [A74](admin/A74_ARIANE_NANGATE45_FINAL_QUALIFICATION_20261026.md)。
+
+
+### A75：独立重放检查点优先（工程验证通过，2026-10-26）
+
+2026-10-26 A75：修复独立验证按方法标签把有效保存检查点误分流到ORFS baseline；检查点优先，历史无检查点baseline保持。7个新场景修复前失败→通过，52针对/740根回归与静态边界检查通过；26用户文件保持。A74同一EF详细布线继续，无新EDA/模型/PPA结论。见 [A75](admin/A75_VALIDATION_CHECKPOINT_PRIORITY_20261026.md)。 老板业务验收独立。

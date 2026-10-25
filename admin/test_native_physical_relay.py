@@ -260,8 +260,11 @@ def test_recovery_before_delivery_checkpoint_reuses_the_explicit_successor(
     assert calls == [("gcd", e, source, 900)]
 
 
+@pytest.mark.parametrize(
+    "kind", ["native-ORFS-physical-repair", "native-explicit-GRT-repair"]
+)
 def test_independent_validation_of_successor_does_not_rerun_native_repair(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, kind
 ):
     from chip_evolve import validation
 
@@ -269,11 +272,15 @@ def test_independent_validation_of_successor_does_not_rerun_native_repair(
     result = jobs.experiment / "result.json"
     write(
         result,
-        {"design_id": "gcd", "native_method": {"kind": "native-ORFS-physical-repair"}},
+        {
+            "design_id": "gcd",
+            "objective": str(objective),
+            "native_method": {"kind": kind},
+        },
     )
     write(
         jobs.experiment / "request.json",
-        {"design": "gcd", "capability": "orfs", "operation": "replay"},
+        {"design": "gcd", "capability": "orfs", "operation": "replay", "seconds": 900},
     )
     checkpoint(
         jobs.experiment,
@@ -284,7 +291,7 @@ def test_independent_validation_of_successor_does_not_rerun_native_repair(
         pdk=Path(original["pdk"]),
         extra_inputs=(source,),
         native_method={
-            "kind": "native-ORFS-physical-repair",
+            "kind": kind,
             "physical_stage": "global_route",
         },
     )
