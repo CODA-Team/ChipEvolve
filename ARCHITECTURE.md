@@ -1,3 +1,5 @@
+2026-10-26 A65：Query内部路径类型必须贯通解析、analysis端口、既有DI请求和证据；DF先按setup/hold筛选再分页，不能取混合页后当hold答案。端口可选check默认setup，原记录缺类型保持未知；公开HTTP/CLI/DI协议和Codex-hosted harness不变。物理修复的专业生产者/后继生产者须分开，仍不得隐入qualify。见 [A65](admin/A65_QUERY_TIMING_PATH_CHECK_20261026.md)。
+
 2026-10-26 A64：跨专业交接须保留或显式重建ODB中的路由层/clock层/容量调整；DEF/Verilog重建不能默认继承这些状态。使用原平台initializer写新节点并验证实例/网表不变，再显式调用原ORFS物理收尾；不把修复混入qualify。新GRT事实与最终DRT/RCX资格分开，经EF→DF/DI/Query回流；本次仅私有接点验证，未新增公共接口。见 [A64](admin/A64_NATIVE_PHYSICAL_HANDOFF_20261025.md)。
 
 2026-10-25 A63：Query内部识别明确hold标量后走既有DF指标端口，避免setup-only窄分析接口误答；API/域模型/专业算法保持。RC估算表与最终RCX模型须分别记来源，模型切换不算物理收益；原生物理修复应显式接力，不能混入纯测量。新八份私有配置仅绑定独立Query包与state_root。见 [A63](admin/A63_QUERY_HOLD_AND_RC_BOUNDARY_20261025.md)。

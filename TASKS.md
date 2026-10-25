@@ -1,3 +1,5 @@
+2026-10-26 A65：修复真实hold路径被setup代答；内部类型贯通解析→现有DI筛选→证据，默认setup、未知不冒充已知。Query5291730已发布，8新增/219Query/712根及三架构约束通过，独立wheel97文件同源、8真实查询/两原报告SHA与字节通过。八份待用配置只换Query和state_root；无EDA/模型/服务变更。A64物理接点尚未自动接入，最终资格与八组双次仍缺，长搜索暂停；见 [A65](admin/A65_QUERY_TIMING_PATH_CHECK_20261026.md)。
+
 2026-10-26 A64：核实Goal布局检查点丢失原生路由上下文；通过EF恢复原平台初始化，210746实例状态及网表不变。显式原生ORFS GRT收尾成功，hold TNS0/WS+2.496ps、电气0/0/0；setup WS−280.684ps/TNS−92.960533ns仍失败，不采用。31针对/八驱动静态、5包64文件及DF/DI/Query原值原件核验通过；仅私有接点验证，公共入口尚未收口，最终DRT/RCX/证明与八组双次保持未完成。见 [A64](admin/A64_NATIVE_PHYSICAL_HANDOFF_20261025.md)。
 
 2026-10-25 A63：修复真实Hold TNS被Query误答成setup TNS，普通/分析措辞/比较保留HOLD_TNS/WNS/WS既有语义；15新增/211Query/712根回归与完整静态通过，最终wheel97文件同源、14真实查询及四RC快照通过。专业RC估算不同但RCX规则相同，未切RC；确认setup专业后继仍缺明确hold物理收尾。八份新Query待用配置保留PDN/FakeRAM及GCD500ps策略，长搜索暂停；见 [A63](admin/A63_QUERY_HOLD_AND_RC_BOUNDARY_20261025.md)。
