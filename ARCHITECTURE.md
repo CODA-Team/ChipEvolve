@@ -1,3 +1,5 @@
+2026-10-25 A55：按同一物理来源分开记录原任务终态、阶段完成事实和最终业务资格。已失败的物理run可由成功的既有metadata导出任务补充带原件引用的阶段事实，subject不变、原failed不变，不需新服务或协议。Ariane修正来源实际final_report PSM通过、后续GDS失败，后续重点为setup/slew债；不能用另一旧来源的负诊断覆盖它。见 [A55](admin/A55_ARIANE_CORRECTED_PDN_SOURCE_RECOVERY_20261025.md)。
+
 2026-10-25 A54：当前功能/运行身份/剩余阻断统一查 [A54总表](admin/A54_CURRENT_BLOCKER_MAP_20261025.md)。新任务的策略由Codex依据设计事实显式选择既有原生campaign；平台派发层不暗改权重或晋升。GCD/Nangate45待用配置改用已有GCD联合策略，旧任务保持；Goal环境仅补齐现有Toolkits声明依赖的EF client/contracts wheel。业务层AST未发现直接访问EF/DF存储或Query内部实现；无新接口、服务、数据库或算法实现变更。
 
 2026-10-25 A36–A37：新诊断产物经现有EF evidence bundle/manifest校验，再走OpenDB adapter→DF公共导入→DI/Query；同一生产run下三份snapshot/revision的坐标/原件SHA分别匹配，负例不跨状态补数，续接不重算。四份Nangate45 DPL模板显式补齐，专业算法/公共契约保持，无新层或服务。[A36](admin/A36_NATIVE_BINDING_REPAIR_20261025.md) / [A37](admin/A37_FRESH_STATE_DELIVERY_20261025.md)。

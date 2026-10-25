@@ -1,5 +1,9 @@
 # Agentic EDA 施工状态
 
+## 当前状态：A55 找回修正PDN来源，改按真实剩余问题推进，2026-10-25
+
+此前漏查的`run-9efb…`在布线前应用相位修正，原最终ORFS PSM实际VDD/VSS通过，失败发生于后续缺SRAM GDS；旧`run-d054…`及A52事后改网格负结果保持。原件/输入SHA、六项DF阶段事实、引用与负WNS核查通过，无新EDA/模型/源码或服务修改。该来源仍setup TNS−127.168ns、slew444且未采用；后续复用已过阶段，查具体ECO/时序动作与PPA失败，不重跑供电修正。见 [A55报告](A55_ARIANE_CORRECTED_PDN_SOURCE_RECOVERY_20261025.md) 与已更正的A54总表。
+
 ## 当前状态：A54 功能阻断总表与待用策略修正，2026-10-25
 
 八组历史事实六项指标与原件一致，最新Query精确查询8/8通过；实际EF空闲、DF健康，服务身份保持。新私有GCD/Nangate45配置纠正仅TNS权重，显式选择已有GCD功耗/时序策略；Goal环境补齐Toolkits声明的两个已有EF wheel依赖，不改算法或服务。当前唯一功能阻断入口见 [A54总表](A54_CURRENT_BLOCKER_MAP_20261025.md)，A32/A34为历史。Ariane两PDK最终资格、Ibex/Nangate45证明、500ps协作和八组双次未齐；没有新EDA/PPA，长搜索暂停。
