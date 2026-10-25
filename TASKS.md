@@ -1,3 +1,5 @@
+2026-10-25 A36：核查八份配置的专业运行依赖，补齐四份Nangate45缺失的DPL问题模板；实际八组registry字段/原算法尾部保持。EF中同一真实GCD布局的Diamond/negotiation/evolve三命令链及布局检查通过，无搜索/最终PPA。Ibex/Nangate45确为19384分区中5333策略PASS后1800s超时，新配置只准备14400s预算，未启动完整证明。18针对/658根回归及静态检查通过，26保护文件保持。详见 [A36核查](admin/A36_NATIVE_BINDING_REPAIR_20261025.md)。
+
 2026-10-25 A35：ECO物理加载与推理参考统一使用冻结Liberty清单/实际corner，支持Nangate45命名与单位换算，显式平台ODB不再叠加ASAP7 LEF。修复前4失败已复现；原309单元全部参考网格逐值保持，ECO25/根针对35/根完整654及静态检查通过；EF真实GCD-ASAP7与JPEG-Nangate45参考生成/加载同精度WS/TNS通过，无优化/模型。八份新配置纠正ECO技术模板及JPEG不存在路径。完整ECO收益/双次结果仍未完成，长实验保持暂停，见 [A35修复报告](admin/A35_ECO_TECHNOLOGY_BINDING_20261025.md)。
 
 2026-10-25 A34：逐功能阻断清单已建立，八份下一轮私有配置显式绑定当前EF/DF/A33 Query包，资源均可容纳；八组历史事实六指标同值和精确Query 8/8通过。GCD/Nangate45已批准500ps SDC实际加载通过，尚无新完整基线。Ariane手工GRT的RC/空名称/未初始化网格已定位，内部脚本迁移经EF原两条动作及最终GRT RC通过；完整PPA未重跑。ECO延迟参考仍只识别ASAP7是新阻断，下一切片修复。长实验仍暂停，见 [A34逐项核查](admin/A34_TASK_BLOCKER_MATRIX_20261025.md)。

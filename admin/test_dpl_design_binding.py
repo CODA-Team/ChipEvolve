@@ -12,7 +12,10 @@ from chip_evolve.dpl_case import prepare_case
 
 
 @pytest.mark.parametrize("name", ["gcd", "aes", "jpeg", "new_accelerator"])
-def test_native_registry_resolves_bound_design_and_preserves_algorithm(tmp_path, name):
+@pytest.mark.parametrize("platform", ["asap7", "nangate45"])
+def test_native_registry_resolves_bound_design_and_preserves_algorithm(
+    tmp_path, name, platform
+):
     controller = tmp_path / "controller"
     template = controller / "problems/gcd_asap7/problem.yaml"
     template.parent.mkdir(parents=True)
@@ -36,17 +39,17 @@ def test_native_registry_resolves_bound_design_and_preserves_algorithm(tmp_path,
         controller,
         {
             "nickname": name,
-            "platform": "asap7",
+            "platform": platform,
             "dpl_case": "gcd_asap7",
-            "orfs_config": f"designs/asap7/{name}/config.mk",
+            "orfs_config": f"designs/{platform}/{name}/config.mk",
         },
     )
     problem = controller / "problems" / case / "problem.yaml"
     assert problem.read_text().endswith(algorithm)
     for field, expected in [
         ("design", name),
-        ("platform", "asap7"),
-        ("design_config", f"./designs/asap7/{name}/config.mk"),
+        ("platform", platform),
+        ("design_config", f"./designs/{platform}/{name}/config.mk"),
     ]:
         actual = subprocess.check_output(
             [sys.executable, str(registry), "--case", case, "--field", field], text=True
