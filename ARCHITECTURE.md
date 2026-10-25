@@ -1,3 +1,5 @@
+2026-10-25 A33：Query内部MetricObservation兼容携带DF已验证的snapshot/revision，经resolver精确筛选后传入Evidence；不同快照的证据ID分离，旧无快照ID保持，严格scope匹配不变。公开HTTP/CLI与跨项目协议保持，不增加服务、框架或模型调用。179 Query回归、依赖约束与独立安装包真实正反例10/10通过。部署清单仍须显式绑定已验证包；详见 [A33](admin/A33_QUERY_EXACT_SCOPE_FIX_20261025.md)。
+
 2026-10-24 A31：已有验证链先核对完成证明的结果对、冻结网表/Liberty、完整输出与成功 EF 证据生产者，再接续物理重放及 DF/DI；最终采用仍由 Codex 经既有 selection 决定。业务 status 独立保留当前终态与旧 delivery_recovered 历史。Query adapter 将原生错误/退出码/trace 经内部 finish_host_session 可选 failure_reason 传至业务诊断；不新增公共协议、模型循环或服务。170 Query/636 根回归及依赖约束通过。Ibex 真恢复、数据与 Query 实测、simple ask/效率等剩余债务见 [A31 交付](admin/A31_THREE_HOUR_DELIVERY_20261024.md)。
 
 2026-10-22 A30：共同测量/三类事实导出支持既有 fact_execution 私有 memory_gib 绑定，默认 8 GiB 保持；非默认新任务独立 -m4 标识，按 JPEG/Ariane 实测校准后可利用 4 GiB 窗口。原优化、完整数据与公共接口不变，613 根回归通过，业务双次仍待收齐。[实测与边界](admin/A30_FACT_RESOURCE_CALIBRATION_20261022.md)。
