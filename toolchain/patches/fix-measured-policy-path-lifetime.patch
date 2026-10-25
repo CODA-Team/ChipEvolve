@@ -1,0 +1,505 @@
+--- a/src/rsz/src/policy/MeasuredCriticalPathPolicy.cc
++++ b/src/rsz/src/policy/MeasuredCriticalPathPolicy.cc
+@@ -3,12 +3,12 @@
+
+ #include "MeasuredCriticalPathPolicy.hh"
+
++#include <algorithm>
+ #include <array>
+-#include <algorithm>
+ #include <cmath>
+ #include <cstdlib>
++#include <memory>
+ #include <optional>
+-#include <memory>
+ #include <string>
+ #include <utility>
+ #include <vector>
+@@ -147,9 +147,10 @@
+   type_stats_ = {};
+   if (useGlobalRouteBaseline()) {
+     refreshGlobalRouteBaseline(false);
+-    logger_->info(utl::RSZ,
+-                  2026,
+-                  "MeasuredCriticalPathPolicy using global-routing baseline timing.");
++    logger_->info(
++        utl::RSZ,
++        2026,
++        "MeasuredCriticalPathPolicy using global-routing baseline timing.");
+   }
+   if (generators_.empty()) {
+     finishRun(!hasSetupViolations(config_, max_));
+@@ -254,7 +255,8 @@
+   finishRun(!hasSetupViolations(config_, max_) || accepted_any);
+ }
+
+-std::vector<sta::Vertex*> MeasuredCriticalPathPolicy::findWorstViolatingEndpoints(
++std::vector<sta::Vertex*>
++MeasuredCriticalPathPolicy::findWorstViolatingEndpoints(
+     const int max_count) const
+ {
+   target_collector_->init(config_.setup_slack_margin);
+@@ -271,10 +273,9 @@
+       endpoints.emplace_back(endpoint_slack, endpoint);
+     }
+   }
+-  std::ranges::sort(endpoints,
+-                    [](const auto& lhs, const auto& rhs) {
+-                      return lhs.first < rhs.first;
+-                    });
++  std::ranges::sort(endpoints, [](const auto& lhs, const auto& rhs) {
++    return lhs.first < rhs.first;
++  });
+
+   std::vector<sta::Vertex*> selected;
+   selected.reserve(std::min<int>(max_count, endpoints.size()));
+@@ -296,8 +297,9 @@
+ std::vector<Target> MeasuredCriticalPathPolicy::selectCriticalTargets(
+     sta::Path* path) const
+ {
+-  std::vector<Target> path_targets = target_collector_->collectPathDriverTargets(
+-      path, path->slack(resizer_.staState()));
++  std::vector<Target> path_targets
++      = target_collector_->collectPathDriverTargets(
++          path, path->slack(resizer_.staState()));
+   if (path_targets.empty()) {
+     return {};
+   }
+@@ -340,22 +342,19 @@
+     ranked_targets.emplace_back(stage_delay, path_target);
+   }
+
+-  std::ranges::sort(ranked_targets,
+-                    [](const auto& lhs, const auto& rhs) {
+-                      return lhs.first > rhs.first;
+-                    });
++  std::ranges::sort(ranked_targets, [](const auto& lhs, const auto& rhs) {
++    return lhs.first > rhs.first;
++  });
+
+   const int max_targets
+       = std::max(1, envInt("RSZ_MEASURED_CRIT_TARGETS_PER_PATH", 4));
+   std::vector<Target> selected;
+   selected.reserve(std::min<int>(max_targets, ranked_targets.size()));
+   auto add_target = [&selected](const Target& target) {
+-    const bool already_selected
+-        = std::any_of(selected.begin(),
+-                      selected.end(),
+-                      [&target](const Target& existing) {
+-                        return existing.driver_pin == target.driver_pin;
+-                      });
++    const bool already_selected = std::any_of(
++        selected.begin(), selected.end(), [&target](const Target& existing) {
++          return existing.driver_pin == target.driver_pin;
++        });
+     if (!already_selected) {
+       selected.push_back(target);
+     }
+@@ -377,10 +376,9 @@
+         fanout_targets.push_back(path_target);
+       }
+     }
+-    std::ranges::sort(fanout_targets,
+-                      [](const Target& lhs, const Target& rhs) {
+-                        return lhs.fanout > rhs.fanout;
+-                      });
++    std::ranges::sort(fanout_targets, [](const Target& lhs, const Target& rhs) {
++      return lhs.fanout > rhs.fanout;
++    });
+     int added = 0;
+     for (const Target& target : fanout_targets) {
+       const size_t before_size = selected.size();
+@@ -391,10 +389,10 @@
+     }
+   }
+
+-  const int max_buffer_targets =
+-      std::max(0, envInt("RSZ_MEASURED_CRIT_BUFFER_TARGETS_PER_PATH",
+-                         containsMove(config_.sequence, MoveType::kUnbuffer) ? 4
+-                                                                              : 0));
++  const int max_buffer_targets = std::max(
++      0,
++      envInt("RSZ_MEASURED_CRIT_BUFFER_TARGETS_PER_PATH",
++             containsMove(config_.sequence, MoveType::kUnbuffer) ? 4 : 0));
+   if (max_buffer_targets > 0) {
+     const int max_unbuffer_target_fanout = std::max(
+         1, envInt("RSZ_MEASURED_CRIT_UNBUFFER_TARGET_MAX_FANOUT", 4));
+@@ -407,8 +405,8 @@
+         continue;
+       }
+       sta::Instance* inst = target.inst(resizer_);
+-      sta::LibertyCell* cell =
+-          inst != nullptr ? resizer_.network()->libertyCell(inst) : nullptr;
++      sta::LibertyCell* cell
++          = inst != nullptr ? resizer_.network()->libertyCell(inst) : nullptr;
+       if (cell == nullptr || !cell->isBuffer()) {
+         continue;
+       }
+@@ -424,8 +422,9 @@
+   }
+
+   const int max_tail_targets
+-      = std::max(0, envInt("RSZ_MEASURED_CRIT_TAIL_TARGETS_PER_PATH",
+-                           useGlobalRouteBaseline() ? 3 : 0));
++      = std::max(0,
++                 envInt("RSZ_MEASURED_CRIT_TAIL_TARGETS_PER_PATH",
++                        useGlobalRouteBaseline() ? 3 : 0));
+   if (max_tail_targets > 0 && selected.size() < path_targets.size()) {
+     int added = 0;
+     for (auto iter = path_targets.rbegin(); iter != path_targets.rend();
+@@ -441,8 +440,9 @@
+   }
+
+   const int max_route_targets
+-      = std::max(0, envInt("RSZ_MEASURED_CRIT_ROUTE_TARGETS_PER_PATH",
+-                           useGlobalRouteBaseline() ? 3 : 0));
++      = std::max(0,
++                 envInt("RSZ_MEASURED_CRIT_ROUTE_TARGETS_PER_PATH",
++                        useGlobalRouteBaseline() ? 3 : 0));
+   if (max_route_targets > 0 && selected.size() < path_targets.size()) {
+     std::vector<std::pair<sta::Delay, Target>> wire_targets;
+     wire_targets.reserve(path_targets.size());
+@@ -461,15 +461,13 @@
+       if (next_prev_edge == nullptr || !next_prev_edge->isWire()) {
+         continue;
+       }
+-      const sta::Delay wire_delay = sta::delayDiff(next_path->arrival(),
+-                                                   driver_path->arrival(),
+-                                                   resizer_.staState());
++      const sta::Delay wire_delay = sta::delayDiff(
++          next_path->arrival(), driver_path->arrival(), resizer_.staState());
+       wire_targets.emplace_back(wire_delay, path_target);
+     }
+-    std::ranges::sort(wire_targets,
+-                      [](const auto& lhs, const auto& rhs) {
+-                        return lhs.first > rhs.first;
+-                      });
++    std::ranges::sort(wire_targets, [](const auto& lhs, const auto& rhs) {
++      return lhs.first > rhs.first;
++    });
+     int added = 0;
+     for (const auto& [delay, target] : wire_targets) {
+       const size_t before_size = selected.size();
+@@ -486,45 +484,75 @@
+                                                     CandidateScore& best)
+ {
+   std::vector<Target> targets = selectCriticalTargets(path);
+-  for (const Target& target : targets) {
++  // Shadow apply/undo and timing refresh invalidate borrowed STA Paths.
++  // Keep the original target order/fanout/slack, but resolve live path handles
++  // immediately before each generator uses them.
++  for (const Target& selected : targets) {
+     for (const std::unique_ptr<MoveGenerator>& generator_ptr : generators_) {
++      updateEvaluationTiming();
++      sta::Vertex* endpoint
++          = resizer_.graph()->pinLoadVertex(selected.endpoint_pin);
++      sta::Path* current_path
++          = endpoint != nullptr ? findWorstSlackPath(endpoint) : nullptr;
++      if (current_path == nullptr) {
++        continue;
++      }
++      const std::vector<Target> current_targets
++          = target_collector_->collectPathDriverTargets(current_path,
++                                                        selected.slack);
++      const auto current
++          = std::find_if(current_targets.begin(),
++                         current_targets.end(),
++                         [&selected](const Target& item) {
++                           return item.driver_pin == selected.driver_pin;
++                         });
++      if (current == current_targets.end()) {
++        continue;
++      }
++      auto target_owner = std::make_shared<Target>(selected);
++      target_owner->endpoint_path = current->endpoint_path;
++      target_owner->driver_path = current->driver_path;
++      target_owner->path_index = current->path_index;
++      target_owner->scene = current->scene;
++      target_owner->min_max = current->min_max;
++      const Target& target = *target_owner;
+       MoveGenerator& generator = *generator_ptr;
+       const MoveType type = generator.type();
+       if (type == MoveType::kSplitLoad) {
+-        const int max_split_moves =
+-            envInt("RSZ_MEASURED_CRIT_SPLIT_MAX_MOVES", 14);
++        const int max_split_moves
++            = envInt("RSZ_MEASURED_CRIT_SPLIT_MAX_MOVES", 14);
+         const int split_index = static_cast<int>(MoveType::kSplitLoad);
+         if (max_split_moves > 0
+             && type_stats_[split_index].committed >= max_split_moves) {
+           continue;
+         }
+-        const int min_split_fanout =
+-            envInt("RSZ_MEASURED_CRIT_SPLIT_MIN_FANOUT", 5);
+-        const float low_fanout_slack =
+-            envFloat("RSZ_MEASURED_CRIT_SPLIT_LOW_FANOUT_SLACK", -3.0e-10f);
++        const int min_split_fanout
++            = envInt("RSZ_MEASURED_CRIT_SPLIT_MIN_FANOUT", 5);
++        const float low_fanout_slack
++            = envFloat("RSZ_MEASURED_CRIT_SPLIT_LOW_FANOUT_SLACK", -3.0e-10f);
+         if (target.fanout < min_split_fanout
+             && target.slack > low_fanout_slack) {
+           continue;
+         }
+       } else if (type == MoveType::kBuffer) {
+-        const int max_buffer_moves =
+-            envInt("RSZ_MEASURED_CRIT_BUFFER_MAX_MOVES", 6);
++        const int max_buffer_moves
++            = envInt("RSZ_MEASURED_CRIT_BUFFER_MAX_MOVES", 6);
+         const int buffer_index = static_cast<int>(MoveType::kBuffer);
+         if (max_buffer_moves > 0
+             && type_stats_[buffer_index].committed >= max_buffer_moves) {
+           continue;
+         }
+-        const int min_buffer_fanout =
+-            envInt("RSZ_MEASURED_CRIT_BUFFER_MIN_FANOUT", 7);
+-        const float low_fanout_slack =
+-            envFloat("RSZ_MEASURED_CRIT_BUFFER_LOW_FANOUT_SLACK", -3.5e-10f);
++        const int min_buffer_fanout
++            = envInt("RSZ_MEASURED_CRIT_BUFFER_MIN_FANOUT", 7);
++        const float low_fanout_slack
++            = envFloat("RSZ_MEASURED_CRIT_BUFFER_LOW_FANOUT_SLACK", -3.5e-10f);
+         if (target.fanout < min_buffer_fanout
+             && target.slack > low_fanout_slack) {
+           continue;
+         }
+       } else if (type == MoveType::kUnbuffer) {
+-        const int max_unbuffer_moves =
+-            envInt("RSZ_MEASURED_CRIT_UNBUFFER_MAX_MOVES", 48);
++        const int max_unbuffer_moves
++            = envInt("RSZ_MEASURED_CRIT_UNBUFFER_MAX_MOVES", 48);
+         const int unbuffer_index = static_cast<int>(MoveType::kUnbuffer);
+         if (max_unbuffer_moves > 0
+             && type_stats_[unbuffer_index].committed >= max_unbuffer_moves) {
+@@ -544,13 +572,15 @@
+       }
+       recordGenerated(generator.type(), candidates.size());
+       for (auto& candidate : candidates) {
+-        Estimate estimate = measureCandidate(target, *candidate, generator.type());
++        Estimate estimate
++            = measureCandidate(target, *candidate, generator.type());
+         if (!estimate.legal) {
+           continue;
+         }
+         recordLegal(generator.type(), estimate.score);
+         if (best.candidate == nullptr || estimate.score > best.estimate.score) {
+           best.candidate = std::move(candidate);
++          best.target_owner = target_owner;
+           best.estimate = estimate;
+           best.type = generator.type();
+         }
+@@ -584,8 +614,8 @@
+       && envInt("RSZ_MEASURED_CRIT_ROUTE_PREFILTER", 0) != 0) {
+     const Estimate quick_estimate
+         = measureCandidateWithTiming(target, candidate, type, false);
+-    const float min_prefilter_score = envFloat(
+-        "RSZ_MEASURED_CRIT_ROUTE_PREFILTER_MIN_SCORE", 0.10e-13f);
++    const float min_prefilter_score
++        = envFloat("RSZ_MEASURED_CRIT_ROUTE_PREFILTER_MIN_SCORE", 0.10e-13f);
+     if (!quick_estimate.legal || quick_estimate.score < min_prefilter_score) {
+       return quick_estimate;
+     }
+@@ -636,8 +666,7 @@
+   const int top_endpoint_count
+       = std::max(0, envInt("RSZ_MEASURED_CRIT_TOP_TNS_ENDPOINTS", 0));
+   const float before_top_tns
+-      = top_endpoint_count > 0 ? criticalEndpointTns(top_endpoint_count)
+-                               : 0.0f;
++      = top_endpoint_count > 0 ? criticalEndpointTns(top_endpoint_count) : 0.0f;
+   CellCostMetrics before_cost;
+   if (type == MoveType::kSizeUp || type == MoveType::kVtSwap
+       || type == MoveType::kClone || type == MoveType::kSplitLoad
+@@ -661,6 +690,7 @@
+     }
+     resizer_.initForJournalRestore();
+     odb::dbDatabase::undoEco(resizer_.block());
++    updateEvaluationTiming();
+     return {.legal = false, .score = 0.0f};
+   }
+
+@@ -673,8 +703,7 @@
+   const float after_wns = sta_->worstSlack(max_);
+   const float after_endpoint = endpointSlack(endpoint_pin);
+   const float after_top_tns
+-      = top_endpoint_count > 0 ? criticalEndpointTns(top_endpoint_count)
+-                               : 0.0f;
++      = top_endpoint_count > 0 ? criticalEndpointTns(top_endpoint_count) : 0.0f;
+   CellCostMetrics after_cost;
+   if (type == MoveType::kSizeUp || type == MoveType::kVtSwap
+       || type == MoveType::kClone || type == MoveType::kSplitLoad) {
+@@ -707,15 +736,15 @@
+   const float min_endpoint_gain
+       = envFloat("RSZ_MEASURED_CRIT_MIN_ENDPOINT_GAIN", 0.5e-13f);
+   const bool tns_first = envInt("RSZ_MEASURED_CRIT_TNS_FIRST", 0) != 0;
+-  const bool allow_wns_only =
+-      envInt("RSZ_MEASURED_CRIT_ALLOW_WNS_ONLY", tns_first ? 0 : 1) != 0;
+-  const bool allow_endpoint_only =
+-      envInt("RSZ_MEASURED_CRIT_ALLOW_ENDPOINT_ONLY", tns_first ? 0 : 1) != 0;
+-  const bool globally_useful =
+-      tns_gain >= min_tns_gain
+-      || (top_endpoint_count > 0 && top_tns_gain >= min_tns_gain)
+-      || (allow_wns_only && wns_gain >= min_wns_gain)
+-      || (allow_endpoint_only && endpoint_gain >= min_endpoint_gain);
++  const bool allow_wns_only
++      = envInt("RSZ_MEASURED_CRIT_ALLOW_WNS_ONLY", tns_first ? 0 : 1) != 0;
++  const bool allow_endpoint_only
++      = envInt("RSZ_MEASURED_CRIT_ALLOW_ENDPOINT_ONLY", tns_first ? 0 : 1) != 0;
++  const bool globally_useful
++      = tns_gain >= min_tns_gain
++        || (top_endpoint_count > 0 && top_tns_gain >= min_tns_gain)
++        || (allow_wns_only && wns_gain >= min_wns_gain)
++        || (allow_endpoint_only && endpoint_gain >= min_endpoint_gain);
+   if (!globally_useful) {
+     return {.legal = false, .score = tns_gain};
+   }
+@@ -729,7 +758,8 @@
+   }
+
+   if (envInt("RSZ_MEASURED_CRIT_POWER_GUARD",
+-             envInt("RSZ_TIMING_POWER_AWARE", 0)) != 0
++             envInt("RSZ_TIMING_POWER_AWARE", 0))
++          != 0
+       && (type == MoveType::kSizeUp || type == MoveType::kVtSwap
+           || type == MoveType::kBuffer || type == MoveType::kSplitLoad
+           || type == MoveType::kClone)) {
+@@ -737,18 +767,16 @@
+         = growthRatio(before_cost.leakage, after_cost.leakage, 1.0e-9f);
+     const float cap_growth
+         = growthRatio(before_cost.input_cap, after_cost.input_cap, 1.0e-15f);
+-    const float max_leakage_growth = envFloat(
+-        "RSZ_MEASURED_CRIT_MAX_LEAKAGE_GROWTH",
+-        type == MoveType::kVtSwap ? 8.0f : 5.0f);
++    const float max_leakage_growth
++        = envFloat("RSZ_MEASURED_CRIT_MAX_LEAKAGE_GROWTH",
++                   type == MoveType::kVtSwap ? 8.0f : 5.0f);
+     const float max_cap_growth
+         = envFloat("RSZ_MEASURED_CRIT_MAX_CAP_GROWTH",
+                    type == MoveType::kBuffer ? 8.0f : 4.0f);
+     const float strong_gain = std::max(tns_gain, top_tns_gain);
+     const float bypass_gain
+-        = envFloat("RSZ_MEASURED_CRIT_POWER_GUARD_BYPASS_TNS_GAIN",
+-                   1.5e-12f);
+-    if ((leakage_growth > max_leakage_growth
+-         || cap_growth > max_cap_growth)
++        = envFloat("RSZ_MEASURED_CRIT_POWER_GUARD_BYPASS_TNS_GAIN", 1.5e-12f);
++    if ((leakage_growth > max_leakage_growth || cap_growth > max_cap_growth)
+         && strong_gain < bypass_gain) {
+       return {.legal = false,
+               .score = strong_gain - leakage_growth * 1.0e-13f
+@@ -759,18 +787,18 @@
+   const float wns_weight = envFloat("RSZ_MEASURED_CRIT_WNS_WEIGHT", 0.45f);
+   const float endpoint_weight
+       = envFloat("RSZ_MEASURED_CRIT_ENDPOINT_WEIGHT", 0.20f);
+-  const float tns_weight = envFloat("RSZ_MEASURED_CRIT_TNS_WEIGHT",
+-                                    tns_first ? 1.75f : 1.0f);
++  const float tns_weight
++      = envFloat("RSZ_MEASURED_CRIT_TNS_WEIGHT", tns_first ? 1.75f : 1.0f);
+   const float top_tns_weight
+       = top_endpoint_count > 0
+             ? envFloat("RSZ_MEASURED_CRIT_TOP_TNS_WEIGHT", 0.65f)
+             : 0.0f;
+-  const float score =
+-      tns_weight * tns_gain + wns_weight * positiveGain(0.0f, wns_gain)
+-      + top_tns_weight * positiveGain(0.0f, top_tns_gain)
+-      + endpoint_weight * positiveGain(0.0f, endpoint_gain)
+-      - movePenalty(type)
+-      - measuredCostPenalty(type, before_cost, after_cost, move_count);
++  const float score
++      = tns_weight * tns_gain + wns_weight * positiveGain(0.0f, wns_gain)
++        + top_tns_weight * positiveGain(0.0f, top_tns_gain)
++        + endpoint_weight * positiveGain(0.0f, endpoint_gain)
++        - movePenalty(type)
++        - measuredCostPenalty(type, before_cost, after_cost, move_count);
+   return {.legal = score > 0.0f, .score = score};
+ }
+
+@@ -1005,13 +1033,16 @@
+     const int move_count) const
+ {
+   if (envInt("RSZ_MEASURED_CRIT_COST_AWARE",
+-             envInt("RSZ_TIMING_POWER_AWARE", 0)) == 0) {
++             envInt("RSZ_TIMING_POWER_AWARE", 0))
++      == 0) {
+     return 0.0f;
+   }
+
+   const float area_ratio = growthRatio(before.area, after.area, 1.0f);
+-  const float leakage_ratio = growthRatio(before.leakage, after.leakage, 1.0e-9f);
+-  const float cap_ratio = growthRatio(before.input_cap, after.input_cap, 1.0e-15f);
++  const float leakage_ratio
++      = growthRatio(before.leakage, after.leakage, 1.0e-9f);
++  const float cap_ratio
++      = growthRatio(before.input_cap, after.input_cap, 1.0e-15f);
+   const float area_penalty
+       = envFloat("RSZ_MEASURED_CRIT_AREA_PENALTY", 0.18e-13f);
+   const float leakage_penalty
+@@ -1032,20 +1063,22 @@
+     penalty += insert_penalty * std::max(1, move_count);
+   }
+
+-  const bool low_cost_replacement =
+-      (type == MoveType::kSizeUp || type == MoveType::kVtSwap)
+-      && after.area <= before.area * 1.05f
+-      && after.input_cap <= before.input_cap * 1.10f
+-      && after.leakage <= before.leakage * 1.25f;
++  const bool low_cost_replacement
++      = (type == MoveType::kSizeUp || type == MoveType::kVtSwap)
++        && after.area <= before.area * 1.05f
++        && after.input_cap <= before.input_cap * 1.10f
++        && after.leakage <= before.leakage * 1.25f;
+   if (low_cost_replacement) {
+     penalty -= envFloat("RSZ_MEASURED_CRIT_LOW_COST_BONUS", 0.18e-13f);
+   }
+   if (type == MoveType::kUnbuffer) {
+     const float area_drop = growthRatio(after.area, before.area, 1.0f);
+-    const float leakage_drop = growthRatio(after.leakage, before.leakage, 1.0e-9f);
+-    const float cap_drop = growthRatio(after.input_cap, before.input_cap, 1.0e-15f);
+-    const float unbuffer_bonus =
+-        envFloat("RSZ_MEASURED_CRIT_UNBUFFER_BONUS", 0.35e-13f);
++    const float leakage_drop
++        = growthRatio(after.leakage, before.leakage, 1.0e-9f);
++    const float cap_drop
++        = growthRatio(after.input_cap, before.input_cap, 1.0e-15f);
++    const float unbuffer_bonus
++        = envFloat("RSZ_MEASURED_CRIT_UNBUFFER_BONUS", 0.35e-13f);
+     penalty -= unbuffer_bonus
+                * std::min(3.0f, 1.0f + area_drop + leakage_drop + cap_drop);
+   }
+@@ -1119,15 +1152,17 @@
+       continue;
+     }
+     const MoveType type = static_cast<MoveType>(index);
+-    logger_->info(utl::RSZ,
+-                  2025,
+-                  "MeasuredCriticalPathPolicy candidate stats {}: applicable={} generated={} legal={} committed={} best_score={:.3e}.",
+-                  moveName(type),
+-                  stats.applicable,
+-                  stats.generated,
+-                  stats.legal,
+-                  stats.committed,
+-                  stats.best_score);
++    logger_->info(
++        utl::RSZ,
++        2025,
++        "MeasuredCriticalPathPolicy candidate stats {}: applicable={} "
++        "generated={} legal={} committed={} best_score={:.3e}.",
++        moveName(type),
++        stats.applicable,
++        stats.generated,
++        stats.legal,
++        stats.committed,
++        stats.best_score);
+   }
+ }
+
+--- a/src/rsz/src/policy/MeasuredCriticalPathPolicy.hh
++++ b/src/rsz/src/policy/MeasuredCriticalPathPolicy.hh
+@@ -38,6 +38,8 @@
+  private:
+   struct CandidateScore
+   {
++    // Candidates borrow their Target; keep it alive through final commit.
++    std::shared_ptr<Target> target_owner;
+     std::unique_ptr<MoveCandidate> candidate;
+     Estimate estimate;
+     MoveType type{MoveType::kCount};
