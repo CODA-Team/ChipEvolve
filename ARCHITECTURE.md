@@ -1,3 +1,5 @@
+2026-10-25 A34：业务模块边界保持；新增内部手工Tcl迁移只补现有原生GRT动作的网格初始化、RC刷新与显式命名，经EF两动作短验证，不增加专业算法/服务/公共接口。八组新配置明确使用当前EF/DF与A33 Query包；旧ASAP7 Flow冻结收据不作为双PDK全能力证明。完整功能状态及未闭合任务见 [A34矩阵](admin/A34_TASK_BLOCKER_MATRIX_20261025.md)。
+
 2026-10-25 A33：Query内部MetricObservation兼容携带DF已验证的snapshot/revision，经resolver精确筛选后传入Evidence；不同快照的证据ID分离，旧无快照ID保持，严格scope匹配不变。公开HTTP/CLI与跨项目协议保持，不增加服务、框架或模型调用。179 Query回归、依赖约束与独立安装包真实正反例10/10通过。部署清单仍须显式绑定已验证包；详见 [A33](admin/A33_QUERY_EXACT_SCOPE_FIX_20261025.md)。
 
 2026-10-24 A31：已有验证链先核对完成证明的结果对、冻结网表/Liberty、完整输出与成功 EF 证据生产者，再接续物理重放及 DF/DI；最终采用仍由 Codex 经既有 selection 决定。业务 status 独立保留当前终态与旧 delivery_recovered 历史。Query adapter 将原生错误/退出码/trace 经内部 finish_host_session 可选 failure_reason 传至业务诊断；不新增公共协议、模型循环或服务。170 Query/636 根回归及依赖约束通过。Ibex 真恢复、数据与 Query 实测、simple ask/效率等剩余债务见 [A31 交付](admin/A31_THREE_HOUR_DELIVERY_20261024.md)。
