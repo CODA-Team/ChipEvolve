@@ -644,7 +644,9 @@ class EvidenceCollector:
                 )
                 metric_status = metric.evidence_status
                 metric_reason = (
-                    None if metric.complete else "metric source artifact is missing"
+                    None
+                    if metric.complete
+                    else metric.incomplete_reason or "metric source artifact is missing"
                 )
                 if freshness is not None and freshness.state.value != "current":
                     metric_status = EvidenceStatus.PARTIAL

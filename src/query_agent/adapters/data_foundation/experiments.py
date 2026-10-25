@@ -167,6 +167,15 @@ class DataExperimentProvider:
             source = next(
                 (source for source in row.evidence if source.registered), None
             )
+            missing: list[str] = []
+            if source is None:
+                missing.append("registered source artifact")
+            if row.unit is None:
+                missing.append("unit declaration")
+            if row.corner is None:
+                missing.append("corner declaration")
+            if row.status != "available":
+                missing.append("source metric status: " + row.status)
             observations.append(
                 MetricObservation(
                     metric_name=row.name,
@@ -186,6 +195,9 @@ class DataExperimentProvider:
                     and source is not None
                     and row.unit is not None
                     and row.corner is not None,
+                    incomplete_reason="metric is incomplete: " + ", ".join(missing)
+                    if missing
+                    else None,
                     parser_id="data-foundation.canonical",
                     parser_version="0.2",
                 )

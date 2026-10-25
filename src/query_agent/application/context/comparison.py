@@ -61,7 +61,8 @@ class ComparisonPolicy:
                     CandidateRejection(
                         candidate_id=item.run_id,
                         reason_code="PARTIAL_METRIC",
-                        detail="metric source artifact is incomplete",
+                        detail=item.incomplete_reason
+                        or "metric source artifact is incomplete",
                     )
                 )
         return ComparisonSet(

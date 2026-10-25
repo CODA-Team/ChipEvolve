@@ -205,3 +205,21 @@ def test_unscoped_legacy_metric_keeps_its_evidence_id() -> None:
         f"{item.locator.uri}:{item.content}".encode()
     ).hexdigest()
     assert item.evidence_id == "ev-" + original_digest[:24]
+
+
+def test_current_and_comparison_keep_the_metric_incompleteness_reason() -> None:
+    from query_agent.application.context.freshness import FreshnessPolicy
+
+    provider = FakeExperimentContextProvider()
+    metric = provider.metrics[0].model_copy(
+        update={"complete": False, "incomplete_reason": "corner declaration is missing"}
+    )
+    current = FreshnessPolicy().assess(
+        provider.runs[0], (metric,), requires_current=True
+    )
+    assert current[0].reason == metric.incomplete_reason
+    comparison = ComparisonPolicy().select(
+        (metric,), metric_name="WNS", stage_key="routing", design_id="gcd"
+    )
+    assert not comparison.observations
+    assert comparison.rejected[0].detail == metric.incomplete_reason

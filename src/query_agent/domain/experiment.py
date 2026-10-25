@@ -170,6 +170,7 @@ class MetricObservation(BaseModel):
     artifact_id: str | None = None
     source_hash: str | None = Field(default=None, min_length=64, max_length=64)
     complete: bool = True
+    incomplete_reason: str | None = None
     observed_at: datetime | None = None
     corner: str | None = None
     parser_id: str | None = None

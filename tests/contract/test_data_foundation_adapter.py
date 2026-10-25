@@ -4,6 +4,7 @@ import json
 from collections.abc import Iterator
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
+from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
@@ -450,3 +451,76 @@ def test_run_without_indexed_facts_keeps_execution_artifacts(
     assert adapter.list_artifacts("run_001") == execution.list_artifacts("run_001")
     with pytest.raises(MissingDataError):
         adapter.list_artifacts("run_001", stage_key="route")
+
+
+@pytest.mark.parametrize(
+    "missing,reason",
+    [("unit", "unit"), ("corner", "corner"), ("source", "registered source")],
+)
+def test_canonical_metric_reports_the_actual_missing_requirement(
+    provider: DataFoundationProvider,
+    monkeypatch: pytest.MonkeyPatch,
+    missing: str,
+    reason: str,
+) -> None:
+    raw: dict[str, Any] = {
+        "contract_version": "0.2",
+        "status": "available",
+        "scope": SCOPE,
+        "data": {
+            "metrics": [
+                {
+                    "name": "WNS",
+                    "value": -0.2,
+                    "unit": "ns",
+                    "corner": "slow",
+                    "stage": "route",
+                    "snapshot_id": "s1",
+                    "status": "available",
+                    "evidence": [{"artifact_id": "report", "sha256": "a" * 64}],
+                }
+            ]
+        },
+    }
+    row = raw["data"]["metrics"][0]
+    if missing == "source":
+        row["evidence"] = []
+    else:
+        row[missing] = None
+
+    def supplied_metrics(**kwargs: object) -> dict[str, Any]:
+        return raw
+
+    monkeypatch.setattr(provider.client, "get_metrics", supplied_metrics)
+    execution = FakeExperimentContextProvider()
+    execution.runs = (
+        ExperimentRun(
+            run_id="run1", design_id="chip", status=ExperimentStatus.SUCCEEDED
+        ),
+        execution.runs[1],
+        execution.runs[2],
+    )
+    app = QueryService(
+        intent_parser=KeywordIntentParser(),
+        planner=QueryPlanner(),
+        collector=EvidenceCollector(
+            experiment_context_provider=DataExperimentProvider(execution, provider)
+        ),
+    )
+    response = app.query(
+        QueryRequest(
+            query="WNS?",
+            context=QueryContext(
+                design_id="chip",
+                run_id="run1",
+                snapshot_id="s1",
+                revision_id="r1",
+                source=QuerySource.MANAGED_RUN,
+            ),
+        )
+    )
+    assert response.status is QueryStatus.NEEDS_MORE_DATA
+    assert response.evidence[0].reason is not None
+    assert reason in response.evidence[0].reason
+    if missing != "source":
+        assert "artifact is missing" not in response.evidence[0].reason

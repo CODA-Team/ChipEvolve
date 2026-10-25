@@ -34,7 +34,8 @@ class FreshnessPolicy:
                         state=FreshnessState.STALE,
                         evidence_id=evidence_id,
                         run_id=metric.run_id,
-                        reason="metric has no complete registered source artifact",
+                        reason=metric.incomplete_reason
+                        or "metric has no complete registered source artifact",
                     )
                 )
             elif (
