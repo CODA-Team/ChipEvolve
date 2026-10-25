@@ -22,8 +22,10 @@
 
 ## 文件、发布及接续
 
-Query模块 `fa9a2cc` 已发布原隔离模块分支，根只固定该gitlink/manifest及文档。八份未来配置在本目录configs绑定新解释器，原专业模板/服务/历史环境保持；不等同于放行长搜索。
+Query产品修复 `fa9a2cc`、测试lint收尾 `23508a2` 已发布原隔离模块分支，根只固定该gitlink/manifest及文档。八份未来配置在本目录configs绑定新解释器，原专业模板/服务/历史环境保持；不等同于放行长搜索。
 
 数据流仍为EF执行归属+DF登记事实→DI→Query原比较策略→Codex判断。若要改阶段如何对齐，改ComparisonPolicy；不改DF存储或专业评分。完整证据在 `var/business/a51-query-comparison-stage-20261025/` 的actual-before、input-identity、前后测试、静态日志、installed-verification、两个power-source与future-bindings。
 
 新500ps完整Flow搜索、Ibex/Nangate45完整证明、Ariane剩余电气违反与最终物理，以及八组双次合格结果仍未完成。当前继续具体阻断审计，长搜索保持暂停。
+
+收尾更正：初次lint因新测试正则未写raw触发RUF043，之前对静态全通过的汇报过早。改为等价raw正则后，最终Ruff全部通过、180文件格式通过、6针对回归通过；原192全回归/712根回归保持有效，产品字节与已验证wheel不变。失败ruff.log保留，最终结果见ruff-final.log/format-final.log/targeted-final.log。后续门禁命令使用失败即停止，不能仅凭测试成功汇报静态通过。
