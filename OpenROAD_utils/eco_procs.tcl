@@ -646,6 +646,7 @@ proc eco_net_sink_report { net_name } {
     }
     puts "NET [$db_net getName] terminals=[llength $rows]"
     foreach row [lsort $rows] { puts $row }
+    return [linsert [lsort $rows] 0 "NET [$db_net getName] terminals=[llength $rows]"]
 }
 
 proc eco_rank_fanout_by_slack { driver_inst {out_file ""} {mode "max"} } {

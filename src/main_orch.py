@@ -1934,7 +1934,7 @@ def run_loop(loop_max=48):
             set _probe_cmds [list "eco_rank_fanout_by_slack" "eco_top_paths_through" "eco_net_sink_report"]
             set _probe_file "{PROBE_RESPONSES_FILE}"
             set _pfh_init [open $_probe_file w]
-            puts $_pfh_init "# probe_responses for iter {i+1}"
+            puts $_pfh_init "# probe_responses for iter {i + 1}"
             close $_pfh_init
             set _eco_fp [open {ECO_out} r]
             while {{[gets $_eco_fp _eco_line] >= 0}} {{
@@ -1945,11 +1945,11 @@ def run_loop(loop_max=48):
                 set _eco_head [lindex [split $_eco_line] 0]
                 set _is_probe [expr {{[lsearch -exact $_probe_cmds $_eco_head] >= 0}}]
                 if {{$_is_probe}} {{
-                    # Probe procs (eco_rank_fanout_by_slack, eco_top_paths_through)
-                    # RETURN a Tcl list of pairs (sink_or_endpoint, slack) rather
-                    # than printing to stdout, so we capture the return value
-                    # and write it directly. Errors are written too — even an
-                    # error message is useful feedback ("you asked for a sink
+                    # Probe procs return their data rows; connectivity also
+                    # prints a human-readable copy to the native log. Capture
+                    # the return value for the next iteration. Errors are
+                    # written too — even an error message is useful feedback
+                    # ("you asked for a sink
                     # report on a net that doesn\'t exist").
                     set _pfh [open $_probe_file a]
                     puts $_pfh ""
@@ -1958,19 +1958,13 @@ def run_loop(loop_max=48):
                         puts $_pfh "ERROR: $_eco_result"
                         lappend _eco_errors "FAILED: $_eco_line  ERROR: $_eco_result"
                     }} else {{
-                        # Pretty-print the return value. If it\'s a list of
-                        # pairs, one per line ("sink  slack_ps"). Otherwise
-                        # dump as-is. Skip the proc\'s ZERO-length case (some
-                        # probes only side-effect — write a 0-row marker so the
-                        # LLM sees the probe ran but produced nothing).
+                        # Preserve complete rows, including direction/master.
+                        # Pair queries remain one sink/slack row per line.
+                        # A genuinely empty return gets a zero-row marker.
                         if {{[catch {{
                             set _row_count 0
                             foreach _r $_eco_result {{
-                                if {{[llength $_r] >= 2}} {{
-                                    puts $_pfh "[lindex $_r 0]  [lindex $_r 1]"
-                                }} else {{
-                                    puts $_pfh $_r
-                                }}
+                                puts $_pfh $_r
                                 incr _row_count
                             }}
                             if {{$_row_count == 0}} {{ puts $_pfh "(no rows returned)" }}
