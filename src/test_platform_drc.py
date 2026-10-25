@@ -1,8 +1,23 @@
 import hashlib
 
 import pytest
+from platform_drc import best_drc_report_tcl, route_evidence, routed_wns_improves
 
-from platform_drc import best_drc_report_tcl, route_evidence
+
+@pytest.mark.parametrize(
+    "wns,best,expected",
+    [
+        (-366.345, {"iteration": 0, "wns": -288.838}, False),
+        (-288.838, {"iteration": 0, "wns": -288.838}, False),
+        (-280.0, {"iteration": 0, "wns": -288.838}, True),
+        (0.0, {"cycle": 1, "wns": -1.0}, True),
+        (-1.0, {"cycle": 1, "wns": 0.0}, False),
+        (None, {"wns": -1.0}, False),
+        (-1.0, {"wns": None}, True),
+    ],
+)
+def test_routed_best_includes_input_and_keeps_native_wns_ranking(wns, best, expected):
+    assert routed_wns_improves(wns, best) is expected
 
 
 def test_platform_records_native_count_before_a_standalone_checker(monkeypatch):

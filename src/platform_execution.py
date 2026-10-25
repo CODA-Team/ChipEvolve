@@ -115,6 +115,35 @@ def submit(profile_path: Path) -> dict:
     return record
 
 
+def export_best_checkpoint(
+    source: Path, environment: dict[str, str], destination: Path, constraints: Path
+) -> int:
+    """Export views while retaining the authoritative selected ODB bytes."""
+    best = source / "prompts/dynamic/snapshots/best_drt.odb"
+    script = Path.cwd() / "export_best.tcl"
+    libraries = session_libraries(environment)
+    script.write_text(
+        "\n".join(
+            [
+                *[f"read_liberty {{{path}}}" for path in libraries],
+                f"read_db {{{best}}}",
+                f"read_sdc {{{constraints}}}",
+                f"write_def {{{destination / 'final_eco.def'}}}",
+                f"write_verilog {{{destination / 'final_eco.v'}}}",
+                f"write_sdc {{{destination / 'final_eco.sdc'}}}",
+                "exit",
+            ]
+        )
+        + "\n"
+    )
+    code = subprocess.call(
+        [environment["OPENROAD_BIN"], "-exit", str(script)], env=environment
+    )
+    if code == 0:
+        shutil.copyfile(best, destination / "final_eco.odb")
+    return code
+
+
 def leaf(profile_path: Path) -> int:
     profile = json.loads(profile_path.read_text())
     source = Path(__file__).resolve().parents[1]
@@ -148,27 +177,9 @@ def leaf(profile_path: Path) -> int:
     if code == 0:
         # Upstream keeps its authoritative best routed ODB in dynamic snapshots.
         # Export it deterministically; some upstream early-stop paths omit DEF/V.
-        best = source / "prompts/dynamic/snapshots/best_drt.odb"
         destination = source / "outputs"
-        script = Path.cwd() / "export_best.tcl"
-        libraries = session_libraries(environment)
-        script.write_text(
-            "\n".join(
-                [
-                    *[f"read_liberty {{{path}}}" for path in libraries],
-                    f"read_db {{{best}}}",
-                    f"read_sdc {{{Path.cwd() / 'inputs/6_final.sdc'}}}",
-                    f"write_db {{{destination / 'final_eco.odb'}}}",
-                    f"write_def {{{destination / 'final_eco.def'}}}",
-                    f"write_verilog {{{destination / 'final_eco.v'}}}",
-                    f"write_sdc {{{destination / 'final_eco.sdc'}}}",
-                    "exit",
-                ]
-            )
-            + "\n"
-        )
-        code = subprocess.call(
-            [environment["OPENROAD_BIN"], "-exit", str(script)], env=environment
+        code = export_best_checkpoint(
+            source, environment, destination, Path.cwd() / "inputs/6_final.sdc"
         )
         if code == 0:
             from platform_drc import route_evidence

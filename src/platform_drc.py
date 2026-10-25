@@ -1,8 +1,14 @@
-"""Keep the native best route's DRC counter with its exported checkpoint."""
+"""Keep the selected routed state and its matching DRC evidence together."""
 
 import hashlib
 import os
 from pathlib import Path
+
+
+def routed_wns_improves(wns: float | None, best_qor: dict) -> bool:
+    """Apply the native WNS ranking to every routed candidate, including first."""
+    best_wns = best_qor.get("wns")
+    return wns is not None and (best_wns is None or wns > best_wns)
 
 
 def best_drc_report_tcl(report: str) -> str:

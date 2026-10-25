@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Main ECO loop: OpenROAD ↔ LLM iterative timing closure.
 
 Flow per iteration:
@@ -10,21 +11,8 @@ Flow per iteration:
   7. Score QoR change, track best-ever, revert on sustained regression
   8. Rebuild context for next iteration
 """
-import json
-import sys
-import re
-import subprocess
-from pathlib import Path
-from datetime import datetime
-from time import sleep
-from typing import Optional, List, Dict, Any, Tuple
 import csv
-import shutil
-
-import matplotlib.pyplot as plt
-import numpy as np
-
-from platform_drc import best_drc_report_tcl
+import json
 
 # ---------------------------------------------------------------------------
 # Paths — repo-root self-locating (no hardcoded absolute paths)
@@ -35,6 +23,19 @@ from platform_drc import best_drc_report_tcl
 # the ASAP7_PDK environment variable if it lives elsewhere on your system.
 # ---------------------------------------------------------------------------
 import os as _os
+import re
+import shutil
+import subprocess
+import sys
+from datetime import datetime
+from pathlib import Path
+from time import sleep
+from typing import Any
+
+import matplotlib.pyplot as plt
+import numpy as np
+from platform_drc import best_drc_report_tcl, routed_wns_improves
+
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 workdir = str(_REPO_ROOT) + "/"
 ASAP7_PDK = _os.environ.get("ASAP7_PDK", str(_REPO_ROOT / "asap7"))
@@ -135,7 +136,7 @@ def _validate_design_dir() -> None:
     missing = [str(f) for f in (odb, sdc) if not f.is_file()]
     if missing:
         raise SystemExit(
-            f"[FATAL] Required design files missing under DESIGN_DIR:\n"
+            "[FATAL] Required design files missing under DESIGN_DIR:\n"
             + "".join(f"          - {f}\n" for f in missing)
             + f"        TOP='{DESIGN_TOP}'. Either re-export TOP to a stem that\n"
               f"        has a corresponding .odb + .sdc in {DESIGN_DIR}, or run\n"
@@ -451,7 +452,7 @@ proc rip_all_signal_wires {} {
 # Node/net CSV helpers
 # ---------------------------------------------------------------------------
 
-def load_node_positions(node_csv: Path) -> Dict[str, tuple]:
+def load_node_positions(node_csv: Path) -> dict[str, tuple]:
     """Read node CSV → {inst_name: (x_um, y_um)}."""
     pos = {}
     if not node_csv.exists():
@@ -475,7 +476,7 @@ def load_node_positions(node_csv: Path) -> Dict[str, tuple]:
 # ECO command parsing (for displacement tracking)
 # ---------------------------------------------------------------------------
 
-def parse_eco_targets(eco_commands: List[str]) -> Dict[str, str]:
+def parse_eco_targets(eco_commands: list[str]) -> dict[str, str]:
     """Extract instance names touched by ECO commands and classify the action.
 
     Returns {inst_name: action} where action is one of:
@@ -512,10 +513,10 @@ def parse_eco_targets(eco_commands: List[str]) -> Dict[str, str]:
     return targets
 
 
-def _tokenize_tcl(line: str) -> List[str]:
+def _tokenize_tcl(line: str) -> list[str]:
     """Split a Tcl command line into tokens, keeping {braced} groups intact.
     Handles nested braces like `{driver/pin}`. Does NOT evaluate $vars or []."""
-    toks: List[str] = []
+    toks: list[str] = []
     i = 0
     n = len(line)
     while i < n:
@@ -545,7 +546,7 @@ def _tokenize_tcl(line: str) -> List[str]:
 
 # Position (0-indexed, including the proc name) of the `buf_name` arg
 # for each eco_* insertion proc. See AGENTS.md arg-count cheat-sheet.
-_BUF_NAME_POS: Dict[str, int] = {
+_BUF_NAME_POS: dict[str, int] = {
     "eco_insert_buffer": 3,                # <net> {sink} BUFNAME <cell>
     "eco_insert_buffer_midpoint": 4,       # <net> {sink} {driver} BUFNAME <cell>
     "eco_insert_buffer_optimal_alpha": 4,
@@ -554,13 +555,13 @@ _BUF_NAME_POS: Dict[str, int] = {
 }
 
 
-def extract_inserted_buffer_names(eco_cmds: List[str]) -> List[str]:
+def extract_inserted_buffer_names(eco_cmds: list[str]) -> list[str]:
     """For each buffer-insert command in the batch, return the `buf_name` arg.
     These names are the argument passed to `eco_remove_buffer` on revert.
     Order preserved; removal should iterate in REVERSE order so the latest
     insertions are undone first (safer when buffers chain, though chaining
     on _eco_* nets is already forbidden)."""
-    inserted: List[str] = []
+    inserted: list[str] = []
     for raw in eco_cmds or []:
         line = (raw or "").strip()
         if not line or line.startswith("#"):
@@ -583,11 +584,11 @@ def extract_inserted_buffer_names(eco_cmds: List[str]) -> List[str]:
 # ---------------------------------------------------------------------------
 
 def compute_displacement(
-    pre_pos: Dict[str, tuple],
-    post_pos: Dict[str, tuple],
-    eco_commands: List[str],
+    pre_pos: dict[str, tuple],
+    post_pos: dict[str, tuple],
+    eco_commands: list[str],
     path_instances: set | None = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Compute cell displacement between pre-ECO and post-ECO positions.
 
     Categorizes displaced cells into:
@@ -682,9 +683,9 @@ def write_drt_state(
     cycle_num: int,
     iter_in_cycle: int,
     current_iter: int,
-    wns_ps: Optional[float] = None,
-    tns_ps: Optional[float] = None,
-    last_drt: Optional[dict] = None,
+    wns_ps: float | None = None,
+    tns_ps: float | None = None,
+    last_drt: dict | None = None,
 ) -> None:
     """Write DRT cycle state to DRT_STATE_FILE for LLM_call.py to include in prompt.
 
@@ -719,7 +720,7 @@ _CORR_COLS = ["cycle", "at_iter", "transition", "wns_from", "wns_to",
               "dwns_ps", "tns_from", "tns_to", "dtns_ps"]
 
 
-def append_corr_row(record: Dict[str, Any]) -> None:
+def append_corr_row(record: dict[str, Any]) -> None:
     """Append one GRT<->DRT correlation row to GRT_DRT_CORR_FILE (CSV).
 
     transition is 'GRT->DRT' (logged at a DRT boundary: how much WNS/TNS
@@ -921,7 +922,7 @@ def start_openroad():
 
 
 def _ts():
-    return datetime.now().isoformat(timespec="seconds")
+    return datetime.now().isoformat(timespec="seconds")  # noqa: DTZ005 - retain upstream local-time log format
 
 
 def log_event(msg: str, also_llm: bool = True):
@@ -1018,26 +1019,26 @@ def _write_eco_sentinel(eco_path: Path, reason: str) -> None:
     stale content from the previous successful iter (which would otherwise
     appear in <recent_analysis> / <previous_target_path>).
     """
-    ts = datetime.now().isoformat()
+    ts = datetime.now().isoformat()  # noqa: DTZ005 - retain upstream local-time log format
     msg = f"# CLAUDE_FAILED: {reason} at {ts}\n"
     try:
         eco_path.write_text(msg, encoding="utf-8")
         print(f"  [LLM-RECOVER] wrote sentinel ECO ({reason}); iter will be a no-op", flush=True)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - retain upstream nonfatal sidecar/recovery behavior
         print(f"  [LLM-RECOVER] could not write sentinel: {e}", flush=True)
     # Wipe analysis sidecar so main_orch does not persist stale prior analysis
     try:
         ap = Path(ANALYSIS_out)
         if ap.exists():
             ap.write_text(f"# CLAUDE_FAILED: {reason} at {ts}\n", encoding="utf-8")
-    except Exception:
+    except Exception:  # noqa: BLE001, S110 - retain upstream nonfatal sidecar/recovery behavior
         pass
     # Wipe prev_target_path so next iter does not show last-iter's path diff
     try:
         pp = Path(PREV_TARGET_JSON)
         if pp.exists():
             pp.unlink()
-    except Exception:
+    except Exception:  # noqa: BLE001, S110 - retain upstream nonfatal sidecar/recovery behavior
         pass
 
 
@@ -1058,7 +1059,7 @@ def make_report_cmd(report_file: str, endpoint_count: int = TOP_PATHS) -> str:
     )
 
 
-def extract_worst_slack(rpt_path: Path) -> Optional[float]:
+def extract_worst_slack(rpt_path: Path) -> float | None:
     worst = None
     for line in rpt_path.read_text(encoding="utf-8", errors="ignore").splitlines():
         if "slack" not in line.lower():
@@ -1072,7 +1073,7 @@ def extract_worst_slack(rpt_path: Path) -> Optional[float]:
     return worst
 
 
-def parse_report_path_slacks(rpt_path: Path) -> List[float]:
+def parse_report_path_slacks(rpt_path: Path) -> list[float]:
     text = rpt_path.read_text(encoding="utf-8", errors="ignore")
     sections = re.split(r"Startpoint:", text)[1:]
     slacks = []
@@ -1087,7 +1088,7 @@ def parse_report_path_slacks(rpt_path: Path) -> List[float]:
     return slacks
 
 
-def parse_tns_from_metrics(metrics_path: Path) -> Optional[float]:
+def parse_tns_from_metrics(metrics_path: Path) -> float | None:
     if not metrics_path.exists():
         return None
     tns = None
@@ -1098,14 +1099,14 @@ def parse_tns_from_metrics(metrics_path: Path) -> Optional[float]:
     return tns
 
 
-def read_eco_commands(path: Path) -> List[str]:
+def read_eco_commands(path: Path) -> list[str]:
     if not path.exists():
         return []
     lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
     return [ln.strip() for ln in lines if ln.strip() and not ln.strip().startswith("#")]
 
 
-def parse_predicted_delta_ps(analysis_text: str) -> Optional[float]:
+def parse_predicted_delta_ps(analysis_text: str) -> float | None:
     """Pull the first Move plan row's predicted Δslack (in ps) from the
     model's analysis. Handles formats like '+3.5 ps', '~7ps', '~10-11ps',
     '5-7 ps', '-2.0 ps'. Returns None if nothing parseable in the table."""
@@ -1115,7 +1116,7 @@ def parse_predicted_delta_ps(analysis_text: str) -> Optional[float]:
     for raw in analysis_text.splitlines():
         line = raw.strip()
         low = line.lower()
-        if low.startswith("### move plan") or low.startswith("### ranked"):
+        if low.startswith(("### move plan", "### ranked")):
             in_move_plan = True
             continue
         if line.startswith("### ") and in_move_plan:
@@ -1126,10 +1127,9 @@ def parse_predicted_delta_ps(analysis_text: str) -> Optional[float]:
         if not line.startswith("|"):
             continue
         # Skip the header and separator rows
-        if "---" in line or line.lower().count("rationale") or "δslack" in low or "delta" in low:
+        if ("---" in line or line.lower().count("rationale") or "δslack" in low or "delta" in low) and "ps" not in low:
             # Header row containing column names like "Δslack est."
-            if "ps" not in low:
-                continue
+            continue
         # Look for cell with a numeric ps value
         # Patterns: ~10-11ps, +3.5ps, -2.0ps, 5-7 ps, ~7ps
         # Range pattern first: ~?<num>[-–]<num>\s*ps
@@ -1152,7 +1152,7 @@ def parse_predicted_delta_ps(analysis_text: str) -> Optional[float]:
     return None
 
 
-def extract_path1_endpoints(rpt_path: Path) -> Tuple[Optional[str], Optional[str], Optional[float]]:
+def extract_path1_endpoints(rpt_path: Path) -> tuple[str | None, str | None, float | None]:
     """Pull (startpoint, endpoint, slack_ps) for the worst path (path 1) from
     a report_checks dump. Returns (None, None, None) if not parseable."""
     if not rpt_path.exists():
@@ -1197,12 +1197,12 @@ def _path_to_toon(rpt_text: str, label_prefix: str = "") -> str:
     try:
         sys.path.insert(0, str(Path(__file__).parent))
         from parsers.timing_rpt_parser import TimingReportParser
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - retain upstream nonfatal sidecar/recovery behavior
         return f"# parser unavailable: {e}"
     try:
         parser = TimingReportParser()
         paths = parser.parse_report(rpt_text)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - retain upstream nonfatal sidecar/recovery behavior
         return f"# parse error: {e}"
     if not paths:
         return "# no path parsed"
@@ -1225,7 +1225,7 @@ def _path_to_toon(rpt_text: str, label_prefix: str = "") -> str:
 # JSON history helpers
 # ---------------------------------------------------------------------------
 
-def append_json_record(path: Path, record: Dict[str, Any], max_len: int = 300):
+def append_json_record(path: Path, record: dict[str, Any], max_len: int = 300):
     data = []
     if path.exists():
         try:
@@ -1270,7 +1270,7 @@ def _trim_history_after(path: Path, keep_through_iter: int) -> None:
     path.write_text(json.dumps(kept, indent=2), encoding="utf-8")
 
 
-def compute_qor_score(prev: Optional[Dict[str, Any]], curr: Dict[str, Any]) -> Optional[float]:
+def compute_qor_score(prev: dict[str, Any] | None, curr: dict[str, Any]) -> float | None:
     if prev is None:
         return None
     dwns = 0.0 if prev.get("wns") is None or curr.get("wns") is None else curr["wns"] - prev["wns"]
@@ -1284,7 +1284,7 @@ def compute_qor_score(prev: Optional[Dict[str, Any]], curr: Dict[str, Any]) -> O
 # Plotting
 # ---------------------------------------------------------------------------
 
-def save_slack_plot(slack_history: List[float], out_path: Path):
+def save_slack_plot(slack_history: list[float], out_path: Path):
     if not slack_history:
         return
     its = np.arange(1, len(slack_history) + 1)
@@ -1320,13 +1320,13 @@ def wait_for_file_update(path: Path, last_mtime: float) -> float:
 # This helper reads the dedicated two-line dump instead.
 # ---------------------------------------------------------------------------
 
-def parse_wns_tns_file(path: Path) -> Dict[str, Optional[float]]:
+def parse_wns_tns_file(path: Path) -> dict[str, float | None]:
     """Parse `wns_tns.txt` containing the output of:
            report_wns -digits 3
            report_tns -digits 3
        Each `report_wns` / `report_tns` prints a single number.
     """
-    out: Dict[str, Optional[float]] = {"wns": None, "tns": None}
+    out: dict[str, float | None] = {"wns": None, "tns": None}
     if not path.exists():
         return out
     text = path.read_text(encoding="utf-8", errors="ignore")
@@ -1426,12 +1426,12 @@ def clear_run_state():
 # Per-iteration QoR (WNS/TNS/Power/Area) parsing
 # ---------------------------------------------------------------------------
 
-import time as _time
 import re as _re
+import time as _time
 
 _ANSI_RE = _re.compile(r"\x1b\[[0-9;]*[mGKHF]")
 
-def parse_iter_qor(path: Path) -> Dict[str, Optional[float]]:
+def parse_iter_qor(path: Path) -> dict[str, float | None]:
     """Parse the per-iteration QoR dump produced by `dump_iter_qor`.
 
     Layout (sections delimited by `=== HEADER ===`):
@@ -1442,7 +1442,7 @@ def parse_iter_qor(path: Path) -> Dict[str, Optional[float]]:
       === AREA ===  → `Design area <X> u^2 <Y>% utilization.`
     Missing sections return None for their fields (never crashes).
     """
-    out: Dict[str, Optional[float]] = {
+    out: dict[str, float | None] = {
         "wns_ps": None, "tns_ps": None,
         "internal_pw_w": None, "switching_pw_w": None,
         "leakage_pw_w": None, "total_pw_w": None,
@@ -1453,7 +1453,7 @@ def parse_iter_qor(path: Path) -> Dict[str, Optional[float]]:
     raw = path.read_text(encoding="utf-8", errors="ignore")
     raw = _ANSI_RE.sub("", raw)
     # Split into sections
-    sections: Dict[str, List[str]] = {}
+    sections: dict[str, list[str]] = {}
     cur = None
     for line in raw.splitlines():
         m = _re.match(r"\s*===\s*(\w+)\s*===\s*$", line)
@@ -1514,8 +1514,8 @@ def token_log_line_count(path: Path) -> int:
         return sum(1 for _ in fp)
 
 
-def read_new_token_log_rows(path: Path, from_line: int) -> List[Dict[str, Any]]:
-    rows: List[Dict[str, Any]] = []
+def read_new_token_log_rows(path: Path, from_line: int) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
     if not path.exists():
         return rows
     with path.open("r", encoding="utf-8", errors="ignore") as fp:
@@ -1532,8 +1532,8 @@ def read_new_token_log_rows(path: Path, from_line: int) -> List[Dict[str, Any]]:
     return rows
 
 
-def aggregate_token_rows(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
-    agg: Dict[str, Any] = {
+def aggregate_token_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    agg: dict[str, Any] = {
         "input_tokens": 0,
         "output_tokens": 0,
         "cache_read_input_tokens": 0,
@@ -1579,7 +1579,7 @@ def ensure_iter_metrics_header(path: Path) -> None:
         csv.writer(fp).writerow(ITER_METRICS_HEADER)
 
 
-def append_iter_metrics_row(path: Path, row: Dict[str, Any]) -> None:
+def append_iter_metrics_row(path: Path, row: dict[str, Any]) -> None:
     ensure_iter_metrics_header(path)
     with path.open("a", encoding="utf-8", newline="") as fp:
         w = csv.writer(fp)
@@ -1595,7 +1595,7 @@ def _fmt(v, fmt="{:.3f}"):
         return str(v)
 
 
-def render_summary_table(rows: List[Dict[str, Any]]) -> str:
+def render_summary_table(rows: list[dict[str, Any]]) -> str:
     """Render the headline summary as a compact ASCII table.
 
     `rows` should already be filtered to the rows we want to show
@@ -1617,7 +1617,7 @@ def render_summary_table(rows: List[Dict[str, Any]]) -> str:
         ("OutTok",         lambda r: _fmt(r.get("output_tokens"), "{:.0f}")),
         ("Cost_USD",       lambda r: _fmt(r.get("llm_cost_usd"), "{:.4f}")),
     ]
-    rendered: List[List[str]] = [[h for h, _ in cols]]
+    rendered: list[list[str]] = [[h for h, _ in cols]]
     for r in rows:
         rendered.append([fn(r) for _, fn in cols])
     widths = [max(len(row[c]) for row in rendered) for c in range(len(cols))]
@@ -1630,10 +1630,10 @@ def render_summary_table(rows: List[Dict[str, Any]]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def load_iter_metrics_csv(path: Path) -> List[Dict[str, Any]]:
+def load_iter_metrics_csv(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         return []
-    out: List[Dict[str, Any]] = []
+    out: list[dict[str, Any]] = []
     with path.open("r", encoding="utf-8", newline="") as fp:
         for row in csv.DictReader(fp):
             out.append(dict(row))
@@ -1650,6 +1650,7 @@ def run_loop(loop_max=48):
     # Fail fast if the design isn't set up correctly. This runs BEFORE we
     # touch any state so a bad invocation can't poison run_history.json.
     _validate_design_dir()
+    assert DESIGN_DIR is not None  # Established by the input validation above.
     # Fresh run — discard prior session artifacts so histories don't pollute
     # iteration 0 analysis.
     clear_run_state()
@@ -1729,22 +1730,22 @@ def run_loop(loop_max=48):
     baseline_tns = wt0.get("tns") if wt0.get("tns") is not None else parse_tns_from_metrics(Path(METRICS_out))
     baseline_qor = {"iteration": 0, "wns": baseline_wns, "tns": baseline_tns}
 
-    best_qor = dict(baseline_qor)
+    best_qor = {**baseline_qor, "cycle": 0}
     stagnation_count = 0  # iterations without a new best WNS — drives backtrace
     backtrace_used = False  # backtrace is one-shot per run
     consecutive_degradations = 0  # logged-only for diagnostics; no longer drives control flow
     cycle_num = 0  # counts completed DRT refresh cycles
-    last_drt_info: Optional[dict] = None  # calibration data from last DRT
-    pre_drt_wns: Optional[float] = None   # GRT WNS right before DRT fires
-    pre_drt_tns: Optional[float] = None   # GRT TNS right before DRT fires
+    last_drt_info: dict | None = None  # calibration data from last DRT
+    pre_drt_wns: float | None = None  # GRT WNS right before DRT fires
+    pre_drt_tns: float | None = None   # GRT TNS right before DRT fires
     # best_qor is the GLOBAL best-DRT record ({cycle, iteration, wns, tns});
     # it is crowned ONLY at DRT boundaries from SPEF-accurate values.
     # cycle_best_grt_* track the best GRT iter WITHIN the current cycle — that
     # state (best_grt.odb) is what the cycle's DRT routes.
-    cycle_best_grt_wns: Optional[float] = None
-    cycle_best_grt_iter: Optional[int] = None
+    cycle_best_grt_wns: float | None = None
+    cycle_best_grt_iter: int | None = None
     iters_since_drt = 0
-    best_drt_spef: Optional[Path] = None  # SPEF paired with the best-DRT odb
+    best_drt_spef: Path | None = None  # SPEF paired with the best-DRT odb
 
     # Baseline iter_metrics row (iteration 0). Token cost is 0 — no LLM call.
     baseline_qor_dump = parse_iter_qor(ITER_QOR_DIR / "iter_0.txt")
@@ -1788,9 +1789,18 @@ def run_loop(loop_max=48):
     # improves in the first DRT_CYCLE ECO iterations.
     SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
     write_best_odb_snapshot(proc)
+    wait_for_sentinel(proc)
+    if _os.environ.get("TIMINGECO_EF_LEAF") == "1":
+        # An unchanged baseline must retain the exact registered checkpoint,
+        # not a second serialization with an unpaired route counter.
+        shutil.copyfile(DESIGN_DIR / f"{DESIGN_TOP}.odb", BEST_ODB)
+    Path(FINAL_DEF).parent.mkdir(parents=True, exist_ok=True)
+    send(proc, f"write_verilog {FINAL_VERILOG}\nwrite_def {FINAL_DEF}\nputs {PARA}\n")
+    wait_for_sentinel(proc)
+    shutil.copyfile(RPT_out, FINAL_TIMING_RPT)
     print(f"  [INIT] Baseline best.odb saved to {BEST_ODB}", flush=True)
 
-    # DRT_EVERY_ITER: best_qor already starts crowned at the baseline (iter 0),
+    # Both routing modes start crowned at the routed baseline (cycle/iter 0),
     # and best.odb above is the baseline routed odb. Pair it with the baseline
     # SPEF so the baseline is a FULLY consistent best-DRT restore point
     # (best_qor iter 0 + best_drt.odb + best_drt_spef all agree) from iter 1
@@ -1798,14 +1808,16 @@ def run_loop(loop_max=48):
     # that beats baseline, so a backtrace before any improvement could not
     # restore the baseline's matching parasitics. The per-iter crowning below
     # overwrites best_drt_spef as soon as a real best appears.
-    if DRT_EVERY_ITER:
-        _baseline_spef = DESIGN_DIR / f"{DESIGN_TOP}.spef"
-        if _baseline_spef.exists():
-            best_drt_spef = _baseline_spef
-            print(f"  [INIT] Baseline best_drt_spef seeded to {best_drt_spef}", flush=True)
-        else:
-            print(f"  [INIT][WARN] baseline SPEF not found at {_baseline_spef}; "
-                  f"best_drt_spef stays None until first improving iter", flush=True)
+    _baseline_spef = DESIGN_DIR / f"{DESIGN_TOP}.spef"
+    if _baseline_spef.exists():
+        best_drt_spef = _baseline_spef
+        print(f"  [INIT] Baseline best_drt_spef seeded to {best_drt_spef}", flush=True)
+    else:
+        print(
+            f"  [INIT][WARN] baseline SPEF not found at {_baseline_spef}; "
+            f"best_drt_spef stays None until first improving iter",
+            flush=True,
+        )
 
     # Seed best_grt.odb from the baseline too. The DRT reload guard keys off
     # BEST_GRT_ODB.exists(); without this seed an early-DRT that fires on the
@@ -1855,7 +1867,7 @@ def run_loop(loop_max=48):
             chunks = re.split(r"(?=Startpoint:)", full_rpt)
             if len(chunks) >= 2:
                 path1_before_text = chunks[1]
-        except Exception:
+        except Exception:  # noqa: BLE001, S110 - retain upstream nonfatal sidecar/recovery behavior
             pass
         print(f"  [TARGET] path1: sp={path1_sp_pre} ep={path1_ep_pre} slack={path1_slack_pre}")
 
@@ -1869,7 +1881,7 @@ def run_loop(loop_max=48):
             _write_eco_sentinel(eco_path, llm_info)
             llm_consecutive_failures = locals().get('llm_consecutive_failures', 0) + 1
             if llm_consecutive_failures >= 3:
-                print(f"  [LLM] 3 consecutive failures — terminating loop", flush=True)
+                print("  [LLM] 3 consecutive failures — terminating loop", flush=True)
                 break
         else:
             llm_consecutive_failures = 0
@@ -1886,7 +1898,7 @@ def run_loop(loop_max=48):
         _report_cmd = make_report_cmd(RPT_out, NEARBY_PATHS)
         if DRT_EVERY_ITER:
             spef_iter_path = SPEF_CYCLE_DIR / f"spef_iter_{i+1}.spef"
-            _route_seq = f"""remove_fillers
+            _route_seq = rf"""remove_fillers
             detailed_placement -incremental
             rip_all_signal_wires
             global_route
@@ -2133,11 +2145,11 @@ def run_loop(loop_max=48):
                         )
                         if "# REPORT_END" in after_text:
                             break
-                    except Exception:
+                    except Exception:  # noqa: BLE001, S110 - retain upstream nonfatal sidecar/recovery behavior
                         pass
                     _t.sleep(0.1)
                 if "# REPORT_END" not in after_text:
-                    print(f"  [WARN] prev_target_path report missing REPORT_END marker; using whatever we have", flush=True)
+                    print("  [WARN] prev_target_path report missing REPORT_END marker; using whatever we have", flush=True)
                 # Parse the post-ECO slack of the same path
                 after_slack = None
                 for ln in reversed(after_text.splitlines()):
@@ -2166,7 +2178,7 @@ def run_loop(loop_max=48):
                 }
                 Path(PREV_TARGET_JSON).write_text(json.dumps(ptp, indent=2), encoding='utf-8')
                 print(f"  [PREV_PATH] slack_before={path1_slack_pre} slack_after={after_slack} delta={ptp['delta_ps']}")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - retain upstream nonfatal sidecar/recovery behavior
             print(f"  [WARN] prev_target_path snapshot failed: {e}", flush=True)
 
         analysis_path = Path(ANALYSIS_out)
@@ -2174,7 +2186,7 @@ def run_loop(loop_max=48):
         if analysis_path.exists():
             try:
                 analysis_text = analysis_path.read_text(encoding="utf-8", errors="ignore").strip()
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - retain upstream nonfatal sidecar/recovery behavior
                 print(f"  [WARN] failed to read analysis sidecar: {e}", flush=True)
         pre_pos = load_node_positions(Path(NODE_FILE_PRE))
         post_pos = load_node_positions(Path(NODE_FILE))
@@ -2327,7 +2339,7 @@ def run_loop(loop_max=48):
             try:
                 hist = json.loads(RUN_HISTORY_JSON.read_text())
                 last10 = hist[-10:] if isinstance(hist, list) else []
-            except Exception:
+            except Exception:  # noqa: BLE001 - retain upstream nonfatal sidecar/recovery behavior
                 last10 = []
             write_backtrace_notice(best_qor.get("iteration"),
                                    best_qor.get("wns"), last10)
@@ -2415,9 +2427,7 @@ def run_loop(loop_max=48):
         # new best, write best_drt.odb + shipped deliverables in place; otherwise
         # advance stagnation. Mirrors the DRT-block crowning logic.
         if DRT_EVERY_ITER:
-            if wns is not None and (
-                best_qor.get("wns") is None or wns > best_qor["wns"]
-            ):
+            if routed_wns_improves(wns, best_qor):
                 best_qor = {"cycle": None, "iteration": i + 1,
                             "wns": wns, "tns": tns}
                 best_drt_spef = spef_iter_path
@@ -2477,9 +2487,7 @@ def run_loop(loop_max=48):
             "best_wns_iteration": best_qor.get("iteration"),
             "consecutive_degradations": consecutive_degradations,
             "displacement_summary": disp_data["summary"],
-            "command_types_used": list(set(
-                cmd.split()[0] for cmd in curr_qor["commands"] if cmd.split()
-            )),
+            "command_types_used": list({cmd.split()[0] for cmd in curr_qor["commands"] if cmd.split()}),
         }
         if eco_error_msg:
             eco_record["eco_error"] = eco_error_msg
@@ -2543,7 +2551,7 @@ def run_loop(loop_max=48):
             # than silently leaking GRT-parasitic power (see the [DRT-WARN]
             # else branch below).
             if BEST_GRT_ODB.exists():
-                if _regressed:
+                if _regressed and cycle_best_grt_iter is not None:
                     print(f"  [ROLLBACK] cycle {cycle_num}: reverting to best-GRT "
                           f"iter {cycle_best_grt_iter} (WNS={cycle_best_grt_wns}) "
                           f"before DRT; discarding iters "
@@ -2568,7 +2576,7 @@ def run_loop(loop_max=48):
                 send(proc, RIP_ALL_WIRES_PROC)
                 send(proc, f"puts {PARA}\n")
                 wait_for_sentinel(proc)
-                if _regressed:
+                if _regressed and cycle_best_grt_iter is not None:
                     _trim_history_after(RUN_HISTORY_JSON, cycle_best_grt_iter)
                     _trim_history_after(ECO_HISTORY_JSON, cycle_best_grt_iter)
             else:
@@ -2591,7 +2599,7 @@ def run_loop(loop_max=48):
 
             send(
                 proc,
-                f"""
+                rf"""
                 # === DRT Cycle {cycle_num}: Full rip-and-reroute sequence ===
                 # Step 1: Re-legalize placement after 8 ECO iterations of
                 # cumulative changes (clones, inserts, resizes).
@@ -2772,11 +2780,7 @@ def run_loop(loop_max=48):
             # route): verilog/def/drc here + FINAL_SPEF copied from this
             # cycle's SPEF in the post-loop. Stagnation advances per
             # non-improving DRT cycle.
-            if drt_wns is not None and (
-                best_qor.get("cycle") is None
-                or best_qor.get("wns") is None
-                or drt_wns > best_qor["wns"]
-            ):
+            if routed_wns_improves(drt_wns, best_qor):
                 best_qor = {"cycle": cycle_num,
                             "iteration": cycle_best_grt_iter or (i + 1),
                             "wns": drt_wns, "tns": drt_tns}
@@ -2913,7 +2917,7 @@ def run_loop(loop_max=48):
     # The 'final' QoR row is the best-DRT cycle's metrics row, already dumped
     # per-cycle (no re-dump). Fall back to best_qor if the CSV row is missing.
     rows = load_iter_metrics_csv(ITER_METRICS_CSV)
-    by_iter: Dict[str, Dict[str, Any]] = {}
+    by_iter: dict[str, dict[str, Any]] = {}
     for r in rows:
         by_iter[str(r.get("iteration"))] = r
     best_cycle = best_qor.get("cycle")
@@ -2924,7 +2928,7 @@ def run_loop(loop_max=48):
         best_cycle_key = f"drt_{best_cycle}" if best_cycle else None
         _best_phase = f"best_drt(cycle {best_cycle})"
 
-    summary_rows: List[Dict[str, Any]] = []
+    summary_rows: list[dict[str, Any]] = []
     if "0" in by_iter:
         summary_rows.append({**by_iter["0"], "phase": "baseline"})
     if best_cycle_key and best_cycle_key in by_iter:

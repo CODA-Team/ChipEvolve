@@ -7,10 +7,113 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import platform_execution
-from platform_execution import leaf, submit
+from platform_execution import export_best_checkpoint, leaf, submit
 
 
 class ExecutionTests(unittest.TestCase):
+    def test_selected_odb_and_route_evidence_survive_view_export(self):
+        for improved in (False, True):
+            with (
+                self.subTest(improved=improved),
+                tempfile.TemporaryDirectory() as directory,
+            ):
+                root = Path(directory)
+                source, workspace = root / "source", root / "workspace"
+                dynamic = source / "prompts/dynamic"
+                (dynamic / "snapshots").mkdir(parents=True)
+                (workspace / "inputs").mkdir(parents=True)
+                original = b"registered original routed ODB"
+                selected = b"selected improved routed ODB" if improved else original
+                (workspace / "inputs/6_final.odb").write_bytes(original)
+                (workspace / "inputs/6_final.spef").write_bytes(b"original SPEF")
+                profile = root / "profile.json"
+                profile.write_text(
+                    json.dumps(
+                        {
+                            "python": "/env/eco/python",
+                            "environment": {
+                                "ASAP7_PDK": "/exact/pdk",
+                                "OPENROAD_BIN": "openroad",
+                            },
+                            "parent_run_id": "original",
+                            "snapshot_id": "original-objects",
+                            "input_route_drc": 0,
+                        }
+                    )
+                )
+
+                def native(
+                    command,
+                    *,
+                    dynamic=dynamic,
+                    selected=selected,
+                    source=source,
+                    improved=improved,
+                    workspace=workspace,
+                    **kwargs,
+                ):
+                    if command[0] == "/env/eco/python":
+                        (dynamic / "snapshots/best_drt.odb").write_bytes(selected)
+                        (source / "outputs/final_eco.spef").write_bytes(
+                            b"improved SPEF" if improved else b"original SPEF"
+                        )
+                        if improved:
+                            (source / "outputs/final_drc_report.txt.count").write_text(
+                                "7"
+                            )
+                    else:
+                        script = (workspace / "export_best.tcl").read_text()
+                        self.assertNotIn("write_db", script)
+                        for suffix in ("def", "v", "sdc"):
+                            (source / "outputs" / ("final_eco." + suffix)).write_text(
+                                "native exported view"
+                            )
+                    return 0
+
+                with (
+                    patch.object(
+                        platform_execution,
+                        "__file__",
+                        str(source / "src/platform_execution.py"),
+                    ),
+                    patch("platform_execution.Path.cwd", return_value=workspace),
+                    patch("platform_execution.subprocess.call", side_effect=native),
+                ):
+                    self.assertEqual(leaf(profile), 0)
+                output = workspace / "session-output"
+                self.assertEqual((output / "final_eco.odb").read_bytes(), selected)
+                self.assertEqual(
+                    (output / "final_eco.spef").read_bytes(),
+                    b"improved SPEF" if improved else b"original SPEF",
+                )
+                evidence = json.loads((output / "route-evidence.json").read_text())
+                self.assertEqual(evidence["route_drc"], 7 if improved else 0)
+                self.assertIn(
+                    "native" if improved else "input baseline", evidence["origin"]
+                )
+
+    def test_failed_view_export_does_not_publish_a_selected_checkpoint(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "prompts/dynamic/snapshots").mkdir(parents=True)
+            (root / "prompts/dynamic/snapshots/best_drt.odb").write_bytes(b"selected")
+            output = root / "outputs"
+            output.mkdir()
+            with (
+                patch("platform_execution.Path.cwd", return_value=root),
+                patch("platform_execution.subprocess.call", return_value=1),
+            ):
+                self.assertEqual(
+                    export_best_checkpoint(
+                        root,
+                        {"ASAP7_PDK": "/pdk", "OPENROAD_BIN": "openroad"},
+                        output,
+                        root / "input.sdc",
+                    ),
+                    1,
+                )
+            self.assertFalse((output / "final_eco.odb").exists())
+
     def test_native_loop_receives_its_output_directory_before_first_best(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
