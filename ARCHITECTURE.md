@@ -581,3 +581,10 @@ JPEG已由Goal03物理状态→有证据的Query/Codex选择→显式原生VT/si
 
 内部证明选项`validation.equivalence_match_cell_variants`默认关闭。启用时，同实例在尺寸/VT变化后仍可提出公共DFF状态别名的对应，但每个新增对应均由原EQY/ABC-PDR证明，不改变Liberty模型或添加假设。Ibex实际仅增加两个已资格状态，所有原1936状态/106输出保留；默认路径相同。正例/错误D/错误时钟/真实慢RF分区及579项根回归通过。EF实时资源接口为准，旧部署services字段不代表当前预算。见`admin/A29_IBEX_CELL_VARIANT_PROOF_20261021.md`；完整证明/采用仍单独验收。
 2026-10-21 A30 原生时间单位接点：Flow 的物理 SDC 使用平台原生时间单位（ASAP7 ps、Nangate45 ns），综合 ABC 单独使用 ps，随实际候选周期换算；公共测量继续使用 ns/W/µm²。内部 `flow_sdc` 增加可选 `time_unit`，公共 CLI/EF/DF/DI 契约不变。Nangate45 修正分支已通过真实 EF 完整 ORFS，十份阶段 SDC 周期均为 0.25 ns、虚拟 latency 0.07 ns，ABC 为 250 ps；最终共同测量、DF 和完整搜索另行验收。依据 `var/business/a30-four-design-two-pdk-20261021/gcd-native-ns-first-source-audit/acceptance.json`。
+
+
+### A38：原专业策略寿命与运行身份（2026-10-25）
+
+2026-10-25 A38：Goal两份原measured崩溃脚本在隔离两文件寿命修复后均exit0（40/35次原动作）；原非measured TNS控制25指标和网表完全相同。新二进制/701源码/AST及原策略检查通过，未启用长搜索或宣称新PPA；源码与构建donor绑定是下一阻断。见 [A38报告](admin/A38_GOAL_PATH_LIFETIME_REPAIR_20261025.md)。
+
+补丁只绑定未来私有Goal源码；EF确定性构建/执行、DF/DI事实和Codex决策边界保持。原评分/动作/预算/RC策略不变，没有公共API、服务或数据库变化。原来的baseline seed和构建donor分别承担算法源码与增量构建复用职责；未来模板的二者绑定尚待下一切片核查。
