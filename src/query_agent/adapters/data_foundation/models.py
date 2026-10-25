@@ -1,5 +1,7 @@
 """Private HTTP DTOs; public service schema never reaches application code."""
 
+from typing import Literal
+
 from pydantic import BaseModel, Field, ValidationError
 
 from query_agent.domain.errors import DataBoundaryError, MissingDataError
@@ -169,6 +171,7 @@ class Metrics(BaseModel):
 
 class Path(BaseModel):
     path_id: str
+    check: Literal["setup", "hold"] | None = None
     startpoint: str
     endpoint: str
     slack: float | None = None

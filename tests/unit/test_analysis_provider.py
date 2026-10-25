@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 
 import pytest
 
@@ -72,9 +73,10 @@ def test_incomplete_analysis_evidence_is_not_answerable() -> None:
             *,
             limit: int = 10,
             slack_below: float | None = None,
+            check: Literal["setup", "hold"] = "setup",
         ) -> Sequence[TimingPathObservation]:
             item = super().get_timing_paths(
-                context, limit=limit, slack_below=slack_below
+                context, limit=limit, slack_below=slack_below, check=check
             )[0]
             return (item.model_copy(update={"complete": False}),)
 
@@ -100,3 +102,14 @@ def test_unavailable_analysis_provider_is_truthful() -> None:
     )
     assert response.status is QueryStatus.NEEDS_MORE_DATA
     assert Capability.SPECIALIZED_ANALYSIS in response.missing_capabilities
+
+
+def test_setup_only_fixture_does_not_supply_a_hold_answer() -> None:
+    response = service(FixtureAnalysisProvider()).query(
+        QueryRequest(
+            query="hold critical path",
+            context=QueryContext(workspace=Path("/workspace"), design_id="gcd"),
+        )
+    )
+    assert response.status is QueryStatus.NEEDS_MORE_DATA
+    assert not response.evidence

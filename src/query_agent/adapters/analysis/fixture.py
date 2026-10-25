@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import UTC, datetime
+from typing import Literal
 
 from query_agent.domain.analysis import (
     AnalysisProvenance,
@@ -77,15 +78,19 @@ class FixtureAnalysisProvider:
         *,
         limit: int = 10,
         slack_below: float | None = None,
+        check: Literal["setup", "hold"] = "setup",
     ) -> Sequence[TimingPathObservation]:
         if not 1 <= limit <= 100:
             raise ValueError("limit must be between 1 and 100")
+        if check != "setup":
+            return ()
         scope = self._scope(context)
         if scope is None:
             return ()
         paths = (
             TimingPathObservation(
                 path_id="path-001",
+                check="setup",
                 startpoint="u1/A",
                 endpoint="u2/Y",
                 slack=-0.2,
@@ -97,6 +102,7 @@ class FixtureAnalysisProvider:
             ),
             TimingPathObservation(
                 path_id="path-002",
+                check="setup",
                 startpoint="u2/A",
                 endpoint="u3/Y",
                 slack=0.1,

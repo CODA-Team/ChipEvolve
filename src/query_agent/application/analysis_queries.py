@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from enum import StrEnum
+from typing import Literal
 
 
 def hold_metric_name_from_query(query: str) -> str | None:
@@ -35,11 +36,13 @@ class AnalysisQuestion:
         metric_name: str | None = None,
         slack_below: float | None = None,
         limit: int = 10,
+        check: Literal["setup", "hold"] = "setup",
     ) -> None:
         self.operation = operation
         self.metric_name = metric_name
         self.slack_below = slack_below
         self.limit = limit
+        self.check: Literal["setup", "hold"] = check
 
     @property
     def fact_key(self) -> str | None:
@@ -73,6 +76,7 @@ class AnalysisQuestionParser:
                 AnalysisOperation.PATHS,
                 slack_below=self._slack_threshold(raw),
                 limit=1 if "critical path" in lower else 10,
+                check="hold" if re.search(r"\bhold\b|保持", lower) else "setup",
             )
         for metric in ("WNS", "TNS"):
             if metric.lower() in lower and any(

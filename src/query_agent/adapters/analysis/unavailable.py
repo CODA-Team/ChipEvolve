@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Literal
 
 from query_agent.domain.analysis import TimingMetricObservation, TimingPathObservation
 from query_agent.domain.capability import Capability
@@ -28,6 +29,7 @@ class UnavailableAnalysisProvider:
         *,
         limit: int = 10,
         slack_below: float | None = None,
+        check: Literal["setup", "hold"] = "setup",
     ) -> Sequence[TimingPathObservation]:
-        del context, limit, slack_below
+        del context, limit, slack_below, check
         return ()

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Protocol
+from typing import Literal, Protocol
 
 from query_agent.domain.analysis import TimingMetricObservation, TimingPathObservation
 from query_agent.domain.capability import Capability
@@ -32,7 +32,8 @@ class AnalysisProvider(Protocol):
         *,
         limit: int = 10,
         slack_below: float | None = None,
+        check: Literal["setup", "hold"] = "setup",
     ) -> Sequence[TimingPathObservation]:
-        """Return a bounded set of scoped timing paths."""
+        """Return scoped paths for one check, filtered before pagination."""
 
         ...

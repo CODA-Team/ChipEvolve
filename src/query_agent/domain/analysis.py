@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -83,6 +84,7 @@ class TimingPathObservation(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     path_id: str = Field(min_length=1)
+    check: Literal["setup", "hold"] | None = None
     startpoint: str = Field(min_length=1)
     endpoint: str = Field(min_length=1)
     slack: float

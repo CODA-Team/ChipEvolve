@@ -299,7 +299,10 @@ class EvidenceCollector:
             )
             return tuple(self._timing_metric_evidence(item) for item in items)
         items = provider.get_timing_paths(
-            context, limit=question.limit, slack_below=question.slack_below
+            context,
+            limit=question.limit,
+            slack_below=question.slack_below,
+            check=question.check,
         )
         return tuple(self._timing_path_evidence(item) for item in items)
 
@@ -339,12 +342,15 @@ class EvidenceCollector:
     @staticmethod
     def _timing_path_evidence(item: TimingPathObservation) -> Evidence:
         answer = f"{item.startpoint} -> {item.endpoint}; slack={item.slack} {item.unit}"
+        if item.check is not None:
+            answer = f"{item.check} path: {answer}"
         return Evidence(
             evidence_id=_analysis_evidence_id(item.provenance.locator, item.path_id),
             source_kind=EvidenceSourceKind.SPECIALIZED_ANALYSIS,
             content={
                 "answer": answer,
                 "path_id": item.path_id,
+                "check": item.check,
                 "startpoint": item.startpoint,
                 "endpoint": item.endpoint,
                 "slack": item.slack,

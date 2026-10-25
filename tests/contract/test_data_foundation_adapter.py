@@ -157,6 +157,7 @@ class Handler(BaseHTTPRequestHandler):
         elif parsed.path.endswith("/timing-paths"):
             path: dict[str, object] = {
                 "path_id": "p1",
+                "check": "setup",
                 "startpoint": "u1/A",
                 "endpoint": "u2/Z",
                 "slack": -0.2,
@@ -170,6 +171,12 @@ class Handler(BaseHTTPRequestHandler):
                 path["evidence"] = [{"artifact_id": "report", "sha256": "a" * 64}]
             if query.get("limit") == ["2"]:
                 path["corner"] = "slow"
+            if query.get("check") == ["hold"] and query.get("limit") != ["3"]:
+                path.update(path_id="hold-p1", check="hold", slack=0.03, corner="slow")
+            if query.get("limit") == ["4"]:
+                path.pop("check", None)
+                path["corner"] = "slow"
+
         else:
             self.send_error(503)
             return
@@ -524,3 +531,75 @@ def test_canonical_metric_reports_the_actual_missing_requirement(
     assert reason in response.evidence[0].reason
     if missing != "source":
         assert "artifact is missing" not in response.evidence[0].reason
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Show the worst hold timing path",
+        "hold critical path",
+        "保持时序路径",
+    ],
+)
+def test_hold_path_question_uses_hold_facts_from_the_http_service(
+    service: QueryService,
+    question: str,
+) -> None:
+    response = ask(service, question)
+    assert response.status is QueryStatus.ANSWERED
+    assert response.evidence
+    for evidence in response.evidence:
+        assert isinstance(evidence.content, dict)
+        assert evidence.content.get("path_id") == "hold-p1"
+        assert evidence.content.get("check") == "hold"
+        assert evidence.content.get("slack") == 0.03
+    assert "hold" in (response.answer or "")
+
+
+def test_hold_filter_is_sent_before_limit_not_applied_to_a_mixed_page(
+    provider: DataFoundationProvider,
+) -> None:
+    paths = provider.get_timing_paths(
+        QueryContext(run_id="run1", source=QuerySource.MANAGED_RUN),
+        limit=1,
+        check="hold",
+    )
+    assert len(paths) == 1
+    assert paths[0].path_id == "hold-p1"
+    assert paths[0].check == "hold"
+    assert paths[0].complete
+
+
+def test_hold_request_rejects_a_contradictory_setup_row(
+    provider: DataFoundationProvider,
+) -> None:
+    with pytest.raises(DataBoundaryError, match="check"):
+        provider.get_timing_paths(
+            QueryContext(run_id="run1", source=QuerySource.MANAGED_RUN),
+            limit=3,
+            check="hold",
+        )
+
+
+def test_missing_path_check_stays_unknown_and_incomplete(
+    provider: DataFoundationProvider,
+) -> None:
+    paths = provider.get_timing_paths(
+        QueryContext(run_id="run1", source=QuerySource.MANAGED_RUN),
+        limit=4,
+        check="hold",
+    )
+    assert paths
+    assert paths[0].check is None
+    assert not paths[0].complete
+
+
+def test_default_path_request_retains_setup_type_and_source(
+    provider: DataFoundationProvider,
+) -> None:
+    paths = provider.get_timing_paths(
+        QueryContext(run_id="run1", source=QuerySource.MANAGED_RUN), limit=2
+    )
+    assert paths[0].check == "setup"
+    assert paths[0].slack == -0.2
+    assert paths[0].provenance.source_hash == "a" * 64

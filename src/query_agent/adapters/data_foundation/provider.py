@@ -2,6 +2,7 @@
 
 from collections.abc import Callable, Sequence
 from datetime import UTC, datetime
+from typing import Literal
 from urllib.parse import quote
 
 from eda_ai_client import EdaAiClient, EdaAiError
@@ -382,12 +383,14 @@ class DataFoundationProvider:
         *,
         limit: int = 10,
         slack_below: float | None = None,
+        check: Literal["setup", "hold"] = "setup",
     ) -> Sequence[TimingPathObservation]:
         scope = self.resolve(context)
         result = read(
             call(
                 lambda: self.client.get_timing_paths(
                     scope.snapshot_id,
+                    check=check,
                     sort="slack",
                     order="worst",
                     limit=limit,
@@ -400,6 +403,8 @@ class DataFoundationProvider:
             raise DataBoundaryError("timing path response crosses the requested scope")
         rows: list[TimingPathObservation] = []
         for row in result.data.timing_paths:
+            if row.check is not None and row.check != check:
+                raise DataBoundaryError("timing path check differs from the request")
             if row.slack is None or row.unit is None:
                 continue
             if slack_below is not None and row.slack >= slack_below:
@@ -407,6 +412,7 @@ class DataFoundationProvider:
             rows.append(
                 TimingPathObservation(
                     path_id=row.path_id,
+                    check=row.check,
                     startpoint=row.startpoint,
                     endpoint=row.endpoint,
                     slack=row.slack,
@@ -419,6 +425,7 @@ class DataFoundationProvider:
                         row.evidence,
                     ),
                     complete=bool(row.corner)
+                    and row.check == check
                     and any(source.registered for source in row.evidence),
                 )
             )
