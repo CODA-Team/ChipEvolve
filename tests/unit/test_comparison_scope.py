@@ -41,7 +41,7 @@ def test_unstated_stage_uses_the_single_actual_comparison_stage() -> None:
 
 
 def test_multiple_complete_stages_require_an_explicit_stage() -> None:
-    with pytest.raises(MissingDataError, match="multiple.*stages"):
+    with pytest.raises(MissingDataError, match=r"multiple.*stages"):
         ComparisonPolicy().select(
             (metric("one"), metric("two", "placement")),
             metric_name="WNS",
