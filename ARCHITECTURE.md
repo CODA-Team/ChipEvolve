@@ -1,3 +1,5 @@
+2026-10-25 A62：专业接力同时保留实际输入边界、RC模型和阶段标识；Goal原生DEF/V准备及重建保持，不用父post-route ODB偷换评价。跨placement/GRT数字先做同协议未优化起点控制；同状态测量不算独立优化重复。真实物理签名与Query比较已验证，时钟指令猜测被否定，不新增公共契约/服务。见 [A62](admin/A62_GOAL_NATIVE_BOUNDARY_DIAGNOSIS_20261025.md)。
+
 2026-10-25 A61：专业模型上下文区分全设计原生汇总与有限路径报告；ECO请求前在原EF会话刷新WNS/TNS，设计TNS与子集TNS/计数范围分别进入JSON/TOON。原路径表、评分和选择保持；同状态只读重测不是独立优化重复。见 [A61](admin/A61_ECO_DESIGN_TNS_CONTEXT_20261025.md)。
 
 2026-10-25 A60：输入benchmark的宏模型来自其原README及Lib/LEF。FakeRAM抽象导出完成与完整宏几何分开记录；由新实验显式配置原生GDS_ALLOW_EMPTY，不在公共适配器中猜测或放宽所有缺宏。原失败父任务保持，独立尾段重放经EF登记，再由DF/DI提供阶段事实；无PPA的新快照不继承旧PPA。见 [A60](admin/A60_ASAP7_FAKERAM_STREAMOUT_20261025.md)。
