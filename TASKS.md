@@ -1,3 +1,5 @@
+2026-10-25 A40：Goal续作交付不再写死ASAP7，优先原冻结pdk_root、旧记录使用明确设计平台；修复前三例失败复现、修复后32针对/670根回归及静态通过，实际Nangate45两RC原件与已验证来源同SHA复用。长搜索仍暂停，未产生新PPA。见 [A40报告](admin/A40_GOAL_CONTINUATION_PDK_REPAIR_20261025.md)。
+
 2026-10-25 A39：新Goal任务/固定源码/续作保留原显式构建donor，只读mount及八组新专业源码绑定已修；48针对/666根回归和静态通过，真实EF输入准备及四文件容器SHA核验通过。未启动长搜索；续作写死ASAP7交付目录为下一具体阻断。见 [A39报告](admin/A39_GOAL_SEED_BINDING_REPAIR_20261025.md)。
 
 2026-10-25 A38：Goal两份原measured崩溃脚本在隔离两文件寿命修复后均exit0（40/35次原动作）；原非measured TNS控制25指标和网表完全相同。新二进制/701源码/AST及原策略检查通过，未启用长搜索或宣称新PPA；源码与构建donor绑定是下一阻断。见 [A38报告](admin/A38_GOAL_PATH_LIFETIME_REPAIR_20261025.md)。

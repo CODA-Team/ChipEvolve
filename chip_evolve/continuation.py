@@ -257,7 +257,11 @@ def run(
             odb=odb,
             producer=producer,
             objective=Path(frame["objective"]),
-            pdk=previous / "inputs/asap7",
+            pdk=Path(profile["pdk_root"])
+            if profile.get("pdk_root")
+            else previous
+            / "inputs"
+            / deployment.design(frame["design_id"])["platform"],
             native_method=method,
         )
         result = finish(deployment, experiment)
