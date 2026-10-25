@@ -218,7 +218,7 @@ WNS_TNS_FILE = f"{workdir}/prompts/dynamic/wns_tns.txt"
 # ---------------------------------------------------------------------------
 # Tcl block: define procs for dumping node/net CSVs inside OpenROAD
 # ---------------------------------------------------------------------------
-NODE_NET_TCL_BLOCK = r'''
+NODE_NET_TCL_BLOCK = r"""
 proc write_net_details { file_name } {
   set fp [open $file_name w]
   set block [odb::get_block]
@@ -411,7 +411,7 @@ proc dump_iter_qor { iter_file } {
   #     setRedirectSink), so report_power / report_design_area output is
   #     captured immediately — no spdlog async-flush race.
   set fp [open $iter_file w]
-  puts $fp "# iter_qor dump at [clock format [clock seconds]]"
+  puts $fp "# iter_qor dump at epoch [clock seconds]"
   close $fp
 
   set fp [open $iter_file a]; puts $fp "=== WNS ===";   close $fp
@@ -421,12 +421,18 @@ proc dump_iter_qor { iter_file } {
   catch {tee -file $iter_file -append "report_tns -digits 3"}
 
   set fp [open $iter_file a]; puts $fp "=== POWER ==="; close $fp
+  if {[info exists ::env(TIMINGECO_EF_LEAF)] && $::env(TIMINGECO_EF_LEAF) eq "1"} {
+    # The platform uses native default activity. Invalidate STA's cached power
+    # after RC updates, restoring that same model before reporting (as in Goal).
+    set_power_activity -global -activity 0.1 -duty 0.5
+    unset_power_activity -global
+  }
   catch {tee -file $iter_file -append "report_power"}
 
   set fp [open $iter_file a]; puts $fp "=== AREA ===";  close $fp
   catch {tee -file $iter_file -append "report_design_area"}
 }
-'''
+"""
 
 RIP_ALL_WIRES_PROC = r'''
 # Rip all signal-net routing wires + guides (leaves power/ground intact).
