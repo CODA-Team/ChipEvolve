@@ -642,3 +642,8 @@ Ariane主AG4完整DRT/RCX/DF/DI已完成，651.96436644mW/43970.9µm²/setupTNS�
 ### A80：已提交事实交付空等修复（工程检查通过，2026-10-26）
 
 2026-10-26 A80：真实Ariane有限行profile定位到提交/checkpoint成本，并修复import_snapshot在已提交事实可读时仍同步等POST响应的问题。保留WAL/FULL、既有HTTP/身份/恢复；实际安装DF+真实EF包+DI SDK在扣住响应时已正确交付、attempt1/重入不重导。742根/25针对、两旧失败→通过及静态增量code-check通过；测试6项既存类型诊断新增0，26用户文件/DF安装源码保持。未宣称消除实际大库写入或生产20分钟耗时，无EDA/模型/新采用。见 [A80](admin/A80_COMMITTED_FACT_DELIVERY_WAIT_20261026.md)。 老板业务验收独立。
+
+
+### A81：Ibex/Nangate45完整功能证明（工程验证通过，2026-10-26）
+
+2026-10-26 A81：Ibex/Nangate45原完整证明已补齐，19384分区/106输出全部PASS；复用5333、新原生PDR补14051，12CPU/16GiB有界EF成功，原超时保持。原模型/库/时钟/配置及完整列表不变，全部状态/新日志/输入SHA和现有proof_receipt核验通过，completed_proof业务收据可消费；候选三DF scope/指标/原约束通过。742同源回归复用、静态code-check及26用户文件保持；无新优化或PPA，待独立物理重放及采用。见 [A81](admin/A81_IBEX_COMPLETE_PROOF_RESUMPTION_20261026.md)。 老板业务验收独立。
