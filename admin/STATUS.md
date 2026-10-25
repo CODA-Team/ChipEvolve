@@ -1,3 +1,9 @@
+# 当前状态：A67 原生时序重构模式修复通过，2026-10-26
+
+2026-10-26 A67：修复Goal timing_only漏执行4种原生RMP策略；54组合中仅4种改变，其余50种命令逐字相同。Ariane最差reg→output路径Q后42个单元弧全SLVT，单元/连线延迟636.44/45.41ps，setup WS−280.68ps；不改约束。一次EF原生GCD短验证确认RMP实际检查200条路径，但可重构实例0、无收益，负分支不采用；两阶段DF/DI/Query与原件通过。6新增/11子项、473模块/40子项及49根接点通过，root同源731复用；静态增量检查通过，原生成器11项既存严格lint诊断保持。正式长搜索未恢复、八组双次未完成。 见 [A67](A67_GOAL_TIMING_ONLY_RESTRUCTURE_20261026.md)。
+
+下一步具体核查空候选准入，再处理Ariane深组合路径；不再原样重复VT/布线策略。证据目录 `var/business/a67-goal-timing-recipe-20261026/`。
+
 # 当前状态：A66 显式物理接力与恢复工程验证通过，2026-10-26
 
 2026-10-26 A66：既有orfs/replay/source已接通显式物理接力，保留原专业/后继及阶段事实，沿保存guides完成DRT/RCX；真实A62原生阶段无需先做最终PPA即可核查接入。ASAP7 GCD同条件setup余量+13.740ps，代价功耗+2.6233%/cell+2.3110%，原G02保持；全18输出/独立七值同值/DF/DI/Query通过。Nangate旧250ps兼容运行通、仍拒绝，正式500ps不变。修复真实成功回执等待字段漂移及历史baseline兼容；19新增/62针对/731根回归及静态通过，丢结果恢复同SHA/同8run/再恢复不改mtime。工程验证通过，八组双次与Ariane等最终资格仍未完成；见 [A66](A66_EXPLICIT_NATIVE_PHYSICAL_RELAY_20261026.md)。 证据目录 `var/business/a66-explicit-physical-relay-20261026/`。下一项使用已登记事实核查Ariane剩余setup机制/物理策略，现有入口可直接使用，不再为该段重建临时调用；长专业搜索保持暂停。
