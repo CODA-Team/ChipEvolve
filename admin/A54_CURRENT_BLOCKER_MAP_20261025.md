@@ -2,6 +2,8 @@
 
 本表已接续至 A76。A54 初始基线根 `a0e9bea`、Query `54a08be`；该初始轮没有 EDA/专业搜索或模型调用。后续按“具体诊断 → 定点修复 → 短验证 → code-check”推进，真实短验证见下列更新。A32/A34 是历史审计，保留原始失败及尚未通过的资格。
 
+2026-10-26 A74/A76最终收口：DRT/RCX、共同测量、三事实scope/12数值/4 Query及原件核验通过；64驱动均经DF/DI按native ID/master/ODB SHA核对，原session82815 exit0、导入1次。setup/hold闭合、DRC0，但cap64和power超限0.0261084%仍拒绝、未采用。数据交付实际约20分钟，登记为大设计性能瓶颈。下一项审原生电气修复/功耗回收与具体导入耗时；见 [A74](A74_ARIANE_NANGATE45_FINAL_QUALIFICATION_20261026.md)、[A76](A76_POSTROUTE_CAP_DIAGNOSIS_20261026.md)。
+
 2026-10-26 A76/A74：真实DRT/RCX与共同测量完成，setup/hold WS +261.794/+42.930ps、TNS均0、DRC0；较同条件参考setup余量+54.841ps、cell−671µm²，slew16→0/cap252→64。但power159.392521mW超原159.350917mW上限0.0261084%、cap64，仍不合格。64驱动只读定位成功，非已知常量且均无dont-touch，cap超限1.21–18.45%；无产品改动，740同源回归复用、静态/原件核验通过。当前DF大对象导入仍由原session82815等待，不重发。见 [A76](A76_POSTROUTE_CAP_DIAGNOSIS_20261026.md)、[A74](A74_ARIANE_NANGATE45_FINAL_QUALIFICATION_20261026.md)。
 
 2026-10-26 A75：修复独立验证按方法标签把有效保存检查点误分流到ORFS baseline；检查点优先，历史无检查点baseline保持。7个新场景修复前失败→通过，52针对/740根回归与静态边界检查通过；26用户文件保持。A74同一EF详细布线继续，无新EDA/模型/PPA结论。见 [A75](A75_VALIDATION_CHECKPOINT_PRIORITY_20261026.md)。
@@ -57,7 +59,7 @@ EF 执行、DF 事实、DI SDK、Query 与专业接入均有真实可用记录�
 | Goal 原算法、源码与续作 | A38 修复实际 measured-path 崩溃，A39 保留源码 seed/构建 donor，A40/A44 去除续作/重放的 PDK 硬编码 | A67/A68/A72补齐RMP模式、供电准入及宏行片段；新二进制/AST/原生短验证通过，八份未来源码绑定已准备。实际单区域四候选仍拒绝，Ariane setup未闭合，后续按问题选策略，不把兼容修复当最终收益 |
 | Goal GCD/Nangate45 策略 | 本轮新配置由 timing-only 改为已有 GCD 联合策略；八份原生配置解析及决策分支检查通过 | 尚未运行新 native baseline/四 Student，不能记成新增功耗优化收益 |
 | ECO 双 PDK 与已布线交付 | A35 库/参考与物理会话一致；A47 保留路由身份；A56修复周期首轮无条件覆盖更好基线、配对基线SPEF及直接交付选中ODB，真实EF导出短验证通过 | A57已修网络探针回传；A61修复模型TNS把路径子集当设计总量，请求前刷新同会话汇总、路径/评分保持，真实原SPEF与原生prompt验证通过。新八轮未运行，setup/slew与原负分支保留。见[A56](A56_ECO_ROUTED_BASELINE_RETENTION_20261025.md)、[A57](A57_ECO_PROBE_RETURN_PATH_20261025.md)、[A61](A61_ECO_DESIGN_TNS_CONTEXT_20261025.md) |
-| Ariane/Nangate45 原生 GRT 修复 | A48 完整原 14 动作、repair_design/repair_timing、合法化及 incremental GRT 实际跑完 | A48原4/8保留；A59明确处理3个常量驱动、原生margin10及1个buffer，本轮同口径5/51→0/0，setup/hold TNS0；保存GRT恢复/DF/DI/Query核验通过。A74真实DRT/RCX/PPA已完成：setup/hold闭合、DRC0，但最终cap64及power+0.0261084%拒绝；A76已定位64个非已知常量/无dont-touch驱动，DF对象导入和完整证明仍待收口，不算采用；见[A74](A74_ARIANE_NANGATE45_FINAL_QUALIFICATION_20261026.md)、[A76](A76_POSTROUTE_CAP_DIAGNOSIS_20261026.md) |
+| Ariane/Nangate45 原生 GRT 修复 | A48 完整原 14 动作、repair_design/repair_timing、合法化及 incremental GRT 实际跑完 | A48原4/8保留；A59明确处理3个常量驱动、原生margin10及1个buffer，本轮同口径5/51→0/0，setup/hold TNS0；保存GRT恢复/DF/DI/Query核验通过。A74真实DRT/RCX/PPA已完成：setup/hold闭合、DRC0，但最终cap64及power+0.0261084%拒绝；A76已定位64个非已知常量/无dont-touch驱动，三事实/12数值/4Query及64对象已核验；候选仍拒绝且完整证明未做，不算采用；见[A74](A74_ARIANE_NANGATE45_FINAL_QUALIFICATION_20261026.md)、[A76](A76_POSTROUTE_CAP_DIAGNOSIS_20261026.md) |
 | 最终验证与采用 | A31 Ibex/ASAP7 恢复完整证明、独立重放与采用；既有 GCD/JPEG 合格分支保留 | Ibex/Nangate45 原证明确为超时；A58四个被打断分区及四个对照原义务短验证8/8 PASS，未发现这些项持续求解障碍。整体PASS仍缺，14400秒配置已准备未运行；见[A58](A58_IBEX_PROOF_DIAGNOSIS_20261025.md) |
 | Ariane/ASAP7 最终供电与交付 | A52旧来源/事后改网格失败保持；A55核实另一前置修正来源的原ORFS最终VDD/VSS PSM实际通过、DRC0，之后因缺SRAM GDS失败 | A60核实原包为FakeRAM2.0抽象模型，显式声明宏后末端导出控制/136实例核验通过，完整宏几何仍为抽象；不再重复PDN或把真实SRAM制造版图作为当前PPA前置。原最终SPEF的setup TNS−127.168ns/slew444保持历史事实；A64新原生GRT后继hold0、电气0/0/0、setup TNS−92.960533ns仍失败，最终DRT/RCX/完整资格缺失；见[A60](A60_ASAP7_FAKERAM_STREAMOUT_20261025.md) |
 | 论文路径与两次平均 | 既有专业参与、真实接力及失败分支保留；GCD、JPEG、Ibex 有有效成果 | 八组各两次完整合格优化未齐；没有受控证据证明自主调度优于固定顺序。两项都是实验缺口，不是靠新框架能补出的功能 |
@@ -113,7 +115,7 @@ flowchart LR
 
 1. Ariane/ASAP7：复用A55找回的前置修正来源及最终PSM证据；A61已修ECO全设计上下文，A62原生crit_vt_deep及同协议GRT控制已跑完，确认有11.24%局部TNS收益但仍不闭合。A63已核实估算表不同但RCX规则相同；A64恢复Goal布局丢失的原平台路由上下文后，显式原生ORFS GRT收尾成功，hold0/电气0/0/0，setup仍−92.960533ns。A65已补齐简单hold路径语义，A66已收口显式接点并保存专业producer/物理后继、阶段事实及恢复；A67进一步证实最差输出路径Q后42单元弧全SLVT，并修复timing_only漏执行原RMP；短GCD检查无可重构候选。A68已修供电误筛并验证4逻辑云/16 STA、全部拒绝及完整回滚；A69/A70已完成原生重构/边界放置诊断，A71快速库仍无可接受候选，并确证仅y选行在实际宏行片段上移动29/36原合法单元。A72修复并完成新二进制/同映射验证，HPWL恶化显著消退但四候选仍不及原设计；当前单区域策略不再重复，转查其余接点。后续ASAP7优化须重新检查可闭合来源或原专业更大逻辑范围策略，不能把换表或改约束当修复。A60已验证FakeRAM声明与末端导出，不重做已过的供电或导出阶段。
 2. Ibex/Nangate45：A58已复核原日志持续进展、原输入和14400秒预算，8项原义务短验证通过；仍需完整证明，不把抽查或部分PASS当整体完成，也不把超时称为已证实的反例。
-3. Ariane/Nangate45：A59已将新GRT后继slew/cap清零、setup/hold TNS0；复用其登记ODB与精确来源，A74已从该状态做完DRT/RCX和共同PPA，最终仍cap64/power+0.0261084%拒绝；A76只读定位64个驱动，下一项收口DF交付并审原生电气修复/功耗回收，不把GRT闭合当最终采用。
+3. Ariane/Nangate45：A59已将新GRT后继slew/cap清零、setup/hold TNS0；复用其登记ODB与精确来源，A74已从该状态做完DRT/RCX和共同PPA，最终仍cap64/power+0.0261084%拒绝；A76只读定位64个驱动，三事实/Query与64驱动对象已核验，下一项审原生电气修复/功耗回收及实测导入性能，不把GRT闭合当最终采用。
 4. GCD/Nangate45：500 ps 来源与本轮策略配置已准备，正式恢复搜索时再测真实 native baseline、检查实际 recipe，随后完成协作及两次独立优化。
 
 其余组保留已有有效结果，按各自事实选专业接力。当前总目标仍在进行，长搜索继续暂停，不能把本轮配置/查询检查写成八组实验验收完成。

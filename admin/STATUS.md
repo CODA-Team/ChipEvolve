@@ -1,3 +1,9 @@
+# 当前状态：A74/A76完整物理与事实核验完成，剩余电气/功耗及数据导入性能，2026-10-26
+
+2026-10-26 A74/A76最终收口：DRT/RCX、共同测量、三事实scope/12数值/4 Query及原件核验通过；64驱动均经DF/DI按native ID/master/ODB SHA核对，原session82815 exit0、导入1次。setup/hold闭合、DRC0，但cap64和power超限0.0261084%仍拒绝、未采用。数据交付实际约20分钟，登记为大设计性能瓶颈。下一项审原生电气修复/功耗回收与具体导入耗时；见 [A74](A74_ARIANE_NANGATE45_FINAL_QUALIFICATION_20261026.md)、[A76](A76_POSTROUTE_CAP_DIAGNOSIS_20261026.md)。
+
+当前无本轮活动EF任务或等待前端。恢复资料：`var/business/a76-postroute-cap-diagnosis-20261026/continuation.json`。不重跑已完成的A74，不把不合格候选采用；下一动作必须针对64驱动和原功耗上限。
+
 # 当前状态：A74最终物理结果已测，A76定位剩余电容，DF交付进行中，2026-10-26
 
 2026-10-26 A76/A74：真实DRT/RCX与共同测量完成，setup/hold WS +261.794/+42.930ps、TNS均0、DRC0；较同条件参考setup余量+54.841ps、cell−671µm²，slew16→0/cap252→64。但power159.392521mW超原159.350917mW上限0.0261084%、cap64，仍不合格。64驱动只读定位成功，非已知常量且均无dont-touch，cap超限1.21–18.45%；无产品改动，740同源回归复用、静态/原件核验通过。当前DF大对象导入仍由原session82815等待，不重发。见 [A76](A76_POSTROUTE_CAP_DIAGNOSIS_20261026.md)、[A74](A74_ARIANE_NANGATE45_FINAL_QUALIFICATION_20261026.md)。

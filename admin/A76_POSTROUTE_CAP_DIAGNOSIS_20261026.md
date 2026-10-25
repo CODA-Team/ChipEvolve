@@ -1,6 +1,6 @@
 # A76：定位最终提取后的64项电容违反
 
-基线根 `cc3e4e8`。本切片完成只读定位和工程检查，没有修改产品、专业算法、目标或设计状态；A74原最终物理结果仍不合格，对象事实DF导入仍进行中。
+基线根 `cc3e4e8`。本切片完成只读定位和工程检查，没有修改产品、专业算法、目标或设计状态；A74最终物理/三事实/Query链已核验，原目标仍不合格，老板业务验收独立。
 
 ## 业务问题与定位结果
 
@@ -29,4 +29,6 @@ A59 GRT估算cap违反为0，A74同一后继经真实DRT/RCX后为64。setup/hol
 
 资料在 `var/business/a76-postroute-cap-diagnosis-20261026/`：`diagnostic-verification.json`保存全部64个引脚、cap/limit/slack、master分布与来源；`failed-public-run.json`及日志保留r1失败，`actual-execution.json`指向r2成功；`code-check.json`和`continuation.json`记录范围与下一项。
 
-当前主流程的DF对象导入尚未收口，尚未宣称A74完整三事实/Query链通过。后续先查询原session82815及当前导入回执，不重发大对象导入；完成后，结合这些真实对象审查已有电气修复与功耗回收动作，实施有明确原因的一次策略验证。约束、历史结果、正式八组双次缺口均保持。
+当前A74完整三事实/Query链已核验，原session82815已exit0，没有重发大对象导入。本轮又通过安装DI SDK对64个驱动逐个查询，snapshot/run、native ID、master及来源ODB SHA一致。三个FF实例的STA显示名与规范名具有不同括号转义，核查保留两种名字并以同快照native ID与实际source SHA绑定，没有用字符串差异制造产品缺陷。关系查询主动限1条，响应truncated原样保留；本项只核实例属性，不声称完整网络遍历。完整64项记录在`DF-driver-verification.json`。
+
+下一项结合这些真实对象审查已有电气修复与功耗回收动作，实施有明确原因的一次策略验证。大对象事实交付约20分钟的性能限制见A74，应独立诊断，不能靠重发、减少专业能力或放松持久化掩盖。约束、历史结果、正式八组双次缺口均保持。
