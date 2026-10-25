@@ -1,3 +1,5 @@
+2026-10-25 A60：输入benchmark的宏模型来自其原README及Lib/LEF。FakeRAM抽象导出完成与完整宏几何分开记录；由新实验显式配置原生GDS_ALLOW_EMPTY，不在公共适配器中猜测或放宽所有缺宏。原失败父任务保持，独立尾段重放经EF登记，再由DF/DI提供阶段事实；无PPA的新快照不继承旧PPA。见 [A60](admin/A60_ASAP7_FAKERAM_STREAMOUT_20261025.md)。
+
 2026-10-25 A59：本机固定共同工具版本的Ariane/Nangate45已验证从保存ODB的GRT guides恢复原估算，时序/电气字典与父节点一致后再做定点动作；重建全局路由会产生新的估算状态，须另记节点。阶段事实显式标global_route，经EF→DF→DI/Query回流，不作为最终DRT/RCX PPA或采用。无新服务、公共协议或产品代码。见 [A59](admin/A59_ARIANE_RESIDUAL_ELECTRICAL_20261025.md)。
 
 2026-10-25 A57：ECO会话内只读探针由既有EF拥有的OpenROAD执行，完整返回行交给原生下一轮prompt；跨专业仍通过DF/DI/Query取事实。修复返回值及行截断，不新增harness/服务/公共协议；真实同网6端点核对通过，DF原truncated限制保留。见 [A57](admin/A57_ECO_PROBE_RETURN_PATH_20261025.md)。

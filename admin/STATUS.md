@@ -1,3 +1,7 @@
+# 当前状态：A60 FakeRAM抽象宏导出声明修复，2026-10-25
+
+原README明确SRAM为FakeRAM2.0模型；默认ORFS只认fakeram.*导致名称不匹配。新声明经原生正反控制与实际GDS核验通过，136实例保留、唯一空单元为已声明宏；未来配置保留PDN/库/约束。六事实及来源字节回流通过，新无PPA快照不误答WNS，原WNS−288.838ps/failed/adopted=false保持。长搜索暂停，下一项查真实setup/slew。见 [A60](A60_ASAP7_FAKERAM_STREAMOUT_20261025.md)。
+
 # 当前状态：A59 Ariane/Nangate45 GRT电气阻断清零，2026-10-25
 
 明确处理3个被通用修复排除的常量驱动及剩余1个buffer；实际本轮5/51→0slew/0cap，setup/hold TNS0，最终WS +284.389/+19.384ps。保存ODB恢复的GRT指标与前节点完全一致，最终仅1个buffer master变更；两快照/Query来源核验通过。长搜索暂停，最终DRT/RCX/PPA/证明/采用仍待做；未修改产品/服务。见 [A59](A59_ARIANE_RESIDUAL_ELECTRICAL_20261025.md)。
