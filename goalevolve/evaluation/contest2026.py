@@ -1880,15 +1880,23 @@ class Contest2026OpenROADEvaluator:
                 timing_command,
                 *checkpoint("post_repair_timing"),
             ]
-        elif optimization_mode == "power_then_timing" and recipe.insert_rmp_delay_restructure:
+        elif (
+            optimization_mode in {"timing_only", "power_then_timing"}
+            and recipe.insert_rmp_delay_restructure
+        ):
+            # Restructuring belongs to the selected timing recipe, including
+            # a timing-only task.  Only the combined mode owns power reclaim.
+            power_steps = (
+                [*power_environment, *power_command, *checkpoint("post_repair_power")]
+                if optimization_mode == "power_then_timing"
+                else []
+            )
             goal_command = [] if goal_tns_abs_ns is None else [
                 f"set ::env(RSZ_GOAL_TNS_ABS_S) {goal_tns_abs_ns * 1.0e-9:.12g}"
             ]
             if recipe.rmp_before_timing:
                 optimization_steps = [
-                    *power_environment,
-                    *power_command,
-                    *checkpoint("post_repair_power"),
+                    *power_steps,
                     *goal_command,
                     *recipe_environment,
                     *rmp_delay_command,
@@ -1898,9 +1906,7 @@ class Contest2026OpenROADEvaluator:
                 ]
             else:
                 optimization_steps = [
-                    *power_environment,
-                    *power_command,
-                    *checkpoint("post_repair_power"),
+                    *power_steps,
                     *goal_command,
                     *recipe_environment,
                     timing_command,
