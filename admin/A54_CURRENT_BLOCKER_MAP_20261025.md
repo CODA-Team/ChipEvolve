@@ -1,6 +1,8 @@
 # A54：当前功能阻断图与待用策略纠正
 
-本表已接续至 A73。A54 初始基线根 `a0e9bea`、Query `54a08be`；该初始轮没有 EDA/专业搜索或模型调用。后续按“具体诊断 → 定点修复 → 短验证 → code-check”推进，真实短验证见下列更新。A32/A34 是历史审计，保留原始失败及尚未通过的资格。
+本表已接续至 A74。A54 初始基线根 `a0e9bea`、Query `54a08be`；该初始轮没有 EDA/专业搜索或模型调用。后续按“具体诊断 → 定点修复 → 短验证 → code-check”推进，真实短验证见下列更新。A32/A34 是历史审计，保留原始失败及尚未通过的资格。
+
+2026-10-26 A74：Ariane/Nangate45最终收尾前置核查及19项物理接力回归通过；原6ns/输入/镜像/目标保持，8CPU与8工具线程一致、16GiB资源核实。公共resume已实际启动EF `run-376fac03616245beb2e94e60b82c442e`，当前详细布线运行；没有新专业搜索、最终PPA或采用结论。沿同一run观察，不能因观察超时重跑。见 [A74](A74_ARIANE_NANGATE45_FINAL_QUALIFICATION_20261026.md)。
 
 2026-10-26 A73：Ariane/Nangate45保存GRT经公共resume准入短验证，176184实例/189839网络/1667022 guides和原层范围、setup/hold WS/TNS逐值保持；重复恢复同run/attempt且不新增EDA。修复Query不识别setup WS，228模块/24针对/9根接点、独立wheel97源码/四真实查询及静态code-check通过。没有完成DRT/RCX/PPA/采用，长搜索仍暂停，26用户文件保持。见 [A73](A73_SAVED_GRT_INTAKE_AND_SETUP_WS_20261026.md)。
 

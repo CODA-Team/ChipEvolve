@@ -602,3 +602,8 @@ Ariane主AG4完整DRT/RCX/DF/DI已完成，651.96436644mW/43970.9µm²/setupTNS�
 ### A73：保存GRT公共交接与setup WS查询（工程验证通过，2026-10-26）
 
 2026-10-26 A73：Ariane/Nangate45保存GRT经公共resume准入短验证，176184实例/189839网络/1667022 guides和原层范围、setup/hold WS/TNS逐值保持；重复恢复同run/attempt且不新增EDA。修复Query不识别setup WS，228模块/24针对/9根接点、独立wheel97源码/四真实查询及静态code-check通过。没有完成DRT/RCX/PPA/采用，长搜索仍暂停，26用户文件保持。见 [A73](admin/A73_SAVED_GRT_INTAKE_AND_SETUP_WS_20261026.md)。 工程检查通过，老板业务验收独立。
+
+
+### A74：Ariane/Nangate45最终物理资格（进行中，2026-10-26）
+
+2026-10-26 A74：Ariane/Nangate45最终收尾前置核查及19项物理接力回归通过；原6ns/输入/镜像/目标保持，8CPU与8工具线程一致、16GiB资源核实。公共resume已实际启动EF `run-376fac03616245beb2e94e60b82c442e`，当前详细布线运行；没有新专业搜索、最终PPA或采用结论。沿同一run观察，不能因观察超时重跑。见 [A74](admin/A74_ARIANE_NANGATE45_FINAL_QUALIFICATION_20261026.md)。
