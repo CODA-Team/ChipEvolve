@@ -25,10 +25,10 @@ EF `run-ca9fce0e3e7443c9a7bf643e4d6c33e1` succeeded。实际OpenROAD退出0、�
 
 ## 发现的下一处具体阻断
 
-单位已补齐的事实在DI可读，但安装包Query精确TNS查询仍为NEEDS_MORE_DATA，理由为metric source artifact is missing。DF证据明确指出原始元数据属于独立导出run，而指标的subject是实际物理run；Query查找/引用原件时仍混用了这两个身份。原失败响应和两个真实run/原件SHA已留存。下一切片据此修Query的真实原件归属，不放宽snapshot/revision检查，不改成无证据回答；无需重跑Ariane。
+初步将Query的NEEDS_MORE_DATA归于原件身份，判断过早。后续源码与真实数据确认：摘要先漏单位、后漏corner，两项声明完整后旧Query已能回答；旧不完整快照保持。但已回答的引用仍把导出run的artifact放到物理subject路径，公共EF核对确属错误引用。A49据此修真实source链接，不改complete或精确scope规则，无需重跑Ariane。详见A49诊断更正与原件取回验证。
 
 ## code-check与文件
 
 原14个replace选择和完整repair/legalization尾部对比通过；4项既有针对回归、Ruff/格式/Pyright通过。根产品源码与A47的712根回归检查点相同，复用该完整回归；26个用户保护文件、原源result/ODB/SDC/SPEF/脚本与适配器SHA保持。未新增服务、公共接口或修改专业算法。
 
-仅本报告、TASKS与STATUS记录状态；运行脚本/日志/收据在 `var/business/a48-ariane-full-grt-compatibility-20261025/`。关键文件为 `full-recipe-check.json`、`source-code-check.json`、`native-unit-bound-facts-receipt.json`、`native-unit-bound-DF-metrics.json`、`query-unit-bound-TNS.stdout`。工程兼容验证通过，待老板业务验收；Query上述阻断与正式双次结果仍未完成。
+仅本报告、TASKS与STATUS记录状态；运行脚本/日志/收据在 `var/business/a48-ariane-full-grt-compatibility-20261025/`。关键文件为 `full-recipe-check.json`、`source-code-check.json`、`native-fully-bound-facts-receipt.json`、`native-fully-bound-DF-metrics.json`、`query-unit-bound-TNS.stdout`。工程兼容验证通过，待老板业务验收；Query上述阻断与正式双次结果仍未完成。
