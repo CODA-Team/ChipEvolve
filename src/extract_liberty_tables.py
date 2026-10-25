@@ -1,4 +1,4 @@
-"""Extract a compact cell-delay reference from ASAP7 NLDM Liberty libraries.
+"""Extract a compact cell-delay reference from the selected NLDM libraries.
 
 For each (family, drive, VT) cell that the LLM might reasonably propose
 during ECO, we record:
@@ -14,9 +14,9 @@ instead of guessing scaling ratios from training-data intuition.
 Run once per technology — re-run only if Liberty files change. The
 output file is treated as data, not generated artifact.
 """
+
 from __future__ import annotations
 import gzip
-import math
 import os
 import re
 import sys
@@ -36,30 +36,57 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 _PDK_ROOT = Path(os.environ.get("ASAP7_PDK", _REPO_ROOT / "asap7"))
 
 LIB_DIR = _PDK_ROOT / "lib" / "NLDM"
-OUTPUT  = _REPO_ROOT / "prompts" / "static" / "cell_delay_reference.toon"
+OUTPUT = _REPO_ROOT / "prompts" / "static" / "cell_delay_reference.toon"
 
-# Only TT corner — matches what OpenROAD loads for STA in this flow.
+# Standalone default remains TT; platform runs bind the exact STA library list.
 LIB_PATTERN = "*{group}_{vt}_{corner}_nldm_*.lib*"
 LIB_CORNER = os.environ.get("TIMINGECO_LIB_CORNER", "TT")
-if LIB_CORNER not in {"FF", "TT", "SS"}:
+if not os.environ.get("TIMINGECO_LIB_FILES") and LIB_CORNER not in {"FF", "TT", "SS"}:
     raise ValueError("TIMINGECO_LIB_CORNER must be FF, TT or SS")
 
 # Combinational families we dump. Curated for setup-WNS ECO relevance.
 # Sequential (DFF/LATCH) and clock cells are excluded — model cannot touch
 # them. SRAM is excluded — also untouchable.
 FAMILIES = [
-    "BUF", "INV",                               # buffers and inverters (most-used)
-    "NAND2", "NAND3", "NAND4",                  # basic NAND
-    "NOR2", "NOR3", "NOR4",                     # basic NOR
-    "AND2", "AND3", "AND4", "AND5",             # basic AND
-    "OR2", "OR3", "OR4", "OR5",                 # basic OR
-    "XOR2", "XNOR2",                            # XOR/XNOR
-    "AO21", "AO22", "AO221", "AO222", "AO32",   # AND-OR
-    "OA21", "OA22", "OA211", "OA221", "OA222",  # OR-AND
-    "AOI21", "AOI22", "AOI221", "AOI222",       # AND-OR-INVERT
-    "OAI21", "OAI22", "OAI221", "OAI222",       # OR-AND-INVERT
-    "MAJI3",                                    # majority
-    "FA", "HA",                                 # adders (hardmacros, included for VT-swap consideration)
+    "BUF",
+    "INV",  # buffers and inverters (most-used)
+    "NAND2",
+    "NAND3",
+    "NAND4",  # basic NAND
+    "NOR2",
+    "NOR3",
+    "NOR4",  # basic NOR
+    "AND2",
+    "AND3",
+    "AND4",
+    "AND5",  # basic AND
+    "OR2",
+    "OR3",
+    "OR4",
+    "OR5",  # basic OR
+    "XOR2",
+    "XNOR2",  # XOR/XNOR
+    "AO21",
+    "AO22",
+    "AO221",
+    "AO222",
+    "AO32",  # AND-OR
+    "OA21",
+    "OA22",
+    "OA211",
+    "OA221",
+    "OA222",  # OR-AND
+    "AOI21",
+    "AOI22",
+    "AOI221",
+    "AOI222",  # AND-OR-INVERT
+    "OAI21",
+    "OAI22",
+    "OAI221",
+    "OAI222",  # OR-AND-INVERT
+    "MAJI3",  # majority
+    "FA",
+    "HA",  # adders (hardmacros, included for VT-swap consideration)
 ]
 
 # Grid we present (chosen to match path[] typical ranges in the design).
@@ -68,26 +95,54 @@ TARGET_SLEWS_PS = [10.0, 30.0, 80.0]
 
 # Library group (.lib filename prefix) per family.
 FAMILY_GROUP = {
-    "BUF": "INVBUF", "INV": "INVBUF",
-    "NAND2": "SIMPLE", "NAND3": "SIMPLE", "NAND4": "SIMPLE",
-    "NOR2": "SIMPLE", "NOR3": "SIMPLE", "NOR4": "SIMPLE",
-    "AND2": "SIMPLE", "AND3": "SIMPLE", "AND4": "SIMPLE", "AND5": "SIMPLE",
-    "OR2": "SIMPLE", "OR3": "SIMPLE", "OR4": "SIMPLE", "OR5": "SIMPLE",
-    "XOR2": "SIMPLE", "XNOR2": "SIMPLE",
+    "BUF": "INVBUF",
+    "INV": "INVBUF",
+    "NAND2": "SIMPLE",
+    "NAND3": "SIMPLE",
+    "NAND4": "SIMPLE",
+    "NOR2": "SIMPLE",
+    "NOR3": "SIMPLE",
+    "NOR4": "SIMPLE",
+    "AND2": "SIMPLE",
+    "AND3": "SIMPLE",
+    "AND4": "SIMPLE",
+    "AND5": "SIMPLE",
+    "OR2": "SIMPLE",
+    "OR3": "SIMPLE",
+    "OR4": "SIMPLE",
+    "OR5": "SIMPLE",
+    "XOR2": "SIMPLE",
+    "XNOR2": "SIMPLE",
     "MAJI3": "SIMPLE",
-    "FA": "SIMPLE", "HA": "SIMPLE",
-    "AO21": "AO", "AO22": "AO", "AO221": "AO", "AO222": "AO", "AO32": "AO",
-    "AOI21": "AO", "AOI22": "AO", "AOI221": "AO", "AOI222": "AO",
-    "OA21": "OA", "OA22": "OA", "OA211": "OA", "OA221": "OA", "OA222": "OA",
-    "OAI21": "OA", "OAI22": "OA", "OAI221": "OA", "OAI222": "OA",
+    "FA": "SIMPLE",
+    "HA": "SIMPLE",
+    "AO21": "AO",
+    "AO22": "AO",
+    "AO221": "AO",
+    "AO222": "AO",
+    "AO32": "AO",
+    "AOI21": "AO",
+    "AOI22": "AO",
+    "AOI221": "AO",
+    "AOI222": "AO",
+    "OA21": "OA",
+    "OA22": "OA",
+    "OA211": "OA",
+    "OA221": "OA",
+    "OA222": "OA",
+    "OAI21": "OA",
+    "OAI22": "OA",
+    "OAI221": "OA",
+    "OAI222": "OA",
 }
 
-VTS = [("L", "LVT"), ("R", "RVT"), ("SL", "SLVT")]   # suffix → lib substring
+VTS = [("L", "LVT"), ("R", "RVT"), ("SL", "SLVT")]  # suffix → lib substring
 
 
 # ---------------------------------------------------------------------------
 # Liberty parsing
 # ---------------------------------------------------------------------------
+
 
 def _read_lib(path: Path) -> str:
     if path.suffix == ".gz":
@@ -100,7 +155,7 @@ def _iter_cell_blocks(text: str):
     """Yield (cell_name, body_text) for every cell. Uses brace counting since
     cell blocks have arbitrarily-nested braces."""
     i = 0
-    pat_start = re.compile(r"  cell \(([^)]+)\) \{")
+    pat_start = re.compile(r'\bcell\s*\(\s*"?([^\s")]+)"?\s*\)\s*\{')
     while True:
         m = pat_start.search(text, i)
         if not m:
@@ -111,11 +166,13 @@ def _iter_cell_blocks(text: str):
         j = start
         while j < len(text) and depth > 0:
             c = text[j]
-            if c == "{": depth += 1
-            elif c == "}": depth -= 1
+            if c == "{":
+                depth += 1
+            elif c == "}":
+                depth -= 1
             j += 1
         # j is one past the matching closing brace
-        body = text[start:j - 1]
+        body = text[start : j - 1]
         yield name, body
         i = j
 
@@ -123,7 +180,9 @@ def _iter_cell_blocks(text: str):
 _NUM = re.compile(r"-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?")
 
 
-def _parse_table(body: str, table_kind: str) -> Optional[Tuple[List[float], List[float], List[List[float]]]]:
+def _parse_table(
+    body: str, table_kind: str
+) -> Optional[Tuple[List[float], List[float], List[List[float]]]]:
     """Locate the first `<table_kind> (...) { index_1 ... index_2 ... values ... }`
     inside body and return (slew_axis, load_axis, values_2d).
     Returns None if not found / unparseable.
@@ -166,14 +225,16 @@ def _iter_braced_blocks(text: str, opener_pattern: str):
         j = start
         while j < len(text) and depth > 0:
             c = text[j]
-            if c == "{": depth += 1
-            elif c == "}": depth -= 1
+            if c == "{":
+                depth += 1
+            elif c == "}":
+                depth -= 1
             j += 1
-        yield m, text[start:j - 1]
+        yield m, text[start : j - 1]
         i = j
 
 
-def _parse_cell(name: str, body: str) -> Optional[Dict]:
+def _parse_cell(name: str, body: str, time_ps=1.0, cap_ff=1.0) -> Optional[Dict]:
     """Extract: input_cap_ff (max over input pins) + per-arc delay/transition tables.
     Returns the cell's reduced fingerprint or None if the cell has no usable timing arcs.
     """
@@ -181,15 +242,15 @@ def _parse_cell(name: str, body: str) -> Optional[Dict]:
     # Use brace-counting because pin blocks contain nested timing/table blocks.
     input_caps: List[float] = []
     output_bodies: List[str] = []
-    for hdr, pin_body in _iter_braced_blocks(body, r"pin \(([^)]+)\)\s*\{"):
-        if "direction : input" in pin_body:
+    for hdr, pin_body in _iter_braced_blocks(body, r"pin\s*\(([^)]+)\)\s*\{"):
+        if re.search(r"\bdirection\s*:\s*input\b", pin_body):
             cap_m = re.search(r"\bcapacitance\s*:\s*([-+\d.eE]+)\s*;", pin_body)
             if cap_m:
                 try:
-                    input_caps.append(float(cap_m.group(1)))
+                    input_caps.append(float(cap_m.group(1)) * cap_ff)
                 except ValueError:
                     pass
-        elif "direction : output" in pin_body:
+        elif re.search(r"\bdirection\s*:\s*output\b", pin_body):
             output_bodies.append(pin_body)
     if not input_caps:
         return None
@@ -200,38 +261,49 @@ def _parse_cell(name: str, body: str) -> Optional[Dict]:
     best_arc = None
     best_score = -1.0
     for out_body in output_bodies:
-      for _hdr, arc_body in _iter_braced_blocks(out_body, r"timing\s*\(\)\s*\{"):
-        # parse rise + fall
-        cr = _parse_table(arc_body, "cell_rise")
-        cf = _parse_table(arc_body, "cell_fall")
-        rt = _parse_table(arc_body, "rise_transition")
-        ft = _parse_table(arc_body, "fall_transition")
-        if not (cr and cf and rt and ft):
-          continue
-        # Score by avg delay near (slew=20, load=23) — middle of the lib grid
-        slews, loads, rvals = cr
-        try:
-          sidx = min(range(len(slews)), key=lambda i: abs(slews[i] - 20.0))
-          lidx = min(range(len(loads)), key=lambda i: abs(loads[i] - 23.0))
-          score = rvals[sidx][lidx]
-        except (IndexError, ValueError):
-          score = 0
-        if score > best_score:
-          best_score = score
-          best_arc = (cr, cf, rt, ft)
+        for _hdr, arc_body in _iter_braced_blocks(out_body, r"timing\s*\(\)\s*\{"):
+            # parse rise + fall
+            cr = _parse_table(arc_body, "cell_rise")
+            cf = _parse_table(arc_body, "cell_fall")
+            rt = _parse_table(arc_body, "rise_transition")
+            ft = _parse_table(arc_body, "fall_transition")
+            if not (cr and cf and rt and ft):
+                continue
+            cr, cf, rt, ft = [
+                (
+                    [s * time_ps for s in table[0]],
+                    [load * cap_ff for load in table[1]],
+                    [[value * time_ps for value in row] for row in table[2]],
+                )
+                for table in (cr, cf, rt, ft)
+            ]
+            # Score by avg delay near (slew=20, load=23) — middle of the lib grid
+            slews, loads, rvals = cr
+            try:
+                sidx = min(range(len(slews)), key=lambda i: abs(slews[i] - 20.0))
+                lidx = min(range(len(loads)), key=lambda i: abs(loads[i] - 23.0))
+                score = rvals[sidx][lidx]
+            except (IndexError, ValueError):
+                score = 0
+            if score > best_score:
+                best_score = score
+                best_arc = (cr, cf, rt, ft)
     if best_arc is None:
         return None
     cr, cf, rt, ft = best_arc
     return dict(
         input_cap_ff=input_cap_ff,
-        cell_rise=cr, cell_fall=cf,
-        rise_trans=rt, fall_trans=ft,
+        cell_rise=cr,
+        cell_fall=cf,
+        rise_trans=rt,
+        fall_trans=ft,
     )
 
 
 # ---------------------------------------------------------------------------
 # Bilinear interpolation
 # ---------------------------------------------------------------------------
+
 
 def _interp1(x: float, xs: List[float], ys: List[float]) -> float:
     """Linear interpolation/extrapolation."""
@@ -256,19 +328,25 @@ def _interp1(x: float, xs: List[float], ys: List[float]) -> float:
     return ys[-1]
 
 
-def _bilinear(slew_q: float, load_q: float,
-              slew_ax: List[float], load_ax: List[float],
-              vals: List[List[float]]) -> float:
+def _bilinear(
+    slew_q: float,
+    load_q: float,
+    slew_ax: List[float],
+    load_ax: List[float],
+    vals: List[List[float]],
+) -> float:
     """Look up vals[slew_idx][load_idx] at (slew_q, load_q) with linear interp."""
     # Interp along load for each slew row, then interp those results along slew
     per_slew = [_interp1(load_q, load_ax, row) for row in vals]
     return _interp1(slew_q, slew_ax, per_slew)
 
 
-def _reduce_cell(parsed: Dict, target_slews: List[float], target_loads: List[float]) -> Dict:
+def _reduce_cell(
+    parsed: Dict, target_slews: List[float], target_loads: List[float]
+) -> Dict:
     """Average rise+fall, interpolate to target grid. Returns:
-       { 'input_cap_ff':..., 'delay_grid':[[d_ps,...] for each slew],
-         'slew_grid':[[s_ps,...] for each slew] }
+    { 'input_cap_ff':..., 'delay_grid':[[d_ps,...] for each slew],
+      'slew_grid':[[s_ps,...] for each slew] }
     """
     cr_s, cr_l, cr_v = parsed["cell_rise"]
     cf_s, cf_l, cf_v = parsed["cell_fall"]
@@ -300,8 +378,12 @@ def _reduce_cell(parsed: Dict, target_slews: List[float], target_loads: List[flo
 # Drive-strength ordering (for the "upsize ladder")
 # ---------------------------------------------------------------------------
 
+
 def _drive_strength(cell_name: str) -> float:
     """Parse cell name into numeric drive strength. e.g. BUFx6f → 6, HAxp5 → 0.5."""
+    nangate = re.search(r"_X(\d+)$", cell_name)
+    if nangate:
+        return float(nangate.group(1))
     s = re.sub(r"_ASAP7_75t_\w+$", "", cell_name)
     m = re.search(r"x(p?)(\d+)(f?)$", s)
     if not m:
@@ -314,6 +396,8 @@ def _drive_strength(cell_name: str) -> float:
 
 
 def _family_of(cell_name: str) -> str:
+    if re.search(r"_X\d+$", cell_name):
+        return re.sub(r"_X\d+$", "", cell_name)
     s = re.sub(r"_ASAP7_75t_\w+$", "", cell_name)
     m = re.match(r"^(.+?)x[a-z]?\d+\w*$", s)
     if m:
@@ -325,30 +409,58 @@ def _family_of(cell_name: str) -> str:
 # Main extraction
 # ---------------------------------------------------------------------------
 
+
+def _library_units(text: str) -> Tuple[float, float]:
+    """Convert each file's Liberty time/capacitance to reference ps/fF."""
+    time = re.search(r'time_unit\s*:\s*"([\d.eE+-]+)\s*(fs|ps|ns|us)"', text)
+    cap = re.search(
+        r"capacitive_load_unit\s*\(\s*([\d.eE+-]+)\s*,\s*(af|ff|pf)\s*\)", text, re.I
+    )
+    if not time or not cap:
+        raise ValueError("Liberty reference needs declared time and capacitance units")
+    return (
+        float(time.group(1))
+        * {"fs": 0.001, "ps": 1, "ns": 1000, "us": 1e6}[time.group(2)],
+        float(cap.group(1)) * {"af": 0.001, "ff": 1, "pf": 1000}[cap.group(2).lower()],
+    )
+
+
 def extract_all() -> Dict[str, Dict[str, Dict]]:
     """Return { family: { full_cell_name: reduced_dict } } across all VTs."""
     results: Dict[str, Dict[str, Dict]] = {}
-    groups_needed = sorted({FAMILY_GROUP[f] for f in FAMILIES if f in FAMILY_GROUP})
-    for grp in groups_needed:
-        for vt_suffix, vt_substring in VTS:
-            matches = list(LIB_DIR.glob(f"*{grp}_{vt_substring}_{LIB_CORNER}*.lib*"))
-            if not matches:
+    explicit = os.environ.get("TIMINGECO_LIB_FILES", "")
+    if explicit:
+        paths = [Path(line) for line in explicit.splitlines() if line.strip()]
+    else:
+        paths = []
+        groups_needed = sorted({FAMILY_GROUP[f] for f in FAMILIES if f in FAMILY_GROUP})
+        for grp in groups_needed:
+            for vt_suffix, vt_substring in VTS:
+                matches = list(
+                    LIB_DIR.glob(f"*{grp}_{vt_substring}_{LIB_CORNER}*.lib*")
+                )
+                if matches:
+                    paths.append(matches[0])
+    for lib_path in dict.fromkeys(paths):
+        try:
+            text = _read_lib(lib_path)
+        except Exception as e:
+            if explicit:
+                raise
+            print(f"  [WARN] could not read {lib_path}: {e}", file=sys.stderr)
+            continue
+        time_ps, cap_ff = _library_units(text)
+        for name, body in _iter_cell_blocks(text):
+            family = _family_of(name)
+            if family not in FAMILIES:
                 continue
-            lib_path = matches[0]
-            try:
-                text = _read_lib(lib_path)
-            except Exception as e:
-                print(f"  [WARN] could not read {lib_path}: {e}", file=sys.stderr)
+            parsed = _parse_cell(name, body, time_ps, cap_ff)
+            if not parsed:
                 continue
-            for name, body in _iter_cell_blocks(text):
-                family = _family_of(name)
-                if family not in FAMILIES:
-                    continue
-                parsed = _parse_cell(name, body)
-                if not parsed:
-                    continue
-                reduced = _reduce_cell(parsed, TARGET_SLEWS_PS, TARGET_LOADS_FF)
-                results.setdefault(family, {})[name] = reduced
+            reduced = _reduce_cell(parsed, TARGET_SLEWS_PS, TARGET_LOADS_FF)
+            results.setdefault(family, {})[name] = reduced
+    if explicit and not any(results.values()):
+        raise ValueError("Bound Liberty files contain no usable reference cells")
     return results
 
 
@@ -356,26 +468,41 @@ def extract_all() -> Dict[str, Dict[str, Dict]]:
 # TOON-style output formatter
 # ---------------------------------------------------------------------------
 
+
 def format_reference(data: Dict[str, Dict[str, Dict]]) -> str:
     out: List[str] = []
-    out.append(f"# CELL DELAY REFERENCE (ASAP7, {LIB_CORNER} corner)")
+    asap7 = any("_ASAP7_" in name for cells in data.values() for name in cells)
+    technology = "ASAP7" if asap7 else "bound Liberty files"
+    out.append(f"# CELL DELAY REFERENCE ({technology}, {LIB_CORNER} corner)")
     out.append("#")
-    out.append("# For each cell: input_cap_ff and 'cell_delay_ps / out_slew_ps' at a 4x3 grid.")
-    out.append("# Grid columns (output_load_ff): " +
-               ", ".join(f"{L}" for L in TARGET_LOADS_FF))
-    out.append("# Grid rows (input_slew_ps):    " +
-               ", ".join(f"{s}" for s in TARGET_SLEWS_PS))
+    out.append(
+        "# For each cell: input_cap_ff and 'cell_delay_ps / out_slew_ps' at a 4x3 grid."
+    )
+    out.append(
+        "# Grid columns (output_load_ff): " + ", ".join(f"{L}" for L in TARGET_LOADS_FF)
+    )
+    out.append(
+        "# Grid rows (input_slew_ps):    " + ", ".join(f"{s}" for s in TARGET_SLEWS_PS)
+    )
     out.append("#")
-    out.append("# Reading example:")
-    out.append("#   `BUFx6f_SL  ic=1.297  (1.5,10)=8.1/9 (5,10)=11.0/15 ...`")
-    out.append("#   means: BUFx6f at the SL corner, input_cap_ff = 1.297. At output load")
-    out.append("#   = 1.5 ff and input_slew = 10 ps, cell_delay = 8.1 ps and out_slew = 9 ps.")
+    if asap7:
+        out.append("# Reading example:")
+        out.append("#   `BUFx6f_SL  ic=1.297  (1.5,10)=8.1/9 (5,10)=11.0/15 ...`")
+        out.append(
+            "#   means: BUFx6f at the SL corner, input_cap_ff = 1.297. At output load"
+        )
+        out.append(
+            "#   = 1.5 ff and input_slew = 10 ps, cell_delay = 8.1 ps and out_slew = 9 ps."
+        )
     out.append("#")
     out.append("# Use these tables to predict ΔWNS first-principles, then apply the")
     out.append("# move-type calibration ratio from <prediction_calibration>.")
     out.append("#")
-    out.append("# VT swap: same family+drive across L/R/SL preserves drive strength;")
-    out.append("# typical input_cap delta is < 5%. R is slowest, SL is fastest.")
+    if asap7:
+        out.append(
+            "# VT swap: same family+drive across L/R/SL preserves drive strength;"
+        )
+        out.append("# typical input_cap delta is < 5%. R is slowest, SL is fastest.")
     out.append("#")
 
     for family in FAMILIES:
@@ -384,13 +511,16 @@ def format_reference(data: Dict[str, Dict[str, Dict]]) -> str:
             continue
         # Sort cells by drive strength then VT (SL → L → R for human readability)
         vt_order = {"_SL": 0, "_L": 1, "_R": 2}
+
         def _sortkey(name):
             ds = _drive_strength(name)
             vt = ""
             for k in vt_order:
                 if name.endswith(k):
-                    vt = k; break
+                    vt = k
+                    break
             return (ds, vt_order.get(vt, 9), name)
+
         sorted_names = sorted(cells.keys(), key=_sortkey)
 
         out.append("")
@@ -415,7 +545,7 @@ def format_reference(data: Dict[str, Dict[str, Dict]]) -> str:
         #   in_slew + 4 columns of "delay/slew".
         L_axis = TARGET_LOADS_FF
         S_axis = TARGET_SLEWS_PS
-        out.append(f"  load_ff cols: " + ", ".join(f"{L:g}" for L in L_axis))
+        out.append("  load_ff cols: " + ", ".join(f"{L:g}" for L in L_axis))
         for name in sorted_names:
             cd = cells[name]
             # Strip "_ASAP7_75t" infix from name — keep only drive_VT
@@ -436,13 +566,17 @@ def main():
     data = extract_all()
     n_cells = sum(len(v) for v in data.values())
     n_families = sum(1 for v in data.values() if v)
-    print(f"[liberty] extracted {n_cells} cells across {n_families} families",
-          file=sys.stderr)
+    print(
+        f"[liberty] extracted {n_cells} cells across {n_families} families",
+        file=sys.stderr,
+    )
     out = format_reference(data)
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text(out, encoding="utf-8")
-    print(f"[liberty] wrote {OUTPUT} ({len(out):,} chars, ~{len(out)//4:,} tokens)",
-          file=sys.stderr)
+    print(
+        f"[liberty] wrote {OUTPUT} ({len(out):,} chars, ~{len(out) // 4:,} tokens)",
+        file=sys.stderr,
+    )
 
 
 if __name__ == "__main__":

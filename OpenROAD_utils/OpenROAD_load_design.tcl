@@ -99,12 +99,15 @@ if {[info exists ::env(BACKTRACE_ODB)] && $::env(BACKTRACE_ODB) ne ""} {
 }
 read_db $odb_file
 
-# ---- Load tech + standard-cell LEFs ----
-read_lef $tech_lef
-
-foreach lef $std_lef {
-  puts "READ_LEF: $lef"
-  read_lef $lef
+# ---- Load standalone defaults, or retain the frozen ODB technology ----
+# Platform ODB checkpoints already contain their technology and masters.
+# Reading the upstream ASAP7 LEFs into a Nangate45 ODB would mix technologies.
+if {![info exists ::env(TIMINGECO_LIB_FILES)] || $::env(TIMINGECO_LIB_FILES) eq ""} {
+  read_lef $tech_lef
+  foreach lef $std_lef {
+    puts "READ_LEF: $lef"
+    read_lef $lef
+  }
 }
 
 # ---- Load Liberty libraries ----

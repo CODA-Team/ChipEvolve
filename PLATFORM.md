@@ -19,3 +19,13 @@ Native ECO primitives, path context, score weights, backtrace/best-state rules a
 The upstream expert guide requests `eco_net_sink_report`, but its published Tcl and command filter omit the implementation. The platform restores this read-only probe, reporting actual OpenDB terminal directions and cell masters; it does not add an optimization move or change the scoring policy. A real GCD EF probe verifies connectivity and missing-net behavior. Exported SDC handoffs explicitly declare their time unit, independently of the consuming tool's default.
 
 Local model connection settings must be explicitly supplied in the profile, because EF strips the host environment. Credentials are never staged or copied into containers. Native mode without the profile remains available.
+
+For explicit platform libraries, the native loader retains the technology and
+masters already embedded in the registered ODB; it does not overlay upstream
+ASAP7 LEFs on another technology. The expert's cell-delay reference consumes the
+same `TIMINGECO_LIB_FILES` list as physical STA, converts each file's declared
+units to ps/fF, and recognizes Nangate45 `_X` drive names. The standalone ASAP7
+selection and all original reduction/interpolation rules remain; the original
+309-cell reference grids were checked for exact equality. Select the matching
+PDK template and corner in the local deployment. These loading checks do not
+establish improved PPA or qualify a new optimization result.
