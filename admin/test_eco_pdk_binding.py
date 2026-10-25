@@ -3,7 +3,7 @@
 import argparse
 import json
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -88,8 +88,9 @@ def test_missing_explicit_pdk_does_not_fall_back_to_upstream(tmp_path):
 
 @pytest.mark.parametrize("memory_gib", [None, 16])
 @pytest.mark.parametrize("drt_every_iter", [None, False, True])
+@pytest.mark.parametrize("corner", [None, "FF", "typical"])
 def test_flat_common_pdk_prepares_native_layout_and_preserves_bound_rc(
-    tmp_path, memory_gib, drt_every_iter
+    tmp_path, memory_gib, drt_every_iter, corner
 ):
     pdk = tmp_path / "common-pdk"
     (pdk / "lib").mkdir(parents=True)
@@ -117,6 +118,8 @@ def test_flat_common_pdk_prepares_native_layout_and_preserves_bound_rc(
         "libraries": [{"path": str(library)}],
         "top": "unit",
     }
+    if corner is not None:
+        deployment.value["designs"]["any-design"]["corner"] = corner
     frame = {
         "run_id": "unit-parent",
         "snapshot_ids": {"opendb": "unit-objects", "orfs": "unit-metrics"},
@@ -132,13 +135,15 @@ def test_flat_common_pdk_prepares_native_layout_and_preserves_bound_rc(
         },
     }
     experiment = tmp_path / "experiment"
+    jobs = MagicMock()
+    jobs.command.side_effect = CopyBoundaryReached
     with (
         patch(
             "chip_evolve.native.freeze",
             side_effect=lambda _origin, target, **_kwargs: target.mkdir(parents=True),
         ),
         patch("chip_evolve.native.environment", return_value={}),
-        patch("chip_evolve.native.Jobs", side_effect=CopyBoundaryReached),
+        patch("chip_evolve.native.Jobs", return_value=jobs),
         pytest.raises(CopyBoundaryReached),
     ):
         run_eco(
@@ -165,6 +170,13 @@ def test_flat_common_pdk_prepares_native_layout_and_preserves_bound_rc(
     assert profile["environment"]["TIMINGECO_LIB_FILES"].splitlines() == [
         str(experiment / "source/asap7/lib/NLDM" / library.name)
     ]
+    reference_environment = jobs.command.call_args.kwargs["environment"]
+    assert (
+        reference_environment["TIMINGECO_LIB_FILES"]
+        == (profile["environment"]["TIMINGECO_LIB_FILES"])
+    )
+    assert reference_environment["TIMINGECO_LIB_CORNER"] == (corner or "FF")
+    assert profile["environment"]["TIMINGECO_LIB_CORNER"] == (corner or "FF")
     # Exercise the generated launcher: --cleanenv must not drop tool threads.
     import os
     import runpy

@@ -356,7 +356,7 @@ def run_eco(
         OPENROAD_BIN=str(wrapper),
         ASAP7_PDK=str(source / "asap7"),
         ASAP7_PDK_LIB=str(source / "asap7/lib/NLDM"),
-        TIMINGECO_LIB_CORNER="FF",
+        TIMINGECO_LIB_CORNER=design.get("corner", "FF"),
         TIMINGECO_LIB_FILES="\n".join(
             str(source / "asap7/lib/NLDM" / Path(row["path"]).name)
             for row in design["libraries"]
@@ -421,7 +421,10 @@ def run_eco(
         seconds=300,
         memory_gib=8,
         cpu=2,
-        environment={"ASAP7_PDK": env["ASAP7_PDK"], "TIMINGECO_LIB_CORNER": "FF"},
+        environment={
+            key: env[key]
+            for key in ("ASAP7_PDK", "TIMINGECO_LIB_CORNER", "TIMINGECO_LIB_FILES")
+        },
     )
     invoke(
         [
