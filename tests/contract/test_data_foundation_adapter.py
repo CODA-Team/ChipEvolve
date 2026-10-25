@@ -18,6 +18,7 @@ from query_agent.application.collection import EvidenceCollector
 from query_agent.application.planning import KeywordIntentParser, QueryPlanner
 from query_agent.application.service import QueryService
 from query_agent.domain.errors import DataBoundaryError
+from query_agent.domain.experiment import ExperimentRun, ExperimentStatus
 from query_agent.domain.query import (
     QueryContext,
     QueryRequest,
@@ -323,3 +324,63 @@ def test_run_metrics_still_check_the_indexed_snapshot_and_requested_stage(
     adapter = DataExperimentProvider(FakeExperimentContextProvider(), provider)
     with pytest.raises(DataBoundaryError, match="metric response crosses"):
         adapter.list_metrics("ambiguous", stage_key="route", metric_name=metric)
+
+
+def test_indexed_metric_preserves_snapshot_and_revision(
+    provider: DataFoundationProvider,
+) -> None:
+    adapter = DataExperimentProvider(FakeExperimentContextProvider(), provider)
+    observation = adapter.list_metrics("run1", metric_name="WNS")[0]
+    assert observation.scope.model_dump() == SCOPE
+
+
+@pytest.mark.parametrize(
+    "snapshot,revision,answered",
+    [
+        ("s1", "r1", True),
+        ("other-snapshot", "r1", False),
+        ("s1", "other-revision", False),
+        (None, "r1", True),
+        (None, None, True),
+    ],
+)
+def test_metric_query_matches_only_the_verified_snapshot_revision(
+    provider: DataFoundationProvider,
+    snapshot: str | None,
+    revision: str | None,
+    answered: bool,
+) -> None:
+    execution = FakeExperimentContextProvider()
+    execution.runs = (
+        ExperimentRun(
+            run_id="run1", design_id="chip", status=ExperimentStatus.SUCCEEDED
+        ),
+        execution.runs[1],
+        execution.runs[2],
+    )
+    adapter = DataExperimentProvider(execution, provider)
+    app = QueryService(
+        intent_parser=KeywordIntentParser(),
+        planner=QueryPlanner(),
+        collector=EvidenceCollector(experiment_context_provider=adapter),
+    )
+    response = app.query(
+        QueryRequest(
+            query="WNS?",
+            context=QueryContext(
+                design_id="chip",
+                run_id="run1",
+                snapshot_id=snapshot,
+                revision_id=revision,
+                source=QuerySource.MANAGED_RUN,
+            ),
+        )
+    )
+    if answered:
+        assert response.status is QueryStatus.ANSWERED
+        assert response.evidence[0].scope.model_dump() == SCOPE
+        content = response.evidence[0].content
+        assert isinstance(content, dict) and content["value"] == -0.2
+    else:
+        assert response.status is QueryStatus.NEEDS_MORE_DATA
+        assert not response.evidence

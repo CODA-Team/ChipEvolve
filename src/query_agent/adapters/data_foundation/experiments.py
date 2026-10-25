@@ -167,6 +167,8 @@ class DataExperimentProvider:
                     design_id=scope.design_id,
                     run_id=scope.run_id,
                     stage_key=scope.stage,
+                    snapshot_id=scope.snapshot_id,
+                    revision_id=scope.revision_id,
                     corner=row.corner,
                     artifact_id=source.artifact_id if source else None,
                     source_hash=(source.sha256 or source.source_hash)

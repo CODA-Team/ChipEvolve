@@ -667,6 +667,8 @@ class EvidenceCollector:
                         run_id=metric.run_id,
                         design_id=metric.design_id or context.design_id,
                         stage=metric.stage_key,
+                        snapshot_id=metric.snapshot_id,
+                        revision_id=metric.revision_id,
                         fact_key=metric.fact_key,
                         source_hash=metric.source_hash,
                         status=metric_status,
@@ -691,6 +693,8 @@ class EvidenceCollector:
         run_id: str,
         design_id: str | None = None,
         stage: str | None = None,
+        snapshot_id: str | None = None,
+        revision_id: str | None = None,
         fact_key: str,
         source_hash: str | None = None,
         status: EvidenceStatus = EvidenceStatus.SUFFICIENT,
@@ -700,13 +704,24 @@ class EvidenceCollector:
     ) -> Evidence:
         now = datetime.now(UTC)
         locator = source_locator or f"experiment://runs/{run_id}/{fact_key}"
-        digest = hashlib.sha256(f"{locator}:{content}".encode()).hexdigest()
+        scope = EvidenceScope(
+            design_id=design_id,
+            run_id=run_id,
+            stage=stage,
+            snapshot_id=snapshot_id,
+            revision_id=revision_id,
+        )
+        digest = hashlib.sha256(f"{locator}:{content}".encode())
+        if snapshot_id is not None or revision_id is not None:
+            digest.update(
+                scope.model_dump_json(include={"snapshot_id", "revision_id"}).encode()
+            )
         return Evidence(
-            evidence_id=f"ev-{digest[:24]}",
+            evidence_id=f"ev-{digest.hexdigest()[:24]}",
             source_kind=EvidenceSourceKind.EXECUTION_RUN,
             level=level,
             content=content,
-            scope=EvidenceScope(design_id=design_id, run_id=run_id, stage=stage),
+            scope=scope,
             locator=EvidenceLocator(uri=locator),
             provenance=EvidenceProvenance(
                 provider="experiment-context-provider",

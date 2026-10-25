@@ -1,9 +1,14 @@
+import hashlib
+
 from tests.fixtures.fake_experiment import FakeExperimentContextProvider
 
+from query_agent.application.collection import EvidenceCollector
 from query_agent.application.context.comparison import ComparisonPolicy
 from query_agent.application.context.conflicts import ConflictDetector
 from query_agent.application.context.resolver import ExperimentContextResolver
 from query_agent.application.context.stage_selection import stage_satisfies
+from query_agent.application.planning import KeywordIntentParser, QueryPlanner
+from query_agent.application.service import QueryService
 from query_agent.domain.experiment import (
     ExperimentRun,
     ExperimentStage,
@@ -17,6 +22,7 @@ from query_agent.domain.query import (
     QueryPlan,
     QueryRequest,
     QuerySource,
+    QueryStatus,
     RunSelectionMode,
 )
 
@@ -129,3 +135,73 @@ def test_indexed_data_stage_is_distinct_from_execution_control_stage() -> None:
         }
     )
     assert not stage_satisfies(failed, "routing")
+
+
+def test_explicit_snapshot_excludes_other_revision_before_conflict_checks() -> None:
+    provider = FakeExperimentContextProvider()
+    metric = provider.metrics[0]
+    provider.metrics = (
+        metric.model_copy(update={"snapshot_id": "selected", "revision_id": "r1"}),
+        metric.model_copy(
+            update={"snapshot_id": "other", "revision_id": "r2", "value": -0.8}
+        ),
+    )
+    request = QueryRequest(
+        query="WNS?",
+        context=QueryContext(
+            run_id="run_001",
+            snapshot_id="selected",
+            revision_id="r1",
+            source=QuerySource.MANAGED_RUN,
+        ),
+    )
+    resolved = ExperimentContextResolver(provider).resolve(
+        request, metric_plan(RunSelectionMode.EXPLICIT)
+    )
+    assert resolved.context.metrics == (provider.metrics[0],)
+    assert not resolved.conflicts
+
+
+def test_same_artifact_in_two_snapshots_keeps_distinct_evidence_identity() -> None:
+    provider = FakeExperimentContextProvider()
+    metric = provider.metrics[0]
+    provider.metrics = (
+        metric.model_copy(update={"snapshot_id": "s1", "revision_id": "r1"}),
+        metric.model_copy(update={"snapshot_id": "s2", "revision_id": "r1"}),
+    )
+    app = QueryService(
+        intent_parser=KeywordIntentParser(),
+        planner=QueryPlanner(),
+        collector=EvidenceCollector(experiment_context_provider=provider),
+    )
+    response = app.query(
+        QueryRequest(
+            query="WNS?",
+            context=QueryContext(run_id="run_001", source=QuerySource.MANAGED_RUN),
+        )
+    )
+    assert response.status is QueryStatus.ANSWERED
+    assert len({item.evidence_id for item in response.evidence}) == 2
+    assert {item.scope.snapshot_id for item in response.evidence} == {"s1", "s2"}
+
+
+def test_unscoped_legacy_metric_keeps_its_evidence_id() -> None:
+    app = QueryService(
+        intent_parser=KeywordIntentParser(),
+        planner=QueryPlanner(),
+        collector=EvidenceCollector(
+            experiment_context_provider=FakeExperimentContextProvider()
+        ),
+    )
+    response = app.query(
+        QueryRequest(
+            query="WNS?",
+            context=QueryContext(run_id="run_001", source=QuerySource.MANAGED_RUN),
+        )
+    )
+    assert response.status is QueryStatus.ANSWERED
+    item = response.evidence[0]
+    original_digest = hashlib.sha256(
+        f"{item.locator.uri}:{item.content}".encode()
+    ).hexdigest()
+    assert item.evidence_id == "ev-" + original_digest[:24]

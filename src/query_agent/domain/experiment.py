@@ -165,6 +165,8 @@ class MetricObservation(BaseModel):
     run_id: str = Field(min_length=1)
     design_id: str | None = None
     stage_key: str | None = None
+    snapshot_id: str | None = Field(default=None, min_length=1)
+    revision_id: str | None = Field(default=None, min_length=1)
     artifact_id: str | None = None
     source_hash: str | None = Field(default=None, min_length=64, max_length=64)
     complete: bool = True
@@ -187,6 +189,8 @@ class MetricObservation(BaseModel):
             design_id=self.design_id,
             run_id=self.run_id,
             stage=self.stage_key,
+            snapshot_id=self.snapshot_id,
+            revision_id=self.revision_id,
         )
 
     @property

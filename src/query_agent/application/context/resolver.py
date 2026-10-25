@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from query_agent.domain.evidence import EvidenceScope
 from query_agent.domain.experiment import (
     ContextSelection,
     ExperimentContext,
@@ -76,12 +77,16 @@ class ExperimentContextResolver:
             )
         )
         metric_name = _metric_name(plan)
+        requested_data_scope = EvidenceScope(
+            snapshot_id=context.snapshot_id, revision_id=context.revision_id
+        )
         metrics = tuple(
             metric
             for run_id in selected_ids
             for metric in self.provider.list_metrics(
                 run_id, metric_name=metric_name, stage_key=context.stage
             )
+            if metric.scope.matches(requested_data_scope)
         )
         provenance = tuple(
             item
