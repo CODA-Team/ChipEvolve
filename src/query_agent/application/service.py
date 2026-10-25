@@ -164,9 +164,14 @@ class QueryService:
         ):
             observations = resolved.comparison.observations
             first = observations[0]
-            second = observations[1]
-            if isinstance(first.value, (int, float)) and isinstance(
-                second.value, (int, float)
+            second = next(
+                (item for item in observations[1:] if item.run_id != first.run_id),
+                None,
+            )
+            if (
+                second is not None
+                and isinstance(first.value, (int, float))
+                and isinstance(second.value, (int, float))
             ):
                 delta = first.value - second.value
                 return (

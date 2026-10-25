@@ -64,7 +64,8 @@ class ExecutionFoundationExperimentContextProvider(ExperimentContextProvider):
         if limit < 1:
             raise ValueError("limit must be positive")
         if run_ids:
-            return tuple(self.get_run(run_id) for run_id in run_ids[:bounded_limit])
+            unique = tuple(dict.fromkeys(run_ids))
+            return tuple(self.get_run(run_id) for run_id in unique[:bounded_limit])
         runs_method = getattr(self._client, "runs", None)
         if not callable(runs_method):
             raise RunEvidenceError("execution foundation client cannot list runs")

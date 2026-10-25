@@ -59,7 +59,12 @@ class AnswerabilityEvaluator:
                     or item.fact_key == requirement.fact_key
                 )
             ]
-            if len(matching) < requirement.minimum_items:
+            count = (
+                len({item.scope.run_id for item in matching if item.scope.run_id})
+                if plan.intent is QueryIntent.CROSS_RUN_COMPARE
+                else len(matching)
+            )
+            if count < requirement.minimum_items:
                 missing.append(requirement)
             if any(
                 capability not in available_capabilities
