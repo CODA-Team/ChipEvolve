@@ -1,5 +1,10 @@
 # Agentic EDA 施工状态
 
+## 当前状态：A45 新500ps GCD来源闭合，2026-10-25
+
+2026-10-25 A45：批准500ps的GCD/Nangate45完整RTL→ORFS→RCX/测量→DF/DI/Query单次来源资格通过，功耗2.2321124561mW/cell675.64um²/setupWS+40.0912ps/holdWS+110.517ps/TNS均0/DRV与DRC0。5个实际EF成功、12事实及原件/时钟/作用域同值；未搜索/证明/双次均值。真实源暴露Flow前导注释/变量时钟接入阻断，A46定点修复，长搜索暂停。见 [A45报告](A45_GCD_500PS_SOURCE_QUALIFICATION_20261025.md)。
+
+
 ## 当前状态：A44 固定方法跨PDK入口已修，2026-10-25
 
 2026-10-25 A44：固定Goal重放和物理控制入口继承原冻结PDK，不再写死ASAP7；6例错误复现后25针对/689根回归与静态通过。两份真实原生baseline公开成功状态及RC原件SHA核对通过，无新EDA/模型/PPA。见 [A44报告](A44_FIXED_METHOD_PDK_REPAIR_20261025.md)。

@@ -1,3 +1,5 @@
+2026-10-25 A45：批准500ps的GCD/Nangate45完整RTL→ORFS→RCX/测量→DF/DI/Query单次来源资格通过，功耗2.2321124561mW/cell675.64um²/setupWS+40.0912ps/holdWS+110.517ps/TNS均0/DRV与DRC0。5个实际EF成功、12事实及原件/时钟/作用域同值；未搜索/证明/双次均值。真实源暴露Flow前导注释/变量时钟接入阻断，A46定点修复，长搜索暂停。见 [A45报告](admin/A45_GCD_500PS_SOURCE_QUALIFICATION_20261025.md)。
+
 2026-10-25 A44：固定Goal重放和物理控制入口继承原冻结PDK，不再写死ASAP7；6例错误复现后25针对/689根回归与静态通过。两份真实原生baseline公开成功状态及RC原件SHA核对通过，无新EDA/模型/PPA。见 [A44报告](admin/A44_FIXED_METHOD_PDK_REPAIR_20261025.md)。
 
 2026-10-25 A43：共同测量/四专业派发/显式基线/物理交付绑定实际库、SDC及声明工况到冻结目标，避免不同条件沿用旧condition_id；相同内容换目录仍接受。8项失败复现后59针对/682根回归及静态通过，实际八组7匹配/500ps对旧250ps明确拒绝，0新EDA。见 [A43报告](admin/A43_MEASUREMENT_CONDITION_BINDING_20261025.md)。
