@@ -162,6 +162,13 @@ def replay(
         native_method={
             "kind": "independent-routing-replay",
             "original_result": str(result_path),
+            # Keep the input's physical boundary: an already routed result
+            # needs independent extraction/measurement, not a fresh route.
+            **{
+                key: saved["native_method"][key]
+                for key in ("physical_stage", "route_drc", "route_drc_evidence")
+                if key in saved.get("native_method", {})
+            },
         },
     )
     return finish(deployment, experiment)
