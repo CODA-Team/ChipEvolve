@@ -535,3 +535,5 @@ Ariane主AG4完整DRT/RCX/DF/DI已完成，651.96436644mW/43970.9µm²/setupTNS�
 2026-10-25 A46：Flow来源单位检查接受前导注释，已知物理/虚拟变量时钟模板原样保留，500ps/20%I/O不变。53针对/706根回归及静态通过；真实EF三任务准备通过，Yosys/完整17参数/ABC500ps核对成功。无模型/新PPA或搜索；长实验继续暂停。见 [A46报告](admin/A46_NATIVE_VARIABLE_CLOCK_ADMISSION_20261025.md)。
 
 2026-10-25 A47：独立重放保留原详细布线阶段/DRC/证据，避免遗漏标记而拆线重布；4失败复现后41针对/712根回归及静态通过。真实500ps已布线来源经5个EF任务与DF/DI回流，全指标/网表/632连接同值；DEF编码变化单独留证，不宣称逐形状几何证明。无专业搜索/模型；长实验暂停。见 [A47报告](admin/A47_ROUTED_VALIDATION_REPLAY_20261025.md)。
+
+2026-10-25 A48：Ariane/Nangate45原14组换单元/插buffer及完整repair/合法化/GRT收尾实际通过，工具221秒、无旧EST-0104/崩溃；仍4 slew/8 cap，GRT与原提取RC口径不同，不报最终PPA收益。原生阶段事实EF→DF/DI同值；发现Query混用指标subject与导出producer导致原件缺失，为下一定点修复。产品源码不变，4针对/静态通过，复用A47根712。见 [A48报告](admin/A48_ARIANE_FULL_GRT_COMPATIBILITY_20261025.md)。
