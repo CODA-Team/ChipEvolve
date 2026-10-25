@@ -1,3 +1,9 @@
+# 当前状态：A70已核实RMP候选丢失快速单元，长搜索保持暂停，2026-10-26
+
+2026-10-26 A70：同一Ariane检查点单区域原生配对诊断完成；实际36个SLVT输入被四种ABC全部映为80–106个RVT。原输入SLVT归一化开关在此无效，边界放置使局部HPWL下降12.78–18.67%，仍时序恶化、八次STA全部拒绝；两组完整210746实例/191607网络含供电回滚同值。EF映射原件、四placement事实/八Query及静态code-check通过，产品源码/26用户文件不变。下一项核对多VT映射与延迟目标语义，不重复默认长搜索。见 [A70](A70_RMP_MAPPING_AND_PLACEMENT_DIAGNOSIS_20261026.md)。
+
+最新待用专业配置仍在 `var/business/a68-rmp-candidate-admission-20261026/configs/`。当前诊断与恢复点在 `var/business/a70-rmp-mapping-diagnosis-20261026/`，下一项依据保留映射原件处理单元库选择；不改变已采用结果或原业务约束。
+
 # 当前状态：A69 Goal准备产物修复及Ariane重构诊断通过，2026-10-26
 
 2026-10-26 A69：修复Goal准备阶段预运行glob漏登记node/nets CSV，真实EF七产物与两CSV公开取回/profile哈希一致；原Ariane RMP单阶段4逻辑云/16次STA全部时序变差拒绝，210746实例/191607网络含供电的拓扑和位置完整回滚。三placement快照/六setup与hold Query及原件通过；733根回归与静态code-check通过，26用户文件保持。无新采用/模型/长搜索；下一项核查原RMP映射及边界放置策略，不重复默认配置。见 [A69](A69_ARIANE_RMP_DIAGNOSIS_AND_GOAL_ARTIFACTS_20261026.md)。
