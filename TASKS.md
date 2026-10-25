@@ -539,3 +539,5 @@ Ariane主AG4完整DRT/RCX/DF/DI已完成，651.96436644mW/43970.9µm²/setupTNS�
 2026-10-25 A48：Ariane/Nangate45原14组换单元/插buffer及完整repair/合法化/GRT收尾实际通过，工具221秒、无旧EST-0104/崩溃；仍4 slew/8 cap，GRT与原提取RC口径不同，不报最终PPA收益。原生阶段事实EF→DF/DI同值；发现Query混用指标subject与导出producer导致原件缺失，为下一定点修复。产品源码不变，4针对/静态通过，复用A47根712。见 [A48报告](admin/A48_ARIANE_FULL_GRT_COMPATIBILITY_20261025.md)。
 
 2026-10-25 A49：修Query指标原件引用，未指定stage也读取DF登记source，回答经snapshot/source端点实际取回并核SHA；subject/snapshot/revision不变。2失败复现后28针对/182Query/712根回归及全静态/依赖检查通过，真实4例正反验证通过；A48不足主因更正为私有摘要漏单位/corner，错误引用独立修复。独立wheel与八份未来配置已绑定，旧环境不热切，长搜索暂停。见 [A49报告](admin/A49_QUERY_METRIC_SOURCE_CITATION_20261025.md)。
+
+2026-10-25 A50：Query内部保留缺原件/单位/corner的具体原因，普通/当前/比较路径不再一律误报原件缺失；186Query/712根回归及全静态/依赖检查通过，独立包5项真实只读正反验证通过，EDA/模型0。下一发现：无显式stage的两run比较排除了已有finish事实，待A51定点修复。见 [A50报告](admin/A50_QUERY_INCOMPLETE_METRIC_REASON_20261025.md)。
