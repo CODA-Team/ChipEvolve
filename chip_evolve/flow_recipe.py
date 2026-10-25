@@ -9,6 +9,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
+from .clock import native_time_unit
 from .config import Deployment, read, write
 from .jobs import Jobs, digest
 from .physical import container, measure, publish
@@ -272,11 +273,7 @@ def prepare_native_source(
     binding = source_binding(source_result)
     design = deployment.design(binding["design_id"])
     unit = "ps" if design.get("platform", "asap7") == "asap7" else "ns"
-    if (
-        not Path(binding["sdc"])
-        .read_text()
-        .startswith("set_cmd_units -time " + unit + "\n")
-    ):
+    if native_time_unit(Path(binding["sdc"]).read_text()) != unit:
         raise ValueError(
             "Register a " + unit + "-serialized source before native Flow search; "
             "ORFS stage SDCs must use the platform's native time unit"

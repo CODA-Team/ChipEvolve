@@ -108,8 +108,9 @@ def test_native_source_does_not_silently_convert_ns_to_ps(tmp_path, monkeypatch)
         flow_recipe.prepare_native_source(d, frame, exp)
 
 
+@pytest.mark.parametrize("header", ["", "# Source timing units\n\n"])
 def test_nangate_source_requires_native_ns_and_separate_abc_binding(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, header
 ):
     from admin.test_local_business import deployment
     from chip_evolve import flow_recipe
@@ -117,7 +118,7 @@ def test_nangate_source_requires_native_ns_and_separate_abc_binding(
     frame = source(tmp_path)
     sdc = frame.parent / "design.sdc"
     sdc.write_text(
-        "set_cmd_units -time ns\ncreate_clock -period 0.25 [get_ports clk]\n"
+        header + "set_cmd_units -time ns\ncreate_clock -period 0.25 [get_ports clk]\n"
     )
     hashes = frame.parent / "jobs/orfs/staged-hashes.json"
     write(hashes, {**read(hashes), str(sdc): digest(sdc)})
@@ -134,7 +135,11 @@ def test_nangate_source_requires_native_ns_and_separate_abc_binding(
         pass
 
     def checked(*args):
-        assert sdc.read_text().startswith("set_cmd_units -time ns\n")
+        assert (
+            sdc.read_text()
+            == header
+            + "set_cmd_units -time ns\ncreate_clock -period 0.25 [get_ports clk]\n"
+        )
         raise CheckedBeforeExecution()
 
     monkeypatch.setattr(flow_recipe, "prepare_flow_recipe", checked)
