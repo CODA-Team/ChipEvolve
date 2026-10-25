@@ -4,11 +4,11 @@ import datetime
 import hashlib
 import json
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
 from openroad_platform_contracts import InputFile, ResourceRequest, TaskSpec
-
 from platform_execution import TERMINAL, write_record
 
 
@@ -139,13 +139,17 @@ def publish_feedback(
         "artifact_id": bundle["artifact_id"],
     }
     write_record(path, record)
-    record["import_response"] = request(
-        data_url, "/snapshots/from-run", record["import_request"]
-    )
-    write_record(path, record)
-    imported = request(data_url, "/imports/" + bundle["artifact_id"])["data"][
-        "import_receipt"
-    ]
+    receipt_path = "/imports/" + bundle["artifact_id"]
+    try:
+        imported = request(data_url, receipt_path)["data"]["import_receipt"]
+    except urllib.error.HTTPError as error:
+        if error.code != 404:
+            raise
+        record["import_response"] = request(
+            data_url, "/snapshots/from-run", record["import_request"]
+        )
+        write_record(path, record)
+        imported = request(data_url, receipt_path)["data"]["import_receipt"]
     summary = request(data_url, "/snapshots/" + snapshot_id + "/summary?detail=full")[
         "data"
     ]

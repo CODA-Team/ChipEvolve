@@ -4,8 +4,10 @@ import hashlib
 import json
 import tempfile
 import unittest
+from email.message import Message
 from pathlib import Path
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 from platform_feedback import publish_feedback
 
@@ -21,6 +23,9 @@ class FeedbackClient:
 
     def run(self, run_id):
         return {"run_id": run_id, "status": "succeeded"}
+
+    def cancel(self, run_id):
+        raise AssertionError("Completed feedback must not be cancelled: " + run_id)
 
     def artifacts(self, run_id):
         return [
@@ -71,12 +76,20 @@ class FeedbackTests(unittest.TestCase):
         self.posts = []
         self.attempts = 1
         self.physical = "actual-physical"
+        self.import_exists = False
+        self.lose_import_response = False
 
         def request(base, path, payload=None):
             if payload is not None:
                 self.posts.append(payload)
+                self.import_exists = True
+                if self.lose_import_response:
+                    self.lose_import_response = False
+                    raise TimeoutError("Import completed but response was lost")
                 return {"snapshot_id": self.snapshot}
             if path.startswith("/imports/"):
+                if not self.import_exists:
+                    raise HTTPError(base + path, 404, "not imported", Message(), None)
                 return {
                     "data": {
                         "import_receipt": {
@@ -95,6 +108,7 @@ class FeedbackTests(unittest.TestCase):
             }
 
         patched = patch("platform_feedback.request", side_effect=request)
+        self.request = request
         patched.start()
         self.addCleanup(patched.stop)
 
@@ -107,10 +121,42 @@ class FeedbackTests(unittest.TestCase):
         self.assertTrue(first["imported"])
         self.assertEqual(first["snapshot_id"], second["snapshot_id"])
         self.assertEqual(len(self.client.submissions), 1)
-        self.assertEqual(self.posts[0], self.posts[1])
+        self.assertEqual(len(self.posts), 1)
         staged = self.client.submissions[0][0]["staged_inputs"][0]
         self.assertEqual(staged["artifact_id"], "actual-metadata")
         self.assertEqual(first["physical_run_id"], "actual-physical")
+
+    def test_lost_import_response_recovers_without_reposting_completed_work(self):
+        self.lose_import_response = True
+        with self.assertRaisesRegex(TimeoutError, "response was lost"):
+            self.publish()
+
+        def read_only(base, path, payload=None):
+            self.assertIsNone(payload, "Recovery must not reissue the import POST")
+            return self.request(base, path, payload)
+
+        with patch("platform_feedback.request", side_effect=read_only):
+            result = self.publish()
+        self.assertTrue(result["imported"])
+        self.assertEqual(len(self.posts), 1)
+        self.assertEqual(len(self.client.submissions), 1)
+
+    def test_unavailable_receipt_does_not_trigger_another_import(self):
+        self.publish()
+
+        def unavailable(base, path, payload=None):
+            self.assertIsNone(payload)
+            self.assertTrue(path.startswith("/imports/"))
+            raise HTTPError(
+                base + path, 503, "temporarily unavailable", Message(), None
+            )
+
+        with (
+            patch("platform_feedback.request", side_effect=unavailable),
+            self.assertRaises(HTTPError),
+        ):
+            self.publish()
+        self.assertEqual(len(self.posts), 1)
 
     def test_changed_metadata_is_rejected_before_import(self):
         self.client.changed_hash = True
