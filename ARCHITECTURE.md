@@ -1,3 +1,5 @@
+2026-10-26 A78/A79：阶段功耗必须在RC更新后刷新原生STA缓存再读，不能用旧缓存差值证明收益；原Goal已有此机制，ECO平台EF会话本次补齐。原生独立活动模型、专业动作/评分/回溯保持；同源证据复用，最终DRT/RCX资格仍独立。新事实标明RC和精度，旧历史不覆盖，无新服务或公共接口。见 [A79](admin/A79_ECO_QOR_POWER_CACHE_FIX_20261026.md)。
+
 2026-10-26 A68：物理交接保留完整供电事实；专业信号依赖判断须区分POWER/GROUND与信号，不在DF全局删PG关系。原RMP仅在触发器邻接判断中排除供电，其余策略/STA/回滚不变。源码修复在新私有副本、原生AST与EF构建核验后供未来任务使用，需测新baseline，旧固化重放不热补丁。EF→DF→DI/Query及公共接口保持。见 [A68](admin/A68_RMP_SUPPLY_ADMISSION_FIX_20261026.md)。
 
 2026-10-26 A67：Goal原生recipe决定实际动作，timing_only须执行所选RMP重构，只有power_then_timing添加功耗步骤；保留原有顺序、限额和筛选。既有EF→DF→DI/Query边界不变，成功执行/空候选/未采用分别记录，不能把方法名字当动作证据。无新服务/API/数据库。见 [A67](admin/A67_GOAL_TIMING_ONLY_RESTRUCTURE_20261026.md)。
