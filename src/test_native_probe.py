@@ -2,8 +2,10 @@
 
 import ast
 import contextlib
+import json
 import subprocess
 import tempfile
+import types
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -163,3 +165,135 @@ class NativeProbeTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def native_function(name: str, namespace: dict):
+    """Load one native function without starting the loop or plotting imports."""
+    tree = ast.parse((ROOT / "src/main_orch.py").read_text())
+    node = next(
+        n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == name
+    )
+    compiled = compile(
+        ast.Module(body=[node], type_ignores=[]), "native-context", "exec"
+    )
+    code = next(
+        value for value in compiled.co_consts if isinstance(value, types.CodeType)
+    )
+    defaults = tuple(ast.literal_eval(value) for value in node.args.defaults)
+    return types.FunctionType(code, namespace, name, defaults)
+
+
+class TimingContextTests(unittest.TestCase):
+    def fixture(self, root: Path) -> Path:
+        path = root / "context.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "tns_ps": -17813.3,
+                    "num_violating_endpoints": 50,
+                    "paths": [{"endpoint": "axi_req_o[113]", "slack_ps": -366.35}],
+                }
+            )
+        )
+        path.with_suffix(".toon").write_text(
+            "tns_ps: -17813.3\nnum_violating_endpoints: 50\n\npath[1]{endpoint,slack_ps}:\naxi_req_o[113],-366.35\n"
+        )
+        return path
+
+    def binder(self):
+        return native_function("bind_timing_context", {"json": json, "Path": Path})
+
+    def test_native_total_is_distinct_from_subset_and_preserves_paths(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = self.fixture(Path(directory))
+            before = json.loads(path.read_text())
+            body = path.with_suffix(".toon").read_text().split("\n\n", 1)[1]
+            self.binder()(path, -493796.406)
+            value = json.loads(path.read_text())
+            self.assertEqual(value["tns_ps"], -493796.406)
+            self.assertEqual(value["tns_scope"], "design")
+            self.assertEqual(value["reported_paths_tns_ps"], -17813.3)
+            self.assertEqual(value["num_violating_endpoints"], 50)
+            self.assertEqual(value["num_violating_endpoints_scope"], "reported_paths")
+            self.assertEqual(value["paths"], before["paths"])
+            toon = path.with_suffix(".toon").read_text()
+            self.assertIn("tns_ps: -493796.406\n", toon)
+            self.assertIn("reported_paths_tns_ps: -17813.3\n", toon)
+            self.assertEqual(toon.split("\n\n", 1)[1], body)
+
+    def test_retry_preserves_original_reported_subset(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = self.fixture(Path(directory))
+            binder = self.binder()
+            binder(path, -493796.406)
+            first = path.with_suffix(".toon").read_text()
+            binder(path, -493796.406)
+            self.assertEqual(path.with_suffix(".toon").read_text(), first)
+            self.assertEqual(
+                json.loads(path.read_text())["reported_paths_tns_ps"], -17813.3
+            )
+
+    def test_missing_native_total_keeps_subset_explicit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = self.fixture(Path(directory))
+            self.binder()(path, None)
+            value = json.loads(path.read_text())
+            self.assertIsNone(value["tns_ps"])
+            self.assertEqual(value["tns_scope"], "unavailable")
+            self.assertEqual(value["reported_paths_tns_ps"], -17813.3)
+            self.assertIn("tns_ps: \n", path.with_suffix(".toon").read_text())
+
+    def test_actual_model_hook_binds_current_tool_total_first(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = self.fixture(Path(directory))
+            seen = []
+
+            def transport(*args, **kwargs):
+                seen.append(json.loads(path.read_text())["tns_ps"])
+                return types.SimpleNamespace(returncode=0)
+
+            namespace = {
+                "Path": Path,
+                "DYNAMIC_CONTEXT_JSON": str(path),
+                "WNS_TNS_FILE": str(Path(directory) / "wns_tns.txt"),
+                "parse_wns_tns_file": lambda _: {"wns": -366.345, "tns": -493796.406},
+                "bind_timing_context": self.binder(),
+                "subprocess": types.SimpleNamespace(
+                    run=transport, TimeoutExpired=subprocess.TimeoutExpired
+                ),
+                "sys": types.SimpleNamespace(executable="unused"),
+                "LLM_CALL": "unused",
+            }
+            call = native_function("run_llm", namespace)
+            self.assertEqual(call(), (True, "ok"))
+            self.assertEqual(seen, [-493796.406])
+
+    def test_live_summary_refresh_is_ordered_before_each_model_call(self):
+        events = []
+        namespace = {
+            "WNS_TNS_FILE": "/tmp/current-summary.txt",
+            "PARA": "TIMING_DONE",
+            "send": lambda proc, command: events.append(("send", command)),
+            "wait_for_sentinel": lambda proc: events.append(("wait", proc)),
+        }
+        refresh = native_function("refresh_model_timing", namespace)
+        refresh("same-managed-session")
+        self.assertEqual([event[0] for event in events], ["send", "wait"])
+        self.assertIn('open "/tmp/current-summary.txt" w', events[0][1])
+        self.assertIn("report_wns -digits 3", events[0][1])
+        self.assertIn("report_tns -digits 3", events[0][1])
+        self.assertIn("puts TIMING_DONE", events[0][1])
+        tree = ast.parse((ROOT / "src/main_orch.py").read_text())
+        loop = next(
+            n
+            for n in tree.body
+            if isinstance(n, ast.FunctionDef) and n.name == "run_loop"
+        )
+        calls = {
+            n.func.id: n.lineno
+            for n in ast.walk(loop)
+            if isinstance(n, ast.Call)
+            and isinstance(n.func, ast.Name)
+            and n.func.id in {"refresh_model_timing", "run_llm"}
+        }
+        self.assertLess(calls["refresh_model_timing"], calls["run_llm"])

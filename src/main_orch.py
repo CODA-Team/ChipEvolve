@@ -994,14 +994,68 @@ def wait_for_sentinel(proc, sentinel: str = PARA, tag: str = ""):
         )
 
 
+def refresh_model_timing(proc: subprocess.Popen[str]) -> None:
+    """Read the live state, including after a crash restart or backtrace."""
+    send(
+        proc,
+        f"""
+    set fp_wt [open "{WNS_TNS_FILE}" w]
+    close $fp_wt
+    tee -file "{WNS_TNS_FILE}" {{ report_wns -digits 3 }}
+    tee -file "{WNS_TNS_FILE}" -append {{ report_tns -digits 3 }}
+    puts {PARA}
+    """,
+    )
+    wait_for_sentinel(proc)
+
+
+def bind_timing_context(context_path: Path, total_tns_ps: float | None) -> None:
+    """Keep full-design native TNS distinct from the bounded path report."""
+    context = json.loads(context_path.read_text(encoding="utf-8"))
+    context["reported_paths_tns_ps"] = context.get(
+        "reported_paths_tns_ps", context["tns_ps"]
+    )
+    context["tns_ps"] = total_tns_ps
+    context["tns_scope"] = "design" if total_tns_ps is not None else "unavailable"
+    context["num_violating_endpoints_scope"] = "reported_paths"
+    toon_path = context_path.with_suffix(".toon")
+    header, separator, body = toon_path.read_text(encoding="utf-8").partition("\n\n")
+    extra_keys = ("reported_paths_tns_ps", "tns_scope", "num_violating_endpoints_scope")
+    rows = [
+        row
+        for row in header.splitlines()
+        if not row.startswith(tuple(key + ":" for key in extra_keys))
+    ]
+    for index, row in enumerate(rows):
+        if row.startswith("tns_ps:"):
+            value = "" if total_tns_ps is None else str(total_tns_ps)
+            rows[index] = "tns_ps: " + value
+    rows.extend(
+        key + ": " + ("" if context[key] is None else str(context[key]))
+        for key in extra_keys
+    )
+    context_path.write_text(json.dumps(context, indent=2), encoding="utf-8")
+    toon_path.write_text("\n".join(rows) + separator + body, encoding="utf-8")
+
+
 def run_llm(max_iter=1, timeout=60, hard_timeout_s: float = 600.0):
     """Run the LLM subprocess with a hard wall-clock timeout.
     Returns a tuple (ok: bool, info: str) — caller checks ok and writes a
     sentinel ECO file on failure so wait_for_file_update can proceed.
     """
+    bind_timing_context(
+        Path(DYNAMIC_CONTEXT_JSON), parse_wns_tns_file(Path(WNS_TNS_FILE))["tns"]
+    )
     try:
         cp = subprocess.run(
-            [sys.executable, LLM_CALL, "--max-iter", str(max_iter), "--timeout", str(timeout)],
+            [
+                sys.executable,
+                LLM_CALL,
+                "--max-iter",
+                str(max_iter),
+                "--timeout",
+                str(timeout),
+            ],
             check=False,
             timeout=hard_timeout_s,
         )
@@ -1872,6 +1926,7 @@ def run_loop(loop_max=48):
         print(f"  [TARGET] path1: sp={path1_sp_pre} ep={path1_ep_pre} slack={path1_slack_pre}")
 
         # ---- Call LLM to produce ECO commands ----
+        refresh_model_timing(proc)
         llm_t0 = _time.time()
         pre_token_lines = token_log_line_count(TOKEN_LOG_JSONL)
         llm_ok, llm_info = run_llm(max_iter=1, timeout=60, hard_timeout_s=600.0)
