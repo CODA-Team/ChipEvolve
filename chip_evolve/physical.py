@@ -28,6 +28,41 @@ def now() -> str:
     return datetime.now(UTC).isoformat()
 
 
+def verify_measurement_conditions(
+    deployment: Deployment, design_id: str, objective: Path, sdc: Path
+) -> None:
+    """Bind the selected environment to the frozen goal, ignoring file location."""
+    goal = read(objective)
+    verify_conditions(goal, sdc=sdc)
+    if goal["design_id"] != design_id:
+        raise ValueError("Measurement objective belongs to another design")
+    design, expected = deployment.design(design_id), goal["conditions"]
+    libraries = design["libraries"]
+    hashes = [digest(Path(row["path"])) for row in libraries]
+    if hashes != [row["sha256"] for row in libraries]:
+        raise ValueError("Frozen design libraries changed")
+    actual = {
+        "libraries": sorted(hashes),
+        "corner": design.get("corner"),
+        "clock_period_ns": design.get("clock_period_ns"),
+        "toolchain": deployment.value.get("toolchain"),
+    }
+    expected = {
+        **expected,
+        "libraries": sorted(row["sha256"] for row in expected["libraries"]),
+    }
+    different = [
+        name
+        for name, value in actual.items()
+        if name in expected and value != expected[name]
+    ]
+    if different:
+        raise ValueError(
+            "Measurement conditions differ from the shared objective: "
+            + ", ".join(different)
+        )
+
+
 def qualify(
     jobs: Jobs,
     odb: Path,
@@ -41,6 +76,9 @@ def qualify(
 ) -> dict[str, Any]:
     """Complete GRT checkpoints, or extract facts from an already routed state."""
     design = jobs.deployment.design(jobs.design_id)
+    verify_measurement_conditions(
+        jobs.deployment, jobs.design_id, objective, Path(design["sdc"])
+    )
     output = jobs.experiment / "qualification"
     output.mkdir(exist_ok=True)
     script = output / "route.tcl"
@@ -155,6 +193,10 @@ def baseline(
     objective: Path | None = None,
 ) -> dict[str, Any]:
     design = deployment.design(design_id)
+    if objective:
+        verify_measurement_conditions(
+            deployment, design_id, objective, Path(design["sdc"])
+        )
     jobs = Jobs(deployment, design_id, experiment)
     config = experiment / "inputs/design.mk"
     config.parent.mkdir(exist_ok=True)
@@ -309,7 +351,7 @@ def measure(
     if memory_gib != 8:
         key += "-m" + str(memory_gib)
     if objective:
-        verify_conditions(read(objective), sdc=sdc)
+        verify_measurement_conditions(deployment, jobs.design_id, objective, sdc)
     folder = jobs.experiment / key
     identity = {
         "parent": parent,
@@ -323,7 +365,7 @@ def measure(
     write(saved, identity)
     script = folder / "measure.tcl"
     libraries = [Path(row["path"]) for row in design["libraries"]]
-    if any(
+    if not objective and any(
         digest(path) != row["sha256"]
         for path, row in zip(libraries, design["libraries"], strict=True)
     ):

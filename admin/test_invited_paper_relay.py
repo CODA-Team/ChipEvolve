@@ -6,7 +6,7 @@ from admin.test_local_business import deployment
 from chip_evolve import physical
 from chip_evolve.config import write
 from chip_evolve.delivery import checkpoint, finish
-from chip_evolve.jobs import Jobs
+from chip_evolve.jobs import Jobs, digest
 from chip_evolve.native import _goal_targets
 
 
@@ -62,6 +62,8 @@ def test_delivery_routes_only_when_the_checkpoint_requires_it(
         "sdc": str(tmp_path / "design.sdc"),
         "orfs_execution": {"memory_gib": memory_gib},
     }
+    sdc = tmp_path / "design.sdc"
+    sdc.write_text("frozen common measurement SDC\n")
     if timeout_seconds is not None:
         d.value["designs"][design_id]["orfs_execution"]["timeout_seconds"] = (
             timeout_seconds
@@ -70,7 +72,16 @@ def test_delivery_routes_only_when_the_checkpoint_requires_it(
     odb = tmp_path / "parent.odb"
     odb.write_bytes(b"actual native geometry")
     objective = tmp_path / "objective.json"
-    write(objective, {})
+    write(
+        objective,
+        {
+            "design_id": design_id,
+            "conditions": {
+                "libraries": [],
+                "sdc": {"path": str(sdc), "sha256": digest(sdc)},
+            },
+        },
+    )
     pdk = tmp_path / "pdk"
     pdk.mkdir()
     for name in ["setRC.tcl", "rcx_patterns.rules"]:

@@ -20,7 +20,7 @@ from eda_toolkits.context import load_context
 from .clock import flow_sdc
 from .config import Deployment, read, write
 from .jobs import Jobs, digest
-from .physical import measure, publish
+from .physical import measure, publish, verify_measurement_conditions
 
 
 def freeze(
@@ -210,6 +210,9 @@ def execute(
     if frame["design_id"] != args.design:
         raise ValueError("Professional source belongs to another design")
     objective = (args.objective or Path(frame["objective"])).resolve()
+    verify_measurement_conditions(
+        deployment, args.design, objective, Path(deployment.design(args.design)["sdc"])
+    )
     receipt = args.source.parent / "diagnosis.json"
     context = args.context or (
         Path(read(receipt)["context"])

@@ -23,6 +23,10 @@ def inputs(tmp_path):
     objective["conditions"]["units"] = {"power": "W", "area": "um^2", "time": "ns"}
     objective["objective_id"] = objective_id(objective)
     write(Path(frame["objective"]), objective)
+    d.value["designs"]["gcd"].update(
+        sdc=objective["conditions"]["sdc"]["path"],
+        libraries=[dict(row) for row in objective["conditions"]["libraries"]],
+    )
     frame.update(
         objective_id=objective["objective_id"],
         condition_id=condition_id(objective),
