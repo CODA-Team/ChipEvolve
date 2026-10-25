@@ -1,0 +1,64 @@
+--- a/src/cut/src/blif.cpp
++++ b/src/cut/src/blif.cpp
+@@ -23,6 +23,7 @@
+   }
+
+   odb::dbRow* best_row = nullptr;
++  int best_x = 0;
+   int64_t best_dist = std::numeric_limits<int64_t>::max();
+   const int master_width = static_cast<int>(master->getWidth());
+   for (odb::dbRow* row : block->getRows()) {
+@@ -30,34 +31,34 @@
+     if (site == nullptr || site->getClass() == odb::dbSiteClass::PAD) {
+       continue;
+     }
+-    const odb::Point row_origin = row->getOrigin();
+-    const int64_t dy = static_cast<int64_t>(raw_y) - row_origin.y();
+-    const int64_t dist = dy * dy;
++    const int spacing = row->getSpacing();
++    const int site_count = row->getSiteCount();
++    if (static_cast<int64_t>(site_count) * spacing < master_width) {
++      continue;
++    }
++    const odb::Point origin = row->getOrigin();
++    const int row_min_x = origin.x();
++    const int row_max_x = row_min_x + (site_count - 1) * spacing
++                          - std::max(0, master_width - spacing);
++    int x = snapDownToGrid(raw_x, row_min_x, spacing);
++    x = std::clamp(x, row_min_x, row_max_x);
++    x = snapDownToGrid(x, row_min_x, spacing);
++    // Macro cuts can create multiple row fragments at the same height.
++    const int64_t dx = static_cast<int64_t>(raw_x) - x;
++    const int64_t dy = static_cast<int64_t>(raw_y) - origin.y();
++    const int64_t dist = dx * dx + dy * dy;
+     if (dist < best_dist) {
+       best_dist = dist;
+       best_row = row;
++      best_x = x;
+     }
+   }
+   if (best_row == nullptr) {
+     return false;
+   }
+
+-  const odb::Point origin = best_row->getOrigin();
+-  const int spacing = best_row->getSpacing();
+-  const int site_count = best_row->getSiteCount();
+-  const int row_min_x = origin.x();
+-  int row_max_x = row_min_x;
+-  if (site_count > 0 && spacing > 0) {
+-    row_max_x = row_min_x + (site_count - 1) * spacing;
+-  }
+-  row_max_x = std::max(row_min_x, row_max_x - std::max(0, master_width - spacing));
+-
+-  int x = snapDownToGrid(raw_x, row_min_x, spacing);
+-  x = std::clamp(x, row_min_x, row_max_x);
+-  x = snapDownToGrid(x, row_min_x, spacing);
+-
+-  snapped_x = x;
+-  snapped_y = origin.y();
++  snapped_x = best_x;
++  snapped_y = best_row->getOrigin().y();
+   snapped_orient = best_row->getOrient();
+   return true;
+ }

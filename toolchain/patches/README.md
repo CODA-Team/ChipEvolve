@@ -51,3 +51,22 @@ including real flip-flop data/clock neighbors and mixed supply/signal cases.
 Platform EF input diagnostics and native execution evidence are recorded under
 ChipEvolve's `var/business/a68-rmp-candidate-admission-20261026/`. Candidate
 admission alone does not establish an accepted PPA improvement.
+
+## RMP placement across macro-cut row fragments
+
+`fix-rmp-row-fragment-projection.patch` selects the nearest fitting row fragment
+using both horizontal and vertical projection distance. Choosing a row only by
+height can clamp a replacement cell to a distant fragment when macros split a
+placement row. The patch retains floor-to-grid alignment, row orientation,
+deterministic ties, and the original mapping, STA, acceptance and rollback rules.
+Fragments narrower than the replacement master are excluded.
+
+The base `src/cut/src/blif.cpp` SHA256 is
+`7043b0df1f76a6011f2be373a3cdadf39b669895cf818e3d19c6ff2bd6d23e58`.
+Apply only to a new private source copy with `git apply --check`, regenerate its
+repository graph and build through EF; historical sources and binaries remain
+immutable. `tests/unit/test_rmp_row_fragment_patch.py` compiles the exact original
+and repaired functions against split, continuous, narrow, negative-coordinate
+and orientation fixtures. Actual input diagnosis and subsequent native checks
+are recorded in ChipEvolve's A71/A72 reports. Correct placement alone does not
+establish accepted PPA improvement.
