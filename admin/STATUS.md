@@ -1,3 +1,7 @@
+# 当前状态：A61 ECO全设计TNS交付修复，2026-10-25
+
+真实50路径子集−13.814ns被误作设计TNS，原设计实际−127.168ns；请求前刷新同会话汇总并绑定JSON/TOON，子集范围另列，路径/评分/选择保持。42模块/2子测试、712根回归及静态通过，原生prompt与DF/DI/Query同值/来源字节核验。无新ECO搜索或PPA；下一项基于最差FIFO→AXI路径的单元延迟主因检查原sizing/VT动作。见 [A61](A61_ECO_DESIGN_TNS_CONTEXT_20261025.md)。
+
 # 当前状态：A60 FakeRAM抽象宏导出声明修复，2026-10-25
 
 原README明确SRAM为FakeRAM2.0模型；默认ORFS只认fakeram.*导致名称不匹配。新声明经原生正反控制与实际GDS核验通过，136实例保留、唯一空单元为已声明宏；未来配置保留PDN/库/约束。六事实及来源字节回流通过，新无PPA快照不误答WNS，原WNS−288.838ps/failed/adopted=false保持。长搜索暂停，下一项查真实setup/slew。见 [A60](A60_ASAP7_FAKERAM_STREAMOUT_20261025.md)。

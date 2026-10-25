@@ -1,3 +1,5 @@
+2026-10-25 A61：修复ECO将50路径子集TNS当设计TNS的模型输入；请求前同会话刷新原生汇总，JSON/TOON标明设计与子集，真实原SPEF−13813.72/−127167.508ps差异核实。42模块/2子测试、712根回归及lint/type通过，原生prompt/EF→DF/DI/Query原件同值；无新优化。见 [A61](admin/A61_ECO_DESIGN_TNS_CONTEXT_20261025.md)。
+
 2026-10-25 A60：核实ASAP7原包为FakeRAM2.0 LEF/Lib模型；新私有配置显式声明唯一使用的抽象宏，原生默认失败/显式成功对照通过，实际GDS的136实例保留且仅该宏为空。六DF/DI标志/原件字节、无PPA快照Query不足/原WNS仍负核对通过。保留原PDN与所有约束，真实setup/slew与正式资格仍待修；见 [A60](admin/A60_ASAP7_FAKERAM_STREAMOUT_20261025.md)。
 
 2026-10-25 A59：Ariane/Nangate45原11剩余引脚只读定位后，对3个常量驱动采用已有单元替换与margin10原生修复，再从保存GRT精确恢复并增大1个buffer；本轮同口径5slew/51cap→0/0，setup/hold TNS均0、WS +284.389/+19.384ps。两次阶段事实经EF/DF/DI/Query与来源字节核验通过；最终DRT/RCX/PPA/证明尚未做，不能采用或记双次。见 [A59](admin/A59_ARIANE_RESIDUAL_ELECTRICAL_20261025.md)。

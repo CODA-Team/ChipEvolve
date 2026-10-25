@@ -1,3 +1,5 @@
+2026-10-25 A61：专业模型上下文区分全设计原生汇总与有限路径报告；ECO请求前在原EF会话刷新WNS/TNS，设计TNS与子集TNS/计数范围分别进入JSON/TOON。原路径表、评分和选择保持；同状态只读重测不是独立优化重复。见 [A61](admin/A61_ECO_DESIGN_TNS_CONTEXT_20261025.md)。
+
 2026-10-25 A60：输入benchmark的宏模型来自其原README及Lib/LEF。FakeRAM抽象导出完成与完整宏几何分开记录；由新实验显式配置原生GDS_ALLOW_EMPTY，不在公共适配器中猜测或放宽所有缺宏。原失败父任务保持，独立尾段重放经EF登记，再由DF/DI提供阶段事实；无PPA的新快照不继承旧PPA。见 [A60](admin/A60_ASAP7_FAKERAM_STREAMOUT_20261025.md)。
 
 2026-10-25 A59：本机固定共同工具版本的Ariane/Nangate45已验证从保存ODB的GRT guides恢复原估算，时序/电气字典与父节点一致后再做定点动作；重建全局路由会产生新的估算状态，须另记节点。阶段事实显式标global_route，经EF→DF→DI/Query回流，不作为最终DRT/RCX PPA或采用。无新服务、公共协议或产品代码。见 [A59](admin/A59_ARIANE_RESIDUAL_ELECTRICAL_20261025.md)。
