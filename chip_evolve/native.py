@@ -117,6 +117,8 @@ def run_goal(
     )
     profile_path = experiment / "profile.json"
     profile = read(binding["profile_template"])
+    config = read(binding["campaign_template"])
+    build_seed = config.get("build_seed_root") or profile["source_seed"]
     profile.update(
         profile_path=str(profile_path),
         state_root=str(experiment),
@@ -129,7 +131,9 @@ def run_goal(
         agent_python=deployment.value["goal_python"],
         operations_root=str(experiment / "operations"),
         deadline_epoch=deadline,
-        read_roots=[str(source), profile["source_seed"]],
+        read_roots=list(
+            dict.fromkeys([str(source), profile["source_seed"], build_seed])
+        ),
         write_roots=[str(experiment)],
         controller_files=inventory(source),
         input_files={
@@ -155,7 +159,6 @@ def run_goal(
     if fixed:
         profile["read_roots"].append(fixed["source_root"])
     write(profile_path, profile)
-    config = read(binding["campaign_template"])
     native_targets = dict(config["target_metrics"])
     config.update(
         design=design["top"],
@@ -176,7 +179,7 @@ def run_goal(
     if fixed:
         config.update(
             source_root=fixed["source_root"],
-            build_seed_root=profile["source_seed"],
+            build_seed_root=build_seed,
             **fixed["recipe_parameters"],
         )
     write(config_path, config)

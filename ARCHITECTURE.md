@@ -588,3 +588,10 @@ JPEG已由Goal03物理状态→有证据的Query/Codex选择→显式原生VT/si
 2026-10-25 A38：Goal两份原measured崩溃脚本在隔离两文件寿命修复后均exit0（40/35次原动作）；原非measured TNS控制25指标和网表完全相同。新二进制/701源码/AST及原策略检查通过，未启用长搜索或宣称新PPA；源码与构建donor绑定是下一阻断。见 [A38报告](admin/A38_GOAL_PATH_LIFETIME_REPAIR_20261025.md)。
 
 补丁只绑定未来私有Goal源码；EF确定性构建/执行、DF/DI事实和Codex决策边界保持。原评分/动作/预算/RC策略不变，没有公共API、服务或数据库变化。原来的baseline seed和构建donor分别承担算法源码与增量构建复用职责；未来模板的二者绑定尚待下一切片核查。
+
+
+### A39：源码起点与构建donor分别绑定（2026-10-25）
+
+2026-10-25 A39：新Goal任务/固定源码/续作保留原显式构建donor，只读mount及八组新专业源码绑定已修；48针对/666根回归和静态通过，真实EF输入准备及四文件容器SHA核验通过。未启动长搜索；续作写死ASAP7交付目录为下一具体阻断。见 [A39报告](admin/A39_GOAL_SEED_BINDING_REPAIR_20261025.md)。
+
+Goal既有source_seed决定专业源码；既有build_seed_root只提供可复用构建图/依赖，全部donor→源码差量仍由原生builder重编译。正常/固定源码/续作的EF容器均保留显式donor只读挂载；不新增公共字段或服务，不热切历史。

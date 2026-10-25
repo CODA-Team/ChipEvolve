@@ -150,6 +150,7 @@ def run(
             read_roots=[
                 str(controller),
                 profile["source_seed"],
+                original.get("build_seed_root") or profile["source_seed"],
                 str(previous / "inputs"),
                 str(parent_root / "source"),
             ],
