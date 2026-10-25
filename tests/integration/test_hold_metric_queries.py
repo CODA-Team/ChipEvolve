@@ -36,7 +36,7 @@ def provider(*, include_hold: bool = True) -> FakeExperimentContextProvider:
         ),
         result.runs[2],
     )
-    values = (("TNS", -509.0), ("WNS", -0.44), ("WS", -0.44))
+    values = (("TNS", -509.0), ("WNS", -0.44), ("WS", 0.44))
     if include_hold:
         values += (("HOLD_TNS", -98.0), ("HOLD_WNS", -0.12), ("HOLD_WS", 0.02))
     result.metrics = tuple(
@@ -141,3 +141,37 @@ def test_unqualified_tns_question_keeps_setup_semantics() -> None:
     content = answer.evidence[0].content
     assert isinstance(content, dict)
     assert content.get("value") == -509.0
+
+
+@pytest.mark.parametrize(
+    "query", ["WS?", "setup WS?", "Setup timing WS?", "globalroute__timing__setup__ws?"]
+)
+def test_setup_ws_keeps_positive_margin_distinct_from_wns(query: str) -> None:
+    answer = ask(query)
+    assert answer.status is QueryStatus.ANSWERED
+    assert {ev.fact_key for ev in answer.evidence} == {"metric:WS"}
+    for ev in answer.evidence:
+        assert isinstance(ev.content, dict)
+        assert ev.content.get("value") == 0.44
+        assert ev.content.get("unit") == "ns"
+
+
+def test_comparison_preserves_positive_setup_ws() -> None:
+    answer = ask("Compare setup WS", compare=True)
+    assert answer.status is QueryStatus.ANSWERED
+    assert {ev.fact_key for ev in answer.evidence} == {"metric:WS"}
+    values: list[float] = []
+    for ev in answer.evidence:
+        assert isinstance(ev.content, dict)
+        value = ev.content.get("value")
+        assert isinstance(value, int | float)
+        values.append(value)
+    assert sorted(values) == [0.44, 1.44]
+    assert "difference=1.0" in (answer.answer or "")
+
+
+@pytest.mark.parametrize("query", ["news?", "AWS?", "WS2?", "2WS?"])
+def test_setup_ws_does_not_match_embedded_letters_or_numbers(query: str) -> None:
+    answer = ask(query)
+    assert answer.status is QueryStatus.UNSUPPORTED
+    assert not answer.evidence

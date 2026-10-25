@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from typing import Protocol
 
@@ -91,7 +92,7 @@ class KeywordIntentParser:
             for token in ("run status", "stage status", "stage complete", "状态")
         ):
             return QueryIntent.FLOW_STATUS
-        if hold_metric_name_from_query(request.query) is not None or any(
+        if metric_name_from_query(request.query) is not None or any(
             token in text
             for token in (
                 "wns",
@@ -311,6 +312,8 @@ def metric_name_from_query(query: str) -> str | None:
     ):
         if name in upper:
             return name
+    if re.search(r"(?<![A-Z0-9])WS(?![A-Z0-9])", upper):
+        return "WS"
     for words, name in (
         (("面积", "area"), "DESIGN_AREA"),
         (("功耗", "power"), "POWER_TOTAL"),
