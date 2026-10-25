@@ -122,7 +122,12 @@ def replay(
     deployment: Deployment, result_path: Path, experiment: Path
 ) -> dict[str, Any]:
     request = result_path.parent / "request.json"
-    if request.exists() and read(request)["capability"] == "orfs":
+    if (
+        request.exists()
+        and read(request)["capability"] == "orfs"
+        and read(result_path).get("native_method", {}).get("kind")
+        != "native-ORFS-physical-repair"
+    ):
         from .physical import baseline
 
         frame = read(result_path)

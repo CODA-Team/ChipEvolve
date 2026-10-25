@@ -1,3 +1,7 @@
+# 当前状态：A66 显式物理接力与恢复工程验证通过，2026-10-26
+
+2026-10-26 A66：既有orfs/replay/source已接通显式物理接力，保留原专业/后继及阶段事实，沿保存guides完成DRT/RCX；真实A62原生阶段无需先做最终PPA即可核查接入。ASAP7 GCD同条件setup余量+13.740ps，代价功耗+2.6233%/cell+2.3110%，原G02保持；全18输出/独立七值同值/DF/DI/Query通过。Nangate旧250ps兼容运行通、仍拒绝，正式500ps不变。修复真实成功回执等待字段漂移及历史baseline兼容；19新增/62针对/731根回归及静态通过，丢结果恢复同SHA/同8run/再恢复不改mtime。工程验证通过，八组双次与Ariane等最终资格仍未完成；见 [A66](A66_EXPLICIT_NATIVE_PHYSICAL_RELAY_20261026.md)。 证据目录 `var/business/a66-explicit-physical-relay-20261026/`。下一项使用已登记事实核查Ariane剩余setup机制/物理策略，现有入口可直接使用，不再为该段重建临时调用；长专业搜索保持暂停。
+
 # 当前状态：A65 Query时序路径类型修复通过，2026-10-26
 
 2026-10-26 A65：修复真实hold路径被setup代答；内部类型贯通解析→现有DI筛选→证据，默认setup、未知不冒充已知。Query5291730已发布，8新增/219Query/712根及三架构约束通过，独立wheel97文件同源、8真实查询/两原报告SHA与字节通过。八份待用配置只换Query和state_root；无EDA/模型/服务变更。A64物理接点尚未自动接入，最终资格与八组双次仍缺，长搜索暂停；见 [A65](A65_QUERY_TIMING_PATH_CHECK_20261026.md)。 证据目录 `var/business/a65-query-path-check-20261026/`。下一项明确物理修复请求、候选证据和恢复的接点；不能把orfs未消费的source或独立脚本当公共接力已完成。

@@ -204,7 +204,17 @@ class Jobs:
         result = wait_run(
             self.client, run_id, folder, self.deployment.value.get("lifecycle", {})
         )
-        write(folder / "execution.json", result)
+        execution = folder / "execution.json"
+        if result["run"]["status"] == "succeeded" and execution.exists():
+            prior = read(execution)
+            if (
+                prior["run"]["run_id"] == run_id
+                and prior["run"]["status"] == "succeeded"
+            ):
+                # wait_run has checked the live state. Keep the original
+                # completed receipt; a later client's wait is not a new run.
+                return prior
+        write(execution, result)
         if result["run"]["status"] != "succeeded":
             raise RuntimeError("EDA job failed; evidence retained: " + run_id)
         return result

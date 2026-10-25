@@ -1,3 +1,5 @@
+2026-10-26 A66：显式物理接力由既有orfs/replay/source选择，内部native_physical适配原Make/GRT，恢复实际脚本引用变量及信号/clock层；普通baseline与专业默认不变。已登记的阶段checkpoint可作为输入，先经DF/DI事实与EF字节核查；专业源、GRT后继、阶段snapshot和最终测量分开。qualify仅新增消费保存guides的路径，不暗加修复；独立验证不重复优化。Jobs仍检查live状态后保留首次成功回执，避免客户端等待改写实验身份；无新服务/数据库/HTTP API。见 [A66](admin/A66_EXPLICIT_NATIVE_PHYSICAL_RELAY_20261026.md)。
+
 2026-10-26 A65：Query内部路径类型必须贯通解析、analysis端口、既有DI请求和证据；DF先按setup/hold筛选再分页，不能取混合页后当hold答案。端口可选check默认setup，原记录缺类型保持未知；公开HTTP/CLI/DI协议和Codex-hosted harness不变。物理修复的专业生产者/后继生产者须分开，仍不得隐入qualify。见 [A65](admin/A65_QUERY_TIMING_PATH_CHECK_20261026.md)。
 
 2026-10-26 A64：跨专业交接须保留或显式重建ODB中的路由层/clock层/容量调整；DEF/Verilog重建不能默认继承这些状态。使用原平台initializer写新节点并验证实例/网表不变，再显式调用原ORFS物理收尾；不把修复混入qualify。新GRT事实与最终DRT/RCX资格分开，经EF→DF/DI/Query回流；本次仅私有接点验证，未新增公共接口。见 [A64](admin/A64_NATIVE_PHYSICAL_HANDOFF_20261025.md)。

@@ -103,3 +103,18 @@ flowchart LR
 A9在AES已完成原Flow两轮六候选、DPL一轮三Student、Goal一轮四Student和ECO两轮运行。采用实际DPL Student2→Goal Student4的共同测量结果，129功能输出证明及独立DRT/RCX重放通过。Flow候选超全局上限，ECO无可修目标且有效动作0；Codex保留合法Goal结果，不要求每个专业都进入最终分支。相对ORFS功耗约−0.502%、单元面积约−0.129%，setup余量减少35.293ps但仍闭合。迁移结果、失败证据和限制见admin/A9_AES_MIGRATION_REPORT_20261015.md。
 
 有限本机对照使用部署 client Python 的 `python -m chip_evolve.comparisons`，提供 `compare`、`replay-goal`、`verify-logic` 三个命令，具体参数可用 `--help` 查看。它们保留固定方法、真实失败与原评分，只返回可复查事实；Codex仍决定是否采用。实测和限制见 `admin/LOCAL_PROFESSIONAL_COMPARISON_REPORT_20261014.md`。
+
+A66 显式原生物理接力：
+
+```bash
+./chip-evolve.py --config /absolute/path/local.json run --design gcd --capability orfs --operation replay --source /absolute/path/goal/result.json --key physical-successor --seconds 1800
+./chip-evolve.py --config /absolute/path/local.json resume --design gcd --key physical-successor
+```
+
+这个 `orfs/replay/source` 组合运行原生 ORFS GRT 修复，再消费保存的 guides 完成 DRT/RCX、共同测量与 DF 交付。普通 `orfs` 无 source 仍从原基线流程运行。source 与 replay 须同时指定，避免静默忽略输入。该调用包含物理优化；`validate` 的独立重放消费同一修复检查点，不重做优化。
+
+source 可以是明确的专业结果，也可以是已有 `delivery-checkpoint.json`。后者须有 EF 登记的实际 ODB 和可通过 DF/DI 读取的精确阶段事实，使用原 `native_method.stage_snapshot_id` 选择快照；无需为了交接先做最终 PPA。当前接点接收未详细布线的 post-CTS/GRT 状态，DPL 的 pre-CTS 状态继续使用已有 CTS/route 交付，已详细布线 ECO 状态继续使用已有保留布线交付。
+
+接力单独保存专业原生产者、源结果/快照、物理后继、实际脚本/路由环境和最终测量生产者，不改原 Teacher/Student 晋升及历史结果。Source 的专业源码方法仍沿 `native_method.origin_result` 追踪；若要继续使用原 Goal 方法，按既有 `--source` 与 `--code-source` 分开指定物理状态和原专业源码。物理修复是否值得采用由 Codex 判断，输入允许未达标，最终采用继续需要原业务约束和匹配验证。
+
+成功 EF 回执在实际状态再次确认后复用其原始记录；客户端恢复等待时间不会改写已有实验身份。实时状态继续由 `watch`/EF 查询提供。A66 的工程验证、双 PDK 限制和源文件清单见 [A66报告](../admin/A66_EXPLICIT_NATIVE_PHYSICAL_RELAY_20261026.md)。

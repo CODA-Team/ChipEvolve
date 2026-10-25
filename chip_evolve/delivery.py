@@ -195,8 +195,9 @@ def checkpoint(
     native_method: dict[str, Any],
     pdk: Path | None = None,
     source: Path | None = None,
+    extra_inputs: tuple[Path, ...] = (),
 ) -> None:
-    inputs = [odb, objective]
+    inputs = [odb, objective, *extra_inputs]
     if pdk:
         inputs += [pdk / "setRC.tcl", pdk / "rcx_patterns.rules"]
     if source:
@@ -283,6 +284,8 @@ def finish(deployment: Deployment, experiment: Path) -> dict[str, Any]:
         )
     else:
         native = saved["native_method"]
+        if native.get("physical_stage") == "global_route":
+            modes["preserve_global_route"] = True
         if (
             native.get("physical_stage") == "detailed_route"
             and native.get("route_drc") == 0
@@ -337,6 +340,22 @@ def recover(deployment: Deployment, design_id: str, key: str) -> dict[str, Any]:
             write(history, prior)
     if (experiment / "delivery-checkpoint.json").exists():
         result = finish(deployment, experiment)
+    elif (
+        request["capability"] == "orfs"
+        and request.get("operation") == "replay"
+        and request.get("source")
+        and not (experiment / "jobs/orfs/task.json").exists()
+    ):
+        from .native_physical import repair
+
+        result = repair(
+            deployment,
+            design_id,
+            experiment,
+            Path(request["source"]),
+            request["seconds"],
+            objective=Path(request["objective"]) if request.get("objective") else None,
+        )
     elif request["capability"] == "orfs":
         result = baseline(
             deployment,

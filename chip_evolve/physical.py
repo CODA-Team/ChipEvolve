@@ -73,6 +73,7 @@ def qualify(
     fact_modes: tuple[str, ...] = ("opendb", "orfs", "opensta"),
     preserve_routing: bool = False,
     native_route_drc: int | None = None,
+    preserve_global_route: bool = False,
 ) -> dict[str, Any]:
     """Complete GRT checkpoints, or extract facts from an already routed state."""
     design = jobs.deployment.design(jobs.design_id)
@@ -101,11 +102,20 @@ def qualify(
                     else [
                         "remove_fillers",
                         "foreach net [[ord::get_db_block] getNets] { if {[$net getSigType] ni {POWER GROUND}} { set wire [$net getWire]; if {$wire ne {NULL}} { odb::dbWire_destroy $wire } } }",
-                        "set_routing_layers -signal "
-                        + design.get("signal_layers", "M2-M7")
-                        + " -clock "
-                        + design.get("clock_layers", "M2-M7"),
-                        "global_route -congestion_iterations 50",
+                        *(
+                            [
+                                "set guide_count 0; foreach net [[ord::get_db_block] getNets] {incr guide_count [llength [$net getGuides]]}",
+                                "if {$guide_count == 0} {error {Native GRT delivery requires saved routing guides}}",
+                            ]
+                            if preserve_global_route
+                            else [
+                                "set_routing_layers -signal "
+                                + design.get("signal_layers", "M2-M7")
+                                + " -clock "
+                                + design.get("clock_layers", "M2-M7"),
+                                "global_route -congestion_iterations 50",
+                            ]
+                        ),
                         f"detailed_route -output_drc {{{output / 'drc.rpt'}}}",
                     ]
                 ),
@@ -173,6 +183,8 @@ def qualify(
         measured["qualification"]["route_drc_method"] = (
             "original native detailed-route counter"
         )
+    elif preserve_global_route:
+        measured["qualification"]["routing_action"] = "consumed_native_global_route"
     return publish(jobs, measured, modes=fact_modes)
 
 

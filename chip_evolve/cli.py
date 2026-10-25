@@ -321,6 +321,12 @@ def _main() -> int:
             parser.error(
                 "--operation framework selects the original DPL framework only"
             )
+        if args.capability == "orfs" and bool(args.source) != (
+            args.operation == "replay"
+        ):
+            parser.error(
+                "ORFS source handoff requires --operation replay and --source together"
+            )
         if args.code_source and (
             args.capability not in {"dpl", "goal"} or args.operation != "replay"
         ):
@@ -364,15 +370,29 @@ def _main() -> int:
         with business_lock(experiment):
             try:
                 if args.capability == "orfs":
-                    from .physical import baseline
+                    if args.operation == "replay":
+                        from .native_physical import repair
 
-                    result = baseline(
-                        deployment,
-                        args.design,
-                        experiment,
-                        args.seconds,
-                        objective=args.objective.resolve() if args.objective else None,
-                    )
+                        result = repair(
+                            deployment,
+                            args.design,
+                            experiment,
+                            args.source,
+                            args.seconds,
+                            objective=args.objective,
+                        )
+                    else:
+                        from .physical import baseline
+
+                        result = baseline(
+                            deployment,
+                            args.design,
+                            experiment,
+                            args.seconds,
+                            objective=args.objective.resolve()
+                            if args.objective
+                            else None,
+                        )
                 else:
                     from .professional import execute
 
