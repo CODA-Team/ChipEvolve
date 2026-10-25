@@ -612,3 +612,8 @@ Ariane主AG4完整DRT/RCX/DF/DI已完成，651.96436644mW/43970.9µm²/setupTNS�
 ### A75：独立重放检查点优先（工程验证通过，2026-10-26）
 
 2026-10-26 A75：修复独立验证按方法标签把有效保存检查点误分流到ORFS baseline；检查点优先，历史无检查点baseline保持。7个新场景修复前失败→通过，52针对/740根回归与静态边界检查通过；26用户文件保持。A74同一EF详细布线继续，无新EDA/模型/PPA结论。见 [A75](admin/A75_VALIDATION_CHECKPOINT_PRIORITY_20261026.md)。 老板业务验收独立。
+
+
+### A76：最终提取电容对象诊断（只读定位完成；A74事实交付进行中，2026-10-26）
+
+2026-10-26 A76/A74：真实DRT/RCX与共同测量完成，setup/hold WS +261.794/+42.930ps、TNS均0、DRC0；较同条件参考setup余量+54.841ps、cell−671µm²，slew16→0/cap252→64。但power159.392521mW超原159.350917mW上限0.0261084%、cap64，仍不合格。64驱动只读定位成功，非已知常量且均无dont-touch，cap超限1.21–18.45%；无产品改动，740同源回归复用、静态/原件核验通过。当前DF大对象导入仍由原session82815等待，不重发。见 [A76](admin/A76_POSTROUTE_CAP_DIAGNOSIS_20261026.md)、[A74](admin/A74_ARIANE_NANGATE45_FINAL_QUALIFICATION_20261026.md)。
