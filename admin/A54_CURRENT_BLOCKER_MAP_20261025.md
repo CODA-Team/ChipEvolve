@@ -1,12 +1,14 @@
 # A54：当前功能阻断图与待用策略纠正
 
-本表已接续至 A63。A54 初始基线根 `a0e9bea`、Query `54a08be`；该初始轮没有 EDA/专业搜索或模型调用。后续按“具体诊断 → 定点修复 → 短验证 → code-check”推进，真实短验证见下列更新。A32/A34 是历史审计，保留原始失败及尚未通过的资格。
+本表已接续至 A64。A54 初始基线根 `a0e9bea`、Query `54a08be`；该初始轮没有 EDA/专业搜索或模型调用。后续按“具体诊断 → 定点修复 → 短验证 → code-check”推进，真实短验证见下列更新。A32/A34 是历史审计，保留原始失败及尚未通过的资格。
 
 2026-10-25 A55更正：此前漏查已完成的 `run-9efb…` 修正PDN分支，原ORFS最终VDD/VSS PSM实际通过，随后因SRAM GDS缺失失败。旧来源/事后改网格负结果保持；当前剩余问题及原件见 [A55](A55_ARIANE_CORRECTED_PDN_SOURCE_RECOVERY_20261025.md)。下表与下一步已同步这一范围。
 
 2026-10-25 A62：Goal 时钟指令控制否定本设计上的理想时钟猜测；不实施猜测性补丁。实际原生 DEF/V→crit_vt_deep→合法化→GRT 完成，3388 次 VT 调整；同协议起点/后继 GRT TNS −509.059→−451.843ns，欠账减少11.24%，仍不闭合。实例物理状态/网表在 placement→GRT 保持，新增1604090 guides；六快照及 Query 实际比较通过。未做最终 DRT/RCX/证明/采用，下一项查专业 GRT 与共同最终 RC 相关性。见 [A62](A62_GOAL_NATIVE_BOUNDARY_DIAGNOSIS_20261025.md)。
 
 2026-10-25 A63：真实Hold TNS错答setup已修复，Query隔离检查点 `f31773d`；15新增/211Query/712根及14真实查询通过。四组同状态RC事实已登记，原生估算表不同而RCX规则相同，未切专业RC；专业后继hold欠账需明确交现有ORFS物理收尾，不能默认setup专业自动处理。最新八组待用配置在A63/configs，保留PDN/FakeRAM及500ps策略。见 [A63](A63_QUERY_HOLD_AND_RC_BOUNDARY_20261025.md)。
+
+2026-10-26 A64：确证Goal placement ODB丢失原生routing bounds与layer adjustment，原平台initializer恢复后实例/网表不变；显式ORFS GRT全阶段成功，hold TNS0、电气0/0/0，但setup WS−280.684ps/TNS−92.960533ns仍未闭合。31针对/八驱动静态、五包64文件及DF/DI/Query核验通过；私有接点验证尚未收口到公共业务入口，未做最终DRT/RCX/证明或采用。见 [A64](A64_NATIVE_PHYSICAL_HANDOFF_20261025.md)。
 
 ## 老板可以据此作出的判断
 
@@ -23,7 +25,7 @@ EF 执行、DF 事实、DI SDK、Query 与专业接入均有真实可用记录�
 | EF 提交、消费、资源与监控 | 公共接口正常；32 CPU / 32 GiB / 4 workers，五种活动状态计数均零；A32 完整检查及后续真实任务有效 | 当前没有“任务排队但无法消费”的实例。历史 stale worker 与未配置的可选 protected evaluator 不作为本轮阻断；未来大构建仍按实际申请和峰值核对 |
 | EF 日志、失败与产物 | A38/A45/A48/A52 实际成功/失败原件均可追踪；大产物沿既有 materialize 路径 | 外层命令成功不代表内部检查通过。A52 EF succeeded 而供电检查失败，必须读原生结果 |
 | DF/DI 事实与来源 | 本轮八组各六项原始指标与 result 逐值一致，run/snapshot/revision 精确 scope 一致 | 主库约 225.21 GB；本轮短读取正常不证明持续负载性能。用户 DF/DI WIP、manifest 与服务安装身份仍需分别保留，不热切换 |
-| Query 精确查询、比较与交接 | A33/A49–A53 修复 scope/来源/比较，A63再修明确hold标量误答setup；新包14实际查询及四RC快照通过 | 多指标及复杂诊断继续用现有 SDK/host 工具由 Codex 组合；不新造 harness，也不能把不同测量 run 当独立优化两次 |
+| Query 精确查询、比较与交接 | A33/A49–A53 修复 scope/来源/比较，A63再修明确hold标量误答setup；新包14实际查询及四RC快照通过 | 明确hold标量已修，旧simple-ask路径的hold语义仍待核查；多指标及复杂诊断继续用现有 SDK/host 工具由 Codex 组合；不新造 harness，也不能把不同测量 run 当独立优化两次 |
 | Toolkits / 共同工具环境 | A32 镜像与库身份核验；后续原生任务由 EF 在该环境实际执行 | Code 研究增量二进制另有源码/构建身份，不能要求与通用 OpenROAD 同字节 |
 | Flow 来源与完整参数能力 | A42 完成反馈幂等恢复；A45 完整 500 ps 来源通过；A46 保留原变量 SDC、20% I/O 与 17 参数的准备检查通过 | 新条件完整搜索及协作尚未运行；准备成功不算完整搜索通过，旧默认综合也不冒充现代完整能力来源 |
 | DPL 阶段与双 PDK | A36 实际三条原生布局链成功，八组设计注册正确；A37 新产物经 DF/DI/Query 可读 | 输入必须是适用的布局检查点；局部 HPWL 改善需继续检查最终 PPA，不能自动采用 |
@@ -32,7 +34,7 @@ EF 执行、DF 事实、DI SDK、Query 与专业接入均有真实可用记录�
 | ECO 双 PDK 与已布线交付 | A35 库/参考与物理会话一致；A47 保留路由身份；A56修复周期首轮无条件覆盖更好基线、配对基线SPEF及直接交付选中ODB，真实EF导出短验证通过 | A57已修网络探针回传；A61修复模型TNS把路径子集当设计总量，请求前刷新同会话汇总、路径/评分保持，真实原SPEF与原生prompt验证通过。新八轮未运行，setup/slew与原负分支保留。见[A56](A56_ECO_ROUTED_BASELINE_RETENTION_20261025.md)、[A57](A57_ECO_PROBE_RETURN_PATH_20261025.md)、[A61](A61_ECO_DESIGN_TNS_CONTEXT_20261025.md) |
 | Ariane/Nangate45 原生 GRT 修复 | A48 完整原 14 动作、repair_design/repair_timing、合法化及 incremental GRT 实际跑完 | A48原4/8保留；A59明确处理3个常量驱动、原生margin10及1个buffer，本轮同口径5/51→0/0，setup/hold TNS0；保存GRT恢复/DF/DI/Query核验通过。最终DRT/RCX/PPA/证明仍缺，不算最终收益；见[A59](A59_ARIANE_RESIDUAL_ELECTRICAL_20261025.md) |
 | 最终验证与采用 | A31 Ibex/ASAP7 恢复完整证明、独立重放与采用；既有 GCD/JPEG 合格分支保留 | Ibex/Nangate45 原证明确为超时；A58四个被打断分区及四个对照原义务短验证8/8 PASS，未发现这些项持续求解障碍。整体PASS仍缺，14400秒配置已准备未运行；见[A58](A58_IBEX_PROOF_DIAGNOSIS_20261025.md) |
-| Ariane/ASAP7 最终供电与交付 | A52旧来源/事后改网格失败保持；A55核实另一前置修正来源的原ORFS最终VDD/VSS PSM实际通过、DRC0，之后因缺SRAM GDS失败 | A60核实原包为FakeRAM2.0抽象模型，显式声明宏后末端导出控制/136实例核验通过，完整宏几何仍为抽象；不再重复PDN或把真实SRAM制造版图作为当前PPA前置。setup TNS−127.168ns、slew444及完整资格仍待修；见[A60](A60_ASAP7_FAKERAM_STREAMOUT_20261025.md) |
+| Ariane/ASAP7 最终供电与交付 | A52旧来源/事后改网格失败保持；A55核实另一前置修正来源的原ORFS最终VDD/VSS PSM实际通过、DRC0，之后因缺SRAM GDS失败 | A60核实原包为FakeRAM2.0抽象模型，显式声明宏后末端导出控制/136实例核验通过，完整宏几何仍为抽象；不再重复PDN或把真实SRAM制造版图作为当前PPA前置。原最终SPEF的setup TNS−127.168ns/slew444保持历史事实；A64新原生GRT后继hold0、电气0/0/0、setup TNS−92.960533ns仍失败，最终DRT/RCX/完整资格缺失；见[A60](A60_ASAP7_FAKERAM_STREAMOUT_20261025.md) |
 | 论文路径与两次平均 | 既有专业参与、真实接力及失败分支保留；GCD、JPEG、Ibex 有有效成果 | 八组各两次完整合格优化未齐；没有受控证据证明自主调度优于固定顺序。两项都是实验缺口，不是靠新框架能补出的功能 |
 
 ## 本轮策略修正的精确范围
@@ -84,7 +86,7 @@ flowchart LR
 
 ## 下一步按实际阻断推进
 
-1. Ariane/ASAP7：复用A55找回的前置修正来源及最终PSM证据；A61已修ECO全设计上下文，A62原生crit_vt_deep及同协议GRT控制已跑完，确认有11.24%局部TNS收益但仍不闭合。A63已核实估算表不同但RCX规则相同，新后继仍有hold欠账；下一项核查明确的原生ORFS物理收尾及hold路径，不能把换表当修复。A60已验证FakeRAM声明与末端导出，不重做已过的供电或导出阶段。
+1. Ariane/ASAP7：复用A55找回的前置修正来源及最终PSM证据；A61已修ECO全设计上下文，A62原生crit_vt_deep及同协议GRT控制已跑完，确认有11.24%局部TNS收益但仍不闭合。A63已核实估算表不同但RCX规则相同；A64恢复Goal布局丢失的原平台路由上下文后，显式原生ORFS GRT收尾成功，hold0/电气0/0/0，setup仍−92.960533ns。下一项收口明确的业务接点并针对已登记的长输出/寄存器路径选择原专业策略，继续核查Query hold路径语义，不能把换表或改约束当修复。A60已验证FakeRAM声明与末端导出，不重做已过的供电或导出阶段。
 2. Ibex/Nangate45：A58已复核原日志持续进展、原输入和14400秒预算，8项原义务短验证通过；仍需完整证明，不把抽查或部分PASS当整体完成，也不把超时称为已证实的反例。
 3. Ariane/Nangate45：A59已将新GRT后继slew/cap清零、setup/hold TNS0；复用其登记ODB与精确来源，恢复正式实验后再做最终DRT/RCX/PPA/证明，不把GRT状态当最终采用。
 4. GCD/Nangate45：500 ps 来源与本轮策略配置已准备，正式恢复搜索时再测真实 native baseline、检查实际 recipe，随后完成协作及两次独立优化。

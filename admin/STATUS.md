@@ -1,3 +1,7 @@
+# 当前状态：A64 原生物理接力与路由上下文验证完成，2026-10-26
+
+2026-10-26 A64：核实Goal布局检查点丢失原生路由上下文；通过EF恢复原平台初始化，210746实例状态及网表不变。显式原生ORFS GRT收尾成功，hold TNS0/WS+2.496ps、电气0/0/0；setup WS−280.684ps/TNS−92.960533ns仍失败，不采用。31针对/八驱动静态、5包64文件及DF/DI/Query原值原件核验通过；仅私有接点验证，公共入口尚未收口，最终DRT/RCX/证明与八组双次保持未完成。见 [A64](A64_NATIVE_PHYSICAL_HANDOFF_20261025.md)。 证据目录 `var/business/a64-native-physical-handoff-20261025/`；下一项收口现有业务接点并依据已登记的剩余setup路径选择原专业策略，继续核查Query hold路径语义，不放行长搜索。
+
 # 当前状态：A63 Query hold错答已修，RC与物理收尾边界核实，2026-10-25
 
 真实Hold TNS原误答−509.059ns setup，独立包现正确−98.498ns hold；15新增/211Query/712根回归、全静态/import约束及14真实只读查询通过。四固定状态RC对照/DF/DI/Query通过，RCX规则相同；换估算表无法替代修复，未切专业RC。新八组配置 `var/business/a63-rc-model-correlation-20261025/configs/` 保留PDN/FakeRAM和500ps原策略，使用已核对的新Query包。下一项核查专业后继→原生ORFS物理收尾，明确setup/hold责任；hold路径调查不当作已完成。最终资格/八组双次仍缺，长搜索暂停。见 [A63](A63_QUERY_HOLD_AND_RC_BOUNDARY_20261025.md)。

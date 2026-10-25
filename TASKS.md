@@ -1,3 +1,5 @@
+2026-10-26 A64：核实Goal布局检查点丢失原生路由上下文；通过EF恢复原平台初始化，210746实例状态及网表不变。显式原生ORFS GRT收尾成功，hold TNS0/WS+2.496ps、电气0/0/0；setup WS−280.684ps/TNS−92.960533ns仍失败，不采用。31针对/八驱动静态、5包64文件及DF/DI/Query原值原件核验通过；仅私有接点验证，公共入口尚未收口，最终DRT/RCX/证明与八组双次保持未完成。见 [A64](admin/A64_NATIVE_PHYSICAL_HANDOFF_20261025.md)。
+
 2026-10-25 A63：修复真实Hold TNS被Query误答成setup TNS，普通/分析措辞/比较保留HOLD_TNS/WNS/WS既有语义；15新增/211Query/712根回归与完整静态通过，最终wheel97文件同源、14真实查询及四RC快照通过。专业RC估算不同但RCX规则相同，未切RC；确认setup专业后继仍缺明确hold物理收尾。八份新Query待用配置保留PDN/FakeRAM及GCD500ps策略，长搜索暂停；见 [A63](admin/A63_QUERY_HOLD_AND_RC_BOUNDARY_20261025.md)。
 
 2026-10-25 A62：完成Goal原生DEF/V接力边界及四组时钟/RC控制；时钟猜测被否定，未改产品。真实crit_vt_deep全阶段/3388次VT通过，同协议GRT对照TNS−509.059→−451.843ns，欠账减少11.24%但仍不闭合；物理签名/六快照/Query比较通过。27针对回归与七驱动静态通过，原条件/26保护文件保持。最终DRT/RCX/证明/采用未做，长搜索暂停；见 [A62](admin/A62_GOAL_NATIVE_BOUNDARY_DIAGNOSIS_20261025.md)。
