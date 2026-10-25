@@ -1,3 +1,5 @@
+2026-10-25 A37：三个新DPL诊断ODB已实际走EF导出→DF导入→DI/安装包Query，scope/原件SHA和同一单元的三组不同坐标均匹配。错revision、缺最终时序两负例返回不足而非旧值；三次导入续接只有GET，无EDA重算/重复导入。源码不变，复用A36门禁；无新PPA/长搜索。见 [A37新状态交付](admin/A37_FRESH_STATE_DELIVERY_20261025.md)。
+
 2026-10-25 A36：核查八份配置的专业运行依赖，补齐四份Nangate45缺失的DPL问题模板；实际八组registry字段/原算法尾部保持。EF中同一真实GCD布局的Diamond/negotiation/evolve三命令链及布局检查通过，无搜索/最终PPA。Ibex/Nangate45确为19384分区中5333策略PASS后1800s超时，新配置只准备14400s预算，未启动完整证明。18针对/658根回归及静态检查通过，26保护文件保持。详见 [A36核查](admin/A36_NATIVE_BINDING_REPAIR_20261025.md)。
 
 2026-10-25 A35：ECO物理加载与推理参考统一使用冻结Liberty清单/实际corner，支持Nangate45命名与单位换算，显式平台ODB不再叠加ASAP7 LEF。修复前4失败已复现；原309单元全部参考网格逐值保持，ECO25/根针对35/根完整654及静态检查通过；EF真实GCD-ASAP7与JPEG-Nangate45参考生成/加载同精度WS/TNS通过，无优化/模型。八份新配置纠正ECO技术模板及JPEG不存在路径。完整ECO收益/双次结果仍未完成，长实验保持暂停，见 [A35修复报告](admin/A35_ECO_TECHNOLOGY_BINDING_20261025.md)。

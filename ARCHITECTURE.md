@@ -1,3 +1,5 @@
+2026-10-25 A36–A37：新诊断产物经现有EF evidence bundle/manifest校验，再走OpenDB adapter→DF公共导入→DI/Query；同一生产run下三份snapshot/revision的坐标/原件SHA分别匹配，负例不跨状态补数，续接不重算。四份Nangate45 DPL模板显式补齐，专业算法/公共契约保持，无新层或服务。[A36](admin/A36_NATIVE_BINDING_REPAIR_20261025.md) / [A37](admin/A37_FRESH_STATE_DELIVERY_20261025.md)。
+
 2026-10-25 A35：ECO的模型参考与OpenROAD使用相同现有Liberty清单；单位在参考提取处转为ps/fF。显式平台加载复用ODB自带tech/masters，独立原生模式仍使用原LEF。原专业算法/评分/回退及公共接口不变，无新harness/服务/数据库。双PDK短加载与原ASAP7参考同值检查见 [A35](admin/A35_ECO_TECHNOLOGY_BINDING_20261025.md)。
 
 2026-10-25 A34：业务模块边界保持；新增内部手工Tcl迁移只补现有原生GRT动作的网格初始化、RC刷新与显式命名，经EF两动作短验证，不增加专业算法/服务/公共接口。八组新配置明确使用当前EF/DF与A33 Query包；旧ASAP7 Flow冻结收据不作为双PDK全能力证明。完整功能状态及未闭合任务见 [A34矩阵](admin/A34_TASK_BLOCKER_MATRIX_20261025.md)。
