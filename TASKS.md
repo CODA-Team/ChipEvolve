@@ -1,3 +1,5 @@
+2026-10-25 A56：真实Ariane轨迹复现ECO周期首轮−366.345ps仍覆盖−288.838ps输入基线。修复基线/候选比较、SPEF配对和ODB原字节交付；34模块/2子测试、712根回归和五文件lint/type通过，真实EF GCD导出/公开原件SHA通过，采集路径错误单独恢复原件未重跑EDA。无新模型/优化收益，新八轮仍待业务验证。见 [A56](admin/A56_ECO_ROUTED_BASELINE_RETENTION_20261025.md)。
+
 2026-10-25 A55：找回此前漏查的Ariane/ASAP7前置修正PDN完整来源`run-9efb…`，12份公共EF原件SHA及实际输入核对通过，原ORFS最终VDD/VSS PSM通过、DRC0，后续因缺SRAM GDS失败。六项阶段事实经EF→DF→DI入库，原failed/adopted=false保持；原共同测量Query仍WNS−0.288838ns，TNS−127.168ns/slew444待修。更正A52/A54的全来源推断，不再重复修该分支PDN；没有新EDA/模型。见 [A55](admin/A55_ARIANE_CORRECTED_PDN_SOURCE_RECOVERY_20261025.md)。
 
 2026-10-25 A54：当前逐功能阻断见 [A54总表](admin/A54_CURRENT_BLOCKER_MAP_20261025.md)，A32/A34作为历史保留。八组历史原件→DF/DI/最新Query查询8/8通过；纠正GCD/Nangate45待用Goal的timing-only策略错位，仅新私有任务选择已有GCD联合策略，旧目标/源码/算法实现保持；补齐Goal环境Toolkits所缺的已有EF client/contracts wheel。没有新EDA/模型/服务变更，八组双次与Ariane物理资格仍待完成，长搜索暂停。
