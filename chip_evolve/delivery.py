@@ -5,8 +5,10 @@ from __future__ import annotations
 import time
 import urllib.error
 import urllib.parse
+from concurrent.futures import Future
 from http.client import HTTPException
 from pathlib import Path
+from threading import Thread
 from typing import Any
 
 from .config import Deployment, read, write
@@ -104,24 +106,52 @@ def import_snapshot(
     requested = False
 
     def request():
-        nonlocal requested
+        nonlocal requested, detail
         write(
             path, {"phase": "delivery", "status": "request_sent", "identity": identity}
         )
         requested = True
-        http(
-            base + "/snapshots/from-run",
-            {"run_id": producer, "artifact_id": artifact},
-            timeout=float(policy.get("import_request_seconds", 900)),
-        )
+        acknowledged: Future[Any] = Future()
+
+        def post():
+            try:
+                acknowledged.set_result(
+                    http(
+                        base + "/snapshots/from-run",
+                        {"run_id": producer, "artifact_id": artifact},
+                        timeout=float(policy.get("import_request_seconds", 900)),
+                    )
+                )
+            except Exception as error:  # noqa: BLE001 - Propagate HTTP errors unchanged.
+                acknowledged.set_exception(error)
+
+        # DF's commit can expose a durable receipt while SQLite is still
+        # checkpointing before returning the POST response. Read that committed
+        # state now; do not keep the caller idle until its socket timeout.
+        # The thread owns only this bounded HTTP request, never local receipts.
+        Thread(target=post, name="df-import-ack", daemon=True).start()
+        while not acknowledged.done():
+            try:
+                value = receipt()
+                if value is not None:
+                    return value
+            except Exception as error:
+                if not temporary(error):
+                    raise
+                detail = str(error)
+            try:
+                acknowledged.result(timeout=float(policy.get("poll_seconds", 1)))
+            except TimeoutError:
+                pass
+        acknowledged.result()
+        return receipt()
 
     detail = ""
     try:
         prior = receipt()
         if prior is not None:
             return complete(prior)
-        request()
-        value = receipt()
+        value = request()
         if value is not None:
             return complete(value)
         detail = "Import response returned without a durable receipt"
@@ -153,8 +183,7 @@ def import_snapshot(
         try:
             value = receipt()
             if value is None and not requested:
-                request()
-                value = receipt()
+                value = request()
             if value is not None:
                 return complete(value)
         except Exception as error:

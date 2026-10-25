@@ -4,6 +4,7 @@ import json
 import socket
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -218,7 +219,13 @@ def test_kernel_contract_rejection_is_not_retried(tmp_path):
 
 @contextmanager
 def data_server(mode):
-    state = {"posts": 0, "commits": 0, "ready_at": None}
+    state = {
+        "posts": 0,
+        "commits": 0,
+        "ready_at": None,
+        "post_started": threading.Event(),
+        "release_response": threading.Event(),
+    }
     receipt = {
         "artifact_id": "art",
         "run_id": "producer",
@@ -256,7 +263,15 @@ def data_server(mode):
                         value.update(status="failed", error="bad snapshot data")
                     self.reply(200, {"data": {"import_receipt": value}})
             elif self.path == "/snapshots/snap":
-                self.reply(200, {"snapshot": snapshot})
+                self.reply(
+                    200,
+                    {
+                        "snapshot": {
+                            **snapshot,
+                            "run_id": state.get("subject", "subject"),
+                        }
+                    },
+                )
             else:
                 self.reply(404, {})
 
@@ -274,6 +289,11 @@ def data_server(mode):
                 )
             if mode == "timeout":
                 time.sleep(0.08)
+            if mode == "delayed_ack":
+                state["post_started"].set()
+                state["release_response"].wait(5)
+                self.reply(201, {"snapshot": snapshot})
+                return
             self.connection.shutdown(socket.SHUT_RDWR)
             self.connection.close()  # Server accepted input; response deliberately lost.
 
@@ -346,6 +366,39 @@ def test_actual_http_response_loss_recovers_receipt_without_repost(tmp_path, mod
         assert import_snapshot(jobs, "producer", "art", "snap", "subject") == result
         assert state["posts"] == state["commits"] == 1
         assert read(jobs.experiment / "imports/art.json")["status"] == "completed"
+
+
+@pytest.mark.parametrize("subject", ["subject", "different-subject"])
+def test_committed_snapshot_is_resolved_before_post_response_returns(tmp_path, subject):
+    with data_server("delayed_ack") as (url, state):
+        state["subject"] = subject
+        jobs = import_jobs(tmp_path, url)
+        jobs.deployment.value["lifecycle"]["import_request_seconds"] = 10
+        with ThreadPoolExecutor(max_workers=1) as workers:
+            result = workers.submit(
+                import_snapshot, jobs, "producer", "art", "snap", "subject"
+            )
+            try:
+                assert state["post_started"].wait(1)
+                # The server has committed, but deliberately has not acknowledged
+                # the POST. Do not wait for the POST timeout to read its receipt.
+                if subject == "subject":
+                    value = result.result(timeout=1)
+                    assert value["snapshot"]["run_id"] == "subject"
+                    assert (
+                        read(jobs.experiment / "imports/art.json")["status"]
+                        == "completed"
+                    )
+                else:
+                    with pytest.raises(ValueError, match="measured design/run"):
+                        result.result(timeout=1)
+                    assert (
+                        read(jobs.experiment / "imports/art.json")["status"] == "failed"
+                    )
+                assert not state["release_response"].is_set()
+                assert state["posts"] == state["commits"] == 1
+            finally:
+                state["release_response"].set()
 
 
 def test_unknown_http_outcome_is_pending_and_explicit_recovery_keeps_identity(tmp_path):

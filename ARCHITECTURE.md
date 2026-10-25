@@ -1,3 +1,5 @@
+2026-10-26 A80：根业务交付入口同时等待原导入POST与核验既有DF持久回执；仅当producer/artifact/snapshot及subject/design一致才交付，不等待checkpoint后的HTTP确认。后台仅原有超时约束的HTTP，不写本地状态、不重派EDA；DF事务、持久化、读写边界与公共接口保持。实际解析/写入成本仍独立。见 [A80](admin/A80_COMMITTED_FACT_DELIVERY_WAIT_20261026.md)。
+
 2026-10-26 A78/A79：阶段功耗必须在RC更新后刷新原生STA缓存再读，不能用旧缓存差值证明收益；原Goal已有此机制，ECO平台EF会话本次补齐。原生独立活动模型、专业动作/评分/回溯保持；同源证据复用，最终DRT/RCX资格仍独立。新事实标明RC和精度，旧历史不覆盖，无新服务或公共接口。见 [A79](admin/A79_ECO_QOR_POWER_CACHE_FIX_20261026.md)。
 
 2026-10-26 A68：物理交接保留完整供电事实；专业信号依赖判断须区分POWER/GROUND与信号，不在DF全局删PG关系。原RMP仅在触发器邻接判断中排除供电，其余策略/STA/回滚不变。源码修复在新私有副本、原生AST与EF构建核验后供未来任务使用，需测新baseline，旧固化重放不热补丁。EF→DF→DI/Query及公共接口保持。见 [A68](admin/A68_RMP_SUPPLY_ADMISSION_FIX_20261026.md)。
