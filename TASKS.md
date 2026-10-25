@@ -1,3 +1,5 @@
+2026-10-25 A57：修复ECO网络探针只打印不返回、收集器截断方向/master的真实信息丢失；实际Ariane同ODB旧/新只读对照成功，6端点与DI同快照一致，原生下一轮prompt已包含完整内容。DF原truncated限制保留；37模块/2子测试、712根回归及lint/type通过。无模型/优化/PPA，新专业轮次待验。见 [A57](admin/A57_ECO_PROBE_RETURN_PATH_20261025.md)。
+
 2026-10-25 A56：真实Ariane轨迹复现ECO周期首轮−366.345ps仍覆盖−288.838ps输入基线。修复基线/候选比较、SPEF配对和ODB原字节交付；34模块/2子测试、712根回归和五文件lint/type通过，真实EF GCD导出/公开原件SHA通过，采集路径错误单独恢复原件未重跑EDA。无新模型/优化收益，新八轮仍待业务验证。见 [A56](admin/A56_ECO_ROUTED_BASELINE_RETENTION_20261025.md)。
 
 2026-10-25 A55：找回此前漏查的Ariane/ASAP7前置修正PDN完整来源`run-9efb…`，12份公共EF原件SHA及实际输入核对通过，原ORFS最终VDD/VSS PSM通过、DRC0，后续因缺SRAM GDS失败。六项阶段事实经EF→DF→DI入库，原failed/adopted=false保持；原共同测量Query仍WNS−0.288838ns，TNS−127.168ns/slew444待修。更正A52/A54的全来源推断，不再重复修该分支PDN；没有新EDA/模型。见 [A55](admin/A55_ARIANE_CORRECTED_PDN_SOURCE_RECOVERY_20261025.md)。

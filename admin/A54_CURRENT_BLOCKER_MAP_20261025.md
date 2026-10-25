@@ -25,7 +25,7 @@ EF 执行、DF 事实、DI SDK、Query 与专业接入均有真实可用记录�
 | DPL 阶段与双 PDK | A36 实际三条原生布局链成功，八组设计注册正确；A37 新产物经 DF/DI/Query 可读 | 输入必须是适用的布局检查点；局部 HPWL 改善需继续检查最终 PPA，不能自动采用 |
 | Goal 原算法、源码与续作 | A38 修复实际 measured-path 崩溃，A39 保留源码 seed/构建 donor，A40/A44 去除续作/重放的 PDK 硬编码 | 崩溃复测通过不等于 measured 策略最终收益通过。每次专业任务必须依据当前设计事实选原有策略 |
 | Goal GCD/Nangate45 策略 | 本轮新配置由 timing-only 改为已有 GCD 联合策略；八份原生配置解析及决策分支检查通过 | 尚未运行新 native baseline/四 Student，不能记成新增功耗优化收益 |
-| ECO 双 PDK 与已布线交付 | A35 库/参考与物理会话一致；A47 保留路由身份；A56修复周期首轮无条件覆盖更好基线、配对基线SPEF及直接交付选中ODB，真实EF导出短验证通过 | 新八轮未运行，仍不宣称改善；继续核查专业探针信息与剩余setup/slew，原负分支保留。见[A56](A56_ECO_ROUTED_BASELINE_RETENTION_20261025.md) |
+| ECO 双 PDK 与已布线交付 | A35 库/参考与物理会话一致；A47 保留路由身份；A56修复周期首轮无条件覆盖更好基线、配对基线SPEF及直接交付选中ODB，真实EF导出短验证通过 | A57已修网络探针不返回/行截断，真实只读6端点进入原生prompt、与DI一致；新八轮未运行，剩余setup/slew及原负分支保留。见[A56](A56_ECO_ROUTED_BASELINE_RETENTION_20261025.md)、[A57](A57_ECO_PROBE_RETURN_PATH_20261025.md) |
 | Ariane/Nangate45 原生 GRT 修复 | A48 完整原 14 动作、repair_design/repair_timing、合法化及 incremental GRT 实际跑完 | GRT 估计仍有 4 slew / 8 cap；需解决剩余问题并完成最终 DRT/RCX/证明。不同 RC 模型不能直接宣称最终改善 |
 | 最终验证与采用 | A31 Ibex/ASAP7 恢复完整证明、独立重放与采用；既有 GCD/JPEG 合格分支保留 | Ibex/Nangate45 原证明确为超时，不存在可直接恢复的整体 PASS；新预算已准备，尚未运行 |
 | Ariane/ASAP7 最终供电与交付 | A52旧来源/事后改网格失败保持；A55核实另一前置修正来源的原ORFS最终VDD/VSS PSM实际通过、DRC0，之后因缺SRAM GDS失败 | 不再重复修该来源PDN；其setup TNS−127.168ns、slew444与GDS资料/完整资格仍待解决，不是合格优化结果 |

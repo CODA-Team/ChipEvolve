@@ -1,3 +1,5 @@
+2026-10-25 A57：ECO会话内只读探针由既有EF拥有的OpenROAD执行，完整返回行交给原生下一轮prompt；跨专业仍通过DF/DI/Query取事实。修复返回值及行截断，不新增harness/服务/公共协议；真实同网6端点核对通过，DF原truncated限制保留。见 [A57](admin/A57_ECO_PROBE_RETURN_PATH_20261025.md)。
+
 2026-10-25 A56：ECO两种DRT模式均把实际输入视为cycle0最佳、保存匹配SPEF；后续严格沿原WNS规则比较，不再让首周期自动替换基线。EF叶子直接交付选中ODB字节、原生工具仅导出视图，DRC证据仍与同一ODB绑定，无新平台公共契约或算法评分。见 [A56](admin/A56_ECO_ROUTED_BASELINE_RETENTION_20261025.md)。
 
 2026-10-25 A55：按同一物理来源分开记录原任务终态、阶段完成事实和最终业务资格。已失败的物理run可由成功的既有metadata导出任务补充带原件引用的阶段事实，subject不变、原failed不变，不需新服务或协议。Ariane修正来源实际final_report PSM通过、后续GDS失败，后续重点为setup/slew债；不能用另一旧来源的负诊断覆盖它。见 [A55](admin/A55_ARIANE_CORRECTED_PDN_SOURCE_RECOVERY_20261025.md)。

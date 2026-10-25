@@ -1,3 +1,7 @@
+# 当前状态：A57 ECO探针信息回传已修复，2026-10-25
+
+真实Ariane同ODB只读对照复现旧版无数据，修复后6端点/方向/master完整进入原生下一轮prompt，与DF/DI同快照字段一致；原DF响应truncated保留。37模块/2子测试、712根回归及静态通过，无模型/ECO动作/新PPA；下一项诊断Ibex/Nangate45证明困难，长搜索暂停。见 [A57](A57_ECO_PROBE_RETURN_PATH_20261025.md)。
+
 # Agentic EDA 施工状态
 
 ## 当前状态：A56 ECO最佳状态实现修复，待新专业轮次业务验证，2026-10-25
