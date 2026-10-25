@@ -49,8 +49,10 @@ def test_timing_only_control_keeps_the_actual_reports_and_route():
     )
 
 
+@pytest.mark.parametrize("platform", ["asap7", "nangate45"])
+@pytest.mark.parametrize("explicit_pdk", [False, True])
 def test_native_timing_baseline_control_uses_its_own_input_binary_and_pipeline(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, platform, explicit_pdk
 ):
     original = tmp_path / "goal" / "baseline"
     original.mkdir(parents=True)
@@ -75,6 +77,10 @@ def test_native_timing_baseline_control_uses_its_own_input_binary_and_pipeline(
             "native_method": {"kind": "native-baseline"},
         },
     )
+    pdk = original.parent / "inputs" / platform
+    if explicit_pdk:
+        pdk = tmp_path / "frozen-technology"
+        write(original.parent / "profile.json", {"pdk_root": str(pdk)})
     hashes = {p: digest(p) for p in [script, result, source, binary]}
     folder = tmp_path / "experiments" / "jpeg" / "control"
 
@@ -118,12 +124,17 @@ def test_native_timing_baseline_control_uses_its_own_input_binary_and_pipeline(
         "finish",
         lambda deployment, path: {"run_id": "common-measurement"},
     )
-    deployment = SimpleNamespace(state=tmp_path, experiment=experiment)
+    deployment = SimpleNamespace(
+        state=tmp_path,
+        experiment=experiment,
+        design=lambda _design: {"platform": platform},
+    )
     assert goal_route_control.run(cast(Deployment, deployment), result, "control") == {
         "run_id": "common-measurement"
     }
     saved = read(folder / "control-method.json")
     assert saved["removed_commands"] == ["repair_design", "repair_timing -setup"]
     assert checkpoints[0]["producer"] == "control-producer"
+    assert checkpoints[0]["pdk"] == pdk
     assert checkpoints[0]["native_method"]["kind"] == "conversion-routing-control"
     assert all(digest(p) == sha for p, sha in hashes.items())

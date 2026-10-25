@@ -131,7 +131,11 @@ def replay_goal(deployment: Deployment, result_path: Path, key: str) -> dict[str
         native / "post_route.odb",
         record["run"]["run_id"],
         Path(wrapped["objective"]),
-        Path(profile["state_root"]) / "inputs/asap7",
+        Path(profile["pdk_root"])
+        if profile.get("pdk_root")
+        else Path(profile["state_root"])
+        / "inputs"
+        / deployment.design(wrapped["design_id"])["platform"],
     )
     receipt = {
         "kind": "same native method; direct EF command vs professional EF bridge",

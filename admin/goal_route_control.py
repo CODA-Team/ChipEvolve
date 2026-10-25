@@ -94,13 +94,19 @@ def run(deployment: Deployment, result: Path, key: str) -> dict:
     jobs.log(record, output / "evaluation.log")
     if digest(binary) != binary_hash:
         raise ValueError("Native binary changed during the control")
+    profile_path = result.parent / "profile.json"
+    profile = read(profile_path) if profile_path.exists() else {}
     checkpoint(
         folder,
         design_id=frame["design_id"],
         odb=output / "post_route.odb",
         producer=record["run"]["run_id"],
         objective=Path(frame["objective"]),
-        pdk=result.parent / "inputs/asap7",
+        pdk=Path(profile["pdk_root"])
+        if profile.get("pdk_root")
+        else result.parent
+        / "inputs"
+        / deployment.design(frame["design_id"])["platform"],
         native_method={
             "kind": "conversion-routing-control",
             "source_run_id": read(source)["run_id"],
