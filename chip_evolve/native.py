@@ -108,7 +108,16 @@ def run_goal(
         container(
             deployment, [deployment.value["tools"]["openroad"], "-exit", str(script)]
         ),
-        capture=[script, *bench.glob("*")],
+        # The CSVs are produced by this command, so a pre-run glob omits them.
+        capture=[
+            script,
+            *[
+                bench / (design["top"] + "." + ext)
+                for ext in ("def", "v", "sdc", "odb")
+            ],
+            bench / "node.csv",
+            bench / "nets.csv",
+        ],
         parent=frame["run_id"],
         seconds=300,
         memory_gib=8,
