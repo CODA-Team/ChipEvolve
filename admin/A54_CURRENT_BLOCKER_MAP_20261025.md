@@ -1,8 +1,10 @@
 # A54：当前功能阻断图与待用策略纠正
 
-本表已接续至 A77。A54 初始基线根 `a0e9bea`、Query `54a08be`；该初始轮没有 EDA/专业搜索或模型调用。后续按“具体诊断 → 定点修复 → 短验证 → code-check”推进，真实短验证见下列更新。A32/A34 是历史审计，保留原始失败及尚未通过的资格。
+本表已接续至 A78。A54 初始基线根 `a0e9bea`、Query `54a08be`；该初始轮没有 EDA/专业搜索或模型调用。后续按“具体诊断 → 定点修复 → 短验证 → code-check”推进，真实短验证见下列更新。A32/A34 是历史审计，保留原始失败及尚未通过的资格。
 
-2026-10-26 A77：同源原生cap20/recover20配方完成。仅恢复guides的r1触发RSZ树缺1负载；试验副本重建working GRT后r2完整成功。电气阶段cap64→13，通用回收397实例仅少0.012159mW，却使hold/电气恶化；末GRT hold TNS−0.372938ns、slew102/cap305、面积/阶段功耗超限，拒绝且不跑DRT。四节点/四EF原件、DF/DI及两Query核验通过，产品/26用户文件保持，740同源回归复用。下一项审原Goal专业功耗机制，不重复通用回收。见 [A77](A77_NATIVE_REPAIR_POWER_CONFLICT_20261026.md)。
+2026-10-26 A78：查清Goal mid仅纯VT，Nangate45单VT上0候选为预期；early真实300动作减少面积却引入setup/电气债，拒绝。独立只读配对确证A77私有脚本漏刷功耗缓存，原阶段功耗收益撤回；A74新进程最终测量不受影响。两DF/DI/Query快照和原件、14份策略EF输出及静态code-check通过，26用户文件/产品源码保持，740同源回归复用。下一项查ECO持久会话功耗；无新采用或长搜索。见 [A78](A78_GOAL_POLICY_AND_POWER_CACHE_20261026.md)。
+
+2026-10-26 A77：同源原生cap20/recover20配方完成。仅恢复guides的r1触发RSZ树缺1负载；试验副本重建working GRT后r2完整成功。电气阶段cap64→13，通用回收397实例使hold/电气恶化（A78已撤回未刷新缓存的原功耗收益）；末GRT hold TNS−0.372938ns、slew102/cap305、面积/阶段功耗超限，拒绝且不跑DRT。四节点/四EF原件、DF/DI及两Query核验通过，产品/26用户文件保持，740同源回归复用。下一项审原Goal专业功耗机制，不重复通用回收。见 [A77](A77_NATIVE_REPAIR_POWER_CONFLICT_20261026.md)。
 
 2026-10-26 A74/A76最终收口：DRT/RCX、共同测量、三事实scope/12数值/4 Query及原件核验通过；64驱动均经DF/DI按native ID/master/ODB SHA核对，原session82815 exit0、导入1次。setup/hold闭合、DRC0，但cap64和power超限0.0261084%仍拒绝、未采用。数据交付实际约20分钟，登记为大设计性能瓶颈。下一项审原生电气修复/功耗回收与具体导入耗时；见 [A74](A74_ARIANE_NANGATE45_FINAL_QUALIFICATION_20261026.md)、[A76](A76_POSTROUTE_CAP_DIAGNOSIS_20261026.md)。
 

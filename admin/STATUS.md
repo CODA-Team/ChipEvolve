@@ -1,6 +1,12 @@
+# 当前状态：A78查清原Goal策略适配与功耗缓存，2026-10-26
+
+2026-10-26 A78：查清Goal mid仅纯VT，Nangate45单VT上0候选为预期；early真实300动作减少面积却引入setup/电气债，拒绝。独立只读配对确证A77私有脚本漏刷功耗缓存，原阶段功耗收益撤回；A74新进程最终测量不受影响。两DF/DI/Query快照和原件、14份策略EF输出及静态code-check通过，26用户文件/产品源码保持，740同源回归复用。下一项查ECO持久会话功耗；无新采用或长搜索。见 [A78](A78_GOAL_POLICY_AND_POWER_CACHE_20261026.md)。
+
+恢复入口：`var/business/a78-goal-mid-power-audit-20261026/continuation.json`。下方保留历史收尾状态。
+
 # 当前状态：A77确认通用电气/功耗动作冲突，组合分支拒绝，2026-10-26
 
-2026-10-26 A77：同源原生cap20/recover20配方完成。仅恢复guides的r1触发RSZ树缺1负载；试验副本重建working GRT后r2完整成功。电气阶段cap64→13，通用回收397实例仅少0.012159mW，却使hold/电气恶化；末GRT hold TNS−0.372938ns、slew102/cap305、面积/阶段功耗超限，拒绝且不跑DRT。四节点/四EF原件、DF/DI及两Query核验通过，产品/26用户文件保持，740同源回归复用。下一项审原Goal专业功耗机制，不重复通用回收。见 [A77](A77_NATIVE_REPAIR_POWER_CONFLICT_20261026.md)。
+2026-10-26 A77：同源原生cap20/recover20配方完成。仅恢复guides的r1触发RSZ树缺1负载；试验副本重建working GRT后r2完整成功。电气阶段cap64→13，通用回收397实例使hold/电气恶化（A78已撤回未刷新缓存的原功耗收益）；末GRT hold TNS−0.372938ns、slew102/cap305、面积/阶段功耗超限，拒绝且不跑DRT。四节点/四EF原件、DF/DI及两Query核验通过，产品/26用户文件保持，740同源回归复用。下一项审原Goal专业功耗机制，不重复通用回收。见 [A77](A77_NATIVE_REPAIR_POWER_CONFLICT_20261026.md)。
 
 当前无本轮活动EF任务。恢复资料：`var/business/a77-native-postroute-strategy-20261026/continuation.json`。原A74保持，不替换；下一项核查Goal原生功耗策略及其约束，再做针对性动作。正式长搜索仍暂停。
 
