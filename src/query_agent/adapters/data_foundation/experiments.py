@@ -6,7 +6,7 @@ from urllib.parse import quote
 from eda_ai_client import EdaAiError
 
 from query_agent.domain.capability import Capability
-from query_agent.domain.errors import DataBoundaryError
+from query_agent.domain.errors import DataBoundaryError, MissingDataError
 from query_agent.domain.experiment import (
     ArtifactRef,
     ExperimentRun,
@@ -79,11 +79,19 @@ class DataExperimentProvider:
     def list_artifacts(
         self, run_id: str, *, stage_key: str | None = None
     ) -> Sequence[ArtifactRef]:
-        if stage_key is None:
-            return self.execution.list_artifacts(run_id)
-        artifacts: dict[str, ArtifactRef] = {}
-        for snapshot in self._run_snapshots(run_id):
-            if snapshot.stage != stage_key:
+        artifacts: dict[str, ArtifactRef] = (
+            {item.artifact_id: item for item in self.execution.list_artifacts(run_id)}
+            if stage_key is None
+            else {}
+        )
+        try:
+            snapshots = self._run_snapshots(run_id)
+        except MissingDataError:
+            if stage_key is not None:
+                raise
+            return tuple(artifacts.values())
+        for snapshot in snapshots:
+            if stage_key is not None and snapshot.stage != stage_key:
                 continue
             for source in snapshot.source_artifacts:
                 reference = ArtifactRef(
@@ -107,7 +115,7 @@ class DataExperimentProvider:
                     raise DataBoundaryError(
                         "indexed artifact identity has conflicting hashes"
                     )
-                artifacts.setdefault(source.artifact_id, reference)
+                artifacts[source.artifact_id] = reference
         return tuple(artifacts.values())
 
     def get_provenance(self, run_id: str) -> Sequence[ProvenanceRef]:

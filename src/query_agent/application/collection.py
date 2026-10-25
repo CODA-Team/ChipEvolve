@@ -675,7 +675,10 @@ class EvidenceCollector:
                         reason=metric_reason,
                         level=EvidenceLevel.PARSED_METRIC,
                         source_locator=(
-                            f"execution://runs/{metric.run_id}/artifacts/{metric.artifact_id}#metric={metric.metric_name}"
+                            artifact_by_id[metric.artifact_id].locator
+                            + f"#metric={metric.metric_name}"
+                            if metric.artifact_id in artifact_by_id
+                            else f"execution://runs/{metric.run_id}/artifacts/{metric.artifact_id}#metric={metric.metric_name}"
                             if metric.artifact_id
                             else None
                         ),

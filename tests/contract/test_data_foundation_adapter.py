@@ -17,7 +17,7 @@ from query_agent.adapters.data_foundation import (
 from query_agent.application.collection import EvidenceCollector
 from query_agent.application.planning import KeywordIntentParser, QueryPlanner
 from query_agent.application.service import QueryService
-from query_agent.domain.errors import DataBoundaryError
+from query_agent.domain.errors import DataBoundaryError, MissingDataError
 from query_agent.domain.experiment import ExperimentRun, ExperimentStatus
 from query_agent.domain.query import (
     QueryContext,
@@ -384,3 +384,69 @@ def test_metric_query_matches_only_the_verified_snapshot_revision(
     else:
         assert response.status is QueryStatus.NEEDS_MORE_DATA
         assert not response.evidence
+
+
+def test_unstaged_metric_context_keeps_indexed_source_locator(
+    provider: DataFoundationProvider,
+) -> None:
+    adapter = DataExperimentProvider(FakeExperimentContextProvider(), provider)
+    sources = adapter.list_artifacts("run1")
+    source = next(item for item in sources if item.artifact_id == "report")
+    assert source.run_id == "run1"
+    assert source.locator.endswith("/snapshots/s1/sources/report/excerpt")
+
+
+def test_metric_citation_uses_the_registered_snapshot_source(
+    provider: DataFoundationProvider,
+) -> None:
+    execution = FakeExperimentContextProvider()
+    execution.runs = (
+        ExperimentRun(
+            run_id="run1", design_id="chip", status=ExperimentStatus.SUCCEEDED
+        ),
+        execution.runs[1],
+        execution.runs[2],
+    )
+    adapter = DataExperimentProvider(execution, provider)
+    app = QueryService(
+        intent_parser=KeywordIntentParser(),
+        planner=QueryPlanner(),
+        collector=EvidenceCollector(experiment_context_provider=adapter),
+    )
+    response = app.query(
+        QueryRequest(
+            query="WNS?",
+            context=QueryContext(
+                design_id="chip",
+                run_id="run1",
+                snapshot_id="s1",
+                revision_id="r1",
+                source=QuerySource.MANAGED_RUN,
+            ),
+        )
+    )
+    assert response.status is QueryStatus.ANSWERED
+    assert response.evidence[0].scope.model_dump() == SCOPE
+    citation = response.evidence_citations[0]
+    assert citation.endswith("/snapshots/s1/sources/report/excerpt#metric=WNS")
+    assert "execution://runs/run1/artifacts/report" not in citation
+    content = response.evidence[0].content
+    assert isinstance(content, dict)
+    source_file = content["source_file"]
+    assert isinstance(source_file, str)
+    assert source_file in citation
+
+
+def test_run_without_indexed_facts_keeps_execution_artifacts(
+    provider: DataFoundationProvider, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    execution = FakeExperimentContextProvider()
+    adapter = DataExperimentProvider(execution, provider)
+
+    def missing(run_id: str) -> None:
+        raise MissingDataError("no imported data for this run")
+
+    monkeypatch.setattr(adapter, "_run_snapshots", missing)
+    assert adapter.list_artifacts("run_001") == execution.list_artifacts("run_001")
+    with pytest.raises(MissingDataError):
+        adapter.list_artifacts("run_001", stage_key="route")
