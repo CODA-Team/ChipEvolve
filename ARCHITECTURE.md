@@ -1,3 +1,5 @@
+2026-10-25 A59：本机固定共同工具版本的Ariane/Nangate45已验证从保存ODB的GRT guides恢复原估算，时序/电气字典与父节点一致后再做定点动作；重建全局路由会产生新的估算状态，须另记节点。阶段事实显式标global_route，经EF→DF→DI/Query回流，不作为最终DRT/RCX PPA或采用。无新服务、公共协议或产品代码。见 [A59](admin/A59_ARIANE_RESIDUAL_ELECTRICAL_20261025.md)。
+
 2026-10-25 A57：ECO会话内只读探针由既有EF拥有的OpenROAD执行，完整返回行交给原生下一轮prompt；跨专业仍通过DF/DI/Query取事实。修复返回值及行截断，不新增harness/服务/公共协议；真实同网6端点核对通过，DF原truncated限制保留。见 [A57](admin/A57_ECO_PROBE_RETURN_PATH_20261025.md)。
 
 2026-10-25 A56：ECO两种DRT模式均把实际输入视为cycle0最佳、保存匹配SPEF；后续严格沿原WNS规则比较，不再让首周期自动替换基线。EF叶子直接交付选中ODB字节、原生工具仅导出视图，DRC证据仍与同一ODB绑定，无新平台公共契约或算法评分。见 [A56](admin/A56_ECO_ROUTED_BASELINE_RETENTION_20261025.md)。

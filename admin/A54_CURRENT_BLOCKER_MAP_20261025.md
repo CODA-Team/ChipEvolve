@@ -26,7 +26,7 @@ EF 执行、DF 事实、DI SDK、Query 与专业接入均有真实可用记录�
 | Goal 原算法、源码与续作 | A38 修复实际 measured-path 崩溃，A39 保留源码 seed/构建 donor，A40/A44 去除续作/重放的 PDK 硬编码 | 崩溃复测通过不等于 measured 策略最终收益通过。每次专业任务必须依据当前设计事实选原有策略 |
 | Goal GCD/Nangate45 策略 | 本轮新配置由 timing-only 改为已有 GCD 联合策略；八份原生配置解析及决策分支检查通过 | 尚未运行新 native baseline/四 Student，不能记成新增功耗优化收益 |
 | ECO 双 PDK 与已布线交付 | A35 库/参考与物理会话一致；A47 保留路由身份；A56修复周期首轮无条件覆盖更好基线、配对基线SPEF及直接交付选中ODB，真实EF导出短验证通过 | A57已修网络探针不返回/行截断，真实只读6端点进入原生prompt、与DI一致；新八轮未运行，剩余setup/slew及原负分支保留。见[A56](A56_ECO_ROUTED_BASELINE_RETENTION_20261025.md)、[A57](A57_ECO_PROBE_RETURN_PATH_20261025.md) |
-| Ariane/Nangate45 原生 GRT 修复 | A48 完整原 14 动作、repair_design/repair_timing、合法化及 incremental GRT 实际跑完 | GRT 估计仍有 4 slew / 8 cap；需解决剩余问题并完成最终 DRT/RCX/证明。不同 RC 模型不能直接宣称最终改善 |
+| Ariane/Nangate45 原生 GRT 修复 | A48 完整原 14 动作、repair_design/repair_timing、合法化及 incremental GRT 实际跑完 | A48原4/8保留；A59明确处理3个常量驱动、原生margin10及1个buffer，本轮同口径5/51→0/0，setup/hold TNS0；保存GRT恢复/DF/DI/Query核验通过。最终DRT/RCX/PPA/证明仍缺，不算最终收益；见[A59](A59_ARIANE_RESIDUAL_ELECTRICAL_20261025.md) |
 | 最终验证与采用 | A31 Ibex/ASAP7 恢复完整证明、独立重放与采用；既有 GCD/JPEG 合格分支保留 | Ibex/Nangate45 原证明确为超时；A58四个被打断分区及四个对照原义务短验证8/8 PASS，未发现这些项持续求解障碍。整体PASS仍缺，14400秒配置已准备未运行；见[A58](A58_IBEX_PROOF_DIAGNOSIS_20261025.md) |
 | Ariane/ASAP7 最终供电与交付 | A52旧来源/事后改网格失败保持；A55核实另一前置修正来源的原ORFS最终VDD/VSS PSM实际通过、DRC0，之后因缺SRAM GDS失败 | 不再重复修该来源PDN；其setup TNS−127.168ns、slew444与GDS资料/完整资格仍待解决，不是合格优化结果 |
 | 论文路径与两次平均 | 既有专业参与、真实接力及失败分支保留；GCD、JPEG、Ibex 有有效成果 | 八组各两次完整合格优化未齐；没有受控证据证明自主调度优于固定顺序。两项都是实验缺口，不是靠新框架能补出的功能 |
@@ -82,7 +82,7 @@ flowchart LR
 
 1. Ariane/ASAP7：复用A55找回的前置修正来源及最终PSM证据；核查其已完成ECO/时序修复分支，针对setup与slew债选原生策略，GDS缺失单列，不重做已过的供电阶段。
 2. Ibex/Nangate45：A58已复核原日志持续进展、原输入和14400秒预算，8项原义务短验证通过；仍需完整证明，不把抽查或部分PASS当整体完成，也不把超时称为已证实的反例。
-3. Ariane/Nangate45：针对剩余电气问题选择已有原生修复策略，再做最终资格；不把 GRT 指标当最终 RCX 收益。
+3. Ariane/Nangate45：A59已将新GRT后继slew/cap清零、setup/hold TNS0；复用其登记ODB与精确来源，恢复正式实验后再做最终DRT/RCX/PPA/证明，不把GRT状态当最终采用。
 4. GCD/Nangate45：500 ps 来源与本轮策略配置已准备，正式恢复搜索时再测真实 native baseline、检查实际 recipe，随后完成协作及两次独立优化。
 
 其余组保留已有有效结果，按各自事实选专业接力。当前总目标仍在进行，长搜索继续暂停，不能把本轮配置/查询检查写成八组实验验收完成。
