@@ -1,3 +1,5 @@
+2026-10-25 A63：Query内部识别明确hold标量后走既有DF指标端口，避免setup-only窄分析接口误答；API/域模型/专业算法保持。RC估算表与最终RCX模型须分别记来源，模型切换不算物理收益；原生物理修复应显式接力，不能混入纯测量。新八份私有配置仅绑定独立Query包与state_root。见 [A63](admin/A63_QUERY_HOLD_AND_RC_BOUNDARY_20261025.md)。
+
 2026-10-25 A62：专业接力同时保留实际输入边界、RC模型和阶段标识；Goal原生DEF/V准备及重建保持，不用父post-route ODB偷换评价。跨placement/GRT数字先做同协议未优化起点控制；同状态测量不算独立优化重复。真实物理签名与Query比较已验证，时钟指令猜测被否定，不新增公共契约/服务。见 [A62](admin/A62_GOAL_NATIVE_BOUNDARY_DIAGNOSIS_20261025.md)。
 
 2026-10-25 A61：专业模型上下文区分全设计原生汇总与有限路径报告；ECO请求前在原EF会话刷新WNS/TNS，设计TNS与子集TNS/计数范围分别进入JSON/TOON。原路径表、评分和选择保持；同状态只读重测不是独立优化重复。见 [A61](admin/A61_ECO_DESIGN_TNS_CONTEXT_20261025.md)。

@@ -1,3 +1,5 @@
+2026-10-25 A63：修复真实Hold TNS被Query误答成setup TNS，普通/分析措辞/比较保留HOLD_TNS/WNS/WS既有语义；15新增/211Query/712根回归与完整静态通过，最终wheel97文件同源、14真实查询及四RC快照通过。专业RC估算不同但RCX规则相同，未切RC；确认setup专业后继仍缺明确hold物理收尾。八份新Query待用配置保留PDN/FakeRAM及GCD500ps策略，长搜索暂停；见 [A63](admin/A63_QUERY_HOLD_AND_RC_BOUNDARY_20261025.md)。
+
 2026-10-25 A62：完成Goal原生DEF/V接力边界及四组时钟/RC控制；时钟猜测被否定，未改产品。真实crit_vt_deep全阶段/3388次VT通过，同协议GRT对照TNS−509.059→−451.843ns，欠账减少11.24%但仍不闭合；物理签名/六快照/Query比较通过。27针对回归与七驱动静态通过，原条件/26保护文件保持。最终DRT/RCX/证明/采用未做，长搜索暂停；见 [A62](admin/A62_GOAL_NATIVE_BOUNDARY_DIAGNOSIS_20261025.md)。
 
 2026-10-25 A61：修复ECO将50路径子集TNS当设计TNS的模型输入；请求前同会话刷新原生汇总，JSON/TOON标明设计与子集，真实原SPEF−13813.72/−127167.508ps差异核实。42模块/2子测试、712根回归及lint/type通过，原生prompt/EF→DF/DI/Query原件同值；无新优化。见 [A61](admin/A61_ECO_DESIGN_TNS_CONTEXT_20261025.md)。

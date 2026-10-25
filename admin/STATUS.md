@@ -1,3 +1,7 @@
+# 当前状态：A63 Query hold错答已修，RC与物理收尾边界核实，2026-10-25
+
+真实Hold TNS原误答−509.059ns setup，独立包现正确−98.498ns hold；15新增/211Query/712根回归、全静态/import约束及14真实只读查询通过。四固定状态RC对照/DF/DI/Query通过，RCX规则相同；换估算表无法替代修复，未切专业RC。新八组配置 `var/business/a63-rc-model-correlation-20261025/configs/` 保留PDN/FakeRAM和500ps原策略，使用已核对的新Query包。下一项核查专业后继→原生ORFS物理收尾，明确setup/hold责任；hold路径调查不当作已完成。最终资格/八组双次仍缺，长搜索暂停。见 [A63](A63_QUERY_HOLD_AND_RC_BOUNDARY_20261025.md)。
+
 # 当前状态：A62 Goal原生接力与同协议GRT诊断完成，2026-10-25
 
 四组时钟/RC控制排除本设计的理想时钟猜测。原生crit_vt_deep/3388次VT、合法化和GRT实际完成；placement TNS−231.139→−191.152ns，同协议GRT起点/后继−509.059→−451.843ns，欠账减少11.24%但仍未闭合。两ODB的210746实例物理状态和网表保持，新增1604090guides；六快照、Query实际比较及27针对/七私有驱动静态核验通过。没有产品/服务修改、最终DRT/RCX/证明/采用或独立双次。下一项查专业GRT与共同最终RC相关性，再选原有后继策略；长搜索仍暂停。证据 `var/business/a62-goal-clock-boundary-20261025/` 的 `code-check.json`、`matched-control-facts-receipt.json`；见 [A62报告](A62_GOAL_NATIVE_BOUNDARY_DIAGNOSIS_20261025.md)。
