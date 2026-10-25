@@ -1,0 +1,12 @@
+--- a/src/rmp/src/Restructure.cpp
++++ b/src/rmp/src/Restructure.cpp
+@@ -1165,7 +1165,8 @@
+ {
+   for (odb::dbITerm* iterm : inst->getITerms()) {
+     odb::dbNet* net = iterm->getNet();
+-    if (net == nullptr) {
++    // Shared supplies are not sequential signal dependencies.
++    if (net == nullptr || net->getSigType().isSupply()) {
+       continue;
+     }
+ 

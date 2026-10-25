@@ -27,3 +27,27 @@ Exact input files:
 | `MeasuredCriticalPathPolicy.hh` | `9e09c5951175532ae307a969ae7934ee58dc3be9b40b3426f61a98d80e9ee477` |
 
 The A38 EF regression replays both previously crashing recipes with their original inputs, SDC, seven-action sequence, and 40-move budget. Both exit successfully (40 and 35 committed moves); a non-measured TNS control retains all 25 checkpoint metrics and its output netlist exactly. The measured recipes still have negative final setup slack, so they are compatibility regressions, not accepted optimization results. Build identity and raw run receipts live in ChipEvolve's `var/business/a38-goal-path-lifetime-20261025/`; the root A38 report records their public EF handles.
+
+## RMP sequential-neighbor admission on connected supplies
+
+`fix-rmp-supply-sequential-admission.patch` excludes POWER/GROUND nets from
+`Restructure::touchesSequentialPin`. A shared supply is not a sequential signal
+dependency: after platform handoff, connected VDD/VSS otherwise makes ordinary
+combinational cells appear adjacent to every flip-flop and can eliminate all
+path-cone candidates. Real signal and clock connections remain protected, as do
+the other editable-cell, clock-network, STA, rollback and acceptance guards.
+
+The verified base is `src/rmp/src/Restructure.cpp`, SHA256
+`7b29e85e7f8f2597a2a54bcc2c9d9f0f610106aca01016c7ece9e2d3072852fe`.
+Apply with `git apply --check` to a new private source copy, regenerate its native
+repository graph, and build through EF. Never rewrite a measured source or a
+released lineage snapshot. The native build donor must match the actual compile
+database; a nested cached build can retain an older workspace in its Makefiles.
+
+`tests/unit/test_rmp_supply_admission_patch.py` applies the real patch to the
+original predicate and compiles it with topology test doubles. It reproduces the
+two original VDD/VSS false positives and checks ten repaired boundaries,
+including real flip-flop data/clock neighbors and mixed supply/signal cases.
+Platform EF input diagnostics and native execution evidence are recorded under
+ChipEvolve's `var/business/a68-rmp-candidate-admission-20261026/`. Candidate
+admission alone does not establish an accepted PPA improvement.
