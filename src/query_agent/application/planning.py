@@ -15,7 +15,7 @@ from query_agent.domain.query import (
     RunSelectionMode,
 )
 
-from .analysis_queries import AnalysisQuestionParser
+from .analysis_queries import AnalysisQuestionParser, hold_metric_name_from_query
 
 
 class IntentParser(Protocol):
@@ -91,7 +91,7 @@ class KeywordIntentParser:
             for token in ("run status", "stage status", "stage complete", "状态")
         ):
             return QueryIntent.FLOW_STATUS
-        if any(
+        if hold_metric_name_from_query(request.query) is not None or any(
             token in text
             for token in (
                 "wns",
@@ -297,6 +297,9 @@ def metric_name_from_query(query: str) -> str | None:
     """Extract only well-known metric labels; values remain deterministic."""
 
     upper = query.upper()
+    hold_metric = hold_metric_name_from_query(query)
+    if hold_metric is not None:
+        return hold_metric
     for name in (
         "WNS",
         "TNS",

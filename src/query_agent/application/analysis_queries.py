@@ -6,6 +6,20 @@ import re
 from enum import StrEnum
 
 
+def hold_metric_name_from_query(query: str) -> str | None:
+    """Keep explicit hold scalar labels separate from setup WNS/TNS."""
+
+    for expression in (
+        r"(?<![A-Z0-9])HOLD(?:[\s_-]+(?:TIMING|ANALYSIS))*[\s_-]+"
+        r"(WNS|TNS|WS)(?![A-Z0-9])",
+        r"(?<![A-Z0-9])(WNS|TNS|WS)[\s_(:-]+HOLD(?![A-Z0-9])",
+    ):
+        match = re.search(expression, query, flags=re.IGNORECASE)
+        if match is not None:
+            return "HOLD_" + match[1].upper()
+    return None
+
+
 class AnalysisOperation(StrEnum):
     METRIC = "metric"
     PATHS = "paths"
@@ -40,6 +54,10 @@ class AnalysisQuestionParser:
     def parse(self, query: str) -> AnalysisQuestion | None:
         raw = query.strip()
         lower = raw.lower()
+        # This narrow analysis port exposes setup WNS/TNS only. Existing
+        # canonical hold scalars belong to the explicit metric provider.
+        if hold_metric_name_from_query(raw) is not None:
+            return None
         if any(
             token in lower
             for token in (
