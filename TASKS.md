@@ -1,3 +1,5 @@
+2026-10-25 A54：当前逐功能阻断见 [A54总表](admin/A54_CURRENT_BLOCKER_MAP_20261025.md)，A32/A34作为历史保留。八组历史原件→DF/DI/最新Query查询8/8通过；纠正GCD/Nangate45待用Goal的timing-only策略错位，仅新私有任务选择已有GCD联合策略，旧目标/源码/算法实现保持；补齐Goal环境Toolkits所缺的已有EF client/contracts wheel。没有新EDA/模型/服务变更，八组双次与Ariane物理资格仍待完成，长搜索暂停。
+
 2026-10-25 A45：批准500ps的GCD/Nangate45完整RTL→ORFS→RCX/测量→DF/DI/Query单次来源资格通过，功耗2.2321124561mW/cell675.64um²/setupWS+40.0912ps/holdWS+110.517ps/TNS均0/DRV与DRC0。5个实际EF成功、12事实及原件/时钟/作用域同值；未搜索/证明/双次均值。真实源暴露Flow前导注释/变量时钟接入阻断，A46定点修复，长搜索暂停。见 [A45报告](admin/A45_GCD_500PS_SOURCE_QUALIFICATION_20261025.md)。
 
 2026-10-25 A44：固定Goal重放和物理控制入口继承原冻结PDK，不再写死ASAP7；6例错误复现后25针对/689根回归与静态通过。两份真实原生baseline公开成功状态及RC原件SHA核对通过，无新EDA/模型/PPA。见 [A44报告](admin/A44_FIXED_METHOD_PDK_REPAIR_20261025.md)。
