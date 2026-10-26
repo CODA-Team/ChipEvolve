@@ -1,3 +1,9 @@
+# 当前状态：A89核查八组绑定并修复Goal源码提交误归属，2026-10-26
+
+2026-10-26 A89：八组配置/参数/库保持，A72的701源码与原二进制、Query安装97源码及实际Goal/ECO冻结入口匹配，八组历史scope的setup WS实测通过。修复Goal平台将上层ChipEvolve提交误记为无Git源码提交的问题；真实冻结副本返回null，独立仓库/worktree仍正确。14针对/479模块/71子项/39根接点及静态通过，754根同源复用，26用户文件/服务保持。模块0ca32cc供新会话，无EDA/模型/新PPA。见 [A89](A89_PREPARED_BINDINGS_AND_SOURCE_IDENTITY_20261026.md)。
+
+恢复入口：`var/business/a89-prepared-bindings-source-identity-20261026/continuation.json`。下一项核GCD/Nangate45 500ps原联合策略baseline与固定原生接续的来源/构建，只做有界验证；长搜索保持暂停。
+
 # 当前状态：A88定位DF实际写入成本，生产延迟未关闭，2026-10-26
 
 2026-10-26 A88：确认实际DF已本地复制/流式/部分索引/256MiB缓存；A84对象包展开2.454GiB。隔离60万事实两库WAL/FULL同内容哈希，256MiB/1GiB单次50.76/45.37秒、写入都约1.764GB、库878.4MB；较大缓存未减少写入量，不据此改生产。源码/服务/26用户文件保持，私有静态和真实样本校验通过、754根同源复用，无EDA/模型/新PPA。见 [A88](A88_DF_ACTUAL_FACT_WRITE_PROFILE_20261026.md)。
