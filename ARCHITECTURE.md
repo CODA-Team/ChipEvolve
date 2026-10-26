@@ -1,3 +1,5 @@
+2026-10-26 A85–A86：报告中的STA对象名与原始OpenDB名称通过原生对象桥接，保留精确DB查找、唯一STA匹配，不做字符串剥转义；公共ECO四原过程签名/算法保持。保存guides不等于恢复完整路由工作状态，缺路由引脚警告不能被零电气计数掩盖；本轮私有对照不新增调度/路由框架。EF监督、DF事实边界与最终RC资格保持，见 [A85](admin/A85_FINAL_SPEF_REPAIR_AND_ROUTE_STATE_20261026.md)、[A86](admin/A86_ECO_NATIVE_INSTANCE_IDENTITY_20261026.md)。
+
 2026-10-26 A81–A82：已有完整证明用原收据入口核精确结果/模型/覆盖与成功EF证据后复用；独立重放先用保存检查点并核SHA，旁边旧原生request不必符合业务CLI字段。未保存检查点的历史baseline逻辑保持。最终采用仍要求完整证明、同条件独立物理/数据验证与Codex决策；不新增协议或harness。见 [A82](admin/A82_IBEX_NANGATE45_QUALIFIED_ADOPTION_20261026.md)。
 
 2026-10-26 A80：根业务交付入口同时等待原导入POST与核验既有DF持久回执；仅当producer/artifact/snapshot及subject/design一致才交付，不等待checkpoint后的HTTP确认。后台仅原有超时约束的HTTP，不写本地状态、不重派EDA；DF事务、持久化、读写边界与公共接口保持。实际解析/写入成本仍独立。见 [A80](admin/A80_COMMITTED_FACT_DELIVERY_WAIT_20261026.md)。

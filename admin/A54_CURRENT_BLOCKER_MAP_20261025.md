@@ -1,5 +1,7 @@
 # A54：当前功能阻断图与待用策略纠正
 
+2026-10-26 A86：已实际复现并修复公共ECO将STA报告显示名误当OpenDB原始名的问题；原五负载/slack排序同值，实际克隆输入/输出连接及对象增量通过。50模块/2子项、57根接点、静态及差异检查通过；模块ff8d13c供新会话使用。原专业动作/评分/回溯和公共接口保持，无新PPA或采用。Ariane剩余电气与其他实验缺口仍在，见 [A86](A86_ECO_NATIVE_INSTANCE_IDENTITY_20261026.md)。
+
 2026-10-26 A85：Ariane/Nangate45最终负载定点修复完成短核查。私有对象寻址已修；保存guides的增量R4/R5零违反伴69缺路由警告，无效；修改前建立完整工作GRT的R6警告0但slew1/cap16，仍拒绝。五DF/DI/Query及32份EF输出核验，8私有脚本静态通过；没有新最终RC/PPA/采用，停止同清单路由试探。A84实际最终slew1/cap60保持。下一项先实际核查公共ECO对象身份，不猜测补层。见 [A85](A85_FINAL_SPEF_REPAIR_AND_ROUTE_STATE_20261026.md)。
 
 2026-10-26 A84：Ariane/Nangate45 A83保存状态完成实际DRT/RCX、共同测量及三DF scope/12事实/四Query原件核验。最终power159.345523mW已低于原上限5.394µW、cell739092µm²、setup/hold WS +288.494/+47.782ps、TNS0、DRC0；但slew1/cap60仍拒绝。18EF原件、当前60驱动DF/DI身份及唯一OAI22_X4→X1回归核对通过；最终V与GRT同SHA。公共源码与26用户文件保持，754同源根回归复用；无新模型/长搜索/采用。下一项据最终SPEF做定点电气修复，见 [A84](A84_ARIANE_FINAL_RCX_AND_ELECTRICAL_DIAGNOSIS_20261026.md)。
