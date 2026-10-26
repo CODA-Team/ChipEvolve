@@ -1,3 +1,9 @@
+# 当前状态：A85完成最终负载/工作路由短核查，未采用，2026-10-26
+
+2026-10-26 A85：最终SPEF驱动清单经原生对象寻址完成60项替换及OAI22恢复；R4/R5零电气伴69缺路由警告，不能通过。R6修改前重建工作GRT后警告0，但slew1/cap16仍拒绝，不继续加参数分支。五分支DF/DI/Query原件核验、32份EF输出及8私有脚本静态检查通过；公共源码/26用户文件保持，754同源根回归复用。无新最终提取/证明/模型/采用，见 [A85](A85_FINAL_SPEF_REPAIR_AND_ROUTE_STATE_20261026.md)。
+
+恢复入口：`var/business/a85-final-SPEF-electrical-repair-20261026/continuation.json`。下一项有界核查公共ECO动作是否存在STA/OpenDB名称身份阻断，先复现再修复，不预判产品故障。
+
 # 当前状态：A84最终功耗/时序通过，电气仍拒绝，2026-10-26
 
 2026-10-26 A84：Ariane/Nangate45 A83保存状态完成实际DRT/RCX、共同测量及三DF scope/12事实/四Query原件核验。最终power159.345523mW已低于原上限5.394µW、cell739092µm²、setup/hold WS +288.494/+47.782ps、TNS0、DRC0；但slew1/cap60仍拒绝。18EF原件、当前60驱动DF/DI身份及唯一OAI22_X4→X1回归核对通过；最终V与GRT同SHA。公共源码与26用户文件保持，754同源根回归复用；无新模型/长搜索/采用。下一项据最终SPEF做定点电气修复，见 [A84](A84_ARIANE_FINAL_RCX_AND_ELECTRICAL_DIAGNOSIS_20261026.md)。

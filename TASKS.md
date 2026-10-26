@@ -662,3 +662,7 @@ Ariane主AG4完整DRT/RCX/DF/DI已完成，651.96436644mW/43970.9µm²/setupTNS�
 ### A84：最终RC验证与电气对象诊断（工程检查通过，候选拒绝，2026-10-26）
 
 2026-10-26 A84：Ariane/Nangate45 A83保存状态完成实际DRT/RCX、共同测量及三DF scope/12事实/四Query原件核验。最终power159.345523mW已低于原上限5.394µW、cell739092µm²、setup/hold WS +288.494/+47.782ps、TNS0、DRC0；但slew1/cap60仍拒绝。18EF原件、当前60驱动DF/DI身份及唯一OAI22_X4→X1回归核对通过；最终V与GRT同SHA。公共源码与26用户文件保持，754同源根回归复用；无新模型/长搜索/采用。下一项据最终SPEF做定点电气修复，见 [A84](admin/A84_ARIANE_FINAL_RCX_AND_ELECTRICAL_DIAGNOSIS_20261026.md)。 老板业务验收独立。
+
+### A85：最终负载修复与工作路由短核查（工程检查完成，候选不合格，2026-10-26）
+
+2026-10-26 A85：私有脚本修复STA/OpenDB转义名寻址，60负载替换及OAI22恢复逐项核验。旧guides增量的零违反伴69缺路由警告，拒绝；修改前完整工作GRT对照无该警告但slew1/cap16，仍不合格。五DF/DI/Query原件、32EF输出及8脚本静态通过；公共源码与26用户文件保持，754同源根回归复用，无新最终提取/证明/模型/采用，不继续加路由试探。下一项先实际核查公共ECO对象身份边界。见 [A85](admin/A85_FINAL_SPEF_REPAIR_AND_ROUTE_STATE_20261026.md)。 老板业务验收独立。
