@@ -229,7 +229,7 @@ proc write_net_details { file_name } {
     if {$sig_type == "POWER" || $sig_type == "GROUND"} { continue }
 
     set net_name [$net getName]
-    set net_name [string map {\\ "" [ "" ] "" $ ""} $net_name]
+    set net_name [string map {\\ ""} $net_name]
 
     set driver ""
     set sinks {}
@@ -238,7 +238,7 @@ proc write_net_details { file_name } {
 
     foreach iterm [$net getITerms] {
       set inst [$iterm getInst]
-      set inst_name [string map {\\ "" [ "" ] "" $ ""} [$inst getName]]
+      set inst_name [string map {\\ ""} [$inst getName]]
       set mterm [$iterm getMTerm]
       set pin_name [$mterm getName]
       set io_type [$mterm getIoType]
