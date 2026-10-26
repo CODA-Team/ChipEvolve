@@ -1,3 +1,5 @@
+2026-10-26 A87–A88：ECO报告注释不依赖首次Tcl时区加载，原上下文正文/分析规则保持；DF已有同机local-first和流式索引，实际大包全量事实持久化仍有成本。隔离样本不发布为设计快照，单次缓存对照不作为生产加速结论；保留WAL/FULL、公共接口和原始事实，不新增服务/数据架构或热改用户WIP。见 [A87](admin/A87_ECO_CONTEXT_REPORT_FIRST_CALL_20261026.md)、[A88](admin/A88_DF_ACTUAL_FACT_WRITE_PROFILE_20261026.md)。
+
 2026-10-26 A85–A86：报告中的STA对象名与原始OpenDB名称通过原生对象桥接，保留精确DB查找、唯一STA匹配，不做字符串剥转义；公共ECO四原过程签名/算法保持。保存guides不等于恢复完整路由工作状态，缺路由引脚警告不能被零电气计数掩盖；本轮私有对照不新增调度/路由框架。EF监督、DF事实边界与最终RC资格保持，见 [A85](admin/A85_FINAL_SPEF_REPAIR_AND_ROUTE_STATE_20261026.md)、[A86](admin/A86_ECO_NATIVE_INSTANCE_IDENTITY_20261026.md)。
 
 2026-10-26 A81–A82：已有完整证明用原收据入口核精确结果/模型/覆盖与成功EF证据后复用；独立重放先用保存检查点并核SHA，旁边旧原生request不必符合业务CLI字段。未保存检查点的历史baseline逻辑保持。最终采用仍要求完整证明、同条件独立物理/数据验证与Codex决策；不新增协议或harness。见 [A82](admin/A82_IBEX_NANGATE45_QUALIFIED_ADOPTION_20261026.md)。
