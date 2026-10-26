@@ -1,3 +1,5 @@
+2026-10-26 A91–A92：ECO机械动作从实际master取得buffer信号引脚，STA显示名经原生对象映射到OpenDB；不改变原动作/评分/回溯。诊断须保留原最终SPEF、混合RC和GRT控制，不能跨RC归因；保存状态还核新网guides/非零负载及STA路径。默认传播活动率可能为0，功耗必须保留原协议，不能凭只有漏电就断言缺路由或擅改活动率。实际双PDK动作修复与Ariane负结果见 [A91](admin/A91_ECO_BUFFER_TECHNOLOGY_IDENTITY_20261026.md)、[A92](admin/A92_ECO_ELECTRICAL_LOAD_ISOLATION_20261026.md)。
+
 2026-10-26 A89–A90：无独立Git元数据的冻结专业源码不继承平台HEAD，以原文件哈希/构建收据标识。原Goal阶段按理想时钟和估计寄生登记，最终RCX另保留条件，不能混同；Codex通过DF/DI/Query判断是否接既有ORFS物理修复，专业producer与物理successor分别留证。最终采用仍走原完整证明/独立重放/selection边界，不增加harness、服务或评测数据库。GCD/Nangate45实际原约束收益与时序代价见 [A90](admin/A90_GCD_NANGATE45_JOINT_RELAY_20261026.md)。
 
 2026-10-26 A87–A88：ECO报告注释不依赖首次Tcl时区加载，原上下文正文/分析规则保持；DF已有同机local-first和流式索引，实际大包全量事实持久化仍有成本。隔离样本不发布为设计快照，单次缓存对照不作为生产加速结论；保留WAL/FULL、公共接口和原始事实，不新增服务/数据架构或热改用户WIP。见 [A87](admin/A87_ECO_CONTEXT_REPORT_FIRST_CALL_20261026.md)、[A88](admin/A88_DF_ACTUAL_FACT_WRITE_PROFILE_20261026.md)。
