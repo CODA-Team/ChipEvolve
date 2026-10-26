@@ -5,9 +5,11 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+
 from goalevolve.agents.codex_runtime import CodexRuntimeConfig, PersistentCodexRunner
 from goalevolve.planning.repository_graph import RepositoryGraphIndex
 from goalevolve.platform.profile import (
@@ -106,9 +108,12 @@ def test_version_query_uses_ef_in_platform_mode(tmp_path, monkeypatch):
         ) as run,
         patch("subprocess.run") as git,
     ):
-        git.return_value.returncode = 0
-        git.return_value.stdout = "common-source-commit\n"
+        git.side_effect = [
+            SimpleNamespace(returncode=0, stdout=str(seed) + "\n"),
+            SimpleNamespace(returncode=0, stdout="common-source-commit\n"),
+        ]
         result = toolchain_evidence(seed)
+    assert result is not None
     assert result["openroad_version"] == "common-version"
     assert result["source_git_commit"] == "common-source-commit"
     assert run.call_args.kwargs["command"] == [str(binary), "-version"]

@@ -566,15 +566,27 @@ def toolchain_evidence(source_root: Path | None) -> dict[str, Any] | None:
             openroad_version=report.stdout_tail.strip(),
             openroad_sha256=digest(binary),
         )
-    completed = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        cwd=source_root or seed,
+    source = source_root or seed
+    top_level = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"],
+        cwd=source,
         capture_output=True,
         text=True,
         check=False,
     )
-    if completed.returncode == 0:
-        result["source_git_commit"] = completed.stdout.strip()
+    if (
+        top_level.returncode == 0
+        and Path(top_level.stdout.strip()).resolve() == source.resolve()
+    ):
+        completed = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=source,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if completed.returncode == 0:
+            result["source_git_commit"] = completed.stdout.strip()
     return result
 
 
