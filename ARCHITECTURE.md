@@ -1,3 +1,5 @@
+2026-10-26 A93–A94：模型上下文CSV的节点/网络身份须一致；生产导出保留[]$，读者/算法不变，实际双PDK名称关联已核验。原net_reports为保留原件，v5显式不读，不能将原件存在等同送进模型，也不将系统/用户合计长度误判为原生用户截断。特殊网络原报告和按需探针已按精确DF对象/原件核对，未新增报告层或服务。见 [A93](admin/A93_ECO_CONTEXT_CSV_IDENTITY_20261026.md)、[A94](admin/A94_ECO_NATIVE_NET_REPORT_AUDIT_20261026.md)。
+
 2026-10-26 A91–A92：ECO机械动作从实际master取得buffer信号引脚，STA显示名经原生对象映射到OpenDB；不改变原动作/评分/回溯。诊断须保留原最终SPEF、混合RC和GRT控制，不能跨RC归因；保存状态还核新网guides/非零负载及STA路径。默认传播活动率可能为0，功耗必须保留原协议，不能凭只有漏电就断言缺路由或擅改活动率。实际双PDK动作修复与Ariane负结果见 [A91](admin/A91_ECO_BUFFER_TECHNOLOGY_IDENTITY_20261026.md)、[A92](admin/A92_ECO_ELECTRICAL_LOAD_ISOLATION_20261026.md)。
 
 2026-10-26 A89–A90：无独立Git元数据的冻结专业源码不继承平台HEAD，以原文件哈希/构建收据标识。原Goal阶段按理想时钟和估计寄生登记，最终RCX另保留条件，不能混同；Codex通过DF/DI/Query判断是否接既有ORFS物理修复，专业producer与物理successor分别留证。最终采用仍走原完整证明/独立重放/selection边界，不增加harness、服务或评测数据库。GCD/Nangate45实际原约束收益与时序代价见 [A90](admin/A90_GCD_NANGATE45_JOINT_RELAY_20261026.md)。
