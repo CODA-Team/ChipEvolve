@@ -24,6 +24,16 @@
 # Helpers — tiny, no wire-geometry parsing (legalizer handles precision)
 # ----------------------------------------------------------------------
 
+# Preserve exact OpenDB names, then resolve STA report aliases through objects.
+# get_cells may match patterns; never choose one of several matching instances.
+proc _eco_find_dbinst { name } {
+    set dbinst [[ord::get_db_block] findInst $name]
+    if {$dbinst ne "NULL" && $dbinst ne ""} { return $dbinst }
+    set cells [get_cells -quiet $name]
+    if {[llength $cells] != 1} { return NULL }
+    return [sta::sta_to_db_inst [lindex $cells 0]]
+}
+
 # STA pin → ODB dbInst. Errors if the STA→ODB bridge returns NULL.
 proc _eco_pin_to_dbinst { sta_pin } {
     set sta_inst [[lindex $sta_pin 0] instance]
@@ -326,7 +336,7 @@ proc eco_clone_gate { orig_inst_name clone_name sink_pins } {
     }
 
     set block [ord::get_db_block]
-    set orig [$block findInst $orig_inst_name]
+    set orig [_eco_find_dbinst $orig_inst_name]
     if {$orig eq "NULL" || $orig eq ""} {
         error "eco_clone_gate: instance '$orig_inst_name' not found"
     }
@@ -400,7 +410,7 @@ proc eco_clone_gate { orig_inst_name clone_name sink_pins } {
         set full "${iname}/${pname}"
 
         # centroid accumulation (uses ODB directly, not STA)
-        set sinst [$block findInst $iname]
+        set sinst [_eco_find_dbinst $iname]
         if {$sinst ne "NULL" && $sinst ne ""} {
             set L [$sinst getLocation]
             set sum_x [expr {$sum_x + [ord::dbu_to_microns [lindex $L 0]]}]
@@ -567,7 +577,7 @@ proc eco_dump_path_siblings { out_file {n 5} } {
     set block [ord::get_db_block]
     foreach inst $ordered {
         # Resolve inst → output-net fanout via ODB.
-        set dbi [$block findInst $inst]
+        set dbi [_eco_find_dbinst $inst]
         if {$dbi eq "NULL" || $dbi eq ""} { continue }
         set fo 0
         foreach it [$dbi getITerms] {
@@ -651,7 +661,7 @@ proc eco_net_sink_report { net_name } {
 
 proc eco_rank_fanout_by_slack { driver_inst {out_file ""} {mode "max"} } {
     set block [ord::get_db_block]
-    set dbi [$block findInst $driver_inst]
+    set dbi [_eco_find_dbinst $driver_inst]
     if {$dbi eq "NULL" || $dbi eq ""} {
         error "eco_rank_fanout_by_slack: instance '$driver_inst' not found"
     }
@@ -683,7 +693,7 @@ proc eco_rank_fanout_by_slack { driver_inst {out_file ""} {mode "max"} } {
         if {$io ne "INPUT"} { continue }
         set sinst [$it getInst]
         if {$sinst eq "NULL" || $sinst eq ""} { continue }
-        if {[$sinst getName] eq $driver_inst} { continue }
+        if {$sinst eq $dbi} { continue }
         set full "[$sinst getName]/[[$it getMTerm] getName]"
         lappend sinks $full
     }
@@ -840,7 +850,7 @@ proc eco_dump_fanout_ranks { out_file {min_fanout 20} } {
     set block [ord::get_db_block]
     set dumped 0
     foreach inst $ordered {
-        set dbi [$block findInst $inst]
+        set dbi [_eco_find_dbinst $inst]
         if {$dbi eq "NULL" || $dbi eq ""} { continue }
         set fo 0
         foreach it [$dbi getITerms] {
