@@ -657,3 +657,8 @@ Ariane主AG4完整DRT/RCX/DF/DI已完成，651.96436644mW/43970.9µm²/setupTNS�
 ### A83：原Goal严格回收与定点电气接续（GRT短验证通过，最终物理资格待做，2026-10-26）
 
 2026-10-26 A83：Ariane/Nangate45原Goal严格回收300个size-down后保留检查点，修正私有物理接续顺序、两处有害缩尺寸、显式原路由层范围及最后一处CLKBUF升级的增量路由交接。最终GRT setup/hold WS +294.374/+25.735ps、TNS均0、电气0/0/0、cell739091.888µm²；不同RC阶段功耗不混算，最终DRT/RCX/功耗资格及采用仍待。全部EDA经EF，阶段DF/DI/Query和原件核验通过；公共源码保持，复用754同源根回归及静态code-check，26用户文件保持。无新模型/长搜索，见 [A83](admin/A83_ARIANE_STRICT_POWER_ELECTRICAL_HANDOFF_20261026.md)。 老板业务验收独立。
+
+
+### A84：最终RC验证与电气对象诊断（工程检查通过，候选拒绝，2026-10-26）
+
+2026-10-26 A84：Ariane/Nangate45 A83保存状态完成实际DRT/RCX、共同测量及三DF scope/12事实/四Query原件核验。最终power159.345523mW已低于原上限5.394µW、cell739092µm²、setup/hold WS +288.494/+47.782ps、TNS0、DRC0；但slew1/cap60仍拒绝。18EF原件、当前60驱动DF/DI身份及唯一OAI22_X4→X1回归核对通过；最终V与GRT同SHA。公共源码与26用户文件保持，754同源根回归复用；无新模型/长搜索/采用。下一项据最终SPEF做定点电气修复，见 [A84](admin/A84_ARIANE_FINAL_RCX_AND_ELECTRICAL_DIAGNOSIS_20261026.md)。 老板业务验收独立。

@@ -686,3 +686,10 @@ ORFS结果存在既有`delivery-checkpoint.json`时，独立验证先核查并�
 ### A77：资格布线与再优化工作状态分开（2026-10-26）
 
 A73/A74验证保存guides可直接供资格DRT使用；A77私有RSZ再优化配方则需当前网表的工作GRT，原guides恢复树缺1负载，重建后通过。没有更改公共资格/原生ORFS路径。阶段记录区分完整SPEF、修改网增量GRT与全GRT，不能混算最终PPA；通用recover_power保住setup仍可破坏hold/电气，Codex应据统一事实拒绝该组合并选择原专业策略。四阶段及DF/DI/Query证据见[A77](admin/A77_NATIVE_REPAIR_POWER_CONFLICT_20261026.md)，没有新服务或公共契约。
+
+
+### A83–A84：保存路由状态、估算与最终事实的边界（2026-10-26）
+
+局部物理动作后全量GRT与增量GRT可以产生不同电气结果，即使网表同SHA；对应路径和负分支应分别保留。GRT电气全零不能替代最终DRT/RCX检查，资格过程不隐式重新优化。当前Ariane保存guides经过既有resume/qualify→EF→共同测量→DF/DI/Query完成三事实交付，最终V保持而RC下slew1/cap60仍按原约束拒绝。
+
+对象归因必须用当前snapshot的native ID/master并明确原状态scope；本轮60驱动当前事实与原OAI22 master分开核对，指标快照不冒充完整对象图。完整导出/入库成本与后续小型查询成本分开记录，不能将事务内部生成的回执时间直接当作精确提交时刻。公共接口、专业算法和模块依赖图不变。
