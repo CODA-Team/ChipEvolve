@@ -63,6 +63,24 @@ proc _eco_split_sink_key { sp } {
     return [list $iname $pname]
 }
 
+# Buffer signal pin names come from the loaded technology, not a PDK alias.
+proc _eco_buffer_pins { master } {
+    if {$master eq "NULL" || $master eq ""} { error "ECO buffer master not found" }
+    set inputs {}
+    set outputs {}
+    foreach mt [$master getMTerms] {
+        if {[$mt getSigType] in {POWER GROUND}} { continue }
+        switch -- [$mt getIoType] {
+            INPUT { lappend inputs [$mt getName] }
+            OUTPUT { lappend outputs [$mt getName] }
+        }
+    }
+    if {[llength $inputs] != 1 || [llength $outputs] != 1} {
+        error "ECO buffer requires one signal input and one signal output"
+    }
+    return [list [lindex $inputs 0] [lindex $outputs 0]]
+}
+
 
 # ======================================================================
 # eco_insert_buffer
@@ -137,7 +155,10 @@ proc eco_insert_buffer { net_name driver_pin buf_cell buf_name args } {
                 puts "# eco_insert_buffer: WARNING bad sink '$sp', skipping"
                 continue
             }
-            dict set requested "[lindex $kp 0]/[lindex $kp 1]" 1
+            set iname [lindex $kp 0]
+            set sinst [_eco_find_dbinst $iname]
+            if {$sinst ne "NULL" && $sinst ne ""} { set iname [$sinst getName] }
+            dict set requested "${iname}/[lindex $kp 1]" 1
         }
     }
 
@@ -184,13 +205,14 @@ proc eco_insert_buffer { net_name driver_pin buf_cell buf_name args } {
     }
 
     # ---- create buffer + new net, rewire -----------------------------
+    lassign [_eco_buffer_pins [[ord::get_db] findMaster $buf_cell]] input_pin output_pin
     set new_net_name "${buf_name}_net"
     set new_net [make_net $new_net_name]
     make_instance $buf_name $buf_cell
 
     set old_net [get_nets [get_name $drv_net_sta]]
-    connect_pin $old_net [get_pins "${buf_name}/A"]
-    connect_pin $new_net [get_pins "${buf_name}/Y"]
+    connect_pin $old_net [get_pins "${buf_name}/${input_pin}"]
+    connect_pin $new_net [get_pins "${buf_name}/${output_pin}"]
 
     set moved 0
     foreach it $sink_iterms {
@@ -232,8 +254,14 @@ proc eco_insert_buffer { net_name driver_pin buf_cell buf_name args } {
 # ======================================================================
 proc eco_remove_buffer { buf_inst_name } {
 
-    set buf_a [get_pins "${buf_inst_name}/A"]
-    set buf_y [get_pins "${buf_inst_name}/Y"]
+    set buffer [_eco_find_dbinst $buf_inst_name]
+    if {$buffer eq "NULL" || $buffer eq ""} {
+        error "eco_remove_buffer: pins for '$buf_inst_name' not found"
+    }
+    lassign [_eco_buffer_pins [$buffer getMaster]] input_pin output_pin
+    set buffer_name [$buffer getName]
+    set buf_a [get_pins "${buffer_name}/${input_pin}"]
+    set buf_y [get_pins "${buffer_name}/${output_pin}"]
     if {$buf_a eq "" || $buf_y eq ""} {
         error "eco_remove_buffer: pins for '$buf_inst_name' not found"
     }
