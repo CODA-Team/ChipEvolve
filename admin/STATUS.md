@@ -1,3 +1,9 @@
+# 当前状态：A91修复ECO跨PDK缓冲动作和指定负载身份，2026-10-26
+
+2026-10-26 A91：真实Ariane复现ECO指定负载显示名不匹配，以及Nangate45 BUF_X2输出Z被硬编码Y遗漏、过程却返回成功的断连。仅修插入/删除buffer的原生master引脚及实例身份接点，原签名/动作/评分/回溯保持。双PDK实际插入删除及拓扑恢复、3EF包/6capture与DF身份/冻结核验通过；旧3失败→新七项通过、ECO63/2子项与根48接点、静态通过，根754同源复用。模块17b0407供新会话，产品根/26用户文件/服务保持，无模型/布线/新PPA或采用。见 [A91](A91_ECO_BUFFER_TECHNOLOGY_IDENTITY_20261026.md)。
+
+恢复入口：`var/business/a91-eco-buffer-technology-identity-20261026/continuation.json`。当前无活动EF任务。Ariane最终电气问题尚未解决；先核修复后的原动作能否消费当前诊断和执行正确的负载隔离，不重复原A85同清单路由试探，长搜索保持暂停。
+
 # 当前状态：A90完成GCD/Nangate45原生联合接续资格与采用，2026-10-26
 
 2026-10-26 A90：GCD/Nangate45 500ps原Goal联合配方→Query→显式ORFS物理接续最终资格通过并登记采用。power1.922859345mW（−13.8547%）、cell594.51µm²（−12.0079%），setup/hold WS +11.0525/+110.445ps、TNS0、电气/DRC0；18输出PDR、独立19字段同值/网表同SHA、25EF包/96capture及四Query原件核验通过。setup余量较基线减少29.0387ps，仍闭合。产品/服务/26用户文件保持，七私有脚本静态通过、根754/Goal479及71子项同源复用，无长搜索；独立重放不算第二次优化。见 [A90](A90_GCD_NANGATE45_JOINT_RELAY_20261026.md)。

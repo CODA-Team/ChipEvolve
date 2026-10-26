@@ -1,5 +1,7 @@
 # A54：当前功能阻断图与待用策略纠正
 
+2026-10-26 A91：真实Ariane复现ECO指定负载显示名不匹配，以及Nangate45 BUF_X2输出Z被硬编码Y遗漏、过程却返回成功的断连。仅修插入/删除buffer的原生master引脚及实例身份接点，原签名/动作/评分/回溯保持。双PDK实际插入删除及拓扑恢复、3EF包/6capture与DF身份/冻结核验通过；旧3失败→新七项通过、ECO63/2子项与根48接点、静态通过，根754同源复用。模块17b0407供新会话，产品根/26用户文件/服务保持，无模型/布线/新PPA或采用。见 [A91](A91_ECO_BUFFER_TECHNOLOGY_IDENTITY_20261026.md)。
+
 2026-10-26 A90：GCD/Nangate45 500ps原Goal联合配方→Query→显式ORFS物理接续最终资格通过并登记采用。power1.922859345mW（−13.8547%）、cell594.51µm²（−12.0079%），setup/hold WS +11.0525/+110.445ps、TNS0、电气/DRC0；18输出PDR、独立19字段同值/网表同SHA、25EF包/96capture及四Query原件核验通过。setup余量较基线减少29.0387ps，仍闭合。产品/服务/26用户文件保持，七私有脚本静态通过、根754/Goal479及71子项同源复用，无长搜索；独立重放不算第二次优化。见 [A90](A90_GCD_NANGATE45_JOINT_RELAY_20261026.md)。
 
 2026-10-26 A89：八组A73待用配置SHA/政策保持，701份Goal源码/原二进制、97份Query安装源码及实际Goal/ECO冻结入口匹配，八次历史精确scope的setup WS通过。修复Goal平台将无Git副本的上层平台HEAD误记为源码提交；原文件SHA/构建验签及算法不变。14针对/479模块/71子项/39根接点与静态通过，模块0ca32cc供新会话，未恢复长搜索或新增PPA。见 [A89](A89_PREPARED_BINDINGS_AND_SOURCE_IDENTITY_20261026.md)。
@@ -16,7 +18,7 @@
 
 2026-10-26 A83：Ariane/Nangate45原Goal严格回收300个size-down后保留检查点，修正私有物理接续顺序、两处有害缩尺寸、显式原路由层范围及最后一处CLKBUF升级的增量路由交接。最终GRT setup/hold WS +294.374/+25.735ps、TNS均0、电气0/0/0、cell739091.888µm²；不同RC阶段功耗不混算，最终DRT/RCX/功耗资格及采用仍待。全部EDA经EF，阶段DF/DI/Query和原件核验通过；公共源码保持，复用754同源根回归及静态code-check，26用户文件保持。无新模型/长搜索，见 [A83](A83_ARIANE_STRICT_POWER_ELECTRICAL_HANDOFF_20261026.md)。
 
-本表已接续至 A90。A54 初始基线根 `a0e9bea`、Query `54a08be`；该初始轮没有 EDA/专业搜索或模型调用。后续按“具体诊断 → 定点修复 → 短验证 → code-check”推进，真实短验证见下列更新。A32/A34 是历史审计，保留原始失败及尚未通过的资格。
+本表已接续至 A91。A54 初始基线根 `a0e9bea`、Query `54a08be`；该初始轮没有 EDA/专业搜索或模型调用。后续按“具体诊断 → 定点修复 → 短验证 → code-check”推进，真实短验证见下列更新。A32/A34 是历史审计，保留原始失败及尚未通过的资格。
 
 2026-10-26 A82：Ibex/Nangate45既有分支完成独立DRT/RCX、七PPA及19原始字段同值、网表与已证明候选同SHA、三DF scope/两Query原件核验，并经现有策略登记采用。setup −9.952→+8.634ps/TNS0、power21.887543mW（−0.954257%）、cell29465.4µm²，电气/DRC0，原约束保持。修复验证入口先读旧请求capability而未先用保存检查点的问题；12新增旧失败→通过、53针对/754根回归及静态通过，26用户文件保持。无新优化/PDR；独立重放不计第二次优化。见 [A82](A82_IBEX_NANGATE45_QUALIFIED_ADOPTION_20261026.md)。
 
@@ -86,7 +88,7 @@ EF 执行、DF 事实、DI SDK、Query 与专业接入均有真实可用记录�
 | DPL 阶段与双 PDK | A36 实际三条原生布局链成功，八组设计注册正确；A37 新产物经 DF/DI/Query 可读 | 输入必须是适用的布局检查点；局部 HPWL 改善需继续检查最终 PPA，不能自动采用 |
 | Goal 原算法、源码与续作 | A38 修复实际 measured-path 崩溃，A39 保留源码 seed/构建 donor，A40/A44 去除续作/重放的 PDK 硬编码 | A67/A68/A72补齐RMP模式、供电准入及宏行片段；新二进制/AST/原生短验证通过，八份未来源码绑定已准备。实际单区域四候选仍拒绝，Ariane setup未闭合，后续按问题选策略，不把兼容修复当最终收益 |
 | Goal GCD/Nangate45 策略 | A90原联合固定配方经Query/ORFS物理接续、最终18输出PDR/独立重放与数据核验，原约束下采用；power−13.8547%/cell−12.0079%、时序闭合 | 固定配方本分支最终资格已关闭；未运行新四Student或完整Flow搜索，独立重放不计第二次优化，setup余量有减少；见[A90](A90_GCD_NANGATE45_JOINT_RELAY_20261026.md) |
-| ECO 双 PDK 与已布线交付 | A35/A47/A56保留库、原生会话和已布线路由；A57/A61补齐探针回传与全设计TNS；A79刷新过程功耗；A86修报告实例身份，A87修上下文首次导出 | A87三个真实导出/原正文/四时序和原ContextBuilder消费通过，模块de19cc4供新会话；原专业算法与旧负结果保持，新八轮未运行，不将接口修复计PPA收益。见[A86](A86_ECO_NATIVE_INSTANCE_IDENTITY_20261026.md)、[A87](A87_ECO_CONTEXT_REPORT_FIRST_CALL_20261026.md) |
+| ECO 双 PDK 与已布线交付 | A35/A47/A56保留库/会话/线路；A57/A61补齐探针与设计TNS；A79功耗、A86/A87身份/报告修复，A91再修buffer A/Y→实际master引脚及指定负载显示名 | 模块17b0407供新会话，真实双PDK插入/删除拓扑恢复及63模块/48根接点通过；原算法/旧负结果保持，电气最终资格与新八轮仍未完成，不将动作修复计PPA收益。见[A91](A91_ECO_BUFFER_TECHNOLOGY_IDENTITY_20261026.md) |
 | Ariane/Nangate45 原生 GRT 修复 | A59/A83完成原生GRT修复及严格功耗回收，A74/A84实际最终DRT/RCX/共同测量与DF/DI/Query完成 | 当前实际最终A84 power159.345523mW已低于原上限、setup/hold闭合、DRC0，但slew1/cap60拒绝。A85私有负载修复排除缺路由零违反误判，完整工作GRT对照仍slew1/cap16，无新最终资格/采用，停止同清单路由试探；见[A84](A84_ARIANE_FINAL_RCX_AND_ELECTRICAL_DIAGNOSIS_20261026.md)、[A85](A85_FINAL_SPEF_REPAIR_AND_ROUTE_STATE_20261026.md) |
 | 最终验证与采用 | A31 Ibex/ASAP7完整验证及采用；A81–A82 Ibex/Nangate45原19384分区/106输出PASS、独立DRT/RCX/七PPA及19字段同值、网表同SHA、DF/Query和采用全部完成；既有GCD/JPEG保留 | Ibex/Nangate45本分支最终资格阻断已关闭，不能把独立重放计第二次优化。其他设计资格与八组双次仍未齐；见[A82](A82_IBEX_NANGATE45_QUALIFIED_ADOPTION_20261026.md) |
 | Ariane/ASAP7 最终供电与交付 | A52旧来源/事后改网格失败保持；A55核实另一前置修正来源的原ORFS最终VDD/VSS PSM实际通过、DRC0，之后因缺SRAM GDS失败 | A60核实原包为FakeRAM2.0抽象模型，显式声明宏后末端导出控制/136实例核验通过，完整宏几何仍为抽象；不再重复PDN或把真实SRAM制造版图作为当前PPA前置。原最终SPEF的setup TNS−127.168ns/slew444保持历史事实；A64新原生GRT后继hold0、电气0/0/0、setup TNS−92.960533ns仍失败，最终DRT/RCX/完整资格缺失；见[A60](A60_ASAP7_FAKERAM_STREAMOUT_20261025.md) |
