@@ -1,3 +1,9 @@
+# 当前状态：A87修复ECO上下文报告首次导出，2026-10-26
+
+2026-10-26 A87：首rank因:Tcl/Localtime失败、文件0字节，随后同进程其他导出成功；三处注释时间戳改epoch后全成功，原正文/四原生时序保持。原ContextBuilder消费91邻居/13高扇出/5目标负载，10份EF原件核SHA；6针对/56模块/2子项/57根接点及静态通过，754同源根回归复用，26用户文件保持。模块de19cc4供新会话，无新PPA/采用或搜索，见 [A87](A87_ECO_CONTEXT_REPORT_FIRST_CALL_20261026.md)。
+
+恢复入口：`var/business/a87-eco-context-report-timestamps-20261026/continuation.json`。下一项只读定位生产DF实际解析/索引写入成本，保留用户WIP，不盲调cache或启动大EDA实验。
+
 # 当前状态：A86修复ECO报告对象定位，真实短验证通过，2026-10-26
 
 2026-10-26 A86：真实Ariane寄存器STA显示名在原ECO扇出查询失败，OpenDB原始名成功；新内部对象转换保持原始查找、唯一STA匹配，修复五处定位。原五负载/slack排序同值，实际一次性克隆输入/输出连接与对象增量核验通过。50模块/2子项、57根接点及静态/差异code-check通过，根754同源复用、26用户文件保持。模块ff8d13c发布，新会话生效；无新最终PPA/采用或模型搜索，见 [A86](A86_ECO_NATIVE_INSTANCE_IDENTITY_20261026.md)。

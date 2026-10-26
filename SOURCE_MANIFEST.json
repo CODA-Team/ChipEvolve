@@ -72,8 +72,8 @@
     },
     {
       "path": "timing-eco-agent",
-      "source_commit": "ff8d13c65711dc0979a2467180940203616b52ed",
-      "source_tree": "661f41d983b71fa45a0c763ee17a0d39d9466f31",
+      "source_commit": "de19cc452edd5db9957ca292f790f9c96dfcb28e",
+      "source_tree": "79aa7ce911f6f62a5177f0e37489ea88c64dd628",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/timing-eco-agent",
       "upstream_url": "https://github.com/ASU-VDA-Lab/TimingECOAgent.git",
