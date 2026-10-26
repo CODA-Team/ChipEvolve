@@ -1,3 +1,5 @@
+2026-10-26 A89–A90：无独立Git元数据的冻结专业源码不继承平台HEAD，以原文件哈希/构建收据标识。原Goal阶段按理想时钟和估计寄生登记，最终RCX另保留条件，不能混同；Codex通过DF/DI/Query判断是否接既有ORFS物理修复，专业producer与物理successor分别留证。最终采用仍走原完整证明/独立重放/selection边界，不增加harness、服务或评测数据库。GCD/Nangate45实际原约束收益与时序代价见 [A90](admin/A90_GCD_NANGATE45_JOINT_RELAY_20261026.md)。
+
 2026-10-26 A87–A88：ECO报告注释不依赖首次Tcl时区加载，原上下文正文/分析规则保持；DF已有同机local-first和流式索引，实际大包全量事实持久化仍有成本。隔离样本不发布为设计快照，单次缓存对照不作为生产加速结论；保留WAL/FULL、公共接口和原始事实，不新增服务/数据架构或热改用户WIP。见 [A87](admin/A87_ECO_CONTEXT_REPORT_FIRST_CALL_20261026.md)、[A88](admin/A88_DF_ACTUAL_FACT_WRITE_PROFILE_20261026.md)。
 
 2026-10-26 A85–A86：报告中的STA对象名与原始OpenDB名称通过原生对象桥接，保留精确DB查找、唯一STA匹配，不做字符串剥转义；公共ECO四原过程签名/算法保持。保存guides不等于恢复完整路由工作状态，缺路由引脚警告不能被零电气计数掩盖；本轮私有对照不新增调度/路由框架。EF监督、DF事实边界与最终RC资格保持，见 [A85](admin/A85_FINAL_SPEF_REPAIR_AND_ROUTE_STATE_20261026.md)、[A86](admin/A86_ECO_NATIVE_INSTANCE_IDENTITY_20261026.md)。

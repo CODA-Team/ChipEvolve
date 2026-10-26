@@ -1,3 +1,9 @@
+# 当前状态：A90完成GCD/Nangate45原生联合接续资格与采用，2026-10-26
+
+2026-10-26 A90：GCD/Nangate45 500ps原Goal联合配方→Query→显式ORFS物理接续最终资格通过并登记采用。power1.922859345mW（−13.8547%）、cell594.51µm²（−12.0079%），setup/hold WS +11.0525/+110.445ps、TNS0、电气/DRC0；18输出PDR、独立19字段同值/网表同SHA、25EF包/96capture及四Query原件核验通过。setup余量较基线减少29.0387ps，仍闭合。产品/服务/26用户文件保持，七私有脚本静态通过、根754/Goal479及71子项同源复用，无长搜索；独立重放不算第二次优化。见 [A90](A90_GCD_NANGATE45_JOINT_RELAY_20261026.md)。
+
+恢复入口：`var/business/a90-gcd-500ps-native-joint-20261026/continuation.json`。当前无活动EF任务。GCD固定接续本分支已闭合，不重复优化/证明/重放；Ariane两PDK资格、八组双次及DF大对象延迟仍未齐，长搜索保持暂停。下一项只读定位Ariane/Nangate45剩余cap/slew与原ECO可执行动作边界，依事实决定必要短验证，不重复A85路由试探。
+
 # 当前状态：A89核查八组绑定并修复Goal源码提交误归属，2026-10-26
 
 2026-10-26 A89：八组配置/参数/库保持，A72的701源码与原二进制、Query安装97源码及实际Goal/ECO冻结入口匹配，八组历史scope的setup WS实测通过。修复Goal平台将上层ChipEvolve提交误记为无Git源码提交的问题；真实冻结副本返回null，独立仓库/worktree仍正确。14针对/479模块/71子项/39根接点及静态通过，754根同源复用，26用户文件/服务保持。模块0ca32cc供新会话，无EDA/模型/新PPA。见 [A89](A89_PREPARED_BINDINGS_AND_SOURCE_IDENTITY_20261026.md)。
