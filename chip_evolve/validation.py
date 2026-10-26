@@ -122,12 +122,12 @@ def replay(
     deployment: Deployment, result_path: Path, experiment: Path
 ) -> dict[str, Any]:
     request = result_path.parent / "request.json"
+    # A registered checkpoint defines the physical boundary independently of
+    # method labels; its source request need not use the business CLI schema.
     if (
-        request.exists()
+        not (result_path.parent / "delivery-checkpoint.json").is_file()
+        and request.exists()
         and read(request)["capability"] == "orfs"
-        # A registered delivery checkpoint defines the physical boundary,
-        # independently of the professional's descriptive method label.
-        and not (result_path.parent / "delivery-checkpoint.json").is_file()
         and read(result_path).get("native_method", {}).get("kind")
         != "native-ORFS-physical-repair"
     ):

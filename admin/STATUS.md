@@ -1,3 +1,9 @@
+# 当前状态：A82完成Ibex/Nangate45最终验证及采用，2026-10-26
+
+2026-10-26 A82：Ibex/Nangate45既有分支完成独立DRT/RCX、七PPA及19原始字段同值、网表与已证明候选同SHA、三DF scope/两Query原件核验，并经现有策略登记采用。setup −9.952→+8.634ps/TNS0、power21.887543mW（−0.954257%）、cell29465.4µm²，电气/DRC0，原约束保持。修复验证入口先读旧请求capability而未先用保存检查点的问题；12新增旧失败→通过、53针对/754根回归及静态通过，26用户文件保持。无新优化/PDR；独立重放不计第二次优化。见 [A82](A82_IBEX_NANGATE45_QUALIFIED_ADOPTION_20261026.md)。
+
+恢复入口：`var/business/a82-ibex-nangate45-qualification-20261026/continuation.json`。下一项回到Ariane剩余电气/功耗策略，不重复已拒绝配置。下方保留历史状态。
+
 # 当前状态：A81补齐Ibex/Nangate45完整证明，待独立物理收尾，2026-10-26
 
 2026-10-26 A81：Ibex/Nangate45原完整证明已补齐，19384分区/106输出全部PASS；复用5333、新原生PDR补14051，12CPU/16GiB有界EF成功，原超时保持。原模型/库/时钟/配置及完整列表不变，全部状态/新日志/输入SHA和现有proof_receipt核验通过，completed_proof业务收据可消费；候选三DF scope/指标/原约束通过。742同源回归复用、静态code-check及26用户文件保持；无新优化或PPA，待独立物理重放及采用。见 [A81](A81_IBEX_COMPLETE_PROOF_RESUMPTION_20261026.md)。

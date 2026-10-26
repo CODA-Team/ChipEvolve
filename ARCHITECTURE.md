@@ -1,3 +1,5 @@
+2026-10-26 A81–A82：已有完整证明用原收据入口核精确结果/模型/覆盖与成功EF证据后复用；独立重放先用保存检查点并核SHA，旁边旧原生request不必符合业务CLI字段。未保存检查点的历史baseline逻辑保持。最终采用仍要求完整证明、同条件独立物理/数据验证与Codex决策；不新增协议或harness。见 [A82](admin/A82_IBEX_NANGATE45_QUALIFIED_ADOPTION_20261026.md)。
+
 2026-10-26 A80：根业务交付入口同时等待原导入POST与核验既有DF持久回执；仅当producer/artifact/snapshot及subject/design一致才交付，不等待checkpoint后的HTTP确认。后台仅原有超时约束的HTTP，不写本地状态、不重派EDA；DF事务、持久化、读写边界与公共接口保持。实际解析/写入成本仍独立。见 [A80](admin/A80_COMMITTED_FACT_DELIVERY_WAIT_20261026.md)。
 
 2026-10-26 A78/A79：阶段功耗必须在RC更新后刷新原生STA缓存再读，不能用旧缓存差值证明收益；原Goal已有此机制，ECO平台EF会话本次补齐。原生独立活动模型、专业动作/评分/回溯保持；同源证据复用，最终DRT/RCX资格仍独立。新事实标明RC和精度，旧历史不覆盖，无新服务或公共接口。见 [A79](admin/A79_ECO_QOR_POWER_CACHE_FIX_20261026.md)。

@@ -17,7 +17,9 @@ from chip_evolve.jobs import Jobs, digest
     [("detailed_route", 0, True), ("detailed_route", 54, False), (None, None, False)],
 )
 @pytest.mark.parametrize("platform", ["asap7", "nangate45"])
-@pytest.mark.parametrize("orfs_request", [False, True])
+@pytest.mark.parametrize(
+    "orfs_request", [False, True, "native-action", "unrelated-invalid-json"]
+)
 def test_replay_uses_the_original_routed_boundary(
     tmp_path, monkeypatch, stage, drc, preserve, platform, orfs_request
 ):
@@ -68,11 +70,15 @@ def test_replay_uses_the_original_routed_boundary(
         result,
         {"design_id": "gcd", "native_method": method, "objective": str(objective)},
     )
-    if orfs_request:
+    if orfs_request is True:
         write(
             original / "request.json",
             {"design": "gcd", "capability": "orfs", "seconds": 900},
         )
+    elif orfs_request == "native-action":
+        write(original / "request.json", {"kind": "native-two-cell-electrical"})
+    elif orfs_request == "unrelated-invalid-json":
+        (original / "request.json").write_text("{not a business request}")
     frozen = {
         str(p): digest(p) for p in [odb, result, original / "delivery-checkpoint.json"]
     }
