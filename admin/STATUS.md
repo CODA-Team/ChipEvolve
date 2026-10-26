@@ -1,3 +1,9 @@
+# 当前状态：A83完成Ariane原生回收与GRT电气接续，最终资格待验证，2026-10-26
+
+2026-10-26 A83：Ariane/Nangate45原Goal严格回收300个size-down后保留检查点，修正私有物理接续顺序、两处有害缩尺寸、显式原路由层范围及最后一处CLKBUF升级的增量路由交接。最终GRT setup/hold WS +294.374/+25.735ps、TNS均0、电气0/0/0、cell739091.888µm²；不同RC阶段功耗不混算，最终DRT/RCX/功耗资格及采用仍待。全部EDA经EF，阶段DF/DI/Query和原件核验通过；公共源码保持，复用754同源根回归及静态code-check，26用户文件保持。无新模型/长搜索，见 [A83](A83_ARIANE_STRICT_POWER_ELECTRICAL_HANDOFF_20261026.md)。
+
+恢复入口：`var/business/a83-ariane-strict-power-electrical-20261026/continuation.json`。下一项只做该保存状态的最终物理资格，原失败和负分支保持。
+
 # 当前状态：A82完成Ibex/Nangate45最终验证及采用，2026-10-26
 
 2026-10-26 A82：Ibex/Nangate45既有分支完成独立DRT/RCX、七PPA及19原始字段同值、网表与已证明候选同SHA、三DF scope/两Query原件核验，并经现有策略登记采用。setup −9.952→+8.634ps/TNS0、power21.887543mW（−0.954257%）、cell29465.4µm²，电气/DRC0，原约束保持。修复验证入口先读旧请求capability而未先用保存检查点的问题；12新增旧失败→通过、53针对/754根回归及静态通过，26用户文件保持。无新优化/PDR；独立重放不计第二次优化。见 [A82](A82_IBEX_NANGATE45_QUALIFIED_ADOPTION_20261026.md)。
