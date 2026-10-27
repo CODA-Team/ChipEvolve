@@ -122,7 +122,11 @@ def test_dispatcher_cancels_owned_jobs_and_preserves_native_timeout(
         "confirmed_facts": ["fact"],
         "evidence": ["ref"],
         "context_id": "context",
-        "scope": {"design_id": "gcd", "run_id": frame["run_id"]},
+        "scope": {
+            "design_id": "gcd",
+            "run_id": frame["run_id"],
+            "snapshot_id": frame["snapshot_ids"]["opendb"],
+        },
     }
     monkeypatch.setattr(professional, "load_context", lambda _: packet)
     monkeypatch.setattr("chip_evolve.design_facts.ensure", lambda *a: frame)

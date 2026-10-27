@@ -249,6 +249,8 @@ def execute(
     from .design_facts import ensure
 
     frame = ensure(deployment, args.source, frame)
+    if packet["scope"]["snapshot_id"] not in frame["snapshot_ids"].values():
+        raise ValueError("Professional diagnosis snapshot is not a source fact view")
     from .handoff import input_contract
 
     handoff = input_contract(frame, args.capability)

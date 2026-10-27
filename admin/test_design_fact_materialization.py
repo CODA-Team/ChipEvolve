@@ -157,7 +157,11 @@ def test_professional_dispatch_consumes_materialized_scope(tmp_path, monkeypatch
         "confirmed_facts": ["fact"],
         "evidence": ["ref"],
         "context_id": "ctx",
-        "scope": {"design_id": "gcd", "run_id": frame["run_id"]},
+        "scope": {
+            "design_id": "gcd",
+            "run_id": frame["run_id"],
+            "snapshot_id": "actual-objects",
+        },
     }
     monkeypatch.setattr("chip_evolve.professional.load_context", lambda _: packet)
     monkeypatch.setattr("chip_evolve.design_facts.ensure", lambda *a: complete)
