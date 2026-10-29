@@ -1,3 +1,5 @@
+2026-10-29 A96：设计图像由EF调用固定OpenROAD GUI直接读取实际ODB并导出；论文拼版只嵌入原PNG，样式/高亮及查看脚本随输入留证。GUI窗口取自本账号临时显示会话，不新增平台服务；历史阶段、最终RCX和不同祖先分支分开标注，不由截图推导新PPA或因果收益。见 [A96](admin/A96_OPENROAD_GUI_EVIDENCE_20261029.md)。
+
 2026-10-27 A95：专业诊断的design/run身份不足以区分同producer物理状态；共享execute在原有按需事实物化后校验主snapshot_id属于来源snapshot_ids，再形成handoff并派发。既有三视图和比较参考证据保持，公共契约/算法/EF与DF边界不变，不新增服务或harness。见 [A95](admin/A95_PROFESSIONAL_SNAPSHOT_BINDING_20261027.md)。
 
 2026-10-26 A93–A94：模型上下文CSV的节点/网络身份须一致；生产导出保留[]$，读者/算法不变，实际双PDK名称关联已核验。原net_reports为保留原件，v5显式不读，不能将原件存在等同送进模型，也不将系统/用户合计长度误判为原生用户截断。特殊网络原报告和按需探针已按精确DF对象/原件核对，未新增报告层或服务。见 [A93](admin/A93_ECO_CONTEXT_CSV_IDENTITY_20261026.md)、[A94](admin/A94_ECO_NATIVE_NET_REPORT_AUDIT_20261026.md)。

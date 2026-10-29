@@ -1,3 +1,9 @@
+# 当前状态：A96真实OpenROAD GUI论文图像包，2026-10-29
+
+已用EF调用共同工具GUI，交付GCD/JPEG主线及真实DPL拒绝分支：六ODB、18原生PNG、两完整窗口截图、五论文图/清单与七页预览、原机制材料及查看/重导出命令。包内GCD/JPEG各两张重导出PNG均与原图字节一致；没有模型生图、产品修改、新PPA。见 [A96](A96_OPENROAD_GUI_EVIDENCE_20261029.md)。
+
+交付与复现入口：`var/business/a96-openroad-gui-demo-20261029/delivery/README.md`。Ariane资格、DF延迟和八组双次保持未完成；长搜索继续暂停。
+
 # 当前状态：A95修复专业诊断与输入快照错配，2026-10-27
 
 四专业共享入口旧代码可接受同run不同物理状态诊断，四项复现失败；产品两行补齐物化后快照绑定，合法三视图与延迟OpenDB保持。58针对/770根回归、静态检查与实际GCD三状态DF/DI/Query原件核验通过。26保护文件及用户WIP保持，无EDA/模型/新PPA，EF无活动任务。见 [A95](A95_PROFESSIONAL_SNAPSHOT_BINDING_20261027.md)。
