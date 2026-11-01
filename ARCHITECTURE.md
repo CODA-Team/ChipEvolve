@@ -1,3 +1,5 @@
+2026-11-01 A99：论文时序分布直接取既有STA端点最差setup/hold slack，与原生GUI Charts口径对应，来源仍是精确Liberty/ODB/SDC/SPEF，经EF只读执行；端点统计不等于枚举全部路径，不加入无证据的电压/活动率分类。审查发现最终采用仍需补物理文件字节绑定与有限数入口校验，当前仅登记未实施，不新增服务或协议。见[A99](admin/A99_MACRO_SLACK_CODE_AUDIT_20261101.md)。
+
 2026-10-29 A96：设计图像由EF调用固定OpenROAD GUI直接读取实际ODB并导出；论文拼版只嵌入原PNG，样式/高亮及查看脚本随输入留证。GUI窗口取自本账号临时显示会话，不新增平台服务；历史阶段、最终RCX和不同祖先分支分开标注，不由截图推导新PPA或因果收益。见 [A96](admin/A96_OPENROAD_GUI_EVIDENCE_20261029.md)。
 
 2026-10-27 A95：专业诊断的design/run身份不足以区分同producer物理状态；共享execute在原有按需事实物化后校验主snapshot_id属于来源snapshot_ids，再形成handoff并派发。既有三视图和比较参考证据保持，公共契约/算法/EF与DF边界不变，不新增服务或harness。见 [A95](admin/A95_PROFESSIONAL_SNAPSHOT_BINDING_20261027.md)。
