@@ -17,9 +17,11 @@ from platform_execution import (
 def archive_bytes():
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, 'w') as archive:
-        archive.writestr('flow/results/3_place.odb', b'actual-checkpoint-bytes')
-        archive.writestr('flow/results/3_place.sdc', b'clock-constraints')
-        archive.writestr('flow/combined.log', b'upstream\nplacement\n')
+        # The fake API must return identical registered bytes across calls.
+        # String names otherwise give each ZIP entry the current timestamp.
+        archive.writestr(zipfile.ZipInfo('flow/results/3_place.odb'), b'actual-checkpoint-bytes')
+        archive.writestr(zipfile.ZipInfo('flow/results/3_place.sdc'), b'clock-constraints')
+        archive.writestr(zipfile.ZipInfo('flow/combined.log'), b'upstream\nplacement\n')
     return buffer.getvalue()
 
 
