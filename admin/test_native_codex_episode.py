@@ -193,7 +193,8 @@ def test_native_changes_to_input_are_a_failed_attempt(tmp_path):
 
 
 def test_timeout_retains_trace_and_does_not_invent_missing_usage(tmp_path):
-    spec, output = episode(tmp_path, "time.sleep(30)\n", seconds=0.5)
+    # Allow input hashing and interpreter startup before the deliberate timeout.
+    spec, output = episode(tmp_path, "time.sleep(30)\n", seconds=3)
     result = run(spec, output)
     assert result["status"] == "timed_out"
     assert result["cleanup"]["status"] == "completed"

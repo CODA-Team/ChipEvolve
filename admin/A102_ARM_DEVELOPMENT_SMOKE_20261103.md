@@ -48,6 +48,7 @@ EF 插件解释器也指向固定运行环境，避免编辑 `toolkits/.venv` �
 | `admin/test_local_business.py` | 测试写死旧机 `/usr/bin/python3.12`；使用当前解释器，SDC 字符串仅换行排版，字节不变 |
 | `admin/run_goalevolve_native.py` | 旧独立复现工具取消时快照会漏掉枚举期间新生的跨会话子进程；先冻结所属父子树，再终止已识别的进程组，保留 PID 起始时间检查 |
 | `admin/test_goalevolve_native_runner.py` | 新增取消期间派生进程的真实竞态回归；原跨会话夹具留出启动时间，仍检查预算结束和所有子进程退出 |
+| `admin/test_native_codex_episode.py` | 超时夹具需先完成输入哈希并输出开始事件；将测试预算留足启动时间，仍保留超时、清理、原始 trace 和未知用量断言，生产预算不变 |
 | `flow-agent/flow/test/test_platform_execution.py` | 假 API 每次构造 ZIP 带入当前时间戳，慢环境下哈希不同；固定测试 ZIP 元数据，生产哈希检查保留 |
 | `data-foundation/src/openroad_app_data_foundation/source_json.py` | SQLite 新版 `bad JSON path:` 与旧版报错不同；两种已知路径错误都返回既有 ValueError，其他数据库错误继续抛出 |
 | `data-foundation/tests/test_eda_source_json.py` | 增加两种 SQLite 路径错误和非路径数据库错误的三项回归 |
