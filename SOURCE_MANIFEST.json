@@ -15,8 +15,8 @@
     },
     {
       "path": "data-foundation",
-      "source_commit": "7f6e7a59ae14831900e47c5b132d4038624eb26b",
-      "source_tree": "5d6d5c1a105e302ad9ffd7fc678df3b102da8117",
+      "source_commit": "04635075a6234f7579b6f131860094fa69875a7a",
+      "source_tree": "ee9eb071d018dd10740bfd92540beca92bd7d660",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/data-foundation"
     },
@@ -45,8 +45,8 @@
     },
     {
       "path": "flow-agent",
-      "source_commit": "3ae33809be6bbbd13ef42b3c595e55ea89d95491",
-      "source_tree": "a689bf5c408df003a9bba094b8c12cc857296700",
+      "source_commit": "c89086516b08a6f38df2534550939846109c7dc6",
+      "source_tree": "0c15300d11ef6a36467e4abddd6d070b94fb2220",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/flow-agent"
     },

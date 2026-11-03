@@ -1,6 +1,7 @@
 """Local business boundaries: producer identity, inputs and retained incumbent."""
 
 import subprocess
+import sys
 import zipfile
 from unittest.mock import patch
 
@@ -29,7 +30,12 @@ def deployment(root):
 
 
 def test_flow_clock_binding_preserves_delays_and_matching_virtual_clocks():
-    sdc = "set_cmd_units -time ps\ncreate_clock -name core -period 310 [get_ports clk]\ncreate_clock -name virtual -period 310\nset_input_delay 62 -clock virtual [get_ports d]\n"
+    sdc = (
+        "set_cmd_units -time ps\n"
+        "create_clock -name core -period 310 [get_ports clk]\n"
+        "create_clock -name virtual -period 310\n"
+        "set_input_delay 62 -clock virtual [get_ports d]\n"
+    )
     actual = flow_sdc(sdc, 0.31)
     assert actual.count("-period $clk_period") == 2
     assert "set_input_delay 62 -clock virtual [get_ports d]" in actual
@@ -41,7 +47,13 @@ def test_flow_clock_binding_preserves_delays_and_matching_virtual_clocks():
 
 
 def test_nangate_flow_clock_and_io_remain_in_native_ns():
-    sdc = "set_cmd_units -time ns\ncreate_clock -name core -period 0.25 [get_ports clk]\ncreate_clock -name virtual -period 0.25\nset_clock_latency 0.07 [get_clocks virtual]\nset_input_delay 0.05 -clock virtual [get_ports d]\n"
+    sdc = (
+        "set_cmd_units -time ns\n"
+        "create_clock -name core -period 0.25 [get_ports clk]\n"
+        "create_clock -name virtual -period 0.25\n"
+        "set_clock_latency 0.07 [get_clocks virtual]\n"
+        "set_input_delay 0.05 -clock virtual [get_ports d]\n"
+    )
     actual = flow_sdc(sdc, 0.25, time_unit="ns")
     assert actual.startswith("set clk_period 0.25\nset clk_port_name clk\n")
     assert actual.count("-period $clk_period") == 2
@@ -53,7 +65,7 @@ def test_nangate_flow_clock_and_io_remain_in_native_ns():
 
 def test_business_help_needs_no_tool_environment():
     process = subprocess.run(
-        ["/usr/bin/python3.12", "chip-evolve.py", "--help"],
+        [sys.executable, "chip-evolve.py", "--help"],
         capture_output=True,
         text=True,
         check=False,

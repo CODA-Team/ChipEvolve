@@ -70,6 +70,8 @@ elif args.command == "smoke":
                 *(
                     ["tests/test_local_kernel_http.py"]
                     if args.project == "execution-foundation"
+                    else ["test"]
+                    if args.project == "flow-agent"
                     else ["tests"]
                 ),
                 *args.args,
@@ -137,7 +139,7 @@ else:
 for command in commands:
     working_directory = (
         project / "flow"
-        if args.command == "check" and args.project == "flow-agent"
+        if args.command in {"check", "smoke"} and args.project == "flow-agent"
         else project
     )
     result = subprocess.run(command, cwd=working_directory, env=env, check=False)

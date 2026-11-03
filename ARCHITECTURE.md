@@ -709,3 +709,6 @@ A73/A74验证保存guides可直接供资格DRT使用；A77私有RSZ再优化配�
 局部物理动作后全量GRT与增量GRT可以产生不同电气结果，即使网表同SHA；对应路径和负分支应分别保留。GRT电气全零不能替代最终DRT/RCX检查，资格过程不隐式重新优化。当前Ariane保存guides经过既有resume/qualify→EF→共同测量→DF/DI/Query完成三事实交付，最终V保持而RC下slew1/cap60仍按原约束拒绝。
 
 对象归因必须用当前snapshot的native ID/master并明确原状态scope；本轮60驱动当前事实与原OAI22 master分开核对，指标快照不冒充完整对象图。完整导出/入库成本与后续小型查询成本分开记录，不能将事务内部生成的回执时间直接当作精确提交时刻。公共接口、专业算法和模块依赖图不变。
+
+
+2026-11-03 A102（单机部署）：鲲鹏各项目 `.venv` 用于本项目源码编辑和测试；EF/Toolkits 与 DF 服务分别使用 `runtime/envs/services-execution`、`runtime/envs/services-data` 的固定 wheel，更新代码后显式构建/安装再重启。三个原有服务地址和历史只读边界保持，DI 仍是 SDK。运行数据/缓存位于 `/share`；开发脚本仅将可丢弃测试夹具放专属 tmpfs。无新服务或公共协议，见 [A102](admin/A102_ARM_DEVELOPMENT_SMOKE_20261103.md)。

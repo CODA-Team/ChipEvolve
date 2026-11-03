@@ -1,12 +1,15 @@
 """Real subprocess checks for the bounded GoalEvolve reproduction recorder."""
 
 import json
+import os
+import signal
 import subprocess
 import sys
 import time
 from pathlib import Path
 
 import pytest
+import run_goalevolve_native as runner
 from run_dplevolve_native import session_groups
 from run_goalevolve_native import run_step
 
@@ -110,7 +113,56 @@ def test_budget_stops_children_in_separate_native_sessions(native_run: Path) -> 
         f"Path({str(child_record)!r}).write_text(str(child.pid)); time.sleep(60)"
     )
     receipt = run_step(
-        native_run, "escaped-session", [sys.executable, "-c", code], timeout=0.5
+        native_run, "escaped-session", [sys.executable, "-c", code], timeout=3
     )
     assert receipt["status"] == "budget_exhausted"
     assert session_groups(int(child_record.read_text())) == set()
+
+
+def test_cancellation_prevents_fork_during_process_snapshot(tmp_path, monkeypatch):
+    ready = tmp_path / "ready"
+    release = tmp_path / "release"
+    child_record = tmp_path / "child.pid"
+    code = (
+        "import subprocess,time; from pathlib import Path; "
+        f"Path({str(ready)!r}).touch(); "
+        f"release=Path({str(release)!r}); "
+        "\nwhile not release.exists(): time.sleep(.01)\n"
+        "child=subprocess.Popen(['sleep','60'],start_new_session=True); "
+        f"Path({str(child_record)!r}).write_text(str(child.pid)); time.sleep(60)"
+    )
+    process = subprocess.Popen([sys.executable, "-c", code], start_new_session=True)
+    original = runner.process_table
+    released = False
+
+    def snapshot():
+        nonlocal released
+        rows = original()
+        if not released:
+            released = True
+            release.touch()
+            deadline = time.monotonic() + 1
+            while not child_record.exists() and time.monotonic() < deadline:
+                time.sleep(0.01)
+        return rows
+
+    try:
+        deadline = time.monotonic() + 10
+        while not ready.exists() and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert ready.exists()
+        monkeypatch.setattr(runner, "process_table", snapshot)
+        runner.stop_native_tree(process)
+        assert released
+        assert not child_record.exists()
+        assert process.poll() is not None
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.wait()
+        if child_record.exists():
+            for group in session_groups(int(child_record.read_text())):
+                try:
+                    os.killpg(group, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass

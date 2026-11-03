@@ -49,36 +49,49 @@ def process_table() -> dict[int, tuple[int, int, str]]:
 
 def stop_native_tree(process: subprocess.Popen[bytes]) -> None:
     """GoalEvolve's command runners and Codex create additional sessions."""
-    table = process_table()
-    descendants = {process.pid}
-    while True:
-        expanded = descendants | {
-            pid for pid, row in table.items() if row[0] in descendants
-        }
-        if expanded == descendants:
-            break
-        descendants = expanded
-    identities = {pid: table[pid][2] for pid in descendants if pid in table}
-    for signum in (signal.SIGTERM, signal.SIGKILL):
-        current = process_table()
-        groups = {
-            current[pid][1]
-            for pid, start in identities.items()
-            if pid in current and current[pid][2] == start
-        }
-        for group in groups:
-            if group == os.getpgrp():
-                raise RuntimeError(
-                    "Native child unexpectedly shares the supervisor's group."
-                )
+    # Stop parents before enumerating: a live parent can fork into a new
+    # session while /proc is being scanned, then leave that child orphaned.
+    try:
+        os.kill(process.pid, signal.SIGSTOP)
+    except ProcessLookupError:
+        process.wait()
+        return
+    identities: dict[int, str] = {}
+    pending = {process.pid}
+    current = process_table()
+    while pending:
+        for pid in pending:
+            if pid not in current:
+                continue
+            identities[pid] = current[pid][2]
             try:
-                os.killpg(group, signum)
+                os.kill(pid, signal.SIGSTOP)
             except ProcessLookupError:
                 pass
+        current = process_table()
+        pending = {
+            pid
+            for pid, row in current.items()
+            if pid not in identities
+            and row[0] in identities
+            and row[0] in current
+            and current[row[0]][2] == identities[row[0]]
+        }
+    groups = {
+        current[pid][1]
+        for pid, start in identities.items()
+        if pid in current and current[pid][2] == start
+    }
+    for group in groups:
+        if group == os.getpgrp():
+            raise RuntimeError(
+                "Native child unexpectedly shares the supervisor's group."
+            )
         try:
-            process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
+            os.killpg(group, signal.SIGKILL)
+        except ProcessLookupError:
             pass
+    process.wait(timeout=5)
     deadline = time.monotonic() + 5
     while time.monotonic() < deadline:
         current = process_table()
