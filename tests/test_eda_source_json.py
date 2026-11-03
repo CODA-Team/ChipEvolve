@@ -1,6 +1,7 @@
 """Original JSON queries rank the complete source and preserve literal row identity."""
 import hashlib
 import json
+import sqlite3
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
@@ -86,3 +87,23 @@ def test_invalid_source_queries_are_explicit(original, options, error):
     handler, _, _ = original
     with pytest.raises(ValueError, match=error):
         query(handler, **options)
+
+
+@pytest.mark.parametrize('message, error, expected', [
+    ("JSON path error near '.'", ValueError, 'invalid json_path'),
+    ("bad JSON path: '$..'", ValueError, 'invalid json_path'),
+    ('database is locked', sqlite3.OperationalError, 'database is locked'),
+])
+def test_sqlite_path_error_formats_preserve_the_query_contract(original, monkeypatch, message, error, expected):
+    handler, _, _ = original
+    connection_type = type(handler.store.connection)
+    execute = connection_type.execute
+
+    def fail_selection(connection, sql, *args, **kwargs):
+        if sql == 'SELECT json_type(?,?),json_extract(?,?)':
+            raise sqlite3.OperationalError(message)
+        return execute(connection, sql, *args, **kwargs)
+
+    monkeypatch.setattr(connection_type, 'execute', fail_selection)
+    with pytest.raises(error, match=expected):
+        query(handler)

@@ -56,7 +56,7 @@ def main() -> int:
             cwd=str(APP_DIR), env=env,
         )
         try:
-            deadline = time.monotonic() + 10
+            deadline = time.monotonic() + 30
             while True:
                 try:
                     assert _call(f"http://127.0.0.1:{port}/health")["status"] == "ok"

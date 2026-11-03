@@ -47,7 +47,7 @@ def source_json(store, snapshot_id, query, root):
         selected = store.connection.execute('SELECT json_type(?,?),json_extract(?,?)',
                                             (document, selector, document, selector)).fetchone()
     except sqlite3.OperationalError as exc:
-        if 'JSON path error' not in str(exc):
+        if not str(exc).startswith(('JSON path error', 'bad JSON path:')):
             raise
         raise ValueError('invalid json_path: ' + selector) from exc
     if selected[0] != 'array':
