@@ -23,14 +23,15 @@ The root package `chip_evolve/` implements the commands behind `chip-evolve.py`.
 
 Use a checkout of the engineering candidate with all nine pinned submodules initialized. You need Linux, Git, Python 3.12 with `venv`, Apptainer, and an ORFS SIF with the Nangate45 GCD example. The qualified image is based on ORFS `5105b0a77` and OpenROAD `27288f5c90`. Pass its absolute path in `ORFS_SIF`. The hardware reservation for the GCD flow is eight CPU cores and 4 GiB of memory.
 
-The pinned ORFS manifest is available from Docker Hub. To build a local SIF from that image, use:
+The pinned ORFS manifest is available from Docker Hub. Build a local SIF under `var/`.
 
 ```bash
-apptainer pull orfs.sif docker://openroad/orfs@sha256:212127afc6538596e9c819ecea4830ec7edb76e2fca51f8dcd741c772558d4e0
-export ORFS_SIF="$PWD/orfs.sif"
+mkdir -p var/toolchain
+apptainer pull var/toolchain/orfs.sif docker://openroad/orfs@sha256:212127afc6538596e9c819ecea4830ec7edb76e2fca51f8dcd741c772558d4e0
+export ORFS_SIF="$PWD/var/toolchain/orfs.sif"
 ```
 
-From the repository root, in a fresh checkout:
+Run these commands from the repository root in a fresh checkout.
 
 ```bash
 git submodule update --init --recursive
@@ -52,7 +53,7 @@ python3 chip-evolve.py --config "$local_config" show \
 
 To observe an experiment, use `status --design gcd` or `watch --design gcd --run-id RUN_ID`. If delivery was interrupted, use `resume --design gcd --key baseline` to recover that experiment. `show` includes the analysis snapshot IDs. With a Codex CLI login, run `diagnose --result RESULT_JSON` to create a cited professional context. A specialist run uses `run --capability flow|dpl|goal|eco --source RESULT_JSON --context CONTEXT_JSON` plus the design, new key, and budget. Specialist runtimes have their own documented setup and require the corresponding `professional` deployment binding.
 
-Stop the instance after using it:
+Stop the instance after using it.
 
 ```bash
 python3 admin/release/stack.py stop --config var/gcd-stack.json
