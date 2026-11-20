@@ -127,11 +127,17 @@ python3 admin/release/prepare_goal.py --config var/gcd-stack.json
 ```
 
 The DPL preparation submits the common core build to Execution Foundation.
-GoalEvolve submits its baseline build when dispatched. Run the normal GCD
+GoalEvolve submits its baseline build when dispatched. Allow time for the
+cold baseline build, Student rebuilds, and physical evaluation in the Goal
+`--seconds` budget. Run the normal GCD
 baseline and diagnosis, then hand off their result and context with
 `run --capability dpl` or `run --capability goal`. See the
 [Agent dispatch table](agent/README.md) for the placement and algorithm
 boundaries and the required evidence.
+
+The platform's `resume` command recovers delivery from a saved checkpoint.
+If a GoalEvolve search stops earlier, its native campaign directory preserves
+the original Teacher plan and Student work for recovery.
 
 ## Check the workspace
 
