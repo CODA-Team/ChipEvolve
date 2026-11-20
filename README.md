@@ -92,6 +92,20 @@ python3 chip-evolve.py --config "$local_config" diagnose \
   --against "$result"
 ```
 
+## Try native Flow search
+
+When initializing a fresh instance, pass `--flow` to `prepare-gcd`. It takes
+the binaries and their hashes from the same ORFS image and prepares a GCD
+recipe with a fixed clock and independent floorplan and routing controls.
+Use that instance's ORFS result as the source. After `diagnose` returns its
+context, pass the source and context to Flow.
+
+```bash
+python3 chip-evolve.py --config "$local_config" run --design gcd \
+  --capability flow --flow-recipe source --source "$result" \
+  --context "$CONTEXT_JSON" --key flow-two --rounds 2 --candidates 3 --seconds 1500
+```
+
 ## Check the workspace
 
 With the module development environments set up, run `python3 dev.py all check`

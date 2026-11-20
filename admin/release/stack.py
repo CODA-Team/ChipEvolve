@@ -279,7 +279,7 @@ def start(config):
     return {"started": True, "status": status(config)}
 
 
-def prepare_gcd(config, eco_python=None):
+def prepare_gcd(config, eco_python=None, *, flow=False):
     """Prepare a standalone GCD deployment from the supplied ORFS image."""
     root = Path(config["workspace"])
     state = Path(config["state_root"])
@@ -376,6 +376,11 @@ def prepare_gcd(config, eco_python=None):
         value["designs"]["gcd"].update(
             signal_layers="metal2-metal10", clock_layers="metal4-metal10"
         )
+    if flow:
+        from gcd_flow import prepare_gcd_flow
+
+        path, profile = prepare_gcd_flow(root, state, inputs, runtime, value)
+        write(path, profile)
     write(destination, value)
     return {"deployment": str(destination)}
 
@@ -400,6 +405,9 @@ def main():
         "--eco-python",
         type=Path,
         help="prepare-gcd also binds an installed TimingECOAgent environment",
+    )
+    parser.add_argument(
+        "--flow", action="store_true", help="prepare a native Flow source recipe"
     )
     args = parser.parse_args()
     if args.mode == "init":
@@ -446,7 +454,9 @@ def main():
         )
         result = value
     elif args.mode == "prepare-gcd":
-        result = prepare_gcd(configuration(args.config), args.eco_python)
+        result = prepare_gcd(
+            configuration(args.config), args.eco_python, flow=args.flow
+        )
     else:
         config = configuration(args.config)
         result = {"start": start, "status": status, "stop": stop}[args.mode](config)

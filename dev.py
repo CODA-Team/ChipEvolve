@@ -36,6 +36,7 @@ STATIC_TARGETS = {
         "admin/install_workspace.py",
         "admin/package_release.py",
         "admin/release/stack.py",
+        "admin/release/gcd_flow.py",
     ],
 }
 parser = argparse.ArgumentParser()
