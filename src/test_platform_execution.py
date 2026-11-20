@@ -190,12 +190,14 @@ class ExecutionTests(unittest.TestCase):
 
             TaskSpec.from_dict(spec)
             self.assertEqual(spec["resources"]["memory_bytes"], 24 << 30)
+            self.assertEqual(spec["resources"]["cpu_cores"], 8)
             self.assertEqual(spec["labels"]["parent_run_id"], "flow-real")
             self.assertEqual(spec["inputs"]["extractor_command"][0], "/env/eco/python")
             self.assertEqual(spec["staged_inputs"][1]["artifact_id"], "art-real-odb")
             facts.resolve_scope.assert_called_once_with(snapshot_id="objects-real")
             configured = json.loads(profile.read_text())
             configured["memory_gib"] = 16
+            configured["cpu_cores"] = 4
             profile.write_text(json.dumps(configured))
             with (
                 patch("eda_ai_client.EdaAiClient", return_value=facts),
@@ -205,7 +207,7 @@ class ExecutionTests(unittest.TestCase):
             resized = kernel.submit.call_args.args[0]
             TaskSpec.from_dict(resized)
             self.assertEqual(resized["resources"]["memory_bytes"], 16 << 30)
-            self.assertEqual(resized["resources"]["cpu_cores"], 8)
+            self.assertEqual(resized["resources"]["cpu_cores"], 4)
 
     def test_failure_never_falls_back_to_unmanaged_process(self):
         with tempfile.TemporaryDirectory() as directory:

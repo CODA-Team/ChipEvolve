@@ -79,7 +79,7 @@ def submit(profile_path: Path) -> dict:
         "staged_inputs": staged,
         "timeout_seconds": profile.get("timeout_seconds", 14400),
         "resources": {
-            "cpu_cores": 8,
+            "cpu_cores": profile.get("cpu_cores", 8),
             "memory_bytes": int(profile.get("memory_gib", 24)) << 30,
             "processes": 2048,
         },
