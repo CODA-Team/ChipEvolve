@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from query_agent.domain.errors import DataBoundaryError, MissingDataError
 
@@ -167,6 +167,25 @@ class Metric(BaseModel):
 
 class Metrics(BaseModel):
     metrics: list[Metric]
+
+    @field_validator("metrics", mode="before")
+    @classmethod
+    def measured_rows(cls, rows: object) -> object:
+        # DF lists unavailable, execution-owned metrics without a snapshot.
+        if not isinstance(rows, list):
+            return rows
+        return [
+            row
+            for row in rows
+            if not (
+                isinstance(row, dict)
+                and row.get("authoritative_source") == "execution_foundation"
+                and row.get("status") == "unavailable"
+                and row.get("value") is None
+                and "stage" not in row
+                and "snapshot_id" not in row
+            )
+        ]
 
 
 class Path(BaseModel):

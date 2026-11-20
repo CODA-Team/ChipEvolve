@@ -140,6 +140,15 @@ class Handler(BaseHTTPRequestHandler):
                     metric["snapshot_id"] = "unrelated"
                 if query.get("name") == ["WRONG_STAGE"]:
                     metric["stage"] = "finish"
+            if not query.get("name"):
+                data["metrics"].append(
+                    {
+                        "name": "RUNTIME",
+                        "authoritative_source": "execution_foundation",
+                        "status": "unavailable",
+                        "value": None,
+                    }
+                )
         elif parsed.path.endswith("/summary"):
             data = {
                 "snapshot": {
