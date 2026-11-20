@@ -362,9 +362,8 @@ def candidate_artifact_problems(
 ) -> list[str]:
     """Return non-promotable artifact problems for a student metric row.
 
-    Metrics alone are not enough to seed the next iteration.  A promotable
-    donor must have a successful Codex operation and source/knowledge artifacts
-    that explain and reproduce the measured result.
+    A promotable donor must have recorded Codex output, reproducible source
+    artifacts, a private binary, and clean placement measurements.
     """
     artifacts = candidate_artifacts(
         runtime=runtime,
@@ -378,7 +377,6 @@ def candidate_artifact_problems(
 
     usage_path = artifacts.operation_dir / "codex_usage_summary.json"
     usage = load_json(usage_path) or {}
-    returncode = usage.get("returncode")
     agent_message_count = int(usage.get("agent_message_count", 0) or 0)
     last_message_size = (
         artifacts.last_message.stat().st_size if artifacts.last_message.exists() else 0
@@ -386,11 +384,6 @@ def candidate_artifact_problems(
     diff_size = (
         artifacts.implementation_diff.stat().st_size
         if artifacts.implementation_diff.exists()
-        else 0
-    )
-    knowledge_size = (
-        artifacts.knowledge_card.stat().st_size
-        if artifacts.knowledge_card.exists()
         else 0
     )
     private_binary = _candidate_private_binary(round_dir, artifacts)

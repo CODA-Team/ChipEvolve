@@ -57,6 +57,8 @@ Optional helpers:
   finalize the retained source state after the required self-diagnosis and
   strengthened evaluation.
 - `25_trial_source.sh status`: inspect active trial state and recent trial log.
+- `run_after_edit.sh --measure-only`: build and evaluate an active trial,
+  then return the measurements for the Student decision.
 - `run_after_edit.sh`: build, evaluate, and finalize after source edits are
   already complete and no active trial remains.
 

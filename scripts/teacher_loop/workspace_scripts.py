@@ -53,11 +53,6 @@ def child_evaluation_timeout(
     if baseline_metrics is not None:
         summary = baseline_metrics.get("openroad_dpl_flow")
     runtime_s = summary.runtime_seconds if summary is not None else None
-    if runtime_s is not None and runtime_s > 0:
-        baseline_path = summary.metrics_path
-    else:
-        baseline_path = None
-
     baseline_tag = f"{round_id}_baseline_probe_openroad_dpl_flow"
     fallback_path = expected_metrics_path(
         runtime=runtime,
@@ -68,7 +63,6 @@ def child_evaluation_timeout(
     if runtime_s is None or runtime_s <= 0:
         baseline = summarize_metrics(fallback_path)
         runtime_s = baseline.runtime_seconds if baseline is not None else None
-        baseline_path = fallback_path
     if runtime_s is None or runtime_s <= 0:
         return (
             None,
@@ -1581,9 +1575,16 @@ fi
         """#!/usr/bin/env bash
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+case "$*" in
+  "") finalize=1 ;;
+  --measure-only) finalize=0 ;;
+  *) echo "Usage: run_after_edit.sh [--measure-only]" >&2; exit 2 ;;
+esac
 "$SCRIPT_DIR/10_build_variant.sh"
 "$SCRIPT_DIR/20_evaluate_candidate.sh"
-"$SCRIPT_DIR/30_finalize_source.sh"
+if [[ "$finalize" == 1 ]]; then
+  "$SCRIPT_DIR/30_finalize_source.sh"
+fi
 """,
     )
 

@@ -1,10 +1,13 @@
 """The platform prepares the branch picked by the Teacher before prompting."""
 
+import subprocess
 from types import SimpleNamespace
 
 import pytest
 
+from scripts.teacher_loop.common import student_workspace_paths
 from scripts.teacher_loop.execution import inline_teacher_plan_for_children
+from scripts.teacher_loop.workspace_scripts import write_student_workspace_scripts
 
 
 @pytest.mark.parametrize(
@@ -64,3 +67,34 @@ def test_platform_rejects_another_students_start(tmp_path):
             child_rounds=[child], teacher_last_message=teacher, prepare_workspaces=True
         )
     assert prompt.read_text() == "Student task"
+
+
+def test_measure_active_trial_without_finalizing(tmp_path):
+    paths = student_workspace_paths(
+        round_dir=tmp_path, iteration=1, student_id="student_01"
+    )
+    runtime = SimpleNamespace(
+        agent_root=tmp_path, orfs_root=tmp_path / "orfs", state_root=tmp_path
+    )
+    scripts = write_student_workspace_scripts(
+        runtime=runtime,
+        paths=paths,
+        case_id="gcd_nangate45",
+        flow_variant="smoke",
+        threads=2,
+        start_kind="framework",
+        run_tag="trial",
+        parent_src=tmp_path / "seed",
+        use_seed_override=False,
+        timeout_seconds=None,
+    )
+    for stage in ("build", "evaluate", "finalize"):
+        scripts[stage].write_text(f"#!/bin/sh\necho {stage}\n")
+    assert subprocess.check_output(
+        [scripts["after_edit"], "--measure-only"], text=True
+    ).splitlines() == ["build", "evaluate"]
+    assert subprocess.check_output([scripts["after_edit"]], text=True).splitlines() == [
+        "build",
+        "evaluate",
+        "finalize",
+    ]
