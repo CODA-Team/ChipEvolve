@@ -86,6 +86,11 @@ def run_dpl(
     deadline = time.time() + args.seconds
     design = deployment.design(args.design)
     binding = deployment.value["professional"]["dpl"]
+    python = binding.get("python") or str(Path(binding["source"]) / ".venv/bin/python")
+    if not Path(python).is_absolute() or not Path(python).is_file():
+        raise ValueError(
+            "Set professional.dpl.python to the installed DPLEvolve Python"
+        )
     template = read(binding["profile_template"])
     source = experiment / "controller"
     freeze(Path(binding["source"]), source)
@@ -190,7 +195,7 @@ def run_dpl(
     env = environment(objective, context)
     env.update(profile["container_environment"])
     env.update(
-        DPL_EVOLVE_PYTHON=deployment.value["client_python"],
+        DPL_EVOLVE_PYTHON=python,
         DPL_EVOLVE_SKIP_ENV_SH="1",
         EDA_PLATFORM_DEADLINE_EPOCH=str(deadline),
     )
@@ -202,10 +207,10 @@ def run_dpl(
             "evolve_default",
         )
     ]
-    candidate = Path(binding["candidate_source"]) / "install/OpenROAD/bin/openroad"
     if args.operation == "replay" and not args.code_source:
+        installation = Path(binding["candidate_source"]) / "install/OpenROAD"
         candidate = materialize_dpl_replay(
-            candidate.parent.parent, Path(profile["state_root"]), experiment
+            installation, Path(profile["state_root"]), experiment
         )
     if args.operation == "replay" and args.code_source:
         variant = Path(profile["state_root"]) / "replayed-code"
@@ -214,7 +219,7 @@ def run_dpl(
         folder.mkdir()
         invoke(
             [
-                deployment.value["client_python"],
+                python,
                 str(source / "scripts/workspace/build_openroad_variant_relink.py"),
                 "--variant-root",
                 str(variant),
@@ -271,7 +276,7 @@ def run_dpl(
         folder.mkdir()
         command = dpl_search_command(
             binding,
-            deployment.value["client_python"],
+            python,
             source,
             args,
             case_id,
@@ -280,7 +285,7 @@ def run_dpl(
         invoke(command, source, env, folder, args.seconds)
         subprocess.run(
             [
-                deployment.value["client_python"],
+                python,
                 "-m",
                 "scripts.platform.selection",
                 "--case",

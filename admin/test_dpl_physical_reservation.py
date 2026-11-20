@@ -11,8 +11,10 @@ from chip_evolve import dpl as professional
 from chip_evolve.config import Deployment, write
 
 
-@pytest.mark.parametrize("memory_gib", [None, 8])
-def test_dpl_reservation_reaches_frozen_profile(tmp_path, monkeypatch, memory_gib):
+@pytest.mark.parametrize(("memory_gib", "explicit_python"), [(None, False), (8, True)])
+def test_dpl_reservation_reaches_frozen_profile(
+    tmp_path, monkeypatch, memory_gib, explicit_python
+):
     template = tmp_path / "template.json"
     resources = {
         "build": {"memory_bytes": 32 << 30},
@@ -24,11 +26,19 @@ def test_dpl_reservation_reaches_frozen_profile(tmp_path, monkeypatch, memory_gi
         {
             "orfs_root": str(tmp_path / "original-orfs"),
             "state_root": str(tmp_path / "original-state"),
+            "core_binary": str(tmp_path / "core/openroad"),
             "resources": resources,
             "container_environment": {},
         },
     )
     binding = {"source": str(tmp_path / "source"), "profile_template": str(template)}
+    dpl_python = tmp_path / (
+        "dpl-python" if explicit_python else "source/.venv/bin/python"
+    )
+    dpl_python.parent.mkdir(parents=True, exist_ok=True)
+    dpl_python.touch()
+    if explicit_python:
+        binding["python"] = str(dpl_python)
     if memory_gib is not None:
         binding["physical_memory_gib"] = memory_gib
     deployment = SimpleNamespace(
@@ -55,24 +65,29 @@ def test_dpl_reservation_reaches_frozen_profile(tmp_path, monkeypatch, memory_gi
     monkeypatch.setattr(professional, "flatten_archive", archive)
     profiles = []
 
-    class ProfileReached(Exception):
+    class BaselineReached(Exception):
         pass
 
     def capture(path, value):
         assert path == experiment / "profile.json"
         profiles.append(value)
-        raise ProfileReached
+
+    def run_baseline(command, _source, env, _folder, _seconds):
+        assert command[1].endswith("/baseline/run_baseline.sh")
+        assert env["DPL_EVOLVE_PYTHON"] == str(dpl_python)
+        raise BaselineReached
 
     monkeypatch.setattr(professional, "write", capture)
+    monkeypatch.setattr(professional, "invoke", run_baseline)
     frame = {
         "flow_archive": "input.zip",
         "run_id": "parent",
         "snapshot_ids": {"opendb": "objects", "orfs": "metrics"},
     }
-    with pytest.raises(ProfileReached):
+    with pytest.raises(BaselineReached):
         professional.run_dpl(
             cast(Deployment, deployment),
-            Namespace(seconds=600, design="gcd"),
+            Namespace(seconds=600, design="gcd", operation="evolve"),
             experiment,
             frame,
             tmp_path / "objective.json",
@@ -87,3 +102,4 @@ def test_dpl_reservation_reaches_frozen_profile(tmp_path, monkeypatch, memory_gi
     assert profile["resources"]["build"] == resources["build"]
     assert profile["resources"]["variant_build"] == resources["variant_build"]
     assert profile["data_context"]["parent_run_id"] == "parent"
+    assert profile["client_python"] == "/client/python"
