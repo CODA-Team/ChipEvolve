@@ -745,6 +745,60 @@ def test_parasitics_object_id_resolves_native_name(tmp_path):
         store.close()
 
 
+@pytest.mark.parametrize("truncated", [False, True])
+def test_parasitics_returns_exact_spef_record_evidence(tmp_path, truncated):
+    from hashlib import sha256
+    from unittest.mock import Mock
+
+    from openroad_app_data_foundation.server import Handler
+
+    header = b'*SPEF "IEEE 1481-1998"\n*DESIGN "chip"\n'
+    record = b"*D_NET signal 1.25\n*CAP\n1 signal:1 1.25\n"
+    following_net = b""
+    if not truncated:
+        record += b"*END\n"
+        following_net = b"*D_NET clock 0\n*END\n"
+    contents = header + record + following_net
+    spef = tmp_path / "chip.spef"
+    spef.write_bytes(contents)
+    pack = sample()
+    pack["snapshot"]["source_artifacts"] = [
+        {
+            "artifact_id": "spef",
+            "run_id": "run",
+            "logical_path": "results/chip.spef",
+            "category": "raw_parasitics",
+            "stage": "finish",
+            "sha256": sha256(contents).hexdigest(),
+            "size_bytes": len(contents),
+        }
+    ]
+    store = DataStore(tmp_path / "parasitics.sqlite")
+    try:
+        store.register(pack)
+        handler = Handler.__new__(Handler)
+        handler.store = store
+        handler.execution_client = Mock()
+        handler.execution_client.artifact_locator.return_value = {"path": str(spef)}
+
+        result = handler._get("/snapshots/s/nets/n/parasitics", {})
+
+        handler.execution_client.artifact_locator.assert_called_once_with("run", "spef")
+        assert result["parasitics"]["summary"]["total_capacitance"] == 1.25
+        assert result["parasitics"]["record"] == {
+            "offset": len(header),
+            "bytes": len(record),
+            "block_truncated": truncated,
+        }
+        locator = result["evidence"][0]["locator"]
+        assert result["spef"]["locator"] == {**locator, "path": str(spef)}
+        assert locator["excerpt_route"] == "/snapshots/s/sources/spef/excerpt"
+        assert contents[locator["offset"] : locator["offset"] + locator["bytes"]] == record
+        assert result["truncated"] is truncated
+    finally:
+        store.close()
+
+
 def test_routing_summary_states_via_membership_of_both_layers(tmp_path):
     from openroad_app_data_foundation.discovery import routing_summary
     pack = sample()

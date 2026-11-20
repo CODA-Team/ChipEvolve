@@ -1376,7 +1376,7 @@ def test_spef_index_resolves_names_and_parses_one_record(tmp_path):
     are NAME_MAP ids, ground capacitors have three fields and coupling
     capacitors four, and the header total equals ground + coupling.
     """
-    from openroad_app_data_foundation.parasitics import _parse_block, _read_block, spef_index
+    from eda_toolkits.openroad.spef import read_spef_net, spef_index
 
     spef = tmp_path / "tiny.spef"
     spef.write_text(
@@ -1415,9 +1415,8 @@ def test_spef_index_resolves_names_and_parses_one_record(tmp_path):
     # the DEF-escaped spelling and the plain one are the same net
     assert index.offsets["amo_req[0]"] == index.offsets["amo_req[0]".replace("\\", "")]
 
-    data, truncated = _read_block(spef, index.offsets["_00000_"])
-    assert not truncated and data.endswith(b"*END\n")
-    record = _parse_block(data)
+    record, truncated = read_spef_net(spef, index.offsets["_00000_"])
+    assert not truncated
     assert record["total_capacitance"] == 7.5e-05
     assert record["malformed_lines"] == 0
     assert [pin["node"] for pin in record["pins"]] == ["*3", "*4"]

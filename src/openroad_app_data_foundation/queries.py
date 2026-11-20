@@ -9,7 +9,7 @@ from functools import lru_cache
 from .projected_sources import projected_sources
 from .metadata import recovery_path, timing_values
 
-from typing import Any
+from typing import Any, Mapping
 from urllib.parse import quote
 
 from .analysis_context import (

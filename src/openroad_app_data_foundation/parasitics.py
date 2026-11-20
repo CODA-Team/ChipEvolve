@@ -23,7 +23,7 @@ from pathlib import Path
 
 from .queries import _limit, _offset, _page
 
-from eda_toolkits.openroad.spef import read_spef_net, spef_index
+from eda_toolkits.openroad.spef import read_spef_record, spef_index
 
 def _spef_artifacts(snapshot: dict) -> list[dict]:
     return [ref for ref in snapshot.get("source_artifacts", [])
@@ -95,7 +95,13 @@ def net_parasitics(store, client, snapshot_id: str, name: str, query: dict) -> d
                 "spef_index": stats,
                 "searched": {"net": name, "compared_as": "DEF-unescaped on both sides"},
                 "truncated": False}
-    parsed, block_truncated = read_spef_net(path, offset_in_file)
+    parsed, block_truncated, record_bytes = read_spef_record(path, offset_in_file)
+    record_range = {"offset": offset_in_file, "bytes": record_bytes}
+    evidence_locator = {
+        "kind": "spef_record",
+        **record_range,
+        "excerpt_route": f"/snapshots/{snapshot_id}/sources/{ref['artifact_id']}/excerpt",
+    }
     capacitors = [{"id": cid, "node": index.node_name(node),
                    "coupled_node": index.node_name(coupled) if coupled else None,
                    "value": value, "coupling": coupled is not None}
@@ -144,18 +150,10 @@ def net_parasitics(store, client, snapshot_id: str, name: str, query: dict) -> d
                 "pins": pins_page,
                 "capacitors": capacitors_page,
                 "resistors": resistors_page,
-                "record": {"offset": offset_in_file, "bytes": len(data),
-                           "block_truncated": block_truncated},
+                "record": {**record_range, "block_truncated": block_truncated},
             },
-            "spef": _artifact_evidence(ref, {
-                "kind": "spef_record", "offset": offset_in_file, "bytes": len(data),
-                "path": str(path),
-                "excerpt_route": f"/snapshots/{snapshot_id}/sources/"
-                                 f"{ref['artifact_id']}/excerpt"}),
+            "spef": _artifact_evidence(ref, {**evidence_locator, "path": str(path)}),
             "spef_index": stats,
-            "evidence": [_artifact_evidence(ref, {
-                "kind": "spef_record", "offset": offset_in_file, "bytes": len(data),
-                "excerpt_route": f"/snapshots/{snapshot_id}/sources/"
-                                 f"{ref['artifact_id']}/excerpt"})],
+            "evidence": [_artifact_evidence(ref, evidence_locator)],
             "truncated": bool(block_truncated or capacitors_page["truncated"]
                               or resistors_page["truncated"] or pins_page["truncated"])}
