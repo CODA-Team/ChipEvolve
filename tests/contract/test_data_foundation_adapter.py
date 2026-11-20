@@ -115,33 +115,31 @@ class Handler(BaseHTTPRequestHandler):
                     ],
                 }
         elif parsed.path.endswith("/metrics"):
-            data = {
-                "metrics": [
-                    {
-                        "name": "WNS",
-                        "value": -0.2,
-                        "unit": "ns",
-                        "corner": "slow",
-                        "stage": "route",
-                        "snapshot_id": "s1",
-                        "status": "available",
-                        "evidence": [{"artifact_id": "report", "sha256": "a" * 64}],
-                    }
-                ]
-            }
+            metrics: list[dict[str, object]] = [
+                {
+                    "name": "WNS",
+                    "value": -0.2,
+                    "unit": "ns",
+                    "corner": "slow",
+                    "stage": "route",
+                    "snapshot_id": "s1",
+                    "status": "available",
+                    "evidence": [{"artifact_id": "report", "sha256": "a" * 64}],
+                }
+            ]
             if query.get("name") == ["TNS"]:
-                metric = data["metrics"][0]
+                metric = metrics[0]
                 metric["name"] = "TNS"
                 metric["evidence"] = [{"artifact_id": "unverified-report"}]
             if parsed.path == "/runs/ambiguous/metrics":
-                metric = data["metrics"][0]
+                metric = metrics[0]
                 metric["snapshot_id"] = "metrics"
                 if query.get("name") == ["WRONG_SNAPSHOT"]:
                     metric["snapshot_id"] = "unrelated"
                 if query.get("name") == ["WRONG_STAGE"]:
                     metric["stage"] = "finish"
             if not query.get("name"):
-                data["metrics"].append(
+                metrics.append(
                     {
                         "name": "RUNTIME",
                         "authoritative_source": "execution_foundation",
@@ -149,6 +147,7 @@ class Handler(BaseHTTPRequestHandler):
                         "value": None,
                     }
                 )
+            data = {"metrics": metrics}
         elif parsed.path.endswith("/summary"):
             data = {
                 "snapshot": {
