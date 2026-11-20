@@ -13,6 +13,27 @@ import pytest
 from scripts.platform import execution as pe
 
 
+def test_compiled_copy_uses_the_original_submodule_index(tmp_path):
+    origin = tmp_path / "OpenROAD"
+    index = tmp_path / "git/OpenROAD"
+    index.parent.mkdir()
+    subprocess.run(
+        ["git", "init", "-q", "--separate-git-dir", str(index), str(origin)],
+        check=True,
+    )
+    source = origin / "src/dpl_evolve"
+    source.mkdir(parents=True)
+    (source / "algorithm.cpp").write_text("int algorithm() { return 1; }\n")
+    subprocess.run(["git", "add", "."], cwd=origin, check=True)
+    generated = tmp_path / "build/generated-source"
+    shutil.copytree(origin, generated)
+    (generated / ".git").write_text("gitdir: ../../unavailable/OpenROAD\n")
+    compiled = generated / "src/dpl_evolve"
+    assert pe.tree_files(compiled, indexed_from=source) == pe.tree_files(source)
+    (compiled / "changed.cpp").write_text("int changed;\n")
+    assert pe.tree_files(compiled, indexed_from=source) != pe.tree_files(source)
+
+
 def test_native_and_leaf_paths_do_not_delegate(monkeypatch):
     monkeypatch.delenv("DPL_EVOLVE_PLATFORM_PROFILE", raising=False)
     assert pe.maybe_delegate("baseline", []) is None

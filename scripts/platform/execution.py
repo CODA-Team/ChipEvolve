@@ -36,10 +36,22 @@ def write_json(path: Path, value: Any) -> None:
     temporary.replace(path)
 
 
-def tree_files(root: Path) -> dict[str, str]:
+def tree_files(root: Path, *, indexed_from: Path | None = None) -> dict[str, str]:
+    git = ["git"]
+    if indexed_from is not None:
+        # A private copy of a submodule still has the original relative .git
+        # pointer. Use the original index to enumerate files in the copy.
+        top, git_dir = subprocess.check_output(
+            ["git", "rev-parse", "--show-toplevel", "--absolute-git-dir"],
+            cwd=indexed_from,
+            text=True,
+        ).splitlines()
+        depth = len(indexed_from.resolve().relative_to(top).parts)
+        work_tree = root.parents[depth - 1] if depth else root
+        git += ["--git-dir", git_dir, "--work-tree", str(work_tree)]
     names = (
         subprocess.check_output(
-            ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+            [*git, "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
             cwd=root,
         )
         .decode()
@@ -468,7 +480,9 @@ def leaf(profile: dict[str, Any], request: dict[str, Any]) -> int:
     validate_request(profile, request)
     if request["operation"] == "core_build":
         compiled_source = Path(profile["core_root"]) / "generated-source/src/dpl_evolve"
-        if tree_files(compiled_source) != request["source_files"]:
+        if tree_files(
+            compiled_source, indexed_from=Path(request["source"])
+        ) != request["source_files"]:
             raise ValueError("Build altered the private copy of algorithm source")
     receipt: dict[str, Any] = {
         "request": request,
