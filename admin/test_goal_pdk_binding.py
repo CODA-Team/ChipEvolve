@@ -25,7 +25,13 @@ def test_goal_profile_and_inputs_use_the_bound_pdk(
     library = tmp_path / "standard.lib"
     library.write_text("library (standard) {}\n")
     profile = tmp_path / "profile-template.json"
-    write(profile, {"source_seed": str(tmp_path / "seed"), "resources": {}})
+    write(
+        profile,
+        {
+            "source_seed": str(tmp_path / "seed"),
+            "resources": {"build": {"cpu_cores": 4}},
+        },
+    )
     campaign = tmp_path / "campaign-template.json"
     donor = tmp_path / "build-donor"
     write(
@@ -101,6 +107,7 @@ def test_goal_profile_and_inputs_use_the_bound_pdk(
     def before_native(*_args):
         actual = read(experiment / "profile.json")
         config = read(experiment / "baseline-config.json")
+        assert actual["resources"]["physical"]["cpu_cores"] == 4
         seed = str(tmp_path / "seed")
         expected_donor = str(donor) if explicit_donor else seed
         assert seed in actual["read_roots"]

@@ -120,6 +120,9 @@ def test_flat_common_pdk_prepares_native_layout_and_preserves_bound_rc(
     }
     if corner is not None:
         deployment.value["designs"]["any-design"]["corner"] = corner
+    if memory_gib is not None:
+        deployment.value["designs"]["any-design"]["orfs_execution"] = {"cpu_cores": 4}
+    threads = 8 if memory_gib is None else 4
     frame = {
         "run_id": "unit-parent",
         "snapshot_ids": {"opendb": "unit-objects", "orfs": "unit-metrics"},
@@ -163,6 +166,8 @@ def test_flat_common_pdk_prepares_native_layout_and_preserves_bound_rc(
     profile = json.loads((experiment / "profile.json").read_text())
     assert profile["parent_run_id"] == "unit-parent"
     assert profile["memory_gib"] == (24 if memory_gib is None else memory_gib)
+    assert profile["cpu_cores"] == threads
+    assert profile["environment"]["OMP_NUM_THREADS"] == str(threads)
     assert profile["environment"]["DRT_EVERY_ITER"] == (
         "0" if drt_every_iter is False else "1"
     )
@@ -191,5 +196,7 @@ def test_flat_common_pdk_prepares_native_layout_and_preserves_bound_rc(
         patch.object(os, "execvp", side_effect=lambda exe, argv: calls.append(argv)),
     ):
         runpy.run_path(str(experiment / "openroad"))
-    assert calls[0][-5:] == ["unused-openroad", "-threads", "8", "-exit", "measure.tcl"]
+    assert calls[0][-5:] == [
+        "unused-openroad", "-threads", str(threads), "-exit", "measure.tcl"
+    ]
     assert "TIMINGECO_LIB_FILES=/frozen/cells.lib\n/frozen/sram.lib" in calls[0]

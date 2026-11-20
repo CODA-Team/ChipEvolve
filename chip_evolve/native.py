@@ -160,8 +160,12 @@ def run_goal(
     profile["pdk_root"] = str(pdk)
     if (pdk / "equivalent_cells.csv").exists():
         profile["equivalent_cells"] = str(pdk / "equivalent_cells.csv")
-    profile["resources"]["physical"] = {
-        "cpu_cores": 8,
+    resources = profile["resources"]
+    threads = resources.get("physical", {}).get(
+        "cpu_cores", resources.get("build", {}).get("cpu_cores", 8)
+    )
+    resources["physical"] = {
+        "cpu_cores": threads,
         "memory_bytes": int(binding.get("physical_memory_gib", 24)) << 30,
         "processes": 2048,
     }
@@ -324,6 +328,7 @@ def run_eco(
 ) -> dict[str, Any]:
     binding = deployment.value["professional"]["eco"]
     design = deployment.design(args.design)
+    threads = design.get("orfs_execution", {}).get("cpu_cores", 8)
     source = experiment / "source"
     freeze(
         Path(binding["source"]),
@@ -351,7 +356,7 @@ def run_eco(
         "#!/usr/bin/python3\nimport os,sys\nargs="
         + repr(base + ["env"])
         + "\nfor key in ('ASAP7_PDK','DESIGN_DIR','TOP','BACKTRACE_ODB','TIMINGECO_LIB_FILES'):\n if key in os.environ: args.append(key+'='+os.environ[key])\nargs += "
-        + repr([deployment.value["tools"]["openroad"], "-threads", "8"])
+        + repr([deployment.value["tools"]["openroad"], "-threads", str(threads)])
         + "+sys.argv[1:]\nos.execvp(args[0],args)\n"
     )
     wrapper.chmod(0o755)
@@ -377,8 +382,8 @@ def run_eco(
         TIMINGECO_CODEX_BIN=shutil.which("codex") or "codex",
         DRT_EVERY_ITER="1" if binding.get("drt_every_iter", True) else "0",
         TIMINGECO_MAX_ITERATIONS=str(args.rounds),
-        OMP_NUM_THREADS="8",
-        OPENBLAS_NUM_THREADS="8",
+        OMP_NUM_THREADS=str(threads),
+        OPENBLAS_NUM_THREADS=str(threads),
         MPLBACKEND="Agg",
     )
     profile = {
@@ -389,6 +394,7 @@ def run_eco(
         "metrics_snapshot_id": frame["snapshot_ids"]["orfs"],
         "input_artifacts": artifacts,
         "input_route_drc": frame.get("route_drc"),
+        "cpu_cores": threads,
         "memory_gib": binding.get("session_memory_gib", 24),
         "parent_run_id": frame["run_id"],
         "python": python,
