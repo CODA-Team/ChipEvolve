@@ -77,6 +77,8 @@ def qualify(
 ) -> dict[str, Any]:
     """Complete GRT checkpoints, or extract facts from an already routed state."""
     design = jobs.deployment.design(jobs.design_id)
+    resources = design.get("orfs_execution", {})
+    threads = resources.get("cpu_cores", 8)
     verify_measurement_conditions(
         jobs.deployment, jobs.design_id, objective, Path(design["sdc"])
     )
@@ -135,7 +137,7 @@ def qualify(
             [
                 jobs.deployment.value["tools"]["openroad"],
                 "-threads",
-                "8",
+                str(threads),
                 "-metrics",
                 str(output / "native-metrics.json"),
                 "-exit",
@@ -152,8 +154,9 @@ def qualify(
         ],
         parent=parent,
         objective=objective,
-        memory_gib=design.get("orfs_execution", {}).get("memory_gib", 24),
-        seconds=design.get("orfs_execution", {}).get("timeout_seconds", 1800),
+        cpu=threads,
+        memory_gib=resources.get("memory_gib", 24),
+        seconds=resources.get("timeout_seconds", 1800),
     )
     metrics = read(output / "native-metrics.json")
     measured = measure(

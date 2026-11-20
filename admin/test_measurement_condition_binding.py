@@ -128,6 +128,28 @@ def test_matching_contents_keep_the_original_goal_and_measurement(
     assert measured["metrics"]["finish__power__total"] == 0.003003
 
 
+def test_native_qualification_reserves_the_configured_threads(tmp_path):
+    jobs, odb, _spef, _sdc, objective, _goal = bound_measurement(tmp_path)
+    jobs.deployment.design("example")["orfs_execution"] = {
+        "cpu_cores": 4,
+        "memory_gib": 12,
+    }
+
+    class ReachedExecution(Exception):
+        pass
+
+    def capture(key, command, **options):
+        assert key == "qualification"
+        assert command[command.index("-threads") + 1] == "4"
+        assert options["cpu"] == 4
+        assert options["memory_gib"] == 12
+        raise ReachedExecution
+
+    jobs.command = capture
+    with pytest.raises(ReachedExecution):
+        physical.qualify(jobs, odb, "native-source", objective, tmp_path)
+
+
 @pytest.mark.parametrize("entry", ["baseline", "qualify"])
 def test_wrong_conditions_stop_before_physical_qualification_or_full_baseline(
     tmp_path, monkeypatch, entry
