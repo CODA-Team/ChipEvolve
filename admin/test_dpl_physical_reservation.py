@@ -1,4 +1,4 @@
-"""DPL experiments can reserve measured memory without changing build budgets."""
+"""DPL experiments carry deployment CPU and memory limits into native commands."""
 
 import zipfile
 from argparse import Namespace
@@ -11,9 +11,12 @@ from chip_evolve import dpl as professional
 from chip_evolve.config import Deployment, write
 
 
-@pytest.mark.parametrize(("memory_gib", "explicit_python"), [(None, False), (8, True)])
+@pytest.mark.parametrize(
+    ("memory_gib", "explicit_python", "physical_cpu"),
+    [(None, False, None), (8, True, 4)],
+)
 def test_dpl_reservation_reaches_frozen_profile(
-    tmp_path, monkeypatch, memory_gib, explicit_python
+    tmp_path, monkeypatch, memory_gib, explicit_python, physical_cpu
 ):
     template = tmp_path / "template.json"
     resources = {
@@ -21,6 +24,8 @@ def test_dpl_reservation_reaches_frozen_profile(
         "variant_build": {"memory_bytes": 8 << 30},
         "physical": {"memory_bytes": 24 << 30},
     }
+    if physical_cpu is not None:
+        resources["physical"]["cpu_cores"] = physical_cpu
     write(
         template,
         {
@@ -74,6 +79,7 @@ def test_dpl_reservation_reaches_frozen_profile(
 
     def run_baseline(command, _source, env, _folder, _seconds):
         assert command[1].endswith("/baseline/run_baseline.sh")
+        assert command[command.index("--threads") + 1] == str(physical_cpu or 8)
         assert env["DPL_EVOLVE_PYTHON"] == str(dpl_python)
         raise BaselineReached
 
@@ -95,7 +101,7 @@ def test_dpl_reservation_reaches_frozen_profile(
         )
     profile = profiles[0]
     assert profile["resources"]["physical"] == {
-        "cpu_cores": 8,
+        "cpu_cores": physical_cpu or 8,
         "memory_bytes": (memory_gib if memory_gib is not None else 24) << 30,
         "processes": 2048,
     }

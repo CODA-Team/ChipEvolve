@@ -40,6 +40,7 @@ def dpl_search_command(
     args: argparse.Namespace,
     case_id: str,
     key: str,
+    threads: int,
 ) -> list[str]:
     command = [
         python,
@@ -54,6 +55,8 @@ def dpl_search_command(
         str(args.rounds),
         "--children",
         str(args.candidates),
+        "--threads",
+        str(threads),
         "--max-parallel",
         "2",
         "--skip-core-build",
@@ -170,8 +173,13 @@ def run_dpl(
             "parent_run_id": frame["run_id"],
         },
     }
-    profile["resources"]["physical"] = {
-        "cpu_cores": 8,
+    resources = profile["resources"]
+    physical_threads = resources.get("physical", {}).get("cpu_cores", 8)
+    variant_threads = resources.get("variant_build", resources.get("build", {})).get(
+        "cpu_cores", 8
+    )
+    resources["physical"] = {
+        "cpu_cores": physical_threads,
         "memory_bytes": int(binding.get("physical_memory_gib", 24)) << 30,
         "processes": 2048,
     }
@@ -228,7 +236,7 @@ def run_dpl(
                 "--core-root",
                 profile["core_root"],
                 "--threads",
-                "8",
+                str(variant_threads),
             ],
             source,
             env,
@@ -256,7 +264,7 @@ def run_dpl(
             "--run-tag",
             tag,
             "--threads",
-            "8",
+            str(physical_threads),
             "--openroad-binary",
             binary,
         ]
@@ -281,6 +289,7 @@ def run_dpl(
             args,
             case_id,
             experiment.name,
+            min(physical_threads, variant_threads),
         )
         invoke(command, source, env, folder, args.seconds)
         subprocess.run(

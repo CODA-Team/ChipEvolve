@@ -52,13 +52,14 @@ def test_explicit_dpl_models_reach_original_teacher_student_cli():
     }
     args = Namespace(rounds=2, candidates=3)
     command = dpl.dpl_search_command(
-        binding, "/client/python", Path("/native"), args, "case", "run-key"
+        binding, "/client/python", Path("/native"), args, "case", "run-key", 4
     )
     for name, value in binding.items():
         flag = "--" + name.replace("_", "-")
         assert command[command.index(flag) + 1] == value
     assert command[command.index("--children") + 1] == "3"
     assert command[command.index("--iterations") + 1] == "2"
+    assert command[command.index("--threads") + 1] == "4"
     assert command[command.index("--max-parallel") + 1] == "2"
     assert "--reuse-baseline-preflight" in command and "--launch" in command
 
@@ -71,6 +72,7 @@ def test_unspecified_dpl_model_settings_preserve_original_cli_defaults():
         Namespace(rounds=1, candidates=3),
         "case",
         "run-key",
+        8,
     )
     assert not any("model" in word or "reasoning" in word for word in command)
 
