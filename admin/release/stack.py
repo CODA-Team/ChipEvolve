@@ -6,10 +6,12 @@ No process discovery, old-service adoption or broad process kill is performed.
 """
 import argparse
 from datetime import datetime, timezone
+import hashlib
 import json
 import os
 from pathlib import Path
 import re
+import shutil
 import signal
 import socket
 import subprocess
@@ -181,9 +183,79 @@ def start(config):
     return {'started': True, 'status': status(config)}
 
 
+def prepare_gcd(config, eco_python=None):
+    """Prepare a standalone GCD deployment from the supplied ORFS image."""
+    root = Path(config['workspace'])
+    state = Path(config['state_root'])
+    destination = state / 'local.json'
+    if destination.exists():
+        raise FileExistsError(destination)
+    runtime = shutil.which('apptainer')
+    if runtime is None:
+        raise RuntimeError('Install Apptainer before preparing the GCD example')
+    flow = '/OpenROAD-flow-scripts/flow/'
+    inputs = state / 'inputs'
+    inputs.mkdir(exist_ok=True)
+    library = inputs / 'NangateOpenCellLibrary_typical.lib'
+    sdc = inputs / 'gcd.sdc'
+    command = [runtime, 'exec', '--cleanenv', '--no-home', config['orfs_image'], 'cat']
+    with library.open('wb') as handle:
+        subprocess.run(command + [flow + 'platforms/nangate45/lib/' + library.name],
+                       stdout=handle, check=True)
+    constraints = subprocess.check_output(
+        command + [flow + 'designs/nangate45/gcd/constraint.sdc'], text=True)
+    constraints, changes = re.subn(r'(?m)^set clk_period \S+$', 'set clk_period 0.5', constraints)
+    if changes != 1:
+        raise ValueError('The image GCD constraints do not declare one clk_period')
+    sdc.write_text('set_cmd_units -time ns\n' + constraints)
+    with Path(config['orfs_image']).open('rb') as handle:
+        image_digest = hashlib.file_digest(handle, 'sha256').hexdigest()
+    value = {
+        'schema_version': 'chip-evolve.local.v1',
+        'state_root': str(state),
+        'client_python': str(root / 'agent/query-agent/.venv/bin/python'),
+        'query_python': str(root / 'agent/query-agent/.venv/bin/python'),
+        'openroad_launcher': str(root / 'toolkits/.venv/bin/eda-openroad'),
+        'kernel_url': f"http://127.0.0.1:{config['kernel_port']}",
+        'data_url': f"http://127.0.0.1:{config['data_port']}",
+        'runtime': {'image': config['orfs_image'], 'executable': runtime,
+                    'bind_roots': [str(state)]},
+        'tools': {'openroad': '/OpenROAD-flow-scripts/tools/install/OpenROAD/bin/openroad'},
+        'toolchain': {'image_sha256': image_digest},
+        'designs': {'gcd': {
+            'top': 'gcd', 'nickname': 'gcd', 'platform': 'nangate45',
+            'orfs_config': 'designs/nangate45/gcd/config.mk', 'sdc': str(sdc),
+            'corner': 'typical', 'clock_period_ns': 0.5,
+            'libraries': [{'path': str(library), 'sha256': hashlib.sha256(library.read_bytes()).hexdigest()}],
+            'orfs_execution': {'memory_gib': 4},
+            'fact_execution': {'memory_gib': 4},
+        }},
+    }
+    if eco_python is not None:
+        eco_python = eco_python.absolute()
+        if not eco_python.is_file():
+            raise FileNotFoundError(eco_python)
+        pdk = inputs / 'nangate45'
+        pdk.mkdir(exist_ok=True)
+        for name in ('setRC.tcl', 'rcx_patterns.rules'):
+            with (pdk / name).open('wb') as handle:
+                subprocess.run(command + [flow + 'platforms/nangate45/' + name],
+                               stdout=handle, check=True)
+        value['professional'] = {'eco': {
+            'source': str(root / 'agent/timing-eco-agent'),
+            'python': str(eco_python),
+            'pdk_template': str(pdk),
+            'session_memory_gib': 8,
+        }}
+        value['designs']['gcd'].update(signal_layers='metal2-metal10',
+                                       clock_layers='metal4-metal10')
+    write(destination, value)
+    return {'deployment': str(destination)}
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('mode', choices=('init', 'start', 'status', 'stop'))
+    parser.add_argument('mode', choices=('init', 'prepare-gcd', 'start', 'status', 'stop'))
     parser.add_argument('--config', type=Path, required=True)
     parser.add_argument('--workspace', type=Path)
     parser.add_argument('--instance', default='demo')
@@ -191,6 +263,8 @@ def main():
     parser.add_argument('--kernel-port', type=int, default=19700)
     parser.add_argument('--data-port', type=int, default=19924)
     parser.add_argument('--activity-lock', type=Path)
+    parser.add_argument('--eco-python', type=Path,
+                        help='prepare-gcd also binds an installed TimingECOAgent environment')
     args = parser.parse_args()
     if args.mode == 'init':
         if args.config.exists() or args.workspace is None or args.image is None:
@@ -213,6 +287,8 @@ def main():
         write(toolchain_path, {'orfs_image': value['orfs_image'], 'container_runtime': 'apptainer',
                                'openroad_bin': str(root / 'toolkits/.venv/bin/eda-openroad')})
         result = value
+    elif args.mode == 'prepare-gcd':
+        result = prepare_gcd(configuration(args.config), args.eco_python)
     else:
         config = configuration(args.config)
         result = {'start': start, 'status': status, 'stop': stop}[args.mode](config)
