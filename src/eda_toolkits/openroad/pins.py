@@ -2,7 +2,8 @@
 import base64
 import re
 
-def _parse(text):
+def parse_pin_inventory(text):
+    """Parse the complete report emitted by pin_inventory_script."""
     rows, totals = [], []
     for line in text.splitlines():
         if line.startswith('EDA_PIN_TOTAL '):
@@ -25,6 +26,10 @@ def _parse(text):
     if len(totals) != 1 or totals[0] != len(rows) or len({r['native_id'] for r in rows}) != len(rows):
         raise ValueError('native pin inventory is incomplete or has duplicate pins')
     return sorted(rows, key=lambda r: r['local_name'])
+
+
+# Retain the import used by earlier Data Foundation wheels.
+_parse = parse_pin_inventory
 
 
 def ranking_script(query):

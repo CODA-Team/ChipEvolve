@@ -169,6 +169,12 @@ def spef_index(path: Path, expected_sha256: str | None) -> SpefIndex:
     return index
 
 
+def read_spef_net(path: Path, offset: int) -> tuple[dict, bool]:
+    """Read a net at a SPEF index offset and indicate whether it was truncated."""
+    data, truncated = _read_block(path, offset)
+    return _parse_block(data), truncated
+
+
 def _read_block(path: Path, offset: int) -> tuple[bytes, bool]:
     """The bytes of one ``*D_NET`` record, stopping after its ``*END``."""
     buffer = bytearray()
