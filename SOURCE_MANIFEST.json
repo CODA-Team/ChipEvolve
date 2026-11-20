@@ -15,8 +15,8 @@
     },
     {
       "path": "data-foundation",
-      "source_commit": "04635075a6234f7579b6f131860094fa69875a7a",
-      "source_tree": "ee9eb071d018dd10740bfd92540beca92bd7d660",
+      "source_commit": "4637186b2f7d0d938e81825c901e17d6cbf4f699",
+      "source_tree": "a13654438eb3249417ff8ea57216b635a2ae63ef",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/data-foundation"
     },
@@ -38,8 +38,8 @@
     },
     {
       "path": "toolkits",
-      "source_commit": "86673fa6850d17e893b31fadb53aff1576981a41",
-      "source_tree": "b277874aaba927e3622a28a3915d08b4d07fe24e",
+      "source_commit": "445ae974f495ace1b6dc62219b900843b3a13da9",
+      "source_tree": "34585f31fd799c58087c1fd8ee4e1fa52e2fd89c",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/toolkits"
     },
