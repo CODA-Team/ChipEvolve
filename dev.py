@@ -115,6 +115,17 @@ if args.command == "check":
         commands += [
             [str(python.parent / "ruff"), "check", "src", "tests", "--select", "F"]
         ]
+    elif args.project == "data-foundation":
+        commands += [
+            [
+                str(python.parent / "ruff"),
+                "check",
+                "--isolated",
+                "--select",
+                "E4,E7,E9,F",
+                "src",
+            ]
+        ]
     tests = {
         # Check the module's own checkout against installed dependency wheels.
         "data-foundation": ["-o", "pythonpath=src"],
