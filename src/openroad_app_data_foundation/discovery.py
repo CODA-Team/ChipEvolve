@@ -410,7 +410,6 @@ def routing_summary(store, snapshot_id, object_id):
     layers, vias, via_layers = {}, {}, {}
     for shape in physical.get('routing', []):
         if shape.get('routing_type') == 'segment':
-            width, height = shape['x_max'] - shape['x_min'], shape['y_max'] - shape['y_min']
             layer = shape['layer']
             value = layers.setdefault(layer, {'segments': 0, 'centerline_length_dbu': 0})
             value['segments'] += 1
@@ -418,7 +417,8 @@ def routing_summary(store, snapshot_id, object_id):
                 raise ValueError('snapshot does not contain centerline lengths; re-extract its ODB')
             value['centerline_length_dbu'] += shape['centerline_length_dbu']
         elif shape.get('routing_type') == 'via':
-            name = shape['via']; vias[name] = vias.get(name, 0) + 1
+            name = shape['via']
+            vias[name] = vias.get(name, 0) + 1
             for layer in (shape.get('bottom_layer'), shape.get('top_layer')):
                 if layer:
                     via_layers[layer] = via_layers.get(layer, 0) + 1

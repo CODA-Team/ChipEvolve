@@ -64,14 +64,14 @@ from .queries import (
     timing_path,
 )
 from . import source_fingerprint
+from .connections import ReadPool
+from .relationships import object_relationships
+from .repository import DataStore
 
 #: Captured when this module is imported - i.e. from the source the process
 #: actually loaded.  Computing it per request would hash whatever is on disk at
 #: that moment, which always matches and therefore detects nothing.
 STARTUP_FINGERPRINT = source_fingerprint()
-from .connections import ReadPool
-from .relationships import object_relationships
-from .repository import DataStore
 
 
 def _routing_limit(query: dict[str, str]) -> int | None:
