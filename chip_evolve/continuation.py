@@ -10,9 +10,9 @@ from pathlib import Path
 from typing import Any
 
 from chip_evolve.config import Deployment, business_lock, read, write
+from chip_evolve.controller import environment, freeze, inventory, invoke
 from chip_evolve.jobs import digest
 from chip_evolve.native import latest_producer
-from chip_evolve.professional import environment, freeze, inventory, invoke
 
 
 def continuation_contract(

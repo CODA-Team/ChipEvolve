@@ -3,7 +3,7 @@
 from admin.test_local_business import deployment
 from chip_evolve.config import read, write
 from chip_evolve.jobs import digest
-from chip_evolve.professional import flow_source, tool_profile
+from chip_evolve.flow import flow_source, tool_profile
 
 
 def test_formal_cp0_evaluator_and_profile_identity_replace_the_old_template(tmp_path):

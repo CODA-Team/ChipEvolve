@@ -280,7 +280,7 @@ def test_goal_producer_uses_registered_snapshot_bytes_not_only_local_receipt(
 
 
 def test_root_finish_collects_once_and_child_uses_deferred_facts(tmp_path, monkeypatch):
-    from chip_evolve import professional
+    from chip_evolve import flow as professional
 
     real_finish = delivery.finish
     data = inputs(tmp_path, monkeypatch)
@@ -386,7 +386,7 @@ def test_original_goal_continuation_is_covered_by_same_delivery_hook(
 def test_finished_legacy_result_is_not_implicitly_upgraded_on_recovery(
     tmp_path, monkeypatch
 ):
-    from chip_evolve import professional
+    from chip_evolve import flow as professional
 
     real_finish = delivery.finish
     data = inputs(tmp_path, monkeypatch)

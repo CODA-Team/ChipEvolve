@@ -220,7 +220,7 @@ def test_validation_requires_selected_object_scope_without_changing_result(
 def test_flow_delivers_every_finished_candidate_and_original_constraints(
     tmp_path, monkeypatch, terminal_evidence
 ):
-    from chip_evolve import professional
+    from chip_evolve import flow as professional
 
     d, source, _ = inputs(tmp_path)
     d.value["designs"]["gcd"].update(
@@ -454,7 +454,7 @@ def test_timeout_evidence_requires_matching_terminal_witness(
     originals = {str(path): digest(path) for path in experiment.rglob("*.json")}
     calls = []
     monkeypatch.setattr(
-        "chip_evolve.professional._collect_flow_candidates",
+        "chip_evolve.flow._collect_flow_candidates",
         lambda *a, **k: calls.append(k),
     )
     with pytest.raises(ValueError):

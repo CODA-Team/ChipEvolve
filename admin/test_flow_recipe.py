@@ -161,7 +161,8 @@ def test_native_clock_binding_uses_registered_input_not_a_later_measurement(
     from types import SimpleNamespace
 
     from admin.test_local_business import deployment
-    from chip_evolve import flow_recipe, professional
+    from chip_evolve import flow as professional
+    from chip_evolve import flow_recipe
 
     d = deployment(tmp_path)
     d.value["designs"]["gcd"] = {
@@ -364,7 +365,7 @@ def test_layout_handoff_preserves_native_stage_sdc_only_in_source_mode(
     from types import SimpleNamespace
 
     from admin.test_local_business import deployment
-    from chip_evolve import professional
+    from chip_evolve import flow as professional
 
     d = deployment(tmp_path)
     global_sdc = tmp_path / "measurement.sdc"
@@ -419,7 +420,7 @@ def test_layout_resume_uses_explicit_source_and_keeps_legacy_default(
     from types import SimpleNamespace
 
     from admin.test_local_business import deployment
-    from chip_evolve import professional
+    from chip_evolve import flow as professional
 
     d = deployment(tmp_path)
     experiment = d.experiment("gcd", "handoff")

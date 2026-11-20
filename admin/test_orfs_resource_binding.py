@@ -70,7 +70,7 @@ def test_native_flow_uses_deployment_memory_and_preserves_inputs(
 def test_source_copy_uses_same_declared_reservation(
     tmp_path, monkeypatch, declared, expected
 ):
-    from chip_evolve import professional
+    from chip_evolve import flow as professional
     from chip_evolve.flow_recipe import qualify_prepared_recipe
 
     d = deployment(tmp_path)

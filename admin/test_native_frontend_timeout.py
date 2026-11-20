@@ -8,7 +8,7 @@ import sys
 
 import pytest
 
-from chip_evolve.professional import invoke
+from chip_evolve.controller import invoke
 
 
 def live(pid):

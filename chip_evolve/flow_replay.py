@@ -14,7 +14,7 @@ def replay(
     deployment: Deployment, result_path: Path, experiment: Path
 ) -> dict[str, Any]:
     from .delivery import checkpoint, finish
-    from .professional import flatten_archive
+    from .handoff import flatten_archive
 
     frame = read(result_path)
     paths = [result_path] + [

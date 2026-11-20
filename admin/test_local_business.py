@@ -9,9 +9,10 @@ import pytest
 
 from chip_evolve.clock import flow_sdc
 from chip_evolve.config import Deployment, read, write
+from chip_evolve.flow import recover_config
+from chip_evolve.handoff import flatten_archive
 from chip_evolve.jobs import Jobs, digest
 from chip_evolve.native import latest_producer
-from chip_evolve.professional import flatten_archive, recover_config
 from chip_evolve.selection import select
 
 

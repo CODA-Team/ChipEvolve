@@ -268,7 +268,7 @@ def prepare_native_source(
     deployment: Deployment, source_result: Path, experiment: Path
 ) -> Path:
     """Overlay only native control code, preserving the pinned physical flow."""
-    from .professional import freeze, inventory
+    from .controller import freeze, inventory
 
     binding = source_binding(source_result)
     design = deployment.design(binding["design_id"])
@@ -332,7 +332,7 @@ def qualify_prepared_recipe(
     """Run the unchanged physical recipe; this does not qualify native knobs."""
     import zipfile
 
-    from .professional import tool_profile
+    from .flow import tool_profile
 
     recipe = read(experiment / "recipe.json")
     reference = read(recipe["source_result"])

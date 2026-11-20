@@ -95,7 +95,7 @@ def test_completed_recovery_preserves_handoff_and_validation_hash(
         lambda *a, **k: pytest.fail("repeated physical delivery"),
     )
     monkeypatch.setattr(
-        "chip_evolve.professional.collect_flow",
+        "chip_evolve.flow.collect_flow",
         lambda *a, **k: pytest.fail("repeated collection"),
     )
     assert recover(d, "gcd", "finished") == frame

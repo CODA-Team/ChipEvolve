@@ -10,9 +10,9 @@ from typing import Any
 from chip_evolve.comparisons import compare
 from chip_evolve.config import Deployment, business_lock, read, write
 from chip_evolve.delivery import checkpoint, finish
+from chip_evolve.dpl import dpl_producer
 from chip_evolve.jobs import digest
 from chip_evolve.physical import baseline
-from chip_evolve.professional import dpl_producer
 from chip_evolve.validation import query_facts
 
 

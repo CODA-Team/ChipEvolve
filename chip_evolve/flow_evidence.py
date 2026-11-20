@@ -12,7 +12,7 @@ from .jobs import digest
 def collect(
     deployment: Deployment, design_id: str, experiment: Path, objective: Path
 ) -> dict[str, Any]:
-    from .professional import _collect_flow_candidates
+    from .flow import _collect_flow_candidates
 
     with business_lock(experiment):
         design = deployment.design(design_id)

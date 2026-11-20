@@ -10,9 +10,9 @@ from pathlib import Path
 from typing import Any
 
 from .config import Deployment, read, write
+from .controller import environment, freeze, inventory, invoke
 from .jobs import Jobs, digest
 from .physical import container
-from .professional import environment, freeze, inventory, invoke
 
 
 def _goal_targets(targets: dict[str, float], objective: Path) -> dict[str, float]:

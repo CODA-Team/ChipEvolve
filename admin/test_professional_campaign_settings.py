@@ -8,7 +8,7 @@ from typing import cast
 import pytest
 from openroad_platform_client import KernelClient
 
-from chip_evolve import professional
+from chip_evolve import controller, dpl, professional
 from chip_evolve.config import read, write
 from chip_evolve.jobs import Jobs
 
@@ -24,19 +24,19 @@ def test_native_phases_share_deadline_without_starting_work_after_expiry(
             calls.append(timeout)
             return 0
 
-    monkeypatch.setattr(professional.time, "time", lambda: current[0])
+    monkeypatch.setattr(controller.time, "time", lambda: current[0])
     monkeypatch.setattr(professional.subprocess, "Popen", lambda *a, **kw: Process())
     env = {**os.environ, "EDA_PLATFORM_DEADLINE_EPOCH": "1100"}
     for index, now in enumerate((1000.0, 1075.0)):
         current[0] = now
         folder = tmp_path / str(index)
         folder.mkdir()
-        professional.invoke(["native"], tmp_path, env, folder, 100)
+        controller.invoke(["native"], tmp_path, env, folder, 100)
     current[0] = 1101.0
     expired = tmp_path / "expired"
     expired.mkdir()
     with pytest.raises(professional.subprocess.TimeoutExpired):
-        professional.invoke(["native"], tmp_path, env, expired, 100)
+        controller.invoke(["native"], tmp_path, env, expired, 100)
     assert calls == [100.0, 25.0]
     assert not (expired / "controller.log").exists()
 
@@ -51,7 +51,7 @@ def test_explicit_dpl_models_reach_original_teacher_student_cli():
         "student_reasoning_effort": "medium",
     }
     args = Namespace(rounds=2, candidates=3)
-    command = professional.dpl_search_command(
+    command = dpl.dpl_search_command(
         binding, "/client/python", Path("/native"), args, "case", "run-key"
     )
     for name, value in binding.items():
@@ -64,7 +64,7 @@ def test_explicit_dpl_models_reach_original_teacher_student_cli():
 
 
 def test_unspecified_dpl_model_settings_preserve_original_cli_defaults():
-    command = professional.dpl_search_command(
+    command = dpl.dpl_search_command(
         {},
         "/client/python",
         Path("/native"),

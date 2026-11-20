@@ -4,7 +4,7 @@ import pytest
 
 from chip_evolve.config import write
 from chip_evolve.jobs import digest
-from chip_evolve.professional import dpl_producer
+from chip_evolve.dpl import dpl_producer
 
 
 def test_same_tag_trials_deliver_the_measured_content(tmp_path):

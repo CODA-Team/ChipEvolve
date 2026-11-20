@@ -7,7 +7,7 @@ from typing import cast
 
 import pytest
 
-from chip_evolve import professional
+from chip_evolve import dpl as professional
 from chip_evolve.config import Deployment, write
 
 

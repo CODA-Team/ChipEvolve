@@ -88,3 +88,33 @@ def verify_stage_archive(path: Path, expected_sha256: str, phase: str) -> list[s
     if not consumed:
         raise ValueError("No evidence that the stage read its intended predecessor")
     return consumed
+
+
+def flatten_archive(original: Path, destination: Path) -> None:
+    """Normalize the stock nested ORFS tree and A2's already-flat tree alike."""
+    with (
+        zipfile.ZipFile(original) as source,
+        zipfile.ZipFile(destination, "w", zipfile.ZIP_DEFLATED) as result,
+    ):
+        names = set()
+        for name in source.namelist():
+            parts = Path(name).parts
+            if (
+                len(parts) < 3
+                or parts[:2]
+                not in {
+                    ("flow", "results"),
+                    ("flow", "logs"),
+                    ("flow", "reports"),
+                    ("flow", "objects"),
+                }
+                or name.endswith("/")
+            ):
+                continue
+            target = "flow/" + parts[1] + "/" + parts[-1]
+            if target in names:
+                raise ValueError(
+                    "Choose one design/revision checkpoint, not a mixed archive"
+                )
+            names.add(target)
+            result.writestr(target, source.read(name))

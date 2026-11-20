@@ -3,7 +3,7 @@
 from pathlib import Path
 import subprocess
 
-from chip_evolve.professional import freeze, inventory
+from chip_evolve.controller import freeze, inventory
 
 
 def git(root: Path, *args: str) -> str:

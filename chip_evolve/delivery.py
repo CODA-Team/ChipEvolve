@@ -281,8 +281,8 @@ def layout_source(
 
 
 def finish(deployment: Deployment, experiment: Path) -> dict[str, Any]:
+    from .flow import resume_layout
     from .physical import qualify
-    from .professional import resume_layout
 
     prior_result, prior_status = experiment / "result.json", experiment / "status.json"
     completed_legacy_result = (
@@ -335,8 +335,8 @@ def finish(deployment: Deployment, experiment: Path) -> dict[str, Any]:
 
 def recover(deployment: Deployment, design_id: str, key: str) -> dict[str, Any]:
     """Reuse successful EDA tasks; never restart unfinished model searches."""
+    from .flow import collect_flow
     from .physical import baseline
-    from .professional import collect_flow
 
     experiment = deployment.state / "experiments" / design_id / key
     request = read(experiment / "request.json")

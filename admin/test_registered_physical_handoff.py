@@ -148,7 +148,7 @@ def test_delivery_finish_hands_registered_defaults_to_existing_physical_runner(
             side_effect=lambda *args: prepare_registered(experiment, path, frame),
         ),
         patch(
-            "chip_evolve.professional.resume_layout",
+            "chip_evolve.flow.resume_layout",
             return_value={"run_id": "measured"},
         ) as physical,
     ):
