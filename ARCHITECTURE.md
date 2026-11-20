@@ -40,3 +40,5 @@ flowchart LR
 | Evidence gathering or diagnosis | `agent/query-agent/` |
 
 Modules exchange information through HTTP and installed wheels. Run state lives under the configured `var/` instance. The SDK is shipped as a Python package. Execution Foundation and Data Foundation run as separate local services for the GCD example.
+
+The installer checks each module against its Git pin and builds wheels from those commits. The local stack selects the ORFS image and sets the execution capacity. For DPLEvolve, the dispatcher passes the available threads to the native baseline, build, and search commands. The existing Teacher and Students decide what to change, while Execution Foundation admits and supervises the builds and measurements.
