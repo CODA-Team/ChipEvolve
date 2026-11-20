@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=59.4"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,6 +7,8 @@ name = "openroad-app-data_foundation"
 version = "0.2.2.dev2"
 description = "Design Data Foundation"
 requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
 dependencies = [
   "openroad-platform-contracts>=0.2,<0.3",
   "openroad-platform-client>=0.2,<0.3",
