@@ -40,7 +40,9 @@ def main():
     started=time.monotonic();records=[]
     with (a.evidence/'terminal.log').open('w') as terminal:
         for project,distributions in PACKAGES.items():
-            directory=a.workspace/project;assert (directory/'.git').is_dir()
+            directory = a.workspace / ('agent/query-agent' if project == 'query-agent' else project)
+            if not (directory / '.git').exists():
+                raise RuntimeError(f'Submodule checkout missing: {directory}')
             venv=directory/'.venv';assert not venv.exists(), 'installation requires a clean venv destination'
             subprocess.run([sys.executable,'-m','venv',str(venv)],env=env,check=True,stdout=terminal,stderr=subprocess.STDOUT)
             python=venv/'bin/python'

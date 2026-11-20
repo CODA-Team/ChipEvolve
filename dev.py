@@ -21,6 +21,8 @@ parser.add_argument("command", choices=("check", "smoke", "python", "shell", "se
 parser.add_argument("args", nargs=argparse.REMAINDER)
 args = parser.parse_args()
 project = ROOT / args.project
+if args.project in {"query-agent", "flow-agent"}:
+    project = ROOT / "agent" / args.project
 python = project / ".venv/bin/python"
 env = dict(os.environ)
 for key in ("PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV", "CONDA_PREFIX"):
@@ -97,6 +99,8 @@ elif args.project == "data-foundation":
             "--db",
             str(state / "snapshots.sqlite"),
             "--no-auto-import",
+            "--kernel-url",
+            "http://127.0.0.1:18700",
             "--native-root",
             str(state / "native-flow"),
             *args.args,

@@ -14,7 +14,7 @@ def main():
     a.output=a.output.resolve();a.output.mkdir(exist_ok=False)
     packages=[root/'execution-foundation'/n for n in
               ('contracts','core/client','core/runtime','core/registry','core/evaluator','core/provenance','gateway')]
-    packages.extend(root/n for n in ('toolkits','data-foundation','data-interface','query-agent'))
+    packages.extend(root/n for n in ('toolkits','data-foundation','data-interface','agent/query-agent'))
     env=dict(os.environ,PYTHONNOUSERSITE='1',PIP_DISABLE_PIP_VERSION_CHECK='1')
     for key in ('PYTHONPATH','PYTHONHOME','VIRTUAL_ENV'):env.pop(key,None)
     receipts=[]

@@ -34,7 +34,7 @@ def prepare(state: Path, key: str, data_key: str) -> Path:
     run.mkdir(parents=True, exist_ok=False)
     source = run / "source"
     shutil.copytree(
-        ROOT / "timing-eco-agent",
+        ROOT / "agent/timing-eco-agent",
         source,
         ignore=shutil.ignore_patterns(".git", ".venv", "__pycache__", ".pytest_cache"),
     )
@@ -84,7 +84,7 @@ def prepare(state: Path, key: str, data_key: str) -> Path:
         "metrics_snapshot_id": data["orfs"]["snapshot_id"],
         "input_artifacts": artifacts,
         "parent_run_id": objects["execution"]["run"]["labels"]["analysis_of_run_id"],
-        "python": str(ROOT / "timing-eco-agent/.venv/bin/python"),
+        "python": str(ROOT / "agent/timing-eco-agent/.venv/bin/python"),
         "experiment_id": state.name + "-" + key,
         "environment": {
             "OPENROAD_BIN": str(wrapper),
@@ -98,7 +98,7 @@ def prepare(state: Path, key: str, data_key: str) -> Path:
             "OPENBLAS_NUM_THREADS": "8",
             "PYTHONNOUSERSITE": "1",
             "MPLBACKEND": "Agg",
-            "PATH": str(ROOT / "timing-eco-agent/.venv/bin")
+            "PATH": str(ROOT / "agent/timing-eco-agent/.venv/bin")
             + ":"
             + str(Path(codex).parent)
             + ":"

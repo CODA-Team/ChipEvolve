@@ -89,7 +89,7 @@ with EdaAiClient(data_url=sys.argv[1], kernel_url=sys.argv[2]) as client:
 import sys
 assert list(HttpExecutionFoundationClient(sys.argv[1]).runs()) == []
 '''
-        subprocess.run([str(ROOT / 'query-agent/.venv/bin/python'), '-c', query_code,
+        subprocess.run([str(ROOT / 'agent/query-agent/.venv/bin/python'), '-c', query_code,
                         f'http://127.0.0.1:{kernel_port}'], cwd=temp, env=env, check=True)
     finally:
         for proc in processes:

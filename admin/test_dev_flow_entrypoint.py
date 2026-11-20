@@ -15,10 +15,12 @@ def test_check_uses_project_native_import_directory(project, monkeypatch):
     with patch("subprocess.run", return_value=SimpleNamespace(returncode=0)) as run:
         runpy.run_path(str(root / "dev.py"), run_name="__main__")
     calls = run.call_args_list
-    expected = root / project / "flow" if project == "flow-agent" else root / project
+    expected = root / "agent" / project
+    if project == "flow-agent":
+        expected /= "flow"
     assert all(call.kwargs["cwd"] == expected for call in calls)
     tests = calls[-1].args[0]
-    assert tests[:3] == [str(root / project / ".venv/bin/python"), "-m", "pytest"]
+    assert tests[:3] == [str(root / "agent" / project / ".venv/bin/python"), "-m", "pytest"]
     if project == "flow-agent":
         assert tests[3:] == ["test"]
     assert all("PYTHONPATH" not in call.kwargs["env"] for call in calls)

@@ -32,7 +32,7 @@ def test_native_registry_resolves_bound_design_and_preserves_algorithm(
     registry = controller / "scripts/repo/case_registry.py"
     registry.parent.mkdir(parents=True)
     shutil.copyfile(
-        Path(__file__).resolve().parents[1] / "dplevolve/scripts/repo/case_registry.py",
+        Path(__file__).resolve().parents[1] / "agent/dplevolve/scripts/repo/case_registry.py",
         registry,
     )
     case = prepare_case(

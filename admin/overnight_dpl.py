@@ -28,7 +28,7 @@ def prepare(state: Path) -> Path:
             "clone",
             "--quiet",
             "--no-hardlinks",
-            str(ROOT / "dplevolve"),
+            str(ROOT / "agent/dplevolve"),
             str(source),
         ],
         check=True,

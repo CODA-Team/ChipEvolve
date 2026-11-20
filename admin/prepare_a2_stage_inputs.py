@@ -34,7 +34,7 @@ def main():
                'eval_tns_sha256': digest(flow / 'eval_tns.tcl'),
                'openroad_bin': str(tools / 'OpenROAD/bin/openroad'),
                'yosys_bin': str(tools / 'yosys/bin/yosys'),
-               'python_bin': str(ROOT / 'flow-agent/.venv/bin/python')}
+               'python_bin': str(ROOT / 'agent/flow-agent/.venv/bin/python')}
     (args.output / 'profile.json').write_text(json.dumps(profile, indent=2) + '\n')
     design = flow / 'designs/nangate45/aes'
     if args.config_iteration is not None:

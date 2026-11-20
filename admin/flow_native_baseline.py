@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 
 WORKSPACE = Path(__file__).resolve().parents[1]
 ORIGINAL = Path('/home/wjyuan/flow-agent')
-FORMAL = WORKSPACE / 'flow-agent'
+FORMAL = WORKSPACE / 'agent/flow-agent'
 RUN = WORKSPACE / 'var/flow-agent/p1-native-20261010'
 
 

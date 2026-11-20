@@ -101,7 +101,7 @@ class CommonGoalControllerTests(unittest.TestCase):
                 self.assertEqual(step.call_args.args[2][-2:], ["--rounds", "1"])
 
     def test_native_cli_entrypoint_is_real(self):
-        root = Path(__file__).resolve().parents[1] / "goalevolve"
+        root = Path(__file__).resolve().parents[1] / "agent/goalevolve"
         env = dict(os.environ)
         env.pop("GOALEVOLVE_PLATFORM_PROFILE", None)
         env.pop("PYTHONPATH", None)

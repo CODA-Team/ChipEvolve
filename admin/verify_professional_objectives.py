@@ -51,7 +51,7 @@ def verify(state: Path, agent: str) -> dict:
             + repr(str(output / "reply.txt"))
             + ").write_text(r.choices[0].message.content)"
         )
-        cwd = ROOT / "flow-agent/flow"
+        cwd = ROOT / "agent/flow-agent/flow"
     elif agent == "dplevolve":
         native_profile = state / "agents/dpl/profile.json"
         native = json.loads(native_profile.read_text())

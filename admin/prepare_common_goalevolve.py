@@ -38,7 +38,7 @@ def freeze_controller(state: Path, revision: str) -> Path:
             "--quiet",
             "--no-hardlinks",
             "--no-checkout",
-            str(ROOT / "goalevolve"),
+            str(ROOT / "agent/goalevolve"),
             str(target),
         ],
         check=True,
@@ -67,7 +67,7 @@ def freeze_controller(state: Path, revision: str) -> Path:
     subprocess.run(["git", "checkout", "--quiet"], cwd=target, check=True)
     names = (
         subprocess.check_output(
-            ["git", "diff", "--name-only", "-z", "HEAD"], cwd=ROOT / "goalevolve"
+            ["git", "diff", "--name-only", "-z", "HEAD"], cwd=ROOT / "agent/goalevolve"
         )
         .decode()
         .split("\0")
@@ -75,13 +75,13 @@ def freeze_controller(state: Path, revision: str) -> Path:
     names += (
         subprocess.check_output(
             ["git", "ls-files", "--others", "--exclude-standard", "-z"],
-            cwd=ROOT / "goalevolve",
+            cwd=ROOT / "agent/goalevolve",
         )
         .decode()
         .split("\0")
     )
     for name in filter(None, names):
-        source = ROOT / "goalevolve" / name
+        source = ROOT / "agent/goalevolve" / name
         if source.is_file():
             destination = target / name
             destination.parent.mkdir(parents=True, exist_ok=True)
@@ -127,7 +127,7 @@ def prepare_source(state: Path) -> Path:
     """Apply exact professional patches to a private qualified common source."""
     source = state / "preparation/source-common"
     metadata = json.loads(
-        (ROOT / "goalevolve/toolchain/common_toolchain.json").read_text()
+        (ROOT / "agent/goalevolve/toolchain/common_toolchain.json").read_text()
     )
     if not source.exists():
         subprocess.run(
@@ -135,7 +135,7 @@ def prepare_source(state: Path) -> Path:
             check=True,
         )
         for name in ("rsz.patch", "rmp.patch", "build_api.patch"):
-            patch_path = ROOT / "goalevolve/toolchain/common" / name
+            patch_path = ROOT / "agent/goalevolve/toolchain/common" / name
             if digest(patch_path) != metadata["patch_sha256"][name]:
                 raise ValueError("Professional patch identity changed: " + name)
             subprocess.run(

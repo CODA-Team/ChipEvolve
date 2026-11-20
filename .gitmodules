@@ -17,10 +17,10 @@
 	branch = modules/data-interface
 
 [submodule "query-agent"]
-	path = query-agent
+	path = agent/query-agent
 	url = https://github.com/CODA-Team/ChipEvolve.git
 	shallow = true
-	branch = modules/query-agent
+	branch = modules/query-agent-a31-result-recovery-20261024
 
 [submodule "toolkits"]
 	path = toolkits
@@ -29,24 +29,24 @@
 	branch = modules/toolkits
 
 [submodule "flow-agent"]
-	path = flow-agent
+	path = agent/flow-agent
 	url = https://github.com/CODA-Team/ChipEvolve.git
 	shallow = true
 	branch = modules/flow-agent
 
 [submodule "dplevolve"]
-	path = dplevolve
+	path = agent/dplevolve
 	url = https://github.com/CODA-Team/ChipEvolve.git
 	shallow = true
 	branch = modules/dplevolve
 
 [submodule "goalevolve"]
-	path = goalevolve
+	path = agent/goalevolve
 	url = https://github.com/CODA-Team/ChipEvolve.git
 	shallow = true
 	branch = modules/goalevolve
 [submodule "timing-eco-agent"]
-	path = timing-eco-agent
+	path = agent/timing-eco-agent
 	url = https://github.com/CODA-Team/ChipEvolve.git
 	branch = modules/timing-eco-agent
 	shallow = true

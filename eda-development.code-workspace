@@ -1,7 +1,7 @@
 {
   "folders": [
     {"name": "Execution Foundation", "path": "execution-foundation"},
-    {"name": "Query Agent", "path": "query-agent"},
+    {"name": "Agents", "path": "agent"},
     {"name": "Data Foundation", "path": "data-foundation"},
     {"name": "Data Interface", "path": "data-interface"}
   ],

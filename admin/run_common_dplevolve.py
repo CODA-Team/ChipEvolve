@@ -29,7 +29,7 @@ def freeze_controller(state: Path, name: str) -> Path:
             "clone",
             "--quiet",
             "--no-hardlinks",
-            str(ROOT / "dplevolve"),
+            str(ROOT / "agent/dplevolve"),
             str(source),
         ],
         check=True,
@@ -37,13 +37,13 @@ def freeze_controller(state: Path, name: str) -> Path:
     paths = (
         subprocess.check_output(
             ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
-            cwd=ROOT / "dplevolve",
+            cwd=ROOT / "agent/dplevolve",
         )
         .decode()
         .split("\0")
     )
     for relative in filter(None, paths):
-        item = ROOT / "dplevolve" / relative
+        item = ROOT / "agent/dplevolve" / relative
         if item.is_file():
             target = source / relative
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -151,7 +151,7 @@ def prepare(state: Path, image: Path) -> dict[str, Any]:
             DPL_EVOLVE_AGENT_ROOT=str(source),
             DPL_EVOLVE_SKIP_ENV_SH="1",
             DPL_EVOLVE_STATE_ROOT=str(state / "state"),
-            DPL_EVOLVE_PYTHON=str(ROOT / "dplevolve/.venv/bin/python"),
+            DPL_EVOLVE_PYTHON=str(ROOT / "agent/dplevolve/.venv/bin/python"),
             ORFS_ROOT=str(orfs),
             DPL_EVOLVE_OPENROAD_URL=str(U1 / "source/OpenROAD"),
         )
@@ -371,7 +371,7 @@ def host_environment(profile: dict[str, Any]) -> dict[str, str]:
     env = environment()
     env.update(profile["container_environment"])
     env.update(
-        DPL_EVOLVE_PYTHON=str(ROOT / "dplevolve/.venv/bin/python"),
+        DPL_EVOLVE_PYTHON=str(ROOT / "agent/dplevolve/.venv/bin/python"),
         DPL_EVOLVE_SKIP_ENV_SH="1",
     )
     return env
@@ -438,7 +438,7 @@ def step(state: Path, name: str, command: list[str], *, timeout: int) -> None:
 def run(state: Path, phase: str) -> None:
     profile = json.loads((state / "config.json").read_text())
     source = Path(profile["agent_root"])
-    python = str(ROOT / "dplevolve/.venv/bin/python")
+    python = str(ROOT / "agent/dplevolve/.venv/bin/python")
     if phase == "core":
         step(
             state,
