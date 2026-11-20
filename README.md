@@ -23,6 +23,9 @@ The root package `chip_evolve/` implements the commands behind `chip-evolve.py`.
 
 Use a checkout of the engineering candidate with all nine pinned submodules initialized. You need Linux, Git, Python 3.12 with `venv`, Apptainer, and an ORFS SIF with the Nangate45 GCD example. The qualified image is based on ORFS `5105b0a77` and OpenROAD `27288f5c90`. Pass its absolute path in `ORFS_SIF`. The GCD flow reserves up to eight available CPU cores and 4 GiB of memory. To set smaller stack capacity, pass `--cpu-cores` and `--memory-gib` to `init`.
 
+On openEuler 24.03, install Apptainer from the distribution's package repository.
+If running inside another container, allow Apptainer to mount its own `/proc`.
+
 ```bash
 git clone --branch engineering/cleanup-b6cfd1d https://github.com/CODA-Team/ChipEvolve.git
 cd ChipEvolve
