@@ -621,10 +621,6 @@ def main() -> None:
     agent_root = runtime.agent_root
     state_root = runtime.state_root
     openroad_src = orfs_root / "tools" / "OpenROAD"
-    openroad_head = subprocess.check_output(
-        ["git", "-C", str(openroad_src), "rev-parse", "--short", "HEAD"],
-        text=True,
-    ).strip()
 
     variant_root_input = args.variant_root or str(state_root / "variants" / "default")
     variant_root = resolve_input_path(
@@ -633,9 +629,13 @@ def main() -> None:
     build_dir_input = args.build_dir or str(variant_root / "build")
     install_root_input = args.install_root or str(variant_root / "install" / "OpenROAD")
     dpl_src_input = args.dpl_src or str(variant_root / "dpl_evolve")
-    core_root_input = args.core_root or str(
-        state_root / "openroad_core" / openroad_head
-    )
+    core_root_input = args.core_root
+    if not core_root_input:
+        openroad_head = subprocess.check_output(
+            ["git", "-C", str(openroad_src), "rev-parse", "--short", "HEAD"],
+            text=True,
+        ).strip()
+        core_root_input = str(state_root / "openroad_core" / openroad_head)
 
     build_dir = resolve_input_path(
         build_dir_input, cwd=Path.cwd(), agent_root=agent_root, orfs_root=orfs_root

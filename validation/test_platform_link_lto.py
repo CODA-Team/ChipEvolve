@@ -1,10 +1,31 @@
 """The common compiler honors the already requested single LTO worker."""
 
 import shlex
+from types import SimpleNamespace
 
 import pytest
 
 from scripts.workspace import build_openroad_variant_relink as build
+
+
+def test_explicit_core_does_not_need_a_git_checkout_in_the_relink_container(
+    tmp_path, monkeypatch
+):
+    core = tmp_path / "core"
+    monkeypatch.setattr(build.sys, "argv", ["relink", "--core-root", str(core)])
+    monkeypatch.setattr(build, "maybe_delegate", lambda *_args: None)
+    monkeypatch.setattr(
+        build,
+        "resolve_runtime_paths",
+        lambda **_kwargs: SimpleNamespace(
+            orfs_root=tmp_path / "orfs", agent_root=tmp_path, state_root=tmp_path
+        ),
+    )
+    monkeypatch.setattr(
+        build.subprocess, "check_output", lambda *args, **kwargs: pytest.fail("ran Git")
+    )
+    with pytest.raises(SystemExit, match="Missing common-core compile_commands"):
+        build.main()
 
 
 @pytest.mark.parametrize("platform", [False, True])
