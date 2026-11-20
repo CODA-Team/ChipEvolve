@@ -24,6 +24,13 @@ def reference(path: Path) -> dict[str, str]:
     return {"path": str(path.resolve()), "sha256": digest(path)}
 
 
+def verify_runtime_image(deployment: Deployment) -> Path:
+    image = Path(deployment.value["runtime"]["image"])
+    if digest(image) != deployment.value["toolchain"]["image_sha256"]:
+        raise ValueError("Image differs from its pinned identity")
+    return image
+
+
 def identity(value: dict[str, Any]) -> str:
     return hashlib.sha256(
         json.dumps(
@@ -143,9 +150,7 @@ def freeze_environment(
     if design["platform"] != "asap7":
         raise ValueError("Current Goal/ECO deployment is qualified for ASAP7 only")
     flow_sdc(Path(recipe["sdc"]).read_text(), design["clock_period_ns"])
-    image = Path(deployment.value["runtime"]["image"])
-    if digest(image) != deployment.value["toolchain"]["image_sha256"]:
-        raise ValueError("Image differs from its pinned identity")
+    image = verify_runtime_image(deployment)
     probe = experiment / "probe-tools.py"
     output = experiment / "tool-probe.json"
     tcl = experiment / "capabilities.tcl"

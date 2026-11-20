@@ -1,6 +1,6 @@
 """The files actually measured must match the frozen comparison conditions."""
 
-from argparse import Namespace
+from argparse import ArgumentParser, Namespace
 from copy import deepcopy
 from pathlib import Path
 
@@ -8,7 +8,7 @@ import pytest
 from eda_toolkits.objectives import objective_id
 
 from admin.test_final_fanout_facts import run_measurement
-from chip_evolve import physical, professional
+from chip_evolve import commands, physical, professional
 from chip_evolve.config import write
 from chip_evolve.jobs import digest
 
@@ -47,6 +47,33 @@ def change_condition(tmp_path, jobs, field):
         jobs.deployment.value["toolchain"] = {"identity": "different"}
     else:
         design[field] = "TT" if field == "corner" else 0.9
+
+
+def test_run_rejects_replaced_tool_image_before_submitting(tmp_path, monkeypatch):
+    jobs, *_ = bound_measurement(tmp_path)
+    image = tmp_path / "toolchain.sif"
+    image.write_bytes(b"first image")
+    jobs.deployment.value["runtime"] = {"image": str(image)}
+    jobs.deployment.value["toolchain"] = {"image_sha256": digest(image)}
+    image.write_bytes(b"replacement at the same path")
+    monkeypatch.setattr(
+        physical, "baseline", lambda *a, **kw: pytest.fail("submitted with wrong image")
+    )
+    args = Namespace(
+        capability="orfs",
+        design="example",
+        key="new",
+        environment=None,
+        flow_recipe=None,
+        operation="evolve",
+        source=None,
+        code_source=None,
+    )
+
+    with pytest.raises(ValueError, match="Image differs from its pinned identity"):
+        commands.run_experiment(jobs.deployment, args, ArgumentParser())
+
+    assert not (jobs.deployment.state / "experiments").exists()
 
 
 @pytest.mark.parametrize(

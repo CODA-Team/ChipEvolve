@@ -267,6 +267,12 @@ def run_experiment(
             args.source,
             args.flow_recipe,
         )
+    elif deployment.value.get("runtime") and deployment.value.get("toolchain", {}).get(
+        "image_sha256"
+    ):
+        from .environment import verify_runtime_image
+
+        verify_runtime_image(deployment)
     if args.candidates is not None and args.capability not in {"flow", "dpl"}:
         parser.error("--candidates applies to Flow/DPL; Goal keeps four Students")
     args.seconds = (
