@@ -92,6 +92,9 @@ def run_flow(
     threads = execution.get("threads", 8)
     memory_gib = execution.get("memory_gib", 24)
     stage_seconds = execution.get("stage_timeout_seconds", 7200)
+    clean_quota = execution.get("clean_identity_quota")
+    if clean_quota is not None and (type(clean_quota) is not int or clean_quota < 1):
+        raise ValueError("Flow clean_identity_quota must be a positive integer")
     for field, value in (
         ("threads", threads),
         ("memory_gib", memory_gib),
@@ -115,6 +118,11 @@ def run_flow(
         source = prepare_native_source(deployment, args.source, experiment)
     else:
         source = flow_source(deployment, experiment, design_id=args.design)
+    if clean_quota is not None:
+        policy_path = source / "flow/drp_config.json"
+        policy = read(policy_path)
+        policy["gwtw"]["clean_identity_quota"] = clean_quota
+        write(policy_path, policy)
     config_dir = source / "flow/designs" / design["platform"] / design["nickname"]
     # Use OpenSTA's unit-explicit serialization and expose the same clock as
     # the native tuner's variable. All remaining constraints stay verbatim.

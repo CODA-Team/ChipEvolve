@@ -23,6 +23,11 @@ The root package `chip_evolve/` implements the commands behind `chip-evolve.py`.
 
 Use a checkout of the engineering candidate with all nine pinned submodules initialized. You need Linux, Git, Python 3.12 with `venv`, Apptainer, and an ORFS SIF with the Nangate45 GCD example. The qualified image is based on ORFS `5105b0a77` and OpenROAD `27288f5c90`. Pass its absolute path in `ORFS_SIF`. The GCD flow reserves up to eight available CPU cores and 4 GiB of memory. To set smaller stack capacity, pass `--cpu-cores` and `--memory-gib` to `init`.
 
+```bash
+git clone --branch engineering/cleanup-b6cfd1d https://github.com/CODA-Team/ChipEvolve.git
+cd ChipEvolve
+```
+
 The pinned ORFS manifest is available from Docker Hub. Build a local SIF under `var/`.
 
 ```bash
@@ -97,7 +102,9 @@ python3 chip-evolve.py --config "$local_config" diagnose \
 When initializing a fresh instance, pass `--flow` to `prepare-gcd`. It takes
 the binaries and their hashes from the same ORFS image and prepares a GCD
 recipe with a fixed clock and independent floorplan and routing controls.
-Use that instance's ORFS result as the source. After `diagnose` returns its
+The three-candidate example requires two valid original identities at the
+selection checkpoints and keeps any failed runs in the evidence. Use that
+instance's ORFS result as the source. After `diagnose` returns its
 context, pass the source and context to Flow.
 
 ```bash
@@ -105,6 +112,25 @@ python3 chip-evolve.py --config "$local_config" run --design gcd \
   --capability flow --flow-recipe source --source "$result" \
   --context "$CONTEXT_JSON" --key flow-two --rounds 2 --candidates 3 --seconds 1500
 ```
+
+## Prepare the C++ specialists
+
+Start a GCD instance with `--memory-gib 64` on `stack.py init` for a cold
+OpenROAD build. DPLEvolve uses `rsync` for its native seed preparation. With
+the stack running, prepare the two specialist bindings from their pinned
+public source and existing research patches.
+
+```bash
+python3 admin/release/prepare_dpl.py --config var/gcd-stack.json
+python3 admin/release/prepare_goal.py --config var/gcd-stack.json
+```
+
+The DPL preparation submits the common core build to Execution Foundation.
+GoalEvolve submits its baseline build when dispatched. Run the normal GCD
+baseline and diagnosis, then hand off their result and context with
+`run --capability dpl` or `run --capability goal`. See the
+[Agent dispatch table](agent/README.md) for the placement and algorithm
+boundaries and the required evidence.
 
 ## Check the workspace
 
@@ -117,7 +143,7 @@ GoalEvolve's platform check runs `tests/unit`. With the paper archive checked
 out, run `python3 dev.py goalevolve check tests/artifact` to check its layout
 and manifests as well.
 
-The GitHub release will need the candidate's pinned branches to be published and independently checked from a public clone. The engineering candidate and existing public `main` are different revisions. Historical experiment records remain in Git and under `admin/`, and the previous implementation is in [`discarded/`](discarded/).
+The release candidate is published on `engineering/cleanup-b6cfd1d`. See [engineering status](TASKS.md) for verified platforms and specialist runs. Historical experiment records remain in Git and under `admin/`, and the previous implementation is in [`discarded/`](discarded/).
 
 ## License
 

@@ -1,6 +1,7 @@
 """Bind the released Flow controller and GCD recipe to the stack's ORFS image."""
 
 import hashlib
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -62,7 +63,8 @@ def prepare_gcd_flow(root, state, inputs, runtime, value):
             raise ValueError(f"Unexpected tool path in the ORFS image: {path}")
         binaries[tool] = {"path": path, "sha256": digest}
 
-    manifest = root / "SOURCE_MANIFEST.json"
+    manifest = state / "source-manifest.json"
+    shutil.copyfile(root / "SOURCE_MANIFEST.json", manifest)
     profile = {
         "source_commit": subprocess.check_output(
             ["git", "-C", source, "rev-parse", "HEAD"], text=True
@@ -96,6 +98,7 @@ def prepare_gcd_flow(root, state, inputs, runtime, value):
             "threads": design["orfs_execution"]["cpu_cores"],
             "memory_gib": 4,
             "stage_timeout_seconds": 180,
+            "clean_identity_quota": 2,
         },
     }
     return Path(value["flow_tool_profile"]), profile

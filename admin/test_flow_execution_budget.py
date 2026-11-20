@@ -69,9 +69,7 @@ def test_budget_reaches_native_command_and_ef_reservation(
         patch("chip_evolve.flow.flow_source", return_value=source),
         patch("chip_evolve.flow.tool_profile", return_value=profile),
         patch("chip_evolve.flow.invoke") as invoke,
-        patch(
-            "chip_evolve.flow.collect_flow", return_value={"delivered": True}
-        ),
+        patch("chip_evolve.flow.collect_flow", return_value={"delivered": True}),
     ):
         assert run_flow(
             d,
@@ -104,6 +102,8 @@ def test_budget_reaches_native_command_and_ef_reservation(
         ("stage_timeout_seconds", "4h"),
         ("threads", True),
         ("stage_timeout_seconds", 1.5),
+        ("clean_identity_quota", 0),
+        ("clean_identity_quota", True),
     ],
 )
 def test_invalid_budget_fails_before_preparing_native_files(tmp_path, field, value):
@@ -142,6 +142,29 @@ def test_explicit_campaign_seed_reaches_native_search(tmp_path):
         )
     command = invoke.call_args.args[0]
     assert command[command.index("--seed") + 1] == "29"
+
+
+def test_explicit_clean_identity_quota_reaches_the_frozen_native_config(tmp_path):
+    d, args, experiment, source, sdc, profile = fixture(
+        tmp_path, {"clean_identity_quota": 2}
+    )
+    policy = source / "flow/drp_config.json"
+    write(policy, {"gwtw": {"clean_identity_quota": 10, "beta": 2}})
+    with (
+        patch("chip_evolve.flow.flow_source", return_value=source),
+        patch("chip_evolve.flow.tool_profile", return_value=profile),
+        patch("chip_evolve.flow.invoke"),
+        patch("chip_evolve.flow.collect_flow", return_value={}),
+    ):
+        run_flow(
+            d,
+            args,
+            experiment,
+            {"files": {"sdc": str(sdc)}},
+            tmp_path / "objective.json",
+            tmp_path / "context.json",
+        )
+    assert read(policy)["gwtw"] == {"clean_identity_quota": 2, "beta": 2}
 
 
 def test_stage_memory_is_explicit_without_changing_search_or_default(tmp_path):

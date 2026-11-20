@@ -261,7 +261,7 @@ def start(config):
             config["kernel_port"] if name == "execution" else config["data_port"]
         )
         route = "/kernel/health" if name == "execution" else "/health"
-        deadline = time.monotonic() + 20
+        deadline = time.monotonic() + 60
         while time.monotonic() < deadline:
             if process.poll() is not None:
                 raise RuntimeError(

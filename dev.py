@@ -37,6 +37,9 @@ STATIC_TARGETS = {
         "admin/package_release.py",
         "admin/release/stack.py",
         "admin/release/gcd_flow.py",
+        "admin/release/prepare_dpl.py",
+        "admin/release/prepare_goal.py",
+        "admin/release/native_toolchain.py",
     ],
 }
 parser = argparse.ArgumentParser()
