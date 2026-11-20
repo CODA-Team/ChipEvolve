@@ -34,9 +34,9 @@ def env_for(python):
     return env
 
 
-def get(url):
+def get(url, *, timeout=3):
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-    with opener.open(url, timeout=3) as response:
+    with opener.open(url, timeout=timeout) as response:
         return json.load(response)
 
 
@@ -108,19 +108,12 @@ def stop(config):
     records = json.loads(path.read_text())
     live = {name: row for name, row in records.items() if identity_matches(row)}
     if 'execution' in live:
-        runs = []
-        offset = 0
-        while True:
-            response = get('http://127.0.0.1:' + str(config['kernel_port'])
-                           + '/kernel/runs?limit=200&offset=' + str(offset))
-            page = response['runs']
-            runs.extend(page)
-            if len(page) < 200:
-                break
-            offset += len(page)
-        active = [row['run_id'] for row in runs if row['status'] not in ('succeeded', 'failed', 'cancelled', 'timed_out', 'lost')]
-        if active:
-            raise RuntimeError('Active EDA must finish or be explicitly cancelled before stop: ' + ', '.join(active))
+        url = f"http://127.0.0.1:{config['kernel_port']}/kernel/runs"
+        for phase in ('queued', 'preparing', 'running', 'retry_wait', 'cancel_requested'):
+            runs = get(f'{url}?status={phase}&limit=1', timeout=12)['runs']
+            if runs:
+                raise RuntimeError('Active EDA must finish or be explicitly cancelled before stop: '
+                                   + runs[0]['run_id'])
     stopped = []
     for name in ('data', 'execution'):
         row = live.get(name)

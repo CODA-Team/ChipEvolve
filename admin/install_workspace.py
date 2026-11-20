@@ -128,7 +128,6 @@ def main():
             )
             evidence_name = directory.name
             (a.evidence / (evidence_name + "-environment.lock.txt")).write_text(lock)
-            (directory / "environment.lock.txt").write_text(lock)
             inspect = json.loads(
                 subprocess.check_output(
                     [str(python), "-m", "pip", "inspect"], env=env, text=True
