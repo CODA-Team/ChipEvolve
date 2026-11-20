@@ -369,6 +369,7 @@ def diagnose(deployment: Deployment, args: argparse.Namespace) -> int:
                 args.seconds,
                 args.steps,
                 against=args.against,
+                analyses=args.analyses,
             )
         )
     )

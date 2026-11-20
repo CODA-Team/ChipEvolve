@@ -36,7 +36,7 @@ def inputs(tmp_path):
     return d, source, objective
 
 
-def backend(monkeypatch, questions):
+def backend(monkeypatch, questions, *, expected_analyses=0):
     monkeypatch.setattr("chip_evolve.stage_facts.ensure_stage_facts", lambda *a: None)
     monkeypatch.setattr(
         "chip_evolve.diagnosis.scoped_analysis_references", lambda *a: []
@@ -44,6 +44,9 @@ def backend(monkeypatch, questions):
 
     def run(command, **kwargs):
         if "investigate" in command:
+            assert command[command.index("--max-analyses") + 1] == str(
+                expected_analyses
+            )
             questions.append(command[command.index("investigate") + 1])
             state = {
                 "scopes": [{"design_id": "gcd", "run_id": "reference"}],
@@ -83,6 +86,14 @@ def test_query_gets_complete_frozen_limits_and_conditions(tmp_path, monkeypatch)
     assert "built-in per-cell buffer_eco receiver" in prompt
     assert "Never invent cell/master permissions" in prompt
     assert receipt["identity_bindings"]["source"]["run_id"] == "reference"
+
+
+def test_query_can_request_a_bounded_supplement(tmp_path, monkeypatch):
+    d, source, _ = inputs(tmp_path)
+    questions = []
+    backend(monkeypatch, questions, expected_analyses=1)
+    diagnose(d, source, "Obtain more complete timing paths", 60, 4, analyses=1)
+    assert questions[0].startswith("Obtain more complete timing paths")
 
 
 @pytest.mark.parametrize("field", ["objective_id", "condition_id", "design_id"])

@@ -21,6 +21,10 @@ dispatched. If a job failed before producing a result, use `status` or `watch`
 to inspect its Execution Foundation run and artifacts. `orfs` is the baseline
 and physical execution capability.
 
+Use `diagnose --analyses 1` to allow one new analysis job when an existing
+snapshot lacks the facts needed to answer the question. Query uses Execution
+Foundation to run the analysis and imports the resulting facts before citing them.
+
 ```bash
 python3 chip-evolve.py --config CONFIG run --design DESIGN \
   --capability CAPABILITY --key KEY --source RESULT --context CONTEXT \

@@ -100,9 +100,12 @@ def diagnose(
     steps: int,
     *,
     against: Path | None = None,
+    analyses: int = 0,
 ) -> dict[str, Any]:
     from .candidates import result_frame
 
+    if analyses < 0:
+        raise ValueError("--analyses must be nonnegative")
     frame = result_frame(result_path)
     objective = load_objective(frame["objective"])
     if (
@@ -239,7 +242,7 @@ def diagnose(
         "--max-seconds",
         str(seconds),
         "--max-analyses",
-        "0",
+        str(analyses),
         "--max-tool-calls",
         "64",
         "--max-read-bytes",

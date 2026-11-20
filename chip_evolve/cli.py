@@ -57,6 +57,9 @@ def _main() -> int:
     )
     query.add_argument("--seconds", type=int, default=600)
     query.add_argument("--steps", type=int, default=6)
+    query.add_argument(
+        "--analyses", type=int, default=0, help="maximum new analysis jobs"
+    )
     for name in ["show", "select"]:
         sub = commands.add_parser(name)
         sub.add_argument("--result", type=Path, required=True)
