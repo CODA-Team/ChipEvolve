@@ -1,71 +1,88 @@
-# ChipEvolve：Codex 驱动的 OpenROAD 垂直能力平台
+# ChipEvolve
 
-2026-10-16 A23：EF已提交状态只读连接、续租/监控单事务、五秒监控写入合并完成；原目录三AES最终七PPA同值、JPEG三类事实、64/64和持续1725/1725查询通过，1352次完整覆盖692秒大写入，lost/续租错误均0。最长续租10.7秒、两秒health短采样超时2次，仍保留I/O限制。取消/真失联回收通过，空闲备份后原位更新EF，DF不动；实际在线回执和完整限制见 [A23报告](admin/A23_METADATA_STABILITY_REPORT_20261016.md)。老板已批准A23–A28持续推进，下一项JPEG完整优化预演/预算校准；正式双核心结果尚未完成。
+ChipEvolve connects Codex to OpenROAD. Give Codex a design goal, such as preserving timing while reducing power. Codex reads the measured design through the Analysis Agent, hands the design and a budget to a specialist, and uses the returned evidence to decide what to try next.
 
-ChipEvolve 为成熟 Agent（当前以 Codex 为入口）提供芯片物理设计的专业能力：可复现的实验执行、统一的设计事实与产物，以及基于证据的查询、理解和诊断。Codex 负责目标、规划和判断，平台负责运行实验、提供事实与专业优化能力。
-
-当前优先在本机跑通实验和协同 PPA 优化。产品目标见 [PROJECT.md](PROJECT.md)，模块职责见 [ARCHITECTURE.md](ARCHITECTURE.md)，实际完成状态见 [TASKS.md](TASKS.md) 和 [admin/STATUS.md](admin/STATUS.md)。
-
-2026-10-16 A19–A21：JPEG 来源复制取得第三设计前置资格，Query 取得原专业阶段/动作证据，GCD/AES 固定功耗方法及路由控制、完整证明/同值复测完成。结果和取舍见 [A19](admin/A19_THIRD_DESIGN_REPORT_20261016.md)、[A20](admin/A20_NATIVE_STAGE_EVIDENCE_REPORT_20261016.md)、[A21](admin/A21_FIXED_POWER_RELAY_REPORT_20261016.md)；三个物理阶段同时失联后恢复，稳定性根因仍待修。此前候选查证对照见 [A18](admin/A18_PREFLIGHT_REPORT_20261016.md)，[正式双核心实验协议](admin/FORMAL_EXPERIMENT_PROTOCOL_20261016.md)仍是待冻结草案。以下状态描述本机已验证能力，不代表新机器交付、全部稳定性或正式同预算团队优势已通过。
-
-## 模块
-
-各模块保持独立 Git 边界，由根仓库的 Git 子模块固定具体提交。跨项目依赖使用已安装 wheel 或 HTTP，不通过源码路径注入。
-
-| 模块 | 目录 | 作用与当前状态 |
-|---|---|---|
-| Execution Foundation | `execution-foundation/` | 实验任务、资源、进程、工作空间、原始产物与溯源。 |
-| Data Foundation | `data-foundation/` | 设计事实、快照、对象/关系、指标、来源与独立数据存储。 |
-| Data Interface | `data-interface/` | 公开工具语义及 Python SDK；没有独立服务或数据库。 |
-| Query Agent | `query-agent/` | 用统一事实、领域工具与调查技能增强 Codex；已实测查询/比较/来源、Goal阶段及真实动作归因，单动作贡献分摊与全面证据覆盖仍有边界。 |
-| Toolkits | `toolkits/` | OpenROAD/ORFS 命令、原生输入、工具解析与数据导出。 |
-| Flow Agent / A2-ORFO | `flow-agent/` | 参数优化；完整真实调参、统一执行/回流与中断恢复已有工程验收。 |
-| DPLEvolve / ReviewDSE | `dplevolve/` | 同一个源码级布局优化项目；共同基础、统一 EF、新源码轮次及真实阶段交接已验证；局部 HPWL 与最终 PPA 分开判断。 |
-| GoalEvolve | `goalevolve/` | 独立源码级时序/功耗优化；共同基础加原研究增量、统一 EF、GCD/AES 原生候选和物理交接已运行；原 U4 AES 历史轮次未正常收尾，不能改写为通过。 |
-| TimingECOAgent | `timing-eco-agent/` | 第三方时序 ECO，保留来源；统一 EF 及本机 Codex 已接入，GCD 有效修复与 AES 无适用动作分别记录。 |
-
-平台不重造通用 Agent harness 或独立评测底座。教程、新用户产品化及论文交付暂缓。版本发布和工程接力可运行不等于同预算协同 PPA 优势已完成。
-
-```mermaid
-flowchart LR
-    C[Codex] --> Q[Query Agent]
-    Q --> I[Data Interface SDK]
-    I --> D[Data Foundation]
-    C --> A[Flow / DPLEvolve / GoalEvolve / ECO]
-    A --> E[Execution Foundation]
-    E --> T[Toolkits / OpenROAD]
-    T --> D
-    D --> C
+```text
+ChipEvolve/
+├── chip-evolve.py           # Codex calls this to run, inspect, and compare experiments
+├── agent/
+│   ├── query-agent/         # Analysis Agent: find and explain design facts
+│   ├── flow-agent/          # Tune ORFS parameters and constraints
+│   ├── dplevolve/           # Evolve detailed-placement algorithms
+│   ├── goalevolve/          # Evolve optimization algorithms for a QoR goal
+│   └── timing-eco-agent/    # Repair timing on a routed design
+├── data-foundation/        # Parse and connect design facts
+├── data-interface/         # Python SDK for those facts
+├── execution-foundation/   # Schedule jobs, track resources, and register artifacts
+└── toolkits/               # Run ORFS and OpenROAD and export their results
 ```
 
-上图为本机业务调用关系。专业保留原控制器和研究算法，平台通过统一执行与数据交付封装它们；全部内部原生调试数据自动进入 Query、跨设计资格和严格归因仍有边界，实际状态以 TASKS.md 为准。
+The root package `chip_evolve/` implements the commands behind `chip-evolve.py`. The nine modules are Git submodules, each pinned to a specific revision. See [Architecture](ARCHITECTURE.md) for the path a design takes through the system and [Task status](TASKS.md) for the scope of current validation.
 
-## 取得源码与本机开发
+## Run the small GCD example
+
+Use a checkout of the engineering candidate with all nine pinned submodules initialized. You need Linux, Git, Python 3.12 with `venv`, Apptainer, and an ORFS SIF with the Nangate45 GCD example. The qualified image is based on ORFS `5105b0a77` and OpenROAD `27288f5c90`. Pass its absolute path in `ORFS_SIF`. The hardware reservation for the GCD flow is eight CPU cores and 4 GiB of memory.
+
+The pinned ORFS manifest is available from Docker Hub. To build a local SIF from that image, use:
 
 ```bash
-git clone --single-branch --branch main --recurse-submodules --shallow-submodules https://github.com/CODA-Team/ChipEvolve.git
-cd ChipEvolve
+apptainer pull orfs.sif docker://openroad/orfs@sha256:212127afc6538596e9c819ecea4830ec7edb76e2fca51f8dcd741c772558d4e0
+export ORFS_SIF="$PWD/orfs.sif"
 ```
 
-根仓库固定子模块 commit，`SOURCE_MANIFEST.json` 记录发布来源。六个自有模块的历史保存在本仓库 `modules/<目录名>` 分支；DPLEvolve、GoalEvolve 固定官方上游提交。上面的单分支/浅子模块获取方式避免把所有模块分支的完整历史重复下载；需要历史时在相应模块显式 fetch。各项目的 README、环境清单和许可证保留在模块内。
-
-已有本机环境中继续使用项目自己的虚拟环境与 `dev.py`：
+From the repository root, in a fresh checkout:
 
 ```bash
-python3 dev.py query-agent python -m query_agent.interfaces.cli --help
-python3 dev.py execution-foundation check
-python3 dev.py data-foundation check
-python3 dev.py data-interface check
-python3 dev.py toolkits check
-python3 dev.py flow-agent check
+git submodule update --init --recursive
+python3 admin/bootstrap.py --output var/bootstrap
+
+python3 admin/release/stack.py init --workspace . --instance gcd-demo \
+  --image "$ORFS_SIF" --config var/gcd-stack.json
+python3 admin/release/stack.py prepare-gcd --config var/gcd-stack.json
+python3 admin/release/stack.py start --config var/gcd-stack.json
+
+local_config=var/instances/gcd-demo/local.json
+python3 chip-evolve.py --config "$local_config" run \
+  --design gcd --capability orfs --key baseline --seconds 300
+python3 chip-evolve.py --config "$local_config" show \
+  --result var/instances/gcd-demo/experiments/gcd/baseline/result.json
 ```
 
-虚拟环境、安装 wheel、EDA 镜像、实验数据库、候选构建和运行产物属于本机配置/`var/`，不包含在本次源码发布中。此处不承诺新机器直接 clone 即可完成 EDA 实验；当前施工目标仍是本机完整运行。
+`prepare-gcd` extracts the Nangate45 Liberty and GCD constraints from the image and sets a 500 ps clock. The example stores its experiment and service state in `var/instances/gcd-demo/`. For a machine with a third-party wheel cache, pass `--dependencies /path/to/wheels` to `bootstrap.py`. The image's pinned OCI source is recorded in the [toolchain audit](admin/COMMON_TOOLCHAIN_AUDIT_20261012.md).
 
-共同工具链固定 10 月 ORFS 镜像，对应 ORFS `5105b0a77` / OpenROAD `27288f5c90`；两个 Code 保留研究增量及明确私有二进制，不跟随移动的 latest。来源见[审计报告](admin/COMMON_TOOLCHAIN_AUDIT_20261012.md)，后续实际资格与运行状态见 TASKS.md。
+To observe an experiment, use `status --design gcd` or `watch --design gcd --run-id RUN_ID`. If delivery was interrupted, use `resume --design gcd --key baseline` to recover that experiment. `show` includes the analysis snapshot IDs. With a Codex CLI login, run `diagnose --result RESULT_JSON` to create a cited professional context. A specialist run uses `run --capability flow|dpl|goal|eco --source RESULT_JSON --context CONTEXT_JSON` plus the design, new key, and budget. Specialist runtimes have their own documented setup and require the corresponding `professional` deployment binding.
 
-## 旧项目归档
+Stop the instance after using it:
 
-原 ChipEvolve 项目的所有 466 个已跟踪文件完整移入 [`discarded/`](discarded/)，包括原 README、源码、测试、CI 配置与 LICENSE。它们是历史归档，不作为当前平台的模块、接口或验收依据。
+```bash
+python3 admin/release/stack.py stop --config var/gcd-stack.json
+```
 
-归档前提交为 `5219cd94a92de649afd25367ebf4df5517acf69d`，保留历史 tag `archive/pre-platform-20261012`；`discarded/` 的 Git tree 与该提交原始根 tree 完全一致。发布结构及核查方法见 [admin/REPOSITORY_PUBLICATION_20261012.md](admin/REPOSITORY_PUBLICATION_20261012.md)。
+## Try the Timing ECO handoff
+
+Install the ECO environment before preparing the example and pass `--eco-python` to `prepare-gcd`. This extracts the Nangate45 routing inputs from the same image and binds the TimingECOAgent submodule.
+
+```bash
+python3 -m venv agent/timing-eco-agent/.venv
+eco_python=agent/timing-eco-agent/.venv/bin/python
+"$eco_python" -m pip install -r agent/timing-eco-agent/requirements.txt
+"$eco_python" -m pip install --pre --no-index --find-links var/bootstrap/packages \
+  openroad-platform-client eda-ai-client eda-toolkits
+python3 admin/release/stack.py prepare-gcd --config var/gcd-stack.json \
+  --eco-python "$eco_python"
+```
+
+With the stack running and a baseline result, use the Codex CLI login to create the diagnosis. Take its `context` path from the printed JSON and pass it to the specialist.
+
+```bash
+result=var/instances/gcd-demo/experiments/gcd/baseline/result.json
+python3 chip-evolve.py --config "$local_config" diagnose --result "$result"
+python3 chip-evolve.py --config "$local_config" run --design gcd \
+  --capability eco --source "$result" --context "$CONTEXT_JSON" \
+  --key eco-one --rounds 1 --seconds 240
+python3 chip-evolve.py --config "$local_config" diagnose \
+  --result var/instances/gcd-demo/experiments/gcd/eco-one/result.json \
+  --against "$result"
+```
+
+The GitHub release will need the candidate's pinned branches to be published and independently checked from a public clone. The engineering candidate and existing public `main` are different revisions. Historical experiment records remain in Git and under `admin/`, and the previous implementation is in [`discarded/`](discarded/).
