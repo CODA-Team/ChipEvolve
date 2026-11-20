@@ -34,7 +34,7 @@ export ORFS_SIF="$PWD/var/toolchain/orfs.sif"
 Run these commands from the repository root in a fresh checkout.
 
 ```bash
-GIT_LFS_SKIP_SMUDGE=1 git submodule update --init --recursive
+bash admin/checkout_modules.sh
 python3 admin/bootstrap.py --output var/bootstrap
 
 python3 admin/release/stack.py init --workspace . --instance gcd-demo \
@@ -51,7 +51,7 @@ python3 chip-evolve.py --config "$local_config" show \
 
 `bootstrap.py` builds the platform wheels from committed sources and installs the nine module environments plus the root test environment. It uses CPU-only PyTorch for Flow. For an offline install, pass `--dependencies /path/to/wheels` with the wheels for the host architecture and the [dependency constraints](admin/requirements-constraints.txt). `prepare-gcd` extracts the Nangate45 Liberty and GCD constraints from the image and sets a 500 ps clock. The example stores its experiment and service state in `var/instances/gcd-demo/`. The image's pinned OCI source is recorded in the [toolchain audit](admin/COMMON_TOOLCHAIN_AUDIT_20261012.md).
 
-The GCD example generates its own checkpoints. Keeping Git LFS pointers during checkout lets it run independently of the upstream TimingECOAgent benchmark archive.
+The checkout script keeps Git LFS pointers and fetches the GoalEvolve runtime and checkers. The GCD example generates its own checkpoints. For the GoalEvolve paper archive, run `git -C agent/goalevolve sparse-checkout disable` to fetch the full working tree, which takes about 16 GiB. The TimingECOAgent upstream benchmark archive has separate LFS availability.
 
 To observe an experiment, use `status --design gcd` or `watch --design gcd --run-id RUN_ID`. If delivery was interrupted, use `resume --design gcd --key baseline` to recover that experiment. `show` includes the analysis snapshot IDs. With a Codex CLI login, run `diagnose --result RESULT_JSON` to create a cited professional context. A specialist run uses `run --capability flow|dpl|goal|eco --source RESULT_JSON --context CONTEXT_JSON` plus the design, new key, and budget. Specialist runtimes have their own documented setup and require the corresponding `professional` deployment binding.
 
@@ -90,6 +90,9 @@ to run the nine module checks and the root regression suite. Each module uses
 its own `.venv`. The root suite uses `admin/.venv` and its tests are named
 `admin/test_*.py`. To check a separate installation of one module, run
 `python3 dev.py --python /path/to/venv/bin/python MODULE check`.
+GoalEvolve's platform check runs `tests/unit`. With the paper archive checked
+out, run `python3 dev.py goalevolve check tests/artifact` to check its layout
+and manifests as well.
 
 The GitHub release will need the candidate's pinned branches to be published and independently checked from a public clone. The engineering candidate and existing public `main` are different revisions. Historical experiment records remain in Git and under `admin/`, and the previous implementation is in [`discarded/`](discarded/).
 

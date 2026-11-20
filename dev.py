@@ -121,7 +121,7 @@ if args.command == "check":
         "data-interface": ["-o", "pythonpath=src"],
         "flow-agent": ["test"],
         "dplevolve": ["validation"],
-        "goalevolve": ["tests"],
+        "goalevolve": ["tests/unit"],
         "timing-eco-agent": ["."],
         "root": [
             str(path.relative_to(ROOT))
