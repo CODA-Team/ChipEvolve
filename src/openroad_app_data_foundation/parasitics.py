@@ -110,6 +110,9 @@ def net_parasitics(store, client, snapshot_id: str, name: str, query: dict) -> d
                   "other_node": index.node_name(node2), "value": value}
                  for rid, node1, node2, value in parsed["resistors"]]
     pins = [{**pin, "node": index.node_name(pin["node"])} for pin in parsed["pins"]]
+    capacitor_nodes = {item["node"] for item in capacitors}
+    capacitor_nodes.update(item["coupled_node"] for item in capacitors if item["coupled_node"])
+    internal_nodes = capacitor_nodes - {pin["node"] for pin in pins}
     ground = sum(item["value"] for item in capacitors if not item["coupling"])
     coupling = sum(item["value"] for item in capacitors if item["coupling"])
     values = [item["value"] for item in resistors]
@@ -138,10 +141,7 @@ def net_parasitics(store, client, snapshot_id: str, name: str, query: dict) -> d
                                                     if item["coupling"]),
                     "resistor_count": len(resistors),
                     "pin_count": len(pins),
-                    "internal_node_count": len({item["node"] for item in capacitors}
-                                               | {item["coupled_node"] for item in capacitors
-                                                  if item["coupled_node"]} - set(
-                                                      pin["node"] for pin in pins)),
+                    "internal_node_count": len(internal_nodes),
                     "resistance_basis": "sum of the SPEF *RES branch resistances, not an "
                                         "equivalent resistance between two terminals",
                     "capacitance_basis": "SPEF *D_NET header total; ground + coupling is "

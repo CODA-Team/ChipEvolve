@@ -753,7 +753,10 @@ def test_parasitics_returns_exact_spef_record_evidence(tmp_path, truncated):
     from openroad_app_data_foundation.server import Handler
 
     header = b'*SPEF "IEEE 1481-1998"\n*DESIGN "chip"\n'
-    record = b"*D_NET signal 1.25\n*CAP\n1 signal:1 1.25\n"
+    record = (
+        b"*D_NET signal 1.25\n*CONN\n*I signal:1 I\n"
+        b"*CAP\n1 signal:1 0.5\n2 signal:2 0.75\n"
+    )
     following_net = b""
     if not truncated:
         record += b"*END\n"
@@ -785,6 +788,7 @@ def test_parasitics_returns_exact_spef_record_evidence(tmp_path, truncated):
 
         handler.execution_client.artifact_locator.assert_called_once_with("run", "spef")
         assert result["parasitics"]["summary"]["total_capacitance"] == 1.25
+        assert result["parasitics"]["summary"]["internal_node_count"] == 1
         assert result["parasitics"]["record"] == {
             "offset": len(header),
             "bytes": len(record),
