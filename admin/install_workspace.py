@@ -1,4 +1,4 @@
-"""Install published wheels into five isolated environments, without editable links."""
+"""Install the workspace into isolated environments from a wheel directory."""
 
 import argparse
 import hashlib
@@ -32,22 +32,50 @@ PACKAGES = {
     "data-interface": ["eda-ai-client"],
     "toolkits": [*TOOLKIT, "openroad-platform-runtime"],
     "agent/query-agent": ["agentic-eda-query-agent", "eda-ai-client", *TOOLKIT],
+    "agent/flow-agent": TOOLKIT,
+    "agent/dplevolve": [*TOOLKIT, "eda-ai-client"],
+    "agent/goalevolve": [*TOOLKIT, "eda-ai-client"],
+    "agent/timing-eco-agent": [*TOOLKIT, "eda-ai-client"],
+    "admin": [*TOOLKIT, "eda-ai-client", "openroad-platform-runtime"],
 }
-CHECKS = {
-    "execution-foundation": ["mypy==2.4.0", "black==26.10.0"],
+CPU_TORCH = "torch"
+CONSTRAINTS = Path(__file__).resolve().with_name("requirements-constraints.txt")
+ENVIRONMENT_DEPENDENCIES = {
+    "execution-foundation": ["mypy", "black"],
     "agent/query-agent": [
-        "pydantic==2.13.4",
-        "pyright==1.1.414",
-        "import-linter==2.15",
+        "pydantic",
+        "pyright",
+        "import-linter",
     ],
+    "agent/flow-agent": [
+        "networkx",
+        "numpy",
+        "openai",
+        "pandas",
+        "pyyaml",
+        "scikit-learn",
+        "scipy",
+        CPU_TORCH,
+    ],
+    "agent/dplevolve": ["pyyaml"],
+    "agent/goalevolve": [
+        "numpy",
+        "pyyaml",
+        "tree-sitter",
+        "tree-sitter-cpp",
+    ],
+    "agent/timing-eco-agent": ["matplotlib", "numpy"],
 }
-BUILD_TOOLS = ("setuptools==84.0.0", "wheel==0.48.0")
-TEST_TOOLS = ("pytest==9.1.1", "ruff==0.16.8")
+BUILD_TOOLS = ("setuptools", "wheel")
+TEST_TOOLS = ("pytest", "ruff")
 EXTERNAL_DEPENDENCIES = (
     *BUILD_TOOLS,
     *TEST_TOOLS,
-    *CHECKS["execution-foundation"],
-    *CHECKS["agent/query-agent"],
+    *dict.fromkeys(
+        requirement
+        for requirements in ENVIRONMENT_DEPENDENCIES.values()
+        for requirement in requirements
+    ),
 )
 
 
@@ -85,8 +113,10 @@ def main():
     with (a.evidence / "terminal.log").open("w") as terminal:
         for project, distributions in PACKAGES.items():
             directory = a.workspace / project
-            if not (directory / ".git").exists():
-                raise RuntimeError(f"Submodule checkout missing: {directory}")
+            if not directory.is_dir() or (
+                project != "admin" and not (directory / ".git").exists()
+            ):
+                raise RuntimeError(f"Project checkout missing: {directory}")
             venv = directory / ".venv"
             assert not venv.exists(), "installation requires a clean venv destination"
             subprocess.run(
@@ -104,12 +134,14 @@ def main():
                 "install",
                 "--pre",
                 "--no-index",
+                "--constraint",
+                str(CONSTRAINTS),
                 "--find-links",
                 str(a.dependencies.resolve()),
                 *BUILD_TOOLS,
                 *TEST_TOOLS,
                 *(wheels[name] for name in distributions),
-                *CHECKS.get(project, []),
+                *ENVIRONMENT_DEPENDENCIES.get(project, []),
             ]
             terminal.write(json.dumps(install) + "\n")
             terminal.flush()

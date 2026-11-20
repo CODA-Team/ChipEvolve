@@ -4,6 +4,7 @@
 import argparse
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -14,16 +15,57 @@ PROJECTS = (
     "data-interface",
     "toolkits",
     "flow-agent",
+    "dplevolve",
+    "goalevolve",
+    "timing-eco-agent",
+    "root",
 )
+AGENTS = {"query-agent", "flow-agent", "dplevolve", "goalevolve", "timing-eco-agent"}
+STATIC_TARGETS = {
+    "execution-foundation": ["contracts", "core", "gateway/src", "tests"],
+    "data-foundation": ["src", "tests", "test_data_foundation.py", "smoke.py"],
+    "data-interface": ["src", "tests"],
+    "dplevolve": ["scripts", "validation", "baseline", "adapters", "learning"],
+    "goalevolve": ["goalevolve", "tests"],
+    "timing-eco-agent": ["."],
+    "root": [
+        "chip-evolve.py",
+        "chip_evolve",
+        "dev.py",
+        "admin/bootstrap.py",
+        "admin/install_workspace.py",
+        "admin/package_release.py",
+        "admin/release/stack.py",
+    ],
+}
 parser = argparse.ArgumentParser()
-parser.add_argument("project", choices=PROJECTS)
+parser.add_argument("--python", type=Path, help="installed environment for one project")
+parser.add_argument("project", choices=(*PROJECTS, "all"))
 parser.add_argument("command", choices=("check", "smoke", "python", "shell", "serve"))
 parser.add_argument("args", nargs=argparse.REMAINDER)
 args = parser.parse_args()
-project = ROOT / args.project
-if args.project in {"query-agent", "flow-agent"}:
+if args.project == "all":
+    if args.command != "check" or args.python or args.args:
+        parser.error("Use all with check and the default project environments")
+    failed = []
+    for name in PROJECTS:
+        print(f"\nChecking {name}", flush=True)
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "dev.py"), name, "check"], check=False
+        )
+        if result.returncode:
+            failed.append(name)
+    if failed:
+        print("Failed checks: " + ", ".join(failed), file=sys.stderr)
+    raise SystemExit(bool(failed))
+project = ROOT if args.project == "root" else ROOT / args.project
+if args.project in AGENTS:
     project = ROOT / "agent" / args.project
-python = project / ".venv/bin/python"
+default_env = ROOT / "admin/.venv" if args.project == "root" else project / ".venv"
+python = args.python.absolute() if args.python else default_env / "bin/python"
+if args.project == "root" and args.command != "check":
+    parser.error("Use root with check")
+venv = python.parent.parent
 env = dict(os.environ)
 for key in ("PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV", "CONDA_PREFIX"):
     env.pop(key, None)
@@ -31,14 +73,29 @@ env.update(
     PYTHONNOUSERSITE="1",
     NO_PROXY="localhost,127.0.0.1,::1",
     no_proxy="localhost,127.0.0.1,::1",
-    VIRTUAL_ENV=str(project / ".venv"),
+    VIRTUAL_ENV=str(venv),
 )
-env["PATH"] = str(project / ".venv/bin") + os.pathsep + env.get("PATH", "")
+env["PATH"] = str(python.parent) + os.pathsep + env.get("PATH", "")
 if args.command == "check":
     commands = [[str(python), "-m", "pip", "check"]]
+    static_targets = STATIC_TARGETS.get(args.project, [])
+    if args.project == "flow-agent":
+        static_targets = sorted(path.name for path in (project / "flow").glob("*.py"))
+        static_targets.append("test")
+    if static_targets:
+        commands += [
+            [
+                str(python.parent / "ruff"),
+                "check",
+                "--isolated",
+                "--select",
+                "E9,F63,F7,F82",
+                *static_targets,
+            ]
+        ]
     if args.project == "query-agent":
         commands += [
-            [str(project / ".venv/bin" / tool), *options]
+            [str(python.parent / tool), *options]
             for tool, options in (
                 ("ruff", ["check", "src", "tests"]),
                 ("ruff", ["format", "--check", "src", "tests"]),
@@ -56,9 +113,21 @@ if args.command == "check":
         commands += [[str(python), "-m", "mypy", "--ignore-missing-imports", *sources]]
     elif args.project == "toolkits":
         commands += [
-            [str(project / ".venv/bin/ruff"), "check", "src", "tests", "--select", "F"]
+            [str(python.parent / "ruff"), "check", "src", "tests", "--select", "F"]
         ]
-    tests = ["test"] if args.project == "flow-agent" else []
+    tests = {
+        # Check the module's own checkout against installed dependency wheels.
+        "data-foundation": ["-o", "pythonpath=src"],
+        "data-interface": ["-o", "pythonpath=src"],
+        "flow-agent": ["test"],
+        "dplevolve": ["validation"],
+        "goalevolve": ["tests"],
+        "timing-eco-agent": ["."],
+        "root": [
+            str(path.relative_to(ROOT))
+            for path in sorted((ROOT / "admin").glob("test_*.py"))
+        ],
+    }.get(args.project, [])
     commands += [[str(python), "-m", "pytest", *tests, *args.args]]
 elif args.command == "smoke":
     commands = (
@@ -74,6 +143,12 @@ elif args.command == "smoke":
                     if args.project == "execution-foundation"
                     else ["test"]
                     if args.project == "flow-agent"
+                    else ["validation"]
+                    if args.project == "dplevolve"
+                    else ["tests/unit"]
+                    if args.project == "goalevolve"
+                    else ["."]
+                    if args.project == "timing-eco-agent"
                     else ["tests"]
                 ),
                 *args.args,
@@ -142,10 +217,16 @@ else:
     )
 for command in commands:
     working_directory = (
-        project / "flow"
-        if args.command in {"check", "smoke"} and args.project == "flow-agent"
+        project
+        / {"flow-agent": "flow", "timing-eco-agent": "src"}.get(args.project, ".")
+        if args.command in {"check", "smoke"}
         else project
     )
-    result = subprocess.run(command, cwd=working_directory, env=env, check=False)
+    try:
+        result = subprocess.run(command, cwd=working_directory, env=env, check=False)
+    except FileNotFoundError as error:
+        parser.error(
+            f"Required executable for {args.project} is missing: {error.filename}"
+        )
     if result.returncode:
         raise SystemExit(result.returncode)

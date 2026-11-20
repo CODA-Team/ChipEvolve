@@ -6,7 +6,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-from install_workspace import BUILD_TOOLS, EXTERNAL_DEPENDENCIES, PACKAGES
+from install_workspace import (
+    BUILD_TOOLS,
+    CONSTRAINTS,
+    CPU_TORCH,
+    EXTERNAL_DEPENDENCIES,
+    PACKAGES,
+)
 
 
 def main() -> None:
@@ -28,10 +34,10 @@ def main() -> None:
     root = Path(__file__).resolve().parents[1]
     for project in PACKAGES:
         path = root / project
-        if not (path / ".git").exists() or (path / ".venv").exists():
-            parser.error(
-                f"{project} needs an initialized submodule without an existing .venv"
-            )
+        if not path.is_dir() or (project != "admin" and not (path / ".git").exists()):
+            parser.error(f"Initialize the {project} checkout before installation")
+        if (path / ".venv").exists():
+            parser.error(f"{project} already has a .venv; use a fresh checkout")
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
     env = dict(os.environ, PYTHONNOUSERSITE="1", PIP_DISABLE_PIP_VERSION_CHECK="1")
@@ -51,7 +57,30 @@ def main() -> None:
                 "pip",
                 "download",
                 "--only-binary=:all:",
+                "--no-deps",
+                "--constraint",
+                CONSTRAINTS,
+                "--index-url",
+                "https://download.pytorch.org/whl/cpu",
                 "-d",
+                dependencies,
+                CPU_TORCH,
+            ],
+            env=env,
+            check=True,
+        )
+        subprocess.run(
+            [
+                python,
+                "-m",
+                "pip",
+                "download",
+                "--only-binary=:all:",
+                "--constraint",
+                CONSTRAINTS,
+                "-d",
+                dependencies,
+                "--find-links",
                 dependencies,
                 *EXTERNAL_DEPENDENCIES,
             ],
@@ -65,6 +94,8 @@ def main() -> None:
             "pip",
             "install",
             "--no-index",
+            "--constraint",
+            CONSTRAINTS,
             "--find-links",
             dependencies,
             *BUILD_TOOLS,

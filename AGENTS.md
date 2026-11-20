@@ -20,6 +20,7 @@
 
 - 后续开发只修改这里的正式项目。旧路径是运行基线或历史证据。
 - 正式 Analysis Agent 在 `agent/query-agent/`。
+- 作为 Control Agent 派发实验前，按 [Agent 派发表](agent/README.md) 核对适用阶段、交接输入和验收条件。
 - Data Interface 是接口契约和 SDK，不新增后台服务或数据库。
 - 各项目自己的 editable 安装可用于开发；跨项目依赖必须通过 wheel 或 HTTP。
 - 不添加跨源码目录的 PYTHONPATH、sys.path 修改或兼容软链接。

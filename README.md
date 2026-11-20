@@ -17,7 +17,7 @@ ChipEvolve/
 └── toolkits/               # Run ORFS and OpenROAD and export their results
 ```
 
-The root package `chip_evolve/` implements the commands behind `chip-evolve.py`. The nine modules are Git submodules, each pinned to a specific revision. See [Architecture](ARCHITECTURE.md) for the path a design takes through the system and [Task status](TASKS.md) for the scope of current validation.
+The root package `chip_evolve/` implements the commands behind `chip-evolve.py`. The nine modules are Git submodules, each pinned to a specific revision. Use the [Agent dispatch table](agent/README.md) to choose a specialist based on the evidence, the starting point, and the permitted changes. See [Architecture](ARCHITECTURE.md) and [Task status](TASKS.md) for workflow and validation scope.
 
 ## Run the small GCD example
 
@@ -34,7 +34,7 @@ export ORFS_SIF="$PWD/var/toolchain/orfs.sif"
 Run these commands from the repository root in a fresh checkout.
 
 ```bash
-git submodule update --init --recursive
+GIT_LFS_SKIP_SMUDGE=1 git submodule update --init --recursive
 python3 admin/bootstrap.py --output var/bootstrap
 
 python3 admin/release/stack.py init --workspace . --instance gcd-demo \
@@ -49,7 +49,9 @@ python3 chip-evolve.py --config "$local_config" show \
   --result var/instances/gcd-demo/experiments/gcd/baseline/result.json
 ```
 
-`prepare-gcd` extracts the Nangate45 Liberty and GCD constraints from the image and sets a 500 ps clock. The example stores its experiment and service state in `var/instances/gcd-demo/`. For a machine with a third-party wheel cache, pass `--dependencies /path/to/wheels` to `bootstrap.py`. The image's pinned OCI source is recorded in the [toolchain audit](admin/COMMON_TOOLCHAIN_AUDIT_20261012.md).
+`bootstrap.py` builds the platform wheels from committed sources and installs the nine module environments plus the root test environment. It uses CPU-only PyTorch for Flow. For an offline install, pass `--dependencies /path/to/wheels` with the wheels for the host architecture and the [dependency constraints](admin/requirements-constraints.txt). `prepare-gcd` extracts the Nangate45 Liberty and GCD constraints from the image and sets a 500 ps clock. The example stores its experiment and service state in `var/instances/gcd-demo/`. The image's pinned OCI source is recorded in the [toolchain audit](admin/COMMON_TOOLCHAIN_AUDIT_20261012.md).
+
+The GCD example generates its own checkpoints. Keeping Git LFS pointers during checkout lets it run independently of the upstream TimingECOAgent benchmark archive.
 
 To observe an experiment, use `status --design gcd` or `watch --design gcd --run-id RUN_ID`. If delivery was interrupted, use `resume --design gcd --key baseline` to recover that experiment. `show` includes the analysis snapshot IDs. With a Codex CLI login, run `diagnose --result RESULT_JSON` to create a cited professional context. A specialist run uses `run --capability flow|dpl|goal|eco --source RESULT_JSON --context CONTEXT_JSON` plus the design, new key, and budget. Specialist runtimes have their own documented setup and require the corresponding `professional` deployment binding.
 
@@ -61,16 +63,11 @@ python3 admin/release/stack.py stop --config var/gcd-stack.json
 
 ## Try the Timing ECO handoff
 
-Install the ECO environment before preparing the example and pass `--eco-python` to `prepare-gcd`. This extracts the Nangate45 routing inputs from the same image and binds the TimingECOAgent submodule.
+When preparing a new instance, pass the TimingECOAgent interpreter installed by `bootstrap.py` to `prepare-gcd`. This extracts the Nangate45 routing inputs from the same image and binds the TimingECOAgent submodule.
 
 ```bash
-python3 -m venv agent/timing-eco-agent/.venv
-eco_python=agent/timing-eco-agent/.venv/bin/python
-"$eco_python" -m pip install -r agent/timing-eco-agent/requirements.txt
-"$eco_python" -m pip install --pre --no-index --find-links var/bootstrap/packages \
-  openroad-platform-client eda-ai-client eda-toolkits
 python3 admin/release/stack.py prepare-gcd --config var/gcd-stack.json \
-  --eco-python "$eco_python"
+  --eco-python "$PWD/agent/timing-eco-agent/.venv/bin/python"
 ```
 
 With the stack running and a baseline result, use the Codex CLI login to create the diagnosis. Take its `context` path from the printed JSON and pass it to the specialist.
@@ -86,4 +83,16 @@ python3 chip-evolve.py --config "$local_config" diagnose \
   --against "$result"
 ```
 
+## Check the workspace
+
+With the module development environments set up, run `python3 dev.py all check`
+to run the nine module checks and the root regression suite. Each module uses
+its own `.venv`. The root suite uses `admin/.venv` and its tests are named
+`admin/test_*.py`. To check a separate installation of one module, run
+`python3 dev.py --python /path/to/venv/bin/python MODULE check`.
+
 The GitHub release will need the candidate's pinned branches to be published and independently checked from a public clone. The engineering candidate and existing public `main` are different revisions. Historical experiment records remain in Git and under `admin/`, and the previous implementation is in [`discarded/`](discarded/).
+
+## License
+
+The ChipEvolve workspace is available under the MIT License. Each submodule's license and source notices govern its own components. [License](LICENSE)
