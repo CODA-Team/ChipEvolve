@@ -189,6 +189,10 @@ Metrics comparison needs the stored observation name. For ORFS use the raw_key
 returned by metrics (e.g. finish__timing__setup__ws); display aliases such as WS
 or TNS need not be stored observation names. Other providers may use SETUP_WNS;
 inspect the returned metric identity before choosing name.
+For metric comparison across runs or revisions, use compare/{other_snapshot}/metrics
+with mode=experiment and the exact raw_key as name. The default stage mode rejects
+different revisions. Experiment mode returns observed deltas; inspect its
+input_conditions and original units before making a physical comparison.
 Native area retains precision.
 A null comparison unit does not establish matching units; check the original
 source declarations and evaluation conditions before interpreting the delta.
