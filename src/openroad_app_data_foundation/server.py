@@ -116,9 +116,7 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         query = {key: values[0] for key, values in urllib.parse.parse_qs(parsed.query).items()}
         try:
-            if parsed.path == "/health":
-                payload = self._get(parsed.path, query)
-            elif self.read_pool is not None:
+            if self.read_pool is not None:
                 # One borrowed read-only connection for this request; no request
                 # lock, so a slow query no longer blocks every other caller.
                 with self.read_pool.connection() as store:
@@ -237,9 +235,13 @@ class Handler(BaseHTTPRequestHandler):
             # that build opened.  A service restarted against the wrong path answers
             # every request perfectly from the wrong store, so the identity travels
             # with the health answer and a caller can refuse to use it.
+            database = (store if store is not None else self.store).identity()
+            # A pooled reader describes committed facts, while write mode is a
+            # property of the served store, not of this borrowed connection.
+            database["read_only"] = self.store.read_only
             return {"app": "data_foundation", "status": "ok",
                     "source_fingerprint": STARTUP_FINGERPRINT,
-                    "database": self.store.identity()}
+                    "database": database}
         store = store if store is not None else self.store
         if path.startswith('/native-queries/'):
             if self.execution_client is None:
@@ -602,7 +604,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def log_message(self, *args: Any) -> None:
+    def log_message(self, format: str, *args: Any) -> None:
         pass
 
 
