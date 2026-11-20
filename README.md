@@ -21,7 +21,7 @@ The root package `chip_evolve/` implements the commands behind `chip-evolve.py`.
 
 ## Run the small GCD example
 
-Use a checkout of the engineering candidate with all nine pinned submodules initialized. You need Linux, Git, Python 3.12 with `venv`, Apptainer, and an ORFS SIF with the Nangate45 GCD example. The qualified image is based on ORFS `5105b0a77` and OpenROAD `27288f5c90`. Pass its absolute path in `ORFS_SIF`. The hardware reservation for the GCD flow is eight CPU cores and 4 GiB of memory.
+Use a checkout of the engineering candidate with all nine pinned submodules initialized. You need Linux, Git, Python 3.12 with `venv`, Apptainer, and an ORFS SIF with the Nangate45 GCD example. The qualified image is based on ORFS `5105b0a77` and OpenROAD `27288f5c90`. Pass its absolute path in `ORFS_SIF`. The GCD flow reserves up to eight available CPU cores and 4 GiB of memory. To set smaller stack capacity, pass `--cpu-cores` and `--memory-gib` to `init`.
 
 The pinned ORFS manifest is available from Docker Hub. Build a local SIF under `var/`.
 
@@ -29,6 +29,15 @@ The pinned ORFS manifest is available from Docker Hub. Build a local SIF under `
 mkdir -p var/toolchain
 apptainer pull var/toolchain/orfs.sif docker://openroad/orfs@sha256:212127afc6538596e9c819ecea4830ec7edb76e2fca51f8dcd741c772558d4e0
 export ORFS_SIF="$PWD/var/toolchain/orfs.sif"
+```
+
+That manifest is for x86_64. On Linux aarch64, use Docker with Buildx and
+Apptainer to build the same ORFS and OpenROAD source revisions natively:
+
+```bash
+mkdir -p var/toolchain
+bash admin/release/build_arm_orfs.sh var/toolchain/orfs-source var/toolchain/orfs-arm64.sif
+export ORFS_SIF="$PWD/var/toolchain/orfs-arm64.sif"
 ```
 
 Run these commands from the repository root in a fresh checkout.

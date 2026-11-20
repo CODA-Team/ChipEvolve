@@ -205,6 +205,8 @@ def baseline(
     objective: Path | None = None,
 ) -> dict[str, Any]:
     design = deployment.design(design_id)
+    resources = design.get("orfs_execution", {})
+    cores = resources.get("cpu_cores", 8)
     if objective:
         verify_measurement_conditions(
             deployment, design_id, objective, Path(design["sdc"])
@@ -227,7 +229,7 @@ def baseline(
         "config_path": "inputs/design.mk",
         "sdc_path": "inputs/design.sdc",
         "revision_id": experiment.name,
-        "threads": 8,
+        "threads": cores,
     }
     staged = [
         {"source": str(config), "destination": "inputs/design.mk"},
@@ -245,7 +247,8 @@ def baseline(
         inputs,
         staged,
         seconds=seconds,
-        memory_gib=design.get("orfs_execution", {}).get("memory_gib", 24),
+        cpu=cores,
+        memory_gib=resources.get("memory_gib", 24),
     )
     archive = experiment / "orfs.zip"
     jobs.materialize(result, "flow_archive", archive)

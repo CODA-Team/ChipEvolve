@@ -8,10 +8,17 @@ from chip_evolve.jobs import Jobs, digest
 from chip_evolve.physical import baseline
 
 
-@pytest.mark.parametrize("declared,expected", [(None, 24), (4, 4), (12, 12)])
+@pytest.mark.parametrize(
+    ("resources", "memory", "cores"),
+    [
+        (None, 24, 8),
+        ({"memory_gib": 4, "cpu_cores": 2}, 4, 2),
+        ({"memory_gib": 12}, 12, 8),
+    ],
+)
 @pytest.mark.parametrize("custom_config", [False, True])
-def test_native_flow_uses_deployment_memory_and_preserves_inputs(
-    tmp_path, monkeypatch, declared, expected, custom_config
+def test_native_flow_uses_deployment_resources_and_preserves_inputs(
+    tmp_path, monkeypatch, resources, memory, cores, custom_config
 ):
     d = deployment(tmp_path)
     sdc = tmp_path / "frozen.sdc"
@@ -22,8 +29,8 @@ def test_native_flow_uses_deployment_memory_and_preserves_inputs(
         "baseline_overrides": "export OTHER_VT = LVT SLVT\n",
         "libraries": [],
     }
-    if declared is not None:
-        design["orfs_execution"] = {"memory_gib": declared}
+    if resources is not None:
+        design["orfs_execution"] = resources
     template = tmp_path / "mapped-design.mk"
     original_config = "export DESIGN_NAME = mapped_top\nexport SYNTH_NETLIST_FILES = /work/inputs/mapped.v\n"
     if custom_config:
@@ -40,8 +47,8 @@ def test_native_flow_uses_deployment_memory_and_preserves_inputs(
 
     def submit(self, key, inputs, staged, **options):
         assert key == "orfs"
-        assert options.get("memory_gib", 24) == expected
-        assert inputs["threads"] == 8
+        assert options["memory_gib"] == memory
+        assert options["cpu"] == inputs["threads"] == cores
         assert inputs["orfs_image"] == "/frozen/toolchain.sif"
         assert inputs["design_config"] == design["orfs_config"]
         assert options["seconds"] == 900

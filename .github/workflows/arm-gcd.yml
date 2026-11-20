@@ -1,0 +1,78 @@
+name: Linux ARM64 GCD
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [engineering/cleanup-b6cfd1d]
+    paths:
+      - .github/workflows/arm-gcd.yml
+      - admin/release/build_arm_orfs.sh
+
+permissions:
+  contents: read
+
+jobs:
+  gcd:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 350
+    steps:
+      - name: Clone the exact public revision
+        run: |
+          git init -q .
+          git remote add origin "https://github.com/$GITHUB_REPOSITORY.git"
+          git fetch --depth 1 origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+          bash admin/checkout_modules.sh
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12.16'
+      - name: Install Apptainer and the pinned Python environments
+        run: |
+          sudo add-apt-repository -y ppa:apptainer/ppa
+          sudo apt-get install -y apptainer
+          python3 admin/bootstrap.py --output var/bootstrap
+      - name: Build the native ORFS image
+        run: bash admin/release/build_arm_orfs.sh var/orfs-source var/orfs-arm64.sif
+      - name: Run ORFS, import facts and confirm resume
+        run: |
+          stack=var/gcd-arm64.json
+          instance=var/instances/gcd-arm64
+          python3 admin/release/stack.py init --workspace . --instance gcd-arm64 \
+            --image var/orfs-arm64.sif --config "$stack" --memory-gib 12
+          python3 admin/release/stack.py prepare-gcd --config "$stack"
+          trap 'python3 admin/release/stack.py stop --config "$stack"' EXIT
+          python3 admin/release/stack.py start --config "$stack"
+          python3 chip-evolve.py --config "$instance/local.json" run \
+            --design gcd --capability orfs --key baseline --seconds 600
+          python3 chip-evolve.py --config "$instance/local.json" resume \
+            --design gcd --key baseline > var/gcd-resume.json
+          agent/query-agent/.venv/bin/python - "$instance" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          from eda_ai_client import EdaAiClient
+
+          instance = Path(sys.argv[1])
+          result = json.loads((instance / 'experiments/gcd/baseline/result.json').read_text())
+          resumed = json.loads(Path('var/gcd-resume.json').read_text())
+          deployment = json.loads((instance / 'local.json').read_text())
+          assert resumed['run_id'] == result['run_id']
+          assert result['metrics']['design__violations'] == 0
+          client = EdaAiClient(deployment['data_url'], deployment['kernel_url'])
+          assert set(result['snapshot_ids']) == {'opendb', 'orfs', 'opensta'}
+          for snapshot in result['snapshot_ids'].values():
+              receipt = client.resolve_scope(snapshot_id=snapshot)
+              assert receipt['scope']['run_id'] == result['run_id'], receipt
+          assert client.list_artifacts(result['physical_run_id'])
+          print(json.dumps({'run_id': result['run_id'], 'snapshots': result['snapshot_ids']}))
+          PY
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: always()
+        with:
+          name: gcd-arm64-receipts
+          path: |
+            var/orfs-source/arm-build.patch
+            var/bootstrap/install-evidence/summary.json
+            var/gcd-resume.json
+            var/instances/gcd-arm64/*-service.log
+            var/instances/gcd-arm64/experiments/gcd/baseline/result.json
