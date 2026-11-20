@@ -15,45 +15,43 @@
     },
     {
       "path": "data-foundation",
-      "source_commit": "4637186b2f7d0d938e81825c901e17d6cbf4f699",
-      "source_tree": "a13654438eb3249417ff8ea57216b635a2ae63ef",
+      "source_commit": "7e7cf8b038e93dbd7bbcda8b7ddba56538eb0bd7",
+      "source_tree": "84d9384204797d25c8f4a97c347011288cdce4a7",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/data-foundation"
     },
     {
       "path": "data-interface",
-      "source_commit": "4f2e195c05bfe80a72b557985d9577206efe9d9b",
-      "source_tree": "5b3d70424cb555fd44341edc211efabcd8067168",
+      "source_commit": "e309452eb1b125c27fe25bd37db1371cbb306b2b",
+      "source_tree": "fa6eb9bfe99076d2db09da0ea6fe2c80113e8903",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/data-interface"
     },
     {
       "path": "agent/query-agent",
-      "source_commit": "5cf078e2167b31c897395e804eb84b2da1bff7b3",
-      "source_tree": "b5c903e04085a468441620f3f47439cc7faa166f",
+      "source_commit": "23805cbab2e22cbe38d638883418d34752684a22",
+      "source_tree": "628e3a2e1a9733566fca528ed9127b469b98e2c8",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
-      "branch": "modules/query-agent-a31-result-recovery-20261024",
-      "integration_branch": "modules/query-agent",
-      "integration_status": "Local engineering candidate with explicit setup and hold timing coverage and live GCD regression"
+      "branch": "modules/query-agent"
     },
     {
       "path": "toolkits",
-      "source_commit": "445ae974f495ace1b6dc62219b900843b3a13da9",
-      "source_tree": "34585f31fd799c58087c1fd8ee4e1fa52e2fd89c",
+      "source_commit": "fdf263d585630a715dfb877d4ff1f31b0c25b3b2",
+      "source_tree": "f55dd871f82b1c89e681f3e87a63620cd3a391f8",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/toolkits"
     },
     {
       "path": "agent/flow-agent",
-      "source_commit": "c89086516b08a6f38df2534550939846109c7dc6",
-      "source_tree": "0c15300d11ef6a36467e4abddd6d070b94fb2220",
+      "source_commit": "eba5e2643ea6875642f60e909e7e4ceee4cb084f",
+      "source_tree": "5df9100a9003eadd2a20688c9e77d12fac82525d",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/flow-agent"
     },
     {
       "path": "agent/dplevolve",
-      "source_commit": "83a77bba13d36b586e1035278442ce6ea8acfe52",
-      "source_tree": "2f39c852c035150b3975cddc429f44bb851ab281",
+      "source_commit": "11532ff36284ed944e97419f6fa2d94738894494",
+      "source_tree": "898fa72b373a834511308325439cfa4c843e59a4",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/dplevolve",
       "upstream_url": "https://github.com/CODA-Team/DPLEvolve.git",
@@ -62,8 +60,8 @@
     },
     {
       "path": "agent/goalevolve",
-      "source_commit": "0ca32cc5a18a9a790337db49f093f95f5951e2a1",
-      "source_tree": "df830b89d811334c9ef3541e94c557625f4d5a55",
+      "source_commit": "13ca0a6c98b25182c0ddb5495a4d4470fbe14518",
+      "source_tree": "638e554961bf9e4e79b1bb5ad87330773420121e",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/goalevolve",
       "upstream_url": "https://github.com/CODA-Team/GoalEvolve.git",
@@ -81,5 +79,6 @@
       "upstream_benchmark_lfs_status": "404 for AES checkpoint; actual local GCD used"
     }
   ],
-  "scope": "committed source checkpoints; local uncommitted edits and runtime assets are not included"
+  "scope": "committed source checkpoints; local uncommitted edits and runtime assets are not included",
+  "engineering_baseline_commit": "b6cfd1d8a38e7f2d732f0cb746018ed25046a5c0"
 }

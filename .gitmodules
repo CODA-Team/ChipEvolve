@@ -20,7 +20,7 @@
 	path = agent/query-agent
 	url = https://github.com/CODA-Team/ChipEvolve.git
 	shallow = true
-	branch = modules/query-agent-a31-result-recovery-20261024
+	branch = modules/query-agent
 
 [submodule "toolkits"]
 	path = toolkits
