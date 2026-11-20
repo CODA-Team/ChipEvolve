@@ -1,5 +1,5 @@
 """Native pin types and connected-net types are separate engineering facts."""
-from eda_toolkits.openroad.pins import pin_inventory_script, _parse
+from eda_toolkits.openroad.pins import parse_pin_inventory, pin_inventory_script
 import base64
 
 from .engineering import _entity
@@ -40,7 +40,7 @@ def pin_inventory(store, client, snapshot_id, identifier, query, root):
         result['native_query']['report'] = outcome
         return result
     text = complete_native_text(client, outcome)
-    rows = _parse(text)
+    rows = parse_pin_inventory(text)
     for row in rows:
         row['full_name'] = instance['name'].replace('\\', '') + '/' + row['local_name'].replace('\\', '')
     selected = [r for r in rows if all(not query.get(k) or r[field] == query[k]

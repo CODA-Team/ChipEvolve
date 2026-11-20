@@ -1,6 +1,7 @@
 """Pin types remain independent of net classification and pin pagination."""
 import base64
 import pytest
+from eda_toolkits.openroad.pins import parse_pin_inventory
 from openroad_app_data_foundation import pin_inventory as module
 from openroad_app_data_foundation.repository import DataStore
 from tests.test_eda_engineering import sample
@@ -31,7 +32,7 @@ def test_clock_pin_on_signal_net_and_complete_distinct_counts(tmp_path,monkeypat
         assert result['connected_pin_counts_by_native_type']=={'SIGNAL':2,'CLOCK':1}
         assert result['distinct_net_counts_by_native_pin_type']=={'SIGNAL':1,'CLOCK':1}
         assert result['count']==3 and result['returned']==1 and result['truncated']
-        parsed=module._parse(text)
+        parsed=parse_pin_inventory(text)
         clock=next(p for p in parsed if p['local_name']=='CLK')
         assert clock['native_pin_signal_type']=='CLOCK' and clock['connected_net_signal_type']=='SIGNAL'
     finally:store.close()
@@ -40,9 +41,9 @@ def test_clock_pin_on_signal_net_and_complete_distinct_counts(tmp_path,monkeypat
 def test_incomplete_or_duplicated_native_pins_are_reported():
     one=row(1,'A','SIGNAL','INPUT','n','SIGNAL')
     with pytest.raises(ValueError,match='incomplete'):
-        module._parse('EDA_PIN_TOTAL 2\n'+one+'\n')
+        parse_pin_inventory('EDA_PIN_TOTAL 2\n'+one+'\n')
     with pytest.raises(ValueError,match='duplicate'):
-        module._parse('EDA_PIN_TOTAL 2\n'+one+'\n'+one+'\n')
+        parse_pin_inventory('EDA_PIN_TOTAL 2\n'+one+'\n'+one+'\n')
 
 
 def test_native_pin_inventory_continues_original_output_before_counts_and_pages(tmp_path,monkeypatch):

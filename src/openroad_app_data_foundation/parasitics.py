@@ -23,7 +23,7 @@ from pathlib import Path
 
 from .queries import _limit, _offset, _page
 
-from eda_toolkits.openroad.spef import spef_index, _read_block, _parse_block
+from eda_toolkits.openroad.spef import read_spef_net, spef_index
 
 def _spef_artifacts(snapshot: dict) -> list[dict]:
     return [ref for ref in snapshot.get("source_artifacts", [])
@@ -95,8 +95,7 @@ def net_parasitics(store, client, snapshot_id: str, name: str, query: dict) -> d
                 "spef_index": stats,
                 "searched": {"net": name, "compared_as": "DEF-unescaped on both sides"},
                 "truncated": False}
-    data, block_truncated = _read_block(path, offset_in_file)
-    parsed = _parse_block(data)
+    parsed, block_truncated = read_spef_net(path, offset_in_file)
     capacitors = [{"id": cid, "node": index.node_name(node),
                    "coupled_node": index.node_name(coupled) if coupled else None,
                    "value": value, "coupling": coupled is not None}
