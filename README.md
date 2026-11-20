@@ -45,7 +45,8 @@ The ARM64 script uses the checked-out Slang submodule and the CMake CLI build.
 
 ```bash
 mkdir -p var/toolchain
-bash admin/release/build_arm_orfs.sh var/toolchain/orfs-source var/toolchain/orfs-arm64.sif
+bash admin/release/build_arm_orfs.sh var/toolchain/orfs-source var/toolchain/orfs-base-arm64.sif
+bash admin/release/package_arm_orfs.sh var/toolchain/orfs-base-arm64.sif var/toolchain/orfs-arm64.sif
 export ORFS_SIF="$PWD/var/toolchain/orfs-arm64.sif"
 ```
 

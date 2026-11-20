@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/arm-gcd.yml
       - admin/release/build_arm_orfs.sh
+      - admin/release/package_arm_orfs.sh
 
 permissions:
   contents: read
@@ -50,12 +51,14 @@ jobs:
             var/orfs-arm64.sif
             var/orfs-source/arm-build.patch
           key: ${{ steps.orfs-image.outputs.cache-primary-key }}
+      - name: Package the native runtime
+        run: bash admin/release/package_arm_orfs.sh var/orfs-arm64.sif var/orfs-runtime-arm64.sif
       - name: Run ORFS, import facts and confirm resume
         run: |
           stack=var/gcd-arm64.json
           instance=var/instances/gcd-arm64
           python3 admin/release/stack.py init --workspace . --instance gcd-arm64 \
-            --image var/orfs-arm64.sif --config "$stack" --memory-gib 12
+            --image var/orfs-runtime-arm64.sif --config "$stack" --memory-gib 12
           python3 admin/release/stack.py prepare-gcd --config "$stack"
           trap 'python3 admin/release/stack.py stop --config "$stack"' EXIT
           python3 admin/release/stack.py start --config "$stack"
