@@ -1,6 +1,6 @@
 """Private HTTP DTOs; public service schema never reaches application code."""
 
-from typing import Literal
+from typing import Literal, cast
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
@@ -174,18 +174,22 @@ class Metrics(BaseModel):
         # DF lists unavailable, execution-owned metrics without a snapshot.
         if not isinstance(rows, list):
             return rows
-        return [
-            row
-            for row in rows
-            if not (
-                isinstance(row, dict)
-                and row.get("authoritative_source") == "execution_foundation"
-                and row.get("status") == "unavailable"
-                and row.get("value") is None
-                and "stage" not in row
-                and "snapshot_id" not in row
-            )
-        ]
+        measured: list[object] = []
+        for row in cast(list[object], rows):
+            if not isinstance(row, dict):
+                measured.append(row)
+                continue
+            fields = cast(dict[object, object], row)
+            if (
+                fields.get("authoritative_source") == "execution_foundation"
+                and fields.get("status") == "unavailable"
+                and fields.get("value") is None
+                and "stage" not in fields
+                and "snapshot_id" not in fields
+            ):
+                continue
+            measured.append(fields)
+        return measured
 
 
 class Path(BaseModel):
