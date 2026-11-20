@@ -41,4 +41,4 @@ flowchart LR
 
 Modules exchange information through HTTP and installed wheels. Run state lives under the configured `var/` instance. The SDK is shipped as a Python package. Execution Foundation and Data Foundation run as separate local services for the GCD example.
 
-The installer checks each module against its Git pin and builds wheels from those commits. The local stack selects the ORFS image and sets the execution capacity. For DPLEvolve, the dispatcher passes the available threads to the native baseline, build, and search commands. The existing Teacher and Students decide what to change, while Execution Foundation admits and supervises the builds and measurements.
+The installer checks each module against its Git pin and builds wheels from those commits. The local stack selects the ORFS image and sets the execution capacity. DPLEvolve, GoalEvolve, and Timing ECO pass the configured threads to their native work. Common physical validation also uses the configured ORFS budget. Execution Foundation admits and supervises each build and measurement. DPLEvolve resumes CTS and routing through the shared physical adapter with the registered ORFS recipe.

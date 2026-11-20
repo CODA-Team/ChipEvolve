@@ -50,8 +50,8 @@
     },
     {
       "path": "agent/dplevolve",
-      "source_commit": "bb7ecc79a020c816191d797e5ecb59de91ef704d",
-      "source_tree": "c0052b6eabf2f3de36d1510da300d5f13eb168e0",
+      "source_commit": "7e809b9eaea1d0a8b4c32d3f1b9cac3a7a707bc1",
+      "source_tree": "3ce8d70b1945585d71d1216f27aa9752a8d1ada7",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/dplevolve",
       "upstream_url": "https://github.com/CODA-Team/DPLEvolve.git",
