@@ -46,9 +46,16 @@ def test_initial_baseline_preserves_platform_capacities_and_binds_hooks(tmp_path
         shutil.copy2(FLOW / helper, tmp_path / helper)
     for name in ('config.mk', 'constraint.sdc'):
         shutil.copy2(DESIGN / name, design / name)
-    subprocess.run(['bash', str(tmp_path / 'run_sequential.sh'), 'nangate45', 'aes', '3', '1'],
-                   env=dict(os.environ, DRP_SEED='42'), check=True, capture_output=True)
-    rows = list(csv.DictReader((design / 'nangate45_aes.csv').open()))
+    command = ['bash', str(tmp_path / 'run_sequential.sh'), 'nangate45', 'aes', '3', '1']
+    environment = dict(os.environ, DRP_SEED='42')
+    subprocess.run(command, env=environment, check=True, capture_output=True)
+    table = design / 'nangate45_aes.csv'
+    initial = table.read_text()
+    subprocess.run(command, env=environment, check=True, capture_output=True)
+    assert table.read_text() == initial
+    subprocess.run(command, env=dict(environment, DRP_SEED='43'), check=True, capture_output=True)
+    assert table.read_text() != initial
+    rows = list(csv.DictReader(initial.splitlines()))
     assert len(rows) == 3
     assert float(rows[0]['FLOORPLAN_PIN_LAYER_ADJUST']) == .5
     assert float(rows[0]['FLOORPLAN_ABOVE_LAYER_ADJUST']) == .25

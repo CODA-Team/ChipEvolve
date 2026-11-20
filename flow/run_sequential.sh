@@ -25,7 +25,7 @@ ITERATION="$4"
 # unset/"none" -> leave $RANDOM as-is (nondeterministic, previous behaviour).
 if [[ -n "${DRP_SEED:-}" && "${DRP_SEED}" != "none" ]]; then
     RANDOM=$(python3 -c "import hashlib,sys;print(int(hashlib.md5('|'.join(sys.argv[1:]).encode()).hexdigest(),16)%32768)" \
-             "$DRP_SEED" "$ITERATION" "$PLATFORM" "$DESIGN" 2>/dev/null || echo "$RANDOM")
+             "$DRP_SEED" "$ITERATION" "$PLATFORM" "$DESIGN")
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -159,8 +159,11 @@ generate_initial_parameters() {
             echo "${synth_flatten},${core_util},${gp_pad},${dp_pad},${enable_dpo},${lb_addon},${tns_percent},${floorplan_pin_adjust},${floorplan_above_adjust},${clk_period}" >> "$CSV_FILE"
             continue
         fi
-        local factor
-        factor=$(awk -v seed=$RANDOM 'BEGIN{srand(seed); print 0.90 + rand() * 0.20}')
+        # Bash reseeds RANDOM inside command substitutions. Draw in the
+        # controlling shell so every candidate uses the same seeded stream.
+        local factor random_seed
+        random_seed=$RANDOM
+        factor=$(awk -v seed="$random_seed" 'BEGIN{srand(seed); print 0.90 + rand() * 0.20}')
 
         # Perturb each parameter with constraints
         local new_core_util
@@ -168,35 +171,42 @@ generate_initial_parameters() {
             new=int(val * f); print (new < 20 ? 20 : (new > 99 ? 99 : new))
         }')
         local new_gp_pad
-        new_gp_pad=$(awk -v val="$gp_pad" -v seed=$RANDOM 'BEGIN{
+        random_seed=$RANDOM
+        new_gp_pad=$(awk -v val="$gp_pad" -v seed="$random_seed" 'BEGIN{
             srand(seed); new=int(val + (rand()-0.5)*4);
             print (new < 0 ? 0 : (new > 4 ? 4 : new))
         }')
         local new_dp_pad
-        new_dp_pad=$(awk -v val="$dp_pad" -v seed=$RANDOM 'BEGIN{
+        random_seed=$RANDOM
+        new_dp_pad=$(awk -v val="$dp_pad" -v seed="$random_seed" 'BEGIN{
             srand(seed); new=int(val + (rand()-0.5)*4);
             print (new < 0 ? 0 : (new > 4 ? 4 : new))
         }')
         local new_dpo
-        new_dpo=$(awk -v seed=$RANDOM 'BEGIN{srand(seed); print (rand() > 0.5 ? 1 : 0)}')
+        random_seed=$RANDOM
+        new_dpo=$(awk -v seed="$random_seed" 'BEGIN{srand(seed); print (rand() > 0.5 ? 1 : 0)}')
         local new_lb
         new_lb=$(awk -v val="$lb_addon" -v f="$factor" 'BEGIN{
             new=val * f; printf "%.4f", (new < 0 ? 0 : (new > 0.99 ? 0.99 : new))
         }')
         local new_tns
-        new_tns=$(awk -v val="$tns_percent" -v seed=$RANDOM 'BEGIN{
+        random_seed=$RANDOM
+        new_tns=$(awk -v val="$tns_percent" -v seed="$random_seed" 'BEGIN{
             srand(seed); new=int(val + (rand()-0.5)*40);
             print (new < 0 ? 0 : (new > 100 ? 100 : new))
         }')
         local new_synth
-        new_synth=$(awk -v seed=$RANDOM 'BEGIN{srand(seed); print (rand() > 0.5 ? 1 : 0)}')
+        random_seed=$RANDOM
+        new_synth=$(awk -v seed="$random_seed" 'BEGIN{srand(seed); print (rand() > 0.5 ? 1 : 0)}')
         local new_pin
-        new_pin=$(awk -v val="$floorplan_pin_adjust" -v seed=$RANDOM 'BEGIN{
+        random_seed=$RANDOM
+        new_pin=$(awk -v val="$floorplan_pin_adjust" -v seed="$random_seed" 'BEGIN{
             srand(seed); new=val + (rand()-0.5)*0.3;
             printf "%.4f", (new < 0.2 ? 0.2 : (new > 0.7 ? 0.7 : new))
         }')
         local new_above
-        new_above=$(awk -v val="$floorplan_above_adjust" -v seed=$RANDOM 'BEGIN{
+        random_seed=$RANDOM
+        new_above=$(awk -v val="$floorplan_above_adjust" -v seed="$random_seed" 'BEGIN{
             srand(seed); new=val + (rand()-0.5)*0.3;
             printf "%.4f", (new < 0.2 ? 0.2 : (new > 0.7 ? 0.7 : new))
         }')
