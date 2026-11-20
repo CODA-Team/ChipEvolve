@@ -396,6 +396,16 @@ def recover(deployment: Deployment, design_id: str, key: str) -> dict[str, Any]:
     elif request["capability"] == "flow":
         objective = Path(read(experiment / "input-receipt.json")["objective"])
         result = collect_flow(deployment, design_id, experiment, objective)
+    elif (
+        request["capability"] == "goal"
+        and request.get("operation") == "evolve"
+        # The Goal CLI writes this receipt after its native search returns.
+        and (experiment / "campaign/toolchain.json").is_file()
+    ):
+        from .native import restore_goal_checkpoint
+
+        restore_goal_checkpoint(experiment, design_id)
+        result = finish(deployment, experiment)
     else:
         raise ValueError(
             "Native professional has no completed delivery checkpoint; "

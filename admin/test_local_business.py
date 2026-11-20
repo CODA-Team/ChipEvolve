@@ -224,6 +224,27 @@ def test_checkpoint_producer_uses_content_not_filename(tmp_path):
         latest_producer(operations, checkpoint, "input-source")
 
 
+def test_checkpoint_producer_prefers_the_registered_file_with_duplicate_bytes(tmp_path):
+    checkpoint = tmp_path / "baseline/post_route.odb"
+    checkpoint.parent.mkdir()
+    checkpoint.write_bytes(b"same physical state")
+    operations = tmp_path / "operations"
+    for run_id, registered in (
+        ("baseline", checkpoint),
+        ("student", tmp_path / "student/post_route.odb"),
+    ):
+        receipt = operations / run_id
+        write(
+            receipt / "leaf.json",
+            {
+                "request": {"operation": "physical"},
+                "output_files": {str(registered): digest(checkpoint)},
+            },
+        )
+        write(receipt / "execution.json", {"run": {"run_id": run_id}})
+    assert latest_producer(operations, checkpoint, "input-source") == "baseline"
+
+
 def test_flow_configuration_is_recovered_after_the_next_round_replaces_it(tmp_path):
     flow = tmp_path / "flow"
     flow.mkdir()

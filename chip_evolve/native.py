@@ -23,6 +23,62 @@ def _goal_targets(targets: dict[str, float], objective: Path) -> dict[str, float
     }
 
 
+def _goal_output(
+    experiment: Path,
+    baseline: dict[str, Any],
+    *,
+    evolved: bool,
+    fixed: dict[str, Any] | None = None,
+) -> tuple[Path, dict[str, Any]]:
+    odb = Path(baseline["artifacts"]["checkpoint_post_route_db"])
+    verdict = {
+        "kind": "native-fixed-source" if fixed else "native-baseline",
+        "checks": baseline["checks"],
+        "metrics": baseline["metrics"],
+    }
+    if fixed:
+        verdict.update(
+            fixed_source=fixed,
+            evaluation_mode=fixed["evaluation_mode"],
+            timing_recipe_id=fixed["timing_recipe_id"],
+        )
+    if not evolved:
+        return odb, verdict
+    campaign = experiment / "campaign"
+    parent = read(campaign / "parent.json")
+    candidate = campaign / "parents" / parent["source_hash"] / "design_checkpoint.odb"
+    if candidate.exists():
+        odb = candidate
+    elif parent["source_commit"] != "baseline":
+        raise ValueError("Promoted native Goal parent has no frozen routed checkpoint")
+    return odb, {"kind": "native-search", "parent": parent, "baseline": verdict}
+
+
+def restore_goal_checkpoint(experiment: Path, design_id: str) -> None:
+    """Collect the native result after the controller has finished writing it."""
+    from .delivery import checkpoint
+
+    receipt = read(experiment / "input-receipt.json")
+    profile = read(experiment / "profile.json")
+    baseline = read(experiment / "baseline/baseline.json")
+    if profile["design_id"] != design_id or not baseline["ok"]:
+        raise ValueError(
+            "Completed Goal campaign has no valid baseline for this design"
+        )
+    odb, verdict = _goal_output(experiment, baseline, evolved=True)
+    checkpoint(
+        experiment,
+        design_id=design_id,
+        odb=odb,
+        producer=latest_producer(
+            experiment / "operations", odb, receipt["source_run_id"]
+        ),
+        objective=Path(receipt["objective"]),
+        pdk=Path(profile["pdk_root"]),
+        native_method=verdict,
+    )
+
+
 def run_goal(
     deployment: Deployment,
     args: argparse.Namespace,
@@ -229,18 +285,6 @@ def run_goal(
     baseline = read(experiment / "baseline/baseline.json")
     if not baseline["ok"]:
         raise RuntimeError("Native Goal baseline rejected its actual design inputs")
-    odb = Path(baseline["artifacts"]["checkpoint_post_route_db"])
-    verdict = {
-        "kind": "native-fixed-source" if fixed else "native-baseline",
-        "checks": baseline["checks"],
-        "metrics": baseline["metrics"],
-    }
-    if fixed:
-        verdict.update(
-            fixed_source=fixed,
-            evaluation_mode=fixed["evaluation_mode"],
-            timing_recipe_id=fixed["timing_recipe_id"],
-        )
     if args.operation == "evolve":
         metrics = {
             name: baseline["metrics"][name] for name in config["baseline_metrics"]
@@ -274,20 +318,9 @@ def run_goal(
             folder,
             args.seconds,
         )
-        parent = read(experiment / "campaign/parent.json")
-        candidate = (
-            experiment
-            / "campaign/parents"
-            / parent["source_hash"]
-            / "design_checkpoint.odb"
-        )
-        if candidate.exists():
-            odb = candidate
-        elif parent["source_commit"] != "baseline":
-            raise ValueError(
-                "Promoted native Goal parent has no frozen routed checkpoint"
-            )
-        verdict = {"kind": "native-search", "parent": parent, "baseline": verdict}
+    odb, verdict = _goal_output(
+        experiment, baseline, evolved=args.operation == "evolve", fixed=fixed
+    )
     producer = latest_producer(experiment / "operations", odb, frame["run_id"])
     from .delivery import checkpoint, finish
 
@@ -305,17 +338,24 @@ def run_goal(
 
 def latest_producer(operations: Path, checkpoint: Path, fallback: str) -> str:
     """Use a recorded EF operation which actually captured the selected file."""
+    sha = digest(checkpoint)
+    registered_path = str(checkpoint.resolve())
+    direct = []
     matches = []
     for path in operations.rglob("leaf.json"):
         row = read(path)
         if (
             row["request"]["operation"] == "physical"
-            and digest(checkpoint) in row["output_files"].values()
+            and sha in row["output_files"].values()
         ):
-            matches.append(read(path.parent / "execution.json")["run"]["run_id"])
-    if not matches:
+            run_id = read(path.parent / "execution.json")["run"]["run_id"]
+            if row["output_files"].get(registered_path) == sha:
+                direct.append(run_id)
+            matches.append(run_id)
+    producers = direct or matches
+    if not producers:
         raise ValueError("Native checkpoint has no EF producer with matching content")
-    return matches[-1]
+    return producers[-1]
 
 
 def run_eco(

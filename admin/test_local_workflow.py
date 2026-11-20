@@ -14,11 +14,83 @@ from chip_evolve.logic import interface_and_physical
 def test_resume_never_restarts_an_unfinished_native_search(tmp_path):
     d = deployment(tmp_path)
     folder = d.experiment("aes", "unfinished")
-    write(folder / "request.json", {"design": "aes", "capability": "goal"})
+    write(
+        folder / "request.json",
+        {"design": "aes", "capability": "goal", "operation": "evolve"},
+    )
+    write(folder / "campaign/parent.json", {"source_commit": "baseline"})
     write(folder / "status.json", {"status": "failed", "detail": "original"})
     with pytest.raises(ValueError, match="no completed delivery checkpoint"):
         recover(d, "aes", "unfinished")
     assert read(folder / "status.json")["detail"] == "original"
+
+
+@pytest.mark.parametrize("promoted", [False, True])
+def test_recovery_collects_a_finished_goal_search(tmp_path, monkeypatch, promoted):
+    d = deployment(tmp_path)
+    folder = d.experiment("gcd", "native-finished")
+    objective = folder / "objective.json"
+    pdk = folder / "pdk"
+    pdk.mkdir()
+    for name in ("setRC.tcl", "rcx_patterns.rules"):
+        (pdk / name).write_text(name)
+    write(objective, {"objective_id": "frozen"})
+    write(
+        folder / "request.json",
+        {"design": "gcd", "capability": "goal", "operation": "evolve"},
+    )
+    write(
+        folder / "input-receipt.json",
+        {"source_run_id": "reference", "objective": str(objective)},
+    )
+    write(folder / "profile.json", {"design_id": "gcd", "pdk_root": str(pdk)})
+    baseline = folder / "baseline" / "post_route.odb"
+    baseline.parent.mkdir()
+    baseline.write_bytes(b"baseline")
+    write(
+        baseline.with_name("baseline.json"),
+        {
+            "ok": True,
+            "checks": [],
+            "metrics": {},
+            "artifacts": {"checkpoint_post_route_db": str(baseline)},
+        },
+    )
+    campaign = folder / "campaign"
+    source = "student-commit" if promoted else "baseline"
+    parent = {"source_commit": source, "source_hash": source}
+    write(campaign / "parent.json", parent)
+    write(campaign / "toolchain.json", {"openroad_version": "registered"})
+    selected = baseline
+    if promoted:
+        selected = campaign / "parents" / source / "design_checkpoint.odb"
+        selected.parent.mkdir(parents=True)
+        selected.write_bytes(b"promoted")
+    operation = folder / "operations" / "physical"
+    write(
+        operation / "leaf.json",
+        {
+            "request": {"operation": "physical"},
+            "output_files": {str(selected): digest(selected)},
+        },
+    )
+    write(operation / "execution.json", {"run": {"run_id": "native-producer"}})
+    seen = []
+
+    def qualify(jobs, odb, producer, goal, model):
+        seen.append((odb, producer, goal, model))
+        return {"design_id": "gcd", "run_id": "measured"}
+
+    monkeypatch.setattr("chip_evolve.physical.qualify", qualify)
+    monkeypatch.setattr("chip_evolve.code_evidence.maybe_collect", lambda *a: None)
+    monkeypatch.setattr(
+        "chip_evolve.native.invoke", lambda *a: pytest.fail("native search restarted")
+    )
+
+    result = recover(d, "gcd", "native-finished")
+    assert result["native_method"]["parent"] == parent
+    assert recover(d, "gcd", "native-finished") == result
+    assert seen == [(selected, "native-producer", objective, pdk)]
 
 
 def test_recovery_keeps_native_verdict_and_failure_history(tmp_path, monkeypatch):

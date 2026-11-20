@@ -138,9 +138,9 @@ baseline and diagnosis, then hand off their result and context with
 [Agent dispatch table](agent/README.md) for the placement and algorithm
 boundaries and the required evidence.
 
-The platform's `resume` command recovers delivery from a saved checkpoint.
-If a GoalEvolve search stops earlier, its native campaign directory preserves
-the original Teacher plan and Student work for recovery.
+The platform's `resume` command recovers delivery from a saved checkpoint
+or a finished GoalEvolve campaign. An unfinished GoalEvolve campaign retains
+the original Teacher plan and Student work for native recovery.
 
 ## Check the workspace
 
