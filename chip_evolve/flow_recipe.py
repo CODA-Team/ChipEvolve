@@ -95,7 +95,7 @@ def bind_config(flow: Path, binding: dict[str, Any]) -> Path:
         original, str(flow / binding["design_config"])
     )
     bound = flow / "source-bindings"
-    bound.mkdir()
+    bound.mkdir(exist_ok=True)
     for index, (name, original_path) in enumerate(
         binding.get("auxiliary_inputs", {}).items()
     ):

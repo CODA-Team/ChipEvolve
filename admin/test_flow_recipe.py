@@ -76,6 +76,8 @@ def test_source_recipe_preserves_submitted_overrides_and_exact_library_bytes(tmp
         binding["sdc"]
     ).read_bytes()
     assert binding["physical_run_id"] == "actual-orfs"
+    assert bind_config(flow, binding) == config
+    assert config.read_text() == text
 
 
 def test_physical_recipe_builds_without_a_flow_agent_binding(tmp_path, monkeypatch):
