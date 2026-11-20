@@ -42,7 +42,6 @@ from candidate_tracking import (
     CANDIDATE_ID_KEY,
     attach_metadata as attach_candidate_metadata,
     bind_slots as bind_candidate_slots,
-    lifecycle_path as candidate_lifecycle_path,
     make_candidate_id,
     metadata as candidate_metadata,
 )

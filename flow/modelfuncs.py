@@ -305,7 +305,7 @@ def parse_llm_response(llm_response: str) -> Dict[str, Any]:
             "surrogate": llm_response.split("Surrogate:")[1].split("\n")[0].strip()
         }
         return recommendations
-    except:
+    except (AttributeError, IndexError):
         # Fallback to default recommendations
         return {
             "kernel": "matern",

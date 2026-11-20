@@ -235,7 +235,7 @@ def inspect_data_structure(X: np.ndarray, Y: np.ndarray, config: Optional[Dict[s
             f_stat, p_value = f_oneway(*[s for s in cluster_samples if len(s) > 0])
             summary["clusters_different_pvalue"] = float(p_value)
             summary["needs_local_models"] = bool(p_value < 0.05)
-        except:
+        except (TypeError, ValueError):
             summary["needs_local_models"] = False
     
     # Feature correlations
@@ -275,4 +275,4 @@ def inspect_data_structure(X: np.ndarray, Y: np.ndarray, config: Optional[Dict[s
     
     summary["model_recommendations"] = recommendations
     
-    return summary 
+    return summary
