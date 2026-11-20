@@ -155,9 +155,6 @@ def prepare_flow_recipe(
         memory_gib=8,
     )
     config = bind_config(flow, binding)
-    formal = Path(deployment.value["professional"]["flow"]["source"])
-    for name in ("eval_tns.tcl", "eval_tns.sh"):
-        shutil.copyfile(formal / "flow" / name, flow / name)
     image_files = read(source / "image-files.json")
     tree = hashlib.sha256(json.dumps(image_files, sort_keys=True).encode()).hexdigest()
     write(
@@ -291,7 +288,7 @@ def prepare_native_source(
     resolve_native_parameters(deployment, experiment, recipe)
     formal = Path(deployment.value["professional"]["flow"]["source"])
     controller = experiment / "native-controller"
-    paths = ["run.sh", "config", "flow/predict_model"]
+    paths = ["run.sh", "config", "flow/predict_model", "flow/eval_tns.tcl"]
     paths += [
         str(p.relative_to(formal))
         for p in (formal / "flow").iterdir()

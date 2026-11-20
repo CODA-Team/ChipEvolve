@@ -25,21 +25,8 @@ export ABC_CLOCK_PERIOD_IN_PS = $(shell awk '$$1 == "set" && $$2 == "clk_period"
 """
 
 
-def prepare_gcd_flow(root, state, inputs, runtime, value):
-    source = root / "agent/flow-agent"
-    python = source / ".venv/bin/python"
-    if not python.is_file():
-        raise FileNotFoundError(
-            f"Install the Flow environment with bootstrap.py: {python}"
-        )
-    for phase, prefix in [("floorplan", "FLOORPLAN_"), ("global", "")]:
-        (inputs / f"gcd-{phase}-route.tcl").write_text(
-            f"set_global_routing_layer_adjustment metal2-metal3 $::env({prefix}PIN_LAYER_ADJUST)\n"
-            f"set_global_routing_layer_adjustment metal4-$::env(MAX_ROUTING_LAYER) $::env({prefix}ABOVE_LAYER_ADJUST)\n"
-            "set_routing_layers -signal $::env(MIN_ROUTING_LAYER)-$::env(MAX_ROUTING_LAYER)\n"
-            "set ::env(PL_ROUTING_ADJUSTMENT) 1.0\n"
-        )
-
+def orfs_stage_profile(root, state, runtime, value):
+    """Bind the deterministic ORFS stages shared by layout handoffs and Flow."""
     tools = value["tools"]
     tools["yosys"] = "/OpenROAD-flow-scripts/tools/install/yosys/bin/yosys"
     image = value["runtime"]["image"]
@@ -67,11 +54,11 @@ def prepare_gcd_flow(root, state, inputs, runtime, value):
     shutil.copyfile(root / "SOURCE_MANIFEST.json", manifest)
     profile = {
         "source_commit": subprocess.check_output(
-            ["git", "-C", source, "rev-parse", "HEAD"], text=True
+            ["git", "-C", root, "rev-parse", "HEAD"], text=True
         ).strip(),
         "openroad_bin": paths["openroad"],
         "yosys_bin": paths["yosys"],
-        "python_bin": str(python),
+        "python_bin": "/usr/bin/python3",
         "runtime": {"kind": "apptainer", "executable": runtime, "image": image},
         "toolchain": {
             **value["toolchain"],
@@ -81,6 +68,28 @@ def prepare_gcd_flow(root, state, inputs, runtime, value):
         },
     }
     value["flow_tool_profile"] = str(state / "flow-tool-profile.json")
+    return Path(value["flow_tool_profile"]), profile
+
+
+def prepare_gcd_flow(root, state, inputs, runtime, value):
+    source = root / "agent/flow-agent"
+    python = source / ".venv/bin/python"
+    if not python.is_file():
+        raise FileNotFoundError(
+            f"Install the Flow environment with bootstrap.py: {python}"
+        )
+    for phase, prefix in [("floorplan", "FLOORPLAN_"), ("global", "")]:
+        (inputs / f"gcd-{phase}-route.tcl").write_text(
+            f"set_global_routing_layer_adjustment metal2-metal3 $::env({prefix}PIN_LAYER_ADJUST)\n"
+            f"set_global_routing_layer_adjustment metal4-$::env(MAX_ROUTING_LAYER) $::env({prefix}ABOVE_LAYER_ADJUST)\n"
+            "set_routing_layers -signal $::env(MIN_ROUTING_LAYER)-$::env(MAX_ROUTING_LAYER)\n"
+            "set ::env(PL_ROUTING_ADJUSTMENT) 1.0\n"
+        )
+    path, profile = orfs_stage_profile(root, state, runtime, value)
+    profile["source_commit"] = subprocess.check_output(
+        ["git", "-C", source, "rev-parse", "HEAD"], text=True
+    ).strip()
+    profile["python_bin"] = str(python)
     design = value["designs"]["gcd"]
     design.update(
         baseline_overrides=GCD_OVERRIDES,
@@ -101,4 +110,4 @@ def prepare_gcd_flow(root, state, inputs, runtime, value):
             "clean_identity_quota": 2,
         },
     }
-    return Path(value["flow_tool_profile"]), profile
+    return path, profile

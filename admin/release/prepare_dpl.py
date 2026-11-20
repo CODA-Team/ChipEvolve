@@ -8,6 +8,7 @@ import subprocess
 import time
 from pathlib import Path
 
+from gcd_flow import orfs_stage_profile
 from native_toolchain import checkout, openroad_build_args
 from stack import configuration, get, write
 
@@ -174,6 +175,11 @@ def main():
     )
     if not (core_binary.parent / "platform-build.json").is_file():
         raise RuntimeError("Execution Foundation did not produce a core build receipt")
+    if "flow_tool_profile" not in deployment:
+        stage_path, stage_profile = orfs_stage_profile(
+            root, state, deployment["runtime"]["executable"], deployment
+        )
+        write(stage_path, stage_profile)
     deployment.setdefault("professional", {})["dpl"] = {
         "source": str(module),
         "python": str(python),

@@ -56,3 +56,19 @@ def test_formal_cp0_evaluator_and_profile_identity_replace_the_old_template(tmp_
     ).read_text() == "current controller with explicit stage closure"
     assert read(frozen)["eval_tns_sha256"] == digest(formal / "flow/eval_tns.tcl")
     assert read(frozen)["eval_tns_sha256"] != digest(template / "flow/eval_tns.tcl")
+
+
+def test_physical_stage_profile_needs_only_the_frozen_makefile(tmp_path):
+    d = deployment(tmp_path)
+    source = tmp_path / "source"
+    makefile = source / "flow/Makefile"
+    makefile.parent.mkdir(parents=True)
+    makefile.write_text("frozen ORFS Makefile")
+    profile = tmp_path / "profile.json"
+    write(profile, {"eval_tns_sha256": "old-evaluator"})
+    d.value["flow_tool_profile"] = str(profile)
+    experiment = d.experiment("design", "physical-only")
+
+    frozen = read(tool_profile(d, source, experiment))
+    assert frozen["makefile_sha256"] == digest(makefile)
+    assert "eval_tns_sha256" not in frozen

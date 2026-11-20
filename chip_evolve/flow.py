@@ -69,7 +69,11 @@ def tool_profile(deployment: Deployment, source: Path, experiment: Path) -> Path
     profile = read(deployment.value["flow_tool_profile"])
     profile["flow_dir"] = str(source / "flow")
     profile["makefile_sha256"] = digest(source / "flow/Makefile")
-    profile["eval_tns_sha256"] = digest(source / "flow/eval_tns.tcl")
+    evaluator = source / "flow/eval_tns.tcl"
+    if evaluator.is_file():
+        profile["eval_tns_sha256"] = digest(evaluator)
+    else:
+        profile.pop("eval_tns_sha256", None)
     path = experiment / "tool-profile.json"
     write(path, profile)
     return path
@@ -416,13 +420,15 @@ def resume_layout(
     sha = digest(placement)
     parent = producer
     record = None
+    resources = design.get("orfs_execution", {})
+    threads = resources.get("cpu_cores", 8)
     for phase in ("cts", "route_finish"):
         record = jobs.submit(
             phase,
             {
                 "adapter": "a2_stage",
                 "stage": phase,
-                "threads": 8,
+                "threads": threads,
                 "profile_path": "inputs/profile.json",
                 "config_path": "inputs/config.mk",
                 "sdc_path": "inputs/design.sdc",
@@ -439,7 +445,8 @@ def resume_layout(
             ],
             parent=parent,
             objective=objective,
-            memory_gib=design.get("orfs_execution", {}).get("memory_gib", 24),
+            cpu=threads,
+            memory_gib=resources.get("memory_gib", 24),
         )
         checkpoint = jobs.experiment / (phase + ".zip")
         jobs.materialize(record, "flow_archive", checkpoint)

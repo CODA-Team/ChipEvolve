@@ -78,6 +78,41 @@ def test_source_recipe_preserves_submitted_overrides_and_exact_library_bytes(tmp
     assert binding["physical_run_id"] == "actual-orfs"
 
 
+def test_physical_recipe_builds_without_a_flow_agent_binding(tmp_path, monkeypatch):
+    from admin.test_local_business import deployment
+    from chip_evolve import flow_recipe
+
+    frame = source(tmp_path)
+    image = tmp_path / "orfs.sif"
+    image.write_bytes(b"pinned image")
+    task = frame.parent / "jobs/orfs/task.json"
+    payload = read(task)
+    payload["inputs"]["orfs_image"] = str(image)
+    write(task, payload)
+    d = deployment(tmp_path)
+    toolchain = {"image_sha256": digest(image)}
+    d.value.update(
+        runtime={"image": str(image), "bind_roots": []},
+        designs={"design": {"platform": "pdk"}},
+        toolchain=toolchain,
+    )
+    d.value.pop("professional", None)
+    write(frame, {**read(frame), "conditions": {"toolchain": toolchain}})
+    experiment = d.experiment("design", "physical-only")
+
+    def capture_image_files(*args, **kwargs):
+        (experiment / "source/flow").mkdir(parents=True)
+        write(experiment / "source/image-files.json", {})
+        return {"run": {"run_id": "preparation"}}
+
+    monkeypatch.setattr(flow_recipe, "container", lambda _, command: command)
+    monkeypatch.setattr(Jobs, "command", capture_image_files)
+    prepared = flow_recipe.prepare_flow_recipe(d, frame, experiment)
+    recipe = read(experiment / "recipe.json")
+    assert recipe["preparation_run_id"] == "preparation"
+    assert prepared / "flow" == Path(recipe["config_path"]).parent
+
+
 def test_changed_registered_source_cannot_become_a_new_recipe(tmp_path):
     frame = source(tmp_path)
     (frame.parent / "design.mk").write_text("export CORE_UTILIZATION = 10\n")
