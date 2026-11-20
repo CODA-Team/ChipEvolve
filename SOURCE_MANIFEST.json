@@ -29,8 +29,8 @@
     },
     {
       "path": "agent/query-agent",
-      "source_commit": "4e494b13c43d43feedd637d7bc9da408827bb007",
-      "source_tree": "0912d0aa7638dec0666bba3e0620d54af81d5c43",
+      "source_commit": "d0ab27fd2015d23f13a6cfea65f0affc9faf674a",
+      "source_tree": "a62736316a84ee72824de6ab308741a72d298536",
       "url": "https://github.com/CODA-Team/ChipEvolve.git",
       "branch": "modules/query-agent-a31-result-recovery-20261024",
       "integration_branch": "modules/query-agent",
