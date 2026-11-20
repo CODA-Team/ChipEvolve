@@ -1,8 +1,10 @@
 """Local business boundaries: producer identity, inputs and retained incumbent."""
 
+import json
 import subprocess
 import sys
 import zipfile
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -14,6 +16,32 @@ from chip_evolve.handoff import flatten_archive
 from chip_evolve.jobs import Jobs, digest
 from chip_evolve.native import latest_producer
 from chip_evolve.selection import select
+
+
+@pytest.mark.parametrize("joined", [False, True])
+def test_business_cli_uses_isolated_deployment_python(tmp_path, monkeypatch, joined):
+    config = tmp_path / "local.json"
+    write(
+        config,
+        {
+            "schema_version": "chip-evolve.local.v1",
+            "state_root": str(tmp_path),
+            "client_python": sys.executable,
+        },
+    )
+    result = tmp_path / "result.json"
+    write(result, {"run_id": "run-example"})
+    (tmp_path / "sitecustomize.py").write_text(
+        "import sys\nsys.modules['chip_evolve'] = None\n"
+    )
+    monkeypatch.setenv("PYTHONPATH", str(tmp_path))
+    script = Path(__file__).resolve().parents[1] / "chip-evolve.py"
+    config_args = [f"--config={config}"] if joined else ["--config", str(config)]
+    shown = subprocess.check_output(
+        [sys.executable, str(script), *config_args, "show", "--result", str(result)],
+        text=True,
+    )
+    assert json.loads(shown)["run_id"] == "run-example"
 
 
 def deployment(root):
