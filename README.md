@@ -37,7 +37,8 @@ export ORFS_SIF="$PWD/var/toolchain/orfs.sif"
 ```
 
 That manifest is for x86_64. On Linux aarch64, use Docker with Buildx and
-Apptainer to build the same ORFS and OpenROAD source revisions natively:
+Apptainer to build the same ORFS and OpenROAD source revisions natively.
+The ARM64 script uses the checked-out Slang submodule and the CMake CLI build.
 
 ```bash
 mkdir -p var/toolchain
