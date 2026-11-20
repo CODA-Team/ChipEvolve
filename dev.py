@@ -93,7 +93,7 @@ if args.command == "check":
                 "check",
                 "--isolated",
                 "--select",
-                "E9,F63,F7,F82",
+                "E4,E7,E9,F" if args.project == "root" else "E9,F63,F7,F82",
                 *static_targets,
             ]
         ]
@@ -117,10 +117,6 @@ if args.command == "check":
         commands += [[str(python), "-m", "mypy", "--ignore-missing-imports", *sources]]
     elif args.project == "toolkits":
         commands += [
-            [str(python.parent / "ruff"), "check", "src", "tests", "--select", "F"]
-        ]
-    elif args.project == "data-foundation":
-        commands += [
             [
                 str(python.parent / "ruff"),
                 "check",
@@ -128,6 +124,18 @@ if args.command == "check":
                 "--select",
                 "E4,E7,E9,F",
                 "src",
+            ],
+            [str(python.parent / "ruff"), "check", "src", "tests", "--select", "F"],
+        ]
+    elif args.project in {"data-foundation", "data-interface", "goalevolve"}:
+        commands += [
+            [
+                str(python.parent / "ruff"),
+                "check",
+                "--isolated",
+                "--select",
+                "E4,E7,E9,F",
+                "goalevolve" if args.project == "goalevolve" else "src",
             ]
         ]
     tests = {
