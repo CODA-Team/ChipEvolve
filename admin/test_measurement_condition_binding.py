@@ -76,6 +76,31 @@ def test_run_rejects_replaced_tool_image_before_submitting(tmp_path, monkeypatch
     assert not (jobs.deployment.state / "experiments").exists()
 
 
+@pytest.mark.parametrize("capability", ["flow", "dpl", "goal"])
+def test_specialist_profile_must_use_the_deployment_image(tmp_path, capability):
+    from chip_evolve.environment import verify_professional_toolchain
+
+    jobs, *_ = bound_measurement(tmp_path)
+    profile = tmp_path / "profile.json"
+    jobs.deployment.value.update(
+        toolchain={"image_sha256": "common", "openroad_commit": "base"},
+        flow_tool_profile=str(profile),
+        professional={capability: {"profile_template": str(profile)}},
+    )
+    write(
+        profile,
+        {"toolchain": {"image_sha256": "stale", "openroad_base_commit": "base"}},
+    )
+    with pytest.raises(ValueError, match=f"{capability} profile.*image_sha256"):
+        verify_professional_toolchain(jobs.deployment, capability)
+
+    write(
+        profile,
+        {"toolchain": {"image_sha256": "common", "openroad_base_commit": "base"}},
+    )
+    verify_professional_toolchain(jobs.deployment, capability)
+
+
 @pytest.mark.parametrize(
     "field", ["libraries", "corner", "clock_period_ns", "toolchain"]
 )

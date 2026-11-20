@@ -31,6 +31,28 @@ def verify_runtime_image(deployment: Deployment) -> Path:
     return image
 
 
+def verify_professional_toolchain(deployment: Deployment, capability: str) -> None:
+    """A specialist profile must run on the deployment's declared toolchain."""
+    toolchain = deployment.value.get("toolchain", {})
+    if not toolchain.get("image_sha256") or capability not in {"flow", "dpl", "goal"}:
+        return
+    if capability == "flow":
+        path = deployment.value["flow_tool_profile"]
+    else:
+        path = deployment.value["professional"][capability]["profile_template"]
+    profile = read(path)["toolchain"]
+    for key in ("image_sha256", "orfs_commit", "openroad_commit"):
+        expected = toolchain.get(key)
+        if (
+            expected
+            and profile.get(key, profile.get(key.replace("_commit", "_base_commit")))
+            != expected
+        ):
+            raise ValueError(
+                f"{capability} profile and deployment disagree on {key}: {path}"
+            )
+
+
 def identity(value: dict[str, Any]) -> str:
     return hashlib.sha256(
         json.dumps(

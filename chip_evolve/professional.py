@@ -12,6 +12,7 @@ from eda_toolkits.context import load_context
 
 from .config import Deployment, read, write
 from .dpl import run_dpl
+from .environment import verify_professional_toolchain
 from .flow import run_flow
 from .jobs import Jobs, digest
 from .physical import verify_measurement_conditions
@@ -22,6 +23,7 @@ def execute(
 ) -> dict[str, Any]:
     if not args.source:
         raise ValueError("A professional task needs a registered source result")
+    verify_professional_toolchain(deployment, args.capability)
     from .candidates import result_frame
 
     frame = result_frame(args.source)

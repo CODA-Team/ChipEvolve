@@ -92,7 +92,7 @@ def inventory(source: Path) -> dict[str, str]:
 
 
 def environment(objective: Path, context: Path) -> dict[str, str]:
-    return dict(
+    env = dict(
         os.environ,
         EDA_PLATFORM_OBJECTIVE=str(objective),
         EDA_PLATFORM_CONTEXT=str(context),
@@ -100,6 +100,9 @@ def environment(objective: Path, context: Path) -> dict[str, str]:
         no_proxy="127.0.0.1,localhost",
         PYTHONNOUSERSITE="1",
     )
+    for key in ("PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV", "CONDA_PREFIX"):
+        env.pop(key, None)
+    return env
 
 
 def invoke(
