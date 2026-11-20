@@ -13,7 +13,7 @@ Use the [quickstart](README.md) to install the candidate and the
 | Source and environment | A fresh GitHub checkout of `e5dbcac` verified all nine module revisions and trees, rebuilt 11 wheels, and installed ten separate Python environments. With the same module pins and environments, the public `7829863` revision passed 2,564 tests with one host-dependent skip in `python3 dev.py all check`. |
 | Rocky Linux x86_64 | The same checkout ran GCD through ORFS and OpenROAD with a four-core, 12 GiB stack. The routed result had zero DRC violations. The SDK resolved the three fact views to `run-63fae3749035403b90cac10fb909f616` and found the original EF artifacts. Recovery returned the same run ID. |
 | openEuler 24.03 x86_64 | A fresh GitHub checkout of `874b666` installed all ten environments in openEuler and used its Apptainer package `1.1.6-2.oe2403`. GCD delivered three fact views and registered artifacts with zero route DRC. Slack matched Rocky, and recovery returned `run-7a7d37837c794f9aaf941001df9b9dea`. This check used rootless Podman in privileged container mode for Apptainer's nested mounts. |
-| Linux ARM64 | A hosted native ARM64 runner installed the ten environments and built the native ORFS image from the fixed Slang Git commit. The [run with tool logs](https://github.com/CODA-Team/ChipEvolve/actions/runs/44730556430) reached GDS after routing and extraction, then could not find the compiled KLayout executable on PATH. Packaging now exposes it on PATH using the cached base image. |
+| Linux ARM64 | A fresh GitHub checkout of `2d622f3` on native ARM64 installed all ten environments and repackaged the cached native ORFS build with KLayout 0.30.12 discoverable on PATH. GCD completed through GDS. It delivered three fact views and registered EF artifacts with zero route DRC. Recovery returned `run-25e9ba43c0c54a1a8a5e2e1ba1c155bf`. [Run](https://github.com/CODA-Team/ChipEvolve/actions/runs/44749175211) · [Receipts](https://github.com/CODA-Team/ChipEvolve/actions/runs/44749175211/artifacts/14634877326) |
 | Licensing | The root project and Data Interface use MIT. TimingECOAgent is in the first release, with its upstream attribution in its [NOTICE](agent/timing-eco-agent/NOTICE). The maintainer confirmed redistribution permission. Its written record is pending. |
 
 ## Specialist checks on GCD
@@ -29,3 +29,9 @@ Use the [quickstart](README.md) to install the candidate and the
 The GCD runs cover the platform handoffs and the specialist paths listed above.
 Paper-scale search and statistical results have separate protocols and
 records. [Earlier local GCD acceptance](admin/A111_GCD_SPECIALIST_ACCEPTANCE_20261120.md)
+
+For the ARM64 build history, the initial Bazel run failed a Slang archive
+checksum. The CMake build used the same pinned Slang Git commit. The next
+GCD run reached GDS and showed that the compiled KLayout executable was
+outside PATH. The final run reused the saved native build and verified the
+packaged runtime. [Initial build](https://github.com/CODA-Team/ChipEvolve/actions/runs/44697993963) · [GDS failure log](https://github.com/CODA-Team/ChipEvolve/actions/runs/44730556430)
