@@ -1,6 +1,7 @@
 """Build and install the candidate into clean, separate project environments."""
 
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -32,10 +33,22 @@ def main() -> None:
     if sys.version_info[:2] != (3, 12):
         parser.error("Use Python 3.12 for the candidate environments")
     root = Path(__file__).resolve().parents[1]
+    manifest = json.loads((root / "SOURCE_MANIFEST.json").read_text())
+    pins = {module["path"]: module["source_commit"] for module in manifest["modules"]}
     for project in PACKAGES:
         path = root / project
         if not path.is_dir() or (project != "admin" and not (path / ".git").exists()):
             parser.error(f"Initialize the {project} checkout before installation")
+        if project != "admin":
+            expected = pins[project]
+            gitlink = subprocess.check_output(
+                ["git", "rev-parse", f"HEAD:{project}"], cwd=root, text=True
+            ).strip()
+            actual = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=path, text=True
+            ).strip()
+            if expected != gitlink or expected != actual:
+                parser.error(f"{project} must be at the workspace pin {expected}")
         if (path / ".venv").exists():
             parser.error(f"{project} already has a .venv; use a fresh checkout")
     output = args.output.resolve()
