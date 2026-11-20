@@ -9,8 +9,49 @@ from __future__ import annotations
 import functools
 import json
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import patch
+
+
+@contextmanager
+def isolated_p0_assets():
+    """Give native AST unit tests a real graph over a disposable source tree."""
+    from goalevolve import p0_campaign
+    from goalevolve.planning.repository_graph import RepositoryGraphIndex
+
+    with tempfile.TemporaryDirectory(prefix="goalevolve-unit-p0-") as temporary:
+        root = Path(temporary) / "openroad_power/p0"
+        source = root / "source"
+        cpp = source / "src/rsz/src/UnitP0.cc"
+        cpp.parent.mkdir(parents=True)
+        cpp.write_text("namespace rsz { int seed() { return 1; } }\n", encoding="utf-8")
+        (source / "CMakeLists.txt").write_text("# Synthetic unit source\n", encoding="utf-8")
+        graph = RepositoryGraphIndex(
+            state_root=root / "state", p0_source_root=source
+        ).build_p0()
+        with (
+            patch("goalevolve.platform.profile.source_seed", return_value=source),
+            patch.object(p0_campaign, "P0_SOURCE_ROOT", source),
+            patch.object(p0_campaign, "P0_REPOSITORY_GRAPH_ROOT", graph.artifact_root),
+        ):
+            yield
+
+
+def contest_benchmark_fixture(root: Path, design: str) -> Path:
+    """Supply the paths the Tcl writer needs for tests with no physical run."""
+    benchmarks = root / "benchmarks"
+    for path in (
+        benchmarks / design / f"{design}.def",
+        benchmarks / design / f"{design}.v",
+        benchmarks / design / f"{design}.sdc",
+        root / "asap7/lef/unit.tech.lef",
+        root / "asap7/lib/unit.lib",
+        root / "asap7/setRC.tcl",
+    ):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.touch()
+    return benchmarks
 
 
 def _write(path: Path, value: object) -> None:

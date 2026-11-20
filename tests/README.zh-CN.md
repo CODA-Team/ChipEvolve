@@ -1,11 +1,11 @@
 # 测试
 
-在项目根目录运行确定性的 core suite：
+在项目根目录运行确定性单测。
 
 ```bash
-PYTHONPATH=. python3 -m unittest tests.unit.test_core -q
+python3 -m pytest tests/unit
 ```
 
-`unit/` 保存确定性的 controller 与 official-check 回归；`integration/` 留给已安装 OpenROAD 的真实流程；`artifact/` 验证 release manifest 与固定 artifact 接口，不需要 LLM。若已安装也可使用 `pytest`。
+`unit/` 用本地小型夹具验证控制器、AST 和评估器。ChipEvolve 发布检出已包含所需文件。
 
-官方 checker 测试只会在官方 benchmark 数据缺失时跳过，且不重建 OpenROAD。真正的 build/flow/4-of-4 验证仍属于 integration campaign，不能由 unit test 替代。
+`artifact/` 需要完整的 GoalEvolve 科研检出，包括冻结的 P0 和官方 AES benchmark。可在完整检出中运行 `python3 -m pytest tests/artifact`，验证发布清单、冻结的 AST 图及官方四项检查。全新 OpenROAD 构建与物理设计运行由集成实验验证。

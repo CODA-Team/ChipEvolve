@@ -16,9 +16,14 @@ from goalevolve.p0_campaign import (
     p0_template_report,
 )
 
+from release_fixtures import isolated_p0_assets
+
 
 class P0CampaignTests(unittest.TestCase):
-    def test_registry_exposes_aes_and_checked_in_p0_assets(self) -> None:
+    def setUp(self) -> None:
+        self.enterContext(isolated_p0_assets())
+
+    def test_registry_exposes_reviewed_aes_template_and_p0_status(self) -> None:
         report = p0_template_report()
         self.assertTrue(report["p0_source_ready"])
         self.assertTrue(report["ast_repository_graph_ready"])

@@ -1,11 +1,11 @@
 # Tests
 
-Run the deterministic core suite from the project root:
+Run the deterministic core suite from the project root.
 
 ```bash
-PYTHONPATH=. python3 -m unittest tests.unit.test_core -q
+python3 -m pytest tests/unit
 ```
 
-`unit/` contains deterministic controller and official-check regressions. `integration/` is reserved for an installed OpenROAD flow. `artifact/` validates release manifests and fixed-artifact interfaces without requiring an LLM. `pytest` may also be used where installed.
+`unit/` covers the controller, AST and evaluator with small local fixtures. The ChipEvolve release checkout includes everything this suite needs.
 
-The official-check test skips only when official benchmark data is absent. It does not rebuild OpenROAD. A real build/flow/4-of-4 validation remains an integration campaign operation, not a unit-test substitute.
+`artifact/` requires the full GoalEvolve research checkout, including the frozen P0 and official AES benchmark. Run `python3 -m pytest tests/artifact` there to check release manifests, the frozen AST graph and the official four-of-four checker. Use the integration campaign to validate a fresh OpenROAD build and a new physical-design run.

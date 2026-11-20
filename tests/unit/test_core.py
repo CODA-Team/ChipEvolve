@@ -14,11 +14,11 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from goalevolve.config import DEFAULT_BENCHMARK_ROOT, DEFAULT_CREDENTIAL_ENV, DEFAULT_OPENROAD_SEED, load_config
+from goalevolve.config import DEFAULT_CREDENTIAL_ENV, DEFAULT_OPENROAD_SEED, load_config
 from goalevolve.cli import _attach_configured_baseline
 from goalevolve.agents.codex_student import CodexStudentConfig, CodexStudentEditor, NoopStudentEditor, StudentEditReport, StudentReflectionReport
 from goalevolve.agents.codex_runtime import CodexRuntimeConfig, CodexTurn, PersistentCodexRunner
-from goalevolve.evaluation.contest2026 import Contest2026Config, Contest2026OpenROADEvaluator, _liberty_cell_blocks, _observed_phase_signals, _placement_legal, _power_timing_cell_tradeoff, _read_metrics, _source_diff, _write_rmp_combined_liberty, official_four_check
+from goalevolve.evaluation.contest2026 import Contest2026Config, Contest2026OpenROADEvaluator, _liberty_cell_blocks, _observed_phase_signals, _placement_legal, _power_timing_cell_tradeoff, _read_metrics, _source_diff, _write_rmp_combined_liberty
 from goalevolve.evaluation.contest2026 import _checkpoint_metrics
 from goalevolve.core.contracts import build_contract
 from goalevolve.execution.execution import ExecutionPolicy, ResilientCommandRunner
@@ -38,7 +38,11 @@ from goalevolve.evaluation.sfinal import score_sfinal
 from goalevolve.token_ledger import record_round_token_usage
 from goalevolve.agents.teacher import CodexTeacher
 from goalevolve.execution.workspace import IsolatedWorkspace
-from release_fixtures import released_unit_assets
+from release_fixtures import (
+    contest_benchmark_fixture,
+    isolated_p0_assets,
+    released_unit_assets,
+)
 from goalevolve.evaluation.leaderboard import collect_campaign_results, rank_top_results, update_unified_leaderboard
 
 
@@ -1562,6 +1566,7 @@ Keep the checked parent.
         self.assertEqual(index["src/rsz"]["sampled_files"]["src/rsz/Timing.cc"]["symbols"], ["rsz::adjustTiming"])
         self.assertEqual(set(index), {"src/rsz"})
 
+    @isolated_p0_assets()
     def test_source_structure_index_legacy_call_builds_a_fresh_ast_view(self) -> None:
         from goalevolve.execution.teacher_assignment import source_structure_index
 
@@ -3056,6 +3061,7 @@ Keep the checked parent.
                 "exact_seed_reference_patch_not_applicable:exact_seed",
             )
 
+    @isolated_p0_assets()
     def test_engine_persists_external_teacher_failure_before_raising(self) -> None:
         from goalevolve.agents.teacher import TeacherPlan
 
@@ -3106,6 +3112,7 @@ Keep the checked parent.
         self.assertEqual(persisted["teacher_failure_kind"], "external_turn_failure")
         self.assertEqual(persisted["teacher_detail"], "codex_failed:stream disconnected")
 
+    @isolated_p0_assets()
     def test_engine_does_not_persist_exhausted_markdown_repair_as_external_failure(self) -> None:
         from goalevolve.agents.teacher import TeacherPlan
 
@@ -3227,6 +3234,7 @@ Keep the checked parent.
             "## valid repair",
         )
 
+    @isolated_p0_assets()
     def test_codex_engine_recovers_only_completed_raw_teacher_plan_before_replanning(self) -> None:
         """A paid, completed raw Teacher turn is reusable only with its full audit trail."""
         from goalevolve.agents.markdown_protocol import parse_draft_signatures, parse_teacher_plan
@@ -4675,6 +4683,7 @@ Keep the checked parent.
         self.assertEqual(templates[0].role_mode, "seed_revalidation")
         self.assertEqual(templates[1].student_role, "enhancer")
 
+    @isolated_p0_assets()
     def test_round_two_hides_historical_seed_cards_from_codex_teacher(self) -> None:
         """Historical cards are a round-one revalidation packet, not R2 input."""
         class StopAfterPlanning(RuntimeError):
@@ -5360,6 +5369,7 @@ Keep the checked parent.
         self.assertIn(seed["candidate_id"], repair_prompt)
         self.assertIn("repair_power_early_window_retained", repair_prompt)
 
+    @isolated_p0_assets()
     def test_codex_engine_uses_teacher_authored_mechanisms_not_planner_cards(self) -> None:
         from goalevolve.agents.markdown_protocol import parse_teacher_plan
         from goalevolve.agents.teacher import TeacherPlan
@@ -9149,7 +9159,7 @@ Inspect the timing handoff.
     def test_contest_evaluator_writes_official_flow_tcl(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            benchmark_root = DEFAULT_BENCHMARK_ROOT
+            benchmark_root = contest_benchmark_fixture(root, "aes_cipher_top")
             evaluator = Contest2026OpenROADEvaluator(
                 Contest2026Config("aes_cipher_top", benchmark_root, DEFAULT_OPENROAD_SEED)
             )
@@ -9782,7 +9792,6 @@ Inspect the timing handoff.
                 "evaluator": "contest_openroad",
             })
             self.assertEqual(load_config(path).source_root, DEFAULT_OPENROAD_SEED)
-            self.assertTrue(DEFAULT_OPENROAD_SEED.is_dir())
 
     def test_nvdla_c_evolution_contract_keeps_its_frozen_timing_reference(self) -> None:
         profile = load_config(
@@ -10081,7 +10090,11 @@ Inspect the timing handoff.
             seed = root / "seed"
             seed.mkdir()
             evaluator = Contest2026OpenROADEvaluator(
-                Contest2026Config("aes_cipher_top", DEFAULT_BENCHMARK_ROOT, seed)
+                Contest2026Config(
+                    "aes_cipher_top",
+                    contest_benchmark_fixture(root, "aes_cipher_top"),
+                    seed,
+                )
             )
             evaluator._build = lambda _source, workspace, **_kwargs: workspace / "bin" / "openroad"
             with patch("goalevolve.evaluation.contest2026.ResilientCommandRunner", SuccessfulFlowRunner), patch(
@@ -10118,7 +10131,11 @@ Inspect the timing handoff.
             source = root / "source"
             source.mkdir()
             evaluator = Contest2026OpenROADEvaluator(
-                Contest2026Config("aes_cipher_top", DEFAULT_BENCHMARK_ROOT, source)
+                Contest2026Config(
+                    "aes_cipher_top",
+                    contest_benchmark_fixture(root, "aes_cipher_top"),
+                    source,
+                )
             )
             evaluator._build = lambda _source, workspace, **_kwargs: workspace / "bin" / "openroad"
             with patch("goalevolve.evaluation.contest2026.ResilientCommandRunner", SuccessfulFlowRunner), patch(
@@ -11463,20 +11480,6 @@ Inspect the timing handoff.
             family = summary["family_hook_summary"][0]
             self.assertEqual(family["mechanism_family"], "ranking")
             self.assertEqual(family["source_hooks"], ["src/rsz/src/RecoverPower.cc"])
-
-    def test_official_four_of_four_checker_accepts_baseline(self) -> None:
-        benchmark_root = DEFAULT_BENCHMARK_ROOT
-        baseline = benchmark_root / "aes_cipher_top"
-        if not baseline.is_dir():
-            self.skipTest("reference benchmark data is not installed")
-        with tempfile.TemporaryDirectory() as temporary:
-            passed, detail = official_four_check(
-                pre_opt=baseline,
-                post_opt=baseline,
-                output_log=Path(temporary) / "official_4of4.log",
-                policy=ExecutionPolicy(timeout_s=60, retries=0, min_free_gb=0),
-            )
-        self.assertTrue(passed, detail)
 
     def test_scope_resolver_verifies_existing_source_hook(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

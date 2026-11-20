@@ -12,6 +12,7 @@ from goalevolve.execution.engine import GoalEvolveEngine
 from goalevolve.execution.workspace import IsolatedWorkspace
 from goalevolve.evaluation.promotion import StrictEvidencePromotion
 from goalevolve.planning.retrieval import DiversePlanner
+from release_fixtures import isolated_p0_assets
 
 
 class _StaticEvaluator:
@@ -20,6 +21,7 @@ class _StaticEvaluator:
 
 
 class AstGraphLifecycleTests(unittest.TestCase):
+    @isolated_p0_assets()
     def test_promoted_parent_refresh_is_incremental_and_audited(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -10,13 +10,29 @@ from unittest.mock import patch
 
 from artifact_evaluation import import_v2_ae2_records as release_import
 from artifact_evaluation.ae1 import run_ae1
-from artifact_evaluation.ae1.run_ae1 import _artifact, _artifacts, ae1
+from artifact_evaluation.ae1.run_ae1 import _artifacts
 from artifact_evaluation.ae2 import run_ae2 as runner
+from goalevolve.config import DEFAULT_BENCHMARK_ROOT
+from goalevolve.evaluation.contest2026 import official_four_check
+from goalevolve.execution.execution import ExecutionPolicy
 from goalevolve.core.io import sha256_file
 from goalevolve.planning.repository_graph import RepositoryGraphIndex
 
 
 class ReleaseArtifactTests(unittest.TestCase):
+    def test_official_four_of_four_checker_accepts_baseline(self) -> None:
+        benchmark_root = DEFAULT_BENCHMARK_ROOT
+        baseline = benchmark_root / "aes_cipher_top"
+        self.assertTrue(baseline.is_dir(), f"Missing official benchmark data: {baseline}")
+        with tempfile.TemporaryDirectory() as temporary:
+            passed, detail = official_four_check(
+                pre_opt=baseline,
+                post_opt=baseline,
+                output_log=Path(temporary) / "official_4of4.log",
+                policy=ExecutionPolicy(timeout_s=60, retries=0, min_free_gb=0),
+            )
+        self.assertTrue(passed, detail)
+
     def test_public_artifacts_use_student_code_aliases(self) -> None:
         forbidden = re.compile(r"(?:round_[0-9]+|r[0-9]+_student[0-9]+|student_[0-9]+)")
         artifacts = _artifacts()
