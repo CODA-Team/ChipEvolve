@@ -18,9 +18,12 @@ def snapshot_inputs(snapshot: dict[str, Any], with_timing: bool = True) -> tuple
     paths = {}
     if with_timing:
         paths = {context['constraints']: 'sdc_path', **{p: 'library' for p in context['libraries']}}
-        if context.get('rc_script'): paths[context['rc_script']] = 'rc_script_path'
-        if context.get('parasitics'): paths[context['parasitics']] = 'spef_path'
-        if context.get('global_routing_segments'): paths[context['global_routing_segments']] = 'global_routing_segments_path'
+        if context.get('rc_script'):
+            paths[context['rc_script']] = 'rc_script_path'
+        if context.get('parasitics'):
+            paths[context['parasitics']] = 'spef_path'
+        if context.get('global_routing_segments'):
+            paths[context['global_routing_segments']] = 'global_routing_segments_path'
         inputs['parasitic_mode'] = context['parasitic_mode']
         inputs['ideal_clocks'] = context.get('ideal_clocks', False)
     staged, libraries, provenance = [], [], []
@@ -33,8 +36,10 @@ def snapshot_inputs(snapshot: dict[str, Any], with_timing: bool = True) -> tuple
             raise ValueError('snapshot has ambiguous original native inputs: ' + path)
         staged.append({'destination': path, 'artifact_id': ref['artifact_id']})
         provenance.append(ref)
-        if key == 'library': libraries.append(path)
-        else: inputs[key] = path
+        if key == 'library':
+            libraries.append(path)
+        else:
+            inputs[key] = path
     if 'odb_path' not in inputs or (with_timing and set(libraries) != set(context['libraries'])):
         raise ValueError('snapshot lacks original native inputs')
     if with_timing:
@@ -47,7 +52,8 @@ def snapshot_inputs(snapshot: dict[str, Any], with_timing: bool = True) -> tuple
         missing = [path or field for field, path in required.items() if field not in inputs]
         if missing:
             raise ValueError('snapshot lacks fixed native input sources: ' + ', '.join(missing))
-    if with_timing: inputs['liberty_paths'] = libraries
+    if with_timing:
+        inputs['liberty_paths'] = libraries
     inputs['input_provenance'] = provenance
     return inputs, staged
 
