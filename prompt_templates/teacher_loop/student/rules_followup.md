@@ -46,7 +46,8 @@ needs it.
 
 1. Use generated helpers for prepare/start, trial begin/keep/reject, build,
    evaluate, and finalization. Do not reconstruct commands.
-2. Prepare or switch to the assigned branch/ref first and verify status. Treat
+2. Verify the assigned branch/ref with the status helper. Use the preparation
+   helper only if the controller has not prepared it. Treat
    current checked-out code as ground truth; do not implement from memory of a
    different start branch.
 3. Keep planning short but source-grounded. Before edits, inspect Teacher first

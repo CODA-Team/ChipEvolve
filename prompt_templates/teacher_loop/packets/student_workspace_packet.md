@@ -92,7 +92,7 @@ liveness when guidance is involved.
 
 Primary flow:
 
-1. prepare source or assigned start:
+1. prepare source or assigned start if the controller has not done so:
    - `$prepare_source_script`
    - `$prepare_start_source_script --kind <framework|diamond|default_negotiation>`
 2. inspect status/context as needed:
@@ -168,7 +168,7 @@ different HPWL source; do not silently overwrite the failed mechanism.
 
 - The private source repo contains prepared local branches `start/framework`,
   `start/diamond`, and `start/default_negotiation` after preparation.
-- If Teacher assigns a prepared start, use `prepare_start_source_script --kind <kind>` before edits. Do not manually apply release/start patch files and do not copy source trees.
+- Follow the Teacher assignment for the starting source. If the controller has prepared it, begin with the status helper. In standalone mode use `prepare_start_source_script --kind <kind>` for an explicitly assigned prepared branch.
 - After preparation, implement and commit your mechanism on the dev branch `$source_branch`. The generated iteration ref marks the iteration-start commit for diffing and review.
 - After any branch/start switch, re-check `$source_status_script` and redo source
   context reads for the files/functions you will patch.

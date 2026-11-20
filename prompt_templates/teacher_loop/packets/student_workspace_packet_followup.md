@@ -49,7 +49,7 @@ mechanism.
 
 Primary flow:
 
-1. prepare source or assigned start:
+1. prepare source or assigned start if the controller has not done so:
    - `$prepare_source_script`
    - `$prepare_start_source_script --kind <framework|diamond|default_negotiation>`
 2. for each mechanism trial:

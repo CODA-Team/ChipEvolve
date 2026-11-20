@@ -999,6 +999,7 @@ def main(argv: list[str] | None = None) -> int:
                     teacher_last_message=runtime.operations_dir
                     / teacher_op
                     / "codex_last_message.txt",
+                    prepare_workspaces=bool(os.environ.get("DPL_EVOLVE_PLATFORM_PROFILE")),
                 )
                 prompt_warnings = child_prompt_warning_lines(
                     child_rounds=child_rounds,

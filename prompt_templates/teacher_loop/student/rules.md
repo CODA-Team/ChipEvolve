@@ -35,9 +35,10 @@
 
 1. Open the workspace packet and use its generated helpers for source prep,
    trial begin/keep/reject, build, evaluate, and finalization.
-2. Prepare the assigned source or start branch first, then verify the current
-   branch/status with the generated status helper. Source understanding must be
-   based on the checked-out branch you will edit, not on memory or another start.
+2. Verify the assigned branch with the generated status helper. In platform
+   mode the controller prepares it before you start. In standalone mode use
+   the preparation helper in the Teacher assignment. Diagnose the code on the
+   branch you will edit.
 3. Read Teacher `first patch handles`, the workspace `Algorithm Entry Points`,
    and nearby call sites after branch preparation. Before material edits, write a
    compact source map in your notes: entry function, call path, state fields or

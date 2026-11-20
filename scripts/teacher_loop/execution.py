@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shlex
 import subprocess
 import sys
@@ -420,14 +421,13 @@ def teacher_insight_for_student(
     text: str,
     student_id: str,
     fallback_max_chars: int = 1800,
+    *,
+    require_assignment: bool = False,
 ) -> str:
     """Return the global diagnosis plus one `### student_XX` section."""
-    section_markers = ("## Insight Packets", "## Next Insight Packets")
-    global_part = text
-    for marker in section_markers:
-        if marker in text:
-            global_part = text.split(marker, 1)[0]
-            break
+    global_part = re.split(
+        r"(?im)^\s*(?:## (?:Next )?Insight Packets|### student_\d+\b)", text, maxsplit=1
+    )[0]
     global_lines = [line.strip() for line in global_part.splitlines() if line.strip()]
     global_keep_prefixes = (
         "Design read:",
@@ -460,9 +460,9 @@ def teacher_insight_for_student(
         return f"{prefix}{number - 1:02d}"
 
     def find_section_start(header: str) -> int | None:
-        needle = f"### {header}".lower()
+        pattern = re.compile(rf"^###\s+{re.escape(header)}\b", re.IGNORECASE)
         for idx, line in enumerate(lines):
-            if line.strip().lower().startswith(needle):
+            if pattern.match(line.strip()):
                 return idx
         return None
 
@@ -474,13 +474,17 @@ def teacher_insight_for_student(
     if has_zero_based_roster and alias is not None:
         start = find_section_start(alias)
         matched_header = alias if start is not None else student_id
-    if start is None:
+    elif require_assignment:
+        start = find_section_start(student_id)
+    if start is None and not require_assignment:
         start = find_section_start(student_id)
         matched_header = student_id
-    if start is None and alias is not None:
+    if start is None and alias is not None and not require_assignment:
         start = find_section_start(alias)
         matched_header = alias if start is not None else student_id
     if start is None:
+        if require_assignment:
+            raise ValueError(f"Teacher did not assign {student_id}")
         fallback = focused_message_excerpt(text, max_chars=fallback_max_chars)
         return fallback
 
@@ -588,7 +592,10 @@ def compact_teacher_child_insight(text: str, *, max_chars: int) -> str:
 
 
 def inline_teacher_plan_for_children(
-    *, child_rounds: list[ChildRound], teacher_last_message: Path
+    *,
+    child_rounds: list[ChildRound],
+    teacher_last_message: Path,
+    prepare_workspaces: bool = False,
 ) -> None:
     """Append each child's assigned Teacher insight after Teacher finishes.
 
@@ -609,7 +616,9 @@ def inline_teacher_plan_for_children(
     for child in child_rounds:
         if not child.prompt_path.exists():
             continue
-        assigned = teacher_insight_for_student(teacher_text, child.student_id)
+        assigned = teacher_insight_for_student(
+            teacher_text, child.student_id, require_assignment=prepare_workspaces
+        )
         assigned_start_kind = assigned_start_kind_from_insight(assigned)
         start_action = (
             "After opening the workspace packet, run `prepare_source_script`. Do "
@@ -619,7 +628,35 @@ def inline_teacher_plan_for_children(
             "pre-seeded/materialized elite source. Then inspect source and refine "
             "the mechanism before coding."
         )
-        if assigned_start_kind:
+        if prepare_workspaces:
+            scripts = child.student_workspace / "scripts" / child.student_id
+            if assigned_start_kind:
+                command = [
+                    str(scripts / "01_prepare_start_source.sh"),
+                    "--kind",
+                    assigned_start_kind.lower(),
+                ]
+            else:
+                command = [str(scripts / "00_prepare_source.sh")]
+            log = child.source_base_record.with_name("workspace-prepare.log")
+            log.parent.mkdir(parents=True, exist_ok=True)
+            with log.open("a", encoding="utf-8") as output:
+                result = subprocess.run(
+                    command,
+                    env=clean_subprocess_env(),
+                    stdout=output,
+                    stderr=subprocess.STDOUT,
+                    check=False,
+                )
+            if result.returncode:
+                raise RuntimeError(f"Could not prepare {child.student_id}; see {log}")
+            start_action = (
+                "The controller prepared your source using the assigned start "
+                "or continuation. Inspect it with `source_status_script` before "
+                "editing. Start with mechanism diagnosis and keep this source "
+                "unless the Teacher explicitly calls for a later pivot."
+            )
+        elif assigned_start_kind:
             start_action = (
                 "After opening the workspace packet, run "
                 f"`prepare_start_source_script --kind {assigned_start_kind}` before "
