@@ -171,8 +171,14 @@ def spef_index(path: Path, expected_sha256: str | None) -> SpefIndex:
 
 def read_spef_net(path: Path, offset: int) -> tuple[dict, bool]:
     """Read a net at a SPEF index offset and indicate whether it was truncated."""
+    parsed, truncated, _ = read_spef_record(path, offset)
+    return parsed, truncated
+
+
+def read_spef_record(path: Path, offset: int) -> tuple[dict, bool, int]:
+    """Return the parsed net, truncation flag and number of source bytes read."""
     data, truncated = _read_block(path, offset)
-    return _parse_block(data), truncated
+    return _parse_block(data), truncated, len(data)
 
 
 def _read_block(path: Path, offset: int) -> tuple[bytes, bool]:
