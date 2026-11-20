@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Structured empirical memory for planning source-evolution experiments.
 
 Unlike a retrieval-card blacklist, an observation binds a mechanism to its
@@ -7,9 +5,10 @@ actual source hook, activation evidence, verification state, and failure
 signature.  It is deliberately compact enough to enter every Teacher packet.
 """
 
+from __future__ import annotations
+
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
 
 from ..core.io import atomic_json, load_json, sha256_json
 from ..core.models import CandidateResult, EvidenceVerdict

@@ -200,7 +200,10 @@ class PersistentCodexRunner:
 
     def _project_config(self, credentials: dict[str, str]) -> str:
         quote = json.dumps
-        boolean = lambda value: "true" if value == "true" else "false"
+
+        def boolean(value: str) -> str:
+            return "true" if value == "true" else "false"
+
         return "\n".join(
             [
                 f"model_provider = {quote(credentials['provider'])}",

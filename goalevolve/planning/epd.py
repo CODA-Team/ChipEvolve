@@ -6,7 +6,7 @@ import tempfile
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Iterable, Mapping, Sequence
+from typing import Mapping, Sequence
 
 from ..core.io import atomic_json, canonical_json, load_json, sha256_json
 from ..core.models import CandidateResult, EvidenceVerdict, Parent

@@ -1923,10 +1923,6 @@ class GoalEvolveEngine:
                 candidate.artifacts["preflight"] = json.dumps(report.to_dict(), sort_keys=True)
                 if not report.ok and not candidate.evaluation_error:
                     candidate.evaluation_error = ";".join(report.violations)
-            stage_uses_recipe_baseline = str(decision_context.get("stage") or "") in {
-                "timing_recovery",
-                "adaptive_tradeoff",
-            }
             power_recipe_baseline = (
                 str(decision_context.get("stage") or "") == "power_reclaim"
                 and candidate.hypothesis.timing_recipe_id == "rmp_area_power"
@@ -2713,22 +2709,22 @@ class GoalEvolveEngine:
             if not isinstance(raw, Mapping):
                 continue
             normalized = dict(raw)
-            for field in tuple_fields:
-                if field in normalized:
-                    values = normalized[field] or ()
-                    if field == "source_hooks":
+            for field_name in tuple_fields:
+                if field_name in normalized:
+                    values = normalized[field_name] or ()
+                    if field_name == "source_hooks":
                         # Plans written before the semicolon-separated source
                         # hook protocol may have persisted several paths as one
                         # list element. Normalize only the recovery view; the
                         # original Teacher artifact remains immutable evidence.
-                        normalized[field] = tuple(
+                        normalized[field_name] = tuple(
                             hook.strip().strip("`")
                             for value in values
                             for hook in re.split(r"[;,]", str(value))
                             if hook.strip()
                         )
                     else:
-                        normalized[field] = tuple(values)
+                        normalized[field_name] = tuple(values)
             if "candidate_options" in normalized:
                 normalized["candidate_options"] = tuple(
                     dict(item) for item in normalized["candidate_options"] or () if isinstance(item, Mapping)

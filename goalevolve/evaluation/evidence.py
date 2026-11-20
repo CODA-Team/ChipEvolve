@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Sequence
 
 from ..core.contracts import GoalContract
 from ..core.models import CandidateResult, EvidenceVerdict, Parent
