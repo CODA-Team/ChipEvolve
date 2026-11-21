@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import gzip
+import re
 import shutil
 import time
 from pathlib import Path
@@ -70,9 +71,7 @@ def restore_goal_checkpoint(experiment: Path, design_id: str) -> None:
         experiment,
         design_id=design_id,
         odb=odb,
-        producer=latest_producer(
-            experiment / "operations", odb, receipt["source_run_id"]
-        ),
+        producer=goal_producer(experiment, odb, verdict, baseline),
         objective=Path(receipt["objective"]),
         pdk=Path(profile["pdk_root"]),
         native_method=verdict,
@@ -321,7 +320,7 @@ def run_goal(
     odb, verdict = _goal_output(
         experiment, baseline, evolved=args.operation == "evolve", fixed=fixed
     )
-    producer = latest_producer(experiment / "operations", odb, frame["run_id"])
+    producer = goal_producer(experiment, odb, verdict, baseline)
     from .delivery import checkpoint, finish
 
     checkpoint(
@@ -336,26 +335,98 @@ def run_goal(
     return finish(deployment, experiment)
 
 
-def latest_producer(operations: Path, checkpoint: Path, fallback: str) -> str:
+def goal_checkpoint_origin(
+    campaign: Path, checkpoint: Path, parent: dict[str, Any]
+) -> Path | None:
+    """Resolve the original file for a checkpoint copied into a Goal parent."""
+    sha = digest(checkpoint)
+    staged = set()
+    for path in (campaign / "stage_baselines").glob("*/parent_stage_baseline.json"):
+        row = read(path)
+        if row["parent_after"] == parent:
+            artifact = row["baseline"]["artifacts"].get("checkpoint_post_route_db")
+            if artifact and Path(artifact).is_file() and digest(Path(artifact)) == sha:
+                staged.add(Path(artifact).resolve())
+    if len(staged) > 1:
+        raise ValueError("Goal checkpoint has ambiguous stage baseline origins")
+    if staged:
+        return staged.pop()
+
+    match = re.fullmatch(r"(round_\d+):(student_\d+)", parent.get("parent_id", ""))
+    if not match:
+        return None
+    round_id, student_id = match.groups()
+    candidate = (
+        campaign
+        / "rounds"
+        / round_id
+        / "students"
+        / student_id
+        / "artifacts/candidate.json"
+    )
+    if not candidate.is_file():
+        return None
+    result = read(candidate)
+    origin = Path(result["artifacts"]["checkpoint_post_route_db"])
+    if result["source_commit"] != parent["source_commit"] or digest(origin) != sha:
+        raise ValueError("Promoted Goal checkpoint differs from its Student result")
+    return origin
+
+
+def goal_producer(
+    experiment: Path, odb: Path, verdict: dict[str, Any], baseline: dict[str, Any]
+) -> str:
+    parent = verdict.get("parent")
+    origin = (
+        goal_checkpoint_origin(experiment / "campaign", odb, parent) if parent else None
+    )
+    if origin is None and parent and parent["source_commit"] == "baseline":
+        original = Path(baseline["artifacts"]["checkpoint_post_route_db"])
+        if digest(original) != digest(odb):
+            raise ValueError(
+                "Retained Goal checkpoint differs from its baseline result"
+            )
+        origin = original
+    return latest_producer(experiment / "operations", odb, origin=origin)
+
+
+def latest_producer(
+    operations: Path,
+    checkpoint: Path,
+    *,
+    origin: Path | None = None,
+    expected_run_id: str | None = None,
+) -> str:
     """Use a recorded EF operation which actually captured the selected file."""
     sha = digest(checkpoint)
-    registered_path = str(checkpoint.resolve())
-    direct = []
-    matches = []
+    registered_path = str((origin or checkpoint).resolve())
+    direct = set()
+    matches = set()
     for path in operations.rglob("leaf.json"):
         row = read(path)
         if (
             row["request"]["operation"] == "physical"
+            and row.get("exit_code", row.get("returncode", 0)) == 0
+            and not row.get("timed_out")
             and sha in row["output_files"].values()
         ):
-            run_id = read(path.parent / "execution.json")["run"]["run_id"]
+            run = read(path.parent / "execution.json")["run"]
+            run_id = run["run_id"]
+            if run.get("status", "succeeded") != "succeeded" or (
+                expected_run_id and run_id != expected_run_id
+            ):
+                continue
             if row["output_files"].get(registered_path) == sha:
-                direct.append(run_id)
-            matches.append(run_id)
-    producers = direct or matches
+                direct.add(run_id)
+            matches.add(run_id)
+    producers = direct if origin is not None else direct or matches
     if not producers:
         raise ValueError("Native checkpoint has no EF producer with matching content")
-    return producers[-1]
+    if len(producers) != 1:
+        raise ValueError(
+            "Native checkpoint has ambiguous EF producers with matching content"
+        )
+    return producers.pop()
 
 
 def run_eco(

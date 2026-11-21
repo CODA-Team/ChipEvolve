@@ -1,7 +1,9 @@
 """A source replay inside ignored runtime storage must retain a real Git inventory."""
 
-from pathlib import Path
 import subprocess
+from pathlib import Path
+
+import pytest
 
 from chip_evolve.controller import freeze, inventory
 
@@ -69,3 +71,30 @@ def test_controller_export_keeps_default_without_new_git_metadata(tmp_path):
     # This demonstrates why an exported source cannot use the parent's Git
     # inventory when runtime storage is ignored by that parent repository.
     assert not git(target, "ls-files")
+
+
+@pytest.mark.parametrize("staged", [False, True])
+def test_freeze_applies_deleted_and_renamed_files_in_selected_subtree(tmp_path, staged):
+    source, target = source_repo(tmp_path)
+    (source / "src/obsolete.py").write_text("raise RuntimeError('obsolete')")
+    git(source, "add", "-A")
+    git(
+        source,
+        "-c",
+        "user.name=Test",
+        "-c",
+        "user.email=test@example.invalid",
+        "commit",
+        "-qm",
+        "obsolete controller",
+    )
+    (source / "src/obsolete.py").unlink()
+    (source / "src/StudentAlgorithm.cpp").rename(source / "src/Current.cpp")
+    if staged:
+        git(source, "add", "-A")
+    (source / "unrelated.txt").write_text("outside selected source paths")
+    freeze(source, target, paths=["src", "src/new-only"], git_metadata=True)
+    assert git(target, "ls-files") == "src/Current.cpp"
+    assert inventory(target) == {
+        "src/Current.cpp": inventory(source)["src/Current.cpp"]
+    }

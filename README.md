@@ -104,6 +104,10 @@ python3 chip-evolve.py --config "$local_config" diagnose \
 
 ## Try native Flow search
 
+For native Flow and DPLEvolve, use a checkout and experiment directory without
+spaces or other whitespace. ORFS Makefiles use these paths in Make lists and
+include directives. ChipEvolve checks the workspace path before dispatch.
+
 When initializing a fresh instance, pass `--flow` to `prepare-gcd`. It takes
 the binaries and their hashes from the same ORFS image and prepares a GCD
 recipe with a fixed clock and independent floorplan and routing controls.

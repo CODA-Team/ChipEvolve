@@ -1,5 +1,6 @@
 """Flow recipes inherit submitted inputs and retain physical source identity."""
 
+import subprocess
 from argparse import Namespace
 from pathlib import Path
 from typing import cast
@@ -9,6 +10,33 @@ import pytest
 from chip_evolve.config import read, write
 from chip_evolve.flow_recipe import bind_config, inherit_prepared_source, source_binding
 from chip_evolve.jobs import Jobs, digest
+
+
+def test_native_make_recipe_checks_path_before_generating_includes(tmp_path):
+    wrapper = tmp_path / "submitted.mk"
+    wrapper.write_text("include /OpenROAD-flow-scripts/flow/default.mk\n")
+    sdc = tmp_path / "submitted.sdc"
+    sdc.write_text("constraint\n")
+    binding = {
+        "config": str(wrapper),
+        "sdc": str(sdc),
+        "design_config": "default.mk",
+        "libraries": [],
+    }
+    flow = tmp_path / "native-flow"
+    flow.mkdir()
+    (flow / "default.mk").write_text("all:\n\t@echo resolved\n")
+    bound = bind_config(flow, binding)
+    output = subprocess.check_output(["make", "-s", "-f", bound], text=True)
+    assert output.strip() == "resolved"
+
+    spaced = tmp_path / "workspace with spaces"
+    spaced.mkdir()
+    with pytest.raises(
+        ValueError, match="Native ORFS Make paths cannot contain whitespace"
+    ):
+        bind_config(spaced, binding)
+    assert not (spaced / "source-config.mk").exists()
 
 
 def source(root):
@@ -425,6 +453,10 @@ def test_layout_handoff_preserves_native_stage_sdc_only_in_source_mode(
     profile = exp / "profile.json"
     profile.write_text("{}")
     monkeypatch.setattr(professional, "tool_profile", lambda *a: profile)
+    monkeypatch.setattr(
+        "chip_evolve.handoff.registered_archive",
+        lambda *a: {"path": "registered.zip"},
+    )
 
     class CheckedStage(Exception):
         pass
@@ -503,6 +535,10 @@ def test_layout_resume_uses_explicit_source_and_keeps_legacy_default(
 
     monkeypatch.setattr(professional, "flow_source", legacy)
     monkeypatch.setattr(professional, "tool_profile", profile)
+    monkeypatch.setattr(
+        "chip_evolve.handoff.registered_archive",
+        lambda *a: {"path": "registered.zip"},
+    )
     with pytest.raises(SelectedSource):
         professional.resume_layout(
             cast(

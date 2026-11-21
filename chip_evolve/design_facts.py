@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from .config import Deployment
+from .handoff import registered_files
 from .jobs import Jobs
 from .physical import publish
 
@@ -17,6 +18,7 @@ def ensure(
     if deferred is None:
         return frame
     jobs = Jobs(deployment, frame["design_id"], Path(deferred["publication_root"]))
+    registered_files(jobs, frame, tuple(frame["files"]))
     return publish(
         jobs,
         frame,

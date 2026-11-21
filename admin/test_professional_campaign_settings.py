@@ -132,7 +132,7 @@ def test_dispatcher_cancels_owned_jobs_and_preserves_native_timeout(
     }
     monkeypatch.setattr(professional, "load_context", lambda _: packet)
     monkeypatch.setattr("chip_evolve.design_facts.ensure", lambda *a: frame)
-    monkeypatch.setattr("chip_evolve.handoff.input_contract", lambda *a: {})
+    monkeypatch.setattr("chip_evolve.handoff.input_contract", lambda *a, **kw: {})
     original = professional.subprocess.TimeoutExpired("native", 60)
 
     def timeout(*args):

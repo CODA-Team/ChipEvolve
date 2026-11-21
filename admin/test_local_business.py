@@ -218,10 +218,10 @@ def test_checkpoint_producer_uses_content_not_filename(tmp_path):
             },
         )
         write(folder / "execution.json", {"run": {"run_id": key}})
-    assert latest_producer(operations, checkpoint, "input-source") == "actual"
+    assert latest_producer(operations, checkpoint) == "actual"
     checkpoint.write_bytes(b"unmanaged state")
     with pytest.raises(ValueError, match="no EF producer"):
-        latest_producer(operations, checkpoint, "input-source")
+        latest_producer(operations, checkpoint)
 
 
 def test_checkpoint_producer_prefers_the_registered_file_with_duplicate_bytes(tmp_path):
@@ -242,7 +242,12 @@ def test_checkpoint_producer_prefers_the_registered_file_with_duplicate_bytes(tm
             },
         )
         write(receipt / "execution.json", {"run": {"run_id": run_id}})
-    assert latest_producer(operations, checkpoint, "input-source") == "baseline"
+    assert latest_producer(operations, checkpoint) == "baseline"
+    copied = tmp_path / "parent.odb"
+    copied.write_bytes(checkpoint.read_bytes())
+    with pytest.raises(ValueError, match="ambiguous EF producers"):
+        latest_producer(operations, copied)
+    assert latest_producer(operations, copied, origin=checkpoint) == "baseline"
 
 
 def test_flow_configuration_is_recovered_after_the_next_round_replaces_it(tmp_path):

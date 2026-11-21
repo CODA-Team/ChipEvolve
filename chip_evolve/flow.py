@@ -378,11 +378,13 @@ def resume_layout(
     *,
     fact_modes: tuple[str, ...] = ("opendb", "orfs", "opensta"),
 ) -> dict[str, Any]:
-    from .handoff import placement_archive, verify_stage_archive
+    from .flow_recipe import require_make_paths
+    from .handoff import placement_archive, registered_archive, verify_stage_archive
 
     deployment = jobs.deployment
     design = deployment.design(jobs.design_id)
-    archive_path = frame.get("flow_archive") or read(frame["native_inputs"])["archive"]
+    require_make_paths(jobs.experiment)
+    archive_path = registered_archive(jobs, frame)["path"]
     flat = jobs.experiment / "source-checkpoint.zip"
     if not flat.exists():
         flatten_archive(Path(archive_path), flat)

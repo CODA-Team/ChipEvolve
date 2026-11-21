@@ -11,6 +11,37 @@ from chip_evolve.jobs import Jobs, digest
 from chip_evolve.logic import interface_and_physical
 
 
+def test_unfinished_recovery_rejects_replaced_image_before_delivery(
+    tmp_path, monkeypatch
+):
+    d = deployment(tmp_path)
+    folder = d.experiment("gcd", "image-recovery")
+    image = tmp_path / "pinned.sif"
+    image.write_bytes(b"approved image")
+    sha = digest(image)
+    d.value.update(runtime={"image": str(image)}, toolchain={"image_sha256": sha})
+    write(
+        folder / "request.json",
+        {"design": "gcd", "capability": "goal", "image_sha256": sha},
+    )
+    write(folder / "delivery-checkpoint.json", {"input_hashes": {}})
+    monkeypatch.setattr(
+        "chip_evolve.delivery.finish",
+        lambda *_: pytest.fail("An unfinished delivery reached the EDA boundary"),
+    )
+    image.write_bytes(b"different bytes at the original path")
+    with pytest.raises(ValueError, match="Image differs from its pinned identity"):
+        recover(d, "gcd", folder.name)
+    d.value["toolchain"]["image_sha256"] = digest(image)
+    with pytest.raises(ValueError, match="image differs from the original request"):
+        recover(d, "gcd", folder.name)
+
+    write(folder / "status.json", {"status": "succeeded"})
+    result = {"design_id": "gcd", "run_id": "original-result"}
+    write(folder / "result.json", result)
+    assert recover(d, "gcd", folder.name) == result
+
+
 def test_resume_never_restarts_an_unfinished_native_search(tmp_path):
     d = deployment(tmp_path)
     folder = d.experiment("aes", "unfinished")
@@ -62,16 +93,38 @@ def test_recovery_collects_a_finished_goal_search(tmp_path, monkeypatch, promote
     write(campaign / "parent.json", parent)
     write(campaign / "toolchain.json", {"openroad_version": "registered"})
     selected = baseline
+    original = baseline
     if promoted:
+        parent["parent_id"] = "round_001:student_2"
+        write(campaign / "parent.json", parent)
         selected = campaign / "parents" / source / "design_checkpoint.odb"
         selected.parent.mkdir(parents=True)
         selected.write_bytes(b"promoted")
+        candidate = campaign / "rounds/round_001/students/student_2/artifacts"
+        original = candidate / "post_route.odb"
+        write(
+            candidate / "candidate.json",
+            {
+                "source_commit": source,
+                "artifacts": {"checkpoint_post_route_db": str(original)},
+            },
+        )
+        original.write_bytes(selected.read_bytes())
+        other = folder / "operations" / "wrong-student"
+        write(
+            other / "leaf.json",
+            {
+                "request": {"operation": "physical"},
+                "output_files": {str(folder / "other.odb"): digest(selected)},
+            },
+        )
+        write(other / "execution.json", {"run": {"run_id": "wrong-producer"}})
     operation = folder / "operations" / "physical"
     write(
         operation / "leaf.json",
         {
             "request": {"operation": "physical"},
-            "output_files": {str(selected): digest(selected)},
+            "output_files": {str(original): digest(selected)},
         },
     )
     write(operation / "execution.json", {"run": {"run_id": "native-producer"}})

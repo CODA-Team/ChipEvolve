@@ -15,6 +15,16 @@ from .jobs import Jobs, digest
 from .physical import container, measure, publish
 
 
+def require_make_paths(*paths: Path) -> None:
+    for path in paths:
+        if any(character.isspace() for character in str(path.absolute())) or any(
+            character.isspace() for character in str(path.resolve())
+        ):
+            raise ValueError(
+                "Native ORFS Make paths cannot contain whitespace: " + str(path)
+            )
+
+
 def source_binding(source_result: Path) -> dict[str, Any]:
     """Use recorded submitted bytes, not the deployment's current defaults."""
     frame = read(source_result)
@@ -87,6 +97,7 @@ def snapshot_script(destination: Path, platform: str) -> str:
 
 def bind_config(flow: Path, binding: dict[str, Any]) -> Path:
     """Relocate includes, preserving all submitted configuration overrides."""
+    require_make_paths(flow / binding["design_config"])
     source_config = Path(binding["config"]).read_text()
     original = "/OpenROAD-flow-scripts/flow/" + binding["design_config"]
     if original not in source_config:
@@ -100,10 +111,12 @@ def bind_config(flow: Path, binding: dict[str, Any]) -> Path:
         binding.get("auxiliary_inputs", {}).items()
     ):
         target = bound / ("input-" + str(index) + "-" + Path(name).name)
+        require_make_paths(target)
         shutil.copyfile(original_path, target)
         source_config = source_config.replace(name, str(target))
     for index, name in enumerate(binding.get("recipe_dependencies", {})):
         target = bound / ("dependency-" + str(index) + "-" + Path(name).name)
+        require_make_paths(target)
         shutil.copyfile(name, target)
         source_config = source_config.replace(name, str(target))
     sdc = bound / "design.sdc"
@@ -111,6 +124,7 @@ def bind_config(flow: Path, binding: dict[str, Any]) -> Path:
     libraries = []
     for index, name in enumerate(binding["libraries"]):
         target = bound / (str(index) + "-" + Path(name).name)
+        require_make_paths(target)
         shutil.copyfile(name, target)
         libraries.append(str(target))
     config = flow / "source-config.mk"
@@ -140,6 +154,7 @@ def prepare_flow_recipe(
         raise ValueError("Source image differs from its frozen identity")
     source = experiment / "source"
     flow = source / "flow"
+    require_make_paths(flow / binding["design_config"])
     script = experiment / "snapshot-flow.py"
     script.write_text(
         snapshot_script(flow, deployment.design(binding["design_id"])["platform"])
@@ -204,6 +219,7 @@ def resolve_native_parameters(
     flow = Path(recipe["source"]) / "flow"
     inspector = experiment / "inspect-native.mk"
     output = experiment / "resolved-native-parameters.json"
+    require_make_paths(flow, Path(recipe["config_path"]), output)
     code = "import json,sys;from pathlib import Path;Path(sys.argv[1]).write_text(json.dumps(dict(zip(sys.argv[2::2],sys.argv[3::2])),indent=2))"
     values = " ".join(
         name + ' "$(if $(strip $(' + name + ")),$(" + name + '),__UNSET__)"'
@@ -427,6 +443,7 @@ def inherit_prepared_source(frame: dict[str, Any], experiment: Path) -> Path:
     if digest(Path(recipe["config_path"])) != recipe["resolved_config_sha256"]:
         raise ValueError("Prepared source configuration changed")
     target = experiment / "source"
+    require_make_paths(target)
     if identity.exists():
         # The registered preparation owns the recipe. Later search outputs
         # belong to checkpoints, not to every downstream source copy.

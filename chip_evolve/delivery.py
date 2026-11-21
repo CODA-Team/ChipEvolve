@@ -335,6 +335,7 @@ def finish(deployment: Deployment, experiment: Path) -> dict[str, Any]:
 
 def recover(deployment: Deployment, design_id: str, key: str) -> dict[str, Any]:
     """Reuse successful EDA tasks; never restart unfinished model searches."""
+    from .environment import check_environment, verify_runtime_image
     from .flow import collect_flow
     from .physical import baseline
 
@@ -367,6 +368,26 @@ def recover(deployment: Deployment, design_id: str, key: str) -> dict[str, Any]:
         history = experiment / "status-before-recovery.json"
         if not history.exists():
             write(history, prior)
+    pinned_image = deployment.value.get("toolchain", {}).get("image_sha256")
+    if request.get("image_sha256") and request["image_sha256"] != pinned_image:
+        raise ValueError("Recovery image differs from the original request")
+    if request.get("environment"):
+        environment = Path(request["environment"])
+        if (
+            request.get("environment_sha256")
+            and digest(environment) != request["environment_sha256"]
+        ):
+            raise ValueError("Recovery environment differs from the original request")
+        check_environment(
+            deployment,
+            environment,
+            design_id,
+            request["capability"],
+            Path(request["source"]) if request.get("source") else None,
+            request.get("flow_recipe", "legacy"),
+        )
+    elif deployment.value.get("runtime") and pinned_image:
+        verify_runtime_image(deployment)
     if (experiment / "delivery-checkpoint.json").exists():
         result = finish(deployment, experiment)
     elif (

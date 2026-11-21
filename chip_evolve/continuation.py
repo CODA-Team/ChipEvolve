@@ -11,8 +11,9 @@ from typing import Any
 
 from chip_evolve.config import Deployment, business_lock, read, write
 from chip_evolve.controller import environment, freeze, inventory, invoke
+from chip_evolve.environment import verify_runtime_image
 from chip_evolve.jobs import digest
-from chip_evolve.native import latest_producer
+from chip_evolve.native import goal_checkpoint_origin, latest_producer
 
 
 def continuation_contract(
@@ -50,14 +51,19 @@ def checkpoint_producer(
     previous_result: dict[str, Any],
 ) -> str:
     """Trace unchanged imported output through its original EF capture."""
-    inherited = (
+    origin = goal_checkpoint_origin(experiment / "campaign", checkpoint, final_parent)
+    if origin:
+        return latest_producer(experiment / "operations", checkpoint, origin=origin)
+    if (
         final_parent["source_hash"] == imported_parent["source_hash"]
         and digest(checkpoint) == previous_result["qualification"]["input_odb_sha256"]
-    )
-    operations = (previous if inherited else experiment) / "operations"
-    return latest_producer(
-        operations, checkpoint, previous_result["qualification"]["producer_run_id"]
-    )
+    ):
+        return latest_producer(
+            previous / "operations",
+            checkpoint,
+            expected_run_id=previous_result["qualification"]["producer_run_id"],
+        )
+    return latest_producer(experiment / "operations", checkpoint)
 
 
 def checkpoint_method(
@@ -109,6 +115,11 @@ def run(
         read(previous / "result.json"),
         read(previous / "campaign/parent.json"),
     )
+    pinned_image = deployment.value.get("toolchain", {}).get("image_sha256")
+    if deployment.value.get("runtime") and pinned_image:
+        if frame["conditions"]["toolchain"]["image_sha256"] != pinned_image:
+            raise ValueError("Continuation image differs from the original campaign")
+        verify_runtime_image(deployment)
     original = read(previous / "evolve-config.json")
     parent_root = previous / "campaign/parents" / parent["source_hash"]
     checkpoint = parent_root / "design_checkpoint.odb"
@@ -205,6 +216,7 @@ def run(
                 "capability": "goal-continuation",
                 "source": str(previous / "result.json"),
                 "seconds": seconds,
+                "image_sha256": pinned_image,
             },
         )
         env = environment(Path(frame["objective"]), context.resolve())

@@ -33,6 +33,20 @@ def execute(
     verify_measurement_conditions(
         deployment, args.design, objective, Path(deployment.design(args.design)["sdc"])
     )
+    if args.capability in {"flow", "dpl"}:
+        from .flow_recipe import require_make_paths
+
+        require_make_paths(experiment)
+    from .design_facts import ensure
+    from .handoff import input_contract
+
+    frame = ensure(deployment, args.source, frame)
+    handoff = input_contract(
+        Jobs(deployment, args.design, experiment),
+        frame,
+        args.capability,
+        flow_recipe=getattr(args, "flow_recipe", "legacy"),
+    )
     receipt = args.source.parent / "diagnosis.json"
     context = args.context or (
         Path(read(receipt)["context"])
@@ -66,14 +80,9 @@ def execute(
         and packet["identity_bindings"]["source"]["run_id"] != frame["run_id"]
     ):
         raise ValueError("Structured Query source identity differs from the task")
-    from .design_facts import ensure
-
-    frame = ensure(deployment, args.source, frame)
     if packet["scope"]["snapshot_id"] not in frame["snapshot_ids"].values():
         raise ValueError("Professional diagnosis snapshot is not a source fact view")
-    from .handoff import input_contract
 
-    handoff = input_contract(frame, args.capability)
     write(experiment / "handoff-input.json", handoff)
     write(
         experiment / "input-receipt.json",

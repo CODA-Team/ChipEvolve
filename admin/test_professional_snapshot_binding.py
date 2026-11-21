@@ -34,7 +34,7 @@ def prepare(tmp_path, monkeypatch, capability, snapshot):
     ).hexdigest()
     context = tmp_path / "context.json"
     write(context, packet)
-    monkeypatch.setattr("chip_evolve.handoff.input_contract", lambda *a: {})
+    monkeypatch.setattr("chip_evolve.handoff.input_contract", lambda *a, **kw: {})
     dispatched = []
 
     def run(*args):

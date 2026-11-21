@@ -258,10 +258,13 @@ def run_experiment(
         parser.error("--code-source requires DPL or Goal --operation replay")
     if args.environment:
         from .environment import check_environment
+        from .jobs import digest
 
+        args.environment = args.environment.resolve()
+        environment_sha256 = digest(args.environment)
         check_environment(
             deployment,
-            args.environment.resolve(),
+            args.environment,
             args.design,
             args.capability,
             args.source,
@@ -297,6 +300,14 @@ def run_experiment(
         key: str(value) if isinstance(value, Path) else value
         for key, value in vars(args).items()
     }
+    if args.source:
+        request["source"] = str(args.source.resolve())
+    if args.environment:
+        request["environment_sha256"] = environment_sha256
+    if deployment.value.get("runtime"):
+        request["image_sha256"] = deployment.value.get("toolchain", {}).get(
+            "image_sha256"
+        )
     write(experiment / "request.json", request)
     with business_lock(experiment):
         try:

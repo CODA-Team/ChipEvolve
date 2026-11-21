@@ -22,26 +22,34 @@ def freeze(
 ) -> None:
     destination.mkdir(parents=True)
     archive = destination.parent / (destination.name + "-source.tar")
-    roots = (
-        subprocess.check_output(["git", "ls-tree", "--name-only", "HEAD"], cwd=source)
-        .decode()
-        .splitlines()
-    )
-    archived_paths = [name for name in paths or [] if name.split("/")[0] in roots]
-    with archive.open("wb") as output:
-        subprocess.run(
-            ["git", "archive", "HEAD", *archived_paths],
-            cwd=source,
-            stdout=output,
-            check=True,
-            env=dict(os.environ, GIT_LFS_SKIP_SMUDGE="1"),
-        )
-    with tarfile.open(archive) as bundle:
-        bundle.extractall(destination, filter="data")
+    archived_paths = []
+    if paths:
+        tracked = subprocess.check_output(
+            ["git", "ls-tree", "-r", "-z", "--name-only", "HEAD"], cwd=source
+        ).split(b"\0")
+        archived_paths = [
+            name
+            for name in paths
+            if any(
+                path == os.fsencode(name) or path.startswith(os.fsencode(name + "/"))
+                for path in tracked
+            )
+        ]
+    if not paths or archived_paths:
+        with archive.open("wb") as output:
+            subprocess.run(
+                ["git", "archive", "HEAD", "--", *archived_paths],
+                cwd=source,
+                stdout=output,
+                check=True,
+                env=dict(os.environ, GIT_LFS_SKIP_SMUDGE="1"),
+            )
+        with tarfile.open(archive) as bundle:
+            bundle.extractall(destination, filter="data")
     # Own authorized edits are frozen with their real hashes for this run.
     names = (
         subprocess.check_output(
-            ["git", "diff", "--name-only", "-z", "HEAD"], cwd=source
+            ["git", "diff", "--no-renames", "--name-only", "-z", "HEAD"], cwd=source
         )
         .decode()
         .split("\0")
@@ -53,16 +61,31 @@ def freeze(
         .decode()
         .split("\0")
     )
-    for name in filter(None, names):
-        if paths and not any(
-            name == prefix or name.startswith(prefix + "/") for prefix in paths
-        ):
-            continue
+    selected = [
+        name
+        for name in dict.fromkeys(filter(None, names))
+        if not paths
+        or any(name == prefix or name.startswith(prefix + "/") for prefix in paths)
+    ]
+    for name in selected:
+        target = destination / name
+        if target.is_symlink() or target.is_file():
+            target.unlink()
+            # A tracked directory can be replaced with a working-tree file.
+            for parent in target.parents:
+                if (
+                    parent == destination
+                    or not parent.is_dir()
+                    or any(parent.iterdir())
+                ):
+                    break
+                parent.rmdir()
+    for name in selected:
         original = source / name
         if original.is_file():
             target = destination / name
             target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(original, target)
+            shutil.copy2(original, target)
     if git_metadata:
         subprocess.run(["git", "init", "--quiet"], cwd=destination, check=True)
         subprocess.run(["git", "add", "-A"], cwd=destination, check=True)
@@ -75,6 +98,7 @@ def freeze(
                 "user.email=local@chipevolve.invalid",
                 "commit",
                 "--quiet",
+                "--allow-empty",
                 "-m",
                 "Freeze explicit Code source snapshot",
             ],

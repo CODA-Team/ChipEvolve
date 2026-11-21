@@ -29,16 +29,42 @@ def publication(tmp_path, monkeypatch):
     class Kernel:
         def __init__(self):
             self.tasks = []
+            self.runs = {}
 
         def submit(self, task, **kwargs):
             self.tasks.append(task)
-            return {"run": {"run_id": task["inputs"]["adapter"]}}
+            run_id = task["inputs"]["adapter"]
+            self.runs[run_id] = task
+            return {"run": {"run_id": run_id}}
 
         def run(self, run):
-            return {"run_id": run, "status": "succeeded"}
+            task = self.runs[run]
+            return {
+                "run_id": run,
+                "status": "succeeded",
+                "design_id": task["design_id"],
+                "labels": task["labels"],
+            }
 
         def artifacts(self, run):
-            return [{"kind": "data_snapshot", "artifact_id": "artifact-" + run}]
+            return [
+                {
+                    "kind": "data_snapshot",
+                    "artifact_id": "artifact-" + run,
+                    "store_key": "facts.zip",
+                },
+                *[
+                    {
+                        "kind": "raw_flow_metadata" if name == "metrics" else "raw",
+                        "artifact_id": run + "-" + name,
+                        "store_key": "inputs/metrics.json"
+                        if name == "metrics"
+                        else file,
+                        "sha256": digest(Path(file)),
+                    }
+                    for name, file in frame["files"].items()
+                ],
+            ]
 
         def resources(self, run):
             return {}
@@ -165,7 +191,7 @@ def test_professional_dispatch_consumes_materialized_scope(tmp_path, monkeypatch
     }
     monkeypatch.setattr("chip_evolve.professional.load_context", lambda _: packet)
     monkeypatch.setattr("chip_evolve.design_facts.ensure", lambda *a: complete)
-    monkeypatch.setattr("chip_evolve.handoff.input_contract", lambda *a: {})
+    monkeypatch.setattr("chip_evolve.handoff.input_contract", lambda *a, **kw: {})
     seen = []
 
     def run(deployment, args, experiment, actual, *rest):

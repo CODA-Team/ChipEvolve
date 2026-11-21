@@ -30,6 +30,31 @@ The GCD runs cover the platform handoffs and the specialist paths listed above.
 Paper-scale search and statistical results have separate protocols and
 records. [Earlier local GCD acceptance](admin/A111_GCD_SPECIALIST_ACCEPTANCE_20261120.md)
 
+## Handoff review follow-up
+
+Specialist dispatch checks the EF-registered identity of the actual files or
+artifact IDs it supplies. Unfinished recovery verifies the requested runtime
+and qualified environment. Goal resolves copied checkpoints from native
+Student and stage baseline receipts and rejects ambiguous producers. Controller
+snapshots preserve working-tree deletions and renames. Native ORFS Make paths
+are checked before dispatch.
+
+A fresh GitHub checkout of `ba80e93` with the follow-up patch rebuilt 11 wheels
+and installed ten Python environments. `python3 dev.py all check` passed
+2,569 tests with one host-dependent skip. OSV returned no matches for the 66
+release dependency pins after the Black and setuptools updates.
+
+An isolated GCD/Nangate45 run at 400 ps delivered an ORFS baseline, a cited
+Query diagnosis, and one native Timing ECO round. The first Query attempt
+timed out at 240 seconds. A narrower prompt succeeded on retry. The delivered
+result `run-092d8d817a474678b988d99149f1f0db` had zero route DRC, resolved
+all three fact views through the SDK, and kept its ID on recovery. The SDK
+downloaded the three ECO input artifacts and their hashes matched the handoff
+receipt. Separate checks using the live EF records rejected changed Goal and
+Flow input files, a changed DPL archive, a changed ECO artifact receipt, and a
+replaced image for unfinished recovery. Flow, DPL and Goal full-search
+acceptance is recorded in the specialist table above.
+
 For the ARM64 build history, the initial Bazel run failed a Slang archive
 checksum. The CMake build used the same pinned Slang Git commit. The next
 GCD run reached GDS and showed that the compiled KLayout executable was
