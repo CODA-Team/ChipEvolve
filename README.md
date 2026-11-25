@@ -1,6 +1,6 @@
 # ChipEvolve：Codex 驱动的 OpenROAD 垂直能力平台
 
-ChipEvolve 为成熟 Agent（当前以 Codex 为入口）提供芯片物理设计的专业能力：可复现的实验执行、统一的设计事实与产物，以及基于证据的查询、理解和诊断。Codex 负责目标、规划和判断，平台负责运行实验、提供事实与专业优化能力。
+ChipEvolve 为成熟 Agent提供芯片物理设计的专业能力：可复现的实验执行、统一的设计事实与产物，以及基于证据的查询、理解和诊断。Codex 负责目标、规划和判断，平台负责运行实验、提供事实与专业优化能力。
 
 当前优先在本机跑通实验和协同 PPA 优化。产品目标见 [PROJECT.md](PROJECT.md)，模块职责见 [ARCHITECTURE.md](ARCHITECTURE.md)，实际完成状态见 [TASKS.md](TASKS.md) 和 [admin/STATUS.md](admin/STATUS.md)。
 
