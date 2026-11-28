@@ -119,4 +119,8 @@ where the historical materials are unavailable or not qualified. The complete
 gate status and limitations are in
 `var/release/slice4c-20261128/SLICE4C_REPORT.md`.
 
-Slice 4C awaits owner business acceptance. Slice 4D, TUI and Web remain frozen.
+The owner has accepted and closed Slice 4C, including the documented limits of
+its G6 evidence. Slice 4D is approved for implementation, with the initial Git
+synchronization audit and confirmed backfill preceding source work. TUI and Web
+remain frozen. Engineering, business acceptance and remote delivery are tracked
+separately in the [release scope](docs/release/2026-11-28/ACCEPTANCE.md).

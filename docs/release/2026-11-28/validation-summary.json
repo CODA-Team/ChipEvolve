@@ -1,0 +1,89 @@
+{
+  "source": "Fresh independent publication-candidate engineering checks; qualified Slice 4C runtime receipts reused with original provenance.",
+  "business_acceptance": "Slice 4C accepted, including G6 partial scope and recorded gaps",
+  "root_tests": {
+    "passed": 1310,
+    "baseline_retained": 1260,
+    "added": 50,
+    "failures": 0,
+    "skipped": 0
+  },
+  "pyright": {
+    "strict": {
+      "filesAnalyzed": 5,
+      "errorCount": 0,
+      "warningCount": 0,
+      "informationCount": 0,
+      "timeInSec": 0.624
+    },
+    "core": {
+      "filesAnalyzed": 18,
+      "errorCount": 0,
+      "warningCount": 0,
+      "informationCount": 0,
+      "timeInSec": 1.245
+    },
+    "negative": {
+      "filesAnalyzed": 1,
+      "errorCount": 7,
+      "warningCount": 0,
+      "informationCount": 0,
+      "timeInSec": 0.24
+    }
+  },
+  "architecture": {
+    "implementation_modules": 49,
+    "remaining_cycle_group": [],
+    "upward_imports": [],
+    "private_cross_module_calls_before": 5,
+    "private_cross_module_calls_after": 0
+  },
+  "gates": {
+    "G1": "passed",
+    "G2": "passed",
+    "G3": "passed",
+    "G4": "passed",
+    "G5": "passed",
+    "G6": "partial_pending_real_material_qualification",
+    "G7": "passed"
+  },
+  "inherited_pending_real_validation": [
+    "Flow successful collector with qualified registry/archive material",
+    "Goal owner/continuation completed recovery with available frozen paths",
+    "DPL and Goal completed evolution candidate export/producer/additional delivery",
+    "Flow failed/timeout collector with a qualified real failure archive"
+  ],
+  "runtime": {
+    "parent_run_id": "run-e9c82d15c8e74e2e91f609d1cca4e71e",
+    "native_session_run_id": "run-b482c5a506044c649ef27b1ad542ed74",
+    "proof_run_id": "run-425a2158f61f4bd6bfe844fdb4f07246",
+    "proof_points": 18,
+    "replay_exact": true,
+    "sdk_identity_passed": true,
+    "adopted": true,
+    "improvement": false,
+    "new_runs": 15,
+    "verified_artifacts": 114,
+    "verified_artifact_bytes": 34685577
+  },
+  "eco_result": {
+    "run_id": "run-14e6322a6a5b4410ac71403392c39a2e",
+    "physical_run_id": "run-2cea84034bcc4e25aa0898eb205fd8fe",
+    "result_sha256": "6ac5fccbce335258081da83e4b7d11279cfc04a607e2c79e4039312186bc3711",
+    "route_drc": 0
+  },
+  "code_and_wire_constraints": "see accepted source and test contracts; no root/module pin change in this backfill",
+  "publication_candidate_retest": {
+    "passed": true,
+    "base_commit": "3b185b5dafe1203ad61681d3b3a71fb34e04f130",
+    "root_check_exit_code": 0,
+    "root_tests_passed": 1310,
+    "bootstrap_wheels": 11,
+    "independent_environments": 10,
+    "cli_help_outputs_identical": 14,
+    "source_scope": "358 accepted software status paths plus approved rule/navigation/evidence changes; nine public module pins unchanged.",
+    "eda_or_model_search_started": false
+  },
+  "slice4d_implementation_started": false,
+  "tui_web_unlocked": false
+}

@@ -24,7 +24,7 @@ upstream identities are recorded in [SOURCE_MANIFEST.json](../SOURCE_MANIFEST.js
 
 Run `python3 dev.py root check` from the root repository. It checks installed
 dependency consistency, root code lint and formatting, and every
-`admin/test_*.py` test. The architecture tests inspect imports at every AST
+`tests/test_*.py` test. The architecture tests inspect imports at every AST
 depth, reject cyclic groups and check the declared layer of every root module.
 
 The catalog marks scripts imported or invoked by the root tests as
@@ -46,3 +46,5 @@ future move.
 installation uses the bootstrap and wheel path listed above. Files marked
 `untracked` are local work whose release inclusion needs an explicit source
 checkpoint.
+
+Current cleanup status: root tests and their active support code are in `tests/` and `tests/support/`. The 377 historical moves and four-package source migration belong to approved Slice 4D and are not implemented yet. The catalog retains earlier proposed paths; it is not evidence that those moves have occurred. See the [accepted scope](../docs/release/2026-11-28/ACCEPTANCE.md).

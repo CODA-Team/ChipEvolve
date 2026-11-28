@@ -1,5 +1,7 @@
 # ChipEvolve
 
+For the current backend review, use the `engineering/cleanup-b6cfd1d` branch and an explicit Commit. The default `main` still contains the earlier eight-module layout. See the [accepted cleanup scope and remaining limits](docs/release/2026-11-28/ACCEPTANCE.md).
+
 ChipEvolve connects Codex to OpenROAD. Give Codex a design goal, such as preserving timing while reducing power. Codex reads the measured design through the Analysis Agent, hands the design and a budget to a specialist, and uses the returned evidence to decide what to try next.
 
 ```text
@@ -152,7 +154,7 @@ the original Teacher plan and Student work for native recovery.
 With the module development environments set up, run `python3 dev.py all check`
 to run the nine module checks and the root regression suite. Each module uses
 its own `.venv`. The root suite uses `admin/.venv` and its tests are named
-`admin/test_*.py`. To check a separate installation of one module, run
+`tests/test_*.py`. To check a separate installation of one module, run
 `python3 dev.py --python /path/to/venv/bin/python MODULE check`.
 GoalEvolve's platform check runs `tests/unit`. With the paper archive checked
 out, run `python3 dev.py goalevolve check tests/artifact` to check its layout

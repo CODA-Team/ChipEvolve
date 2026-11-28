@@ -155,5 +155,7 @@ experiment lock is acquired first. Failed or timed-out search evidence remains
 The Slice 4C engineering checks and short ECO runtime receipts are recorded in
 `var/release/slice4c-20261128/`. Complete real Code evolution delivery and Flow
 collector acceptance remain pending where historical materials have not been
-qualified. Unit tests and an ECO no-op do not close those gaps. Business
-acceptance is required before advancing to Slice 4D.
+qualified. Unit tests and an ECO no-op do not close those gaps. The owner has accepted
+Slice 4C with these limits and approved Slice 4D. Initial Git synchronization
+precedes 4D source work; no profile consolidation, four-package migration or
+historical archiving has been implemented. See the [release scope](docs/release/2026-11-28/ACCEPTANCE.md).

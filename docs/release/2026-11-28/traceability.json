@@ -1,0 +1,36 @@
+{
+  "status": "Actual independent publication-candidate checks plus explicitly reused qualified runtime evidence; original runtime stores not published.",
+  "source_receipts": {
+    "summary.json": "364dee71cef0de158261f03310cee2a740937a1c5661239f958c405a711f75d5",
+    "root-check.log": "0dfa79b664fa6e8a964502e784c7b53bbafbbda656dd08bd78320507dcc6d232",
+    "typecheck-summary.json": "6ffa85aafaa888a9d8e21002d2650e32666f2028184c46c561e1d3dee23d68f3",
+    "static-architecture-after.json": "63578e3211ae28dfcf02213b4ac789323db74a53fee7d3870ef4e2611abb1385",
+    "runtime-summary.json": "016202850c52dc7f776395bd7b48e5ca32672692e6916c840606b0238e469279",
+    "runtime-resume-check.json": "01d4f648bad46289fc63e623da91ff97cfbc0c3fd6dc7dc5ae91b94109bb972d",
+    "scope-integrity.json": "6fbfba93c357443da5dc730de1d1d7a3eed4ed33f9dc094f530515c971e86eb2",
+    "SLICE4C_REPORT.md": "64f53b01e71c4b9fe9404569b4de8f0cbccc9a158157629da58900e263556df8"
+  },
+  "source_patch_sha256": "daa52294c80bed4ceaa0a46c7b154a019712ce53346cc1579690b15e56443346",
+  "current_manifest_sha256": "7e1cbef2f145c94966a47cc49e27d0702a1534f7e4f1732ba35f7abf74f4ac2f",
+  "qualified_image_sha256": "8e6ee7aac233da078364649fa8111dac5de33a3589f5445dcffd96f9d6d8dd39",
+  "copies": {
+    "root-check.log": {
+      "source": "first-sync candidate root-check.log",
+      "source_sha256": "8ebeeec0aca7602390651c229d5eb1d7c7d4914946f9a47a50b2e0695efa1c78",
+      "published_copy_sha256": "6a4f3193c280278f312e7f216c2d095c38c0c447ec21c68386d6ec9a97df90f6",
+      "transformation": "only replace absolute candidate workspace prefix with <workspace>"
+    },
+    "pyright-checks.json": {
+      "source": "Fresh candidate strict/core/negative JSON diagnostics",
+      "transformation": "replace candidate file prefixes with repository-relative paths"
+    }
+  },
+  "runtime_artifacts_not_published": true,
+  "production_credentials_copied": false,
+  "publication_candidate_checks": {
+    "base_commit": "3b185b5dafe1203ad61681d3b3a71fb34e04f130",
+    "new_check_data": true,
+    "historical_runtime_checks_reused": true
+  },
+  "software_commit": "e99c33b53a689c2c83aa29af349b20b034ab4d21"
+}

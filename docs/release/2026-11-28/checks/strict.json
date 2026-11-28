@@ -1,0 +1,19 @@
+{
+  "include": [
+    "../../../../chip_evolve/contracts.py",
+    "../../../../chip_evolve/result_io.py",
+    "../../../../chip_evolve/handoff_io.py",
+    "../../../../chip_evolve/command_requests.py",
+    "../../../../tests/specialist_protocol_positive.py"
+  ],
+  "venvPath": "../../../../admin",
+  "venv": ".venv",
+  "pythonVersion": "3.12",
+  "typeCheckingMode": "strict",
+  "reportMissingTypeStubs": false,
+  "executionEnvironments": [
+    {
+      "root": "../../../.."
+    }
+  ]
+}

@@ -1,0 +1,349 @@
+{
+  "implementation_modules": 49,
+  "remaining_cycle_group": [],
+  "layer_violations": [],
+  "private_cross_module_accesses": [],
+  "graph": {
+    "__init__": [],
+    "artifact_inputs": [
+      "config",
+      "contracts",
+      "handoff_io",
+      "jobs",
+      "result_io"
+    ],
+    "candidate_facts": [
+      "candidates",
+      "comparisons",
+      "config",
+      "jobs",
+      "selection",
+      "stage_facts",
+      "validation"
+    ],
+    "candidates": [
+      "config",
+      "contracts",
+      "jobs",
+      "result_io",
+      "selection"
+    ],
+    "cli": [
+      "command_requests",
+      "commands",
+      "config",
+      "contracts",
+      "jobs",
+      "lifecycle"
+    ],
+    "clock": [],
+    "code_evidence": [
+      "config",
+      "contracts",
+      "jobs",
+      "result_io"
+    ],
+    "command_requests": [
+      "contracts"
+    ],
+    "commands": [
+      "candidate_facts",
+      "command_requests",
+      "comparison_facts",
+      "config",
+      "continuation",
+      "contracts",
+      "diagnosis",
+      "environment",
+      "flow",
+      "jobs",
+      "lifecycle",
+      "native_physical",
+      "physical",
+      "professional",
+      "progress",
+      "recovery",
+      "result_io",
+      "selection",
+      "validation"
+    ],
+    "comparison_facts": [
+      "contracts",
+      "metrics",
+      "result_io",
+      "selection"
+    ],
+    "comparisons": [
+      "comparison_facts",
+      "config",
+      "contracts",
+      "jobs",
+      "metrics",
+      "physical",
+      "proof_policy",
+      "result_io",
+      "selection"
+    ],
+    "config": [],
+    "continuation": [
+      "command_requests",
+      "config",
+      "contracts",
+      "controller",
+      "delivery",
+      "environment",
+      "goal",
+      "jobs",
+      "result_io"
+    ],
+    "contracts": [
+      "config"
+    ],
+    "controller": [
+      "native_process",
+      "source_snapshot"
+    ],
+    "delivery": [
+      "candidates",
+      "code_evidence",
+      "config",
+      "contracts",
+      "design_facts",
+      "flow_recipe",
+      "jobs",
+      "lifecycle",
+      "physical",
+      "result_io"
+    ],
+    "design_facts": [
+      "artifact_inputs",
+      "config",
+      "jobs",
+      "lifecycle",
+      "metrics",
+      "runtime"
+    ],
+    "diagnosis": [
+      "candidates",
+      "comparisons",
+      "config",
+      "design_facts",
+      "jobs",
+      "stage_facts"
+    ],
+    "dpl": [
+      "artifact_inputs",
+      "config",
+      "contracts",
+      "delivery",
+      "dpl_case",
+      "jobs",
+      "native_process",
+      "result_io",
+      "source_snapshot"
+    ],
+    "dpl_case": [
+      "config",
+      "jobs"
+    ],
+    "eco": [
+      "artifact_inputs",
+      "config",
+      "contracts",
+      "delivery",
+      "jobs",
+      "native_process",
+      "physical",
+      "result_io",
+      "source_snapshot"
+    ],
+    "environment": [
+      "candidates",
+      "clock",
+      "comparison_facts",
+      "config",
+      "jobs",
+      "runtime"
+    ],
+    "eqy": [
+      "config",
+      "jobs",
+      "physical",
+      "proof_policy"
+    ],
+    "flow": [
+      "artifact_inputs",
+      "clock",
+      "config",
+      "contracts",
+      "flow_delivery",
+      "flow_recipe",
+      "native_process",
+      "physical",
+      "result_io",
+      "source_snapshot"
+    ],
+    "flow_delivery": [
+      "candidates",
+      "config",
+      "contracts",
+      "design_facts",
+      "jobs",
+      "physical",
+      "result_io"
+    ],
+    "flow_evidence": [
+      "config",
+      "flow_delivery",
+      "result_io"
+    ],
+    "flow_recipe": [
+      "clock",
+      "config",
+      "jobs",
+      "runtime",
+      "source_snapshot"
+    ],
+    "flow_replay": [
+      "artifact_inputs",
+      "config",
+      "delivery",
+      "design_facts",
+      "flow_recipe",
+      "jobs",
+      "physical"
+    ],
+    "goal": [
+      "artifact_inputs",
+      "config",
+      "contracts",
+      "delivery",
+      "goal_replay",
+      "jobs",
+      "native_process",
+      "physical",
+      "result_io",
+      "source_snapshot"
+    ],
+    "goal_replay": [
+      "config",
+      "environment",
+      "jobs"
+    ],
+    "handoff": [
+      "artifact_inputs"
+    ],
+    "handoff_io": [
+      "contracts",
+      "result_io"
+    ],
+    "jobs": [
+      "config",
+      "lifecycle"
+    ],
+    "lifecycle": [
+      "config"
+    ],
+    "logic": [
+      "comparison_facts",
+      "config",
+      "eqy",
+      "jobs",
+      "physical",
+      "proof_policy"
+    ],
+    "metrics": [],
+    "native": [
+      "eco",
+      "goal"
+    ],
+    "native_physical": [
+      "config",
+      "delivery",
+      "design_facts",
+      "jobs",
+      "physical",
+      "result_io",
+      "stage_facts"
+    ],
+    "native_process": [
+      "config"
+    ],
+    "physical": [
+      "artifact_inputs",
+      "config",
+      "design_facts",
+      "flow_recipe",
+      "jobs",
+      "runtime"
+    ],
+    "professional": [
+      "artifact_inputs",
+      "command_requests",
+      "config",
+      "contracts",
+      "design_facts",
+      "diagnosis",
+      "dpl",
+      "eco",
+      "environment",
+      "flow",
+      "flow_recipe",
+      "goal",
+      "handoff",
+      "jobs",
+      "physical",
+      "result_io"
+    ],
+    "progress": [
+      "config",
+      "lifecycle"
+    ],
+    "proof_policy": [],
+    "recovery": [
+      "config",
+      "delivery",
+      "environment",
+      "flow",
+      "goal",
+      "jobs",
+      "native_physical",
+      "physical"
+    ],
+    "result_io": [
+      "contracts",
+      "selection"
+    ],
+    "runtime": [
+      "config"
+    ],
+    "selection": [
+      "config",
+      "contracts",
+      "jobs",
+      "metrics",
+      "proof_policy"
+    ],
+    "source_snapshot": [
+      "jobs"
+    ],
+    "stage_facts": [
+      "config",
+      "design_facts",
+      "jobs"
+    ],
+    "validation": [
+      "comparison_facts",
+      "config",
+      "delivery",
+      "design_facts",
+      "eqy",
+      "flow_replay",
+      "jobs",
+      "lifecycle",
+      "logic",
+      "physical",
+      "result_io"
+    ]
+  }
+}

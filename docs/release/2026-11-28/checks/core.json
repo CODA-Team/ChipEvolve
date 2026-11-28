@@ -1,0 +1,33 @@
+{
+  "include": [
+    "../../../../chip_evolve/contracts.py",
+    "../../../../chip_evolve/result_io.py",
+    "../../../../chip_evolve/handoff_io.py",
+    "../../../../chip_evolve/command_requests.py",
+    "../../../../chip_evolve/commands.py",
+    "../../../../chip_evolve/professional.py",
+    "../../../../chip_evolve/comparison_facts.py",
+    "../../../../chip_evolve/selection.py",
+    "../../../../chip_evolve/flow.py",
+    "../../../../chip_evolve/dpl.py",
+    "../../../../chip_evolve/native.py",
+    "../../../../tests/specialist_protocol_positive.py",
+    "../../../../chip_evolve/goal.py",
+    "../../../../chip_evolve/eco.py",
+    "../../../../chip_evolve/code_evidence.py",
+    "../../../../chip_evolve/delivery.py",
+    "../../../../chip_evolve/flow_delivery.py",
+    "../../../../chip_evolve/flow_evidence.py"
+  ],
+  "venvPath": "../../../../admin",
+  "venv": ".venv",
+  "pythonVersion": "3.12",
+  "typeCheckingMode": "basic",
+  "reportMissingTypeStubs": false,
+  "executionEnvironments": [
+    {
+      "root": "../../../..",
+      "reportMissingTypeStubs": "none"
+    }
+  ]
+}

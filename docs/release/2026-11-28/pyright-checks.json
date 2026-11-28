@@ -1,0 +1,158 @@
+{
+  "passed": true,
+  "scope": "Fresh five-file strict and eighteen-file basic checks; seven intended negative diagnostics, not whole-repository strict typing.",
+  "checks": {
+    "strict": {
+      "version": "1.1.414",
+      "time": "1795875824917",
+      "generalDiagnostics": [],
+      "summary": {
+        "filesAnalyzed": 5,
+        "errorCount": 0,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 0.624
+      },
+      "expected_errors": 0
+    },
+    "core": {
+      "version": "1.1.414",
+      "time": "1795875826371",
+      "generalDiagnostics": [],
+      "summary": {
+        "filesAnalyzed": 18,
+        "errorCount": 0,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 1.245
+      },
+      "expected_errors": 0
+    },
+    "negative": {
+      "version": "1.1.414",
+      "time": "1795875826815",
+      "generalDiagnostics": [
+        {
+          "file": "tests/specialist_protocol_negative.py",
+          "severity": "error",
+          "message": "无法将“MeasuredResult”类型的参数分配给函数“run_flow”中类型为“PhysicalResult”的参数“source”\n  “MeasuredResult”不可分配给“PhysicalResult”",
+          "range": {
+            "start": {
+              "line": 29,
+              "character": 53
+            },
+            "end": {
+              "line": 29,
+              "character": 59
+            }
+          },
+          "rule": "reportArgumentType"
+        },
+        {
+          "file": "tests/specialist_protocol_negative.py",
+          "severity": "error",
+          "message": "类型“(deployment: Deployment, request: SpecialistRequest, experiment: Path, source: PhysicalResult, objective: ObjectiveRef, context: DiagnosisContextRef) -> dict[str, str]”不可分配给声明的类型“SpecialistAdapter”\n  类型“(deployment: Deployment, request: SpecialistRequest, experiment: Path, source: PhysicalResult, objective: ObjectiveRef, context: DiagnosisContextRef) -> dict[str, str]”不可分配给类型“(deployment: Deployment, request: SpecialistRequest, experiment: Path, source: PhysicalResult, objective: ObjectiveRef, context: DiagnosisContextRef) -> SpecialistReply”\n    函数返回类型\"dict[str, str]\"与类型\"SpecialistReply\"不兼容\n      “dict[str, str]”不可分配给“SpecialistReply”",
+          "range": {
+            "start": {
+              "line": 43,
+              "character": 33
+            },
+            "end": {
+              "line": 43,
+              "character": 44
+            }
+          },
+          "rule": "reportAssignmentType"
+        },
+        {
+          "file": "tests/specialist_protocol_negative.py",
+          "severity": "error",
+          "message": "类型“dict[str, str]”不可分配给声明的类型“PhysicalResult”",
+          "range": {
+            "start": {
+              "line": 44,
+              "character": 29
+            },
+            "end": {
+              "line": 44,
+              "character": 50
+            }
+          },
+          "rule": "reportAssignmentType"
+        },
+        {
+          "file": "tests/specialist_protocol_negative.py",
+          "severity": "error",
+          "message": "无法将“Literal['eco']”类型的参数分配给函数“export_candidates”中类型为“CodeCapability”的参数“capability”\n  类型“Literal['eco']”不可分配给类型“CodeCapability”\n    “Literal['eco']”不可分配给类型“Literal['dpl']”\n    “Literal['eco']”不可分配给类型“Literal['goal']”",
+          "range": {
+            "start": {
+              "line": 48,
+              "character": 46
+            },
+            "end": {
+              "line": 48,
+              "character": 51
+            }
+          },
+          "rule": "reportArgumentType"
+        },
+        {
+          "file": "tests/specialist_protocol_negative.py",
+          "severity": "error",
+          "message": "无法将“dict[str, str]”类型的参数分配给函数“verify_candidate_producer”中类型为“NativeCandidateEvidence”的参数“candidate”",
+          "range": {
+            "start": {
+              "line": 54,
+              "character": 47
+            },
+            "end": {
+              "line": 54,
+              "character": 74
+            }
+          },
+          "rule": "reportArgumentType"
+        },
+        {
+          "file": "tests/specialist_protocol_negative.py",
+          "severity": "error",
+          "message": "类型“dict[str, str]”不可分配给声明的类型“PreparedSpecialist”",
+          "range": {
+            "start": {
+              "line": 58,
+              "character": 35
+            },
+            "end": {
+              "line": 58,
+              "character": 57
+            }
+          },
+          "rule": "reportAssignmentType"
+        },
+        {
+          "file": "tests/specialist_protocol_negative.py",
+          "severity": "error",
+          "message": "类型“CandidateCollection”不可分配给返回类型“SpecialistReply”\n  “CandidateCollection”不可分配给“SpecialistReply”",
+          "range": {
+            "start": {
+              "line": 65,
+              "character": 11
+            },
+            "end": {
+              "line": 65,
+              "character": 70
+            }
+          },
+          "rule": "reportReturnType"
+        }
+      ],
+      "summary": {
+        "filesAnalyzed": 1,
+        "errorCount": 7,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 0.24
+      },
+      "expected_errors": 7
+    }
+  }
+}
