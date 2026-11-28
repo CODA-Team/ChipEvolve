@@ -6,7 +6,7 @@ import pytest
 
 from tests.test_eqy_pdr import prepared
 from tests.test_local_eqy import checks
-from chip_evolve import eqy
+from chip_evolve.execution import eqy
 
 
 def test_whole_model_keeps_sources_ports_and_pdr_but_merges_partitions():

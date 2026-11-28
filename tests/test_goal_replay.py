@@ -8,8 +8,8 @@ from types import ModuleType, SimpleNamespace
 
 import pytest
 
-from chip_evolve.config import read, write
-from chip_evolve.goal_replay import descriptor, write_driver
+from chip_evolve.core.config import read, write
+from chip_evolve.workflow.goal_replay import descriptor, write_driver
 from tests.test_local_business import deployment
 
 
@@ -17,7 +17,10 @@ def test_cli_accepts_explicit_goal_replay_source_before_creating_experiment(
     tmp_path,
     monkeypatch,
 ):
-    from chip_evolve import cli
+    from tests.contract_fixtures import unit_admission
+
+    unit_admission(monkeypatch, orchestration=True)
+    from chip_evolve.workflow import cli
 
     class Accepted(Exception):
         pass
@@ -194,7 +197,7 @@ def test_driver_calls_native_parent_evaluator_with_private_source_and_original_m
 
 
 def measured_candidate_result(tmp_path):
-    from chip_evolve.jobs import digest
+    from chip_evolve.core.jobs import digest
 
     promoted = source_result(tmp_path)
     origin = promoted.parent
@@ -292,7 +295,7 @@ def test_measured_student_candidate_reuses_its_own_source_and_recipe_without_pro
     ],
 )
 def test_candidate_replay_rejects_wrong_or_failed_native_evidence(tmp_path, problem):
-    from chip_evolve.jobs import digest
+    from chip_evolve.core.jobs import digest
 
     d = deployment(tmp_path)
     d.value["toolchain"] = {"image": "fixed"}

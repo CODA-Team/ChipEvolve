@@ -3,8 +3,8 @@
 import pytest
 
 from tests.test_adoption_consistency import frame_at
-from chip_evolve.candidates import deliver_candidates, expand_results, result_frame
-from chip_evolve.config import read, write
+from chip_evolve.core.candidates import deliver_candidates, expand_results, result_frame
+from chip_evolve.core.config import read, write
 
 
 def test_tied_tns_delivers_all_candidates_without_a_winner(tmp_path):

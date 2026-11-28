@@ -3,6 +3,11 @@
 import os
 import subprocess
 
+if __package__:
+    from .profile_bridge import invoke
+else:
+    from profile_bridge import invoke
+
 
 def checkout(destination, url, commit, *, submodules=()):
     destination.mkdir()
@@ -31,13 +36,14 @@ def checkout(destination, url, commit, *, submodules=()):
     )
 
 
-def openroad_build_args(source):
+def openroad_build_args(source, *, workspace):
+    layout = invoke(workspace, "layout")
     return [
         "-DBUILD_GUI=OFF",
         "-DBUILD_PYTHON=ON",
-        "-DBoost_DIR=/usr/local/lib/cmake/Boost-1.89.0",
-        "-Dortools_ROOT=/opt/or-tools",
-        "-DABSL_ROOT=/opt/or-tools",
+        "-DBoost_DIR=" + layout["boost_cmake"],
+        "-Dortools_ROOT=" + layout["ortools"],
+        "-DABSL_ROOT=" + layout["ortools"],
         f"-DFETCHCONTENT_SOURCE_DIR_FMT={source / 'third-party/slang-elab/third_party/fmt'}",
         "-DFETCHCONTENT_FULLY_DISCONNECTED=ON",
         "-DCMAKE_EXE_LINKER_FLAGS=-flto=1",

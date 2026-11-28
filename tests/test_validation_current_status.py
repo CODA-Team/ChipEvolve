@@ -7,11 +7,11 @@ import pytest
 
 from tests.test_adoption_consistency import frame_at
 from tests.test_local_business import deployment
-from chip_evolve import validation
-from chip_evolve.cli import main
-from chip_evolve.config import business_lock, read, write
-from chip_evolve.jobs import digest
-from chip_evolve.lifecycle import WorkPending
+from chip_evolve.workflow import validation
+from chip_evolve.workflow.cli import main
+from chip_evolve.core.config import business_lock, read, write
+from chip_evolve.core.jobs import digest
+from chip_evolve.core.lifecycle import WorkPending
 
 
 def fixture(tmp_path):

@@ -25,3 +25,9 @@ The independent publication candidate rebuilt 11 wheels from the nine unchanged 
 Reproduce the static calls with the bootstrap-installed `agent/query-agent/.venv/bin/pyright --project docs/release/2026-11-28/checks/strict.json` and `core.json`. The `negative.json` check must exit 1 with the seven expected errors. These configs use the installed root environment and contain no machine-specific absolute path.
 
 The software in this backfill is recorded by Commit `e99c33b53a689c2c83aa29af349b20b034ab4d21`. Its engineering gates passed before committing. The authorized remote target is `CODA-Team/ChipEvolve:engineering/cleanup-b6cfd1d`; remote equality is verified after push in the delivery report.
+
+
+This is the historical backfill scope. Current four-package/profile work is
+recorded in the [Slice 4D report](../2026-11-29/SLICE4D_REPORT.md). The shared
+reproduction configs now follow canonical paths (7 strict / 20 core files);
+the historical 5/18-file logs above remain unchanged evidence of that delivery.

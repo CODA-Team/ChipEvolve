@@ -3,8 +3,8 @@
 import pytest
 
 from tests.support import report_native_operation_matrix as matrix
-from chip_evolve.config import read, write
-from chip_evolve.jobs import digest
+from chip_evolve.core.config import read, write
+from chip_evolve.core.jobs import digest
 
 
 def prepared(tmp_path, purpose="formal"):

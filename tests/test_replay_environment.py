@@ -1,8 +1,8 @@
 """A prebuilt professional method remains visible in its isolated runtime."""
 
-from chip_evolve.config import read
-from chip_evolve.jobs import digest
-from chip_evolve.dpl import materialize_dpl_replay
+from chip_evolve.core.config import read
+from chip_evolve.core.jobs import digest
+from chip_evolve.workflow.dpl import materialize_dpl_replay
 
 
 def test_verified_installation_and_receipt_are_preserved_under_mounted_state(tmp_path):

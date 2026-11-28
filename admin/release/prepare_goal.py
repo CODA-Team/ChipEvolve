@@ -10,6 +10,7 @@ from pathlib import Path
 
 from native_toolchain import checkout, openroad_build_args
 from stack import configuration, write
+from profile_bridge import invoke
 
 
 def digest(path):
@@ -53,7 +54,7 @@ def prepare_source(module, destination, metadata):
     )
 
 
-def prepare_pdk(deployment, directory):
+def prepare_pdk(deployment, directory, *, layout):
     library = Path(deployment["designs"]["gcd"]["libraries"][0]["path"])
     (directory / "lib").mkdir(parents=True)
     runtime = deployment["runtime"]
@@ -77,7 +78,7 @@ def prepare_pdk(deployment, directory):
         target.parent.mkdir(exist_ok=True)
         with target.open("wb") as stream:
             subprocess.run(
-                [*command, f"/OpenROAD-flow-scripts/flow/platforms/nangate45/{name}"],
+                [*command, layout["platforms_root"] + "/nangate45/" + name],
                 stdout=stream,
                 check=True,
             )
@@ -96,13 +97,22 @@ def main():
     parser.add_argument(
         "--config", type=Path, required=True, help="stack configuration from init"
     )
-    parser.add_argument("--build-memory-gib", type=int, default=64)
+    parser.add_argument("--build-memory-gib", type=int)
     args = parser.parse_args()
     stack = configuration(args.config)
-    if not 8 <= args.build_memory_gib <= stack.get("memory_gib", 24):
-        parser.error("Set build memory within the stack capacity, with at least 8 GiB")
     root = Path(stack["workspace"])
+    layout = invoke(root, "layout")
     state = Path(stack["state_root"])
+    build_budget = invoke(
+        root,
+        "admit-build",
+        deployment=str(state / "local.json"),
+        memory_gib=args.build_memory_gib,
+    )
+    args.build_memory_gib = build_budget["memory_bytes"] >> 30
+    build_defaults = invoke(root, "preset", kind="code-build")
+    analysis_defaults = invoke(root, "preset", kind="code-analysis")
+    physical_defaults = invoke(root, "preset", kind="gcd-code-physical")
     deployment = json.loads((state / "local.json").read_text())
     module = root / "agent/goalevolve"
     python = module / ".venv/bin/python"
@@ -114,8 +124,8 @@ def main():
     seed = output / "openroad"
     prepare_source(module, seed, metadata)
     pdk = output / "nangate45"
-    prepare_pdk(deployment, pdk)
-    cpu = stack.get("cpu_cores", 8)
+    prepare_pdk(deployment, pdk, layout=layout)
+    cpu = build_budget["cpu_cores"]
     profile = {
         "source_seed": str(seed),
         "image": deployment["runtime"]["image"],
@@ -137,16 +147,20 @@ def main():
             "build": {
                 "cpu_cores": cpu,
                 "memory_bytes": args.build_memory_gib << 30,
-                "processes": 2048,
+                "processes": build_defaults["processes"],
             },
-            "analysis": {"cpu_cores": 1, "memory_bytes": 4 << 30, "processes": 512},
+            "analysis": {
+                "cpu_cores": analysis_defaults["cpu_cores"],
+                "memory_bytes": analysis_defaults["memory_gib"] << 30,
+                "processes": analysis_defaults["processes"],
+            },
         },
         "container_environment": {
             "OMP_NUM_THREADS": str(cpu),
             "OPENBLAS_NUM_THREADS": "1",
             "MKL_NUM_THREADS": "1",
         },
-        "cmake_args": openroad_build_args(seed),
+        "cmake_args": openroad_build_args(seed, workspace=root),
     }
     profile_path, campaign_path = output / "profile.json", output / "campaign.json"
     write(profile_path, profile)
@@ -165,7 +179,7 @@ def main():
         "campaign_template": str(campaign_path),
         "pdk_template": str(pdk),
         "official_checker": str(module / "third_party/official_checker"),
-        "physical_memory_gib": 8,
+        "physical_memory_gib": physical_defaults["memory_gib"],
     }
     deployment["designs"]["gcd"].update(
         signal_layers="metal2-metal10", clock_layers="metal4-metal10"

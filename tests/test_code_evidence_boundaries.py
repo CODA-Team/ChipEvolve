@@ -5,10 +5,10 @@ from pathlib import Path
 import pytest
 from openroad_platform_client import KernelClient
 
-from chip_evolve import code_evidence
-from chip_evolve.config import read, write
-from chip_evolve.contracts import BusinessInputError
-from chip_evolve.jobs import digest
+from chip_evolve.facts import code_evidence
+from chip_evolve.core.config import read, write
+from chip_evolve.core.contracts import BusinessInputError
+from chip_evolve.core.jobs import digest
 from tests.test_code_candidate_delivery import inputs, collect
 
 

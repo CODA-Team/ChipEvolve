@@ -8,8 +8,8 @@ from pathlib import Path
 from statistics import mean
 from typing import Any
 
-from chip_evolve.comparisons import compare
-from chip_evolve.config import read, write
+from chip_evolve.workflow.comparisons import compare
+from chip_evolve.core.config import read, write
 
 IDENTITY = (
     "binary_sha256",

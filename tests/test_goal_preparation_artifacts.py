@@ -7,8 +7,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from chip_evolve import goal as native
-from chip_evolve.config import Deployment
+from chip_evolve.workflow import goal as native
+from chip_evolve.core.config import Deployment
 
 
 @pytest.mark.parametrize("top", ["gcd", "ariane_tile"])

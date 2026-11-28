@@ -9,10 +9,10 @@ from pathlib import Path
 import pytest
 from openroad_platform_client import KernelClient
 
-from chip_evolve import commands, professional
-from chip_evolve.command_requests import CompareCommand, RunCommand, SelectCommand
-from chip_evolve.contracts import BusinessInputError
-from chip_evolve.result_io import (
+from chip_evolve.workflow import commands, professional
+from chip_evolve.core.command_requests import CompareCommand, RunCommand, SelectCommand
+from chip_evolve.core.contracts import BusinessInputError
+from chip_evolve.core.result_io import (
     load_physical_result,
     load_context_ref,
     specialist_reply,
@@ -142,7 +142,7 @@ def test_professional_bad_context_has_ef_submit_zero(tmp_path, submissions, muta
 
 @pytest.mark.parametrize("entry", ["compare", "select", "validate", "diagnose"])
 def test_all_result_command_boundaries_reject_bad_metrics(tmp_path, submissions, entry):
-    from chip_evolve.command_requests import ValidateCommand, DiagnoseCommand
+    from chip_evolve.core.command_requests import ValidateCommand, DiagnoseCommand
 
     d = deployment(tmp_path)
     path = result_file(tmp_path / "source")
@@ -166,7 +166,7 @@ def test_all_result_command_boundaries_reject_bad_metrics(tmp_path, submissions,
 def test_argparse_is_confined_to_cli_and_never_passed_to_business():
     root = Path(__file__).parents[1] / "chip_evolve"
     allowed = {"cli", "comparisons", "continuation"}
-    for path in root.glob("*.py"):
+    for path in root.rglob("*.py"):
         tree = ast.parse(path.read_text())
         imports = [
             node
@@ -187,7 +187,7 @@ def test_argparse_is_confined_to_cli_and_never_passed_to_business():
                 and n.attr in {"Namespace", "ArgumentParser", "parse_args"}
                 for n in ast.walk(tree)
             ), path
-    cli = ast.parse((root / "cli.py").read_text())
+    cli = ast.parse((root / "workflow/cli.py").read_text())
     for node in ast.walk(cli):
         if (
             isinstance(node, ast.Call)
@@ -215,7 +215,7 @@ def test_canonical_interface_annotations_name_contracts_not_any_dictionaries():
     for module, names in targets.items():
         functions = {
             n.name: n
-            for n in ast.parse((root / (module + ".py")).read_text()).body
+            for n in ast.parse(next(root.rglob(module + ".py")).read_text()).body
             if isinstance(n, ast.FunctionDef)
         }
         for name in names:
@@ -234,8 +234,11 @@ def test_canonical_interface_annotations_name_contracts_not_any_dictionaries():
 def test_public_specialist_adapters_deliver_typed_replies(
     tmp_path, monkeypatch, capability
 ):
-    from chip_evolve import flow, dpl, goal, eco
-    from chip_evolve.candidates import deliver_candidates
+    from tests.contract_fixtures import unit_admission
+
+    unit_admission(monkeypatch, orchestration=True)
+    from chip_evolve.workflow import flow, dpl, goal, eco
+    from chip_evolve.core.candidates import deliver_candidates
     from tests.test_professional_handoff_contract import registered_source
     from tests.contract_fixtures import specialist_request
 
@@ -274,7 +277,7 @@ def test_public_specialist_adapters_deliver_typed_replies(
 
 
 def test_failed_native_search_with_measured_evidence_is_not_success(tmp_path):
-    from chip_evolve.candidates import deliver_candidates
+    from chip_evolve.core.candidates import deliver_candidates
 
     path = result_file(tmp_path / "source")
     experiment = tmp_path / "delivery"
@@ -296,7 +299,7 @@ def test_failed_native_search_with_measured_evidence_is_not_success(tmp_path):
 def test_bad_handoff_is_rejected_without_submitting(
     tmp_path, monkeypatch, submissions, field
 ):
-    from chip_evolve import artifact_inputs
+    from chip_evolve.core import artifact_inputs
     from tests.test_professional_handoff_contract import registered_source
     from types import SimpleNamespace
 
@@ -374,7 +377,7 @@ def test_default_normalization_preserves_flat_request_wire(
     "mutation", ["sha", "summary", "duplicate", "identity", "state", "cycle"]
 )
 def test_bad_collection_cannot_reach_a_specialist(tmp_path, submissions, mutation):
-    from chip_evolve.candidates import deliver_candidates
+    from chip_evolve.core.candidates import deliver_candidates
 
     d = deployment(tmp_path)
     one = result_file(tmp_path / "source", "one")

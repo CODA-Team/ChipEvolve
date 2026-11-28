@@ -6,7 +6,7 @@ import json
 import zipfile
 from pathlib import Path
 
-from chip_evolve.handoff import placement_archive, verify_stage_archive
+from chip_evolve.workflow.handoff import placement_archive, verify_stage_archive
 
 
 def stage(

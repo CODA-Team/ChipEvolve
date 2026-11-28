@@ -11,6 +11,7 @@ from pathlib import Path
 from gcd_flow import orfs_stage_profile
 from native_toolchain import checkout, openroad_build_args
 from stack import configuration, get, write
+from profile_bridge import invoke
 
 
 def git_head(path):
@@ -22,13 +23,21 @@ def git_head(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, required=True, help="running GCD stack")
-    parser.add_argument("--build-memory-gib", type=int, default=64)
+    parser.add_argument("--build-memory-gib", type=int)
     args = parser.parse_args()
     stack = configuration(args.config)
-    if not 8 <= args.build_memory_gib <= stack.get("memory_gib", 24):
-        parser.error("Set build memory within the stack capacity, with at least 8 GiB")
     root = Path(stack["workspace"])
+    layout = invoke(root, "layout")
     state = Path(stack["state_root"])
+    build_budget = invoke(
+        root,
+        "admit-build",
+        deployment=str(state / "local.json"),
+        memory_gib=args.build_memory_gib,
+    )
+    args.build_memory_gib = build_budget["memory_bytes"] >> 30
+    build_defaults = invoke(root, "preset", kind="code-build")
+    physical_defaults = invoke(root, "preset", kind="gcd-code-physical")
     deployment = json.loads((state / "local.json").read_text())
     get(deployment["kernel_url"] + "/kernel/health")
     module = root / "agent/dplevolve"
@@ -92,14 +101,14 @@ def main():
             "dplevolve": git_head(module),
         },
     )
-    cpu = stack.get("cpu_cores", 8)
+    cpu = build_budget["cpu_cores"]
     core = native_state / "core"
     core_binary = core / "install/OpenROAD/bin/openroad"
     flow = orfs / "flow"
     flow_outputs = [flow / name for name in ("results", "reports", "logs", "objects")]
     for folder in flow_outputs:
         folder.mkdir(exist_ok=True)
-    resources = {"cpu_cores": cpu, "processes": 2048}
+    resources = {"cpu_cores": cpu, "processes": build_defaults["processes"]}
     profile = {
         "profile_path": str(profile_path),
         "experiment_id": state.name + "-dpl-core",
@@ -110,7 +119,7 @@ def main():
         "core_root": str(core),
         "core_binary": str(core_binary),
         "client_python": deployment["client_python"],
-        "container_python": "/usr/bin/python3",
+        "container_python": layout["python"],
         "kernel_url": deployment["kernel_url"],
         "image": deployment["runtime"]["image"],
         "design": "gcd",
@@ -130,11 +139,17 @@ def main():
             "build": {**resources, "memory_bytes": args.build_memory_gib << 30},
             "variant_build": {
                 **resources,
-                "memory_bytes": min(24, args.build_memory_gib) << 30,
+                "memory_bytes": args.build_memory_gib << 30,
             },
-            "physical": {**resources, "memory_bytes": 8 << 30},
+            "physical": {
+                **resources,
+                "memory_bytes": physical_defaults["memory_gib"] << 30,
+            },
         },
-        "cmake_args": ["-DCMAKE_BUILD_TYPE=Release", *openroad_build_args(openroad)],
+        "cmake_args": [
+            "-DCMAKE_BUILD_TYPE=Release",
+            *openroad_build_args(openroad, workspace=root),
+        ],
         "container_environment": {
             **{
                 key: env[key]
@@ -145,11 +160,11 @@ def main():
                     "ORFS_ROOT",
                 )
             },
-            "DPL_EVOLVE_PYTHON": "/usr/bin/python3",
+            "DPL_EVOLVE_PYTHON": layout["python"],
             "OPENROAD_EXE": str(core_binary),
             "ORFS_BUILD_ROOT": str(orfs),
             "FLOW_HOME": str(flow),
-            "YOSYS_EXE": "/OpenROAD-flow-scripts/tools/install/yosys/bin/yosys",
+            "YOSYS_EXE": layout["yosys"],
             "OMP_NUM_THREADS": str(cpu),
         },
     }
@@ -184,7 +199,7 @@ def main():
         "source": str(module),
         "python": str(python),
         "profile_template": str(profile_path),
-        "physical_memory_gib": 8,
+        "physical_memory_gib": physical_defaults["memory_gib"],
     }
     deployment["designs"]["gcd"].update(
         dpl_case="gcd_nangate45",

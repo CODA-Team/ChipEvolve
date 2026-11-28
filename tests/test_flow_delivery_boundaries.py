@@ -7,11 +7,11 @@ from pathlib import Path
 import pytest
 from openroad_platform_client import KernelClient
 
-from chip_evolve import flow, flow_delivery, flow_evidence
-from chip_evolve.candidates import deliver_candidates
-from chip_evolve.config import business_lock, read, write
-from chip_evolve.contracts import BusinessInputError
-from chip_evolve.result_io import load_physical_result
+from chip_evolve.workflow import flow, flow_delivery, flow_evidence
+from chip_evolve.core.candidates import deliver_candidates
+from chip_evolve.core.config import business_lock, read, write
+from chip_evolve.core.contracts import BusinessInputError
+from chip_evolve.core.result_io import load_physical_result
 from tests.test_business_contracts import result_file
 from tests.test_local_business import deployment
 

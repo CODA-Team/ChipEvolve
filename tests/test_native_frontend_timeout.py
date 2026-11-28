@@ -8,7 +8,7 @@ import sys
 
 import pytest
 
-from chip_evolve.controller import invoke
+from chip_evolve.workflow.controller import invoke
 
 
 def live(pid):
@@ -80,7 +80,7 @@ def test_nonzero_native_exit_still_reports_original_controller_failure(tmp_path)
 def test_keyboard_interrupt_keeps_frontend_cleanup_before_propagating(
     tmp_path, monkeypatch
 ):
-    from chip_evolve import native_process
+    from chip_evolve.core import native_process
 
     class Interrupted:
         def wait(self, timeout):

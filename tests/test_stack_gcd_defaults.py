@@ -8,6 +8,8 @@ from types import SimpleNamespace
 import pytest
 
 from admin.release import stack
+from admin.release import gcd_flow
+from chip_evolve.core.toolchain import layout_paths
 
 
 def prepared_stack(tmp_path, monkeypatch):
@@ -29,6 +31,25 @@ def prepared_stack(tmp_path, monkeypatch):
         "memory_gib": 12,
     }
     monkeypatch.setattr(stack.shutil, "which", lambda name: "/usr/bin/apptainer")
+
+    def profile_api(stack_config, operation, **payload):
+        if operation == "preset":
+            from chip_evolve.core.resources import preset
+
+            return preset(payload["kind"])
+        if operation == "layout":
+            return layout_paths()
+        if operation == "bind":
+            # This fixture tests recipe wiring, not the separate real-image probe.
+            return {"path": str(state / "runtime-profile.json"), "sha256": "f" * 64}
+        raise AssertionError(operation)
+
+    monkeypatch.setattr(stack, "profile_api", profile_api)
+    monkeypatch.setattr(
+        gcd_flow,
+        "invoke",
+        lambda root, operation, **payload: profile_api(config, operation, **payload),
+    )
 
     def run(command, **kwargs):
         if command[-2] == "cat":
@@ -75,6 +96,8 @@ def test_prepare_gcd_keeps_common_recipe_and_binds_only_requested_flow(
     assert ("flow" in value.get("professional", {})) is flow
     assert ("flow_tool_profile" in value) is flow
     assert (state / "flow-tool-profile.json").exists() is flow
+    assert (state / "orfs-tool-profile.json").is_file()
+    assert value["orfs_tool_profile"].endswith("/orfs-tool-profile.json")
 
 
 @pytest.mark.parametrize("cpu,memory", [(2, 12), (4, 4)])

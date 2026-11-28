@@ -13,7 +13,7 @@ from tests.support import report_formal_campaign as reporting
 from tests.support import run_formal_preflight as running
 from tests.test_adoption_consistency import frame_at, validation_for
 from tests.test_local_business import deployment
-from chip_evolve.config import read, write
+from chip_evolve.core.config import read, write
 
 
 def campaign(tmp_path, monkeypatch):

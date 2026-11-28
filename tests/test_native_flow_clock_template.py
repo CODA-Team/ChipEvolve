@@ -4,7 +4,7 @@ import subprocess
 
 import pytest
 
-from chip_evolve.clock import flow_sdc
+from chip_evolve.core.clock import flow_sdc
 
 
 def template(unit, period, virtual=True, header=""):

@@ -12,9 +12,9 @@ from pathlib import Path
 from typing import Any
 
 from tests.support.freeze_formal_campaign import checked
-from chip_evolve.config import Deployment, read, write
-from chip_evolve.environment import reference
-from chip_evolve.validation import query_facts
+from chip_evolve.core.config import Deployment, read, write
+from chip_evolve.workflow.environment import reference
+from chip_evolve.workflow.validation import query_facts
 
 
 def token_usage(events: list[dict[str, Any]]) -> dict[str, Any]:

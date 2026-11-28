@@ -1,0 +1,140 @@
+{
+  "base_commit": "4c8bccdf40b16bc32ed0118bef7a940a596e3114",
+  "source_manifest_sha256": "7e1cbef2f145c94966a47cc49e27d0702a1534f7e4f1732ba35f7abf74f4ac2f",
+  "candidate_modules_unchanged": {
+    "execution-foundation": {
+      "head": "f54e9d6bf219df48b55bbf841387b4106622074e",
+      "status": ""
+    },
+    "data-foundation": {
+      "head": "1bbfa2731370965259423066cf34b56f7bb37ee6",
+      "status": ""
+    },
+    "data-interface": {
+      "head": "e309452eb1b125c27fe25bd37db1371cbb306b2b",
+      "status": ""
+    },
+    "agent/query-agent": {
+      "head": "23805cbab2e22cbe38d638883418d34752684a22",
+      "status": ""
+    },
+    "toolkits": {
+      "head": "a92e1c8f901c0669322efb8398a789901961cc77",
+      "status": ""
+    },
+    "agent/flow-agent": {
+      "head": "50f84117d22479d4078a83e5abbeffa2e245efd9",
+      "status": ""
+    },
+    "agent/dplevolve": {
+      "head": "7e809b9eaea1d0a8b4c32d3f1b9cac3a7a707bc1",
+      "status": ""
+    },
+    "agent/goalevolve": {
+      "head": "05e01716a3609a4f2a0b66cf6e827a1e00df5164",
+      "status": ""
+    },
+    "agent/timing-eco-agent": {
+      "head": "8b1788daf8bc34d4f7648fd989ec3e632cc3da59",
+      "status": ""
+    }
+  },
+  "original_root_files_preserved": 638,
+  "original_root_file_changes": {},
+  "protected_original_files": 17,
+  "archive_hashes": 377,
+  "original_git_states_preserved": {
+    ".": {
+      "head": true,
+      "branch": true,
+      "status_porcelain": true,
+      "logical_index_sha256": true,
+      "diff_sha256": true,
+      "cached_diff_sha256": true,
+      "git_config_sha256": true
+    },
+    "execution-foundation": {
+      "head": true,
+      "branch": true,
+      "status_porcelain": true,
+      "logical_index_sha256": true,
+      "diff_sha256": true,
+      "cached_diff_sha256": true,
+      "git_config_sha256": true
+    },
+    "data-foundation": {
+      "head": true,
+      "branch": true,
+      "status_porcelain": true,
+      "logical_index_sha256": true,
+      "diff_sha256": true,
+      "cached_diff_sha256": true,
+      "git_config_sha256": true
+    },
+    "data-interface": {
+      "head": true,
+      "branch": true,
+      "status_porcelain": true,
+      "logical_index_sha256": true,
+      "diff_sha256": true,
+      "cached_diff_sha256": true,
+      "git_config_sha256": true
+    },
+    "agent/query-agent": {
+      "head": true,
+      "branch": true,
+      "status_porcelain": true,
+      "logical_index_sha256": true,
+      "diff_sha256": true,
+      "cached_diff_sha256": true,
+      "git_config_sha256": true
+    },
+    "toolkits": {
+      "head": true,
+      "branch": true,
+      "status_porcelain": true,
+      "logical_index_sha256": true,
+      "diff_sha256": true,
+      "cached_diff_sha256": true,
+      "git_config_sha256": true
+    },
+    "agent/flow-agent": {
+      "head": true,
+      "branch": true,
+      "status_porcelain": true,
+      "logical_index_sha256": true,
+      "diff_sha256": true,
+      "cached_diff_sha256": true,
+      "git_config_sha256": true
+    },
+    "agent/dplevolve": {
+      "head": true,
+      "branch": true,
+      "status_porcelain": true,
+      "logical_index_sha256": true,
+      "diff_sha256": true,
+      "cached_diff_sha256": true,
+      "git_config_sha256": true
+    },
+    "agent/goalevolve": {
+      "head": true,
+      "branch": true,
+      "status_porcelain": true,
+      "logical_index_sha256": true,
+      "diff_sha256": true,
+      "cached_diff_sha256": true,
+      "git_config_sha256": true
+    },
+    "agent/timing-eco-agent": {
+      "head": true,
+      "branch": true,
+      "status_porcelain": true,
+      "logical_index_sha256": true,
+      "diff_sha256": true,
+      "cached_diff_sha256": true,
+      "git_config_sha256": true
+    }
+  },
+  "old_test_files": 107,
+  "original_assertions_preserved": true
+}

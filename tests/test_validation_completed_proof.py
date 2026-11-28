@@ -6,10 +6,10 @@ import pytest
 
 from tests.test_adoption_consistency import frame_at
 from tests.test_local_business import deployment
-from chip_evolve import validation
-from chip_evolve.config import read, write
-from chip_evolve.jobs import digest
-from chip_evolve.lifecycle import WorkPending
+from chip_evolve.workflow import validation
+from chip_evolve.core.config import read, write
+from chip_evolve.core.jobs import digest
+from chip_evolve.core.lifecycle import WorkPending
 
 
 @pytest.fixture
@@ -112,7 +112,7 @@ def test_validation_resume_after_replay_pending_reuses_completed_proof(
     completed, monkeypatch
 ):
     config, reference, candidate, folder, proof, _ = completed
-    monkeypatch.setattr("chip_evolve.design_facts.ensure", lambda d, p, f: f)
+    monkeypatch.setattr("chip_evolve.facts.design_facts.ensure", lambda d, p, f: f)
     monkeypatch.setattr(validation, "query_facts", lambda *args: {"verified": True})
     monkeypatch.setattr(
         validation,

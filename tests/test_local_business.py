@@ -9,13 +9,13 @@ from unittest.mock import patch
 
 import pytest
 
-from chip_evolve.clock import flow_sdc
-from chip_evolve.config import Deployment, read, write
-from chip_evolve.flow import recover_config
-from chip_evolve.handoff import flatten_archive
-from chip_evolve.jobs import Jobs, digest
-from chip_evolve.native import latest_producer
-from chip_evolve.selection import select
+from chip_evolve.core.clock import flow_sdc
+from chip_evolve.core.config import Deployment, read, write
+from chip_evolve.workflow.flow import recover_config
+from chip_evolve.workflow.handoff import flatten_archive
+from chip_evolve.core.jobs import Jobs, digest
+from chip_evolve.workflow.native import latest_producer
+from chip_evolve.core.selection import select
 
 
 @pytest.mark.parametrize("joined", [False, True])
@@ -128,7 +128,7 @@ def test_business_help_needs_no_tool_environment():
 def test_invalid_professional_mode_fails_before_starting_an_experiment(
     tmp_path, arguments
 ):
-    from chip_evolve.cli import main
+    from chip_evolve.workflow.cli import main
 
     d = deployment(tmp_path)
     with (
@@ -169,7 +169,10 @@ def test_export_declares_actual_analysis_parent_and_design_identity(tmp_path):
             return {}
 
     client = Client()
-    with patch("chip_evolve.jobs.KernelClient", return_value=client):
+    with (
+        patch("chip_evolve.core.jobs.KernelClient", return_value=client),
+        patch("chip_evolve.core.jobs.admit_task"),
+    ):
         d = deployment(tmp_path)
         for design in ("gcd", "aes"):
             jobs = Jobs(d, design, tmp_path / design / "same-key")

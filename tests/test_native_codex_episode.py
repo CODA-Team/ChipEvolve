@@ -9,8 +9,8 @@ from pathlib import Path
 import pytest
 
 from tests.support.run_native_codex_episode import main, run, summarize
-from chip_evolve.config import read, write
-from chip_evolve.jobs import digest
+from chip_evolve.core.config import read, write
+from chip_evolve.core.jobs import digest
 
 
 def events(path, values):

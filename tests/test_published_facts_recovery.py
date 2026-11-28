@@ -8,10 +8,10 @@ from urllib.error import HTTPError
 import pytest
 
 from tests.test_design_fact_materialization import publication
-from chip_evolve.config import read
-from chip_evolve.jobs import digest
-from chip_evolve.lifecycle import WorkPending
-from chip_evolve.physical import publish
+from chip_evolve.core.config import read
+from chip_evolve.core.jobs import digest
+from chip_evolve.core.lifecycle import WorkPending
+from chip_evolve.execution.physical import publish
 
 
 @pytest.mark.parametrize(
@@ -35,7 +35,7 @@ def test_committed_exports_resume_without_new_ef_tasks(tmp_path, monkeypatch, er
         return response
 
     monkeypatch.setattr(
-        "chip_evolve.design_facts.EdaAiClient",
+        "chip_evolve.facts.design_facts.EdaAiClient",
         lambda **_: SimpleNamespace(get_metrics=metrics),
     )
     with pytest.raises(WorkPending) as caught:
@@ -68,7 +68,7 @@ def test_permanent_http_errors_remain_hard_failures(tmp_path, monkeypatch, code)
         raise error
 
     monkeypatch.setattr(
-        "chip_evolve.design_facts.EdaAiClient",
+        "chip_evolve.facts.design_facts.EdaAiClient",
         lambda **_: SimpleNamespace(get_metrics=metrics),
     )
     with pytest.raises(HTTPError) as caught:
@@ -80,7 +80,7 @@ def test_permanent_http_errors_remain_hard_failures(tmp_path, monkeypatch, code)
 def test_wrong_design_is_not_a_transient_read(tmp_path, monkeypatch):
     _, source, frame, jobs, _, _ = publication(tmp_path, monkeypatch)
     monkeypatch.setattr(
-        "chip_evolve.design_facts.EdaAiClient",
+        "chip_evolve.facts.design_facts.EdaAiClient",
         lambda **_: SimpleNamespace(
             get_metrics=lambda **_: {"scope": {"design_id": "aes"}}
         ),

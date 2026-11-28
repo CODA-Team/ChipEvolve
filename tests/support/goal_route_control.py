@@ -5,11 +5,11 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from chip_evolve.config import Deployment, read, write
-from chip_evolve.delivery import checkpoint, finish
-from chip_evolve.environment import reference
-from chip_evolve.jobs import Jobs, digest
-from chip_evolve.physical import container
+from chip_evolve.core.config import Deployment, read, write
+from chip_evolve.execution.delivery import checkpoint, finish
+from chip_evolve.workflow.environment import reference
+from chip_evolve.core.jobs import Jobs, digest
+from chip_evolve.execution.physical import container
 
 
 def without_repairs(text: str) -> tuple[str, list[str]]:

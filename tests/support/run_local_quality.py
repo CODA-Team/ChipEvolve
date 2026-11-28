@@ -8,9 +8,9 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-from chip_evolve.comparisons import professional_facts
-from chip_evolve.config import Deployment, read, write
-from chip_evolve.jobs import Jobs, digest
+from chip_evolve.workflow.comparisons import professional_facts
+from chip_evolve.core.config import Deployment, read, write
+from chip_evolve.core.jobs import Jobs, digest
 
 STAGES = (
     "pre_repair",

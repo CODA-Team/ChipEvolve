@@ -4,8 +4,8 @@ from copy import deepcopy
 
 import pytest
 
-from chip_evolve.comparisons import METRICS, compare, proven_points
-from chip_evolve.config import write
+from chip_evolve.workflow.comparisons import METRICS, compare, proven_points
+from chip_evolve.core.config import write
 
 
 def result(tmp_path):

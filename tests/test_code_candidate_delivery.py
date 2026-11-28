@@ -7,10 +7,12 @@ from types import SimpleNamespace
 
 import pytest
 
-from chip_evolve import code_evidence, delivery, recovery
-from chip_evolve.config import read, write
-from chip_evolve.jobs import digest
-from chip_evolve.lifecycle import WorkPending
+from chip_evolve.facts import code_evidence
+from chip_evolve.execution import delivery
+from chip_evolve.workflow import recovery
+from chip_evolve.core.config import read, write
+from chip_evolve.core.jobs import digest
+from chip_evolve.core.lifecycle import WorkPending
 from tests.test_adoption_consistency import frame_at
 from tests.test_local_business import deployment
 
@@ -280,8 +282,8 @@ def test_goal_producer_uses_registered_snapshot_bytes_not_only_local_receipt(
             }
         ],
     )
-    from chip_evolve.contracts import NativeCampaignBinding, NativeCandidateEvidence
-    from chip_evolve.result_io import file_ref, freeze, object_at
+    from chip_evolve.core.contracts import NativeCampaignBinding, NativeCandidateEvidence
+    from chip_evolve.core.result_io import file_ref, freeze, object_at
 
     binding = NativeCampaignBinding(
         "goal", "gcd", "gcd_top", "native-experiment", tmp_path / "operations"
@@ -310,7 +312,7 @@ def test_goal_producer_uses_registered_snapshot_bytes_not_only_local_receipt(
 
 
 def test_root_finish_collects_once_and_child_uses_deferred_facts(tmp_path, monkeypatch):
-    from chip_evolve import physical as professional
+    from chip_evolve.execution import physical as professional
 
     real_finish = delivery.finish
     data = inputs(tmp_path, monkeypatch)
@@ -364,7 +366,10 @@ def test_failed_extra_delivery_is_visible_and_does_not_retry_or_adopt(
 def test_business_cli_returns_candidate_inventory_without_directory_hunting(
     tmp_path, monkeypatch, capsys, command
 ):
-    from chip_evolve.cli import main
+    from tests.contract_fixtures import unit_admission
+
+    unit_admission(monkeypatch, orchestration=True)
+    from chip_evolve.workflow.cli import main
 
     if command == "run":
         from tests.test_professional_snapshot_binding import prepare
@@ -380,7 +385,7 @@ def test_business_cli_returns_candidate_inventory_without_directory_hunting(
         "all_eligible_candidates_delivered": True,
     }
     value = {"run_id": "selected", "metrics": {}, "native_candidate_evidence": metadata}
-    from chip_evolve.result_io import specialist_reply
+    from chip_evolve.core.result_io import specialist_reply
     from tests.test_business_contracts import result_file
 
     output = result_file(tmp_path / "typed-output")
@@ -388,7 +393,7 @@ def test_business_cli_returns_candidate_inventory_without_directory_hunting(
     frame["native_candidate_evidence"] = metadata
     write(output, frame)
     monkeypatch.setattr(
-        "chip_evolve.dpl.run_dpl",
+        "chip_evolve.workflow.dpl.run_dpl",
         lambda *args: specialist_reply("dpl", output),
     )
     monkeypatch.setattr(recovery, "recover", lambda *args: value)
@@ -440,7 +445,7 @@ def test_original_goal_continuation_is_covered_by_same_delivery_hook(
 def test_finished_legacy_result_is_not_implicitly_upgraded_on_recovery(
     tmp_path, monkeypatch
 ):
-    from chip_evolve import physical as professional
+    from chip_evolve.execution import physical as professional
 
     real_finish = delivery.finish
     data = inputs(tmp_path, monkeypatch)

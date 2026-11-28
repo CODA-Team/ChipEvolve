@@ -6,9 +6,9 @@ from pathlib import Path
 import pytest
 
 from tests.test_local_business import deployment
-from chip_evolve.config import read, write
-from chip_evolve.jobs import digest
-from chip_evolve.validation import replay
+from chip_evolve.core.config import read, write
+from chip_evolve.core.jobs import digest
+from chip_evolve.workflow.validation import replay
 
 
 def candidate(tmp_path):
@@ -61,7 +61,7 @@ def test_flow_replay_uses_actual_placement_and_existing_delivery(tmp_path, monke
         assert saved["kind"] == "layout"
         return {"run_id": "independent-real-routing"}
 
-    monkeypatch.setattr("chip_evolve.delivery.finish", finish)
+    monkeypatch.setattr("chip_evolve.execution.delivery.finish", finish)
     assert replay(d, result, output)["run_id"] == "independent-real-routing"
     assert replay(d, result, output)["run_id"] == "independent-real-routing"
     assert len(seen) == 2 and seen[0] == seen[1]
@@ -80,7 +80,7 @@ def test_flow_replay_uses_actual_placement_and_existing_delivery(tmp_path, monke
 def test_flow_resume_rejects_changed_recorded_inputs(tmp_path, monkeypatch, field):
     d, result, output = candidate(tmp_path)
     calls = []
-    monkeypatch.setattr("chip_evolve.delivery.finish", lambda *a: calls.append(a) or {})
+    monkeypatch.setattr("chip_evolve.execution.delivery.finish", lambda *a: calls.append(a) or {})
     replay(d, result, output)
     Path(read(result)[field]).write_bytes(b"changed after first replay")
     with pytest.raises(ValueError, match="Flow replay inputs changed"):
@@ -92,7 +92,7 @@ def test_existing_code_checkpoint_keeps_precedence(tmp_path, monkeypatch):
     d, result, output = candidate(tmp_path)
     odb = result.parent / "code.odb"
     odb.write_bytes(b"code checkpoint")
-    from chip_evolve.delivery import checkpoint
+    from chip_evolve.execution.delivery import checkpoint
 
     checkpoint(
         result.parent,
@@ -104,7 +104,7 @@ def test_existing_code_checkpoint_keeps_precedence(tmp_path, monkeypatch):
         native_method={"kind": "professional-code"},
     )
     monkeypatch.setattr(
-        "chip_evolve.validation.finish",
+        "chip_evolve.workflow.validation.finish",
         lambda *a: read(output / "delivery-checkpoint.json"),
     )
     value = replay(d, result, output)

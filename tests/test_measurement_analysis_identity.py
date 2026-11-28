@@ -3,7 +3,7 @@
 import pytest
 
 from tests.test_final_fanout_facts import run_measurement
-from chip_evolve.config import write
+from chip_evolve.core.config import write
 
 
 @pytest.mark.parametrize("legacy", [False, True])

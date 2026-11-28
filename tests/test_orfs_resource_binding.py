@@ -3,9 +3,9 @@
 import pytest
 
 from tests.test_local_business import deployment
-from chip_evolve.config import write
-from chip_evolve.jobs import Jobs, digest
-from chip_evolve.physical import baseline
+from chip_evolve.core.config import write
+from chip_evolve.core.jobs import Jobs, digest
+from chip_evolve.execution.physical import baseline
 
 
 @pytest.mark.parametrize(
@@ -77,8 +77,8 @@ def test_native_flow_uses_deployment_resources_and_preserves_inputs(
 def test_source_copy_uses_same_declared_reservation(
     tmp_path, monkeypatch, declared, expected
 ):
-    from chip_evolve import flow_replay as professional
-    from chip_evolve.flow_replay import qualify_prepared_recipe
+    from chip_evolve.workflow import flow_replay as professional
+    from chip_evolve.workflow.flow_replay import qualify_prepared_recipe
 
     d = deployment(tmp_path)
     if declared is not None:

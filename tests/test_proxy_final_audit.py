@@ -7,7 +7,7 @@ import pytest
 from tests.support.proxy_final_audit import flow_deployment, matched_inputs, rank_reversals
 from tests.test_local_business import deployment
 from tests.test_local_comparisons import result
-from chip_evolve.config import read, write
+from chip_evolve.core.config import read, write
 
 
 def test_declared_recipe_change_cannot_hide_a_changed_design_or_sdc():

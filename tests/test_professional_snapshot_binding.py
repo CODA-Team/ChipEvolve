@@ -5,14 +5,17 @@ import json
 
 import pytest
 
-from chip_evolve.command_requests import RunCommand
-from chip_evolve.config import read, write
-from chip_evolve.contracts import SpecialistReply
-from chip_evolve.professional import execute
+from chip_evolve.core.command_requests import RunCommand
+from chip_evolve.core.config import read, write
+from chip_evolve.core.contracts import SpecialistReply
+from chip_evolve.workflow.professional import execute
 from tests.test_query_objective_handoff import inputs
 
 
 def prepare(tmp_path, monkeypatch, capability, snapshot):
+    from tests.contract_fixtures import unit_admission
+
+    unit_admission(monkeypatch, orchestration=True)
     deployment, source, _ = inputs(tmp_path)
     frame = read(source)
     packet = {
@@ -50,7 +53,7 @@ def prepare(tmp_path, monkeypatch, capability, snapshot):
 
     client, _ = registered_source(tmp_path, frame)
     write(source, frame)
-    monkeypatch.setattr("chip_evolve.jobs.KernelClient", lambda *a, **kw: client)
+    monkeypatch.setattr("chip_evolve.core.jobs.KernelClient", lambda *a, **kw: client)
     dispatched = []
 
     def run(*args):
@@ -58,10 +61,10 @@ def prepare(tmp_path, monkeypatch, capability, snapshot):
         return SpecialistReply(capability, args[3], "delivered")
 
     for target in (
-        "chip_evolve.flow.run_flow",
-        "chip_evolve.dpl.run_dpl",
-        "chip_evolve.goal.run_goal",
-        "chip_evolve.eco.run_eco",
+        "chip_evolve.workflow.flow.run_flow",
+        "chip_evolve.workflow.dpl.run_dpl",
+        "chip_evolve.workflow.goal.run_goal",
+        "chip_evolve.workflow.eco.run_eco",
     ):
         monkeypatch.setattr(target, run)
     args = RunCommand(

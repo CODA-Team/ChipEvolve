@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 
 from tests.support.repeat_native_strategy import recorded_action, relocated_script
-from chip_evolve.config import write
-from chip_evolve.jobs import digest
+from chip_evolve.core.config import write
+from chip_evolve.core.jobs import digest
 
 
 def fixture(tmp_path):
@@ -73,7 +73,7 @@ def test_repetition_binds_actual_input_parent_and_separates_code_source(
     from types import SimpleNamespace
 
     import tests.support.repeat_native_strategy as module
-    from chip_evolve.config import read
+    from chip_evolve.core.config import read
 
     result, benchmark, _ = fixture(tmp_path)
     origin = result.parents[2]
@@ -132,8 +132,8 @@ def test_fact_delivery_interruption_preserves_completed_optimization(
     from types import SimpleNamespace
 
     import tests.support.repeat_native_strategy as module
-    from chip_evolve.config import read
-    from chip_evolve.lifecycle import WorkPending
+    from chip_evolve.core.config import read
+    from chip_evolve.core.lifecycle import WorkPending
 
     result, benchmark, _ = fixture(tmp_path)
     origin = result.parents[2]

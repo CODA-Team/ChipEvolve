@@ -6,10 +6,11 @@ from pathlib import Path
 import pytest
 from eda_toolkits.objectives import objective_id
 
-from chip_evolve import commands, physical, professional
-from chip_evolve.command_requests import RunCommand
-from chip_evolve.config import read, write
-from chip_evolve.jobs import digest
+from chip_evolve.workflow import commands, professional
+from chip_evolve.execution import physical
+from chip_evolve.core.command_requests import RunCommand
+from chip_evolve.core.config import read, write
+from chip_evolve.core.jobs import digest
 from tests.test_final_fanout_facts import run_measurement
 
 
@@ -80,7 +81,7 @@ def test_run_rejects_replaced_tool_image_before_submitting(tmp_path, monkeypatch
 
 @pytest.mark.parametrize("capability", ["flow", "dpl", "goal"])
 def test_specialist_profile_must_use_the_deployment_image(tmp_path, capability):
-    from chip_evolve.environment import verify_professional_toolchain
+    from chip_evolve.workflow.environment import verify_professional_toolchain
 
     jobs, *_ = bound_measurement(tmp_path)
     profile = tmp_path / "profile.json"
@@ -162,8 +163,8 @@ def test_wrong_conditions_stop_before_physical_qualification_or_full_baseline(
     def forbidden(*_args, **_kwargs):
         pytest.fail("Mismatched task must stop before physical execution")
 
-    monkeypatch.setattr("chip_evolve.jobs.Jobs.command", forbidden)
-    monkeypatch.setattr("chip_evolve.jobs.Jobs.submit", forbidden)
+    monkeypatch.setattr("chip_evolve.core.jobs.Jobs.command", forbidden)
+    monkeypatch.setattr("chip_evolve.core.jobs.Jobs.submit", forbidden)
     jobs.deployment.design("example")["orfs_config"] = "designs/example/config.mk"
     jobs.command = forbidden
     with pytest.raises(ValueError, match="libraries"):
@@ -204,7 +205,7 @@ def test_wrong_conditions_stop_before_diagnosis_and_professional_dispatch(
     def forbidden(*_args, **_kwargs):
         pytest.fail("Mismatched task must stop before diagnosis/model/EDA work")
 
-    monkeypatch.setattr("chip_evolve.diagnosis.diagnose", forbidden)
+    monkeypatch.setattr("chip_evolve.workflow.diagnosis.diagnose", forbidden)
     args = RunCommand(
         config=jobs.deployment.path,
         key="condition-test",

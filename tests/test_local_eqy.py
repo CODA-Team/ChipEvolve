@@ -6,8 +6,8 @@ from typing import Any, cast
 
 import pytest
 
-from chip_evolve.eqy import configuration, proof_receipt
-from chip_evolve.jobs import Jobs
+from chip_evolve.execution.eqy import configuration, proof_receipt
+from chip_evolve.core.jobs import Jobs
 
 
 def checks():
@@ -101,8 +101,8 @@ def test_empty_partition_listing_is_not_proof(tmp_path):
 def test_proof_submission_uses_explicit_validation_budget_without_changing_strategy(
     tmp_path, monkeypatch, engine, seconds
 ):
-    from chip_evolve import eqy, logic
-    from chip_evolve.config import write
+    from chip_evolve.execution import eqy, logic
+    from chip_evolve.core.config import write
 
     class Submitted(Exception):
         pass
@@ -115,7 +115,7 @@ def test_proof_submission_uses_explicit_validation_budget_without_changing_strat
 
     value: dict[str, Any] = {"tools": {"yosys": "/yosys", "eqy": "/eqy"}}
     if engine == "eqy":
-        from chip_evolve.jobs import digest
+        from chip_evolve.core.jobs import digest
 
         solver = tmp_path / "z3"
         solver.write_bytes(b"fixed solver fixture")

@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-from chip_evolve.config import Deployment, write
-from chip_evolve.flow import flow_source
+from chip_evolve.core.config import Deployment, write
+from chip_evolve.workflow.flow import flow_source
 
 
 def prepare(tmp_path: Path, dependencies: bool):

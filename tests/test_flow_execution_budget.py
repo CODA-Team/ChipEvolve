@@ -1,13 +1,19 @@
 """A calibrated native batch deadline must reach Flow without changing its search."""
 
-from tests.contract_fixtures import specialist_request
+from tests.contract_fixtures import specialist_request, unit_native_admission
 
 from unittest.mock import patch
 
 import pytest
 
-from chip_evolve.config import Deployment, read, write
-from chip_evolve.flow import _run_flow_transport as run_flow
+from chip_evolve.core.config import Deployment, read, write
+from chip_evolve.workflow.flow import _run_flow_transport as run_flow
+
+
+@pytest.fixture(autouse=True)
+def native_capacity_collaborator(monkeypatch):
+    # Scope is this offline native-transport test module, not root admission tests.
+    monkeypatch.setattr("chip_evolve.workflow.flow.admit_native_profile", unit_native_admission)
 
 
 def fixture(tmp_path, execution=None):
@@ -72,10 +78,10 @@ def test_budget_reaches_native_command_and_ef_reservation(
 ):
     d, args, experiment, source, sdc, profile = fixture(tmp_path, execution)
     with (
-        patch("chip_evolve.flow.flow_source", return_value=source),
-        patch("chip_evolve.flow.tool_profile", return_value=profile),
-        patch("chip_evolve.flow.invoke") as invoke,
-        patch("chip_evolve.flow.collect_flow", return_value={"delivered": True}),
+        patch("chip_evolve.workflow.flow.flow_source", return_value=source),
+        patch("chip_evolve.workflow.flow.tool_profile", return_value=profile),
+        patch("chip_evolve.workflow.flow.invoke") as invoke,
+        patch("chip_evolve.workflow.flow.collect_flow", return_value={"delivered": True}),
     ):
         assert run_flow(
             d,
@@ -116,7 +122,7 @@ def test_budget_reaches_native_command_and_ef_reservation(
 def test_invalid_budget_fails_before_preparing_native_files(tmp_path, field, value):
     d, args, experiment, *_ = fixture(tmp_path, {field: value})
     with (
-        patch("chip_evolve.flow.flow_source") as prepare,
+        patch("chip_evolve.workflow.flow.flow_source") as prepare,
         pytest.raises(ValueError, match=field),
     ):
         run_flow(
@@ -135,10 +141,10 @@ def test_explicit_campaign_seed_reaches_native_search(tmp_path):
     d, args, experiment, source, sdc, profile = fixture(tmp_path)
     d.value["professional"]["flow"]["seed"] = 29
     with (
-        patch("chip_evolve.flow.flow_source", return_value=source),
-        patch("chip_evolve.flow.tool_profile", return_value=profile),
-        patch("chip_evolve.flow.invoke") as invoke,
-        patch("chip_evolve.flow.collect_flow", return_value={}),
+        patch("chip_evolve.workflow.flow.flow_source", return_value=source),
+        patch("chip_evolve.workflow.flow.tool_profile", return_value=profile),
+        patch("chip_evolve.workflow.flow.invoke") as invoke,
+        patch("chip_evolve.workflow.flow.collect_flow", return_value={}),
     ):
         run_flow(
             d,
@@ -160,10 +166,10 @@ def test_explicit_clean_identity_quota_reaches_the_frozen_native_config(tmp_path
     policy = source / "flow/drp_config.json"
     write(policy, {"gwtw": {"clean_identity_quota": 10, "beta": 2}})
     with (
-        patch("chip_evolve.flow.flow_source", return_value=source),
-        patch("chip_evolve.flow.tool_profile", return_value=profile),
-        patch("chip_evolve.flow.invoke"),
-        patch("chip_evolve.flow.collect_flow", return_value={}),
+        patch("chip_evolve.workflow.flow.flow_source", return_value=source),
+        patch("chip_evolve.workflow.flow.tool_profile", return_value=profile),
+        patch("chip_evolve.workflow.flow.invoke"),
+        patch("chip_evolve.workflow.flow.collect_flow", return_value={}),
     ):
         run_flow(
             d,
@@ -183,10 +189,10 @@ def test_stage_memory_is_explicit_without_changing_search_or_default(tmp_path):
         {"memory_gib": 12, "stage_memory_gib": {"place": 8, "cts": 8}},
     )
     with (
-        patch("chip_evolve.flow.flow_source", return_value=source),
-        patch("chip_evolve.flow.tool_profile", return_value=profile),
-        patch("chip_evolve.flow.invoke") as invoke,
-        patch("chip_evolve.flow.collect_flow", return_value={}),
+        patch("chip_evolve.workflow.flow.flow_source", return_value=source),
+        patch("chip_evolve.workflow.flow.tool_profile", return_value=profile),
+        patch("chip_evolve.workflow.flow.invoke") as invoke,
+        patch("chip_evolve.workflow.flow.collect_flow", return_value={}),
     ):
         run_flow(
             d,
@@ -220,7 +226,7 @@ def test_stage_memory_is_explicit_without_changing_search_or_default(tmp_path):
 def test_invalid_stage_memory_fails_before_preparing_files(tmp_path, stages):
     d, args, experiment, *_ = fixture(tmp_path, {"stage_memory_gib": stages})
     with (
-        patch("chip_evolve.flow.flow_source") as prepare,
+        patch("chip_evolve.workflow.flow.flow_source") as prepare,
         pytest.raises(ValueError, match="stage_memory_gib"),
     ):
         run_flow(

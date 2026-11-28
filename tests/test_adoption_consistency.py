@@ -6,9 +6,9 @@ from threading import Barrier
 import pytest
 from eda_toolkits.objectives import condition_id, objective_id
 
-from chip_evolve import selection
-from chip_evolve.config import read, write
-from chip_evolve.jobs import digest
+from chip_evolve.core import selection
+from chip_evolve.core.config import read, write
+from chip_evolve.core.jobs import digest
 from tests.test_local_business import deployment
 
 

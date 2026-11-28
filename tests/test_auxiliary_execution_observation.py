@@ -4,8 +4,8 @@ import pytest
 from openroad_platform_client import KernelUnavailable
 
 from tests.test_delivery_lifecycle import Clock
-from chip_evolve.config import read
-from chip_evolve.lifecycle import WorkPending, wait_run
+from chip_evolve.core.config import read
+from chip_evolve.core.lifecycle import WorkPending, wait_run
 
 
 class DiagnosticFaultKernel:

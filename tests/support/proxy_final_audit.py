@@ -7,13 +7,13 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from chip_evolve.comparisons import compare
-from chip_evolve.config import Deployment, business_lock, read, write
-from chip_evolve.delivery import checkpoint, finish
-from chip_evolve.dpl import dpl_producer
-from chip_evolve.jobs import digest
-from chip_evolve.physical import baseline
-from chip_evolve.validation import query_facts
+from chip_evolve.workflow.comparisons import compare
+from chip_evolve.core.config import Deployment, business_lock, read, write
+from chip_evolve.execution.delivery import checkpoint, finish
+from chip_evolve.workflow.dpl import dpl_producer
+from chip_evolve.core.jobs import digest
+from chip_evolve.execution.physical import baseline
+from chip_evolve.workflow.validation import query_facts
 
 
 def matched_inputs(before: dict, after: dict, declared: set[str]) -> list[str]:

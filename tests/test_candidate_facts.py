@@ -8,16 +8,9 @@ from unittest.mock import patch
 import pytest
 from eda_toolkits.objectives import SCHEMA, condition_id, objective_id
 
-from chip_evolve.candidate_facts import (
-    BRIEF_BYTES,
-    build_candidate_facts,
-    candidate_row,
-    compact_view,
-    flow_feedback,
-    native_facts,
-)
-from chip_evolve.config import read, write
-from chip_evolve.jobs import digest
+from chip_evolve.workflow.candidate_facts import BRIEF_BYTES, build_candidate_facts, candidate_row, compact_view, flow_feedback, native_facts
+from chip_evolve.core.config import read, write
+from chip_evolve.core.jobs import digest
 from tests.test_local_business import deployment
 
 
@@ -118,8 +111,8 @@ def test_original_winner_can_be_final_infeasible_without_being_reselected(tmp_pa
         return {"run": {"run_id": "facts-analysis"}}
 
     with (
-        patch("chip_evolve.candidate_facts.query_facts", side_effect=sdk),
-        patch("chip_evolve.candidate_facts.Jobs.command", register),
+        patch("chip_evolve.workflow.candidate_facts.query_facts", side_effect=sdk),
+        patch("chip_evolve.workflow.candidate_facts.Jobs.command", register),
     ):
         brief = build_candidate_facts(d, paths[0], paths[1:], experiment)
     view = read(brief)
@@ -155,7 +148,7 @@ def test_mismatched_candidates_rejected_before_data_reads(tmp_path, field, value
     r, c = tmp_path / "ref.json", tmp_path / "candidate.json"
     write(r, reference)
     write(c, candidate)
-    with patch("chip_evolve.candidate_facts.query_facts") as query:
+    with patch("chip_evolve.workflow.candidate_facts.query_facts") as query:
         with pytest.raises(ValueError):
             build_candidate_facts(d, r, [c], tmp_path / "not-created")
     query.assert_not_called()
@@ -169,7 +162,7 @@ def test_sdk_constraint_facts_must_match_before_claiming_feasibility(tmp_path):
         if row["raw_key"] == "finish__timing__drv__max_slew":
             row["raw_value"] = 1
     jobs = SimpleNamespace(deployment=deployment(tmp_path))
-    with patch("chip_evolve.candidate_facts.query_facts", return_value=response):
+    with patch("chip_evolve.workflow.candidate_facts.query_facts", return_value=response):
         with pytest.raises(ValueError, match="hard-constraint"):
             candidate_row(jobs, measured, tmp_path / "result.json", tmp_path / "row")
 
@@ -314,7 +307,7 @@ def test_flow_proxy_conditions_and_units_are_not_relabelled_as_final(tmp_path):
 
 @pytest.mark.parametrize("failed", [False, True])
 def test_candidates_cli_forwards_explicit_inputs_and_records_outcome(tmp_path, failed):
-    from chip_evolve.cli import main
+    from chip_evolve.workflow.cli import main
 
     d = deployment(tmp_path)
     reference = tmp_path / "reference.json"
@@ -338,7 +331,7 @@ def test_candidates_cli_forwards_explicit_inputs_and_records_outcome(tmp_path, f
                 "cli-facts",
             ],
         ),
-        patch("chip_evolve.candidate_facts.build_candidate_facts") as build,
+        patch("chip_evolve.workflow.candidate_facts.build_candidate_facts") as build,
     ):
         if failed:
             build.side_effect = ValueError("different conditions")

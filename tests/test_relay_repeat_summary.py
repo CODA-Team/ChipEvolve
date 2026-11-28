@@ -3,7 +3,7 @@
 import pytest
 
 from tests.support.relay_repeat_summary import summarize
-from chip_evolve.config import read, write
+from chip_evolve.core.config import read, write
 
 
 def make_pair(tmp_path, monkeypatch):

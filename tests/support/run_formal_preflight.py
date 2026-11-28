@@ -12,8 +12,8 @@ from typing import Any
 from eda_toolkits.objectives import require_same_conditions
 
 from tests.support.freeze_formal_campaign import checked
-from chip_evolve.config import Deployment, business_lock, read, write
-from chip_evolve.environment import check_environment, reference
+from chip_evolve.core.config import Deployment, business_lock, read, write
+from chip_evolve.workflow.environment import check_environment, reference
 
 ROOT = Path(__file__).resolve().parents[2]
 

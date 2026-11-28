@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from chip_evolve import eqy
+from chip_evolve.execution import eqy
 
 
 def model():
@@ -85,7 +85,7 @@ def test_registered_proof_keeps_state_derivation_and_solver_evidence(
 ):
     from tests.test_eqy_pdr import prepared
     from tests.test_local_eqy import checks
-    from chip_evolve.config import read, write
+    from chip_evolve.core.config import read, write
 
     jobs, reference, candidate, _, _, _, calls = prepared(tmp_path, monkeypatch)
     jobs.deployment.value["validation"]["equivalence_match_flops"] = True
@@ -106,8 +106,8 @@ def test_state_discovery_imports_fixed_models_only_for_explicit_pdr_preparation(
 ):
     from tests.test_adoption_consistency import frame_at
     from tests.test_local_business import deployment
-    from chip_evolve import logic
-    from chip_evolve.jobs import Jobs, digest
+    from chip_evolve.execution import logic
+    from chip_evolve.core.jobs import Jobs, digest
 
     d = deployment(tmp_path)
     source = frame_at(tmp_path, "reference")

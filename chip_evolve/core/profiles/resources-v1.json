@@ -1,0 +1,203 @@
+{
+  "schema_version": "chip-evolve.resources.v1",
+  "presets": {
+    "legacy-api": {
+      "cpu_cores": 8,
+      "memory_gib": 24,
+      "processes": 2048,
+      "seconds": 1800,
+      "threads": 8
+    },
+    "stack": {
+      "cpu_cores": 8,
+      "memory_gib": 24,
+      "processes": 2048,
+      "seconds": 1800,
+      "threads": 8
+    },
+    "orfs": {
+      "cpu_cores": 8,
+      "memory_gib": 24,
+      "processes": 2048,
+      "seconds": 1800,
+      "threads": 8
+    },
+    "gcd-orfs": {
+      "cpu_cores": 4,
+      "memory_gib": 4,
+      "processes": 2048,
+      "seconds": 1800,
+      "threads": 4
+    },
+    "equivalence": {
+      "cpu_cores": 4,
+      "memory_gib": 32,
+      "processes": 2048,
+      "seconds": 3600,
+      "threads": 2
+    },
+    "gcd-equivalence": {
+      "cpu_cores": 4,
+      "memory_gib": 8,
+      "processes": 2048,
+      "seconds": 600,
+      "threads": 4
+    },
+    "flow-recipe": {
+      "cpu_cores": 2,
+      "memory_gib": 8,
+      "seconds": 1800,
+      "processes": 2048,
+      "threads": 2
+    },
+    "recipe-qualification": {
+      "cpu_cores": 2,
+      "memory_gib": 4,
+      "processes": 2048,
+      "seconds": 300,
+      "threads": 2
+    },
+    "native-export": {
+      "cpu_cores": 1,
+      "memory_gib": 2,
+      "processes": 2048,
+      "seconds": 120,
+      "threads": 1
+    },
+    "physical-facts": {
+      "cpu_cores": 2,
+      "memory_gib": 8,
+      "seconds": 300,
+      "processes": 2048,
+      "threads": 2
+    },
+    "code-build": {
+      "cpu_cores": 8,
+      "memory_gib": 64,
+      "processes": 2048,
+      "seconds": 5400,
+      "threads": 8,
+      "lto_workers": 1
+    },
+    "code-variant": {
+      "cpu_cores": 8,
+      "memory_gib": 64,
+      "processes": 2048,
+      "seconds": 5400,
+      "threads": 8,
+      "lto_workers": 1
+    },
+    "code-analysis": {
+      "cpu_cores": 1,
+      "memory_gib": 4,
+      "processes": 512,
+      "seconds": 300,
+      "threads": 1
+    },
+    "code-physical": {
+      "cpu_cores": 8,
+      "memory_gib": 24,
+      "processes": 2048,
+      "seconds": 1800,
+      "threads": 8
+    },
+    "flow-stage": {
+      "cpu_cores": 8,
+      "memory_gib": 24,
+      "processes": 2048,
+      "seconds": 7200,
+      "threads": 8
+    },
+    "gcd-flow-stage": {
+      "cpu_cores": 4,
+      "memory_gib": 4,
+      "processes": 2048,
+      "seconds": 180,
+      "threads": 4
+    },
+    "eco-session": {
+      "cpu_cores": 8,
+      "memory_gib": 24,
+      "processes": 2048,
+      "seconds": 1800,
+      "threads": 8
+    },
+    "register-evidence": {
+      "cpu_cores": 1,
+      "memory_gib": 2,
+      "seconds": 300,
+      "processes": 2048,
+      "threads": 1
+    },
+    "native-evaluation": {
+      "cpu_cores": 8,
+      "memory_gib": 24,
+      "seconds": 3600,
+      "processes": 2048,
+      "threads": 8
+    },
+    "logic-comparison": {
+      "cpu_cores": 2,
+      "memory_gib": 8,
+      "seconds": 1800,
+      "processes": 2048,
+      "threads": 2
+    },
+    "logic-parse": {
+      "cpu_cores": 2,
+      "memory_gib": 8,
+      "seconds": 600,
+      "processes": 2048,
+      "threads": 2
+    },
+    "design-export": {
+      "cpu_cores": 2,
+      "memory_gib": 8,
+      "seconds": 300,
+      "processes": 2048,
+      "threads": 2
+    },
+    "specialist-input": {
+      "cpu_cores": 2,
+      "memory_gib": 8,
+      "seconds": 300,
+      "processes": 2048,
+      "threads": 2
+    },
+    "tool-probe": {
+      "cpu_cores": 1,
+      "memory_gib": 4,
+      "seconds": 300,
+      "processes": 2048,
+      "threads": 1
+    },
+    "flow-replay": {
+      "cpu_cores": 8,
+      "memory_gib": 24,
+      "seconds": 1800,
+      "processes": 2048,
+      "threads": 8
+    },
+    "gcd-facts": {
+      "cpu_cores": 2,
+      "memory_gib": 4,
+      "processes": 2048,
+      "seconds": 300,
+      "threads": 2
+    },
+    "gcd-code-physical": {
+      "cpu_cores": 8,
+      "memory_gib": 8,
+      "processes": 2048,
+      "seconds": 1800,
+      "threads": 8
+    },
+    "gcd-eco-session": {
+      "cpu_cores": 8,
+      "memory_gib": 8,
+      "processes": 2048,
+      "seconds": 1800,
+      "threads": 8
+    }
+  }
+}

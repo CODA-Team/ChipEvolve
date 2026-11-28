@@ -2,9 +2,9 @@
 
 import pytest
 
-from chip_evolve.cli import main
-from chip_evolve.config import read, write
-from chip_evolve.recovery import recover
+from chip_evolve.workflow.cli import main
+from chip_evolve.core.config import read, write
+from chip_evolve.workflow.recovery import recover
 from tests.test_local_business import deployment
 
 
@@ -12,6 +12,9 @@ from tests.test_local_business import deployment
 def test_orfs_cli_passes_original_objective_to_physical_boundary(
     tmp_path, monkeypatch, explicit
 ):
+    from tests.contract_fixtures import unit_admission
+
+    unit_admission(monkeypatch, orchestration=True)
     d = deployment(tmp_path)
     objective = tmp_path / "original-objective.json"
     from tests.test_business_contracts import result_file
@@ -27,7 +30,7 @@ def test_orfs_cli_passes_original_objective_to_physical_boundary(
         seen.append((design_id, seconds, objective))
         return {"run_id": "measured", "metrics": {}}
 
-    monkeypatch.setattr("chip_evolve.physical.baseline", baseline)
+    monkeypatch.setattr("chip_evolve.execution.physical.baseline", baseline)
     monkeypatch.chdir(tmp_path)
     argv = [
         "chip-evolve",
@@ -73,7 +76,7 @@ def test_orfs_recovery_preserves_the_requested_goal(tmp_path, monkeypatch, expli
         seen.append(objective)
         return {"design_id": design, "run_id": "same-physical-run"}
 
-    monkeypatch.setattr("chip_evolve.physical.baseline", baseline)
+    monkeypatch.setattr("chip_evolve.execution.physical.baseline", baseline)
     elsewhere = tmp_path / "other-directory"
     elsewhere.mkdir()
     monkeypatch.chdir(elsewhere)

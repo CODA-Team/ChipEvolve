@@ -28,7 +28,7 @@ Use the [quickstart](README.md) to install the candidate and the
 
 The GCD runs cover the platform handoffs and the specialist paths listed above.
 Paper-scale search and statistical results have separate protocols and
-records. [Earlier local GCD acceptance](admin/A111_GCD_SPECIALIST_ACCEPTANCE_20261120.md)
+records. [Earlier local GCD acceptance](archive/records/A111_GCD_SPECIALIST_ACCEPTANCE_20261120.md)
 
 ## Handoff review follow-up
 
@@ -124,3 +124,30 @@ its G6 evidence. Slice 4D is approved for implementation, with the initial Git
 synchronization audit and confirmed backfill preceding source work. TUI and Web
 remain frozen. Engineering, business acceptance and remote delivery are tracked
 separately in the [release scope](docs/release/2026-11-28/ACCEPTANCE.md).
+
+
+## Slice 4D implementation (pending business acceptance)
+
+First synchronization delivered `e99c33b` and `4c8bccd` to the authorized
+engineering branch. The original user workspace and module modifications remain
+untouched. Slice 4D works from that clean delivery with the same nine public pins.
+
+Steps 1–2 add the integration profile and named resource/admission owners.
+Steps 3–4 move 51 implementations into four packages with one-object legacy
+compatibility, and archive 377 files with their original SHA256. Seventeen
+unaccepted local files stay at their original paths outside the delivery.
+The recursive physical graph, original logical layers, private boundaries and
+CLI/driver compatibility are checked. Static/root checks, zero-edit GCD runtime
+checks and final Git delivery have separate receipts; none implies owner acceptance.
+
+The isolated default GCD closure, Flow switch separation and final delivery are
+tracked in the Slice 4D report. Complete real Code additional delivery, Flow
+collector and some historical Goal recovery evidence remain inherited gaps.
+No new long Code build or model search is authorized here. TUI/Web remain frozen
+until the owner accepts the backend prerequisites.
+
+
+Slice 4D engineering evidence: [report](docs/release/2026-11-29/SLICE4D_REPORT.md).
+The root gate passed 1,347 tests; default GCD proof, replay, adoption and
+completed recovery passed. Owner business acceptance and Git delivery remain
+separate; TUI/Web remain frozen.

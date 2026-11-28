@@ -6,8 +6,8 @@ import pytest
 from openroad_platform_client import KernelClient
 
 from tests.test_local_business import deployment
-from chip_evolve.config import read, write
-from chip_evolve.progress import flow_progress
+from chip_evolve.core.config import read, write
+from chip_evolve.core.progress import flow_progress
 
 
 class Client(KernelClient):
@@ -233,14 +233,14 @@ def test_foreign_closure_cannot_describe_the_current_batch(tmp_path, field):
 def test_business_status_keeps_existing_fields_and_reports_native_stage(
     tmp_path, monkeypatch, capsys
 ):
-    from chip_evolve.cli import main
+    from chip_evolve.workflow.cli import main
 
     d = deployment(tmp_path)
     exp = d.experiment("gcd", "full-flow")
     write(exp / "request.json", {"capability": "flow"})
     native(exp, ["queued"])
     client = Client([run(1, "running")])
-    monkeypatch.setattr("chip_evolve.jobs.KernelClient", lambda *a, **k: client)
+    monkeypatch.setattr("chip_evolve.core.jobs.KernelClient", lambda *a, **k: client)
     monkeypatch.setattr(
         "sys.argv",
         ["chip-evolve", "--config", str(d.path), "status", "--design", "gcd"],
@@ -257,7 +257,7 @@ def test_business_status_keeps_existing_fields_and_reports_native_stage(
 def test_validation_status_exposes_its_pending_children_without_scanning_source(
     tmp_path, monkeypatch, capsys
 ):
-    from chip_evolve.cli import main
+    from chip_evolve.workflow.cli import main
 
     d = deployment(tmp_path)
     exp = d.experiment("gcd", "validation")
@@ -272,7 +272,7 @@ def test_validation_status_exposes_its_pending_children_without_scanning_source(
         write(exp / name, {"status": "waiting", "state": "resource_wait"})
     write(exp / "logic/jobs/done/lifecycle.json", {"status": "succeeded"})
     write(exp / "source/jobs/foreign/lifecycle.json", {"status": "waiting"})
-    monkeypatch.setattr("chip_evolve.jobs.KernelClient", lambda *a, **k: Client([]))
+    monkeypatch.setattr("chip_evolve.core.jobs.KernelClient", lambda *a, **k: Client([]))
     monkeypatch.setattr(
         "sys.argv",
         ["chip-evolve", "--config", str(d.path), "status", "--design", "gcd"],

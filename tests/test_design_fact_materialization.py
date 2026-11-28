@@ -7,13 +7,16 @@ from types import SimpleNamespace
 
 import pytest
 
-from chip_evolve.config import read, write
-from chip_evolve.jobs import Jobs, digest
-from chip_evolve.physical import publish
+from chip_evolve.core.config import read, write
+from chip_evolve.core.jobs import Jobs, digest
+from chip_evolve.execution.physical import publish
 from tests.test_query_objective_handoff import backend, inputs
 
 
 def publication(tmp_path, monkeypatch):
+    from tests.contract_fixtures import unit_admission
+
+    unit_admission(monkeypatch, orchestration=True)
     d, source, _ = inputs(tmp_path)
     d.value.update(openroad_launcher="/verified/openroad")
     d.value["designs"]["gcd"]["libraries"] = []
@@ -69,9 +72,9 @@ def publication(tmp_path, monkeypatch):
             return {}
 
     kernel = Kernel()
-    monkeypatch.setattr("chip_evolve.jobs.KernelClient", lambda *a, **k: kernel)
+    monkeypatch.setattr("chip_evolve.core.jobs.KernelClient", lambda *a, **k: kernel)
     monkeypatch.setattr(
-        "chip_evolve.design_facts.EdaAiClient",
+        "chip_evolve.facts.design_facts.EdaAiClient",
         lambda **k: SimpleNamespace(
             get_metrics=lambda **kw: {"scope": {"design_id": "gcd"}}
         ),
@@ -82,7 +85,7 @@ def publication(tmp_path, monkeypatch):
         imported.append((producer, artifact, snapshot, subject))
         return {"snapshot": {"snapshot_id": snapshot, "run_id": subject}}
 
-    monkeypatch.setattr("chip_evolve.design_facts.import_snapshot", import_snapshot)
+    monkeypatch.setattr("chip_evolve.facts.design_facts.import_snapshot", import_snapshot)
     batch = d.experiment("gcd", "batch")
     jobs = Jobs(d, "gcd", batch)
     return d, source, frame, jobs, kernel, imported
@@ -118,7 +121,7 @@ def test_batch_keeps_final_facts_without_pretending_objects_exist(
 
 
 def test_selected_objects_reuse_original_run_and_saved_export(tmp_path, monkeypatch):
-    from chip_evolve.design_facts import ensure
+    from chip_evolve.facts.design_facts import ensure
 
     d, source, frame, jobs, kernel, imported = publication(tmp_path, monkeypatch)
     thin = publish(jobs, frame, result_path=source, modes=("orfs", "opensta"))
@@ -141,7 +144,7 @@ def test_selected_objects_reuse_original_run_and_saved_export(tmp_path, monkeypa
 
 
 def test_query_uses_materialized_objects_and_keeps_source_bytes(tmp_path, monkeypatch):
-    from chip_evolve.diagnosis import diagnose
+    from chip_evolve.workflow.diagnosis import diagnose
 
     d, source, _ = inputs(tmp_path)
     frame = read(source)
@@ -152,9 +155,9 @@ def test_query_uses_materialized_objects_and_keeps_source_bytes(tmp_path, monkey
     complete = deepcopy(frame)
     complete["snapshot_ids"]["opendb"] = "materialized-objects"
     seen = []
-    monkeypatch.setattr("chip_evolve.design_facts.ensure", lambda *a: complete)
+    monkeypatch.setattr("chip_evolve.facts.design_facts.ensure", lambda *a: complete)
     backend(monkeypatch, [])
-    import chip_evolve.diagnosis as module
+    import chip_evolve.workflow.diagnosis as module
 
     call = module.subprocess.run
 
@@ -171,7 +174,7 @@ def test_query_uses_materialized_objects_and_keeps_source_bytes(tmp_path, monkey
 
 def test_professional_dispatch_consumes_materialized_scope(tmp_path, monkeypatch):
 
-    from chip_evolve.professional import execute
+    from chip_evolve.workflow.professional import execute
     from tests.test_professional_snapshot_binding import prepare
 
     d, args, experiment, _ = prepare(tmp_path, monkeypatch, "dpl", "actual-objects")
@@ -181,16 +184,16 @@ def test_professional_dispatch_consumes_materialized_scope(tmp_path, monkeypatch
     write(source, frame)
     complete = deepcopy(frame)
     complete["snapshot_ids"]["opendb"] = "actual-objects"
-    monkeypatch.setattr("chip_evolve.design_facts.ensure", lambda *a: complete)
+    monkeypatch.setattr("chip_evolve.facts.design_facts.ensure", lambda *a: complete)
     seen = []
 
     def run(deployment, args, experiment, actual, *rest):
         seen.append(actual.snapshot_ids["opendb"])
-        from chip_evolve.contracts import SpecialistReply
+        from chip_evolve.core.contracts import SpecialistReply
 
         return SpecialistReply("dpl", actual, "delivered")
 
-    monkeypatch.setattr("chip_evolve.dpl.run_dpl", run)
+    monkeypatch.setattr("chip_evolve.workflow.dpl.run_dpl", run)
     execute(d, args, experiment)
     assert seen == ["actual-objects"]
 
@@ -198,7 +201,7 @@ def test_professional_dispatch_consumes_materialized_scope(tmp_path, monkeypatch
 def test_validation_requires_selected_object_scope_without_changing_result(
     tmp_path, monkeypatch
 ):
-    from chip_evolve import validation
+    from chip_evolve.workflow import validation
 
     d, source, _ = inputs(tmp_path)
     frame = read(source)
@@ -208,7 +211,7 @@ def test_validation_requires_selected_object_scope_without_changing_result(
     sha = digest(source)
     complete = deepcopy(frame)
     complete["snapshot_ids"]["opendb"] = "actual-objects"
-    monkeypatch.setattr("chip_evolve.design_facts.ensure", lambda *a: complete)
+    monkeypatch.setattr("chip_evolve.facts.design_facts.ensure", lambda *a: complete)
     seen = []
 
     def facts(deployment, actual):
@@ -227,7 +230,7 @@ def test_validation_requires_selected_object_scope_without_changing_result(
 def test_flow_delivers_every_finished_candidate_and_original_constraints(
     tmp_path, monkeypatch, terminal_evidence
 ):
-    from chip_evolve import flow, flow_delivery as professional
+    from chip_evolve.workflow import flow, flow_delivery as professional
 
     d, source, _ = inputs(tmp_path)
     d.value["designs"]["gcd"].update(
@@ -319,7 +322,7 @@ def test_flow_delivers_every_finished_candidate_and_original_constraints(
         lambda a, b, c, p: p.write_text("evaluated config"),
     )
     if terminal_evidence:
-        from chip_evolve.flow_evidence import collect
+        from chip_evolve.workflow.flow_evidence import collect
 
         actual = collect(d, "gcd", experiment, Path(read(source)["objective"]))
         assert digest(experiment / "status.json") == failed_identity
@@ -364,7 +367,7 @@ def test_partial_flow_evidence_does_not_collect_unfinished_or_mixed_campaigns(
 ):
     import os
 
-    from chip_evolve.flow_evidence import collect
+    from chip_evolve.workflow.flow_evidence import collect
 
     d, source, _ = inputs(tmp_path)
     d.value["designs"]["gcd"].update(platform="asap7", nickname="gcd")
@@ -413,7 +416,7 @@ def test_timeout_evidence_requires_matching_terminal_witness(
 ):
     import os
 
-    from chip_evolve.flow_evidence import collect
+    from chip_evolve.workflow.flow_evidence import collect
 
     d, source, _ = inputs(tmp_path)
     d.value["designs"]["gcd"].update(platform="asap7", nickname="gcd")
@@ -461,7 +464,7 @@ def test_timeout_evidence_requires_matching_terminal_witness(
     originals = {str(path): digest(path) for path in experiment.rglob("*.json")}
     calls = []
     monkeypatch.setattr(
-        "chip_evolve.flow_delivery._deliver_candidates",
+        "chip_evolve.workflow.flow_delivery._deliver_candidates",
         lambda *a, **k: calls.append(k),
     )
     with pytest.raises(ValueError):

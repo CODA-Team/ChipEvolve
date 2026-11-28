@@ -9,10 +9,10 @@ from eda_ai_client import EdaAiClient, EdaAiError
 import pytest
 
 from tests.test_design_fact_materialization import publication
-from chip_evolve.config import read
-from chip_evolve.jobs import digest
-from chip_evolve.lifecycle import WorkPending
-from chip_evolve.physical import publish
+from chip_evolve.core.config import read
+from chip_evolve.core.jobs import digest
+from chip_evolve.core.lifecycle import WorkPending
+from chip_evolve.execution.physical import publish
 
 
 @contextmanager
@@ -47,7 +47,7 @@ def test_real_sdk_http_unavailable_recovers_without_resubmitting_ef(
     tmp_path, monkeypatch, status
 ):
     deployment, source, frame, jobs, kernel, _ = publication(tmp_path, monkeypatch)
-    monkeypatch.setattr("chip_evolve.design_facts.EdaAiClient", EdaAiClient)
+    monkeypatch.setattr("chip_evolve.facts.design_facts.EdaAiClient", EdaAiClient)
     before = digest(source)
     with data_server(
         [(status, b'{"error":"temporary"}'), (200, b'{"scope":{"design_id":"gcd"}}')]
@@ -76,7 +76,7 @@ def test_real_sdk_permanent_or_malformed_response_is_not_pending(
     tmp_path, monkeypatch, status, body
 ):
     deployment, source, frame, jobs, _, _ = publication(tmp_path, monkeypatch)
-    monkeypatch.setattr("chip_evolve.design_facts.EdaAiClient", EdaAiClient)
+    monkeypatch.setattr("chip_evolve.facts.design_facts.EdaAiClient", EdaAiClient)
     with data_server([(status, body)]) as url:
         deployment.value["data_url"] = url
         with pytest.raises(EdaAiError):
@@ -86,7 +86,7 @@ def test_real_sdk_permanent_or_malformed_response_is_not_pending(
 
 def test_real_sdk_connection_refusal_is_pending(tmp_path, monkeypatch):
     deployment, source, frame, jobs, kernel, _ = publication(tmp_path, monkeypatch)
-    monkeypatch.setattr("chip_evolve.design_facts.EdaAiClient", EdaAiClient)
+    monkeypatch.setattr("chip_evolve.facts.design_facts.EdaAiClient", EdaAiClient)
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0))
         port = sock.getsockname()[1]

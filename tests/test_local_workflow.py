@@ -4,11 +4,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from chip_evolve.config import business_lock, read, write
-from chip_evolve.delivery import checkpoint, finish
-from chip_evolve.jobs import Jobs, digest
-from chip_evolve.logic import interface_and_physical
-from chip_evolve.recovery import recover
+from chip_evolve.core.config import business_lock, read, write
+from chip_evolve.execution.delivery import checkpoint, finish
+from chip_evolve.core.jobs import Jobs, digest
+from chip_evolve.execution.logic import interface_and_physical
+from chip_evolve.workflow.recovery import recover
 from tests.test_local_business import deployment
 
 
@@ -27,7 +27,7 @@ def test_unfinished_recovery_rejects_replaced_image_before_delivery(
     )
     write(folder / "delivery-checkpoint.json", {"input_hashes": {}})
     monkeypatch.setattr(
-        "chip_evolve.delivery.finish",
+        "chip_evolve.execution.delivery.finish",
         lambda *_: pytest.fail("An unfinished delivery reached the EDA boundary"),
     )
     image.write_bytes(b"different bytes at the original path")
@@ -135,10 +135,10 @@ def test_recovery_collects_a_finished_goal_search(tmp_path, monkeypatch, promote
         seen.append((odb, producer, goal, model))
         return {"design_id": "gcd", "run_id": "measured"}
 
-    monkeypatch.setattr("chip_evolve.physical.qualify", qualify)
-    monkeypatch.setattr("chip_evolve.delivery.maybe_collect", lambda *a: None)
+    monkeypatch.setattr("chip_evolve.execution.physical.qualify", qualify)
+    monkeypatch.setattr("chip_evolve.execution.delivery.maybe_collect", lambda *a: None)
     monkeypatch.setattr(
-        "chip_evolve.goal.invoke", lambda *a: pytest.fail("native search restarted")
+        "chip_evolve.workflow.goal.invoke", lambda *a: pytest.fail("native search restarted")
     )
 
     result = recover(d, "gcd", "native-finished")
@@ -179,7 +179,7 @@ def test_recovery_keeps_native_verdict_and_failure_history(tmp_path, monkeypatch
         seen.append((selected.read_bytes(), producer))
         return {"run_id": "same-measurement", "design_id": "aes"}
 
-    monkeypatch.setattr("chip_evolve.physical.qualify", qualify)
+    monkeypatch.setattr("chip_evolve.execution.physical.qualify", qualify)
     first = recover(d, "aes", "completed")
     assert first["native_method"] == {"kind": "native-search"}
     assert (
@@ -217,11 +217,11 @@ def test_completed_recovery_preserves_handoff_and_validation_hash(
     validated = digest(path)
     stamp = path.stat().st_mtime_ns
     monkeypatch.setattr(
-        "chip_evolve.physical.baseline",
+        "chip_evolve.execution.physical.baseline",
         lambda *a, **k: pytest.fail("repeated physical delivery"),
     )
     monkeypatch.setattr(
-        "chip_evolve.flow.collect_flow",
+        "chip_evolve.workflow.flow.collect_flow",
         lambda *a, **k: pytest.fail("repeated collection"),
     )
     assert recover(d, "gcd", "finished") == frame
@@ -247,6 +247,9 @@ def test_completed_recovery_rejects_a_different_requested_goal(tmp_path):
 
 
 def test_changed_staged_bytes_cannot_reuse_a_saved_job(tmp_path, monkeypatch):
+    from tests.contract_fixtures import unit_admission
+
+    unit_admission(monkeypatch)
     d = deployment(tmp_path)
     path = tmp_path / "input"
     path.write_bytes(b"first")
@@ -262,7 +265,7 @@ def test_changed_staged_bytes_cannot_reuse_a_saved_job(tmp_path, monkeypatch):
         artifacts=lambda _: [],
         resources=lambda _: {},
     )
-    monkeypatch.setattr("chip_evolve.jobs.KernelClient", lambda *args, **kwargs: client)
+    monkeypatch.setattr("chip_evolve.core.jobs.KernelClient", lambda *args, **kwargs: client)
     jobs = Jobs(d, "aes", tmp_path / "experiment")
     staged = [{"source": str(path), "destination": "inputs/design"}]
     jobs.submit("route", {"adapter": "command"}, staged)
@@ -326,8 +329,8 @@ def test_validation_children_have_distinct_ef_identities(tmp_path):
 
 
 def test_query_checks_source_values_without_confusing_ws_and_wns(tmp_path, monkeypatch):
-    from chip_evolve.comparisons import METRICS
-    from chip_evolve.validation import query_facts
+    from chip_evolve.workflow.comparisons import METRICS
+    from chip_evolve.workflow.validation import query_facts
     from tests.test_local_comparisons import result
 
     d = deployment(tmp_path)
@@ -363,7 +366,7 @@ def test_query_checks_source_values_without_confusing_ws_and_wns(tmp_path, monke
         },
         get_metrics=lambda **kwargs: response,
     )
-    monkeypatch.setattr("chip_evolve.design_facts.EdaAiClient", lambda **kwargs: client)
+    monkeypatch.setattr("chip_evolve.facts.design_facts.EdaAiClient", lambda **kwargs: client)
     query_facts(d, frame)
     response["data"]["raw_metrics"][0]["value"] += 1
     with pytest.raises(ValueError, match="DF metrics differ"):
@@ -373,7 +376,7 @@ def test_query_checks_source_values_without_confusing_ws_and_wns(tmp_path, monke
 def test_validation_failure_is_visible_and_original_evidence_is_preserved(
     tmp_path, monkeypatch
 ):
-    from chip_evolve.validation import validate
+    from chip_evolve.workflow.validation import validate
 
     d = deployment(tmp_path)
     candidate, reference = tmp_path / "candidate.json", tmp_path / "reference.json"
@@ -387,7 +390,7 @@ def test_validation_failure_is_visible_and_original_evidence_is_preserved(
     def fail(*args):
         raise RuntimeError("Original EF proof failed")
 
-    monkeypatch.setattr("chip_evolve.validation._validate", fail)
+    monkeypatch.setattr("chip_evolve.workflow.validation._validate", fail)
     with pytest.raises(RuntimeError, match="Original EF proof"):
         validate(d, candidate, reference, "proof")
     assert read(tmp_path / "experiments/gcd/proof/status.json")["status"] == "failed"

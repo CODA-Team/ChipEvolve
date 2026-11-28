@@ -8,10 +8,10 @@ from tests.support.continue_goal_timing import (
 from tests.support.run_local_quality import STAGES, stage_metrics
 from tests.test_local_business import deployment
 from tests.test_local_comparisons import result
-from chip_evolve.comparisons import professional_facts
-from chip_evolve.config import write
-from chip_evolve.diagnosis import scoped_analysis_references
-from chip_evolve.jobs import Jobs, digest
+from chip_evolve.workflow.comparisons import professional_facts
+from chip_evolve.core.config import write
+from chip_evolve.workflow.diagnosis import scoped_analysis_references
+from chip_evolve.core.jobs import Jobs, digest
 
 
 def test_diagnosis_discovers_only_successful_evidence_attached_to_fixed_runs(
@@ -19,7 +19,7 @@ def test_diagnosis_discovers_only_successful_evidence_attached_to_fixed_runs(
 ):
     from types import SimpleNamespace
 
-    from chip_evolve import diagnosis
+    from chip_evolve.workflow import diagnosis
 
     calls = []
 

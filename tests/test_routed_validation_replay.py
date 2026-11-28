@@ -6,10 +6,11 @@ from typing import Any
 import pytest
 
 from tests.test_local_business import deployment
-from chip_evolve import physical, validation
-from chip_evolve.config import read, write
-from chip_evolve.delivery import checkpoint
-from chip_evolve.jobs import Jobs, digest
+from chip_evolve.execution import physical
+from chip_evolve.workflow import validation
+from chip_evolve.core.config import read, write
+from chip_evolve.execution.delivery import checkpoint
+from chip_evolve.core.jobs import Jobs, digest
 
 
 @pytest.mark.parametrize(
@@ -105,7 +106,7 @@ def test_replay_uses_the_original_routed_boundary(
     )
     monkeypatch.setattr(physical, "measure", lambda *a: {"run_id": "measured"})
     monkeypatch.setattr(physical, "publish", lambda _jobs, frame, **kw: frame)
-    monkeypatch.setattr("chip_evolve.delivery.maybe_collect", lambda *a: None)
+    monkeypatch.setattr("chip_evolve.execution.delivery.maybe_collect", lambda *a: None)
     frame = validation.replay(d, result, replay)
     assert calls == ["qualification"]
     assert frame["native_method"]["kind"] == "independent-routing-replay"

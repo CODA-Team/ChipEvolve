@@ -8,12 +8,8 @@ from pathlib import Path
 import pytest
 from eda_toolkits.objectives import condition_id, objective_id
 
-from chip_evolve.contracts import (
-    BusinessInputError,
-    CandidateCollection,
-    PhysicalResult,
-)
-from chip_evolve.result_io import load_physical_result, load_result, wire_object
+from chip_evolve.core.contracts import BusinessInputError, CandidateCollection, PhysicalResult
+from chip_evolve.core.result_io import load_physical_result, load_result, wire_object
 
 
 def result_file(root: Path, name: str = "baseline", power: float = 1.0) -> Path:
@@ -191,9 +187,9 @@ def test_unknown_schema_and_wrong_goal_identity_fail_closed(tmp_path):
 
 
 def test_typed_policy_matches_legacy_seven_deltas_and_limits(tmp_path):
-    from chip_evolve.comparison_facts import compare, compare_results
-    from chip_evolve.result_io import load_single_result
-    from chip_evolve.selection import result_violations, violations
+    from chip_evolve.core.comparison_facts import compare, compare_results
+    from chip_evolve.core.result_io import load_single_result
+    from chip_evolve.core.selection import result_violations, violations
 
     old = result_file(tmp_path, "reference")
     new = result_file(tmp_path, "candidate", 2.5)
@@ -210,8 +206,8 @@ def test_typed_policy_matches_legacy_seven_deltas_and_limits(tmp_path):
 
 
 def test_collection_checks_bytes_summaries_and_explicit_branch(tmp_path):
-    from chip_evolve.candidates import deliver_candidates
-    from chip_evolve.result_io import load_single_result
+    from chip_evolve.core.candidates import deliver_candidates
+    from chip_evolve.core.result_io import load_single_result
 
     one = result_file(tmp_path, "one")
     two = result_file(tmp_path, "two", 1.5)
@@ -230,8 +226,8 @@ def test_collection_checks_bytes_summaries_and_explicit_branch(tmp_path):
 def test_typed_handoff_preserves_legacy_wire_and_roles(tmp_path):
     from types import SimpleNamespace
 
-    from chip_evolve.artifact_inputs import build_handoff, input_contract
-    from chip_evolve.contracts import DplInputs, EcoInputs, FlowSourceInputs, GoalInputs
+    from chip_evolve.core.artifact_inputs import build_handoff, input_contract
+    from chip_evolve.core.contracts import DplInputs, EcoInputs, FlowSourceInputs, GoalInputs
     from tests.test_professional_handoff_contract import registered_source
 
     path = result_file(tmp_path)
@@ -295,7 +291,7 @@ def context_file(root, source):
     "mutation", ["evidence", "scope", "citation", "locator", "hash"]
 )
 def test_bad_context_fails_with_field_error(tmp_path, mutation):
-    from chip_evolve.result_io import load_context_ref
+    from chip_evolve.core.result_io import load_context_ref
 
     source = load_physical_result(result_file(tmp_path))
     path = context_file(tmp_path, source)

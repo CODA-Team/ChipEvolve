@@ -1,0 +1,15 @@
+{
+  "include": [
+    "../../../../tests/resource_protocol_negative.py"
+  ],
+  "venvPath": "../../../../admin",
+  "venv": ".venv",
+  "pythonVersion": "3.12",
+  "typeCheckingMode": "basic",
+  "reportMissingTypeStubs": false,
+  "executionEnvironments": [
+    {
+      "root": "../../../.."
+    }
+  ]
+}

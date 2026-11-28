@@ -4,8 +4,8 @@ import sys
 
 import pytest
 
-from chip_evolve.config import read, write
-from chip_evolve.jobs import digest, leaf
+from chip_evolve.core.config import read, write
+from chip_evolve.core.jobs import digest, leaf
 
 
 def test_failed_command_keeps_partial_outputs_and_original_exit_code(

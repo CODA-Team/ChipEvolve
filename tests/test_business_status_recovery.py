@@ -6,9 +6,9 @@ from unittest.mock import Mock, patch
 import pytest
 
 from tests.test_local_business import deployment
-from chip_evolve.cli import main
-from chip_evolve.config import read, write
-from chip_evolve.progress import experiment_status
+from chip_evolve.workflow.cli import main
+from chip_evolve.core.config import read, write
+from chip_evolve.core.progress import experiment_status
 
 
 @pytest.mark.parametrize("state", ["failed", "running", "pending", "succeeded"])
@@ -70,7 +70,7 @@ def test_actual_status_cli_keeps_failure_and_no_active_EDA(
     )
     client = Mock()
     client.runs.return_value = []
-    monkeypatch.setattr("chip_evolve.jobs.Jobs", lambda *args: Mock(client=client))
+    monkeypatch.setattr("chip_evolve.core.jobs.Jobs", lambda *args: Mock(client=client))
     with patch(
         "sys.argv",
         ["chip-evolve", "--config", str(config.path), "status", "--design", "gcd"],

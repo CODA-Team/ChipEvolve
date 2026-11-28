@@ -13,8 +13,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from chip_evolve.config import read, write
-from chip_evolve.jobs import digest
+from chip_evolve.core.config import read, write
+from chip_evolve.core.jobs import digest
 
 SCHEMA = "chip-evolve.native-operation-matrix.v1"
 ARMS = ("direct", "platform")

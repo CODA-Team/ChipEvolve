@@ -8,8 +8,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from chip_evolve.config import Deployment
-from chip_evolve.eco import _run_eco_transport as run_eco
+from chip_evolve.core.config import Deployment
+from chip_evolve.workflow.eco import _run_eco_transport as run_eco
 
 
 class CopyBoundaryReached(Exception):
@@ -36,9 +36,9 @@ def deployment_for(tmp_path, **binding):
 def first_pdk_copy(tmp_path, **binding):
     deployment = deployment_for(tmp_path, **binding)
     with (
-        patch("chip_evolve.eco.freeze"),
+        patch("chip_evolve.workflow.eco.freeze"),
         patch(
-            "chip_evolve.eco.shutil.copytree", side_effect=CopyBoundaryReached
+            "chip_evolve.workflow.eco.shutil.copytree", side_effect=CopyBoundaryReached
         ) as copy,
         pytest.raises(CopyBoundaryReached),
     ):
@@ -70,7 +70,7 @@ def test_missing_explicit_pdk_does_not_fall_back_to_upstream(tmp_path):
     deployment = deployment_for(tmp_path, pdk_template=str(tmp_path / "missing-pdk"))
     with (
         patch(
-            "chip_evolve.eco.freeze",
+            "chip_evolve.workflow.eco.freeze",
             side_effect=lambda _origin, target, **_kwargs: Path(target).mkdir(
                 parents=True
             ),
@@ -143,11 +143,11 @@ def test_flat_common_pdk_prepares_native_layout_and_preserves_bound_rc(
     jobs.command.side_effect = CopyBoundaryReached
     with (
         patch(
-            "chip_evolve.eco.freeze",
+            "chip_evolve.workflow.eco.freeze",
             side_effect=lambda _origin, target, **_kwargs: target.mkdir(parents=True),
         ),
-        patch("chip_evolve.eco.environment", return_value={}),
-        patch("chip_evolve.eco.Jobs", return_value=jobs),
+        patch("chip_evolve.workflow.eco.environment", return_value={}),
+        patch("chip_evolve.workflow.eco.Jobs", return_value=jobs),
         pytest.raises(CopyBoundaryReached),
     ):
         run_eco(

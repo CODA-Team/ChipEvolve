@@ -7,10 +7,10 @@ from pathlib import Path
 import pytest
 from openroad_platform_client import KernelClient
 
-from chip_evolve import commands, professional, goal, eco
-from chip_evolve.command_requests import RunCommand
-from chip_evolve.config import read, write
-from chip_evolve.contracts import BusinessInputError
+from chip_evolve.workflow import commands, professional, goal, eco
+from chip_evolve.core.command_requests import RunCommand
+from chip_evolve.core.config import read, write
+from chip_evolve.core.contracts import BusinessInputError
 from tests.test_professional_snapshot_binding import prepare
 from tests.test_code_candidate_delivery import inputs, collect
 
@@ -27,9 +27,9 @@ def test_professional_inspection_is_read_only_before_creating_a_new_experiment(
         pytest.fail("preflight performed execution/preparation")
 
     monkeypatch.setattr(KernelClient, "submit", forbidden)
-    monkeypatch.setattr("chip_evolve.design_facts.ensure", forbidden)
-    monkeypatch.setattr("chip_evolve.diagnosis.diagnose", forbidden)
-    monkeypatch.setattr("chip_evolve.native_process.invoke", forbidden)
+    monkeypatch.setattr("chip_evolve.facts.design_facts.ensure", forbidden)
+    monkeypatch.setattr("chip_evolve.workflow.diagnosis.diagnose", forbidden)
+    monkeypatch.setattr("chip_evolve.core.native_process.invoke", forbidden)
     checked = professional.inspect_inputs(d, args)
     assert checked.source.design_id == checked.request.design == "gcd"
     assert checked.context is not None
@@ -51,7 +51,7 @@ def test_input_changed_after_preflight_rejects_before_materialization(
     target.write_bytes(target.read_bytes() + b" ")
     calls = []
     monkeypatch.setattr(
-        "chip_evolve.design_facts.ensure",
+        "chip_evolve.facts.design_facts.ensure",
         lambda *a, **kw: calls.append(a) or pytest.fail("materialized changed input"),
     )
     monkeypatch.setattr(
@@ -148,7 +148,7 @@ def test_pending_inventory_checks_all_completed_identities_before_new_eda(
     else:
         result["route_drc"] = None
     write(result_path, result)
-    from chip_evolve.jobs import digest
+    from chip_evolve.core.jobs import digest
 
     completed["sha256"] = digest(result_path)
     write(index_path, index)
@@ -161,8 +161,8 @@ def test_pending_inventory_checks_all_completed_identities_before_new_eda(
 def test_cli_notice_retains_failed_native_state_when_evidence_is_delivered(
     tmp_path, monkeypatch, capsys
 ):
-    from chip_evolve.candidates import deliver_candidates
-    from chip_evolve.result_io import specialist_reply
+    from chip_evolve.core.candidates import deliver_candidates
+    from chip_evolve.core.result_io import specialist_reply
 
     d, args, _, _ = prepare(tmp_path, monkeypatch, "flow", "db")
 
@@ -172,7 +172,7 @@ def test_cli_notice_retains_failed_native_state_when_evidence_is_delivered(
         )
         return specialist_reply("flow", experiment / "result.json")
 
-    monkeypatch.setattr("chip_evolve.flow.run_flow", evidence_only)
+    monkeypatch.setattr("chip_evolve.workflow.flow.run_flow", evidence_only)
     assert (
         commands.run_experiment(
             d,

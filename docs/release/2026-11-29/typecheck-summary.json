@@ -1,0 +1,231 @@
+{
+  "checks": {
+    "strict": {
+      "version": "1.1.414",
+      "time": "1795880856945",
+      "generalDiagnostics": [],
+      "summary": {
+        "filesAnalyzed": 7,
+        "errorCount": 0,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 0.862
+      }
+    },
+    "core": {
+      "version": "1.1.414",
+      "time": "1795880857566",
+      "generalDiagnostics": [],
+      "summary": {
+        "filesAnalyzed": 20,
+        "errorCount": 0,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 1.482
+      }
+    },
+    "negative": {
+      "version": "1.1.414",
+      "time": "1795880856376",
+      "generalDiagnostics": [
+        {
+          "file": "WORKSPACE/tests/specialist_protocol_negative.py",
+          "severity": "error",
+          "message": "\u65e0\u6cd5\u5c06\u201cMeasuredResult\u201d\u7c7b\u578b\u7684\u53c2\u6570\u5206\u914d\u7ed9\u51fd\u6570\u201crun_flow\u201d\u4e2d\u7c7b\u578b\u4e3a\u201cPhysicalResult\u201d\u7684\u53c2\u6570\u201csource\u201d\n\u00a0\u00a0\u201cMeasuredResult\u201d\u4e0d\u53ef\u5206\u914d\u7ed9\u201cPhysicalResult\u201d",
+          "range": {
+            "start": {
+              "line": 21,
+              "character": 53
+            },
+            "end": {
+              "line": 21,
+              "character": 59
+            }
+          },
+          "rule": "reportArgumentType"
+        },
+        {
+          "file": "WORKSPACE/tests/specialist_protocol_negative.py",
+          "severity": "error",
+          "message": "\u7c7b\u578b\u201c(deployment: Deployment, request: SpecialistRequest, experiment: Path, source: PhysicalResult, objective: ObjectiveRef, context: DiagnosisContextRef) -> dict[str, str]\u201d\u4e0d\u53ef\u5206\u914d\u7ed9\u58f0\u660e\u7684\u7c7b\u578b\u201cSpecialistAdapter\u201d\n\u00a0\u00a0\u7c7b\u578b\u201c(deployment: Deployment, request: SpecialistRequest, experiment: Path, source: PhysicalResult, objective: ObjectiveRef, context: DiagnosisContextRef) -> dict[str, str]\u201d\u4e0d\u53ef\u5206\u914d\u7ed9\u7c7b\u578b\u201c(deployment: Deployment, request: SpecialistRequest, experiment: Path, source: PhysicalResult, objective: ObjectiveRef, context: DiagnosisContextRef) -> SpecialistReply\u201d\n\u00a0\u00a0\u00a0\u00a0\u51fd\u6570\u8fd4\u56de\u7c7b\u578b\"dict[str, str]\"\u4e0e\u7c7b\u578b\"SpecialistReply\"\u4e0d\u517c\u5bb9\n\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u201cdict[str, str]\u201d\u4e0d\u53ef\u5206\u914d\u7ed9\u201cSpecialistReply\u201d",
+          "range": {
+            "start": {
+              "line": 35,
+              "character": 33
+            },
+            "end": {
+              "line": 35,
+              "character": 44
+            }
+          },
+          "rule": "reportAssignmentType"
+        },
+        {
+          "file": "WORKSPACE/tests/specialist_protocol_negative.py",
+          "severity": "error",
+          "message": "\u7c7b\u578b\u201cdict[str, str]\u201d\u4e0d\u53ef\u5206\u914d\u7ed9\u58f0\u660e\u7684\u7c7b\u578b\u201cPhysicalResult\u201d",
+          "range": {
+            "start": {
+              "line": 36,
+              "character": 29
+            },
+            "end": {
+              "line": 36,
+              "character": 50
+            }
+          },
+          "rule": "reportAssignmentType"
+        },
+        {
+          "file": "WORKSPACE/tests/specialist_protocol_negative.py",
+          "severity": "error",
+          "message": "\u65e0\u6cd5\u5c06\u201cLiteral['eco']\u201d\u7c7b\u578b\u7684\u53c2\u6570\u5206\u914d\u7ed9\u51fd\u6570\u201cexport_candidates\u201d\u4e2d\u7c7b\u578b\u4e3a\u201cCodeCapability\u201d\u7684\u53c2\u6570\u201ccapability\u201d\n\u00a0\u00a0\u7c7b\u578b\u201cLiteral['eco']\u201d\u4e0d\u53ef\u5206\u914d\u7ed9\u7c7b\u578b\u201cCodeCapability\u201d\n\u00a0\u00a0\u00a0\u00a0\u201cLiteral['eco']\u201d\u4e0d\u53ef\u5206\u914d\u7ed9\u7c7b\u578b\u201cLiteral['dpl']\u201d\n\u00a0\u00a0\u00a0\u00a0\u201cLiteral['eco']\u201d\u4e0d\u53ef\u5206\u914d\u7ed9\u7c7b\u578b\u201cLiteral['goal']\u201d",
+          "range": {
+            "start": {
+              "line": 40,
+              "character": 46
+            },
+            "end": {
+              "line": 40,
+              "character": 51
+            }
+          },
+          "rule": "reportArgumentType"
+        },
+        {
+          "file": "WORKSPACE/tests/specialist_protocol_negative.py",
+          "severity": "error",
+          "message": "\u65e0\u6cd5\u5c06\u201cdict[str, str]\u201d\u7c7b\u578b\u7684\u53c2\u6570\u5206\u914d\u7ed9\u51fd\u6570\u201cverify_candidate_producer\u201d\u4e2d\u7c7b\u578b\u4e3a\u201cNativeCandidateEvidence\u201d\u7684\u53c2\u6570\u201ccandidate\u201d",
+          "range": {
+            "start": {
+              "line": 46,
+              "character": 47
+            },
+            "end": {
+              "line": 46,
+              "character": 74
+            }
+          },
+          "rule": "reportArgumentType"
+        },
+        {
+          "file": "WORKSPACE/tests/specialist_protocol_negative.py",
+          "severity": "error",
+          "message": "\u7c7b\u578b\u201cdict[str, str]\u201d\u4e0d\u53ef\u5206\u914d\u7ed9\u58f0\u660e\u7684\u7c7b\u578b\u201cPreparedSpecialist\u201d",
+          "range": {
+            "start": {
+              "line": 50,
+              "character": 35
+            },
+            "end": {
+              "line": 50,
+              "character": 57
+            }
+          },
+          "rule": "reportAssignmentType"
+        },
+        {
+          "file": "WORKSPACE/tests/specialist_protocol_negative.py",
+          "severity": "error",
+          "message": "\u7c7b\u578b\u201cCandidateCollection\u201d\u4e0d\u53ef\u5206\u914d\u7ed9\u8fd4\u56de\u7c7b\u578b\u201cSpecialistReply\u201d\n\u00a0\u00a0\u201cCandidateCollection\u201d\u4e0d\u53ef\u5206\u914d\u7ed9\u201cSpecialistReply\u201d",
+          "range": {
+            "start": {
+              "line": 57,
+              "character": 11
+            },
+            "end": {
+              "line": 57,
+              "character": 70
+            }
+          },
+          "rule": "reportReturnType"
+        }
+      ],
+      "summary": {
+        "filesAnalyzed": 1,
+        "errorCount": 7,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 0.288
+      }
+    },
+    "resource-negative": {
+      "version": "1.1.414",
+      "time": "1795880856312",
+      "generalDiagnostics": [
+        {
+          "file": "WORKSPACE/tests/resource_protocol_negative.py",
+          "severity": "error",
+          "message": "\u65e0\u6cd5\u5c06\u201cLiteral['untyped deployment']\u201d\u7c7b\u578b\u7684\u53c2\u6570\u5206\u914d\u7ed9\u51fd\u6570\u201cload_runtime_profile\u201d\u4e2d\u7c7b\u578b\u4e3a\u201cDeployment\u201d\u7684\u53c2\u6570\u201cdeployment\u201d\n\u00a0\u00a0\u201cLiteral['untyped deployment']\u201d\u4e0d\u53ef\u5206\u914d\u7ed9\u201cDeployment\u201d",
+          "range": {
+            "start": {
+              "line": 13,
+              "character": 25
+            },
+            "end": {
+              "line": 13,
+              "character": 45
+            }
+          },
+          "rule": "reportArgumentType"
+        },
+        {
+          "file": "WORKSPACE/tests/resource_protocol_negative.py",
+          "severity": "error",
+          "message": "\u65e0\u6cd5\u5c06\u201cLiteral['64 GiB']\u201d\u7c7b\u578b\u7684\u53c2\u6570\u5206\u914d\u7ed9\u51fd\u6570\u201cresolve_budget\u201d\u4e2d\u7c7b\u578b\u4e3a\u201cint | None\u201d\u7684\u53c2\u6570\u201cmemory_gib\u201d\n\u00a0\u00a0\u7c7b\u578b\u201cLiteral['64 GiB']\u201d\u4e0d\u53ef\u5206\u914d\u7ed9\u7c7b\u578b\u201cint | None\u201d\n\u00a0\u00a0\u00a0\u00a0\u201cLiteral['64 GiB']\u201d\u4e0d\u53ef\u5206\u914d\u7ed9\u201cint\u201d\n\u00a0\u00a0\u00a0\u00a0\u201cLiteral['64 GiB']\u201d\u4e0d\u53ef\u5206\u914d\u7ed9\u201cNone\u201d",
+          "range": {
+            "start": {
+              "line": 17,
+              "character": 38
+            },
+            "end": {
+              "line": 17,
+              "character": 46
+            }
+          },
+          "rule": "reportArgumentType"
+        },
+        {
+          "file": "WORKSPACE/tests/resource_protocol_negative.py",
+          "severity": "error",
+          "message": "\u65e0\u6cd5\u5c06\u201cdict[str, int]\u201d\u7c7b\u578b\u7684\u53c2\u6570\u5206\u914d\u7ed9\u51fd\u6570\u201crequire_capacity\u201d\u4e2d\u7c7b\u578b\u4e3a\u201cCapacitySnapshot\u201d\u7684\u53c2\u6570\u201ccapacity\u201d",
+          "range": {
+            "start": {
+              "line": 21,
+              "character": 29
+            },
+            "end": {
+              "line": 21,
+              "character": 52
+            }
+          },
+          "rule": "reportArgumentType"
+        },
+        {
+          "file": "WORKSPACE/tests/resource_protocol_negative.py",
+          "severity": "error",
+          "message": "\u7c7b\u578b\u201cdict[str, int]\u201d\u4e0d\u53ef\u5206\u914d\u7ed9\u8fd4\u56de\u7c7b\u578b\u201cCapacitySnapshot\u201d",
+          "range": {
+            "start": {
+              "line": 25,
+              "character": 11
+            },
+            "end": {
+              "line": 25,
+              "character": 34
+            }
+          },
+          "rule": "reportReturnType"
+        }
+      ],
+      "summary": {
+        "filesAnalyzed": 1,
+        "errorCount": 4,
+        "warningCount": 0,
+        "informationCount": 0,
+        "timeInSec": 0.228
+      }
+    }
+  },
+  "coverage": "7 strict files / 20 basic call-chain files; not whole-repository strict typing"
+}

@@ -1,50 +1,37 @@
-# Installation, checks and experiment records
+# Install and operate the platform
 
-Start with the root [quickstart](../README.md) for a new installation. The
-[file catalog](FILE_CATALOG.csv) classifies each current file under `admin/`
-and records its consumers and proposed destination. `external_use` identifies
-files used by the public installation and runtime preparation paths.
+Start with the [quickstart](../README.md). This directory owns installation and
+service preparation; business commands start at `chip-evolve.py`.
 
-## Public installation and runtime tools
-
-| Files | When they are used |
+| Files | Responsibility |
 |---|---|
-| `checkout_modules.sh` | Check out the module revisions fixed by the root repository. |
-| `bootstrap.py`, `package_release.py`, `install_workspace.py`, `requirements-constraints.txt` | Build the pinned wheels and install separate project environments. Bootstrap invokes both helper scripts and the shared dependency constraints. |
-| `release/stack.py`, `release/gcd_flow.py` | Prepare, start, inspect and stop a local EF/DF instance. Stack uses `gcd_flow.py` when preparing the native Flow binding. |
-| `release/prepare_dpl.py`, `release/prepare_goal.py`, `release/native_toolchain.py` | Prepare specialist source and build bindings. DPL also uses the stack and GCD Flow helpers. |
-| `release/build_arm_orfs.sh`, `release/package_arm_orfs.sh` | Build and package the pinned native ARM64 toolchain. |
+| `checkout_modules.sh` | Check the nine Git pins against the source manifest. |
+| `bootstrap.py`, `package_release.py`, `install_workspace.py`, `requirements-constraints.txt` | Build pinned wheels and install ten independent environments. |
+| `release/stack.py` | Prepare, start, inspect and safely stop a named EF/DF instance. |
+| `release/gcd_flow.py` | Shared GCD recipe, with an optional native Flow binding. |
+| `release/profile_bridge.py` | Fixed stdlib bridge to the root profile/resource owners through the installed client interpreter. |
+| `release/prepare_dpl.py`, `release/prepare_goal.py`, `release/native_toolchain.py` | Prepare source/build bindings after checking real capacity. |
+| `release/build_arm_orfs.sh`, `release/package_arm_orfs.sh` | Produce the pinned native ARM64 toolchain. |
 
-After preparation, `chip-evolve.py` and `chip_evolve/` provide the business
-commands. Execution and data services use the installed module wheels. Instance
-configuration, logs and checkpoints live in `var/`. Source revisions and
-upstream identities are recorded in [SOURCE_MANIFEST.json](../SOURCE_MANIFEST.json).
+The root integration layout and resource defaults have one source:
+`chip_evolve/core/profiles/`. A prepared instance binds their identities,
+the actual image and installed Toolkits files in `runtime-profile.json`.
+`capacity-receipt.json` identifies an owned local service's startup capacity.
+Stop/status retain access to the original owned processes even if a profile
+has become invalid. Instances, environments, wheels and logs belong under
+`var/` or the existing per-project `.venv` locations; they are not release source.
 
-## Automated checks
+Run `python3 dev.py root check` for dependency, lint, formatting and all root
+`tests/test_*.py` checks. Maintained experiment helpers used by tests live in
+`tests/support/`; the ARM workflow also uses its capture-instance helper.
 
-Run `python3 dev.py root check` from the root repository. It checks installed
-dependency consistency, root code lint and formatting, and every
-`tests/test_*.py` test. The architecture tests inspect imports at every AST
-depth, reject cyclic groups and check the declared layer of every root module.
+[FILE_CATALOG.csv](FILE_CATALOG.csv) records original and **current** paths,
+consumers and local-only exceptions. The 377 historical files have moved to
+[archive/](../archive/README.md), with SHA256 preserved. Seventeen original
+unaccepted files remain protected in the owner's original workspace and are
+excluded from the clean delivery; an absent local-only row is not a missing
+runtime dependency. New runtime and test files are cataloged explicitly.
 
-The catalog marks scripts imported or invoked by the root tests as
-`test_support`. These helpers include historical experiment operations that
-the tests still exercise. The ARM64 workflow also uses
-`release/capture_instance_receipts.py` to verify registered delivery artifacts.
-
-## Archive mapping
-
-The catalog records existing paths alongside proposed destinations. Runtime
-tools use their current paths. Test relocation proposals point to
-`admin/testing/`. Historical records point to `admin/archive/records/`, and
-experiment and ablation scripts point to `admin/archive/experiments/`.
-Consumer references identify the imports or file lookups to update during a
-future move.
-
-`release/build_code_delivery.py`, `release/build_final_code_delivery.py` and
-`release/REPLAY.md` describe earlier bundle deliveries. The current public
-installation uses the bootstrap and wheel path listed above. Files marked
-`untracked` are local work whose release inclusion needs an explicit source
-checkpoint.
-
-Current cleanup status: root tests and their active support code are in `tests/` and `tests/support/`. The 377 historical moves and four-package source migration belong to approved Slice 4D and are not implemented yet. The catalog retains earlier proposed paths; it is not evidence that those moves have occurred. See the [accepted scope](../docs/release/2026-11-28/ACCEPTANCE.md).
+For a protected path already tracked in the public baseline, its earlier committed
+version may remain in this clean checkout; the owner's unaccepted bytes or
+modifications are excluded and stay untouched in the original workspace.

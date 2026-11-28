@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from chip_evolve.config import read
-from chip_evolve.dpl_case import prepare_case
+from chip_evolve.core.config import read
+from chip_evolve.facts.dpl_case import prepare_case
 
 
 @pytest.mark.parametrize("name", ["gcd", "aes", "jpeg", "new_accelerator"])

@@ -7,8 +7,8 @@ import pytest
 from tests.test_eqy_pdr import prepared
 from tests.test_eqy_sequential_state import model
 from tests.test_local_eqy import checks
-from chip_evolve import eqy
-from chip_evolve.config import read, write
+from chip_evolve.execution import eqy
+from chip_evolve.core.config import read, write
 
 
 def resized_model():

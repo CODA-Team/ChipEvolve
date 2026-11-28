@@ -6,8 +6,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from chip_evolve import goal as native
-from chip_evolve.config import Deployment, read, write
+from chip_evolve.workflow import goal as native
+from chip_evolve.core.config import Deployment, read, write
 
 
 @pytest.mark.parametrize("platform", ["asap7", "nangate45"])
@@ -16,6 +16,9 @@ from chip_evolve.config import Deployment, read, write
 def test_goal_profile_and_inputs_use_the_bound_pdk(
     tmp_path, monkeypatch, platform, explicit_donor, operation
 ):
+    from tests.contract_fixtures import unit_native_admission
+
+    monkeypatch.setattr(native, "admit_native_profile", unit_native_admission)
     pdk = tmp_path / "technology"
     (pdk / "lib").mkdir(parents=True)
     (pdk / "setRC.tcl").write_text("set_wire_rc -signal -layer metal3\n")
@@ -30,7 +33,10 @@ def test_goal_profile_and_inputs_use_the_bound_pdk(
         profile,
         {
             "source_seed": str(tmp_path / "seed"),
-            "resources": {"build": {"cpu_cores": 4}},
+            "resources": {
+                "build": {"cpu_cores": 8, "memory_bytes": 64 << 30, "processes": 2048},
+                "physical": {"cpu_cores": 4},
+            },
         },
     )
     campaign = tmp_path / "campaign-template.json"
@@ -94,7 +100,7 @@ def test_goal_profile_and_inputs_use_the_bound_pdk(
     monkeypatch.setattr(native, "container", lambda _deployment, command: command)
     selected = tmp_path / "selected-source"
     monkeypatch.setattr(
-        "chip_evolve.goal_replay.descriptor",
+        "chip_evolve.workflow.goal_replay.descriptor",
         lambda *_args: {"source_root": str(selected), "recipe_parameters": {}},
     )
     monkeypatch.setattr(
@@ -155,8 +161,8 @@ def test_goal_profile_and_inputs_use_the_bound_pdk(
 def test_goal_continuation_preserves_the_original_build_donor_mount(
     tmp_path, monkeypatch, explicit_donor
 ):
-    from chip_evolve import continuation
-    from chip_evolve.jobs import digest
+    from chip_evolve.workflow import continuation
+    from chip_evolve.core.jobs import digest
 
     previous = tmp_path / "previous"
     checkpoint = previous / "campaign/parents/selected/design_checkpoint.odb"

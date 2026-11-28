@@ -4,7 +4,7 @@ import ast
 import inspect
 from pathlib import Path
 
-from chip_evolve import eco, goal, native
+from chip_evolve.workflow import eco, goal, native
 
 
 def test_native_exports_the_six_original_public_objects():

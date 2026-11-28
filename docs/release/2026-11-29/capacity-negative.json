@@ -1,0 +1,57 @@
+{
+  "passed": true,
+  "capacity": {
+    "cpu_cores": 8,
+    "memory_bytes": 25769803776,
+    "source": "owned_startup",
+    "service_identity": "29937747:3950618"
+  },
+  "runs_before": [],
+  "runs_after": [],
+  "direct_api_counters": {
+    "submit": 0,
+    "upload_input": 0,
+    "upload_input_chunks": 0
+  },
+  "direct_rejections": [
+    {
+      "key": "too-cpu",
+      "code": "capacity_exceeded",
+      "detail": "capacity_exceeded: legacy-api: requires 16 CPU cores, 1073741824 bytes resident, 2048 processes; instance budget is 8 CPU / 25769803776 bytes"
+    },
+    {
+      "key": "too-memory",
+      "code": "capacity_exceeded",
+      "detail": "capacity_exceeded: legacy-api: requires 1 CPU cores, 68719476736 bytes resident, 2048 processes; instance budget is 8 CPU / 25769803776 bytes"
+    }
+  ],
+  "build_rejections": [
+    {
+      "command": [
+        "python3",
+        "admin/release/prepare_dpl.py",
+        "--config",
+        "var/gcd-4d-off-final.json",
+        "--build-memory-gib",
+        "64"
+      ],
+      "exit_code": 1,
+      "preparation_directory_created": false,
+      "native_build_or_search_started": false
+    },
+    {
+      "command": [
+        "python3",
+        "admin/release/prepare_goal.py",
+        "--config",
+        "var/gcd-4d-off-final.json",
+        "--build-memory-gib",
+        "64"
+      ],
+      "exit_code": 1,
+      "preparation_directory_created": false,
+      "native_build_or_search_started": false
+    }
+  ],
+  "evidence_scope": "Real empty local EF/DF, actual process/worker and installed wheel identities. Spies cover direct root API calls; Code CLI children are verified by rejection, absent preparation directories and unchanged public run inventory. No EDA/build/model search started."
+}

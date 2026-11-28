@@ -7,6 +7,15 @@ ChipEvolve connects Codex to OpenROAD. Give Codex a design goal, such as preserv
 ```text
 ChipEvolve/
 ├── chip-evolve.py           # Codex calls this to run, inspect, and compare experiments
+├── chip_evolve/            # Root orchestration: typed requests, evidence and adoption
+│   ├── core/               # Contracts, policies, environment and execution primitives
+│   ├── facts/              # Design facts, recipes, evidence and source snapshots
+│   ├── execution/          # Physical execution, proof and delivery
+│   └── workflow/           # Start with cli.py → commands.py → professional.py
+├── admin/                  # Install and service preparation
+├── tests/                  # Root regressions and maintained support drivers
+├── archive/                # Frozen records/experiments; not runtime dependencies
+├── var/                    # Local environments, instances, artifacts and logs
 ├── agent/
 │   ├── query-agent/         # Analysis Agent: find and explain design facts
 │   ├── flow-agent/          # Tune ORFS parameters and constraints
@@ -18,6 +27,10 @@ ChipEvolve/
 ├── execution-foundation/   # Schedule jobs, track resources, and register artifacts
 └── toolkits/               # Run ORFS and OpenROAD and export their results
 ```
+
+For backend source, read `workflow/cli.py`, `workflow/commands.py`, then
+`workflow/professional.py`; the other workflow files are specialist adapters,
+handoff/diagnosis, comparison/validation and replay/recovery implementations.
 
 The root package `chip_evolve/` implements the commands behind `chip-evolve.py`. The nine modules are Git submodules, each pinned to a specific revision. Use the [Agent dispatch table](agent/README.md) to choose a specialist based on the evidence, the starting point, and the permitted changes. See [Architecture](ARCHITECTURE.md) and [Task status](TASKS.md) for workflow and validation scope.
 
@@ -70,11 +83,33 @@ python3 chip-evolve.py --config "$local_config" show \
   --result var/instances/gcd-demo/experiments/gcd/baseline/result.json
 ```
 
-`bootstrap.py` builds the platform wheels from committed sources and installs the nine module environments plus the root test environment. It uses CPU-only PyTorch for Flow. For an offline install, pass `--dependencies /path/to/wheels` with the wheels for the host architecture and the [dependency constraints](admin/requirements-constraints.txt). `prepare-gcd` extracts the Nangate45 Liberty and GCD constraints from the image and sets a 500 ps clock. The example stores its experiment and service state in `var/instances/gcd-demo/`. The image's pinned OCI source is recorded in the [toolchain audit](admin/COMMON_TOOLCHAIN_AUDIT_20261012.md).
+`bootstrap.py` builds the platform wheels from committed sources and installs the nine module environments plus the root test environment. It uses CPU-only PyTorch for Flow. For an offline install, pass `--dependencies /path/to/wheels` with the wheels for the host architecture and the [dependency constraints](admin/requirements-constraints.txt). `prepare-gcd` extracts the Nangate45 Liberty and GCD constraints from the image and sets a 500 ps clock. The example stores its experiment and service state in `var/instances/gcd-demo/`. The image's pinned OCI source is recorded in the [toolchain audit](archive/records/COMMON_TOOLCHAIN_AUDIT_20261012.md).
 
 The checkout script keeps Git LFS pointers and fetches the GoalEvolve runtime and checkers. The GCD example generates its own checkpoints. For the GoalEvolve paper archive, run `git -C agent/goalevolve sparse-checkout disable` to fetch the full working tree, which takes about 16 GiB. The TimingECOAgent upstream benchmark archive has separate LFS availability.
 
 To observe an experiment, use `status --design gcd` or `watch --design gcd --run-id RUN_ID`. If delivery was interrupted, use `resume --design gcd --key baseline` to recover that experiment. `show` includes the analysis snapshot IDs. With a Codex CLI login, run `diagnose --result RESULT_JSON` to create a cited professional context. A specialist run uses `run --capability flow|dpl|goal|eco --source RESULT_JSON --context CONTEXT_JSON` plus the design, new key, and budget. Specialist runtimes have their own documented setup and require the corresponding `professional` deployment binding.
+
+Verify and adopt the baseline with the generated configuration unchanged. This
+checks release behavior and claims no optimization gain.
+
+```bash
+baseline=var/instances/gcd-demo/experiments/gcd/baseline/result.json
+python3 chip-evolve.py --config "$local_config" validate \
+  --result "$baseline" --against "$baseline" --key baseline-proof
+python3 chip-evolve.py --config "$local_config" select \
+  --result "$baseline" \
+  --validation var/instances/gcd-demo/experiments/gcd/baseline-proof/validation.json \
+  --reason 'Baseline independently verified; no optimization gain claimed'
+python3 chip-evolve.py --config "$local_config" resume --design gcd --key baseline
+```
+
+The generated GCD configuration selects the proof tools, 8 GiB/600 s proof
+budget and shared physical recipe even when `--flow` is off. Its immutable
+runtime profile binds the SIF bytes, real tools and installed Toolkits identity.
+Named resource defaults live in `chip_evolve/core/profiles/resources-v1.json`.
+A new request above the instance's total CPU/memory capacity is rejected before
+submission; a busy instance still uses EF's queue. Unknown remote capacity is
+rejected unless the public resource endpoint supplies a verifiable total budget.
 
 Stop the instance after using it.
 
@@ -126,8 +161,9 @@ python3 chip-evolve.py --config "$local_config" run --design gcd \
 
 ## Prepare the C++ specialists
 
-Start a GCD instance with `--memory-gib 64` on `stack.py init` for a cold
-OpenROAD build. DPLEvolve uses `rsync` for its native seed preparation. With
+Start a GCD instance with `--cpu-cores 8 --memory-gib 64` on `stack.py init` for a cold
+OpenROAD build. Full links retain 64 GiB, 2048 processes, eight compile threads
+and one LTO worker; small-instance examples cannot run those builds. DPLEvolve uses `rsync` for its native seed preparation. With
 the stack running, prepare the two specialist bindings from their pinned
 public source and existing research patches.
 
@@ -160,12 +196,18 @@ GoalEvolve's platform check runs `tests/unit`. With the paper archive checked
 out, run `python3 dev.py goalevolve check tests/artifact` to check its layout
 and manifests as well.
 
-The release candidate is published on `engineering/cleanup-b6cfd1d`. See [engineering status](TASKS.md) for verified platforms and specialist runs. Historical experiment records remain in Git and under `admin/`, and the previous implementation is in [`discarded/`](discarded/).
+The release candidate is published on `engineering/cleanup-b6cfd1d`. See [engineering status](TASKS.md) for verified platforms and specialist runs. Historical experiment records remain in Git and under `archive/`, and the previous implementation is in [`discarded/`](discarded/).
 
 The [admin guide](admin/README.md) lists the public installation and runtime
 tools. Its [file catalog](admin/FILE_CATALOG.csv) records automated test support,
-historical experiment files and their proposed archive destinations.
+historical experiment files, their current locations and protected local-only exceptions.
 
 ## License
 
 The ChipEvolve workspace is available under the MIT License. Each submodule's license and source notices govern its own components. [License](LICENSE)
+
+
+Slice 4D engineering evidence: [report](docs/release/2026-11-29/SLICE4D_REPORT.md).
+The root gate passed 1,347 tests; default GCD proof, replay, adoption and
+completed recovery passed. Owner business acceptance and Git delivery remain
+separate; TUI/Web remain frozen.

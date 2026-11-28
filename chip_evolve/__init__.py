@@ -1,1 +1,5 @@
-"""Thin local composition of public platform APIs and native capabilities."""
+"""Root orchestration package; implementations live in four responsibility packages."""
+
+from ._compat import install_aliases
+
+install_aliases()

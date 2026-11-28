@@ -9,8 +9,8 @@ from eda_toolkits.objectives import condition_id, objective_id
 
 from tests.test_adoption_consistency import frame_at
 from tests.test_local_business import deployment
-from chip_evolve.config import read, write
-from chip_evolve.diagnosis import diagnose
+from chip_evolve.core.config import read, write
+from chip_evolve.workflow.diagnosis import diagnose
 
 
 def inputs(tmp_path):
@@ -37,9 +37,9 @@ def inputs(tmp_path):
 
 
 def backend(monkeypatch, questions, *, expected_analyses=0):
-    monkeypatch.setattr("chip_evolve.stage_facts.ensure_stage_facts", lambda *a: None)
+    monkeypatch.setattr("chip_evolve.facts.stage_facts.ensure_stage_facts", lambda *a: None)
     monkeypatch.setattr(
-        "chip_evolve.diagnosis.scoped_analysis_references", lambda *a: []
+        "chip_evolve.workflow.diagnosis.scoped_analysis_references", lambda *a: []
     )
 
     def run(command, **kwargs):
@@ -68,7 +68,7 @@ def backend(monkeypatch, questions, *, expected_analyses=0):
         )
         return SimpleNamespace(returncode=0, stdout="{}", stderr="")
 
-    monkeypatch.setattr("chip_evolve.diagnosis.subprocess.run", run)
+    monkeypatch.setattr("chip_evolve.workflow.diagnosis.subprocess.run", run)
 
 
 def test_query_gets_complete_frozen_limits_and_conditions(tmp_path, monkeypatch):
@@ -111,9 +111,9 @@ def test_mismatched_goal_binding_is_rejected_before_model(tmp_path, monkeypatch,
 
 def test_query_failure_includes_native_reason_and_trace(tmp_path, monkeypatch):
     d, source, _ = inputs(tmp_path)
-    monkeypatch.setattr("chip_evolve.stage_facts.ensure_stage_facts", lambda *a: None)
+    monkeypatch.setattr("chip_evolve.facts.stage_facts.ensure_stage_facts", lambda *a: None)
     monkeypatch.setattr(
-        "chip_evolve.diagnosis.scoped_analysis_references", lambda *a: []
+        "chip_evolve.workflow.diagnosis.scoped_analysis_references", lambda *a: []
     )
     reason = (
         "Selected model is at capacity; exit_code=1; trace=/runtime/host-traces/abc"
@@ -125,7 +125,7 @@ def test_query_failure_includes_native_reason_and_trace(tmp_path, monkeypatch):
         "stop_reason": reason,
     }
     monkeypatch.setattr(
-        "chip_evolve.diagnosis.subprocess.run",
+        "chip_evolve.workflow.diagnosis.subprocess.run",
         lambda *a, **k: SimpleNamespace(
             returncode=2, stdout=json.dumps(state), stderr=""
         ),

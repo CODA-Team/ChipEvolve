@@ -5,14 +5,18 @@ from unittest.mock import patch
 
 import pytest
 
-from chip_evolve import cli, native_physical, physical
-from chip_evolve.config import read, write
-from chip_evolve.delivery import checkpoint, finish
-from chip_evolve.jobs import Jobs, digest
+from chip_evolve.workflow import cli
+from chip_evolve.execution import native_physical, physical
+from chip_evolve.core.config import read, write
+from chip_evolve.execution.delivery import checkpoint, finish
+from chip_evolve.core.jobs import Jobs, digest
 from tests.test_local_business import deployment
 
 
 def test_orfs_replay_does_not_silently_launch_a_new_baseline(tmp_path, monkeypatch):
+    from tests.contract_fixtures import unit_admission
+
+    unit_admission(monkeypatch, orchestration=True)
     d = deployment(tmp_path)
     source = tmp_path / "source/result.json"
     source.parent.mkdir()
@@ -145,7 +149,7 @@ def test_explicit_global_route_delivery_keeps_native_guides(tmp_path, monkeypatc
     monkeypatch.setattr(Jobs, "command", command)
     monkeypatch.setattr(physical, "measure", lambda *a: {"run_id": "measured"})
     monkeypatch.setattr(physical, "publish", lambda _jobs, frame, **kw: frame)
-    monkeypatch.setattr("chip_evolve.delivery.maybe_collect", lambda *a: None)
+    monkeypatch.setattr("chip_evolve.execution.delivery.maybe_collect", lambda *a: None)
     frame = finish(d, e)
     assert frame["qualification"]["routing_action"] == "consumed_native_global_route"
     assert frame["native_method"]["origin_producer"] == "original-Goal"
@@ -233,7 +237,7 @@ def test_incomplete_or_ambiguous_native_observations_are_not_adopted(text):
 def test_recovery_before_delivery_checkpoint_reuses_the_explicit_successor(
     tmp_path, monkeypatch
 ):
-    from chip_evolve.recovery import recover
+    from chip_evolve.workflow.recovery import recover
 
     d = deployment(tmp_path)
     e = d.experiment("gcd", "recover")
@@ -268,7 +272,7 @@ def test_recovery_before_delivery_checkpoint_reuses_the_explicit_successor(
 def test_independent_validation_of_successor_does_not_rerun_native_repair(
     tmp_path, monkeypatch, kind
 ):
-    from chip_evolve import validation
+    from chip_evolve.workflow import validation
 
     jobs, source, original, objective = prepared_source(tmp_path)
     result = jobs.experiment / "result.json"
@@ -319,7 +323,7 @@ def test_independent_validation_of_successor_does_not_rerun_native_repair(
 
 
 def test_completed_recovery_checks_the_frozen_origin_reference(tmp_path):
-    from chip_evolve.recovery import recover
+    from chip_evolve.workflow.recovery import recover
 
     jobs, source, original, objective = prepared_source(tmp_path)
     e = jobs.experiment
@@ -348,6 +352,10 @@ def test_completed_recovery_checks_the_frozen_origin_reference(tmp_path):
 def test_successful_job_receipt_is_immutable_while_recovery_checks_live_status(
     tmp_path, monkeypatch
 ):
+    from tests.contract_fixtures import unit_admission
+
+    unit_admission(monkeypatch, orchestration=True)
+
     class Client:
         def submit(self, task, **options):
             return {"run": {"run_id": "original-successful-run"}}
@@ -362,8 +370,8 @@ def test_successful_job_receipt_is_immutable_while_recovery_checks_live_status(
             "wait_seconds": 8.0 if len(observed) == 1 else 0.01,
         }
 
-    monkeypatch.setattr("chip_evolve.jobs.KernelClient", lambda *a, **kw: Client())
-    monkeypatch.setattr("chip_evolve.jobs.wait_run", wait)
+    monkeypatch.setattr("chip_evolve.core.jobs.KernelClient", lambda *a, **kw: Client())
+    monkeypatch.setattr("chip_evolve.core.jobs.wait_run", wait)
     d = deployment(tmp_path)
     jobs = Jobs(d, "gcd", d.experiment("gcd", "receipt"))
     first = jobs.submit("export", {"adapter": "orfs"}, [])
@@ -409,7 +417,7 @@ def test_routing_context_preserves_script_specific_environment_and_clock_bounds(
 def test_registered_native_checkpoint_can_relay_without_final_PPA(
     tmp_path, monkeypatch
 ):
-    from chip_evolve import validation
+    from chip_evolve.workflow import validation
 
     jobs, _, original, objective = prepared_source(tmp_path)
     root = tmp_path / "native-parent"
@@ -488,8 +496,8 @@ def test_registered_native_checkpoint_can_relay_without_final_PPA(
 def test_legacy_orfs_baseline_replay_tag_keeps_its_original_job(
     tmp_path, monkeypatch, source
 ):
-    from chip_evolve import validation
-    from chip_evolve.recovery import recover
+    from chip_evolve.workflow import validation
+    from chip_evolve.workflow.recovery import recover
 
     d = deployment(tmp_path)
     e = d.experiment("gcd", "legacy-baseline")

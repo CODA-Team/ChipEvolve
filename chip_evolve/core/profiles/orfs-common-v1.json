@@ -1,0 +1,17 @@
+{
+  "schema_version": "chip-evolve.layout.v1",
+  "layout_family": "toolkits-orfs-common-v1",
+  "layout": {
+    "orfs_root": "/OpenROAD-flow-scripts",
+    "flow_root": "/OpenROAD-flow-scripts/flow",
+    "makefile": "/OpenROAD-flow-scripts/flow/Makefile",
+    "platforms_root": "/OpenROAD-flow-scripts/flow/platforms",
+    "openroad": "/OpenROAD-flow-scripts/tools/install/OpenROAD/bin/openroad",
+    "yosys": "/OpenROAD-flow-scripts/tools/install/yosys/bin/yosys",
+    "python": "/usr/bin/python3",
+    "make": "/usr/bin/make",
+    "boost_cmake": "/usr/local/lib/cmake/Boost-1.89.0",
+    "ortools": "/opt/or-tools"
+  },
+  "compatibility": "Root integration profile for the fixed installed Toolkits ORFS layout. A different layout requires a separately authorized Toolkits protocol change."
+}

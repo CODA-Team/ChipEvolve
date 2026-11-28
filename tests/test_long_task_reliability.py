@@ -8,8 +8,8 @@ from tests.support.verify_long_task_reliability import (
     require_idle,
     verify_source,
 )
-from chip_evolve.config import read, write
-from chip_evolve.jobs import digest
+from chip_evolve.core.config import read, write
+from chip_evolve.core.jobs import digest
 
 
 @pytest.mark.parametrize("explicit_pdk", [False, True])
@@ -20,7 +20,7 @@ def test_replay_can_reuse_frozen_pdk_from_a_previous_continuation(
 
     from tests.support import verify_long_task_reliability
     from tests.test_local_business import deployment
-    from chip_evolve import physical
+    from chip_evolve.execution import physical
 
     binary = tmp_path / "openroad"
     binary.write_bytes(b"qualified-binary")

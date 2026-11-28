@@ -6,9 +6,9 @@ from typing import cast
 
 import pytest
 
-from chip_evolve.config import Deployment, read, write
-from chip_evolve.jobs import Jobs, digest
-from chip_evolve.physical import measure
+from chip_evolve.core.config import Deployment, read, write
+from chip_evolve.core.jobs import Jobs, digest
+from chip_evolve.execution.physical import measure
 
 
 def run_measurement(tmp_path, count):

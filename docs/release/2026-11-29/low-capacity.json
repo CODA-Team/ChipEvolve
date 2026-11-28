@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "cpu": 2,
+  "memory_gib": 4,
+  "inputs_created": false,
+  "local_config_created": false,
+  "services_started": false,
+  "eda_tasks_submitted": 0
+}

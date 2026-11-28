@@ -5,10 +5,10 @@ from unittest.mock import patch
 
 import pytest
 
-from chip_evolve.config import Deployment, read, write
-from chip_evolve.delivery import checkpoint, finish, layout_source
-from chip_evolve.jobs import digest
-from chip_evolve.lifecycle import WorkPending
+from chip_evolve.core.config import Deployment, read, write
+from chip_evolve.execution.delivery import checkpoint, finish, layout_source
+from chip_evolve.core.jobs import digest
+from chip_evolve.core.lifecycle import WorkPending
 
 
 def setup_source(tmp_path):
@@ -55,7 +55,7 @@ def test_fresh_orfs_handoff_uses_actual_registered_recipe_without_mutating_sourc
     deployment, path, frame, experiment = setup_source(tmp_path)
     before = path.read_bytes()
     with patch(
-        "chip_evolve.flow_recipe.prepare_flow_recipe",
+        "chip_evolve.facts.flow_recipe.prepare_flow_recipe",
         side_effect=lambda *args: prepare_registered(experiment, path, frame),
     ) as prepare:
         inherited = layout_source(deployment, experiment, path)
@@ -71,7 +71,7 @@ def test_existing_legacy_delivery_keeps_its_immutable_source(tmp_path):
     legacy = experiment / "source/flow/config.mk"
     legacy.parent.mkdir(parents=True)
     legacy.write_text("export DETAILED_ROUTE_END_ITERATION = 5\n")
-    with patch("chip_evolve.flow_recipe.prepare_flow_recipe") as prepare:
+    with patch("chip_evolve.facts.flow_recipe.prepare_flow_recipe") as prepare:
         assert layout_source(deployment, experiment, path) == frame
     prepare.assert_not_called()
     assert legacy.read_text().endswith("= 5\n")
@@ -86,12 +86,12 @@ def test_preparation_pending_reconnects_same_native_preparation(tmp_path):
         raise WorkPending({"reason": "same existing EF prepare run"})
 
     with (
-        patch("chip_evolve.flow_recipe.prepare_flow_recipe", side_effect=pending),
+        patch("chip_evolve.facts.flow_recipe.prepare_flow_recipe", side_effect=pending),
         pytest.raises(WorkPending),
     ):
         layout_source(deployment, experiment, path)
     with patch(
-        "chip_evolve.flow_recipe.prepare_flow_recipe",
+        "chip_evolve.facts.flow_recipe.prepare_flow_recipe",
         side_effect=lambda *args: prepare_registered(experiment, path, frame),
     ) as prepare:
         inherited = layout_source(deployment, experiment, path)
@@ -102,7 +102,7 @@ def test_preparation_pending_reconnects_same_native_preparation(tmp_path):
 def test_completed_recipe_is_reused_and_other_source_is_rejected(tmp_path):
     deployment, path, frame, experiment = setup_source(tmp_path)
     prepare_registered(experiment, path, frame)
-    with patch("chip_evolve.flow_recipe.prepare_flow_recipe") as prepare:
+    with patch("chip_evolve.facts.flow_recipe.prepare_flow_recipe") as prepare:
         assert layout_source(deployment, experiment, path)["flow_recipe"]
     prepare.assert_not_called()
     recipe = read(experiment / "recipe.json")
@@ -120,7 +120,7 @@ def test_prepared_flow_and_non_orfs_sources_keep_existing_path(tmp_path, field):
     else:
         frame.pop("native_inputs")
     write(path, frame)
-    with patch("chip_evolve.flow_recipe.prepare_flow_recipe") as prepare:
+    with patch("chip_evolve.facts.flow_recipe.prepare_flow_recipe") as prepare:
         assert layout_source(deployment, experiment, path) == frame
     prepare.assert_not_called()
 
@@ -144,11 +144,11 @@ def test_delivery_finish_hands_registered_defaults_to_existing_physical_runner(
     )
     with (
         patch(
-            "chip_evolve.flow_recipe.prepare_flow_recipe",
+            "chip_evolve.facts.flow_recipe.prepare_flow_recipe",
             side_effect=lambda *args: prepare_registered(experiment, path, frame),
         ),
         patch(
-            "chip_evolve.physical.resume_layout",
+            "chip_evolve.execution.physical.resume_layout",
             return_value={"run_id": "measured"},
         ) as physical,
     ):

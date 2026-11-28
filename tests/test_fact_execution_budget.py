@@ -5,8 +5,8 @@ from copy import deepcopy
 import pytest
 
 from tests.test_design_fact_materialization import publication
-from chip_evolve.jobs import digest
-from chip_evolve.physical import publish
+from chip_evolve.core.jobs import digest
+from chip_evolve.execution.physical import publish
 
 
 @pytest.mark.parametrize("seconds", [300, 1800])
@@ -92,7 +92,7 @@ def test_explicit_fact_memory_keeps_full_views_and_reuses_its_own_tasks(
 
 def test_measurement_memory_changes_only_reservation_and_explicit_task_key(tmp_path):
     from tests.test_final_fanout_facts import run_measurement
-    from chip_evolve.physical import measure
+    from chip_evolve.execution.physical import measure
 
     jobs, (odb, spef, sdc), _ = run_measurement(tmp_path, 0)
     jobs.deployment.value["designs"]["example"]["fact_execution"] = {"memory_gib": 4}

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from chip_evolve.controller import freeze, inventory
+from chip_evolve.workflow.controller import freeze, inventory
 
 
 def git(root: Path, *args: str) -> str:

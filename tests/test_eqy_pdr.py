@@ -7,9 +7,9 @@ from typing import Any, cast
 import pytest
 
 from tests.test_local_eqy import checks
-from chip_evolve import eqy
-from chip_evolve.config import read, write
-from chip_evolve.jobs import Jobs, digest
+from chip_evolve.execution import eqy
+from chip_evolve.core.config import read, write
+from chip_evolve.core.jobs import Jobs, digest
 
 
 def test_pdr_keeps_identical_model_and_match_policy_to_default_sat():

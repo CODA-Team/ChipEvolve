@@ -1,6 +1,5 @@
 """Result decisions reject incomplete numbers and keep their dependency direction."""
 
-import ast
 import json
 from copy import deepcopy
 from pathlib import Path
@@ -10,8 +9,9 @@ import pytest
 from tests.test_adoption_consistency import frame_at, validation_for
 from tests.test_local_business import deployment
 from tests.test_local_comparisons import result
-from chip_evolve import comparisons, selection
-from chip_evolve.config import read
+from chip_evolve.workflow import comparisons
+from chip_evolve.core import selection
+from chip_evolve.core.config import read
 
 REQUIRED_FIELDS = (
     "finish__timing__setup__tns",
@@ -189,33 +189,17 @@ def test_finite_historical_comparison_and_adoption_order_stay_compatible(tmp_pat
 
 
 def root_import_graph(package=None):
+    from tests.root_architecture import implementation_graph
+
     if package is None:
         package = Path(__file__).resolve().parents[1] / "chip_evolve"
-    graph = {path.stem: set() for path in package.glob("*.py")}
-    for name in graph:
-        tree = ast.parse((package / (name + ".py")).read_text())
-        for node in ast.walk(tree):
-            targets = []
-            if isinstance(node, ast.ImportFrom):
-                module = node.module or ""
-                if node.level == 1:
-                    targets = [module] if module else [a.name for a in node.names]
-                elif node.level == 0 and module.startswith("chip_evolve."):
-                    targets = [module.removeprefix("chip_evolve.")]
-                elif module == "chip_evolve":
-                    targets = [a.name for a in node.names]
-            elif isinstance(node, ast.Import):
-                targets = [
-                    a.name.removeprefix("chip_evolve.")
-                    for a in node.names
-                    if a.name.startswith("chip_evolve.")
-                ]
-            graph[name].update(
-                target.split(".")[0]
-                for target in targets
-                if target.split(".")[0] in graph
-            )
-    return graph
+    graph = implementation_graph(package)
+    # Keep the original gate's semantic owner names, after recursive resolution.
+    assert len({name.split(".")[-1] for name in graph}) == len(graph)
+    return {
+        name.split(".")[-1]: {t.split(".")[-1] for t in targets}
+        for name, targets in graph.items()
+    }
 
 
 def reachable_modules(graph, start):

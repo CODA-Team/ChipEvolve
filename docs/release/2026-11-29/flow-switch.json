@@ -1,0 +1,1056 @@
+{
+  "passed": true,
+  "off_flow_binding": false,
+  "on_flow_binding": true,
+  "common_orfs_profiles": true,
+  "shared_input_sha256": {
+    "NangateOpenCellLibrary_typical.lib": "8d540a4d4cf6d09d27c87ad067857a9c0c2eeb023ab7a56e058cd3113db4e9b1",
+    "gcd.sdc": "9108484ce67bf5ee69e610bdd32ca177b4fc273c745cba1fdf741eb6cc572fc8",
+    "gcd-floorplan-route.tcl": "cecfee9d0d8f0538b8a18312a692933aea1cb51cb9490ca7662d0c9458aca718",
+    "gcd-global-route.tcl": "cafd98d1c73ced8cc3a7f1947ca8b3f5f4ddd1fa1dda65abe66f72d15d1f301a"
+  },
+  "recipe_and_evaluation_conditions_equal": true,
+  "distinct_instance_objective_ids": {
+    "off": "4632df09e83b4b30a6dc59b3972fc972f9a5195d1fabe44ae1d285409d7bbf78",
+    "on": "07e93d77c8dfe93605bdb00b42d544a00f9bab37e8c2a3a74b0420b02ddbab33",
+    "reason": "Objective identity also binds instance-specific source file references; physical evaluation fields and original recipe/input hashes are checked separately and equal."
+  },
+  "seven_final_metrics_equal": true,
+  "on_run_id": "run-f92afdbd4a7d40a0a1d213e71c74b0c9",
+  "on_physical_run_id": "run-c1e1bd78c9b04037a67d8da1f18e6b36",
+  "route_drc": 0,
+  "flow_profile": {
+    "source": "WORKSPACE/agent/flow-agent",
+    "python": "WORKSPACE/agent/flow-agent/.venv/bin/python",
+    "execution": {
+      "threads": 8,
+      "memory_gib": 4,
+      "stage_timeout_seconds": 180,
+      "clean_identity_quota": 2
+    }
+  },
+  "on_runs": 5,
+  "verified_on_artifacts": 101,
+  "on_sdk_facts": {
+    "scopes": {
+      "opendb": {
+        "design_id": "gcd",
+        "revision_id": "baseline",
+        "run_id": "run-f92afdbd4a7d40a0a1d213e71c74b0c9",
+        "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-opendb",
+        "stage": "finish"
+      },
+      "orfs": {
+        "design_id": "gcd",
+        "revision_id": "baseline",
+        "run_id": "run-f92afdbd4a7d40a0a1d213e71c74b0c9",
+        "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs",
+        "stage": "finish"
+      },
+      "opensta": {
+        "design_id": "gcd",
+        "revision_id": "baseline",
+        "run_id": "run-f92afdbd4a7d40a0a1d213e71c74b0c9",
+        "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-opensta",
+        "stage": "timing"
+      }
+    },
+    "metrics": {
+      "contract_version": "0.2",
+      "tool": "get_metrics",
+      "scope": {
+        "design_id": "gcd",
+        "revision_id": "baseline",
+        "run_id": "run-f92afdbd4a7d40a0a1d213e71c74b0c9",
+        "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs",
+        "stage": "finish"
+      },
+      "status": "available",
+      "missing": [],
+      "data": {
+        "run_id": "run-f92afdbd4a7d40a0a1d213e71c74b0c9",
+        "metrics": [
+          {
+            "name": "WS",
+            "canonical": true,
+            "value": 0.0400912,
+            "raw_value": 0.0400912,
+            "value_basis": "source value",
+            "quantity_scope": "original source metric identified by raw_key",
+            "corner_status": "declared",
+            "corner_basis": "observation context",
+            "context_corner": "typical",
+            "unit": "ns",
+            "unit_declared": "1ns",
+            "stage": "finish",
+            "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs",
+            "analysis": "setup",
+            "check": "setup",
+            "corner": "typical",
+            "scene": null,
+            "kind": "timing",
+            "authoritative_source": "common native OpenROAD routed-checkpoint measurement",
+            "evaluation_conditions": {
+              "clock_period_ns": 0.5,
+              "condition_id": "3f8fd6ae8d94b1c853535b5e948326b4b72c15bebc3887ae1a94a5255148899a",
+              "corner": "typical",
+              "library_sha256": [
+                "8d540a4d4cf6d09d27c87ad067857a9c0c2eeb023ab7a56e058cd3113db4e9b1"
+              ],
+              "objective_id": "07e93d77c8dfe93605bdb00b42d544a00f9bab37e8c2a3a74b0420b02ddbab33",
+              "parasitics": "full-route SPEF of this candidate",
+              "propagated_clock": true,
+              "sdc_sha256": "9108484ce67bf5ee69e610bdd32ca177b4fc273c745cba1fdf741eb6cc572fc8",
+              "toolchain": {
+                "image_sha256": "8e6ee7aac233da078364649fa8111dac5de33a3589f5445dcffd96f9d6d8dd39"
+              },
+              "units": {
+                "area": "um^2",
+                "power": "W",
+                "time": "ns"
+              }
+            },
+            "raw_key": "finish__timing__setup__ws",
+            "status": "available",
+            "reason": null,
+            "evidence": [
+              {
+                "artifact_kind": "raw_flow_metadata",
+                "detail": {
+                  "field": "metrics.finish__timing__setup__ws",
+                  "ordinal": 11
+                },
+                "logical_path": "inputs/metrics.json",
+                "source_type": "json",
+                "artifact_id": "art-1ddcaeffd0824e269db1e5539e2417c0",
+                "run_id": "run-49d21dd88fa94c90bb580a981e4cf8c6",
+                "attempt_id": "attempt-c934d395ef4a460aa7bed4cba21be8fc",
+                "sha256": "a7d4dc37cc2f73f861a821715700b01ccec39cc0f91feb38140d6c0b79e7d624",
+                "size_bytes": 1729,
+                "category": "raw_flow_metadata",
+                "stage": "main",
+                "resolution": "exact_path"
+              }
+            ]
+          },
+          {
+            "name": "WNS",
+            "canonical": true,
+            "value": 0.0,
+            "raw_value": 0.0400912,
+            "value_basis": "min(0, worst slack)",
+            "quantity_scope": "original source metric identified by raw_key",
+            "corner_status": "declared",
+            "corner_basis": "observation context",
+            "context_corner": "typical",
+            "unit": "ns",
+            "unit_declared": "1ns",
+            "stage": "finish",
+            "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs",
+            "analysis": "setup",
+            "check": "setup",
+            "corner": "typical",
+            "scene": null,
+            "kind": "timing",
+            "authoritative_source": "common native OpenROAD routed-checkpoint measurement",
+            "evaluation_conditions": {
+              "clock_period_ns": 0.5,
+              "condition_id": "3f8fd6ae8d94b1c853535b5e948326b4b72c15bebc3887ae1a94a5255148899a",
+              "corner": "typical",
+              "library_sha256": [
+                "8d540a4d4cf6d09d27c87ad067857a9c0c2eeb023ab7a56e058cd3113db4e9b1"
+              ],
+              "objective_id": "07e93d77c8dfe93605bdb00b42d544a00f9bab37e8c2a3a74b0420b02ddbab33",
+              "parasitics": "full-route SPEF of this candidate",
+              "propagated_clock": true,
+              "sdc_sha256": "9108484ce67bf5ee69e610bdd32ca177b4fc273c745cba1fdf741eb6cc572fc8",
+              "toolchain": {
+                "image_sha256": "8e6ee7aac233da078364649fa8111dac5de33a3589f5445dcffd96f9d6d8dd39"
+              },
+              "units": {
+                "area": "um^2",
+                "power": "W",
+                "time": "ns"
+              }
+            },
+            "raw_key": "finish__timing__setup__ws",
+            "status": "available",
+            "reason": null,
+            "evidence": [
+              {
+                "artifact_kind": "raw_flow_metadata",
+                "detail": {
+                  "field": "metrics.finish__timing__setup__ws",
+                  "ordinal": 11
+                },
+                "logical_path": "inputs/metrics.json",
+                "source_type": "json",
+                "artifact_id": "art-1ddcaeffd0824e269db1e5539e2417c0",
+                "run_id": "run-49d21dd88fa94c90bb580a981e4cf8c6",
+                "attempt_id": "attempt-c934d395ef4a460aa7bed4cba21be8fc",
+                "sha256": "a7d4dc37cc2f73f861a821715700b01ccec39cc0f91feb38140d6c0b79e7d624",
+                "size_bytes": 1729,
+                "category": "raw_flow_metadata",
+                "stage": "main",
+                "resolution": "exact_path"
+              }
+            ]
+          },
+          {
+            "name": "TNS",
+            "canonical": true,
+            "value": 0,
+            "raw_value": 0,
+            "value_basis": "source value",
+            "quantity_scope": "original source metric identified by raw_key",
+            "corner_status": "declared",
+            "corner_basis": "observation context",
+            "context_corner": "typical",
+            "unit": "ns",
+            "unit_declared": "1ns",
+            "stage": "finish",
+            "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs",
+            "analysis": "setup",
+            "check": "setup",
+            "corner": "typical",
+            "scene": null,
+            "kind": "timing",
+            "authoritative_source": "common native OpenROAD routed-checkpoint measurement",
+            "evaluation_conditions": {
+              "clock_period_ns": 0.5,
+              "condition_id": "3f8fd6ae8d94b1c853535b5e948326b4b72c15bebc3887ae1a94a5255148899a",
+              "corner": "typical",
+              "library_sha256": [
+                "8d540a4d4cf6d09d27c87ad067857a9c0c2eeb023ab7a56e058cd3113db4e9b1"
+              ],
+              "objective_id": "07e93d77c8dfe93605bdb00b42d544a00f9bab37e8c2a3a74b0420b02ddbab33",
+              "parasitics": "full-route SPEF of this candidate",
+              "propagated_clock": true,
+              "sdc_sha256": "9108484ce67bf5ee69e610bdd32ca177b4fc273c745cba1fdf741eb6cc572fc8",
+              "toolchain": {
+                "image_sha256": "8e6ee7aac233da078364649fa8111dac5de33a3589f5445dcffd96f9d6d8dd39"
+              },
+              "units": {
+                "area": "um^2",
+                "power": "W",
+                "time": "ns"
+              }
+            },
+            "raw_key": "finish__timing__setup__tns",
+            "status": "available",
+            "reason": null,
+            "evidence": [
+              {
+                "artifact_kind": "raw_flow_metadata",
+                "detail": {
+                  "field": "metrics.finish__timing__setup__tns",
+                  "ordinal": 10
+                },
+                "logical_path": "inputs/metrics.json",
+                "source_type": "json",
+                "artifact_id": "art-1ddcaeffd0824e269db1e5539e2417c0",
+                "run_id": "run-49d21dd88fa94c90bb580a981e4cf8c6",
+                "attempt_id": "attempt-c934d395ef4a460aa7bed4cba21be8fc",
+                "sha256": "a7d4dc37cc2f73f861a821715700b01ccec39cc0f91feb38140d6c0b79e7d624",
+                "size_bytes": 1729,
+                "category": "raw_flow_metadata",
+                "stage": "main",
+                "resolution": "exact_path"
+              }
+            ]
+          },
+          {
+            "name": "HOLD_WS",
+            "canonical": true,
+            "value": 0.110517,
+            "raw_value": 0.110517,
+            "value_basis": "source value",
+            "quantity_scope": "original source metric identified by raw_key",
+            "corner_status": "declared",
+            "corner_basis": "observation context",
+            "context_corner": "typical",
+            "unit": "ns",
+            "unit_declared": "1ns",
+            "stage": "finish",
+            "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs",
+            "analysis": "hold",
+            "check": "hold",
+            "corner": "typical",
+            "scene": null,
+            "kind": "timing",
+            "authoritative_source": "common native OpenROAD routed-checkpoint measurement",
+            "evaluation_conditions": {
+              "clock_period_ns": 0.5,
+              "condition_id": "3f8fd6ae8d94b1c853535b5e948326b4b72c15bebc3887ae1a94a5255148899a",
+              "corner": "typical",
+              "library_sha256": [
+                "8d540a4d4cf6d09d27c87ad067857a9c0c2eeb023ab7a56e058cd3113db4e9b1"
+              ],
+              "objective_id": "07e93d77c8dfe93605bdb00b42d544a00f9bab37e8c2a3a74b0420b02ddbab33",
+              "parasitics": "full-route SPEF of this candidate",
+              "propagated_clock": true,
+              "sdc_sha256": "9108484ce67bf5ee69e610bdd32ca177b4fc273c745cba1fdf741eb6cc572fc8",
+              "toolchain": {
+                "image_sha256": "8e6ee7aac233da078364649fa8111dac5de33a3589f5445dcffd96f9d6d8dd39"
+              },
+              "units": {
+                "area": "um^2",
+                "power": "W",
+                "time": "ns"
+              }
+            },
+            "raw_key": "finish__timing__hold__ws",
+            "status": "available",
+            "reason": null,
+            "evidence": [
+              {
+                "artifact_kind": "raw_flow_metadata",
+                "detail": {
+                  "field": "metrics.finish__timing__hold__ws",
+                  "ordinal": 9
+                },
+                "logical_path": "inputs/metrics.json",
+                "source_type": "json",
+                "artifact_id": "art-1ddcaeffd0824e269db1e5539e2417c0",
+                "run_id": "run-49d21dd88fa94c90bb580a981e4cf8c6",
+                "attempt_id": "attempt-c934d395ef4a460aa7bed4cba21be8fc",
+                "sha256": "a7d4dc37cc2f73f861a821715700b01ccec39cc0f91feb38140d6c0b79e7d624",
+                "size_bytes": 1729,
+                "category": "raw_flow_metadata",
+                "stage": "main",
+                "resolution": "exact_path"
+              }
+            ]
+          },
+          {
+            "name": "HOLD_WNS",
+            "canonical": true,
+            "value": 0.0,
+            "raw_value": 0.110517,
+            "value_basis": "min(0, worst slack)",
+            "quantity_scope": "original source metric identified by raw_key",
+            "corner_status": "declared",
+            "corner_basis": "observation context",
+            "context_corner": "typical",
+            "unit": "ns",
+            "unit_declared": "1ns",
+            "stage": "finish",
+            "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs",
+            "analysis": "hold",
+            "check": "hold",
+            "corner": "typical",
+            "scene": null,
+            "kind": "timing",
+            "authoritative_source": "common native OpenROAD routed-checkpoint measurement",
+            "evaluation_conditions": {
+              "clock_period_ns": 0.5,
+              "condition_id": "3f8fd6ae8d94b1c853535b5e948326b4b72c15bebc3887ae1a94a5255148899a",
+              "corner": "typical",
+              "library_sha256": [
+                "8d540a4d4cf6d09d27c87ad067857a9c0c2eeb023ab7a56e058cd3113db4e9b1"
+              ],
+              "objective_id": "07e93d77c8dfe93605bdb00b42d544a00f9bab37e8c2a3a74b0420b02ddbab33",
+              "parasitics": "full-route SPEF of this candidate",
+              "propagated_clock": true,
+              "sdc_sha256": "9108484ce67bf5ee69e610bdd32ca177b4fc273c745cba1fdf741eb6cc572fc8",
+              "toolchain": {
+                "image_sha256": "8e6ee7aac233da078364649fa8111dac5de33a3589f5445dcffd96f9d6d8dd39"
+              },
+              "units": {
+                "area": "um^2",
+                "power": "W",
+                "time": "ns"
+              }
+            },
+            "raw_key": "finish__timing__hold__ws",
+            "status": "available",
+            "reason": null,
+            "evidence": [
+              {
+                "artifact_kind": "raw_flow_metadata",
+                "detail": {
+                  "field": "metrics.finish__timing__hold__ws",
+                  "ordinal": 9
+                },
+                "logical_path": "inputs/metrics.json",
+                "source_type": "json",
+                "artifact_id": "art-1ddcaeffd0824e269db1e5539e2417c0",
+                "run_id": "run-49d21dd88fa94c90bb580a981e4cf8c6",
+                "attempt_id": "attempt-c934d395ef4a460aa7bed4cba21be8fc",
+                "sha256": "a7d4dc37cc2f73f861a821715700b01ccec39cc0f91feb38140d6c0b79e7d624",
+                "size_bytes": 1729,
+                "category": "raw_flow_metadata",
+                "stage": "main",
+                "resolution": "exact_path"
+              }
+            ]
+          },
+          {
+            "name": "HOLD_TNS",
+            "canonical": true,
+            "value": 0,
+            "raw_value": 0,
+            "value_basis": "source value",
+            "quantity_scope": "original source metric identified by raw_key",
+            "corner_status": "declared",
+            "corner_basis": "observation context",
+            "context_corner": "typical",
+            "unit": "ns",
+            "unit_declared": "1ns",
+            "stage": "finish",
+            "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs",
+            "analysis": "hold",
+            "check": "hold",
+            "corner": "typical",
+            "scene": null,
+            "kind": "timing",
+            "authoritative_source": "common native OpenROAD routed-checkpoint measurement",
+            "evaluation_conditions": {
+              "clock_period_ns": 0.5,
+              "condition_id": "3f8fd6ae8d94b1c853535b5e948326b4b72c15bebc3887ae1a94a5255148899a",
+              "corner": "typical",
+              "library_sha256": [
+                "8d540a4d4cf6d09d27c87ad067857a9c0c2eeb023ab7a56e058cd3113db4e9b1"
+              ],
+              "objective_id": "07e93d77c8dfe93605bdb00b42d544a00f9bab37e8c2a3a74b0420b02ddbab33",
+              "parasitics": "full-route SPEF of this candidate",
+              "propagated_clock": true,
+              "sdc_sha256": "9108484ce67bf5ee69e610bdd32ca177b4fc273c745cba1fdf741eb6cc572fc8",
+              "toolchain": {
+                "image_sha256": "8e6ee7aac233da078364649fa8111dac5de33a3589f5445dcffd96f9d6d8dd39"
+              },
+              "units": {
+                "area": "um^2",
+                "power": "W",
+                "time": "ns"
+              }
+            },
+            "raw_key": "finish__timing__hold__tns",
+            "status": "available",
+            "reason": null,
+            "evidence": [
+              {
+                "artifact_kind": "raw_flow_metadata",
+                "detail": {
+                  "field": "metrics.finish__timing__hold__tns",
+                  "ordinal": 8
+                },
+                "logical_path": "inputs/metrics.json",
+                "source_type": "json",
+                "artifact_id": "art-1ddcaeffd0824e269db1e5539e2417c0",
+                "run_id": "run-49d21dd88fa94c90bb580a981e4cf8c6",
+                "attempt_id": "attempt-c934d395ef4a460aa7bed4cba21be8fc",
+                "sha256": "a7d4dc37cc2f73f861a821715700b01ccec39cc0f91feb38140d6c0b79e7d624",
+                "size_bytes": 1729,
+                "category": "raw_flow_metadata",
+                "stage": "main",
+                "resolution": "exact_path"
+              }
+            ]
+          },
+          {
+            "name": "AREA",
+            "canonical": true,
+            "value": 675.64,
+            "raw_value": 675.64,
+            "value_basis": "source value",
+            "quantity_scope": "source-reported cell instance area; filler area excluded; not die/core footprint or the sum of all master footprints",
+            "corner_status": "declared",
+            "corner_basis": "observation context",
+            "context_corner": "typical",
+            "unit": "um^2",
+            "unit_declared": "1um",
+            "stage": "finish",
+            "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs",
+            "analysis": "post_route",
+            "check": null,
+            "corner": "typical",
+            "scene": null,
+            "kind": "physical",
+            "authoritative_source": "common native OpenROAD routed-checkpoint measurement",
+            "evaluation_conditions": {
+              "clock_period_ns": 0.5,
+              "condition_id": "3f8fd6ae8d94b1c853535b5e948326b4b72c15bebc3887ae1a94a5255148899a",
+              "corner": "typical",
+              "library_sha256": [
+                "8d540a4d4cf6d09d27c87ad067857a9c0c2eeb023ab7a56e058cd3113db4e9b1"
+              ],
+              "objective_id": "07e93d77c8dfe93605bdb00b42d544a00f9bab37e8c2a3a74b0420b02ddbab33",
+              "parasitics": "full-route SPEF of this candidate",
+              "propagated_clock": true,
+              "sdc_sha256": "9108484ce67bf5ee69e610bdd32ca177b4fc273c745cba1fdf741eb6cc572fc8",
+              "toolchain": {
+                "image_sha256": "8e6ee7aac233da078364649fa8111dac5de33a3589f5445dcffd96f9d6d8dd39"
+              },
+              "units": {
+                "area": "um^2",
+                "power": "W",
+                "time": "ns"
+              }
+            },
+            "raw_key": "finish__design__instance__area",
+            "status": "available",
+            "reason": null,
+            "evidence": [
+              {
+                "artifact_kind": "raw_flow_metadata",
+                "detail": {
+                  "field": "metrics.finish__design__instance__area",
+                  "ordinal": 3
+                },
+                "logical_path": "inputs/metrics.json",
+                "source_type": "json",
+                "artifact_id": "art-1ddcaeffd0824e269db1e5539e2417c0",
+                "run_id": "run-49d21dd88fa94c90bb580a981e4cf8c6",
+                "attempt_id": "attempt-c934d395ef4a460aa7bed4cba21be8fc",
+                "sha256": "a7d4dc37cc2f73f861a821715700b01ccec39cc0f91feb38140d6c0b79e7d624",
+                "size_bytes": 1729,
+                "category": "raw_flow_metadata",
+                "stage": "main",
+                "resolution": "exact_path"
+              }
+            ]
+          },
+          {
+            "name": "POWER_TOTAL",
+            "canonical": true,
+            "value": 0.0022321124561,
+            "raw_value": 0.0022321124561,
+            "value_basis": "source value",
+            "quantity_scope": "original source metric identified by raw_key",
+            "corner_status": "declared",
+            "corner_basis": "observation context",
+            "context_corner": "typical",
+            "unit": "W",
+            "unit_declared": "OpenSTA design_power SI Watts; library power declaration is not the metric unit",
+            "stage": "finish",
+            "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs",
+            "analysis": "post_route",
+            "check": null,
+            "corner": "typical",
+            "scene": null,
+            "kind": "power",
+            "authoritative_source": "common native OpenROAD routed-checkpoint measurement",
+            "evaluation_conditions": {
+              "clock_period_ns": 0.5,
+              "condition_id": "3f8fd6ae8d94b1c853535b5e948326b4b72c15bebc3887ae1a94a5255148899a",
+              "corner": "typical",
+              "library_sha256": [
+                "8d540a4d4cf6d09d27c87ad067857a9c0c2eeb023ab7a56e058cd3113db4e9b1"
+              ],
+              "objective_id": "07e93d77c8dfe93605bdb00b42d544a00f9bab37e8c2a3a74b0420b02ddbab33",
+              "parasitics": "full-route SPEF of this candidate",
+              "propagated_clock": true,
+              "sdc_sha256": "9108484ce67bf5ee69e610bdd32ca177b4fc273c745cba1fdf741eb6cc572fc8",
+              "toolchain": {
+                "image_sha256": "8e6ee7aac233da078364649fa8111dac5de33a3589f5445dcffd96f9d6d8dd39"
+              },
+              "units": {
+                "area": "um^2",
+                "power": "W",
+                "time": "ns"
+              }
+            },
+            "raw_key": "finish__power__total",
+            "status": "available",
+            "reason": null,
+            "evidence": [
+              {
+                "artifact_kind": "raw_flow_metadata",
+                "detail": {
+                  "field": "metrics.finish__power__total",
+                  "ordinal": 4
+                },
+                "logical_path": "inputs/metrics.json",
+                "source_type": "json",
+                "artifact_id": "art-1ddcaeffd0824e269db1e5539e2417c0",
+                "run_id": "run-49d21dd88fa94c90bb580a981e4cf8c6",
+                "attempt_id": "attempt-c934d395ef4a460aa7bed4cba21be8fc",
+                "sha256": "a7d4dc37cc2f73f861a821715700b01ccec39cc0f91feb38140d6c0b79e7d624",
+                "size_bytes": 1729,
+                "category": "raw_flow_metadata",
+                "stage": "main",
+                "resolution": "exact_path"
+              }
+            ]
+          }
+        ],
+        "design_id": "gcd",
+        "revision_id": "baseline",
+        "stage": [
+          "finish",
+          "timing"
+        ],
+        "count": 8,
+        "returned": 8,
+        "limit": 100,
+        "offset": 0,
+        "truncated": false,
+        "next_offset": null,
+        "canonical_names": [
+          "AREA",
+          "HOLD_TNS",
+          "HOLD_WNS",
+          "HOLD_WS",
+          "INSTANCE_COUNT",
+          "MACRO_AREA",
+          "MACRO_COUNT",
+          "POWER_TOTAL",
+          "SETUP_VIOLATIONS",
+          "STDCELL_AREA",
+          "STDCELL_COUNT",
+          "TNS",
+          "WNS",
+          "WS"
+        ],
+        "canonical_names_available": [
+          "AREA",
+          "HOLD_TNS",
+          "HOLD_WNS",
+          "HOLD_WS",
+          "POWER_TOTAL",
+          "TNS",
+          "WNS",
+          "WS"
+        ],
+        "units_declared": [
+          "area",
+          "power",
+          "time"
+        ],
+        "filters": {
+          "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs"
+        },
+        "raw_metrics": [
+          {
+            "canonical": false,
+            "raw_key": "design__violations",
+            "value": 0,
+            "stage": "finish",
+            "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs",
+            "scene": null,
+            "analysis": "post_route",
+            "evidence": [
+              {
+                "artifact_kind": "raw_flow_metadata",
+                "detail": {
+                  "field": "metrics.design__violations",
+                  "ordinal": 0
+                },
+                "logical_path": "inputs/metrics.json",
+                "source_type": "json",
+                "artifact_id": "art-1ddcaeffd0824e269db1e5539e2417c0",
+                "run_id": "run-49d21dd88fa94c90bb580a981e4cf8c6",
+                "attempt_id": "attempt-c934d395ef4a460aa7bed4cba21be8fc",
+                "sha256": "a7d4dc37cc2f73f861a821715700b01ccec39cc0f91feb38140d6c0b79e7d624",
+                "size_bytes": 1729,
+                "category": "raw_flow_metadata",
+                "stage": "main",
+                "resolution": "exact_path"
+              }
+            ],
+            "status": "parsed"
+          },
+          {
+            "canonical": false,
+            "raw_key": "finish__design__core__area",
+            "value": 1076.77,
+            "stage": "finish",
+            "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs",
+            "scene": null,
+            "analysis": "post_route",
+            "evidence": [
+              {
+                "artifact_kind": "raw_flow_metadata",
+                "detail": {
+                  "field": "metrics.finish__design__core__area",
+                  "ordinal": 1
+                },
+                "logical_path": "inputs/metrics.json",
+                "source_type": "json",
+                "artifact_id": "art-1ddcaeffd0824e269db1e5539e2417c0",
+                "run_id": "run-49d21dd88fa94c90bb580a981e4cf8c6",
+                "attempt_id": "attempt-c934d395ef4a460aa7bed4cba21be8fc",
+                "sha256": "a7d4dc37cc2f73f861a821715700b01ccec39cc0f91feb38140d6c0b79e7d624",
+                "size_bytes": 1729,
+                "category": "raw_flow_metadata",
+                "stage": "main",
+                "resolution": "exact_path"
+              }
+            ],
+            "status": "parsed"
+          },
+          {
+            "canonical": false,
+            "raw_key": "finish__design__die__area",
+            "value": 1278.42,
+            "stage": "finish",
+            "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs",
+            "scene": null,
+            "analysis": "post_route",
+            "evidence": [
+              {
+                "artifact_kind": "raw_flow_metadata",
+                "detail": {
+                  "field": "metrics.finish__design__die__area",
+                  "ordinal": 2
+                },
+                "logical_path": "inputs/metrics.json",
+                "source_type": "json",
+                "artifact_id": "art-1ddcaeffd0824e269db1e5539e2417c0",
+                "run_id": "run-49d21dd88fa94c90bb580a981e4cf8c6",
+                "attempt_id": "attempt-c934d395ef4a460aa7bed4cba21be8fc",
+                "sha256": "a7d4dc37cc2f73f861a821715700b01ccec39cc0f91feb38140d6c0b79e7d624",
+                "size_bytes": 1729,
+                "category": "raw_flow_metadata",
+                "stage": "main",
+                "resolution": "exact_path"
+              }
+            ],
+            "status": "parsed"
+          },
+          {
+            "canonical": false,
+            "raw_key": "finish__timing__drv__max_cap",
+            "value": 0,
+            "stage": "finish",
+            "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs",
+            "scene": null,
+            "analysis": "post_route",
+            "evidence": [
+              {
+                "artifact_kind": "raw_flow_metadata",
+                "detail": {
+                  "field": "metrics.finish__timing__drv__max_cap",
+                  "ordinal": 5
+                },
+                "logical_path": "inputs/metrics.json",
+                "source_type": "json",
+                "artifact_id": "art-1ddcaeffd0824e269db1e5539e2417c0",
+                "run_id": "run-49d21dd88fa94c90bb580a981e4cf8c6",
+                "attempt_id": "attempt-c934d395ef4a460aa7bed4cba21be8fc",
+                "sha256": "a7d4dc37cc2f73f861a821715700b01ccec39cc0f91feb38140d6c0b79e7d624",
+                "size_bytes": 1729,
+                "category": "raw_flow_metadata",
+                "stage": "main",
+                "resolution": "exact_path"
+              }
+            ],
+            "status": "parsed"
+          },
+          {
+            "canonical": false,
+            "raw_key": "finish__timing__drv__max_fanout",
+            "value": 0,
+            "stage": "finish",
+            "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs",
+            "scene": null,
+            "analysis": "post_route",
+            "evidence": [
+              {
+                "artifact_kind": "raw_flow_metadata",
+                "detail": {
+                  "field": "metrics.finish__timing__drv__max_fanout",
+                  "ordinal": 6
+                },
+                "logical_path": "inputs/metrics.json",
+                "source_type": "json",
+                "artifact_id": "art-1ddcaeffd0824e269db1e5539e2417c0",
+                "run_id": "run-49d21dd88fa94c90bb580a981e4cf8c6",
+                "attempt_id": "attempt-c934d395ef4a460aa7bed4cba21be8fc",
+                "sha256": "a7d4dc37cc2f73f861a821715700b01ccec39cc0f91feb38140d6c0b79e7d624",
+                "size_bytes": 1729,
+                "category": "raw_flow_metadata",
+                "stage": "main",
+                "resolution": "exact_path"
+              }
+            ],
+            "status": "parsed"
+          },
+          {
+            "canonical": false,
+            "raw_key": "finish__timing__drv__max_slew",
+            "value": 0,
+            "stage": "finish",
+            "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs",
+            "scene": null,
+            "analysis": "post_route",
+            "evidence": [
+              {
+                "artifact_kind": "raw_flow_metadata",
+                "detail": {
+                  "field": "metrics.finish__timing__drv__max_slew",
+                  "ordinal": 7
+                },
+                "logical_path": "inputs/metrics.json",
+                "source_type": "json",
+                "artifact_id": "art-1ddcaeffd0824e269db1e5539e2417c0",
+                "run_id": "run-49d21dd88fa94c90bb580a981e4cf8c6",
+                "attempt_id": "attempt-c934d395ef4a460aa7bed4cba21be8fc",
+                "sha256": "a7d4dc37cc2f73f861a821715700b01ccec39cc0f91feb38140d6c0b79e7d624",
+                "size_bytes": 1729,
+                "category": "raw_flow_metadata",
+                "stage": "main",
+                "resolution": "exact_path"
+              }
+            ],
+            "status": "parsed"
+          },
+          {
+            "canonical": false,
+            "raw_key": "flow__errors__count",
+            "value": 0,
+            "stage": "finish",
+            "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs",
+            "scene": null,
+            "analysis": "post_route",
+            "evidence": [
+              {
+                "artifact_kind": "raw_flow_metadata",
+                "detail": {
+                  "field": "metrics.flow__errors__count",
+                  "ordinal": 12
+                },
+                "logical_path": "inputs/metrics.json",
+                "source_type": "json",
+                "artifact_id": "art-1ddcaeffd0824e269db1e5539e2417c0",
+                "run_id": "run-49d21dd88fa94c90bb580a981e4cf8c6",
+                "attempt_id": "attempt-c934d395ef4a460aa7bed4cba21be8fc",
+                "sha256": "a7d4dc37cc2f73f861a821715700b01ccec39cc0f91feb38140d6c0b79e7d624",
+                "size_bytes": 1729,
+                "category": "raw_flow_metadata",
+                "stage": "main",
+                "resolution": "exact_path"
+              }
+            ],
+            "status": "parsed"
+          },
+          {
+            "canonical": false,
+            "raw_key": "flow__warnings__count",
+            "value": 1,
+            "stage": "finish",
+            "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs",
+            "scene": null,
+            "analysis": "post_route",
+            "evidence": [
+              {
+                "artifact_kind": "raw_flow_metadata",
+                "detail": {
+                  "field": "metrics.flow__warnings__count",
+                  "ordinal": 13
+                },
+                "logical_path": "inputs/metrics.json",
+                "source_type": "json",
+                "artifact_id": "art-1ddcaeffd0824e269db1e5539e2417c0",
+                "run_id": "run-49d21dd88fa94c90bb580a981e4cf8c6",
+                "attempt_id": "attempt-c934d395ef4a460aa7bed4cba21be8fc",
+                "sha256": "a7d4dc37cc2f73f861a821715700b01ccec39cc0f91feb38140d6c0b79e7d624",
+                "size_bytes": 1729,
+                "category": "raw_flow_metadata",
+                "stage": "main",
+                "resolution": "exact_path"
+              }
+            ],
+            "status": "parsed"
+          },
+          {
+            "canonical": false,
+            "raw_key": "flow__warnings__count:STA-0450",
+            "value": 1,
+            "stage": "finish",
+            "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs",
+            "scene": null,
+            "analysis": "post_route",
+            "evidence": [
+              {
+                "artifact_kind": "raw_flow_metadata",
+                "detail": {
+                  "field": "metrics.flow__warnings__count:STA-0450",
+                  "ordinal": 14
+                },
+                "logical_path": "inputs/metrics.json",
+                "source_type": "json",
+                "artifact_id": "art-1ddcaeffd0824e269db1e5539e2417c0",
+                "run_id": "run-49d21dd88fa94c90bb580a981e4cf8c6",
+                "attempt_id": "attempt-c934d395ef4a460aa7bed4cba21be8fc",
+                "sha256": "a7d4dc37cc2f73f861a821715700b01ccec39cc0f91feb38140d6c0b79e7d624",
+                "size_bytes": 1729,
+                "category": "raw_flow_metadata",
+                "stage": "main",
+                "resolution": "exact_path"
+              }
+            ],
+            "status": "parsed"
+          },
+          {
+            "canonical": false,
+            "raw_key": "flow__warnings__type_count",
+            "value": 1,
+            "stage": "finish",
+            "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs",
+            "scene": null,
+            "analysis": "post_route",
+            "evidence": [
+              {
+                "artifact_kind": "raw_flow_metadata",
+                "detail": {
+                  "field": "metrics.flow__warnings__type_count",
+                  "ordinal": 15
+                },
+                "logical_path": "inputs/metrics.json",
+                "source_type": "json",
+                "artifact_id": "art-1ddcaeffd0824e269db1e5539e2417c0",
+                "run_id": "run-49d21dd88fa94c90bb580a981e4cf8c6",
+                "attempt_id": "attempt-c934d395ef4a460aa7bed4cba21be8fc",
+                "sha256": "a7d4dc37cc2f73f861a821715700b01ccec39cc0f91feb38140d6c0b79e7d624",
+                "size_bytes": 1729,
+                "category": "raw_flow_metadata",
+                "stage": "main",
+                "resolution": "exact_path"
+              }
+            ],
+            "status": "parsed"
+          },
+          {
+            "canonical": false,
+            "raw_key": "run__flow__platform__distance_units",
+            "value": "1um",
+            "stage": "finish",
+            "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs",
+            "scene": null,
+            "analysis": "post_route",
+            "evidence": [
+              {
+                "artifact_kind": "raw_flow_metadata",
+                "detail": {
+                  "field": "metrics.run__flow__platform__distance_units",
+                  "ordinal": 16
+                },
+                "logical_path": "inputs/metrics.json",
+                "source_type": "json",
+                "artifact_id": "art-1ddcaeffd0824e269db1e5539e2417c0",
+                "run_id": "run-49d21dd88fa94c90bb580a981e4cf8c6",
+                "attempt_id": "attempt-c934d395ef4a460aa7bed4cba21be8fc",
+                "sha256": "a7d4dc37cc2f73f861a821715700b01ccec39cc0f91feb38140d6c0b79e7d624",
+                "size_bytes": 1729,
+                "category": "raw_flow_metadata",
+                "stage": "main",
+                "resolution": "exact_path"
+              }
+            ],
+            "status": "parsed"
+          },
+          {
+            "canonical": false,
+            "raw_key": "run__flow__platform__power_units",
+            "value": "1W",
+            "stage": "finish",
+            "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs",
+            "scene": null,
+            "analysis": "post_route",
+            "evidence": [
+              {
+                "artifact_kind": "raw_flow_metadata",
+                "detail": {
+                  "field": "metrics.run__flow__platform__power_units",
+                  "ordinal": 17
+                },
+                "logical_path": "inputs/metrics.json",
+                "source_type": "json",
+                "artifact_id": "art-1ddcaeffd0824e269db1e5539e2417c0",
+                "run_id": "run-49d21dd88fa94c90bb580a981e4cf8c6",
+                "attempt_id": "attempt-c934d395ef4a460aa7bed4cba21be8fc",
+                "sha256": "a7d4dc37cc2f73f861a821715700b01ccec39cc0f91feb38140d6c0b79e7d624",
+                "size_bytes": 1729,
+                "category": "raw_flow_metadata",
+                "stage": "main",
+                "resolution": "exact_path"
+              }
+            ],
+            "status": "parsed"
+          },
+          {
+            "canonical": false,
+            "raw_key": "run__flow__platform__time_units",
+            "value": "1ns",
+            "stage": "finish",
+            "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs",
+            "scene": null,
+            "analysis": "post_route",
+            "evidence": [
+              {
+                "artifact_kind": "raw_flow_metadata",
+                "detail": {
+                  "field": "metrics.run__flow__platform__time_units",
+                  "ordinal": 18
+                },
+                "logical_path": "inputs/metrics.json",
+                "source_type": "json",
+                "artifact_id": "art-1ddcaeffd0824e269db1e5539e2417c0",
+                "run_id": "run-49d21dd88fa94c90bb580a981e4cf8c6",
+                "attempt_id": "attempt-c934d395ef4a460aa7bed4cba21be8fc",
+                "sha256": "a7d4dc37cc2f73f861a821715700b01ccec39cc0f91feb38140d6c0b79e7d624",
+                "size_bytes": 1729,
+                "category": "raw_flow_metadata",
+                "stage": "main",
+                "resolution": "exact_path"
+              }
+            ],
+            "status": "parsed"
+          }
+        ],
+        "raw_metric_count": 13,
+        "raw_metrics_page": {
+          "count": 13,
+          "returned": 13,
+          "limit": 100,
+          "offset": 0,
+          "truncated": false,
+          "next_offset": null
+        },
+        "scope": {
+          "design_id": "gcd",
+          "revision_id": "baseline",
+          "run_id": "run-f92afdbd4a7d40a0a1d213e71c74b0c9",
+          "snapshot_id": "local-run-f92afdbd4a7d40a0a1d213e71c74b0c9-orfs",
+          "stage": "finish"
+        }
+      },
+      "evidence": [
+        {
+          "artifact_kind": "raw_flow_metadata",
+          "detail": {
+            "field": "metrics.finish__timing__setup__ws",
+            "ordinal": 11
+          },
+          "logical_path": "inputs/metrics.json",
+          "source_type": "json",
+          "artifact_id": "art-1ddcaeffd0824e269db1e5539e2417c0",
+          "run_id": "run-49d21dd88fa94c90bb580a981e4cf8c6",
+          "attempt_id": "attempt-c934d395ef4a460aa7bed4cba21be8fc",
+          "sha256": "a7d4dc37cc2f73f861a821715700b01ccec39cc0f91feb38140d6c0b79e7d624",
+          "size_bytes": 1729,
+          "category": "raw_flow_metadata",
+          "stage": "main",
+          "resolution": "exact_path"
+        }
+      ],
+      "limitations": []
+    }
+  },
+  "on_prepared_files_unchanged": 12,
+  "drc_reports": [
+    {
+      "archive_sha256": "b9f734e01b3672cc73dcc1caa21b6b5768b50df91b71b7959e3524e1d93c9463",
+      "member": "flow/logs/nangate45/gcd/baseline/5_2_route.json",
+      "sha256": "98e73250c23b32827481c7e50bc1764735c5d85c146e2eefdc4923fee7aaf286"
+    },
+    {
+      "archive_sha256": "b9f734e01b3672cc73dcc1caa21b6b5768b50df91b71b7959e3524e1d93c9463",
+      "member": "flow/reports/nangate45/gcd/baseline/5_route_drc.rpt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "model_search_started": false
+}

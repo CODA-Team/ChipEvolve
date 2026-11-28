@@ -4,35 +4,16 @@ from pathlib import Path
 
 from openroad_platform_client import KernelClient
 
-from chip_evolve.config import Deployment
-from chip_evolve.contracts import (
-    CandidateCollection,
-    CandidateDeliverySummary,
-    CodeCapability,
-    NativeCandidateExport,
-    ObjectiveRef,
-    SpecialistAdapter,
-    SpecialistReply,
-    VerifiedNativeProducer,
-)
-from chip_evolve.command_requests import NormalizedRunCommand
-from chip_evolve.code_evidence import (
-    export_candidates,
-    summarize_inventory,
-    verify_candidate_producer,
-)
-from chip_evolve.flow_delivery import collect_completed, collect_failed_evidence
-from chip_evolve.professional import (
-    PreparedSpecialist,
-    SpecialistPreflight,
-    inspect_inputs,
-    prepare_inputs,
-    dispatch_prepared,
-)
-from chip_evolve.dpl import run_dpl
-from chip_evolve.flow import run_flow
-from chip_evolve.eco import run_eco
-from chip_evolve.goal import run_goal
+from chip_evolve.core.config import Deployment
+from chip_evolve.core.contracts import CandidateCollection, CandidateDeliverySummary, CodeCapability, NativeCandidateExport, ObjectiveRef, SpecialistAdapter, SpecialistReply, VerifiedNativeProducer
+from chip_evolve.core.command_requests import NormalizedRunCommand
+from chip_evolve.facts.code_evidence import export_candidates, summarize_inventory, verify_candidate_producer
+from chip_evolve.workflow.flow_delivery import collect_completed, collect_failed_evidence
+from chip_evolve.workflow.professional import PreparedSpecialist, SpecialistPreflight, inspect_inputs, prepare_inputs, dispatch_prepared
+from chip_evolve.workflow.dpl import run_dpl
+from chip_evolve.workflow.flow import run_flow
+from chip_evolve.workflow.eco import run_eco
+from chip_evolve.workflow.goal import run_goal
 
 flow: SpecialistAdapter = run_flow
 dpl: SpecialistAdapter = run_dpl

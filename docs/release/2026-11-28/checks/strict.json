@@ -1,10 +1,12 @@
 {
   "include": [
-    "../../../../chip_evolve/contracts.py",
-    "../../../../chip_evolve/result_io.py",
-    "../../../../chip_evolve/handoff_io.py",
-    "../../../../chip_evolve/command_requests.py",
-    "../../../../tests/specialist_protocol_positive.py"
+    "../../../../chip_evolve/core/contracts.py",
+    "../../../../chip_evolve/core/result_io.py",
+    "../../../../chip_evolve/core/handoff_io.py",
+    "../../../../chip_evolve/core/command_requests.py",
+    "../../../../tests/specialist_protocol_positive.py",
+    "../../../../chip_evolve/core/toolchain.py",
+    "../../../../chip_evolve/core/resources.py"
   ],
   "venvPath": "../../../../admin",
   "venv": ".venv",

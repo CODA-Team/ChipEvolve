@@ -7,9 +7,10 @@ from typing import cast
 import pytest
 from openroad_platform_client import KernelClient
 
-from chip_evolve import controller, dpl, native_process, professional
-from chip_evolve.config import read, write
-from chip_evolve.jobs import Jobs
+from chip_evolve.workflow import controller, dpl, professional
+from chip_evolve.core import native_process
+from chip_evolve.core.config import read, write
+from chip_evolve.core.jobs import Jobs
 from tests.contract_fixtures import specialist_request
 
 
@@ -114,6 +115,9 @@ def test_timeout_cancellation_is_scoped_and_collects_before_mutating_pages(tmp_p
 def test_dispatcher_cancels_owned_jobs_and_preserves_native_timeout(
     tmp_path, monkeypatch, capability
 ):
+    from tests.contract_fixtures import unit_admission
+
+    unit_admission(monkeypatch, orchestration=True)
     from dataclasses import replace
 
     from tests.test_professional_snapshot_binding import prepare
@@ -126,9 +130,9 @@ def test_dispatcher_cancels_owned_jobs_and_preserves_native_timeout(
         raise original
 
     target = (
-        "chip_evolve.dpl.run_dpl"
+        "chip_evolve.workflow.dpl.run_dpl"
         if capability == "dpl"
-        else "chip_evolve.goal.run_goal"
+        else "chip_evolve.workflow.goal.run_goal"
     )
     monkeypatch.setattr(target, timeout)
     cancelled = []

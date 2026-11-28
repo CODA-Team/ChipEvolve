@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from chip_evolve.config import Deployment
-from chip_evolve.jobs import Jobs
-from chip_evolve.lifecycle import TERMINAL
+from chip_evolve.core.config import Deployment
+from chip_evolve.core.jobs import Jobs
+from chip_evolve.core.lifecycle import TERMINAL
 
 
 @dataclass

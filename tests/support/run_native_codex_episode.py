@@ -10,9 +10,9 @@ import time
 from pathlib import Path
 from typing import Any
 
-from chip_evolve.config import read, write
-from chip_evolve.jobs import digest
-from chip_evolve.native_process import stop
+from chip_evolve.core.config import read, write
+from chip_evolve.core.jobs import digest
+from chip_evolve.core.native_process import stop
 
 
 def summarize(events: Path) -> dict[str, Any]:

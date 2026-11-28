@@ -5,6 +5,11 @@ import shutil
 import subprocess
 from pathlib import Path
 
+if __package__:
+    from .profile_bridge import invoke
+else:
+    from profile_bridge import invoke
+
 GCD_OVERRIDES = """\
 export SYNTH_USE_SYN = 0
 export SYNTH_HIERARCHICAL = 0
@@ -25,10 +30,11 @@ export ABC_CLOCK_PERIOD_IN_PS = $(shell awk '$$1 == "set" && $$2 == "clk_period"
 """
 
 
-def orfs_stage_profile(root, state, runtime, value):
+def orfs_stage_profile(root, state, runtime, value, *, specialist=True):
     """Bind the deterministic ORFS stages shared by layout handoffs and Flow."""
     tools = value["tools"]
-    tools["yosys"] = "/OpenROAD-flow-scripts/tools/install/yosys/bin/yosys"
+    layout = invoke(root, "layout")
+    tools["yosys"] = layout["yosys"]
     image = value["runtime"]["image"]
     paths = {tool: tools[tool] for tool in ("openroad", "yosys")}
     hashes = subprocess.check_output(
@@ -58,7 +64,7 @@ def orfs_stage_profile(root, state, runtime, value):
         ).strip(),
         "openroad_bin": paths["openroad"],
         "yosys_bin": paths["yosys"],
-        "python_bin": "/usr/bin/python3",
+        "python_bin": layout["python"],
         "runtime": {"kind": "apptainer", "executable": runtime, "image": image},
         "toolchain": {
             **value["toolchain"],
@@ -67,8 +73,11 @@ def orfs_stage_profile(root, state, runtime, value):
             "source_manifest_sha256": hashlib.sha256(manifest.read_bytes()).hexdigest(),
         },
     }
-    value["flow_tool_profile"] = str(state / "flow-tool-profile.json")
-    return Path(value["flow_tool_profile"]), profile
+    field = "flow_tool_profile" if specialist else "orfs_tool_profile"
+    value[field] = str(
+        state / ("flow-tool-profile.json" if specialist else "orfs-tool-profile.json")
+    )
+    return Path(value[field]), profile
 
 
 def prepare_gcd_recipe(inputs, value):
@@ -106,13 +115,14 @@ def prepare_gcd_flow(root, state, inputs, runtime, value):
     ).strip()
     profile["python_bin"] = str(python)
     design = value["designs"]["gcd"]
+    budget = invoke(root, "preset", kind="gcd-flow-stage")
     value.setdefault("professional", {})["flow"] = {
         "source": str(source),
         "python": str(python),
         "execution": {
             "threads": design["orfs_execution"]["cpu_cores"],
-            "memory_gib": 4,
-            "stage_timeout_seconds": 180,
+            "memory_gib": budget["memory_gib"],
+            "stage_timeout_seconds": budget["seconds"],
             "clean_identity_quota": 2,
         },
     }

@@ -4,9 +4,9 @@ import pytest
 
 from tests.test_adoption_consistency import frame_at, validation_for
 from tests.test_local_business import deployment
-from chip_evolve import selection
-from chip_evolve.config import read, write
-from chip_evolve.jobs import digest
+from chip_evolve.core import selection
+from chip_evolve.core.config import read, write
+from chip_evolve.core.jobs import digest
 
 
 def test_better_power_with_real_fanout_violations_keeps_legal_incumbent(tmp_path):

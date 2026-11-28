@@ -5,7 +5,7 @@ import zipfile
 
 import pytest
 
-from chip_evolve.stage_facts import extract, matches_evaluation, observations
+from chip_evolve.facts.stage_facts import extract, matches_evaluation, observations
 
 
 @pytest.mark.parametrize("changed", ["log", "cwd", "missing_checkpoint"])

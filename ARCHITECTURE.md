@@ -18,20 +18,20 @@ flowchart LR
 
 ## Follow one experiment
 
-1. **Create a starting point.** `chip-evolve.py run --capability orfs` binds the RTL, constraints, Liberty, and toolchain. `chip_evolve/physical.py` submits it and requests post-route measurements through `chip_evolve/jobs.py`.
+1. **Create a starting point.** `chip-evolve.py run --capability orfs` binds the RTL, constraints, Liberty, and toolchain. `chip_evolve/execution/physical.py` submits it and requests post-route measurements through `chip_evolve/core/jobs.py`.
 2. **Run and record.** Execution Foundation stages inputs, assigns resources, supervises the process, and registers outputs such as ODB, SDC, SPEF, and logs. Toolkits translates the task into native ORFS or OpenROAD calls. An ODB is a design checkpoint containing the physical design state that OpenROAD can load.
-3. **Read facts.** The business entry point requests fact exports and imports them through `chip_evolve/design_facts.py`. Data Foundation stores snapshots and their source references. Data Interface exposes them through `EdaAiClient`. The Analysis Agent in `agent/query-agent/` uses the SDK to look up objects, compare metrics, and explain findings with evidence.
-4. **Hand off.** Codex uses the [Agent dispatch table](agent/README.md) to choose a specialist, then passes a result and diagnosis to `chip-evolve.py run`. `chip_evolve/professional.py` binds the source, diagnosis, and objective. The specialist proposes candidates. The modules in `agent/` own the native search, actions, and scoring. The root package adapts each specialist's inputs and outputs to the common experiment flow.
+3. **Read facts.** The business entry point requests fact exports and imports them through `chip_evolve/facts/design_facts.py`. Data Foundation stores snapshots and their source references. Data Interface exposes them through `EdaAiClient`. The Analysis Agent in `agent/query-agent/` uses the SDK to look up objects, compare metrics, and explain findings with evidence.
+4. **Hand off.** Codex uses the [Agent dispatch table](agent/README.md) to choose a specialist, then passes a result and diagnosis to `chip-evolve.py run`. `chip_evolve/workflow/professional.py` binds the source, diagnosis, and objective. The specialist proposes candidates. The modules in `agent/` own the native search, actions, and scoring. The root package adapts each specialist's inputs and outputs to the common experiment flow.
 5. **Close the loop.** Each candidate has execution and artifact references. Its design facts go through the same import and SDK path. Codex can compare them against the objective, request independent validation, select the result, or hand it to another specialist. Source and tool identities travel with the inputs and artifacts. Model records are produced by the Analysis Agent and specialist controllers at their call sites. Coverage varies by controller.
 
 ## Find the code
 
 | If you want to change… | Start here |
 |---|---|
-| A CLI argument or command behavior | `chip_evolve/cli.py` and `chip_evolve/commands.py` |
-| The source, goal, budget, or diagnosis handed to a specialist | `chip_evolve/professional.py` and `chip_evolve/handoff.py` |
-| Flow or DPL delivery into the common platform | `chip_evolve/flow.py`, `chip_evolve/dpl.py`, and `chip_evolve/controller.py` |
-| GoalEvolve or ECO delivery into the common platform | `chip_evolve/goal.py` or `chip_evolve/eco.py`; `native.py` retains the public import aliases |
+| A CLI argument or command behavior | `chip_evolve/workflow/cli.py` and `chip_evolve/workflow/commands.py` |
+| The source, goal, budget, or diagnosis handed to a specialist | `chip_evolve/workflow/professional.py` and `chip_evolve/workflow/handoff.py` |
+| Flow or DPL delivery into the common platform | `chip_evolve/workflow/flow.py`, `chip_evolve/workflow/dpl.py`, and `chip_evolve/workflow/controller.py` |
+| GoalEvolve or ECO delivery into the common platform | `chip_evolve/workflow/goal.py` or `chip_evolve/workflow/eco.py`; `native.py` retains the public import aliases |
 | A placement, timing, or parameter-search algorithm | The relevant module inside `agent/` |
 | Task lifecycle, limits, supervision, or artifact storage | `execution-foundation/` |
 | Native commands and parsing of raw reports | `toolkits/` |
@@ -45,7 +45,8 @@ The installer checks each module against its Git pin and builds wheels from thos
 
 ## Root package layers
 
-The root package has 49 implementation modules. Release cleanup gave shared
+The root package has 51 implementation modules in four responsibility packages
+(core 19, facts 6, execution 5, workflow 21), plus eight compatibility/initialization files. Release cleanup gave shared
 artifact inputs, source snapshots, container commands and business recovery
 their own owners. Slice 4B adds explicit business contracts and three input
 boundaries for results, handoffs and CLI-independent requests. Imports point toward the same
@@ -54,7 +55,7 @@ tests inspect imports at every AST depth, including function-local imports.
 
 | Layer | Responsibility | Modules |
 |---|---|---|
-| 0 | Contracts, values and shared execution primitives | `artifact_inputs`, `candidates`, `clock`, `comparison_facts`, `command_requests`, `config`, `contracts`, `handoff_io`, `jobs`, `lifecycle`, `metrics`, `native_process`, `progress`, `proof_policy`, `result_io`, `runtime`, `selection` |
+| 0 | Contracts, values and shared execution primitives | `artifact_inputs`, `candidates`, `clock`, `comparison_facts`, `command_requests`, `config`, `contracts`, `handoff_io`, `jobs`, `lifecycle`, `metrics`, `native_process`, `progress`, `proof_policy`, `result_io`, `runtime`, `selection`, `toolchain`, `resources` |
 | 1 | Design facts, recipes and source preparation | `code_evidence`, `design_facts`, `dpl_case`, `flow_recipe`, `source_snapshot`, `stage_facts` |
 | 2 | Physical execution, proof and checkpoint delivery | `delivery`, `eqy`, `logic`, `native_physical`, `physical` |
 | 3 | Specialist adapters, comparison commands and replay | `comparisons`, `dpl`, `eco`, `environment`, `flow`, `flow_delivery`, `flow_evidence`, `flow_replay`, `goal`, `goal_replay`, `native`, `validation` |
@@ -116,15 +117,16 @@ An unmeasured native checkpoint has its own input variant for explicit ORFS
 replay; it is never presented as a complete final Result. Public Python specialist
 callers must adopt the new request/result/reply types; the CLI arguments retain
 their existing signatures. Slice 4C separates Goal/ECO ownership and removes the
-five private cross-module calls. Environment ownership and physical folder
-migration remain Slice 4D work; TUI and Web remain frozen.
+five private cross-module calls. Environment and resource ownership now live in `core/toolchain.py` and
+`core/resources.py`; TUI and Web remain frozen pending business acceptance.
 
 ## Read the business stages
 
 The three reading entry points are **`cli.py`, `commands.py`, and
 `professional.py`**. The remaining specialist modules adapt native agents,
 replay saved work, or recover delivery. These responsibilities will remain the
-reading guide for the future `workflow/` package; this slice does not move files.
+reading guide for `workflow/`: start with these three files. The other 18 files
+are professional adapters, handoff/diagnosis, comparison/validation or replay/recovery implementations.
 
 `commands.run_experiment` first inspects a typed request, then creates and saves
 one experiment, executes it under the business lock, and projects the original
@@ -156,6 +158,51 @@ The Slice 4C engineering checks and short ECO runtime receipts are recorded in
 `var/release/slice4c-20261128/`. Complete real Code evolution delivery and Flow
 collector acceptance remain pending where historical materials have not been
 qualified. Unit tests and an ECO no-op do not close those gaps. The owner has accepted
-Slice 4C with these limits and approved Slice 4D. Initial Git synchronization
-precedes 4D source work; no profile consolidation, four-package migration or
-historical archiving has been implemented. See the [release scope](docs/release/2026-11-28/ACCEPTANCE.md).
+Slice 4C with these limits and approved Slice 4D. Initial Git synchronization completed at `4c8bccd`. Slice 4D now consolidates
+profile/resources, implements the four-package mapping and archives 377 frozen files;
+its engineering and runtime gates are tracked separately from business acceptance. See the [release scope](docs/release/2026-11-28/ACCEPTANCE.md).
+
+
+## Environment and resource ownership
+
+`core/toolchain.py` binds a versioned **root integration profile**, compatible
+with the fixed layout family of the pinned installed Toolkits. It records
+SIF bytes, architecture, actual tool binaries and installed distribution/plugin
+identities. It does not add a Toolkits protocol or support arbitrary layouts.
+`core/profiles/orfs-common-v1.json` is the single root layout definition.
+`admin/release/profile_bridge.py` calls these owners using the existing client
+interpreter and structured JSON; it adds no service or source-path injection.
+
+`core/resources.py` consumes `resources-v1.json`, reuses EF ResourceRequest
+and records an execution plan beside the unchanged wire files. New work checks
+the total public capacity or an owned startup receipt tied to actual process,
+URL and installed EF identity. A busy but adequate instance still queues in EF.
+Capacity is checked before root submission/upload and before native frontend
+dispatch. Process thresholds differ from reservable CPU/memory. Full builds
+keep 64 GiB/2048 processes/eight threads/one LTO worker; no implicit shrinking.
+Saved task specs and completed recovery retain their original resource values.
+
+`_compat.py` contains 47 fixed eager aliases; two root runner files cover the
+remaining legacy module names. All 49 resolve to the canonical module objects.
+There is no import hook, path injection or compatibility symlink. Recursive AST
+gates inspect 51 implementations and eight skeleton files, including the fixed
+runtime edges, at every import depth. Physical and logical graphs are audited.
+
+## Evidence and adoption
+
+Baseline → Query diagnosis → Codex decision → typed Handoff → Specialist →
+common physical measurement → Compare → independent Validate → Select →
+continue or finish. Query reaches Data Foundation through Data Interface.
+Five Agent modules and four infrastructure modules total nine Git submodules;
+Codex and the root orchestration package are not additional submodules.
+Specialist native promotion never substitutes for platform validation/adoption.
+Frozen history lives in `archive/`, maintained test drivers in `tests/support/`,
+and runtime evidence in the configured `var/` instance. Wheel installation
+and frozen specialist source dependencies are both documented; the platform
+is not claimed to run with every source checkout removed.
+
+
+Slice 4D engineering evidence: [report](docs/release/2026-11-29/SLICE4D_REPORT.md).
+The root gate passed 1,347 tests; default GCD proof, replay, adoption and
+completed recovery passed. Owner business acceptance and Git delivery remain
+separate; TUI/Web remain frozen.

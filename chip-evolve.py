@@ -22,6 +22,6 @@ if __name__ == "__main__":
             for key in ("PYTHONPATH", "PYTHONHOME", "PYTHONUSERBASE"):
                 os.environ.pop(key, None)
             os.execv(str(python), [str(python), "-E", "-s", *sys.argv])
-    from chip_evolve.cli import main
+    from chip_evolve.workflow.cli import main
 
     raise SystemExit(main())

@@ -7,11 +7,11 @@ import pytest
 from tests.test_adoption_consistency import frame_at
 from tests.test_local_business import deployment
 from tests.test_professional_snapshot_binding import prepare
-from chip_evolve.config import read, write
-from chip_evolve.diagnosis import identity_bindings
-from chip_evolve.handoff import input_contract
-from chip_evolve.jobs import digest
-from chip_evolve.professional import execute
+from chip_evolve.core.config import read, write
+from chip_evolve.workflow.diagnosis import identity_bindings
+from chip_evolve.workflow.handoff import input_contract
+from chip_evolve.core.jobs import digest
+from chip_evolve.workflow.professional import execute
 
 
 def registered_source(tmp_path, frame):
@@ -82,11 +82,11 @@ def test_handoff_records_registered_source_for_each_specialist(tmp_path):
 
 def test_replaced_odb_is_rejected_before_professional_dispatch(tmp_path, monkeypatch):
     d, args, experiment, dispatched = prepare(tmp_path, monkeypatch, "goal", "db")
-    monkeypatch.setattr("chip_evolve.handoff.input_contract", input_contract)
+    monkeypatch.setattr("chip_evolve.workflow.handoff.input_contract", input_contract)
     frame = read(args.source)
     client, _ = registered_source(tmp_path, frame)
     write(args.source, frame)
-    monkeypatch.setattr("chip_evolve.jobs.KernelClient", lambda *a, **kw: client)
+    monkeypatch.setattr("chip_evolve.core.jobs.KernelClient", lambda *a, **kw: client)
     (tmp_path / "registered.odb").write_bytes(b"unrelated design")
     with pytest.raises(ValueError, match="source file differs from registered"):
         execute(d, args, experiment)

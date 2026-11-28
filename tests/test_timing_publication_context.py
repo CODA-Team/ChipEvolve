@@ -6,9 +6,9 @@ import pytest
 from eda_toolkits.openroad.opensta_adapter import normalize
 
 from tests.test_design_fact_materialization import publication
-from chip_evolve.config import read, write
-from chip_evolve.jobs import digest
-from chip_evolve.physical import publish
+from chip_evolve.core.config import read, write
+from chip_evolve.core.jobs import digest
+from chip_evolve.execution.physical import publish
 
 
 @pytest.mark.parametrize("corner", ["FF", "SS"])

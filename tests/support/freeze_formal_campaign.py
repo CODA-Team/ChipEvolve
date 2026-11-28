@@ -10,11 +10,11 @@ from typing import Any
 
 from eda_toolkits.objectives import require_same_conditions
 
-from chip_evolve.candidates import result_frame
-from chip_evolve.config import Deployment, read, write
-from chip_evolve.environment import check_environment, reference
-from chip_evolve.selection import checked_validation
-from chip_evolve.validation import query_facts
+from chip_evolve.core.candidates import result_frame
+from chip_evolve.core.config import Deployment, read, write
+from chip_evolve.workflow.environment import check_environment, reference
+from chip_evolve.core.selection import checked_validation
+from chip_evolve.workflow.validation import query_facts
 
 SCHEMA = "chip-evolve.preflight.v1"
 
@@ -145,7 +145,7 @@ def freeze(config: Path, spec: Path, output: Path) -> dict[str, Any]:
 
 
 def checked(path: Path) -> dict[str, Any]:
-    from chip_evolve.jobs import digest
+    from chip_evolve.core.jobs import digest
 
     value = read(path)
     if value["schema_version"] != SCHEMA or value["campaign_id"] != content_id(value):

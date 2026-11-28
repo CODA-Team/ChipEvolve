@@ -1,0 +1,814 @@
+{
+  "physical_files": 59,
+  "implementation_modules": 51,
+  "remaining_cycle_group": [],
+  "implementation_cycles": [],
+  "upward_imports": [],
+  "private_cross_module_accesses": [],
+  "physical_graph": {
+    "__init__": [
+      "_compat"
+    ],
+    "_compat": [
+      "core.artifact_inputs",
+      "core.candidates",
+      "core.clock",
+      "core.command_requests",
+      "core.comparison_facts",
+      "core.config",
+      "core.contracts",
+      "core.handoff_io",
+      "core.jobs",
+      "core.lifecycle",
+      "core.metrics",
+      "core.native_process",
+      "core.progress",
+      "core.proof_policy",
+      "core.result_io",
+      "core.runtime",
+      "core.selection",
+      "execution.delivery",
+      "execution.eqy",
+      "execution.logic",
+      "execution.native_physical",
+      "execution.physical",
+      "facts.code_evidence",
+      "facts.design_facts",
+      "facts.dpl_case",
+      "facts.flow_recipe",
+      "facts.source_snapshot",
+      "facts.stage_facts",
+      "workflow.candidate_facts",
+      "workflow.cli",
+      "workflow.commands",
+      "workflow.controller",
+      "workflow.diagnosis",
+      "workflow.dpl",
+      "workflow.eco",
+      "workflow.environment",
+      "workflow.flow",
+      "workflow.flow_delivery",
+      "workflow.flow_evidence",
+      "workflow.flow_replay",
+      "workflow.goal",
+      "workflow.goal_replay",
+      "workflow.handoff",
+      "workflow.native",
+      "workflow.professional",
+      "workflow.recovery",
+      "workflow.validation"
+    ],
+    "comparisons": [
+      "workflow.comparisons"
+    ],
+    "continuation": [
+      "workflow.continuation"
+    ],
+    "core.__init__": [],
+    "core.artifact_inputs": [
+      "core.config",
+      "core.contracts",
+      "core.handoff_io",
+      "core.jobs",
+      "core.result_io"
+    ],
+    "core.candidates": [
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.result_io",
+      "core.selection"
+    ],
+    "core.clock": [],
+    "core.command_requests": [
+      "core.contracts"
+    ],
+    "core.comparison_facts": [
+      "core.contracts",
+      "core.metrics",
+      "core.result_io",
+      "core.selection"
+    ],
+    "core.config": [],
+    "core.contracts": [
+      "core.config"
+    ],
+    "core.handoff_io": [
+      "core.contracts",
+      "core.result_io"
+    ],
+    "core.jobs": [
+      "core.config",
+      "core.lifecycle",
+      "core.resources"
+    ],
+    "core.lifecycle": [
+      "core.config"
+    ],
+    "core.metrics": [],
+    "core.native_process": [
+      "core.config"
+    ],
+    "core.progress": [
+      "core.config",
+      "core.lifecycle"
+    ],
+    "core.proof_policy": [],
+    "core.resources": [
+      "core.config",
+      "core.contracts",
+      "core.toolchain"
+    ],
+    "core.result_io": [
+      "core.contracts",
+      "core.selection"
+    ],
+    "core.runtime": [
+      "core.config"
+    ],
+    "core.selection": [
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.metrics",
+      "core.proof_policy"
+    ],
+    "core.toolchain": [
+      "core.config",
+      "core.contracts"
+    ],
+    "execution.__init__": [],
+    "execution.delivery": [
+      "core.candidates",
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.lifecycle",
+      "core.result_io",
+      "execution.physical",
+      "facts.code_evidence",
+      "facts.design_facts",
+      "facts.flow_recipe"
+    ],
+    "execution.eqy": [
+      "core.config",
+      "core.jobs",
+      "core.proof_policy",
+      "core.resources",
+      "execution.physical"
+    ],
+    "execution.logic": [
+      "core.comparison_facts",
+      "core.config",
+      "core.jobs",
+      "core.proof_policy",
+      "core.resources",
+      "execution.eqy",
+      "execution.physical"
+    ],
+    "execution.native_physical": [
+      "core.config",
+      "core.jobs",
+      "core.resources",
+      "core.result_io",
+      "core.toolchain",
+      "execution.delivery",
+      "execution.physical",
+      "facts.design_facts",
+      "facts.stage_facts"
+    ],
+    "execution.physical": [
+      "core.artifact_inputs",
+      "core.config",
+      "core.jobs",
+      "core.resources",
+      "core.runtime",
+      "core.toolchain",
+      "facts.design_facts",
+      "facts.flow_recipe"
+    ],
+    "facts.__init__": [],
+    "facts.code_evidence": [
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.result_io"
+    ],
+    "facts.design_facts": [
+      "core.artifact_inputs",
+      "core.config",
+      "core.jobs",
+      "core.lifecycle",
+      "core.metrics",
+      "core.resources",
+      "core.runtime"
+    ],
+    "facts.dpl_case": [
+      "core.config",
+      "core.jobs"
+    ],
+    "facts.flow_recipe": [
+      "core.clock",
+      "core.config",
+      "core.jobs",
+      "core.resources",
+      "core.runtime",
+      "core.toolchain",
+      "facts.source_snapshot"
+    ],
+    "facts.source_snapshot": [
+      "core.jobs"
+    ],
+    "facts.stage_facts": [
+      "core.config",
+      "core.jobs",
+      "core.resources",
+      "facts.design_facts"
+    ],
+    "workflow.__init__": [],
+    "workflow.candidate_facts": [
+      "core.candidates",
+      "core.config",
+      "core.jobs",
+      "core.resources",
+      "core.selection",
+      "facts.stage_facts",
+      "workflow.comparisons",
+      "workflow.validation"
+    ],
+    "workflow.cli": [
+      "core.command_requests",
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.lifecycle",
+      "workflow.commands"
+    ],
+    "workflow.commands": [
+      "core.command_requests",
+      "core.comparison_facts",
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.lifecycle",
+      "core.progress",
+      "core.resources",
+      "core.result_io",
+      "core.selection",
+      "execution.native_physical",
+      "execution.physical",
+      "workflow.candidate_facts",
+      "workflow.continuation",
+      "workflow.diagnosis",
+      "workflow.environment",
+      "workflow.flow",
+      "workflow.professional",
+      "workflow.recovery",
+      "workflow.validation"
+    ],
+    "workflow.comparisons": [
+      "core.comparison_facts",
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.metrics",
+      "core.proof_policy",
+      "core.resources",
+      "core.result_io",
+      "core.selection",
+      "execution.physical"
+    ],
+    "workflow.continuation": [
+      "core.command_requests",
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.result_io",
+      "execution.delivery",
+      "workflow.controller",
+      "workflow.environment",
+      "workflow.goal"
+    ],
+    "workflow.controller": [
+      "core.native_process",
+      "facts.source_snapshot"
+    ],
+    "workflow.diagnosis": [
+      "core.candidates",
+      "core.config",
+      "core.jobs",
+      "facts.design_facts",
+      "facts.stage_facts",
+      "workflow.comparisons"
+    ],
+    "workflow.dpl": [
+      "core.artifact_inputs",
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.native_process",
+      "core.resources",
+      "core.result_io",
+      "execution.delivery",
+      "facts.dpl_case",
+      "facts.source_snapshot"
+    ],
+    "workflow.eco": [
+      "core.artifact_inputs",
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.native_process",
+      "core.resources",
+      "core.result_io",
+      "execution.delivery",
+      "execution.physical",
+      "facts.source_snapshot"
+    ],
+    "workflow.environment": [
+      "core.candidates",
+      "core.clock",
+      "core.comparison_facts",
+      "core.config",
+      "core.jobs",
+      "core.resources",
+      "core.runtime"
+    ],
+    "workflow.flow": [
+      "core.artifact_inputs",
+      "core.clock",
+      "core.config",
+      "core.contracts",
+      "core.native_process",
+      "core.resources",
+      "core.result_io",
+      "execution.physical",
+      "facts.flow_recipe",
+      "facts.source_snapshot",
+      "workflow.flow_delivery"
+    ],
+    "workflow.flow_delivery": [
+      "core.candidates",
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.result_io",
+      "execution.physical",
+      "facts.design_facts"
+    ],
+    "workflow.flow_evidence": [
+      "core.config",
+      "core.result_io",
+      "workflow.flow_delivery"
+    ],
+    "workflow.flow_replay": [
+      "core.artifact_inputs",
+      "core.config",
+      "core.jobs",
+      "core.resources",
+      "execution.delivery",
+      "execution.physical",
+      "facts.design_facts",
+      "facts.flow_recipe"
+    ],
+    "workflow.goal": [
+      "core.artifact_inputs",
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.native_process",
+      "core.resources",
+      "core.result_io",
+      "execution.delivery",
+      "execution.physical",
+      "facts.source_snapshot",
+      "workflow.goal_replay"
+    ],
+    "workflow.goal_replay": [
+      "core.config",
+      "core.jobs",
+      "workflow.environment"
+    ],
+    "workflow.handoff": [
+      "core.artifact_inputs"
+    ],
+    "workflow.native": [
+      "workflow.eco",
+      "workflow.goal"
+    ],
+    "workflow.professional": [
+      "core.artifact_inputs",
+      "core.command_requests",
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.resources",
+      "core.result_io",
+      "execution.physical",
+      "facts.design_facts",
+      "facts.flow_recipe",
+      "workflow.diagnosis",
+      "workflow.dpl",
+      "workflow.eco",
+      "workflow.environment",
+      "workflow.flow",
+      "workflow.goal",
+      "workflow.handoff"
+    ],
+    "workflow.recovery": [
+      "core.config",
+      "core.jobs",
+      "execution.delivery",
+      "execution.native_physical",
+      "execution.physical",
+      "workflow.environment",
+      "workflow.flow",
+      "workflow.goal"
+    ],
+    "workflow.validation": [
+      "core.comparison_facts",
+      "core.config",
+      "core.jobs",
+      "core.lifecycle",
+      "core.result_io",
+      "execution.delivery",
+      "execution.eqy",
+      "execution.logic",
+      "execution.physical",
+      "facts.design_facts",
+      "workflow.flow_replay"
+    ]
+  },
+  "implementation_graph": {
+    "core.artifact_inputs": [
+      "core.config",
+      "core.contracts",
+      "core.handoff_io",
+      "core.jobs",
+      "core.result_io"
+    ],
+    "core.candidates": [
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.result_io",
+      "core.selection"
+    ],
+    "core.clock": [],
+    "core.command_requests": [
+      "core.contracts"
+    ],
+    "core.comparison_facts": [
+      "core.contracts",
+      "core.metrics",
+      "core.result_io",
+      "core.selection"
+    ],
+    "core.config": [],
+    "core.contracts": [
+      "core.config"
+    ],
+    "core.handoff_io": [
+      "core.contracts",
+      "core.result_io"
+    ],
+    "core.jobs": [
+      "core.config",
+      "core.lifecycle",
+      "core.resources"
+    ],
+    "core.lifecycle": [
+      "core.config"
+    ],
+    "core.metrics": [],
+    "core.native_process": [
+      "core.config"
+    ],
+    "core.progress": [
+      "core.config",
+      "core.lifecycle"
+    ],
+    "core.proof_policy": [],
+    "core.resources": [
+      "core.config",
+      "core.contracts",
+      "core.toolchain"
+    ],
+    "core.result_io": [
+      "core.contracts",
+      "core.selection"
+    ],
+    "core.runtime": [
+      "core.config"
+    ],
+    "core.selection": [
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.metrics",
+      "core.proof_policy"
+    ],
+    "core.toolchain": [
+      "core.config",
+      "core.contracts"
+    ],
+    "execution.delivery": [
+      "core.candidates",
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.lifecycle",
+      "core.result_io",
+      "execution.physical",
+      "facts.code_evidence",
+      "facts.design_facts",
+      "facts.flow_recipe"
+    ],
+    "execution.eqy": [
+      "core.config",
+      "core.jobs",
+      "core.proof_policy",
+      "core.resources",
+      "execution.physical"
+    ],
+    "execution.logic": [
+      "core.comparison_facts",
+      "core.config",
+      "core.jobs",
+      "core.proof_policy",
+      "core.resources",
+      "execution.eqy",
+      "execution.physical"
+    ],
+    "execution.native_physical": [
+      "core.config",
+      "core.jobs",
+      "core.resources",
+      "core.result_io",
+      "core.toolchain",
+      "execution.delivery",
+      "execution.physical",
+      "facts.design_facts",
+      "facts.stage_facts"
+    ],
+    "execution.physical": [
+      "core.artifact_inputs",
+      "core.config",
+      "core.jobs",
+      "core.resources",
+      "core.runtime",
+      "core.toolchain",
+      "facts.design_facts",
+      "facts.flow_recipe"
+    ],
+    "facts.code_evidence": [
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.result_io"
+    ],
+    "facts.design_facts": [
+      "core.artifact_inputs",
+      "core.config",
+      "core.jobs",
+      "core.lifecycle",
+      "core.metrics",
+      "core.resources",
+      "core.runtime"
+    ],
+    "facts.dpl_case": [
+      "core.config",
+      "core.jobs"
+    ],
+    "facts.flow_recipe": [
+      "core.clock",
+      "core.config",
+      "core.jobs",
+      "core.resources",
+      "core.runtime",
+      "core.toolchain",
+      "facts.source_snapshot"
+    ],
+    "facts.source_snapshot": [
+      "core.jobs"
+    ],
+    "facts.stage_facts": [
+      "core.config",
+      "core.jobs",
+      "core.resources",
+      "facts.design_facts"
+    ],
+    "workflow.candidate_facts": [
+      "core.candidates",
+      "core.config",
+      "core.jobs",
+      "core.resources",
+      "core.selection",
+      "facts.stage_facts",
+      "workflow.comparisons",
+      "workflow.validation"
+    ],
+    "workflow.cli": [
+      "core.command_requests",
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.lifecycle",
+      "workflow.commands"
+    ],
+    "workflow.commands": [
+      "core.command_requests",
+      "core.comparison_facts",
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.lifecycle",
+      "core.progress",
+      "core.resources",
+      "core.result_io",
+      "core.selection",
+      "execution.native_physical",
+      "execution.physical",
+      "workflow.candidate_facts",
+      "workflow.continuation",
+      "workflow.diagnosis",
+      "workflow.environment",
+      "workflow.flow",
+      "workflow.professional",
+      "workflow.recovery",
+      "workflow.validation"
+    ],
+    "workflow.comparisons": [
+      "core.comparison_facts",
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.metrics",
+      "core.proof_policy",
+      "core.resources",
+      "core.result_io",
+      "core.selection",
+      "execution.physical"
+    ],
+    "workflow.continuation": [
+      "core.command_requests",
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.result_io",
+      "execution.delivery",
+      "workflow.controller",
+      "workflow.environment",
+      "workflow.goal"
+    ],
+    "workflow.controller": [
+      "core.native_process",
+      "facts.source_snapshot"
+    ],
+    "workflow.diagnosis": [
+      "core.candidates",
+      "core.config",
+      "core.jobs",
+      "facts.design_facts",
+      "facts.stage_facts",
+      "workflow.comparisons"
+    ],
+    "workflow.dpl": [
+      "core.artifact_inputs",
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.native_process",
+      "core.resources",
+      "core.result_io",
+      "execution.delivery",
+      "facts.dpl_case",
+      "facts.source_snapshot"
+    ],
+    "workflow.eco": [
+      "core.artifact_inputs",
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.native_process",
+      "core.resources",
+      "core.result_io",
+      "execution.delivery",
+      "execution.physical",
+      "facts.source_snapshot"
+    ],
+    "workflow.environment": [
+      "core.candidates",
+      "core.clock",
+      "core.comparison_facts",
+      "core.config",
+      "core.jobs",
+      "core.resources",
+      "core.runtime"
+    ],
+    "workflow.flow": [
+      "core.artifact_inputs",
+      "core.clock",
+      "core.config",
+      "core.contracts",
+      "core.native_process",
+      "core.resources",
+      "core.result_io",
+      "execution.physical",
+      "facts.flow_recipe",
+      "facts.source_snapshot",
+      "workflow.flow_delivery"
+    ],
+    "workflow.flow_delivery": [
+      "core.candidates",
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.result_io",
+      "execution.physical",
+      "facts.design_facts"
+    ],
+    "workflow.flow_evidence": [
+      "core.config",
+      "core.result_io",
+      "workflow.flow_delivery"
+    ],
+    "workflow.flow_replay": [
+      "core.artifact_inputs",
+      "core.config",
+      "core.jobs",
+      "core.resources",
+      "execution.delivery",
+      "execution.physical",
+      "facts.design_facts",
+      "facts.flow_recipe"
+    ],
+    "workflow.goal": [
+      "core.artifact_inputs",
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.native_process",
+      "core.resources",
+      "core.result_io",
+      "execution.delivery",
+      "execution.physical",
+      "facts.source_snapshot",
+      "workflow.goal_replay"
+    ],
+    "workflow.goal_replay": [
+      "core.config",
+      "core.jobs",
+      "workflow.environment"
+    ],
+    "workflow.handoff": [
+      "core.artifact_inputs"
+    ],
+    "workflow.native": [
+      "workflow.eco",
+      "workflow.goal"
+    ],
+    "workflow.professional": [
+      "core.artifact_inputs",
+      "core.command_requests",
+      "core.config",
+      "core.contracts",
+      "core.jobs",
+      "core.resources",
+      "core.result_io",
+      "execution.physical",
+      "facts.design_facts",
+      "facts.flow_recipe",
+      "workflow.diagnosis",
+      "workflow.dpl",
+      "workflow.eco",
+      "workflow.environment",
+      "workflow.flow",
+      "workflow.goal",
+      "workflow.handoff"
+    ],
+    "workflow.recovery": [
+      "core.config",
+      "core.jobs",
+      "execution.delivery",
+      "execution.native_physical",
+      "execution.physical",
+      "workflow.environment",
+      "workflow.flow",
+      "workflow.goal"
+    ],
+    "workflow.validation": [
+      "core.comparison_facts",
+      "core.config",
+      "core.jobs",
+      "core.lifecycle",
+      "core.result_io",
+      "execution.delivery",
+      "execution.eqy",
+      "execution.logic",
+      "execution.physical",
+      "facts.design_facts",
+      "workflow.flow_replay"
+    ]
+  }
+}

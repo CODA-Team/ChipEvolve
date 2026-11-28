@@ -4,9 +4,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from chip_evolve import continuation, delivery
-from chip_evolve.config import read, write
-from chip_evolve.jobs import digest
+from chip_evolve.workflow import continuation
+from chip_evolve.execution import delivery
+from chip_evolve.core.config import read, write
+from chip_evolve.core.jobs import digest
 
 
 @pytest.mark.parametrize("platform", ["asap7", "nangate45"])

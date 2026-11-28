@@ -1,0 +1,105 @@
+{
+  "recursive_source_files": 65,
+  "resource_or_image_literal_residuals": [],
+  "remaining_numeric_get_defaults_classified_as_wait_algorithm_or_state": [
+    {
+      "file": "chip_evolve/core/lifecycle.py",
+      "line": 88,
+      "expression": "policy.get('poll_seconds', 1)"
+    },
+    {
+      "file": "chip_evolve/core/lifecycle.py",
+      "line": 89,
+      "expression": "policy.get('diagnostic_seconds', 15)"
+    },
+    {
+      "file": "chip_evolve/core/lifecycle.py",
+      "line": 90,
+      "expression": "policy.get('unconsumed_seconds', 300)"
+    },
+    {
+      "file": "chip_evolve/core/lifecycle.py",
+      "line": 91,
+      "expression": "policy.get('unavailable_seconds', 120)"
+    },
+    {
+      "file": "chip_evolve/core/lifecycle.py",
+      "line": 92,
+      "expression": "policy.get('queue_seconds', 0)"
+    },
+    {
+      "file": "chip_evolve/core/lifecycle.py",
+      "line": 49,
+      "expression": "row.get('last_seen_at', 0)"
+    },
+    {
+      "file": "chip_evolve/core/lifecycle.py",
+      "line": 127,
+      "expression": "policy.get('worker_stale_seconds', 120)"
+    },
+    {
+      "file": "chip_evolve/core/resources.py",
+      "line": 439,
+      "expression": "worker.get('pid', 1)"
+    },
+    {
+      "file": "chip_evolve/facts/design_facts.py",
+      "line": 57,
+      "expression": "policy.get('data_read_seconds', 15)"
+    },
+    {
+      "file": "chip_evolve/facts/design_facts.py",
+      "line": 194,
+      "expression": "policy.get('import_reconcile_seconds', 120)"
+    },
+    {
+      "file": "chip_evolve/facts/design_facts.py",
+      "line": 236,
+      "expression": "policy.get('poll_seconds', 1)"
+    },
+    {
+      "file": "chip_evolve/facts/design_facts.py",
+      "line": 165,
+      "expression": "policy.get('poll_seconds', 1)"
+    },
+    {
+      "file": "chip_evolve/facts/design_facts.py",
+      "line": 144,
+      "expression": "policy.get('import_request_seconds', 900)"
+    },
+    {
+      "file": "chip_evolve/workflow/flow.py",
+      "line": 76,
+      "expression": "binding.get('seed', 42)"
+    },
+    {
+      "file": "chip_evolve/workflow/goal.py",
+      "line": 456,
+      "expression": "row.get('returncode', 0)"
+    }
+  ],
+  "host_wrapper_exceptions": [
+    {
+      "file": "chip_evolve/execution/eqy.py",
+      "line": 197,
+      "category": "host wrapper shebang, not container layout"
+    },
+    {
+      "file": "chip_evolve/workflow/eco.py",
+      "line": 92,
+      "category": "host wrapper shebang, not container layout"
+    }
+  ],
+  "frozen_key_threshold_exceptions": [
+    "physical.measure: memory 8 keeps historical task namespace",
+    "design_facts.publish: memory 8 and seconds 300 keep historical task namespace"
+  ],
+  "late_audit_repairs": [
+    "DPL/Goal physical_memory_gib 24 -> code-physical preset, same value",
+    "ECO session_memory_gib 24 -> eco-session preset, same value",
+    "GCD optional ECO 8 -> gcd-eco-session preset, same value",
+    "EQY partition jobs 2 -> equivalence threads 2, same command behavior",
+    "physical measurement 8 -> physical-facts owner, same value"
+  ],
+  "scope": "Original 159 rows are retained with current-path mapping in resource-site-resolution.csv. Additional prefixed keys, dictionary values and layout strings are independently audited here; none is hidden by the old limited key set."
+}

@@ -10,11 +10,11 @@ import argparse
 from pathlib import Path
 from typing import Any
 
-from chip_evolve.comparisons import compare
-from chip_evolve.config import Deployment, read, write
-from chip_evolve.delivery import checkpoint, finish
-from chip_evolve.jobs import Jobs, digest
-from chip_evolve.physical import container
+from chip_evolve.workflow.comparisons import compare
+from chip_evolve.core.config import Deployment, read, write
+from chip_evolve.execution.delivery import checkpoint, finish
+from chip_evolve.core.jobs import Jobs, digest
+from chip_evolve.execution.physical import container
 
 
 def recorded_action(result: Path) -> tuple[Path, dict[str, Any], dict[str, Any]]:

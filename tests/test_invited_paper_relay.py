@@ -3,11 +3,11 @@
 import pytest
 
 from tests.test_local_business import deployment
-from chip_evolve import physical
-from chip_evolve.config import write
-from chip_evolve.delivery import checkpoint, finish
-from chip_evolve.jobs import Jobs, digest
-from chip_evolve.goal import _goal_targets
+from chip_evolve.execution import physical
+from chip_evolve.core.config import write
+from chip_evolve.execution.delivery import checkpoint, finish
+from chip_evolve.core.jobs import Jobs, digest
+from chip_evolve.workflow.goal import _goal_targets
 
 
 @pytest.mark.parametrize("baseline_tns", [0.0061528841, 2.000549078])
@@ -121,7 +121,7 @@ def test_delivery_routes_only_when_the_checkpoint_requires_it(
     monkeypatch.setattr(Jobs, "command", command)
     monkeypatch.setattr(physical, "measure", lambda *a: {"run_id": "measured"})
     monkeypatch.setattr(physical, "publish", lambda _jobs, frame, **kw: frame)
-    monkeypatch.setattr("chip_evolve.delivery.maybe_collect", lambda *a: None)
+    monkeypatch.setattr("chip_evolve.execution.delivery.maybe_collect", lambda *a: None)
     frame = finish(d, experiment)
     assert len(requests) == 1
     assert frame["route_drc"] == 0

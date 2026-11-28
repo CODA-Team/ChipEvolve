@@ -8,9 +8,9 @@ from typing import cast
 
 import pytest
 
-from chip_evolve.config import read, write
-from chip_evolve.flow_recipe import bind_config, inherit_prepared_source, source_binding
-from chip_evolve.jobs import Jobs, digest
+from chip_evolve.core.config import read, write
+from chip_evolve.facts.flow_recipe import bind_config, inherit_prepared_source, source_binding
+from chip_evolve.core.jobs import Jobs, digest
 
 
 def test_native_make_recipe_checks_path_before_generating_includes(tmp_path):
@@ -110,7 +110,7 @@ def test_source_recipe_preserves_submitted_overrides_and_exact_library_bytes(tmp
 
 
 def test_physical_recipe_builds_without_a_flow_agent_binding(tmp_path, monkeypatch):
-    from chip_evolve import flow_recipe
+    from chip_evolve.facts import flow_recipe
     from tests.test_local_business import deployment
 
     frame = source(tmp_path)
@@ -152,7 +152,7 @@ def test_changed_registered_source_cannot_become_a_new_recipe(tmp_path):
 
 
 def test_native_source_does_not_silently_convert_ns_to_ps(tmp_path, monkeypatch):
-    from chip_evolve import flow_recipe
+    from chip_evolve.facts import flow_recipe
     from tests.test_local_business import deployment
 
     frame = source(tmp_path)
@@ -178,7 +178,7 @@ def test_native_source_does_not_silently_convert_ns_to_ps(tmp_path, monkeypatch)
 def test_nangate_source_requires_native_ns_and_separate_abc_binding(
     tmp_path, monkeypatch, header
 ):
-    from chip_evolve import flow_recipe
+    from chip_evolve.facts import flow_recipe
     from tests.test_local_business import deployment
 
     frame = source(tmp_path)
@@ -226,8 +226,8 @@ def test_native_clock_binding_uses_registered_input_not_a_later_measurement(
 ):
     from types import SimpleNamespace
 
-    from chip_evolve import flow as professional
-    from chip_evolve import flow_recipe
+    from chip_evolve.workflow import flow as professional
+    from chip_evolve.facts import flow_recipe
     from tests.test_local_business import deployment
 
     d = deployment(tmp_path)
@@ -312,7 +312,7 @@ def test_staged_source_hook_is_relocated_with_its_frozen_bytes(tmp_path):
 def test_unqualified_backend_or_unset_knob_is_not_silently_accepted(
     tmp_path, monkeypatch, backend, unset, error
 ):
-    from chip_evolve import flow_recipe
+    from chip_evolve.facts import flow_recipe
     from tests.test_local_business import deployment
 
     d = deployment(tmp_path)
@@ -431,7 +431,7 @@ def test_layout_handoff_preserves_native_stage_sdc_only_in_source_mode(
     import zipfile
     from types import SimpleNamespace
 
-    from chip_evolve import physical as professional
+    from chip_evolve.execution import physical as professional
     from tests.test_local_business import deployment
 
     d = deployment(tmp_path)
@@ -456,7 +456,7 @@ def test_layout_handoff_preserves_native_stage_sdc_only_in_source_mode(
     profile.write_text("{}")
     monkeypatch.setattr(professional, "tool_profile", lambda *a: profile)
     monkeypatch.setattr(
-        "chip_evolve.physical.registered_archive",
+        "chip_evolve.execution.physical.registered_archive",
         lambda *a: {"path": "registered.zip"},
     )
 
@@ -490,7 +490,7 @@ def test_layout_resume_uses_explicit_source_and_keeps_legacy_default(
 ):
     from types import SimpleNamespace
 
-    from chip_evolve import physical as professional
+    from chip_evolve.execution import physical as professional
     from tests.test_local_business import deployment
 
     d = deployment(tmp_path)
@@ -538,7 +538,7 @@ def test_layout_resume_uses_explicit_source_and_keeps_legacy_default(
     monkeypatch.setattr(professional, "flow_source", legacy)
     monkeypatch.setattr(professional, "tool_profile", profile)
     monkeypatch.setattr(
-        "chip_evolve.physical.registered_archive",
+        "chip_evolve.execution.physical.registered_archive",
         lambda *a: {"path": "registered.zip"},
     )
     with pytest.raises(SelectedSource):

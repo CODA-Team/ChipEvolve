@@ -12,10 +12,10 @@ import pytest
 from openroad_platform_client import KernelError, KernelUnavailable
 
 from tests.test_local_business import deployment
-from chip_evolve.config import read
-from chip_evolve.delivery import import_snapshot
-from chip_evolve.jobs import Jobs
-from chip_evolve.lifecycle import WorkPending, wait_run
+from chip_evolve.core.config import read
+from chip_evolve.execution.delivery import import_snapshot
+from chip_evolve.core.jobs import Jobs
+from chip_evolve.core.lifecycle import WorkPending, wait_run
 
 
 class Clock:
@@ -25,9 +25,9 @@ class Clock:
         self.now += seconds
 
     def install(self, monkeypatch):
-        monkeypatch.setattr("chip_evolve.lifecycle.time.monotonic", lambda: self.now)
-        monkeypatch.setattr("chip_evolve.lifecycle.time.time", lambda: 10000 + self.now)
-        monkeypatch.setattr("chip_evolve.lifecycle.time.sleep", self.sleep)
+        monkeypatch.setattr("chip_evolve.core.lifecycle.time.monotonic", lambda: self.now)
+        monkeypatch.setattr("chip_evolve.core.lifecycle.time.time", lambda: 10000 + self.now)
+        monkeypatch.setattr("chip_evolve.core.lifecycle.time.sleep", self.sleep)
 
 
 class Kernel:
@@ -143,6 +143,10 @@ def test_queue_budget_is_optional_and_preserves_resource_wait(tmp_path, monkeypa
 
 
 def test_lost_submit_response_and_reentry_use_one_eda_identity(tmp_path, monkeypatch):
+    from tests.contract_fixtures import unit_admission
+
+    unit_admission(monkeypatch)
+
     class Service:
         def __init__(self):
             self.calls = 0
@@ -164,8 +168,11 @@ def test_lost_submit_response_and_reentry_use_one_eda_identity(tmp_path, monkeyp
         def resources(self, run_id):
             return {}
 
+        def runs(self, **kwargs):
+            return []  # This fixture exercises idempotent retry without a public match.
+
     service = Service()
-    monkeypatch.setattr("chip_evolve.jobs.KernelClient", lambda *a, **k: service)
+    monkeypatch.setattr("chip_evolve.core.jobs.KernelClient", lambda *a, **k: service)
     jobs = Jobs(deployment(tmp_path), "gcd", tmp_path / "experiment")
     with pytest.raises(WorkPending, match="submission_response_unknown"):
         jobs.submit("route", {"adapter": "command"}, [])
@@ -182,6 +189,10 @@ def test_lost_submit_response_and_reentry_use_one_eda_identity(tmp_path, monkeyp
 def test_real_execution_failure_is_saved_not_disguised_as_pending(
     tmp_path, monkeypatch
 ):
+    from tests.contract_fixtures import unit_admission
+
+    unit_admission(monkeypatch)
+
     class Service:
         def submit(self, *a, **k):
             return {"run": {"run_id": "failure"}}
@@ -199,7 +210,7 @@ def test_real_execution_failure_is_saved_not_disguised_as_pending(
         def resources(self, run_id):
             return {}
 
-    monkeypatch.setattr("chip_evolve.jobs.KernelClient", lambda *a, **k: Service())
+    monkeypatch.setattr("chip_evolve.core.jobs.KernelClient", lambda *a, **k: Service())
     jobs = Jobs(deployment(tmp_path), "gcd", tmp_path / "experiment")
     with pytest.raises(RuntimeError, match="EDA job failed"):
         jobs.submit("route", {}, [])
@@ -325,7 +336,7 @@ def import_jobs(tmp_path, url):
 def test_receipt_lookup_outage_before_submission_recovers_and_posts_once(
     tmp_path, monkeypatch
 ):
-    from chip_evolve.design_facts import http
+    from chip_evolve.facts.design_facts import http
 
     reads = 0
 
@@ -337,7 +348,7 @@ def test_receipt_lookup_outage_before_submission_recovers_and_posts_once(
                 raise TimeoutError("receipt lookup timed out before any POST")
         return http(url, *args, **kwargs)
 
-    monkeypatch.setattr("chip_evolve.design_facts.http", interrupted)
+    monkeypatch.setattr("chip_evolve.facts.design_facts.http", interrupted)
     with data_server("committed") as (url, state):
         jobs = import_jobs(tmp_path, url)
         result = import_snapshot(jobs, "producer", "art", "snap", "subject")
@@ -349,7 +360,7 @@ def test_unavailable_receipt_lookup_does_not_submit_blindly(tmp_path, monkeypatc
     def unavailable(*args, **kwargs):
         raise TimeoutError("receipt service unavailable")
 
-    monkeypatch.setattr("chip_evolve.design_facts.http", unavailable)
+    monkeypatch.setattr("chip_evolve.facts.design_facts.http", unavailable)
     with data_server("committed") as (url, state):
         jobs = import_jobs(tmp_path, url)
         with pytest.raises(WorkPending, match="import_outcome_unknown"):
@@ -441,7 +452,10 @@ def test_receipt_mismatch_and_real_import_failure_remain_failures(
 def test_cli_returns_pending_status_and_recovery_receipt(
     tmp_path, monkeypatch, capsys, command
 ):
-    from chip_evolve.cli import main
+    from tests.contract_fixtures import unit_admission
+
+    unit_admission(monkeypatch, orchestration=True)
+    from chip_evolve.workflow.cli import main
 
     d = deployment(tmp_path)
     experiment = tmp_path / "experiments/gcd/original"
@@ -459,8 +473,8 @@ def test_cli_returns_pending_status_and_recovery_receipt(
             }
         )
 
-    monkeypatch.setattr("chip_evolve.physical.baseline", delayed)
-    monkeypatch.setattr("chip_evolve.recovery.recover", delayed)
+    monkeypatch.setattr("chip_evolve.execution.physical.baseline", delayed)
+    monkeypatch.setattr("chip_evolve.workflow.recovery.recover", delayed)
     argv = [
         "chip-evolve",
         "--config",

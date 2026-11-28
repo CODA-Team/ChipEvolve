@@ -4,8 +4,8 @@ import pytest
 
 from tests.test_adoption_consistency import frame_at, validation_for
 from tests.test_local_business import deployment
-from chip_evolve.config import read, write
-from chip_evolve.selection import select
+from chip_evolve.core.config import read, write
+from chip_evolve.core.selection import select
 
 
 @pytest.mark.parametrize("strategy", [None, "sat", "unqualified"])

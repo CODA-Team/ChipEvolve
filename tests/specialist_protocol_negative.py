@@ -1,21 +1,13 @@
 """Expected Pyright diagnostics, intentionally excluded from runtime pytest."""
 
 from pathlib import Path
-from chip_evolve.config import Deployment
-from chip_evolve.contracts import (
-    DiagnosisContextRef,
-    MeasuredResult,
-    ObjectiveRef,
-    PhysicalResult,
-    SpecialistAdapter,
-    SpecialistReply,
-    SpecialistRequest,
-)
-from chip_evolve.flow import run_flow
-from chip_evolve.code_evidence import export_candidates, verify_candidate_producer
-from chip_evolve.flow_delivery import collect_completed
-from chip_evolve.professional import PreparedSpecialist, dispatch_prepared
-from chip_evolve.contracts import NativeCampaignBinding
+from chip_evolve.core.config import Deployment
+from chip_evolve.core.contracts import DiagnosisContextRef, MeasuredResult, ObjectiveRef, PhysicalResult, SpecialistAdapter, SpecialistReply, SpecialistRequest
+from chip_evolve.workflow.flow import run_flow
+from chip_evolve.facts.code_evidence import export_candidates, verify_candidate_producer
+from chip_evolve.workflow.flow_delivery import collect_completed
+from chip_evolve.workflow.professional import PreparedSpecialist, dispatch_prepared
+from chip_evolve.core.contracts import NativeCampaignBinding
 from openroad_platform_client import KernelClient
 
 

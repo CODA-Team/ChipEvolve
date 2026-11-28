@@ -5,8 +5,8 @@ import pytest
 from tests.support.native_episode_cleanup import prepare, retire
 from tests.support.run_native_codex_episode import run
 from tests.test_native_codex_episode import episode
-from chip_evolve.config import Deployment, read, write
-from chip_evolve.jobs import Jobs, digest
+from chip_evolve.core.config import Deployment, read, write
+from chip_evolve.core.jobs import Jobs, digest
 
 
 def configure(spec, tmp_path, keys=("trial-owned", "trial-owned/logic")):
@@ -90,7 +90,7 @@ def test_real_frontend_timeout_retires_declared_business_children_and_native_flo
             )
         )
     client = Client(rows)
-    monkeypatch.setattr("chip_evolve.jobs.KernelClient", lambda *a, **k: client)
+    monkeypatch.setattr("chip_evolve.core.jobs.KernelClient", lambda *a, **k: client)
     result = run(spec, output)
     assert result["status"] == "timed_out" and result["usage"] is None
     assert result["cleanup"]["status"] == "completed"
@@ -109,7 +109,7 @@ def test_normal_native_completion_does_not_cancel_even_with_explicit_plan(
     spec, output = episode(tmp_path)
     configure(spec, tmp_path)
     monkeypatch.setattr(
-        "chip_evolve.jobs.KernelClient",
+        "chip_evolve.core.jobs.KernelClient",
         lambda *a, **k: pytest.fail("no EF calls on ordinary completion"),
     )
     result = run(spec, output)
@@ -160,7 +160,7 @@ def test_cancel_request_or_public_failure_is_not_terminal_success(
         settle=False,
         unavailable=unavailable,
     )
-    monkeypatch.setattr("chip_evolve.jobs.KernelClient", lambda *a, **k: client)
+    monkeypatch.setattr("chip_evolve.core.jobs.KernelClient", lambda *a, **k: client)
     result = retire(plan)
     assert result["status"] == "incomplete"
     if unavailable:

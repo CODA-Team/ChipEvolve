@@ -2,14 +2,8 @@
 
 import pytest
 
-from chip_evolve.config import read, write
-from chip_evolve.environment import (
-    SCHEMA,
-    check_environment,
-    deployment_binding,
-    identity,
-    reference,
-)
+from chip_evolve.core.config import read, write
+from chip_evolve.workflow.environment import SCHEMA, check_environment, deployment_binding, identity, reference
 from tests.test_adoption_consistency import frame_at
 from tests.test_local_business import deployment
 
@@ -102,7 +96,7 @@ def test_professional_source_revision_and_seed_cannot_drift(
             return "changed" if changed == cwd.name + "_commit" else "fixed"
         return " M algorithm.cc" if changed == cwd.name + "_dirty" else ""
 
-    monkeypatch.setattr("chip_evolve.environment.subprocess.check_output", git)
+    monkeypatch.setattr("chip_evolve.workflow.environment.subprocess.check_output", git)
     with pytest.raises(ValueError, match="professional repository changed"):
         check_environment(d, path, "gcd", "flow", source, "source")
 
@@ -111,10 +105,13 @@ def test_professional_source_revision_and_seed_cannot_drift(
 def test_flow_default_uses_source_and_legacy_is_explicit(
     tmp_path, monkeypatch, explicit, expected
 ):
-    from chip_evolve.cli import main
+    from tests.contract_fixtures import unit_admission
+
+    unit_admission(monkeypatch, orchestration=True)
+    from chip_evolve.workflow.cli import main
 
     from tests.test_professional_snapshot_binding import prepare
-    from chip_evolve.result_io import specialist_reply, wire_object
+    from chip_evolve.core.result_io import specialist_reply, wire_object
 
     d, request, _, _ = prepare(tmp_path, monkeypatch, "flow", "db")
     write(d.path, d.value)
@@ -125,7 +122,7 @@ def test_flow_default_uses_source_and_legacy_is_explicit(
         write(experiment / "result.json", wire_object(source.wire))
         return specialist_reply("flow", experiment / "result.json")
 
-    monkeypatch.setattr("chip_evolve.flow.run_flow", execute)
+    monkeypatch.setattr("chip_evolve.workflow.flow.run_flow", execute)
     argv = [
         "chip-evolve",
         "--config",

@@ -8,8 +8,8 @@ from typing import cast
 
 import pytest
 
-from chip_evolve import dpl as professional
-from chip_evolve.config import Deployment, write
+from chip_evolve.workflow import dpl as professional
+from chip_evolve.core.config import Deployment, write
 
 
 @pytest.mark.parametrize(
@@ -19,10 +19,13 @@ from chip_evolve.config import Deployment, write
 def test_dpl_reservation_reaches_frozen_profile(
     tmp_path, monkeypatch, memory_gib, explicit_python, physical_cpu
 ):
+    from tests.contract_fixtures import unit_native_admission
+
+    monkeypatch.setattr(professional, "admit_native_profile", unit_native_admission)
     template = tmp_path / "template.json"
     resources = {
-        "build": {"memory_bytes": 32 << 30},
-        "variant_build": {"memory_bytes": 8 << 30},
+        "build": {"cpu_cores": 8, "memory_bytes": 64 << 30, "processes": 2048},
+        "variant_build": {"cpu_cores": 8, "memory_bytes": 64 << 30, "processes": 2048},
         "physical": {"memory_bytes": 24 << 30},
     }
     if physical_cpu is not None:
@@ -59,7 +62,7 @@ def test_dpl_reservation_reaches_frozen_profile(
     experiment = tmp_path / "experiment"
     experiment.mkdir()
     monkeypatch.setattr(professional, "freeze", lambda *a, **kw: None)
-    monkeypatch.setattr("chip_evolve.dpl_case.prepare_case", lambda *a: "gcd_asap7")
+    monkeypatch.setattr("chip_evolve.facts.dpl_case.prepare_case", lambda *a: "gcd_asap7")
     monkeypatch.setattr(professional.shutil, "copytree", lambda *a, **kw: None)
     monkeypatch.setattr(professional.subprocess, "run", lambda *a, **kw: None)
     monkeypatch.setattr(professional, "inventory", lambda *a: {})

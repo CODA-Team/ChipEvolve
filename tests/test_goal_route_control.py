@@ -8,8 +8,8 @@ import pytest
 
 from tests.support import goal_route_control
 from tests.support.goal_route_control import without_repairs
-from chip_evolve.config import Deployment, read, write
-from chip_evolve.jobs import digest
+from chip_evolve.core.config import Deployment, read, write
+from chip_evolve.core.jobs import digest
 
 
 def test_control_removes_actions_but_preserves_reports_and_physical_pipeline():

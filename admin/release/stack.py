@@ -20,9 +20,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 if __package__:
-    from .gcd_flow import prepare_gcd_flow, prepare_gcd_recipe
+    from .gcd_flow import orfs_stage_profile, prepare_gcd_flow, prepare_gcd_recipe
+    from .profile_bridge import invoke
 else:
-    from gcd_flow import prepare_gcd_flow, prepare_gcd_recipe
+    from gcd_flow import orfs_stage_profile, prepare_gcd_flow, prepare_gcd_recipe
+    from profile_bridge import invoke
+
+
+def profile_api(stack_config, operation, **payload):
+    return invoke(Path(stack_config["workspace"]), operation, **payload)
 
 
 def write(path, value):
@@ -71,7 +77,22 @@ def identity_matches(record):
         return False
 
 
-def configuration(path):
+def stack_resources(config):
+    fields = ("cpu_cores", "memory_gib")
+    defaults = (
+        profile_api(config, "preset", kind="stack")
+        if any(field not in config for field in fields)
+        else {}
+    )
+    result = {
+        field: config[field] if field in config else defaults[field] for field in fields
+    }
+    if any(type(value) is not int or value <= 0 for value in result.values()):
+        raise ValueError("Stack CPU and memory must be explicit positive integers")
+    return result
+
+
+def configuration(path, *, capacity=True):
     value = json.loads(path.read_text())
     for name in ("workspace", "state_root", "orfs_image", "activity_lock"):
         if not Path(value[name]).is_absolute():
@@ -81,12 +102,15 @@ def configuration(path):
         not isinstance(port, int) or not 1024 <= port <= 65535 for port in ports
     ):
         raise ValueError("Two distinct unprivileged ports are required")
-    if not 2 <= value.get("cpu_cores", 8) or not 4 <= value.get("memory_gib", 24):
-        raise ValueError("The GCD stack requires at least two CPU cores and 4 GiB")
+    if capacity:
+        value.update(stack_resources(value))
+        if value["cpu_cores"] < 2 or value["memory_gib"] < 4:
+            raise ValueError("The GCD stack requires at least two CPU cores and 4 GiB")
     return value
 
 
 def commands(config):
+    resources = stack_resources(config)
     root = Path(config["workspace"])
     state = Path(config["state_root"])
     ef = root / "execution-foundation/.venv/bin/python"
@@ -110,9 +134,9 @@ def commands(config):
             "--input-root",
             str(root / "var"),
             "--capacity-cpu-cores",
-            str(config.get("cpu_cores", 8)),
+            str(resources["cpu_cores"]),
             "--capacity-memory-bytes",
-            str(config.get("memory_gib", 24) << 30),
+            str(resources["memory_gib"] << 30),
             "--platform-fraction",
             "1.0",
             "--worker-concurrency",
@@ -215,6 +239,7 @@ def start(config):
         raise RuntimeError(
             "Existing instance record needs an explicit stop before a new start."
         )
+    profile_api(config, "bind", config=config)
     for port in (config["kernel_port"], config["data_port"]):
         with socket.socket() as sock:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -273,15 +298,23 @@ def start(config):
                     name + " exited; inspect its registered service log."
                 )
             try:
-                get(url + route)
-                break
+                healthy = get(url + route)
+                if name != "execution" or healthy.get("workers"):
+                    break
             except (OSError, ValueError):
                 time.sleep(0.2)
         else:
             raise RuntimeError(
                 name + " health deadline expired; explicit stop and logs are available."
             )
-    return {"started": True, "status": status(config)}
+    capacity = profile_api(
+        config,
+        "startup",
+        config=config,
+        record=records["execution"],
+        health=get("http://127.0.0.1:" + str(config["kernel_port"]) + "/kernel/health"),
+    )
+    return {"started": True, "capacity_receipt": capacity, "status": status(config)}
 
 
 def prepare_gcd(config, eco_python=None, *, flow=False):
@@ -291,7 +324,12 @@ def prepare_gcd(config, eco_python=None, *, flow=False):
     destination = state / "local.json"
     if destination.exists():
         raise FileExistsError(destination)
-    if config.get("cpu_cores", 8) < 4 or config.get("memory_gib", 24) < 8:
+    resources = stack_resources(config)
+    proof_budget = profile_api(config, "preset", kind="gcd-equivalence")
+    if (
+        resources["cpu_cores"] < proof_budget["cpu_cores"]
+        or resources["memory_gib"] < proof_budget["memory_gib"]
+    ):
         raise ValueError(
             "GCD validation requires at least four CPU cores and 8 GiB; "
             "set stack init --cpu-cores 4 --memory-gib 8 or higher"
@@ -299,7 +337,11 @@ def prepare_gcd(config, eco_python=None, *, flow=False):
     runtime = shutil.which("apptainer")
     if runtime is None:
         raise RuntimeError("Install Apptainer before preparing the GCD example")
-    orfs_flow = "/OpenROAD-flow-scripts/flow/"
+    layout = profile_api(config, "layout")
+    physical_budget = profile_api(config, "preset", kind="gcd-orfs")
+    fact_budget = profile_api(config, "preset", kind="gcd-facts")
+    runtime_profile = profile_api(config, "bind", config=config)
+    orfs_flow = layout["flow_root"] + "/"
     inputs = state / "inputs"
     inputs.mkdir(exist_ok=True)
     library = inputs / "NangateOpenCellLibrary_typical.lib"
@@ -336,10 +378,15 @@ def prepare_gcd(config, eco_python=None, *, flow=False):
             "bind_roots": [str(state)],
         },
         "tools": {
-            "openroad": "/OpenROAD-flow-scripts/tools/install/OpenROAD/bin/openroad",
-            "yosys": "/OpenROAD-flow-scripts/tools/install/yosys/bin/yosys",
+            "openroad": layout["openroad"],
+            "yosys": layout["yosys"],
         },
-        "validation": {"equivalence_memory_gib": 8, "equivalence_seconds": 600},
+        "runtime_profile": runtime_profile,
+        "capacity_receipt": str(state / "capacity-receipt.json"),
+        "validation": {
+            "equivalence_memory_gib": proof_budget["memory_gib"],
+            "equivalence_seconds": proof_budget["seconds"],
+        },
         "toolchain": {"image_sha256": image_digest},
         "designs": {
             "gcd": {
@@ -357,10 +404,10 @@ def prepare_gcd(config, eco_python=None, *, flow=False):
                     }
                 ],
                 "orfs_execution": {
-                    "memory_gib": 4,
-                    "cpu_cores": config.get("cpu_cores", 8),
+                    "memory_gib": physical_budget["memory_gib"],
+                    "cpu_cores": resources["cpu_cores"],
                 },
-                "fact_execution": {"memory_gib": 4},
+                "fact_execution": {"memory_gib": fact_budget["memory_gib"]},
             }
         },
     }
@@ -395,7 +442,9 @@ def prepare_gcd(config, eco_python=None, *, flow=False):
                 "source": str(root / "agent/timing-eco-agent"),
                 "python": str(eco_python),
                 "pdk_template": str(pdk),
-                "session_memory_gib": 8,
+                "session_memory_gib": profile_api(
+                    config, "preset", kind="gcd-eco-session"
+                )["memory_gib"],
             }
         }
         value["designs"]["gcd"].update(
@@ -406,6 +455,10 @@ def prepare_gcd(config, eco_python=None, *, flow=False):
         write(path, profile)
     else:
         prepare_gcd_recipe(inputs, value)
+    common_path, common_profile = orfs_stage_profile(
+        root, state, runtime, value, specialist=False
+    )
+    write(common_path, common_profile)
     write(destination, value)
     return {"deployment": str(destination)}
 
@@ -421,10 +474,8 @@ def main():
     parser.add_argument("--image", type=Path)
     parser.add_argument("--kernel-port", type=int, default=19700)
     parser.add_argument("--data-port", type=int, default=19924)
-    parser.add_argument(
-        "--cpu-cores", type=int, default=min(8, len(os.sched_getaffinity(0)))
-    )
-    parser.add_argument("--memory-gib", type=int, default=24)
+    parser.add_argument("--cpu-cores", type=int)
+    parser.add_argument("--memory-gib", type=int)
     parser.add_argument("--activity-lock", type=Path)
     parser.add_argument(
         "--eco-python",
@@ -440,14 +491,26 @@ def main():
             parser.error("init needs a new config path, --workspace and --image")
         if not re.fullmatch("[A-Za-z0-9_-]+", args.instance):
             parser.error("instance name must use letters, numbers, dash or underscore")
-        if args.cpu_cores < 2 or args.memory_gib < 4:
-            parser.error("The GCD stack requires at least two CPU cores and 4 GiB")
         root = args.workspace.resolve()
         if (
             not args.image.is_file()
             or not (root / "toolkits/.venv/bin/python").exists()
         ):
             parser.error("installed workspace and existing ORFS image are required")
+        if args.cpu_cores is None or args.memory_gib is None:
+            defaults = invoke(root, "preset", kind="stack")
+            args.cpu_cores = (
+                args.cpu_cores
+                if args.cpu_cores is not None
+                else min(defaults["cpu_cores"], len(os.sched_getaffinity(0)))
+            )
+            args.memory_gib = (
+                args.memory_gib
+                if args.memory_gib is not None
+                else defaults["memory_gib"]
+            )
+        if args.cpu_cores < 2 or args.memory_gib < 4:
+            parser.error("The GCD stack requires at least two CPU cores and 4 GiB")
         state = root / "var/instances" / args.instance
         toolchain_path = state / "toolchain.json"
         value = {
@@ -483,7 +546,7 @@ def main():
             configuration(args.config), args.eco_python, flow=args.flow
         )
     else:
-        config = configuration(args.config)
+        config = configuration(args.config, capacity=args.mode == "start")
         result = {"start": start, "status": status, "stop": stop}[args.mode](config)
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
