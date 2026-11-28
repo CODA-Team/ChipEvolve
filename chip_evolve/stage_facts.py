@@ -10,7 +10,7 @@ from typing import Any
 
 from .config import Deployment, read, write
 from .jobs import Jobs, digest
-from .validation import query_facts
+from .design_facts import query_facts
 
 
 def bundle(jobs: Jobs, run_id: str, folder: Path) -> tuple[Path, dict[str, Any]]:

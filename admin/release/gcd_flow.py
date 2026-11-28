@@ -71,13 +71,8 @@ def orfs_stage_profile(root, state, runtime, value):
     return Path(value["flow_tool_profile"]), profile
 
 
-def prepare_gcd_flow(root, state, inputs, runtime, value):
-    source = root / "agent/flow-agent"
-    python = source / ".venv/bin/python"
-    if not python.is_file():
-        raise FileNotFoundError(
-            f"Install the Flow environment with bootstrap.py: {python}"
-        )
+def prepare_gcd_recipe(inputs, value):
+    """Keep the qualified GCD baseline recipe independent of specialist binding."""
     for phase, prefix in [("floorplan", "FLOORPLAN_"), ("global", "")]:
         (inputs / f"gcd-{phase}-route.tcl").write_text(
             f"set_global_routing_layer_adjustment metal2-metal3 $::env({prefix}PIN_LAYER_ADJUST)\n"
@@ -85,11 +80,6 @@ def prepare_gcd_flow(root, state, inputs, runtime, value):
             "set_routing_layers -signal $::env(MIN_ROUTING_LAYER)-$::env(MAX_ROUTING_LAYER)\n"
             "set ::env(PL_ROUTING_ADJUSTMENT) 1.0\n"
         )
-    path, profile = orfs_stage_profile(root, state, runtime, value)
-    profile["source_commit"] = subprocess.check_output(
-        ["git", "-C", source, "rev-parse", "HEAD"], text=True
-    ).strip()
-    profile["python_bin"] = str(python)
     design = value["designs"]["gcd"]
     design.update(
         baseline_overrides=GCD_OVERRIDES,
@@ -100,6 +90,22 @@ def prepare_gcd_flow(root, state, inputs, runtime, value):
             for name in ("gcd-floorplan-route.tcl", "gcd-global-route.tcl")
         ],
     )
+
+
+def prepare_gcd_flow(root, state, inputs, runtime, value):
+    source = root / "agent/flow-agent"
+    python = source / ".venv/bin/python"
+    if not python.is_file():
+        raise FileNotFoundError(
+            f"Install the Flow environment with bootstrap.py: {python}"
+        )
+    prepare_gcd_recipe(inputs, value)
+    path, profile = orfs_stage_profile(root, state, runtime, value)
+    profile["source_commit"] = subprocess.check_output(
+        ["git", "-C", source, "rev-parse", "HEAD"], text=True
+    ).strip()
+    profile["python_bin"] = str(python)
+    design = value["designs"]["gcd"]
     value.setdefault("professional", {})["flow"] = {
         "source": str(source),
         "python": str(python),

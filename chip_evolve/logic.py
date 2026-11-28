@@ -6,10 +6,11 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .comparisons import compare, proven_points
+from .comparison_facts import compare
 from .config import Deployment, read, write
 from .jobs import Jobs, digest
 from .physical import container
+from .proof_policy import proven_points
 
 
 def interface_and_physical(model: dict[str, Any], top: str) -> dict[str, Any]:

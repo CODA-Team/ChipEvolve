@@ -60,3 +60,63 @@ checksum. The CMake build used the same pinned Slang Git commit. The next
 GCD run reached GDS and showed that the compiled KLayout executable was
 outside PATH. The final run reused the saved native build and verified the
 packaged runtime. [Initial build](https://github.com/CODA-Team/ChipEvolve/actions/runs/44697993963) · [GDS failure log](https://github.com/CODA-Team/ChipEvolve/actions/runs/44730556430)
+
+## Release cleanup slices
+
+The owner accepted Slice 1 on 2026-11-28. It rejects missing, non-numeric and
+non-finite final metrics and makes result comparison depend on adoption rules
+in one direction. Its root check passed 1,147 tests.
+
+Slice 2 moves fact publication, source preparation, physical continuation and
+business recovery to their [declared layers](ARCHITECTURE.md#root-package-layers).
+The complete 42-module root graph has zero cyclic import groups and zero upward
+layer imports. Both counts include function-local imports. Four lower-level or
+orchestration owners were added to the previous 38 modules. The root CLI and all
+13 subcommand help outputs match the Slice 1 baseline.
+
+`python3 dev.py root check` now includes root code formatting alongside lint,
+dependency consistency and pytest. It passed 1,151 tests after the Slice 2
+changes. The existing regression assertions were retained while test bindings
+followed the relocated functions. The [admin file catalog](admin/FILE_CATALOG.csv)
+identifies 12 public install/runtime files, two guide files, 98 root test files,
+50 test-support files and 394 historical files, with consumers and proposed
+destinations.
+
+The owner accepted Slice 2 and the isolated Slice 3 installation/EDA checks.
+Slice 3.5 is paused after default configuration fixes and test/support migration;
+root package migration and historical archiving remain unfinished. Slice 4A's
+path repairs passed 1,168 root tests and have been accepted by the owner.
+
+Slice 4B implements the approved business types, strict loading boundaries,
+CLI-independent requests and common specialist Protocol. Its engineering receipts
+are under `var/release/slice4b-20261128/`; the owner has accepted and closed
+Slice 4B. Its four new modules brought the root graph to 46 implementation modules.
+Type diagnostics, zero-submission negative cases, wire/SHA compatibility,
+architecture checks and the complete root regression are separate gates. A new
+isolated GCD instance checks the changed runtime seams using the already
+qualified image and pinned module installations.
+
+The local Query and Data Foundation checkouts retain their previously reported
+pin differences and user changes. Slice 4B does not change their source or the
+source manifest.
+
+Slice 4C implements the approved responsibility and public-boundary cleanup.
+`goal.py`, `eco.py` and `flow_delivery.py` bring the root graph to 49 modules;
+`native.py` retains six explicit public aliases. Code evidence has three typed
+public interfaces, and the three orchestration entry points expose their input,
+execution and delivery stages. Whole-package AST gates cover private access,
+cyclic imports, upward imports and CLI isolation. The root check passes 1,310
+tests. Pyright checks five strict contract/caller files and an 18-file basic
+call chain with zero errors; seven intentional protocol errors are diagnosed.
+
+The short real ECO check uses an independent copy of the stopped Slice 4B
+EF/DF state and the original immutable baseline/context. It does not start the
+old services or repeat the search. Its result is a no-op, with no claimed PPA
+gain. Three archived A111 Flow configurations match their recorded SHA256,
+but this alone does not qualify the new collector. Complete Code evolution
+packages and Flow success/failure collector runtime acceptance remain pending
+where the historical materials are unavailable or not qualified. The complete
+gate status and limitations are in
+`var/release/slice4c-20261128/SLICE4C_REPORT.md`.
+
+Slice 4C awaits owner business acceptance. Slice 4D, TUI and Web remain frozen.

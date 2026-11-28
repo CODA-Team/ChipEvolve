@@ -2,216 +2,42 @@
 
 from __future__ import annotations
 
-import time
-import urllib.error
-import urllib.parse
-from concurrent.futures import Future
-from http.client import HTTPException
+import re
 from pathlib import Path
-from threading import Thread
+from dataclasses import dataclass, replace
+from typing import Literal
 from typing import Any
 
-from .config import Deployment, read, write
-from .jobs import Jobs, digest, http
-from .lifecycle import pending
-
-
-def import_snapshot(
-    jobs: Jobs, producer: str, artifact: str, snapshot: str, subject: str
-) -> dict[str, Any]:
-    """Resolve one durable DF receipt after an uncertain response; no EDA retry."""
-    base = jobs.deployment.value["data_url"]
-    policy = jobs.deployment.value.get("lifecycle", {})
-    path = jobs.experiment / "imports" / (artifact + ".json")
-    identity = {
-        "producer_run_id": producer,
-        "artifact_id": artifact,
-        "snapshot_id": snapshot,
-        "subject_run_id": subject,
-        "design_id": jobs.design_id,
-    }
-    if path.exists() and read(path)["identity"] != identity:
-        raise ValueError("Saved import identity changed")
-    read_timeout = float(policy.get("data_read_seconds", 15))
-
-    def payload(value):
-        return value.get("data", value)
-
-    def receipt():
-        try:
-            value = payload(
-                http(
-                    base + "/imports/" + urllib.parse.quote(artifact, safe=""),
-                    timeout=read_timeout,
-                )
-            )["import_receipt"]
-        except urllib.error.HTTPError as error:
-            if error.code == 404:
-                return None
-            raise
-        if value["artifact_id"] != artifact or value["run_id"] != producer:
-            raise ValueError("DF import receipt belongs to another producer/artifact")
-        if value["status"] == "failed":
-            write(
-                path,
-                {
-                    "phase": "delivery",
-                    "status": "failed",
-                    "identity": identity,
-                    "import_receipt": value,
-                },
-            )
-            raise RuntimeError(
-                "DF import failed; evidence retained: " + str(value.get("error"))
-            )
-        if value["status"] != "imported" or value["snapshot_id"] != snapshot:
-            raise ValueError("DF import receipt has an unexpected outcome/snapshot")
-        return value
-
-    def complete(value):
-        data = payload(
-            http(
-                base + "/snapshots/" + urllib.parse.quote(snapshot, safe=""),
-                timeout=read_timeout,
-            )
-        )
-        actual = data["snapshot"]
-        if (
-            actual["snapshot_id"] != snapshot
-            or actual["run_id"] != subject
-            or actual["design_id"] != jobs.design_id
-        ):
-            raise ValueError("Imported snapshot differs from the measured design/run")
-        result = {
-            "snapshot": actual,
-            "record_counts": actual.get("record_counts", {}),
-            "import_receipt": value,
-        }
-        write(
-            path,
-            {
-                "phase": "delivery",
-                "status": "completed",
-                "identity": identity,
-                "import_receipt": value,
-            },
-        )
-        return result
-
-    def temporary(error):
-        if isinstance(error, urllib.error.HTTPError):
-            return error.code >= 500
-        return isinstance(error, (OSError, HTTPException))
-
-    requested = False
-
-    def request():
-        nonlocal requested, detail
-        write(
-            path, {"phase": "delivery", "status": "request_sent", "identity": identity}
-        )
-        requested = True
-        acknowledged: Future[Any] = Future()
-
-        def post():
-            try:
-                acknowledged.set_result(
-                    http(
-                        base + "/snapshots/from-run",
-                        {"run_id": producer, "artifact_id": artifact},
-                        timeout=float(policy.get("import_request_seconds", 900)),
-                    )
-                )
-            except Exception as error:  # noqa: BLE001 - Propagate HTTP errors unchanged.
-                acknowledged.set_exception(error)
-
-        # DF's commit can expose a durable receipt while SQLite is still
-        # checkpointing before returning the POST response. Read that committed
-        # state now; do not keep the caller idle until its socket timeout.
-        # The thread owns only this bounded HTTP request, never local receipts.
-        Thread(target=post, name="df-import-ack", daemon=True).start()
-        while not acknowledged.done():
-            try:
-                value = receipt()
-                if value is not None:
-                    return value
-            except Exception as error:
-                if not temporary(error):
-                    raise
-                detail = str(error)
-            try:
-                acknowledged.result(timeout=float(policy.get("poll_seconds", 1)))
-            except TimeoutError:
-                pass
-        acknowledged.result()
-        return receipt()
-
-    detail = ""
-    try:
-        prior = receipt()
-        if prior is not None:
-            return complete(prior)
-        value = request()
-        if value is not None:
-            return complete(value)
-        detail = "Import response returned without a durable receipt"
-    except Exception as error:
-        if not temporary(error):
-            write(
-                path,
-                {
-                    "phase": "delivery",
-                    "status": "failed",
-                    "identity": identity,
-                    "error_type": type(error).__name__,
-                    "detail": str(error),
-                },
-            )
-            raise
-        detail = str(error)
-    deadline = time.monotonic() + float(policy.get("import_reconcile_seconds", 120))
-    while True:
-        write(
-            path,
-            {
-                "phase": "delivery",
-                "status": "reconciling",
-                "identity": identity,
-                "detail": detail,
-            },
-        )
-        try:
-            value = receipt()
-            if value is None and not requested:
-                value = request()
-            if value is not None:
-                return complete(value)
-        except Exception as error:
-            if not temporary(error):
-                write(
-                    path,
-                    {
-                        "phase": "delivery",
-                        "status": "failed",
-                        "identity": identity,
-                        "error_type": type(error).__name__,
-                        "detail": str(error),
-                    },
-                )
-                raise
-            detail = str(error)
-        if time.monotonic() >= deadline:
-            raise pending(
-                path,
-                phase="delivery",
-                reason="import_outcome_unknown",
-                experiment=str(jobs.experiment),
-                identity=identity,
-                run_id=producer,
-                artifact_id=artifact,
-                detail=detail,
-            )
-        time.sleep(float(policy.get("poll_seconds", 1)))
+from .config import Deployment, business_lock, read, write
+from .jobs import Jobs, digest
+from .design_facts import import_snapshot as import_snapshot
+from . import physical, flow_recipe, code_evidence
+from .candidates import deliver_candidates
+from .contracts import (
+    BusinessInputError,
+    CandidateStatus,
+    CodeCapability,
+    FileRef,
+    JSONObject,
+    JSONValue,
+    NativeCandidateEvidence,
+)
+from .result_io import (
+    wire_object,
+    freeze,
+    object_at,
+    identifier,
+    required,
+    sha256,
+    text,
+    sequence,
+    path_value,
+    boolean,
+    file_ref,
+    parse_metrics,
+    count,
+)
+from .lifecycle import WorkPending, pending
 
 
 def checkpoint(
@@ -262,9 +88,7 @@ def layout_source(
     ):
         return frame
     if not recipe_path.exists():
-        from .flow_recipe import prepare_flow_recipe
-
-        prepare_flow_recipe(deployment, source_path, experiment)
+        flow_recipe.prepare_flow_recipe(deployment, source_path, experiment)
     recipe = read(recipe_path)
     if (
         recipe["source_run_id"] != frame["run_id"]
@@ -281,9 +105,6 @@ def layout_source(
 
 
 def finish(deployment: Deployment, experiment: Path) -> dict[str, Any]:
-    from .flow import resume_layout
-    from .physical import qualify
-
     prior_result, prior_status = experiment / "result.json", experiment / "status.json"
     completed_legacy_result = (
         prior_result.is_file()
@@ -303,7 +124,7 @@ def finish(deployment: Deployment, experiment: Path) -> dict[str, Any]:
         else {}
     )
     if saved["kind"] == "layout":
-        result = resume_layout(
+        result = physical.resume_layout(
             jobs,
             odb,
             layout_source(deployment, experiment, Path(saved["source"])),
@@ -321,126 +142,621 @@ def finish(deployment: Deployment, experiment: Path) -> dict[str, Any]:
         ):
             modes["preserve_routing"] = True
             modes["native_route_drc"] = saved["native_method"].get("route_drc")
-        result = qualify(
+        result = physical.qualify(
             jobs, odb, saved["producer"], objective, Path(saved["pdk"]), **modes
         )
     result["native_method"] = saved["native_method"]
-    from .code_evidence import maybe_collect
-
     if not completed_legacy_result:
         maybe_collect(deployment, experiment, result, saved)
     write(experiment / "result.json", result)
     return result
 
 
-def recover(deployment: Deployment, design_id: str, key: str) -> dict[str, Any]:
-    """Reuse successful EDA tasks; never restart unfinished model searches."""
-    from .environment import check_environment, verify_runtime_image
-    from .flow import collect_flow
-    from .physical import baseline
+def replay_checkpoint(result_path: Path) -> dict[str, Any]:
+    """Read a current delivery checkpoint or the exact recorded legacy route input."""
+    experiment, frame = result_path.parent, read(result_path)
+    saved = experiment / "delivery-checkpoint.json"
+    if saved.exists():
+        value = read(saved)
+        for name, sha in value["input_hashes"].items():
+            if digest(Path(name)) != sha:
+                raise ValueError("Replay input changed: " + name)
+        return value
+    request = experiment / "requests/qualification.json"
+    if not request.exists():
+        raise ValueError("Full routing replay needs a recorded professional checkpoint")
+    original = read(request)
+    odb = Path(original["capture"][0])
+    if digest(odb) != frame["qualification"]["input_odb_sha256"]:
+        raise ValueError("Recorded routing checkpoint differs from measured input")
+    sources = re.findall(
+        r"^source \{([^}]+)\}$", Path(original["command"][-1]).read_text(), re.MULTILINE
+    )
+    if len(sources) != 1 or Path(sources[0]).name != "setRC.tcl":
+        raise ValueError("Cannot identify the recorded PDK routing model")
+    return {
+        "design_id": frame["design_id"],
+        "kind": "qualify",
+        "odb": str(odb),
+        "pdk": str(Path(sources[0]).parent),
+        "source": None,
+        "objective": frame["objective"],
+        "producer": frame["qualification"]["producer_run_id"],
+        "native_method": frame.get("native_method", {}),
+    }
 
-    experiment = deployment.state / "experiments" / design_id / key
-    request = read(experiment / "request.json")
-    if request["design"] != design_id:
-        raise ValueError("Recovery request belongs to another design")
-    status = experiment / "status.json"
-    if status.exists():
-        prior = read(status)
-        completed = experiment / "result.json"
-        if prior.get("status") == "succeeded" and completed.is_file():
-            checkpoint_path = experiment / "delivery-checkpoint.json"
-            if checkpoint_path.is_file():
-                for name, sha in read(checkpoint_path)["input_hashes"].items():
-                    if digest(Path(name)) != sha:
-                        raise ValueError("Delivery input changed: " + name)
-            result = read(completed)
-            if result.get("design_id") != design_id:
-                raise ValueError("Completed result belongs to another design")
+
+@dataclass(frozen=True)
+class _DeliveryIdentity:
+    design_id: str
+    run_id: str
+    objective_id: str
+    condition_id: str
+
+
+@dataclass(frozen=True)
+class _CheckpointInputs:
+    producer: str
+    odb: FileRef
+    objective: Path
+    pdk: Path | None
+    source: Path | None
+    input_refs: tuple[FileRef, ...]
+    native_method: JSONObject
+
+
+@dataclass(frozen=True)
+class _CodeDelivery:
+    capability: CodeCapability
+    experiment: Path
+    output: Path
+    pending_experiment: Path
+    selected: _DeliveryIdentity
+    checkpoint: _CheckpointInputs
+
+
+@dataclass(frozen=True)
+class _CandidateDelivery:
+    evidence: NativeCandidateEvidence
+    status: CandidateStatus
+    producer: str | None = None
+    result: FileRef | None = None
+    pending_receipt: JSONObject | None = None
+    error_type: str | None = None
+    detail: str | None = None
+
+
+@dataclass(frozen=True)
+class _FrozenManifest:
+    origin: FileRef
+    candidates: tuple[_CandidateDelivery, ...]
+
+
+@dataclass(frozen=True)
+class _DeliveryProgress:
+    candidates: tuple[_CandidateDelivery, ...]
+    status: Literal["delivering", "pending", "completed"] = "delivering"
+    additional: FileRef | None = None
+
+
+def _identity(value: object) -> _DeliveryIdentity:
+    row = object_at(freeze(value), "$.delivery.result")
+    return _DeliveryIdentity(
+        identifier(required(row, "design_id"), "$.design_id"),
+        identifier(required(row, "run_id"), "$.run_id"),
+        sha256(required(row, "objective_id"), "$.objective_id"),
+        sha256(required(row, "condition_id"), "$.condition_id"),
+    )
+
+
+def _ref_wire(ref: FileRef) -> dict[str, str]:
+    return {"path": str(ref.path), "sha256": ref.sha256}
+
+
+def _load_ref(value: JSONValue, base: Path) -> FileRef:
+    row = object_at(value, "$.delivery.reference")
+    path = path_value(required(row, "path"), base, "$.delivery.reference.path")
+    expected = sha256(required(row, "sha256"), "$.delivery.reference.sha256")
+    try:
+        ref = file_ref(path)
+    except OSError as error:
+        raise BusinessInputError(
+            "missing_file", "$.delivery.reference", str(path)
+        ) from error
+    if ref.sha256 != expected:
+        raise BusinessInputError(
+            "changed_input",
+            "$.delivery.reference",
+            "Frozen native candidate evidence changed: " + str(path),
+        )
+    return ref
+
+
+def _delivery_inputs(
+    experiment: Path, selected: object, saved: object, output: Path | None
+) -> _CodeDelivery:
+    chosen = _identity(selected)
+    row = object_at(freeze(saved), "$.delivery.checkpoint")
+    if required(row, "design_id") != chosen.design_id:
+        raise BusinessInputError(
+            "identity_mismatch",
+            "$.delivery.design_id",
+            "checkpoint and measured selection differ",
+        )
+    inputs = object_at(required(row, "input_hashes"), "$.delivery.input_hashes")
+    refs = tuple(
+        _load_ref({"path": path, "sha256": sha}, experiment)
+        for path, sha in inputs.items()
+    )
+    odb = path_value(required(row, "odb"), experiment, "$.delivery.odb")
+    frozen_odb = next((ref for ref in refs if ref.path == odb.resolve()), None)
+    if frozen_odb is None:
+        raise BusinessInputError(
+            "missing_evidence",
+            "$.delivery.input_hashes",
+            "selected checkpoint must be frozen",
+        )
+    checkpoint_inputs = _CheckpointInputs(
+        identifier(required(row, "producer"), "$.delivery.producer"),
+        frozen_odb,
+        path_value(required(row, "objective"), experiment, "$.delivery.objective"),
+        path_value(row["pdk"], experiment, "$.delivery.pdk")
+        if row.get("pdk")
+        else None,
+        path_value(row["source"], experiment, "$.delivery.source")
+        if row.get("source")
+        else None,
+        refs,
+        object_at(required(row, "native_method"), "$.delivery.native_method"),
+    )
+    capability = code_evidence.code_capability(
+        read(experiment / "request.json")["capability"]
+    )
+    return _CodeDelivery(
+        capability,
+        experiment,
+        output or experiment / "native-candidates",
+        output if output is not None else experiment,
+        chosen,
+        checkpoint_inputs,
+    )
+
+
+def _candidate_status(value: JSONValue) -> CandidateStatus:
+    if value not in (
+        "native_rejected",
+        "already_delivered",
+        "prepared",
+        "pending",
+        "delivery_failed",
+        "completed",
+    ):
+        raise BusinessInputError(
+            "invalid_state", "$.delivery.candidate.status", "unknown candidate status"
+        )
+    return value
+
+
+def _frozen_entry(value: JSONValue, base: Path) -> _CandidateDelivery:
+    """Read our persisted delivery row, retaining native payload as wire evidence."""
+    row = object_at(value, "$.delivery.candidate")
+    native = object_at(required(row, "candidate"), "$.delivery.candidate.native")
+    eligible = boolean(
+        required(native, "eligible_for_common_measurement"),
+        "$.delivery.candidate.eligible",
+    )
+    checkpoint_ref = (
+        _load_ref(
+            {"path": native["checkpoint"], "sha256": native["checkpoint_sha256"]}, base
+        )
+        if native.get("checkpoint") is not None
+        and native.get("checkpoint_sha256") is not None
+        else None
+    )
+    if eligible and checkpoint_ref is None:
+        raise BusinessInputError(
+            "missing_evidence",
+            "$.delivery.candidate.checkpoint",
+            "eligible checkpoint is missing",
+        )
+    evidence = NativeCandidateEvidence(
+        identifier(required(native, "candidate_id"), "$.delivery.candidate.id"),
+        _load_ref(required(native, "native_record"), base),
+        _load_ref(native["native_verdict_record"], base)
+        if native.get("native_verdict_record") is not None
+        else None,
+        checkpoint_ref,
+        eligible,
+        tuple(
+            text(v, "$.delivery.candidate.problem")
+            for v in sequence(
+                required(native, "native_artifact_problems"),
+                "$.delivery.candidate.problems",
+            )
+        ),
+        native,
+    )
+    return _CandidateDelivery(
+        evidence,
+        _candidate_status(required(row, "status")),
+        identifier(row["producer"], "$.delivery.candidate.producer")
+        if row.get("producer") is not None
+        else None,
+        _load_ref(row["result"], base) if row.get("result") is not None else None,
+        object_at(row["pending_receipt"], "$.delivery.candidate.pending_receipt")
+        if row.get("pending_receipt") is not None
+        else None,
+        text(row["error_type"], "$.delivery.candidate.error_type")
+        if row.get("error_type") is not None
+        else None,
+        text(row["detail"], "$.delivery.candidate.detail")
+        if row.get("detail") is not None
+        else None,
+    )
+
+
+def _entry_wire(row: _CandidateDelivery) -> dict[str, JSONValue]:
+    value: dict[str, JSONValue] = {
+        "candidate": wire_object(row.evidence.wire),
+        "status": row.status,
+    }
+    if row.producer is not None:
+        value["producer"] = row.producer
+    if row.result is not None:
+        value["result"] = _ref_wire(row.result)
+    if row.pending_receipt is not None:
+        value["pending_receipt"] = wire_object(row.pending_receipt)
+    if row.error_type is not None:
+        value["error_type"] = row.error_type
+    if row.detail is not None:
+        value["detail"] = row.detail
+    return value
+
+
+def _prepare_manifest(deployment: Deployment, scope: _CodeDelivery) -> _FrozenManifest:
+    path = scope.output / "manifest.json"
+    if not path.exists():
+        batch = code_evidence.export_candidates(
+            deployment,
+            scope.experiment,
+            scope.capability,
+            scope.output / "native-export.json",
+        )
+        if batch.binding.design_id != scope.selected.design_id:
+            raise BusinessInputError(
+                "identity_mismatch",
+                "$.delivery.export.design_id",
+                "export differs from measured selection",
+            )
+        refs = [
+            file_ref(scope.experiment / "profile.json"),
+            batch.origin,
+            *scope.checkpoint.input_refs,
+        ]
+        entries = []
+        client = Jobs(deployment, scope.selected.design_id, scope.output).client
+        # Every native candidate is admitted before the manifest authorizes EDA.
+        for candidate in batch.candidates:
+            refs.append(candidate.native_record)
+            if candidate.native_verdict_record is not None:
+                refs.append(candidate.native_verdict_record)
+            entry = _CandidateDelivery(candidate, "native_rejected")
+            if candidate.eligible_for_common_measurement:
+                producer = code_evidence.verify_candidate_producer(
+                    client, batch.binding, candidate, scope.output / "producer-evidence"
+                )
+                refs.append(producer.checkpoint)
+                retained = (
+                    producer.producer_run_id == scope.checkpoint.producer
+                    and producer.checkpoint.sha256 == scope.checkpoint.odb.sha256
+                )
+                entry = replace(
+                    entry,
+                    producer=producer.producer_run_id,
+                    status="already_delivered" if retained else "prepared",
+                )
+            entries.append(entry)
+        for ref in refs:
+            if file_ref(ref.path) != ref:
+                raise BusinessInputError(
+                    "changed_input",
+                    "$.delivery.references",
+                    "Frozen native candidate evidence changed: " + str(ref.path),
+                )
+        write(
+            path,
+            {
+                "capability": scope.capability,
+                "design_id": scope.selected.design_id,
+                "selected_run_id": scope.selected.run_id,
+                "selected_producer": scope.checkpoint.producer,
+                "references": [_ref_wire(ref) for ref in refs],
+                "candidates": [_entry_wire(row) for row in entries],
+            },
+        )
+    from .result_io import read_document
+
+    origin, manifest = read_document(path)
+    for ref in sequence(required(manifest, "references"), "$.delivery.references"):
+        _load_ref(ref, scope.output)
+    if (
+        manifest.get("capability"),
+        manifest.get("design_id"),
+        manifest.get("selected_run_id"),
+        manifest.get("selected_producer"),
+    ) != (
+        scope.capability,
+        scope.selected.design_id,
+        scope.selected.run_id,
+        scope.checkpoint.producer,
+    ):
+        raise BusinessInputError(
+            "identity_mismatch",
+            "$.delivery.manifest",
+            "Native candidate selection identity changed",
+        )
+    entries = tuple(
+        _frozen_entry(v, scope.output)
+        for v in sequence(required(manifest, "candidates"), "$.delivery.candidates")
+    )
+    if len({row.evidence.candidate_id for row in entries}) != len(entries):
+        raise BusinessInputError(
+            "duplicate_candidate", "$.delivery.manifest", "duplicate frozen candidate"
+        )
+    return _FrozenManifest(origin, entries)
+
+
+def _resume_progress(
+    scope: _CodeDelivery, manifest: _FrozenManifest
+) -> _DeliveryProgress:
+    path = scope.output / "inventory.json"
+    if not path.exists():
+        return _DeliveryProgress(manifest.candidates)
+    from .result_io import read_document
+
+    _, index = read_document(path)
+    if _load_ref(required(index, "manifest"), scope.output) != manifest.origin:
+        raise BusinessInputError(
+            "changed_input", "$.delivery.manifest", "Native candidate manifest changed"
+        )
+    if index.get("status") not in ("delivering", "pending"):
+        raise BusinessInputError(
+            "invalid_state",
+            "$.delivery.inventory",
+            "unsupported unfinished delivery state",
+        )
+    rows = tuple(
+        _frozen_entry(v, scope.output)
+        for v in sequence(required(index, "candidates"), "$.delivery.candidates")
+    )
+    by_id = {row.evidence.candidate_id: row for row in rows}
+    if len(by_id) != len(rows) or set(by_id) != {
+        row.evidence.candidate_id for row in manifest.candidates
+    }:
+        raise BusinessInputError(
+            "identity_mismatch",
+            "$.delivery.inventory",
+            "inventory differs from frozen candidates",
+        )
+    ordered = []
+    for original in manifest.candidates:
+        row = by_id[original.evidence.candidate_id]
+        if (
+            row.evidence.wire != original.evidence.wire
+            or row.producer != original.producer
+        ):
+            raise BusinessInputError(
+                "identity_mismatch",
+                "$.delivery.inventory",
+                "frozen candidate/producer changed",
+            )
+        if (original.status != "prepared" and row.status != original.status) or (
+            original.status == "prepared"
+            and row.status in ("native_rejected", "already_delivered")
+        ):
+            raise BusinessInputError(
+                "invalid_state",
+                "$.delivery.inventory",
+                "candidate changed its delivery identity",
+            )
+        if row.status == "completed" and row.result is None:
+            raise BusinessInputError(
+                "missing_evidence",
+                "$.delivery.candidate.result",
+                "completed result missing",
+            )
+        if row.status == "completed" and row.result is not None:
+            _, measured = read_document(row.result.path)
+            parse_metrics(required(measured, "metrics"))
+            count(required(measured, "route_drc"), "$.delivery.result.route_drc")
+            identity = _identity(measured)
+            expected = scope.selected
+            native = object_at(
+                required(measured, "native_method"), "$.delivery.result.native_method"
+            )
             if (
-                request.get("objective")
-                and result.get("objective_id")
-                != read(request["objective"])["objective_id"]
+                (identity.design_id, identity.objective_id, identity.condition_id)
+                != (expected.design_id, expected.objective_id, expected.condition_id)
+                or native.get("kind") != "native-candidate"
+                or native.get("candidate") != row.evidence.wire
+                or native.get("capability") != scope.capability
+            ):
+                raise BusinessInputError(
+                    "identity_mismatch",
+                    "$.delivery.result",
+                    "completed result is not the frozen delivery candidate",
+                )
+        ordered.append(row)
+    return _DeliveryProgress(tuple(ordered))
+
+
+def _persist_inventory(
+    scope: _CodeDelivery, manifest: _FrozenManifest, progress: _DeliveryProgress
+) -> None:
+    value: dict[str, JSONValue] = {
+        "status": progress.status,
+        "manifest": _ref_wire(manifest.origin),
+        "candidates": [_entry_wire(row) for row in progress.candidates],
+        "native_promotion_changed": False,
+        "adopted": False,
+        "original_native_selection": wire_object(scope.checkpoint.native_method),
+    }
+    if progress.status == "completed":
+        value["additional_results"] = (
+            _ref_wire(progress.additional) if progress.additional else None
+        )
+    write(scope.output / "inventory.json", value)
+
+
+def _deliver_remaining(
+    deployment: Deployment,
+    scope: _CodeDelivery,
+    manifest: _FrozenManifest,
+    progress: _DeliveryProgress,
+) -> _DeliveryProgress:
+    rows = list(progress.candidates)
+    for position, row in enumerate(rows):
+        if row.status in {
+            "native_rejected",
+            "already_delivered",
+            "delivery_failed",
+            "completed",
+        }:
+            continue
+        checkpoint_ref = row.evidence.checkpoint
+        if checkpoint_ref is None or row.producer is None:
+            raise BusinessInputError(
+                "missing_evidence",
+                "$.delivery.candidate",
+                "admitted checkpoint/producer required",
+            )
+        child = (
+            scope.output
+            / "candidates"
+            / (scope.experiment.name + "--" + row.evidence.candidate_id)
+        )
+        child.mkdir(parents=True, exist_ok=True)
+        saved = scope.checkpoint
+        checkpoint(
+            child,
+            design_id=scope.selected.design_id,
+            odb=checkpoint_ref.path,
+            producer=row.producer,
+            objective=saved.objective,
+            pdk=saved.pdk,
+            source=saved.source,
+            native_method={
+                "kind": "native-candidate",
+                "capability": scope.capability,
+                "candidate": wire_object(row.evidence.wire),
+                "origin_experiment": str(scope.experiment),
+                "native_promotion_changed": False,
+            },
+        )
+        try:
+            measured = _identity(finish(deployment, child))
+            chosen = scope.selected
+            if (measured.design_id, measured.objective_id, measured.condition_id) != (
+                chosen.design_id,
+                chosen.objective_id,
+                chosen.condition_id,
             ):
                 raise ValueError(
-                    "Completed result differs from original requested objective"
+                    "Common candidate measurement changed design/objective/conditions"
                 )
-            return result
-        history = experiment / "status-before-recovery.json"
-        if not history.exists():
-            write(history, prior)
-    pinned_image = deployment.value.get("toolchain", {}).get("image_sha256")
-    if request.get("image_sha256") and request["image_sha256"] != pinned_image:
-        raise ValueError("Recovery image differs from the original request")
-    if request.get("environment"):
-        environment = Path(request["environment"])
-        if (
-            request.get("environment_sha256")
-            and digest(environment) != request["environment_sha256"]
-        ):
-            raise ValueError("Recovery environment differs from the original request")
-        check_environment(
-            deployment,
-            environment,
-            design_id,
-            request["capability"],
-            Path(request["source"]) if request.get("source") else None,
-            request.get("flow_recipe", "legacy"),
-        )
-    elif deployment.value.get("runtime") and pinned_image:
-        verify_runtime_image(deployment)
-    if (experiment / "delivery-checkpoint.json").exists():
-        result = finish(deployment, experiment)
-    elif (
-        request["capability"] == "orfs"
-        and request.get("operation") == "replay"
-        and request.get("source")
-        and not (experiment / "jobs/orfs/task.json").exists()
-    ):
-        from .native_physical import repair
+        except WorkPending as error:
+            rows[position] = replace(
+                row,
+                status="pending",
+                pending_receipt=object_at(freeze(error.receipt), "$.pending"),
+            )
+            _persist_inventory(
+                scope, manifest, _DeliveryProgress(tuple(rows), "pending")
+            )
+            raise pending(
+                scope.output / "lifecycle.json",
+                phase="delivery",
+                reason="native_candidate_delivery_pending",
+                experiment=str(scope.pending_experiment),
+                origin_experiment=str(scope.experiment),
+                child_pending=error.receipt,
+            ) from error
+        except RuntimeError as error:
+            rows[position] = replace(
+                row,
+                status="delivery_failed",
+                error_type=type(error).__name__,
+                detail=str(error),
+            )
+        else:
+            rows[position] = replace(
+                row,
+                status="completed",
+                result=file_ref(child / "result.json"),
+                pending_receipt=None,
+            )
+        _persist_inventory(scope, manifest, _DeliveryProgress(tuple(rows)))
+    return _DeliveryProgress(tuple(rows))
 
-        result = repair(
-            deployment,
-            design_id,
-            experiment,
-            Path(request["source"]),
-            request["seconds"],
-            objective=Path(request["objective"]) if request.get("objective") else None,
-        )
-    elif request["capability"] == "orfs":
-        result = baseline(
-            deployment,
-            design_id,
-            experiment,
-            request["seconds"],
-            objective=Path(request["objective"]) if request.get("objective") else None,
-        )
-    elif request["capability"] == "flow":
-        objective = Path(read(experiment / "input-receipt.json")["objective"])
-        result = collect_flow(deployment, design_id, experiment, objective)
-    elif (
-        request["capability"] == "goal"
-        and request.get("operation") == "evolve"
-        # The Goal CLI writes this receipt after its native search returns.
-        and (experiment / "campaign/toolchain.json").is_file()
-    ):
-        from .native import restore_goal_checkpoint
 
-        restore_goal_checkpoint(experiment, design_id)
-        result = finish(deployment, experiment)
-    else:
-        raise ValueError(
-            "Native professional has no completed delivery checkpoint; "
-            "preserve its session instead of rerunning the search"
-        )
-    write(status, {"status": "succeeded", "delivery_recovered": True})
-    write(
-        experiment / "delivery-recovery.json",
-        {
-            "status": "succeeded",
-            "result": str(experiment / "result.json"),
-            "run_id": result.get("run_id"),
-            "candidate_results": result.get("candidate_results", []),
-            "native_search_restarted": False,
-        },
+def _complete_inventory(
+    scope: _CodeDelivery, manifest: _FrozenManifest, progress: _DeliveryProgress
+) -> None:
+    paths = [
+        row.result.path
+        for row in progress.candidates
+        if row.status == "completed" and row.result is not None
+    ]
+    additional = None
+    if paths:
+        deliver_candidates(scope.output, paths)
+        additional = file_ref(scope.output / "result.json")
+    _persist_inventory(
+        scope, manifest, replace(progress, status="completed", additional=additional)
     )
-    return result
+
+
+def collect_code_candidates(
+    deployment: Deployment,
+    experiment: Path,
+    selected: dict[str, Any],
+    saved: dict[str, Any],
+    *,
+    output: Path | None = None,
+) -> dict[str, Any]:
+    """Compatibility wire facade over frozen admission, recovery and delivery stages."""
+    scope = _delivery_inputs(experiment, selected, saved, output)
+    scope.output.mkdir(parents=True, exist_ok=True)
+    with business_lock(scope.output):
+        manifest = _prepare_manifest(deployment, scope)
+        index = scope.output / "inventory.json"
+        if index.exists() and read(index).get("status") == "completed":
+            return code_evidence.summarize_inventory(index).to_wire()
+        progress = _resume_progress(scope, manifest)
+        _persist_inventory(scope, manifest, progress)
+        progress = _deliver_remaining(deployment, scope, manifest, progress)
+        _complete_inventory(scope, manifest, progress)
+        return code_evidence.summarize_inventory(index).to_wire()
+
+
+def maybe_collect(
+    deployment: Deployment,
+    experiment: Path,
+    result: dict[str, Any],
+    saved: dict[str, Any],
+) -> None:
+    request_path = experiment / "request.json"
+    if not request_path.exists() or saved["native_method"].get("kind") not in {
+        "native-search",
+        "native-timing-continuation",
+    }:
+        return
+    request = read(request_path)
+    if request.get("capability") != "goal-continuation" and (
+        request.get("capability") not in {"dpl", "goal"}
+        or request.get("operation") != "evolve"
+    ):
+        return
+    result["native_candidate_evidence"] = collect_code_candidates(
+        deployment, experiment, result, saved
+    )

@@ -13,7 +13,7 @@ from chip_evolve.config import Deployment, business_lock, read, write
 from chip_evolve.controller import environment, freeze, inventory, invoke
 from chip_evolve.environment import verify_runtime_image
 from chip_evolve.jobs import digest
-from chip_evolve.native import goal_checkpoint_origin, latest_producer
+from chip_evolve.goal import goal_checkpoint_origin, latest_producer
 
 
 def continuation_contract(
@@ -289,8 +289,25 @@ def main() -> None:
     parser.add_argument("--key", required=True)
     parser.add_argument("--seconds", type=int, default=21600)
     args = parser.parse_args()
+    from .command_requests import ContinueGoalCommand, positive
+    from .contracts import BusinessInputError
+    from .result_io import load_context_ref, load_physical_result
+
+    command = ContinueGoalCommand(
+        args.previous / "result.json", args.context, args.key, args.seconds
+    )
+    try:
+        positive(command.seconds, "seconds")
+        load_physical_result(command.result)
+        load_context_ref(command.context)
+    except BusinessInputError as error:
+        parser.error(str(error))
     result = run(
-        Deployment(args.config), args.previous, args.context, args.key, args.seconds
+        Deployment(args.config),
+        command.result.parent,
+        command.context,
+        command.key,
+        command.seconds,
     )
     print(json.dumps({"run_id": result["run_id"], "metrics": result["metrics"]}))
 

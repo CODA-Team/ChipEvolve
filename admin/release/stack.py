@@ -19,6 +19,11 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
+if __package__:
+    from .gcd_flow import prepare_gcd_flow, prepare_gcd_recipe
+else:
+    from gcd_flow import prepare_gcd_flow, prepare_gcd_recipe
+
 
 def write(path, value):
     temporary = path.with_suffix(".tmp")
@@ -286,10 +291,15 @@ def prepare_gcd(config, eco_python=None, *, flow=False):
     destination = state / "local.json"
     if destination.exists():
         raise FileExistsError(destination)
+    if config.get("cpu_cores", 8) < 4 or config.get("memory_gib", 24) < 8:
+        raise ValueError(
+            "GCD validation requires at least four CPU cores and 8 GiB; "
+            "set stack init --cpu-cores 4 --memory-gib 8 or higher"
+        )
     runtime = shutil.which("apptainer")
     if runtime is None:
         raise RuntimeError("Install Apptainer before preparing the GCD example")
-    flow = "/OpenROAD-flow-scripts/flow/"
+    orfs_flow = "/OpenROAD-flow-scripts/flow/"
     inputs = state / "inputs"
     inputs.mkdir(exist_ok=True)
     library = inputs / "NangateOpenCellLibrary_typical.lib"
@@ -297,12 +307,12 @@ def prepare_gcd(config, eco_python=None, *, flow=False):
     command = [runtime, "exec", "--cleanenv", "--no-home", config["orfs_image"], "cat"]
     with library.open("wb") as handle:
         subprocess.run(
-            command + [flow + "platforms/nangate45/lib/" + library.name],
+            command + [orfs_flow + "platforms/nangate45/lib/" + library.name],
             stdout=handle,
             check=True,
         )
     constraints = subprocess.check_output(
-        command + [flow + "designs/nangate45/gcd/constraint.sdc"], text=True
+        command + [orfs_flow + "designs/nangate45/gcd/constraint.sdc"], text=True
     )
     constraints, changes = re.subn(
         r"(?m)^set clk_period \S+$", "set clk_period 0.5", constraints
@@ -326,8 +336,10 @@ def prepare_gcd(config, eco_python=None, *, flow=False):
             "bind_roots": [str(state)],
         },
         "tools": {
-            "openroad": "/OpenROAD-flow-scripts/tools/install/OpenROAD/bin/openroad"
+            "openroad": "/OpenROAD-flow-scripts/tools/install/OpenROAD/bin/openroad",
+            "yosys": "/OpenROAD-flow-scripts/tools/install/yosys/bin/yosys",
         },
+        "validation": {"equivalence_memory_gib": 8, "equivalence_seconds": 600},
         "toolchain": {"image_sha256": image_digest},
         "designs": {
             "gcd": {
@@ -352,6 +364,19 @@ def prepare_gcd(config, eco_python=None, *, flow=False):
             }
         },
     }
+    subprocess.run(
+        [
+            runtime,
+            "exec",
+            "--cleanenv",
+            "--no-home",
+            config["orfs_image"],
+            "test",
+            "-x",
+            value["tools"]["yosys"],
+        ],
+        check=True,
+    )
     if eco_python is not None:
         eco_python = eco_python.absolute()
         if not eco_python.is_file():
@@ -361,7 +386,7 @@ def prepare_gcd(config, eco_python=None, *, flow=False):
         for name in ("setRC.tcl", "rcx_patterns.rules"):
             with (pdk / name).open("wb") as handle:
                 subprocess.run(
-                    command + [flow + "platforms/nangate45/" + name],
+                    command + [orfs_flow + "platforms/nangate45/" + name],
                     stdout=handle,
                     check=True,
                 )
@@ -377,10 +402,10 @@ def prepare_gcd(config, eco_python=None, *, flow=False):
             signal_layers="metal2-metal10", clock_layers="metal4-metal10"
         )
     if flow:
-        from gcd_flow import prepare_gcd_flow
-
         path, profile = prepare_gcd_flow(root, state, inputs, runtime, value)
         write(path, profile)
+    else:
+        prepare_gcd_recipe(inputs, value)
     write(destination, value)
     return {"deployment": str(destination)}
 

@@ -9,11 +9,12 @@ from typing import Any
 
 from eda_ai_client import EdaAiClient
 
-from .candidates import result_frame
 from .config import Deployment, read, write
-from .delivery import checkpoint, finish, import_snapshot
+from .delivery import checkpoint, finish, replay_checkpoint
+from .design_facts import import_snapshot, query_facts
 from .jobs import Jobs, digest
 from .physical import container, now, verify_measurement_conditions
+from .result_io import load_physical_source, wire_object
 from .stage_facts import bundle
 
 
@@ -195,10 +196,8 @@ def repair(
     objective: Path | None = None,
 ) -> dict[str, Any]:
     """Run one explicit successor; original professional selection stays frozen."""
-    from .validation import query_facts, replay_checkpoint
-
     source = source.resolve()
-    frame = result_frame(source)
+    frame = wire_object(load_physical_source(source).wire)
     if frame["design_id"] != design_id:
         raise ValueError("Physical repair source belongs to another design")
     objective = objective or Path(frame["objective"])

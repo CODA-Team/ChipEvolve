@@ -3,86 +3,22 @@
 from __future__ import annotations
 
 import argparse
-import re
 from pathlib import Path
 from typing import Any
 
-from eda_toolkits.objectives import require_same_conditions
-
-from .config import Deployment, read, write
-from .jobs import Jobs, digest
-from .physical import container, qualify
-from .selection import violations
-
-METRICS = (
-    "finish__timing__setup__tns",
-    "finish__timing__setup__ws",
-    "finish__timing__hold__tns",
-    "finish__power__total",
-    "finish__design__instance__area",
-    "finish__design__core__area",
-    "finish__design__die__area",
+from .comparison_facts import (
+    compare,
+    compare_results,
+    professional_facts as professional_facts,
 )
-
-
-def proven_points(log: str) -> int:
-    counts = re.findall(r"Of those cells (\d+) are proven and (\d+) are unproven", log)
-    if (
-        not counts
-        or int(counts[-1][0]) == 0
-        or int(counts[-1][1]) != 0
-        or "Equivalence successfully proven!" not in log
-    ):
-        raise ValueError("No complete nonempty equivalence proof in the Yosys receipt")
-    return int(counts[-1][0])
-
-
-def compare(reference: dict[str, Any], candidate: dict[str, Any]) -> dict[str, Any]:
-    require_same_conditions(reference, candidate)
-    if (
-        reference["design_id"] != candidate["design_id"]
-        or reference["objective_id"] != candidate["objective_id"]
-    ):
-        raise ValueError("Compare the same design and business objective")
-    deltas = {}
-    for key in METRICS:
-        old, new = reference["metrics"][key], candidate["metrics"][key]
-        deltas[key] = {
-            "reference": old,
-            "candidate": new,
-            "delta": new - old,
-            "percent": 100 * (new - old) / abs(old) if old else None,
-        }
-    return {
-        "reference_run_id": reference["run_id"],
-        "candidate_run_id": candidate["run_id"],
-        "condition_id": reference["condition_id"],
-        "objective_id": reference["objective_id"],
-        "deltas": deltas,
-        "constraint_violations": violations(candidate),
-        "professional_facts": {
-            "reference": professional_facts(reference),
-            "candidate": professional_facts(candidate),
-        },
-    }
-
-
-def professional_facts(frame: dict[str, Any]) -> dict[str, Any]:
-    """Keep the original professional decision separate from final feasibility."""
-    native = frame.get("native_method")
-    failed = violations(frame)
-    return {
-        "run_id": frame["run_id"],
-        "design_id": frame["design_id"],
-        "objective_id": frame["objective_id"],
-        "condition_id": frame["condition_id"],
-        "native_method": native,
-        "native_evidence_available": native is not None,
-        "final_metrics": {key: frame["metrics"][key] for key in METRICS},
-        "final_constraint_violations": failed,
-        "final_feasible": not failed,
-        "snapshot_ids": frame.get("snapshot_ids", {}),
-    }
+from .config import Deployment, read, write
+from .result_io import load_physical_result
+from .contracts import BusinessInputError
+from .jobs import Jobs, digest
+from .metrics import METRICS as METRICS
+from .physical import container, qualify
+from .proof_policy import proven_points
+from .selection import violations as violations
 
 
 def replay_goal(deployment: Deployment, result_path: Path, key: str) -> dict[str, Any]:
@@ -242,14 +178,35 @@ def main() -> None:
     delta.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     deployment = Deployment(args.config)
-    if args.command == "replay-goal":
-        replay_goal(deployment, args.result.resolve(), args.key)
-    elif args.command == "verify-logic":
-        verify_logic(
-            deployment, args.reference.resolve(), args.candidate.resolve(), args.key
+    try:
+        reference = (
+            load_physical_result(args.reference) if hasattr(args, "reference") else None
         )
-    else:
-        write(args.output, compare(read(args.reference), read(args.candidate)))
+        candidate = (
+            load_physical_result(args.candidate) if hasattr(args, "candidate") else None
+        )
+        if args.command == "replay-goal":
+            load_physical_result(args.result)
+            replay_goal(deployment, args.result.resolve(), args.key)
+        elif args.command == "verify-logic":
+            if reference is None or candidate is None:
+                raise BusinessInputError(
+                    "missing_field", "$", "explicit result pair required"
+                )
+            reference.files.require("v")
+            candidate.files.require("v")
+            compare_results(reference, candidate)
+            verify_logic(
+                deployment, args.reference.resolve(), args.candidate.resolve(), args.key
+            )
+        else:
+            if reference is None or candidate is None:
+                raise BusinessInputError(
+                    "missing_field", "$", "explicit result pair required"
+                )
+            write(args.output, compare_results(reference, candidate))
+    except BusinessInputError as error:
+        parser.error(str(error))
 
 
 if __name__ == "__main__":

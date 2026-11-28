@@ -12,10 +12,10 @@ from eda_toolkits.objectives import require_same_conditions
 
 from .candidates import result_frame
 from .clock import flow_sdc
-from .comparisons import compare
+from .comparison_facts import compare
 from .config import Deployment, read, write
 from .jobs import Jobs, digest
-from .physical import container
+from .runtime import container
 
 SCHEMA = "chip-evolve.environment.v1"
 

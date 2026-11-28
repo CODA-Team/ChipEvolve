@@ -3,79 +3,19 @@
 from __future__ import annotations
 
 import json
-import re
 import shutil
 import time
 from pathlib import Path
 from typing import Any
 
-from eda_ai_client import EdaAiClient
-
-from .comparisons import METRICS, compare
+from .comparison_facts import compare
 from .config import Deployment, business_lock, read, write
 from .delivery import checkpoint, finish
+from .delivery import replay_checkpoint as replay_checkpoint
+from .design_facts import query_facts as query_facts
 from .jobs import Jobs, digest
 from .lifecycle import WorkPending
 from .logic import verify_outputs
-
-
-def query_facts(deployment: Deployment, frame: dict[str, Any]) -> dict[str, Any]:
-    client = EdaAiClient(
-        data_url=deployment.value["data_url"], kernel_url=deployment.value["kernel_url"]
-    )
-    scopes = {}
-    for mode, snapshot in frame["snapshot_ids"].items():
-        scope = client.resolve_scope(snapshot_id=snapshot, origin="all")["scope"]
-        if (scope["design_id"], scope["run_id"]) != (
-            frame["design_id"],
-            frame["run_id"],
-        ):
-            raise ValueError("Snapshot identity differs from the measured result")
-        scopes[mode] = scope
-    metrics = client.get_metrics(
-        snapshot_id=frame["snapshot_ids"]["orfs"], include_raw=True
-    )
-    rows = {row["raw_key"]: row["raw_value"] for row in metrics["data"]["metrics"]}
-    rows.update(
-        {row["raw_key"]: row["value"] for row in metrics["data"]["raw_metrics"]}
-    )
-    if any(key not in rows or rows[key] != frame["metrics"][key] for key in METRICS):
-        raise ValueError("DF metrics differ from the measured result")
-    return {"scopes": scopes, "metrics": metrics}
-
-
-def replay_checkpoint(result_path: Path) -> dict[str, Any]:
-    """Read a current delivery checkpoint or the exact recorded legacy route input."""
-    experiment, frame = result_path.parent, read(result_path)
-    saved = experiment / "delivery-checkpoint.json"
-    if saved.exists():
-        value = read(saved)
-        for name, sha in value["input_hashes"].items():
-            if digest(Path(name)) != sha:
-                raise ValueError("Replay input changed: " + name)
-        return value
-    request = experiment / "requests/qualification.json"
-    if not request.exists():
-        raise ValueError("Full routing replay needs a recorded professional checkpoint")
-    original = read(request)
-    odb = Path(original["capture"][0])
-    if digest(odb) != frame["qualification"]["input_odb_sha256"]:
-        raise ValueError("Recorded routing checkpoint differs from measured input")
-    sources = re.findall(
-        r"^source \{([^}]+)\}$", Path(original["command"][-1]).read_text(), re.MULTILINE
-    )
-    if len(sources) != 1 or Path(sources[0]).name != "setRC.tcl":
-        raise ValueError("Cannot identify the recorded PDK routing model")
-    return {
-        "design_id": frame["design_id"],
-        "kind": "qualify",
-        "odb": str(odb),
-        "pdk": str(Path(sources[0]).parent),
-        "source": None,
-        "objective": frame["objective"],
-        "producer": frame["qualification"]["producer_run_id"],
-        "native_method": frame.get("native_method", {}),
-    }
 
 
 def completed_proof(
@@ -185,9 +125,15 @@ def replay(
 def validate(
     deployment: Deployment, result_path: Path, reference_path: Path, key: str
 ) -> dict[str, Any]:
-    from .candidates import result_frame
+    from .comparison_facts import compare_results
+    from .result_io import load_physical_result, wire_object
 
-    frame = result_frame(result_path)
+    source = load_physical_result(result_path)
+    reference = load_physical_result(reference_path)
+    source.files.require("v")
+    reference.files.require("v")
+    compare_results(reference, source)
+    frame = wire_object(source.wire)
     request = {
         "result": str(result_path),
         "reference": str(reference_path),

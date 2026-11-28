@@ -5,36 +5,28 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .config import read, write
+from .config import write
+from .contracts import CandidateCollection
 from .jobs import digest
+from .result_io import load_result, load_single_result, wire_object
 from .selection import violations
 
 SCHEMA = "chip-evolve.candidate-delivery.v1"
 
 
 def result_frame(path: Path) -> dict[str, Any]:
-    value = read(path)
-    if value.get("schema_version") == SCHEMA:
-        raise ValueError(
-            "This is a candidate collection, not a selected source. "
-            "Choose an explicit result from candidate_results."
-        )
-    return value
+    """Explicit legacy wire facade over the canonical validated reader."""
+    return wire_object(load_single_result(path, physical=True).wire)
 
 
 def expand_results(paths: list[Path]) -> list[Path]:
     expanded = []
     for path in paths:
-        value = read(path)
-        if value.get("schema_version") == SCHEMA:
-            for row in value["candidate_results"]:
-                item = Path(row["result"])
-                if digest(item) != row["sha256"]:
-                    raise ValueError("Delivered candidate changed: " + str(item))
-                result_frame(item)
-                expanded.append(item)
+        result = load_result(path)
+        if isinstance(result, CandidateCollection):
+            expanded.extend(row.origin.path for row in result.candidates)
         else:
-            expanded.append(path)
+            expanded.append(result.origin.path)
     return list(dict.fromkeys(expanded))
 
 

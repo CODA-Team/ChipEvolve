@@ -15,46 +15,86 @@ from eda_toolkits.objectives import (
 )
 
 from .config import Deployment, adoption_lock, read, write
+from .contracts import SingleResult
 from .jobs import digest
+from .metrics import LOWER_BOUNDS, METRICS, UPPER_BOUNDS, metric_issues
+from .proof_policy import qualified_strategy
 
 
 def violations(frame: dict[str, Any]) -> list[str]:
+    invalid = metric_issues(frame)
+    if invalid:
+        return invalid
     goal = read(frame["objective"])
     metrics, limits = frame["metrics"], goal["constraints"]
-    pairs = {
-        "max_slew_violations": "finish__timing__drv__max_slew",
-        "max_cap_violations": "finish__timing__drv__max_cap",
-        "placement_violations": "design__violations",
-        "power_total_w_max": "finish__power__total",
-        "cell_area_um2_max": "finish__design__instance__area",
-        "core_area_um2_max": "finish__design__core__area",
-        "die_area_um2_max": "finish__design__die__area",
+    return bound_violations(
+        metrics,
+        limits,
+        frame["route_drc"],
+        metrics.get("finish__timing__drv__max_fanout"),
+    )
+
+
+def result_violations(result: SingleResult) -> list[str]:
+    """Evaluate validated values with the same bound table as legacy receipts."""
+    m, c = result.metrics, result.objective.constraints
+    metrics: dict[str, float] = dict(zip(METRICS, m.quantities(), strict=True))
+    metrics.update(
+        {
+            "finish__timing__drv__max_slew": m.max_slew,
+            "finish__timing__drv__max_cap": m.max_cap,
+            "design__violations": m.placement,
+        }
+    )
+    limits = {
+        "setup_tns_ns_min": c.setup_tns_min,
+        "hold_tns_ns_min": c.hold_tns_min,
+        "max_slew_violations": c.max_slew,
+        "max_cap_violations": c.max_cap,
+        "placement_violations": c.placement,
+        "route_drc": c.route_drc,
+        "power_total_w_max": c.power_w,
+        "cell_area_um2_max": c.cell_area,
+        "core_area_um2_max": c.core_area,
+        "die_area_um2_max": c.die_area,
     }
+    return bound_violations(metrics, limits, result.route_drc, m.fanout)
+
+
+def bound_violations(
+    metrics: dict[str, float],
+    limits: dict[str, float],
+    drc: int,
+    fanout: float | None,
+) -> list[str]:
     failed = [
-        limit for limit, metric in pairs.items() if metrics[metric] > limits[limit]
+        limit
+        for limit, metric in UPPER_BOUNDS.items()
+        if metrics[metric] > limits[limit]
     ]
     failed += [
-        name
-        for name, metric in {
-            "setup_tns_ns_min": "finish__timing__setup__tns",
-            "hold_tns_ns_min": "finish__timing__hold__tns",
-        }.items()
-        if metrics[metric] < limits[name]
+        limit
+        for limit, metric in LOWER_BOUNDS.items()
+        if metrics[metric] < limits[limit]
     ]
-    if frame.get("route_drc") is None or frame["route_drc"] > limits["route_drc"]:
+    if drc > limits["route_drc"]:
         failed.append("route_drc")
-    # Native counts already apply this design's SDC/library limits. Missing
-    # historical facts stay unknown; do not invent a universal fanout limit.
-    fanout = metrics.get("finish__timing__drv__max_fanout")
     if fanout is not None and fanout > 0:
         failed.append("max_fanout_violations")
     return failed
 
 
+def select_result(
+    deployment: Deployment, result: SingleResult, reason: str, *, validation: Path
+) -> dict[str, Any]:
+    """Typed adoption boundary; legacy publication retains its proof/lock policy."""
+    if digest(result.origin.path) != result.origin.sha256:
+        raise ValueError("Candidate changed after loading")
+    return select(deployment, result.origin.path, reason, validation=validation)
+
+
 def checked_validation(result_path: Path, validation: Path) -> dict[str, Any]:
     """Bind adoption to the existing proof, exact replay and frozen objective."""
-    from .comparisons import METRICS
-
     candidate, receipt = read(result_path), read(validation)
     if receipt["result_sha256"] != digest(result_path):
         raise ValueError("Validation belongs to a different or changed result")
@@ -74,8 +114,6 @@ def checked_validation(result_path: Path, validation: Path) -> dict[str, Any]:
         raise ValueError("Validation and candidate have different business goals")
     proof, replay = receipt["logic"], receipt["independent_replay"]
     if proof.get("engine") == "eqy":
-        from .eqy import qualified_strategy
-
         qualified_strategy({"equivalence_strategy": proof.get("strategy", "sat")})
     if (
         not all(
@@ -152,7 +190,9 @@ def _select(
         ]
         old, new = incumbent["metrics"], candidate["metrics"]
         if (
-            new[quantities[0]] <= old[quantities[0]]
+            not metric_issues(candidate)
+            and not metric_issues(incumbent)
+            and new[quantities[0]] <= old[quantities[0]]
             and all(new[k] >= old[k] for k in quantities[1:])
             and any(new[k] != old[k] for k in quantities)
         ):

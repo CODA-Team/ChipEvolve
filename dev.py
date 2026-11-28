@@ -97,6 +97,10 @@ if args.command == "check":
                 *static_targets,
             ]
         ]
+    if args.project == "root":
+        commands.append(
+            [str(python.parent / "ruff"), "format", "--check", *static_targets]
+        )
     if args.project == "query-agent":
         commands += [
             [str(python.parent / tool), *options]
@@ -148,7 +152,7 @@ if args.command == "check":
         "timing-eco-agent": ["."],
         "root": [
             str(path.relative_to(ROOT))
-            for path in sorted((ROOT / "admin").glob("test_*.py"))
+            for path in sorted((ROOT / "tests").glob("test_*.py"))
         ],
     }.get(args.project, [])
     commands += [[str(python), "-m", "pytest", *tests, *args.args]]

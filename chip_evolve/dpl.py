@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import argparse
 import shutil
 import subprocess
 import time
@@ -10,10 +9,19 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
+from .artifact_inputs import flatten_archive
 from .config import Deployment, read, write
-from .controller import environment, freeze, inventory, invoke
-from .handoff import flatten_archive
+from .contracts import (
+    DiagnosisContextRef,
+    ObjectiveRef,
+    PhysicalResult,
+    SpecialistReply,
+    SpecialistRequest,
+)
 from .jobs import digest
+from .native_process import invoke
+from .result_io import check_specialist_call, specialist_reply, wire_object
+from .source_snapshot import environment, freeze, inventory
 
 
 def materialize_dpl_replay(installation: Path, state: Path, experiment: Path) -> Path:
@@ -37,7 +45,7 @@ def dpl_search_command(
     binding: dict[str, Any],
     python: str,
     source: Path,
-    args: argparse.Namespace,
+    args: SpecialistRequest,
     case_id: str,
     key: str,
     threads: int,
@@ -78,11 +86,37 @@ def dpl_search_command(
 
 def run_dpl(
     deployment: Deployment,
-    args: argparse.Namespace,
+    request: SpecialistRequest,
+    experiment: Path,
+    source: PhysicalResult,
+    objective: ObjectiveRef,
+    context: DiagnosisContextRef,
+) -> SpecialistReply:
+    """Typed specialist boundary; native wire handling remains in its adapter."""
+    check_specialist_call("dpl", request, source, objective, context)
+    from .artifact_inputs import require_dispatch_inputs
+
+    require_dispatch_inputs(source, request.capability, request.flow_recipe)
+    _run_dpl_transport(
+        deployment,
+        request,
+        experiment,
+        wire_object(source.wire),
+        objective.path,
+        context.path,
+        source.origin.path,
+    )
+    return specialist_reply("dpl", experiment / "result.json")
+
+
+def _run_dpl_transport(
+    deployment: Deployment,
+    args: SpecialistRequest,
     experiment: Path,
     frame: dict[str, Any],
     objective: Path,
     context: Path,
+    source_path: Path,
 ) -> dict[str, Any]:
     from .dpl_case import prepare_case
 
@@ -356,7 +390,7 @@ def run_dpl(
         odb=placement,
         producer=producer,
         objective=objective,
-        source=args.source,
+        source=source_path,
         native_method=native_method,
     )
     return finish(deployment, experiment)

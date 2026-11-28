@@ -160,6 +160,10 @@ and manifests as well.
 
 The release candidate is published on `engineering/cleanup-b6cfd1d`. See [engineering status](TASKS.md) for verified platforms and specialist runs. Historical experiment records remain in Git and under `admin/`, and the previous implementation is in [`discarded/`](discarded/).
 
+The [admin guide](admin/README.md) lists the public installation and runtime
+tools. Its [file catalog](admin/FILE_CATALOG.csv) records automated test support,
+historical experiment files and their proposed archive destinations.
+
 ## License
 
 The ChipEvolve workspace is available under the MIT License. Each submodule's license and source notices govern its own components. [License](LICENSE)

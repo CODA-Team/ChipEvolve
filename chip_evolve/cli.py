@@ -102,20 +102,86 @@ def _main() -> int:
         parser.error("--config identifies the local deployment")
     deployment = Deployment(args.config)
     from . import commands as handlers
+    from .command_requests import (
+        CandidateFactsCommand,
+        CompareCommand,
+        ContinueGoalCommand,
+        DesignCommand,
+        DiagnoseCommand,
+        ResultCommand,
+        ResumeCommand,
+        RunCommand,
+        SelectCommand,
+        ValidateCommand,
+        WatchCommand,
+    )
+    from .contracts import BusinessInputError
 
-    if args.command == "run":
-        return handlers.run_experiment(deployment, args, parser)
-    command = {
-        "candidates": handlers.candidates,
-        "resume": handlers.resume,
-        "continue-goal": handlers.continue_goal,
-        "validate": handlers.validate,
-        "compare": handlers.compare,
-        "collect-flow": handlers.collect_flow,
-        "watch": handlers.watch,
-        "status": handlers.status,
-        "diagnose": handlers.diagnose,
-        "select": handlers.select,
-        "show": handlers.show,
-    }[args.command]
-    return command(deployment, args)
+    try:
+        if args.command == "run":
+            return handlers.run_experiment(
+                deployment,
+                RunCommand(
+                    config=args.config,
+                    design=args.design,
+                    key=args.key,
+                    capability=args.capability,
+                    source=args.source,
+                    objective=args.objective,
+                    context=args.context,
+                    code_source=args.code_source,
+                    seconds=args.seconds,
+                    rounds=args.rounds,
+                    candidates=args.candidates,
+                    flow_recipe=args.flow_recipe,
+                    environment=args.environment,
+                    operation=args.operation,
+                ),
+            )
+        if args.command == "candidates":
+            return handlers.candidates(
+                deployment,
+                CandidateFactsCommand(args.reference, tuple(args.result), args.key),
+            )
+        if args.command == "resume":
+            return handlers.resume(deployment, ResumeCommand(args.design, args.key))
+        if args.command == "continue-goal":
+            return handlers.continue_goal(
+                deployment,
+                ContinueGoalCommand(args.result, args.context, args.key, args.seconds),
+            )
+        if args.command == "validate":
+            return handlers.validate(
+                deployment, ValidateCommand(args.result, args.against, args.key)
+            )
+        if args.command == "compare":
+            return handlers.compare(
+                deployment, CompareCommand(args.result, args.against)
+            )
+        if args.command == "collect-flow":
+            return handlers.collect_flow(
+                deployment, ResumeCommand(args.design, args.key)
+            )
+        if args.command == "watch":
+            return handlers.watch(deployment, WatchCommand(args.design, args.run_id))
+        if args.command == "status":
+            return handlers.status(deployment, DesignCommand(args.design))
+        if args.command == "diagnose":
+            return handlers.diagnose(
+                deployment,
+                DiagnoseCommand(
+                    args.result,
+                    args.question,
+                    args.seconds,
+                    args.steps,
+                    args.against,
+                    args.analyses,
+                ),
+            )
+        if args.command == "select":
+            return handlers.select(
+                deployment, SelectCommand(args.result, args.reason, args.validation)
+            )
+        return handlers.show(deployment, ResultCommand(args.result))
+    except BusinessInputError as error:
+        parser.error(str(error))

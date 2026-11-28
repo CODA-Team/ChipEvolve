@@ -9,11 +9,44 @@ import subprocess
 import zipfile
 from collections import Counter
 from pathlib import Path
-from typing import Any
+from typing import Literal
+from types import MappingProxyType
 
-from .config import Deployment, business_lock, read, write
-from .jobs import Jobs, digest
-from .lifecycle import WorkPending, pending
+from openroad_platform_client import KernelClient
+
+from .contracts import (
+    BusinessInputError,
+    CandidateDeliverySummary,
+    CandidateStatus,
+    CodeCapability,
+    FileRef,
+    JSONObject,
+    JSONValue,
+    NativeCampaignBinding,
+    NativeCandidateEvidence,
+    NativeCandidateExport,
+    RegisteredFileRef,
+    VerifiedNativeProducer,
+)
+from .result_io import (
+    boolean,
+    count,
+    file_ref,
+    freeze,
+    identifier,
+    object_at,
+    parse_metrics,
+    path_value,
+    read_document,
+    registered_ref,
+    required,
+    sequence,
+    sha256,
+    text,
+)
+
+from .config import Deployment, read, write
+from .jobs import digest
 
 
 def reference(path: Path) -> dict[str, str]:
@@ -64,337 +97,522 @@ def _export(
     write(output, value)
 
 
-def _producer(
-    client: Any,
-    profile: dict[str, Any],
-    capability: str,
-    row: dict[str, Any],
-    archive_root: Path,
-) -> str:
-    """Bind actual native output bytes to a successful public EF producer."""
-    odb = Path(row["checkpoint"])
-    matches = []
-    for path in Path(profile["operations_root"]).glob("*/leaf.json"):
-        leaf = read(path)
+def code_capability(value: object) -> CodeCapability:
+    if value == "goal-continuation":
+        return "goal"
+    if value not in ("dpl", "goal"):
+        raise BusinessInputError(
+            "invalid_capability", "$.capability", "Code evidence requires DPL or Goal"
+        )
+    return "dpl" if value == "dpl" else "goal"
+
+
+def _checked_file(value: JSONValue, base: Path, location: str) -> FileRef:
+    row = object_at(value, location)
+    path = path_value(required(row, "path", location), base, location + ".path")
+    expected = sha256(required(row, "sha256", location), location + ".sha256")
+    try:
+        origin = file_ref(path)
+    except OSError as error:
+        raise BusinessInputError("missing_file", location, str(path)) from error
+    if origin.sha256 != expected:
+        raise BusinessInputError(
+            "changed_input",
+            location + ".sha256",
+            "Frozen native candidate evidence changed: " + str(path),
+        )
+    return origin
+
+
+def _candidate(value: JSONValue, base: Path) -> NativeCandidateEvidence:
+    row = object_at(value, "$.candidate")
+    name = identifier(required(row, "candidate_id"), "$.candidate.candidate_id")
+    if Path(name).name != name or name in {".", ".."}:
+        raise BusinessInputError(
+            "invalid_identifier",
+            "$.candidate.candidate_id",
+            "one candidate name required",
+        )
+    eligible = boolean(
+        required(row, "eligible_for_common_measurement"),
+        "$.candidate.eligible_for_common_measurement",
+    )
+    checkpoint = None
+    if row.get("checkpoint") is not None and row.get("checkpoint_sha256") is not None:
+        checkpoint = _checked_file(
+            {"path": row["checkpoint"], "sha256": row["checkpoint_sha256"]},
+            base,
+            "$.candidate.checkpoint",
+        )
+    if eligible and checkpoint is None:
+        raise BusinessInputError(
+            "missing_field",
+            "$.candidate.checkpoint",
+            "eligible candidate requires actual checkpoint bytes",
+        )
+    return NativeCandidateEvidence(
+        name,
+        _checked_file(
+            required(row, "native_record"), base, "$.candidate.native_record"
+        ),
+        _checked_file(
+            row["native_verdict_record"], base, "$.candidate.native_verdict_record"
+        )
+        if row.get("native_verdict_record") is not None
+        else None,
+        checkpoint,
+        eligible,
+        tuple(
+            text(v, "$.candidate.native_artifact_problems[]")
+            for v in sequence(
+                required(row, "native_artifact_problems"),
+                "$.candidate.native_artifact_problems",
+            )
+        ),
+        row,
+    )
+
+
+def export_candidates(
+    deployment: Deployment, experiment: Path, capability: CodeCapability, output: Path
+) -> NativeCandidateExport:
+    """Export and bind native evidence, without running search or EDA."""
+    capability = code_capability(capability)
+    _export(deployment, experiment, capability, output)
+    origin, exported = read_document(output)
+    _, profile = read_document(experiment / "profile.json")
+    native_design = identifier(required(profile, "design"), "$.profile.design")
+    design_id = identifier(
+        profile.get("design_id", native_design), "$.profile.design_id"
+    )
+    design = deployment.design(design_id)
+    expected = design["nickname"] if capability == "dpl" else design["top"]
+    if (
+        exported.get("capability") != capability
+        or exported.get("design") != expected
+        or native_design != expected
+    ):
+        raise BusinessInputError(
+            "identity_mismatch",
+            "$.export.design",
+            "Native candidate export belongs to another design/campaign",
+        )
+    platform = case = round_id = None
+    if capability == "dpl":
+        platform = identifier(required(profile, "platform"), "$.profile.platform")
+        case = identifier(required(profile, "case"), "$.profile.case")
+        round_id = text(required(exported, "round_id"), "$.export.round_id")
         if (
-            leaf["request"]["operation"]
+            round_id != experiment.name
+            or exported.get("case") != case
+            or exported.get("platform") != platform
+            or platform != design["platform"]
+        ):
+            raise BusinessInputError(
+                "identity_mismatch",
+                "$.export.round_id",
+                "Native candidate export belongs to another design/campaign",
+            )
+    elif exported.get("design_id") != design_id:
+        raise BusinessInputError(
+            "identity_mismatch",
+            "$.export.design_id",
+            "Native candidate export belongs to another design/campaign",
+        )
+    binding = NativeCampaignBinding(
+        capability,
+        design_id,
+        native_design,
+        identifier(required(profile, "experiment_id"), "$.profile.experiment_id"),
+        path_value(
+            required(profile, "operations_root"),
+            experiment,
+            "$.profile.operations_root",
+        ),
+        platform,
+        case,
+        round_id,
+    )
+    candidates = tuple(
+        _candidate(v, experiment)
+        for v in sequence(required(exported, "candidates"), "$.export.candidates")
+    )
+    if len({v.candidate_id for v in candidates}) != len(candidates):
+        raise BusinessInputError(
+            "duplicate_candidate",
+            "$.export.candidates",
+            "candidate identities must be unique",
+        )
+    for candidate in candidates:
+        if (
+            candidate.eligible_for_common_measurement
+            and candidate.checkpoint is not None
+        ):
+            try:
+                candidate.checkpoint.path.relative_to(experiment.resolve())
+            except ValueError as error:
+                raise BusinessInputError(
+                    "identity_mismatch",
+                    "$.candidate.checkpoint",
+                    "checkpoint is outside the native experiment",
+                ) from error
+    return NativeCandidateExport(origin, binding, candidates, exported)
+
+
+def verify_candidate_producer(
+    client: KernelClient,
+    binding: NativeCampaignBinding,
+    candidate: NativeCandidateEvidence,
+    archive_root: Path,
+) -> VerifiedNativeProducer:
+    """Bind exact native bytes to successful public EF producer/artifact evidence."""
+    capability = code_capability(binding.capability)
+    checkpoint = candidate.checkpoint
+    if not candidate.eligible_for_common_measurement or checkpoint is None:
+        raise BusinessInputError(
+            "missing_field",
+            "$.candidate.checkpoint",
+            "eligible measured candidate required",
+        )
+    if file_ref(checkpoint.path) != checkpoint:
+        raise BusinessInputError(
+            "changed_input",
+            "$.candidate.checkpoint",
+            "Native candidate checkpoint changed",
+        )
+    matches: list[
+        tuple[
+            str,
+            str,
+            tuple[RegisteredFileRef, ...],
+            Literal["direct_artifact", "snapshot_member"],
+        ]
+    ] = []
+    for path in binding.operations_root.glob("*/leaf.json"):
+        _, leaf = read_document(path)
+        request = object_at(required(leaf, "request"), "$.leaf.request")
+        outputs = object_at(leaf.get("output_files", {}), "$.leaf.output_files")
+        if (
+            request.get("operation")
             != ("baseline" if capability == "dpl" else "physical")
-            or leaf.get("output_files", {}).get(str(odb)) != row["checkpoint_sha256"]
+            or outputs.get(str(checkpoint.path)) != checkpoint.sha256
             or leaf.get("exit_code", leaf.get("returncode")) != 0
             or leaf.get("timed_out")
         ):
             continue
-        saved = read(path.parent / "execution.json")["run"]
-        run = client.run(saved["run_id"])
+        _, execution = read_document(path.parent / "execution.json")
+        saved = object_at(required(execution, "run"), "$.execution.run")
+        rid = identifier(required(saved, "run_id"), "$.execution.run.run_id")
+        run = object_at(freeze(client.run(rid)), "$.registry.run")
         if (
-            run["status"] != "succeeded"
-            or run["project_id"]
+            run.get("status") != "succeeded"
+            or run.get("project_id")
             != {"dpl": "dplevolve-common-u3", "goal": "goalevolve-common-u4"}[
                 capability
             ]
-            or run["design_id"] != profile.get("design_id", profile["design"])
-            or run["experiment_id"] != profile["experiment_id"]
+            or run.get("design_id") != binding.design_id
+            or run.get("experiment_id") != binding.experiment_id
         ):
-            raise ValueError(
-                "Native candidate producer has wrong ownership or terminal status"
+            raise BusinessInputError(
+                "identity_mismatch",
+                "$.registry.run",
+                "Native candidate producer has wrong ownership or terminal status",
             )
-        artifacts = client.artifacts(run["run_id"])
+        artifacts = [
+            object_at(freeze(a), "$.registry.artifact") for a in client.artifacts(rid)
+        ]
         direct = [
             a
             for a in artifacts
-            if a["kind"] == "raw_design_database"
-            and a["store_key"].endswith("/" + odb.name)
-            and a["sha256"] == row["checkpoint_sha256"]
+            if a.get("kind") == "raw_design_database"
+            and text(
+                required(a, "store_key"), "$.registry.artifact.store_key"
+            ).endswith("/" + checkpoint.path.name)
+            and a.get("sha256") == checkpoint.sha256
         ]
-        if not direct:
-            snapshots = [a for a in artifacts if a["kind"] == "data_snapshot"]
+        method: Literal["direct_artifact", "snapshot_member"] = "direct_artifact"
+        if direct:
+            refs = tuple(
+                registered_ref(a, "$.registry.artifact", archive_root, rid)
+                for a in direct
+            )
+        else:
+            snapshots = [a for a in artifacts if a.get("kind") == "data_snapshot"]
             if len(snapshots) != 1:
-                raise ValueError("Native checkpoint has no registered EF bytes")
+                raise BusinessInputError(
+                    "missing_evidence",
+                    "$.registry.artifacts",
+                    "Native checkpoint has no registered EF bytes",
+                )
             snapshot = snapshots[0]
+            ref = registered_ref(snapshot, "$.registry.artifact", archive_root, rid)
             archive = path.parent / "evidence.zip"
             if not archive.exists():
                 archive_root.mkdir(parents=True, exist_ok=True)
-                archive = archive_root / (run["run_id"] + ".zip")
-                client.materialize_artifact(
-                    run["run_id"], snapshot["artifact_id"], str(archive)
+                archive = archive_root / (rid + ".zip")
+                client.materialize_artifact(rid, ref.artifact_id, str(archive))
+            if digest(archive) != ref.sha256:
+                raise BusinessInputError(
+                    "changed_input",
+                    "$.registry.snapshot",
+                    "Native EF snapshot content changed",
                 )
-            if digest(archive) != snapshot["sha256"]:
-                raise ValueError("Native EF snapshot content changed")
             with zipfile.ZipFile(archive) as bundle:
-                actual = json.loads(bundle.read("manifest.json"))["receipt"]
-                if actual != leaf:
-                    raise ValueError(
-                        "Native leaf differs from its registered EF receipt"
+                actual = object_at(
+                    freeze(json.loads(bundle.read("manifest.json"))),
+                    "$.snapshot.manifest",
+                )
+                if actual.get("receipt") != leaf:
+                    raise BusinessInputError(
+                        "identity_mismatch",
+                        "$.snapshot.receipt",
+                        "Native leaf differs from its registered EF receipt",
                     )
-                members = [
-                    name for name in bundle.namelist() if Path(name).name == odb.name
-                ]
                 if not any(
-                    hashlib.sha256(bundle.read(name)).hexdigest()
-                    == row["checkpoint_sha256"]
-                    for name in members
+                    hashlib.sha256(bundle.read(name)).hexdigest() == checkpoint.sha256
+                    for name in bundle.namelist()
+                    if Path(name).name == checkpoint.path.name
                 ):
-                    raise ValueError(
-                        "Registered EF snapshot lacks the exact checkpoint"
+                    raise BusinessInputError(
+                        "missing_evidence",
+                        "$.snapshot.checkpoint",
+                        "Registered EF snapshot lacks the exact checkpoint",
                     )
-        matches.append((run.get("ended_at", ""), run["run_id"]))
+            refs, method = (ref,), "snapshot_member"
+        matches.append(
+            (
+                text(run["ended_at"], "$.registry.run.ended_at")
+                if run.get("ended_at")
+                else "",
+                rid,
+                refs,
+                method,
+            )
+        )
     if not matches:
-        raise ValueError("Completed native checkpoint has no successful EF producer")
-    return max(matches)[1]
+        raise BusinessInputError(
+            "missing_evidence",
+            "$.candidate.producer",
+            "Completed native checkpoint has no successful EF producer",
+        )
+    _, rid, refs, method = max(matches, key=lambda r: (r[0], r[1]))
+    return VerifiedNativeProducer(rid, checkpoint, refs, method)
 
 
-def _metadata(index: Path) -> dict[str, Any]:
-    value = read(index)
-    return {
-        "inventory": reference(index),
-        "additional_results": value["additional_results"],
-        "candidate_counts": dict(
-            Counter(item["status"] for item in value["candidates"])
-        ),
-        "all_eligible_candidates_delivered": all(
-            item["status"] in {"completed", "already_delivered", "native_rejected"}
-            for item in value["candidates"]
-        ),
-        "interpretation": "Additional native completed checkpoints, original verdicts retained; Codex judges final feasibility. No source promotion or adoption.",
-    }
-
-
-def collect(
-    deployment: Deployment,
-    experiment: Path,
-    selected: dict[str, Any],
-    saved: dict[str, Any],
-    *,
-    output: Path | None = None,
-) -> dict[str, Any]:
-    from .candidates import deliver_candidates
-    from .delivery import checkpoint, finish
-
-    capability = read(experiment / "request.json")["capability"]
-    if capability == "goal-continuation":
-        capability = "goal"
-    pending_experiment = output if output is not None else experiment
-    output = output or experiment / "native-candidates"
-    output.mkdir(parents=True, exist_ok=True)
-    with business_lock(output):
-        manifest_path, index_path = output / "manifest.json", output / "inventory.json"
-        if manifest_path.exists():
-            manifest = read(manifest_path)
-            for ref in manifest["references"]:
-                if digest(Path(ref["path"])) != ref["sha256"]:
-                    raise ValueError(
-                        "Frozen native candidate evidence changed: " + ref["path"]
-                    )
-            if (
-                manifest["selected_producer"] != saved["producer"]
-                or manifest["design_id"] != saved["design_id"]
-                or manifest["selected_run_id"] != selected["run_id"]
-            ):
-                raise ValueError("Native candidate selection identity changed")
-        else:
-            exported_path = output / "native-export.json"
-            _export(deployment, experiment, capability, exported_path)
-            exported = read(exported_path)
-            profile = read(experiment / "profile.json")
-            design = deployment.design(saved["design_id"])
-            expected = design["nickname"] if capability == "dpl" else design["top"]
-            if (
-                exported["capability"] != capability
-                or exported["design"] != expected
-                or profile["design"] != expected
-                or (capability == "dpl" and exported["round_id"] != experiment.name)
-                or (
-                    capability == "dpl"
-                    and (
-                        exported["case"] != profile["case"]
-                        or exported["platform"] != design["platform"]
-                        or profile["platform"] != design["platform"]
-                    )
-                )
-                or (
-                    capability == "goal" and exported["design_id"] != saved["design_id"]
-                )
-            ):
-                raise ValueError(
-                    "Native candidate export belongs to another design/campaign"
-                )
-            refs = [
-                reference(experiment / "profile.json"),
-                reference(exported_path),
-                *[
-                    {"path": path, "sha256": sha}
-                    for path, sha in saved["input_hashes"].items()
-                ],
-            ]
-            candidates = []
-            client = Jobs(deployment, saved["design_id"], output).client
-            # Validate every candidate before any extra EDA, including producer
-            # ownership and registered bytes, rather than trusting local filenames.
-            for row in exported["candidates"]:
-                item = {"candidate": row, "status": "native_rejected"}
-                refs.append(row["native_record"])
-                if row.get("native_verdict_record"):
-                    refs.append(row["native_verdict_record"])
-                if row["eligible_for_common_measurement"]:
-                    odb = Path(row["checkpoint"]).resolve()
-                    odb.relative_to(experiment.resolve())
-                    if digest(odb) != row["checkpoint_sha256"]:
-                        raise ValueError("Native candidate checkpoint changed")
-                    if Path(row["candidate_id"]).name != row["candidate_id"]:
-                        raise ValueError(
-                            "Native candidate identity is not a single name"
-                        )
-                    refs.append(reference(odb))
-                    producer = _producer(
-                        client, profile, capability, row, output / "producer-evidence"
-                    )
-                    item.update(
-                        producer=producer,
-                        status=(
-                            "already_delivered"
-                            if producer == saved["producer"]
-                            and digest(odb) == digest(Path(saved["odb"]))
-                            else "prepared"
-                        ),
-                    )
-                candidates.append(item)
-            manifest = {
-                "capability": capability,
-                "design_id": saved["design_id"],
-                "selected_run_id": selected["run_id"],
-                "selected_producer": saved["producer"],
-                "references": refs,
-                "candidates": candidates,
-            }
-            for ref in refs:
-                if digest(Path(ref["path"])) != ref["sha256"]:
-                    raise ValueError(
-                        "Frozen native candidate evidence changed: " + ref["path"]
-                    )
-            write(manifest_path, manifest)
-        if index_path.exists() and read(index_path)["status"] == "completed":
-            return _metadata(index_path)
-        candidates, paths = manifest["candidates"], []
-        if index_path.exists():
-            previous = read(index_path)
-            if previous["manifest"] != reference(manifest_path):
-                raise ValueError("Native candidate manifest changed")
-            progress = {
-                item["candidate"]["candidate_id"]: item
-                for item in previous["candidates"]
-            }
-            for item in candidates:
-                if item["status"] == "prepared":
-                    old = progress[item["candidate"]["candidate_id"]]
-                    for key in (
-                        "status",
-                        "result",
-                        "pending_receipt",
-                        "error_type",
-                        "detail",
-                    ):
-                        if key in old:
-                            item[key] = old[key]
-        index = {
-            "status": "delivering",
-            "manifest": reference(manifest_path),
-            "candidates": candidates,
-            "native_promotion_changed": False,
-            "adopted": False,
-            "original_native_selection": saved["native_method"],
-        }
-        write(index_path, index)
-        for item in candidates:
-            if item["status"] in {"native_rejected", "already_delivered"}:
-                continue
-            if item["status"] == "delivery_failed":
-                continue
-            if item["status"] == "completed":
-                result_path = Path(item["result"]["path"])
-                if digest(result_path) != item["result"]["sha256"]:
-                    raise ValueError("Completed native candidate result changed")
-                paths.append(result_path)
-                continue
-            row = item["candidate"]
-            child = (
-                output / "candidates" / (experiment.name + "--" + row["candidate_id"])
-            )
-            child.mkdir(parents=True, exist_ok=True)
-            checkpoint(
-                child,
-                design_id=saved["design_id"],
-                odb=Path(row["checkpoint"]),
-                producer=item["producer"],
-                objective=Path(saved["objective"]),
-                pdk=Path(saved["pdk"]) if saved["pdk"] else None,
-                source=Path(saved["source"]) if saved["source"] else None,
-                native_method={
-                    "kind": "native-candidate",
-                    "capability": capability,
-                    "candidate": row,
-                    "origin_experiment": str(experiment),
-                    "native_promotion_changed": False,
-                },
-            )
-            try:
-                measured = finish(deployment, child)
-                if any(
-                    measured[key] != selected[key]
-                    for key in ("design_id", "objective_id", "condition_id")
-                ):
-                    raise ValueError(
-                        "Common candidate measurement changed design/objective/conditions"
-                    )
-            except WorkPending as error:
-                item.update(status="pending", pending_receipt=error.receipt)
-                index["status"] = "pending"
-                write(index_path, index)
-                raise pending(
-                    output / "lifecycle.json",
-                    phase="delivery",
-                    reason="native_candidate_delivery_pending",
-                    experiment=str(pending_experiment),
-                    origin_experiment=str(experiment),
-                    child_pending=error.receipt,
-                ) from error
-            except RuntimeError as error:
-                item.update(
-                    status="delivery_failed",
-                    error_type=type(error).__name__,
-                    detail=str(error),
-                )
-            else:
-                item.update(status="completed", result=reference(child / "result.json"))
-                item.pop("pending_receipt", None)
-                paths.append(child / "result.json")
-            write(index_path, index)
-        additional = None
-        if paths:
-            deliver_candidates(output, paths)
-            additional = reference(output / "result.json")
-        index.update(status="completed", additional_results=additional)
-        # The inventory never hashes the parent result, avoiding a circular
-        # reference when its immutable index is attached to that result.
-        write(index_path, index)
-        return _metadata(index_path)
-
-
-def maybe_collect(
-    deployment: Deployment,
-    experiment: Path,
-    result: dict[str, Any],
-    saved: dict[str, Any],
-) -> None:
-    request_path = experiment / "request.json"
-    if not request_path.exists() or saved["native_method"].get("kind") not in {
-        "native-search",
-        "native-timing-continuation",
-    }:
-        return
-    request = read(request_path)
-    if request.get("capability") != "goal-continuation" and (
-        request.get("capability") not in {"dpl", "goal"}
-        or request.get("operation") != "evolve"
+def _status(value: JSONValue) -> CandidateStatus:
+    if value not in (
+        "native_rejected",
+        "already_delivered",
+        "prepared",
+        "pending",
+        "delivery_failed",
+        "completed",
     ):
-        return
-    result["native_candidate_evidence"] = collect(deployment, experiment, result, saved)
+        raise BusinessInputError(
+            "invalid_state", "$.inventory.candidate.status", "unknown candidate status"
+        )
+    return value
+
+
+def summarize_inventory(index_path: Path) -> CandidateDeliverySummary:
+    """Validate frozen inventory references; no EDA or environment requalification."""
+    origin, value = read_document(index_path)
+    if value.get("status") != "completed":
+        raise BusinessInputError(
+            "invalid_state", "$.inventory.status", "completed inventory required"
+        )
+    manifest_ref = _checked_file(
+        required(value, "manifest"), index_path.parent, "$.inventory.manifest"
+    )
+    _, manifest = read_document(manifest_ref.path)
+    design = identifier(required(manifest, "design_id"), "$.manifest.design_id")
+    capability = code_capability(required(manifest, "capability"))
+    for ref in sequence(required(manifest, "references"), "$.manifest.references"):
+        _checked_file(ref, manifest_ref.path.parent, "$.manifest.references[]")
+    original = {}
+    for row in sequence(required(manifest, "candidates"), "$.manifest.candidates"):
+        entry = object_at(row, "$.manifest.candidates[]")
+        candidate = _candidate(required(entry, "candidate"), manifest_ref.path.parent)
+        if candidate.candidate_id in original:
+            raise BusinessInputError(
+                "duplicate_candidate", "$.manifest.candidates", "duplicate identity"
+            )
+        original[candidate.candidate_id] = (entry, candidate)
+    counts: Counter[CandidateStatus] = Counter()
+    completed: dict[Path, JSONObject] = {}
+    completed_refs: dict[Path, FileRef] = {}
+    completed_runs: set[str] = set()
+    seen: set[str] = set()
+    for item in sequence(required(value, "candidates"), "$.inventory.candidates"):
+        row = object_at(item, "$.inventory.candidates[]")
+        candidate = _candidate(required(row, "candidate"), index_path.parent)
+        pair = original.get(candidate.candidate_id)
+        if pair is None or candidate.candidate_id in seen:
+            raise BusinessInputError(
+                "identity_mismatch",
+                "$.inventory.candidate",
+                "inventory differs from manifest candidates",
+            )
+        saved, before = pair
+        if candidate.wire != before.wire or row.get("producer") != saved.get(
+            "producer"
+        ):
+            raise BusinessInputError(
+                "identity_mismatch",
+                "$.inventory.candidate",
+                "inventory changed frozen candidate/producer",
+            )
+        state = _status(required(row, "status"))
+        initial = _status(required(saved, "status"))
+        if (initial != "prepared" and state != initial) or (
+            initial == "prepared" and state in ("native_rejected", "already_delivered")
+        ):
+            raise BusinessInputError(
+                "invalid_state",
+                "$.inventory.candidate.status",
+                "candidate changed its eligibility/delivery identity",
+            )
+        seen.add(candidate.candidate_id)
+        counts[state] += 1
+        if state == "completed":
+            ref = _checked_file(
+                required(row, "result"),
+                index_path.parent,
+                "$.inventory.candidate.result",
+            )
+            _, result = read_document(ref.path)
+            if result.get("design_id") != design:
+                raise BusinessInputError(
+                    "identity_mismatch",
+                    "$.inventory.candidate.result.design_id",
+                    "completed result belongs to another design",
+                )
+            result_run = identifier(required(result, "run_id"), "$.result.run_id")
+            if result_run in completed_runs:
+                raise BusinessInputError(
+                    "duplicate_candidate",
+                    "$.result.run_id",
+                    "completed results share a measurement run",
+                )
+            completed_runs.add(result_run)
+            sha256(required(result, "objective_id"), "$.result.objective_id")
+            sha256(required(result, "condition_id"), "$.result.condition_id")
+            parse_metrics(required(result, "metrics"))
+            count(required(result, "route_drc"), "$.result.route_drc")
+            native = object_at(
+                required(result, "native_method"), "$.result.native_method"
+            )
+            if (
+                native.get("kind") != "native-candidate"
+                or native.get("capability") != capability
+                or native.get("candidate") != candidate.wire
+            ):
+                raise BusinessInputError(
+                    "identity_mismatch",
+                    "$.result.native_method",
+                    "result is not this frozen native candidate",
+                )
+            completed[ref.path], completed_refs[ref.path] = result, ref
+    if seen != set(original):
+        raise BusinessInputError(
+            "identity_mismatch",
+            "$.inventory.candidates",
+            "inventory omits manifest candidates",
+        )
+    additional = None
+    extra = required(value, "additional_results")
+    if extra is not None:
+        additional = _checked_file(
+            extra, index_path.parent, "$.inventory.additional_results"
+        )
+        _, collection = read_document(additional.path)
+        if (
+            collection.get("schema_version") != "chip-evolve.candidate-delivery.v1"
+            or collection.get("design_id") != design
+        ):
+            raise BusinessInputError(
+                "identity_mismatch",
+                "$.additional_results",
+                "collection differs from delivery manifest",
+            )
+        if (
+            not completed
+            or collection.get("selected_source") is not None
+            or collection.get("validation") is not None
+            or collection.get("adopted") is not False
+        ):
+            raise BusinessInputError(
+                "invalid_state",
+                "$.additional_results",
+                "additional collection cannot select or adopt",
+            )
+        actual: set[Path] = set()
+        for item in sequence(
+            required(collection, "candidate_results"),
+            "$.additional_results.candidate_results",
+        ):
+            summary = object_at(item, "$.additional_results.candidate")
+            path = path_value(
+                required(summary, "result"),
+                additional.path.parent,
+                "$.additional_results.candidate.result",
+            )
+            target = completed.get(path)
+            if (
+                target is None
+                or path in actual
+                or summary.get("sha256") != completed_refs[path].sha256
+            ):
+                raise BusinessInputError(
+                    "identity_mismatch",
+                    "$.additional_results.candidate",
+                    "collection differs from completed inventory",
+                )
+            if any(
+                collection.get(key) != target.get(key)
+                for key in ("objective_id", "condition_id")
+            ):
+                raise BusinessInputError(
+                    "identity_mismatch",
+                    "$.additional_results",
+                    "collection header differs from completed result",
+                )
+            for key in (
+                "run_id",
+                "design_id",
+                "objective_id",
+                "condition_id",
+                "metrics",
+            ):
+                if required(summary, key) != required(target, key):
+                    raise BusinessInputError(
+                        "identity_mismatch",
+                        "$.additional_results.candidate." + key,
+                        "summary differs from completed result",
+                    )
+            actual.add(path)
+        if actual != set(completed):
+            raise BusinessInputError(
+                "identity_mismatch",
+                "$.additional_results",
+                "collection omits completed results",
+            )
+    elif completed:
+        raise BusinessInputError(
+            "missing_evidence",
+            "$.inventory.additional_results",
+            "completed candidates need their delivered collection",
+        )
+    if file_ref(index_path) != origin or file_ref(manifest_ref.path) != manifest_ref:
+        raise BusinessInputError(
+            "changed_input",
+            "$.inventory",
+            "inventory/manifest changed while summarizing",
+        )
+    return CandidateDeliverySummary(
+        origin,
+        additional,
+        MappingProxyType(dict(counts)),
+        all(s in ("completed", "already_delivered", "native_rejected") for s in counts),
+        "Additional native completed checkpoints, original verdicts retained; Codex judges final feasibility. No source promotion or adoption.",
+    )

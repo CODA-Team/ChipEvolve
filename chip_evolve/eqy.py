@@ -10,18 +10,7 @@ from typing import Any
 from .config import read
 from .jobs import Jobs, digest
 from .physical import container
-
-
-def qualified_strategy(policy: dict[str, Any]) -> str:
-    strategy = policy.get("equivalence_strategy", "sat")
-    if strategy == "sat":
-        raise ValueError(
-            "Legacy EQY SAT failed the fixed-Liberty sequential negative control; "
-            "configure equivalence_strategy=abc-pdr and its pinned solver manifest"
-        )
-    if strategy != "abc-pdr":
-        raise ValueError("Unknown EQY strategy: " + str(strategy))
-    return strategy
+from .proof_policy import qualified_strategy as qualified_strategy
 
 
 def common_flop_states(

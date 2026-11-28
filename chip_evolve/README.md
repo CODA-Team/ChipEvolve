@@ -1,5 +1,13 @@
 # 单机业务入口
 
+阅读后端先看三个入口：`cli.py` 解析命令并建立类型请求，`commands.py` 管理实验事务，`professional.py` 校验和准备交接后派发专家。其余专业文件负责 Agent 适配、回放或恢复；目前不搬迁到四子包，未来 `workflow/` 仍沿用这三个阅读入口。
+
+Slice 4C 的 Goal 和 ECO 分别由 `goal.py`、`eco.py` 所有，`native.py` 仅显式重导出六个既有公共对象。四专家仍接收同一六参数 `SpecialistAdapter` 协议。`professional.inspect_inputs` 只读预检，`prepare_inputs` 物化事实并冻结交接，`dispatch_prepared` 只负责派发及原有超时取消。
+
+`code_evidence.py` 提供有类型的候选导出、生产者验证和库存汇总接口；`delivery.py` 在开始追加 EDA 前核验全部候选，再在同一个业务锁内恢复、执行和交付。损坏的 completed 清单引用直接拒绝，不修补历史文件。`flow_delivery.py` 统一成功/失败收集和配置恢复，独立交付锁遵循“原业务锁 → 交付锁”顺序，失败搜索的可交付证据仍为 `evidence_only`。
+
+本片工程证据见 `var/release/slice4c-20261128/SLICE4C_REPORT.md`。完整 Code 演化候选交付、Flow collector 的真实材料核验仍有待验证项；TUI/Web 与 Slice 4D 保持冻结，不能把目录整理或单条 ECO 实测等同于整个后端已成熟。
+
 A17将等待与失败分开：CLI退出3表示`pending`，原任务没有被取消；JSON给出阶段、原因、run/artifact及回执位置。先查看状态，再用原key恢复确定性交付，不新建实验去重跑已完成EDA。
 
 ```bash
@@ -55,9 +63,11 @@ A16：`python -m admin.freeze_formal_environment --config C --source R --qualifi
 | environment.py | 冻结实际工具/来源/专业增量，启动前核对资格 |
 | physical.py | 原 ORFS 基线、完整路由校准、共同测量及 DF 入库 |
 | clock.py | 将 OpenSTA 的明确 ps 约束绑定到原 Flow 时钟变量；保留匹配虚拟时钟和其他约束 |
-| professional.py | 原 Flow / DPL 控制器、真实 placement→CTS 交接及候选配置恢复 |
+| commands.py / professional.py | 实验事务、纯预检、事实与交接准备、四专家统一派发 |
+| flow.py / dpl.py | Flow / DPL 原生控制器适配与真实 placement→CTS 交接 |
+| flow_delivery.py | Flow 成功/失败终态核验、候选交付和原始配置恢复 |
 | flow_recipe.py | 固定现代物理来源、实际 Make 参数初始化、recipe 身份与下游继承 |
-| native.py | 原 Goal / ECO 控制器与其输入准备；DEF 保留原数据库精度 |
+| goal.py / eco.py / native.py | Goal、ECO 独立适配；native 仅保留公共同对象导入兼容；DEF 保留原数据库精度 |
 | diagnosis.py | 已有 Query 的 Codex hosted 调查、引用证据与专业上下文导出 |
 | selection.py | 保存 Codex 的采用理由、核查明确硬约束、保留合法 incumbent |
 | comparisons.py | 同方法复测及同条件事实差值；不生成新的综合得分 |

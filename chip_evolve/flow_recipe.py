@@ -12,7 +12,8 @@ from typing import Any
 from .clock import native_time_unit
 from .config import Deployment, read, write
 from .jobs import Jobs, digest
-from .physical import container, measure, publish
+from .runtime import container
+from .source_snapshot import freeze, inventory
 
 
 def require_make_paths(*paths: Path) -> None:
@@ -281,8 +282,6 @@ def prepare_native_source(
     deployment: Deployment, source_result: Path, experiment: Path
 ) -> Path:
     """Overlay only native control code, preserving the pinned physical flow."""
-    from .controller import freeze, inventory
-
     binding = source_binding(source_result)
     design = deployment.design(binding["design_id"])
     unit = "ps" if design.get("platform", "asap7") == "asap7" else "ns"
@@ -339,96 +338,6 @@ def prepare_native_source(
     return source
 
 
-def qualify_prepared_recipe(
-    deployment: Deployment, experiment: Path, *, seconds: int = 3600
-) -> dict[str, Any]:
-    """Run the unchanged physical recipe; this does not qualify native knobs."""
-    import zipfile
-
-    from .flow import tool_profile
-
-    recipe = read(experiment / "recipe.json")
-    reference = read(recipe["source_result"])
-    source = Path(recipe["source"])
-    config = Path(recipe["config_path"])
-    if digest(config) != recipe["resolved_config_sha256"]:
-        raise ValueError("Prepared source configuration changed")
-    jobs = Jobs(deployment, recipe["design_id"], experiment)
-    profile = tool_profile(deployment, source, experiment)
-    parent = recipe["physical_run_id"]
-    checkpoint: Path | None = None
-    objective = Path(reference["objective"])
-    record: dict[str, Any] = {}
-    for stage in ("place", "cts", "route_finish"):
-        inputs = {
-            "adapter": "a2_stage",
-            "stage": stage,
-            "threads": 8,
-            "profile_path": "inputs/profile.json",
-            "config_path": "inputs/config.mk",
-            "sdc_path": "inputs/design.sdc",
-        }
-        staged = [
-            {"source": str(p), "destination": "inputs/" + name}
-            for p, name in (
-                (profile, "profile.json"),
-                (config, "config.mk"),
-                (source / "flow/source-bindings/design.sdc", "design.sdc"),
-            )
-        ]
-        if checkpoint:
-            inputs["checkpoint_path"] = "inputs/checkpoint.zip"
-            staged.append(
-                {"source": str(checkpoint), "destination": "inputs/checkpoint.zip"}
-            )
-        record = jobs.submit(
-            stage,
-            inputs,
-            staged,
-            parent=parent,
-            objective=objective,
-            seconds=seconds,
-            memory_gib=deployment.design(recipe["design_id"])
-            .get("orfs_execution", {})
-            .get("memory_gib", 24),
-        )
-        checkpoint = experiment / (stage + ".zip")
-        jobs.materialize(record, "flow_archive", checkpoint)
-        parent = record["run"]["run_id"]
-    files = {}
-    for suffix, kind in (("odb", "raw_design_database"), ("spef", "raw_parasitics")):
-        path = experiment / ("6_final." + suffix)
-        jobs.materialize(record, kind, path, suffix="/6_final." + suffix)
-        files[suffix] = path
-    measured = measure(
-        jobs,
-        "common",
-        files["odb"],
-        files["spef"],
-        Path(deployment.design(recipe["design_id"])["sdc"]),
-        parent,
-        objective,
-    )
-    assert checkpoint is not None
-    with zipfile.ZipFile(checkpoint) as archive:
-        route = json.loads(archive.read("flow/logs/5_2_route.json"))
-    measured.update(
-        route_drc=route["detailedroute__route__drc_errors"],
-        flow_archive=str(checkpoint),
-        flow_recipe=str(experiment / "recipe.json"),
-        native_config=str(config),
-        native_flow_dir=str(source / "flow"),
-        native_method={
-            "kind": "unchanged-source-physical-qualification",
-            "source_run_id": recipe["source_run_id"],
-            "native_search_executed": False,
-        },
-    )
-    result = publish(jobs, measured)
-    write(experiment / "result.json", result)
-    return result
-
-
 def inherit_prepared_source(frame: dict[str, Any], experiment: Path) -> Path:
     """Continue the source physical scripts instead of the global legacy tree."""
     recipe = read(frame["flow_recipe"])
@@ -475,3 +384,62 @@ def inherit_prepared_source(frame: dict[str, Any], experiment: Path) -> Path:
         },
     )
     return target
+
+
+def flow_source(deployment: Deployment, experiment: Path, *, design_id: str) -> Path:
+    source = experiment / "source"
+    shutil.copytree(
+        deployment.value["flow_template"],
+        source,
+        ignore=shutil.ignore_patterns(
+            ".git",
+            ".venv",
+            "results",
+            "reports",
+            "logs",
+            "objects",
+            "backup_dir",
+            "__pycache__",
+            "tmp",
+        ),
+    )
+    formal = Path(deployment.value["professional"]["flow"]["source"])
+    for file in (formal / "flow").glob("*.py"):
+        shutil.copyfile(file, source / "flow" / file.name)
+    for name in ("eval_tns.sh", "eval_tns.tcl", "maindriver.sh"):
+        shutil.copyfile(formal / "flow" / name, source / "flow" / name)
+    shutil.copyfile(formal / "run.sh", source / "run.sh")
+    design = deployment.design(design_id)
+    for library in design["libraries"]:
+        target = (
+            source
+            / "flow/platforms"
+            / design["platform"]
+            / "lib/NLDM"
+            / Path(library["path"]).name
+        )
+        shutil.copyfile(library["path"], target)
+    config = source / "flow" / design["orfs_config"]
+    overrides = design.get("baseline_overrides", "")
+    for dependency in design.get("flow_dependencies", []):
+        target = source / "flow/source-bindings" / dependency["destination"]
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(dependency["source"], target)
+        overrides = overrides.replace("/work/" + dependency["destination"], str(target))
+    with config.open("a") as stream:
+        stream.write("\n" + overrides)
+    return source
+
+
+def tool_profile(deployment: Deployment, source: Path, experiment: Path) -> Path:
+    profile = read(deployment.value["flow_tool_profile"])
+    profile["flow_dir"] = str(source / "flow")
+    profile["makefile_sha256"] = digest(source / "flow/Makefile")
+    evaluator = source / "flow/eval_tns.tcl"
+    if evaluator.is_file():
+        profile["eval_tns_sha256"] = digest(evaluator)
+    else:
+        profile.pop("eval_tns_sha256", None)
+    path = experiment / "tool-profile.json"
+    write(path, profile)
+    return path

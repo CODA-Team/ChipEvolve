@@ -10,6 +10,9 @@ from pathlib import Path
 from typing import Any
 
 
+from .config import write
+
+
 def _identity(pid: int) -> dict[str, Any] | None:
     path = Path("/proc") / str(pid)
     try:
@@ -83,3 +86,33 @@ def stop(process: subprocess.Popen[Any]) -> dict[str, Any]:
         "processes": owned,
         "scope": "Owned native frontend descendants; independent EF processes are outside this tree",
     }
+
+
+def invoke(
+    command: list[str], source: Path, env: dict[str, str], folder: Path, seconds: int
+) -> None:
+    timeout = float(seconds)
+    if "EDA_PLATFORM_DEADLINE_EPOCH" in env:
+        timeout = min(timeout, float(env["EDA_PLATFORM_DEADLINE_EPOCH"]) - time.time())
+        if timeout <= 0:
+            raise subprocess.TimeoutExpired(command, seconds)
+    with (folder / "controller.log").open("x") as log:
+        process = subprocess.Popen(
+            command,
+            cwd=source,
+            env=env,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+        try:
+            code = process.wait(timeout=timeout)
+        except (subprocess.TimeoutExpired, KeyboardInterrupt) as error:
+            cleanup = stop(process)
+            cleanup["reason"] = type(error).__name__
+            write(folder / "native-frontend-cleanup.json", cleanup)
+            raise
+    if code:
+        raise RuntimeError(
+            "Native professional controller failed; evidence retained at " + str(folder)
+        )

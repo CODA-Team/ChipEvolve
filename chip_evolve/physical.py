@@ -4,14 +4,10 @@ from __future__ import annotations
 
 import json
 import re
-import urllib.error
 import zipfile
-from datetime import UTC, datetime
-from http.client import HTTPException
 from pathlib import Path
 from typing import Any
 
-from eda_ai_client import EdaAiClient, EdaAiError
 from eda_toolkits.objectives import (
     SCHEMA,
     condition_id,
@@ -19,13 +15,22 @@ from eda_toolkits.objectives import (
     verify_conditions,
 )
 
+from .artifact_inputs import (
+    flatten_archive,
+    placement_archive,
+    registered_archive,
+    verify_stage_archive,
+)
 from .config import Deployment, read, write
+from .design_facts import publish as publish
+from .flow_recipe import (
+    flow_source,
+    tool_profile,
+    require_make_paths,
+    inherit_prepared_source,
+)
+from .runtime import container as container, now as now
 from .jobs import Jobs, digest
-from .lifecycle import pending
-
-
-def now() -> str:
-    return datetime.now(UTC).isoformat()
 
 
 def verify_measurement_conditions(
@@ -189,14 +194,6 @@ def qualify(
     elif preserve_global_route:
         measured["qualification"]["routing_action"] = "consumed_native_global_route"
     return publish(jobs, measured, modes=fact_modes)
-
-
-def container(deployment: Deployment, command: list[str]) -> list[str]:
-    runtime = deployment.value["runtime"]
-    result = [runtime["executable"], "exec", "--cleanenv", "--no-home"]
-    for path in runtime["bind_roots"]:
-        result += ["--bind", path + ":" + path]
-    return [*result, runtime["image"], *command]
 
 
 def baseline(
@@ -517,163 +514,123 @@ def measure(
     return measured
 
 
-def publish(
+def resume_layout(
     jobs: Jobs,
-    measured: dict[str, Any],
+    placement: Path,
+    frame: dict[str, Any],
+    objective: Path,
+    producer: str,
     *,
-    result_path: Path | None = None,
-    modes: tuple[str, ...] = ("opendb", "orfs", "opensta"),
+    fact_modes: tuple[str, ...] = ("opendb", "orfs", "opensta"),
 ) -> dict[str, Any]:
-    from .delivery import import_snapshot
-
-    snapshot_ids = dict(measured.get("snapshot_ids", {}))
-    exports = dict(measured.get("exports", {}))
     deployment = jobs.deployment
-    export_seconds = (
-        deployment.design(jobs.design_id)
-        .get("fact_execution", {})
-        .get("timeout_seconds", 300)
-    )
-    memory_gib = (
-        deployment.design(jobs.design_id).get("fact_execution", {}).get("memory_gib", 8)
-    )
-    for mode, field, source in (
-        ("opendb", "odb_path", measured["files"]["odb"]),
-        ("orfs", "metadata_path", measured["files"]["metrics"]),
-        ("opensta", "odb_path", measured["files"]["odb"]),
-    ):
-        if mode not in modes:
-            continue
-        snapshot = "local-" + measured["run_id"] + "-" + mode
-        files = {name: Path(value) for name, value in measured["files"].items()}
-        inputs = {
-            "adapter": mode,
-            field: "inputs/" + Path(source).name,
-            "snapshot_id": snapshot,
-            "design_id": jobs.design_id,
-            "revision_id": jobs.experiment.name,
-            "run_id": measured["run_id"],
-            "stage": "finish" if mode != "opensta" else "timing",
-            "created_at": now(),
-            "threads": 2,
-            "openroad_bin": deployment.value["openroad_launcher"],
-            "native_extra_paths": ["inputs/" + p.name for p in files.values()],
-        }
-        if mode == "opensta":
-            inputs.update(
-                analysis="post_route",
-                corner=measured.get("conditions", {}).get("corner"),
-                # OpenSTA report_checks JSON emits SI values, independently
-                # of the Tcl display/metric time unit selected by the caller.
-                unit="s",
-                sdc_path="inputs/final.sdc",
-                spef_path="inputs/" + files["spef"].name,
-                liberty_paths=[
-                    "inputs/lib/" + str(i) + "-" + Path(row["path"]).name
-                    for i, row in enumerate(
-                        deployment.design(jobs.design_id)["libraries"]
-                    )
-                ],
-                include_hold=True,
-            )
-        staged = [
-            {"source": str(p), "destination": "inputs/" + p.name}
-            for p in files.values()
-        ]
-        if mode == "opensta":
-            staged += [
-                {"source": row["path"], "destination": inputs["liberty_paths"][i]}
-                for i, row in enumerate(deployment.design(jobs.design_id)["libraries"])
-            ]
-        key = "publish-v3-" + measured["run_id"][-8:] + "-" + mode
-        if export_seconds != 300:
-            key += "-t" + str(export_seconds)
-        if memory_gib != 8:
-            key += "-m" + str(memory_gib)
-        saved = jobs.experiment / "jobs" / key / "task.json"
-        if saved.exists():
-            prior = read(saved)["inputs"]
-            inputs["created_at"] = prior["created_at"]
-            if mode == "opensta":
-                # Resume the original immutable export. Legacy context remains
-                # unknown; a supplemental export needs its own task/snapshot.
-                for name in ("analysis", "corner", "unit"):
-                    if name not in prior:
-                        inputs.pop(name, None)
-        record = jobs.submit(
-            key,
-            inputs,
-            staged,
-            seconds=export_seconds,
-            cpu=2,
-            memory_gib=memory_gib,
-            parent=measured["run_id"],
-            analysis_parent=measured["run_id"],
-            objective=Path(measured["objective"]),
+    design = deployment.design(jobs.design_id)
+    require_make_paths(jobs.experiment)
+    archive_path = registered_archive(jobs, frame)["path"]
+    flat = jobs.experiment / "source-checkpoint.zip"
+    if not flat.exists():
+        flatten_archive(Path(archive_path), flat)
+    source = jobs.experiment / "source"
+    if not source.exists():
+        if frame.get("flow_recipe"):
+            source = inherit_prepared_source(frame, jobs.experiment)
+        else:
+            source = flow_source(deployment, jobs.experiment, design_id=jobs.design_id)
+    profile = tool_profile(deployment, source, jobs.experiment)
+    config = jobs.experiment / "resume.mk"
+    if frame.get("native_config"):
+        config.write_text(
+            Path(frame["native_config"])
+            .read_text()
+            .replace(frame["native_flow_dir"], str(source / "flow"))
         )
-        artifact = next(a for a in record["artifacts"] if a["kind"] == "data_snapshot")
-        imported = import_snapshot(
-            jobs,
-            record["run"]["run_id"],
-            artifact["artifact_id"],
-            snapshot,
-            measured["run_id"],
-        )
-        snapshot_ids[mode], exports[mode] = (
-            snapshot,
-            {"execution": record, "import": imported},
-        )
-    data = EdaAiClient(
-        data_url=deployment.value["data_url"], kernel_url=deployment.value["kernel_url"]
-    )
-    try:
-        facts = data.get_metrics(snapshot_id=snapshot_ids["orfs"])
-    except (EdaAiError, OSError, HTTPException) as error:
-        if isinstance(error, EdaAiError):
-            if error.status is not None:
-                if error.status < 500:
-                    raise
-            elif not isinstance(error.__cause__, (OSError, HTTPException)):
-                raise
-        if isinstance(error, urllib.error.HTTPError) and error.code < 500:
-            raise
-        raise pending(
-            jobs.experiment / "published-facts-lifecycle.json",
-            phase="delivery",
-            reason="published_facts_read_unavailable",
-            experiment=str(jobs.experiment),
-            run_id=measured["run_id"],
-            snapshot_ids=snapshot_ids,
-            detail=str(error),
-        ) from error
-    if facts["scope"]["design_id"] != jobs.design_id:
-        raise ValueError("Returned facts belong to another design")
-    frame = {
-        **measured,
-        "snapshot_ids": snapshot_ids,
-        "exports": exports,
-        "native_inputs": str(jobs.experiment / "native-inputs.json")
-        if (jobs.experiment / "native-inputs.json").exists()
-        else None,
-    }
-    if "opendb" not in snapshot_ids:
-        frame["deferred_facts"] = {
-            "opendb": {"publication_root": str(jobs.experiment.resolve())}
-        }
     else:
-        frame.pop("deferred_facts", None)
-    destination = result_path or jobs.experiment / "result.json"
-    write(destination, frame)
-    write(destination.parent / "queried-facts.json", facts)
-    lifecycle = jobs.experiment / "published-facts-lifecycle.json"
-    if lifecycle.exists():
-        write(
-            lifecycle,
+        config.write_text(
+            "include " + str(source / "flow" / design["orfs_config"]) + "\n"
+        )
+    stage_sdc = Path(design["sdc"])
+    if frame.get("flow_recipe"):
+        # The native stage constraint belongs to the actual physical parent.
+        # Replacing it with the global measurement SDC can undo the tuned clock
+        # and change the units consumed by modern physical scripts.
+        stage_sdc = jobs.experiment / "placement-source.sdc"
+        with zipfile.ZipFile(flat) as bundle:
+            stage_sdc.write_bytes(bundle.read("flow/results/3_place.sdc"))
+    checkpoint = jobs.experiment / "placement.zip"
+    if not checkpoint.exists():
+        placement_archive(flat, placement, checkpoint, stage_sdc)
+    sha = digest(placement)
+    parent = producer
+    record = None
+    resources = design.get("orfs_execution", {})
+    threads = resources.get("cpu_cores", 8)
+    for phase in ("cts", "route_finish"):
+        record = jobs.submit(
+            phase,
             {
-                "phase": "delivery",
-                "status": "completed",
-                "run_id": measured["run_id"],
-                "snapshot_ids": snapshot_ids,
+                "adapter": "a2_stage",
+                "stage": phase,
+                "threads": threads,
+                "profile_path": "inputs/profile.json",
+                "config_path": "inputs/config.mk",
+                "sdc_path": "inputs/design.sdc",
+                "checkpoint_path": "inputs/checkpoint.zip",
+            },
+            [
+                {"source": str(p), "destination": "inputs/" + name}
+                for p, name in [
+                    (profile, "profile.json"),
+                    (config, "config.mk"),
+                    (stage_sdc, "design.sdc"),
+                    (checkpoint, "checkpoint.zip"),
+                ]
+            ],
+            parent=parent,
+            objective=objective,
+            cpu=threads,
+            memory_gib=resources.get("memory_gib", 24),
+        )
+        checkpoint = jobs.experiment / (phase + ".zip")
+        jobs.materialize(record, "flow_archive", checkpoint)
+        consumed = verify_stage_archive(checkpoint, sha, phase)
+        write(
+            jobs.experiment / (phase + "-consumption.json"),
+            {
+                "run_id": record["run"]["run_id"],
+                "placement_sha256": sha,
+                "read_db": consumed,
             },
         )
-    return frame
+        parent = record["run"]["run_id"]
+    assert record is not None
+    files = {}
+    for suffix, kind in {
+        "odb": "raw_design_database",
+        "spef": "raw_parasitics",
+    }.items():
+        file = jobs.experiment / ("6_final." + suffix)
+        jobs.materialize(record, kind, file, suffix="/6_final." + suffix)
+        files[suffix] = file
+    measured = measure(
+        jobs,
+        "common",
+        files["odb"],
+        files["spef"],
+        Path(design["sdc"]),
+        parent,
+        objective,
+    )
+    with zipfile.ZipFile(checkpoint) as bundle:
+        route = json.loads(bundle.read("flow/logs/5_2_route.json"))
+    measured.update(
+        route_drc=route["detailedroute__route__drc_errors"],
+        flow_archive=str(checkpoint),
+    )
+    if frame.get("flow_recipe"):
+        measured.update(
+            flow_recipe=frame["flow_recipe"],
+            native_config=str(config),
+            native_flow_dir=str(source / "flow"),
+            placement_source_sdc_sha256=digest(stage_sdc),
+        )
+    return publish(jobs, measured, modes=fact_modes)
